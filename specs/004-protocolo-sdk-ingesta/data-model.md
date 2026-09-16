@@ -22,15 +22,15 @@ pura del dominio.
 Unión discriminada por `type` con exactamente los 12 tipos de 03 §4.1 (ver
 [contracts/components/schemas/Event.yaml](contracts/components/schemas/Event.yaml)). Comunes:
 
-| Campo        | Tipo                 | Regla                                                                                           |
-| ------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `type`       | literal por rama     | discriminador; valor de cable en `snake_case`                                                   |
-| `eventId`    | `EventId`            | `^[A-Za-z0-9_-]{8,64}$`; lo genera el SDK; único por merchant (deduplicación)                   |
-| `sessionId`  | `SessionId`          | mismo patrón; todos los eventos de un lote comparten uno                                        |
-| `visitorId`  | `VisitorId`          | mismo patrón; seudónimo; todos los eventos de un lote comparten uno                             |
-| `occurredAt` | `Instant` (ms epoch) | `now - 24h ≤ occurredAt ≤ now + 5min` (invariante `event-timestamp-out-of-range`)               |
-| `page`       | `PageContext`        | `pageType` obligatorio ∈ product, listing, cart, checkout, other; resto opcional (lista blanca) |
-| `device`     | `DeviceClass`        | ∈ desktop, mobile, tablet                                                                       |
+| Campo        | Tipo             | Regla                                                                                           |
+| ------------ | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `type`       | literal por rama | discriminador; valor de cable en `snake_case`                                                   |
+| `eventId`    | `EventId`        | `^[A-Za-z0-9_-]{8,64}$`; lo genera el SDK; único por merchant (deduplicación)                   |
+| `sessionId`  | `SessionId`      | mismo patrón; todos los eventos de un lote comparten uno                                        |
+| `visitorId`  | `VisitorId`      | mismo patrón; seudónimo; todos los eventos de un lote comparten uno                             |
+| `occurredAt` | `Date`           | `now - 24h ≤ occurredAt ≤ now + 5min` (invariante `event-timestamp-out-of-range`)               |
+| `page`       | `PageContext`    | `pageType` obligatorio ∈ product, listing, cart, checkout, other; resto opcional (lista blanca) |
+| `device`     | `DeviceClass`    | ∈ desktop, mobile, tablet                                                                       |
 
 Atributos propios por tipo (todos obligatorios en su rama): `size_selector_interacted.size`
 (≤ 32), `variant_selected.selectedVariantId` (≤ 128), `photo_interacted.interaction` ∈ zoom,
@@ -70,7 +70,7 @@ reporta (`EventResult.status = duplicate`) y se prueba como idempotencia.
 | `merchantId`   | `MerchantId`               | del security handler; no viaja en la respuesta                          |
 | `sessionId`    | `SessionId`                | del lote                                                                |
 | `visitorId`    | `VisitorId`                | del lote                                                                |
-| `decidedAt`    | `Instant`                  | `clock.now()`                                                           |
+| `decidedAt`    | `Date`                     | `clock.now()`                                                           |
 | `outcome`      | `"NO_OP"` \| `"INTERVENE"` | en esta feature siempre `NO_OP`; `INTERVENE` sólo se inyecta en pruebas |
 | `reason`       | `NoOpReason` (slug)        | del catálogo `contracts/no-op-reasons.yaml`; string con patrón, no enum |
 | `intervention` | `Intervention?`            | `{ messageVersionId, anchor }`; PROPUESTO; ausente cuando `NO_OP`       |
@@ -89,7 +89,7 @@ Puerto `DecisionLedger`: `record(decision)`, `find(merchantId, decisionId) → D
 | `decisionId` | `DecisionId` | debe existir para el merchant y ser `INTERVENE` |
 | `sessionId`  | `SessionId`  | del request; debe coincidir con la decisión     |
 | `visitorId`  | `VisitorId`  | del request; debe coincidir con la decisión     |
-| `exposedAt`  | `Instant`    | del navegador                                   |
+| `exposedAt`  | `Date`       | del navegador                                   |
 | `anchor`     | `Anchor`     | ∈ size_selector, price, cta, policies           |
 | `merchantId` | `MerchantId` | del security handler                            |
 

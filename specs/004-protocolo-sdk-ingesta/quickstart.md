@@ -82,6 +82,15 @@ npm run test:contract           # Schemathesis sobre getHealth, ingestEvents y c
 
 ## Estado (histórico, fechado)
 
-| Fecha      | Estado                                                  |
-| ---------- | ------------------------------------------------------- |
-| 2026-09-16 | Plan aprobado; diseño del contrato validado; sin código |
+| Fecha      | Elemento                                                          | Estado         | Evidencia                                                                                                                     |
+| ---------- | ----------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-16 | Plan aprobado; diseño del contrato validado                       | —              | `specs/004-protocolo-sdk-ingesta/contracts/` pasa Redocly + Spectral + bundle + tipos                                         |
+| 2026-09-16 | US1 anillos, módulos, composición tipada                          | BUILT / TESTED | `npm run arch` 0 violaciones; `tests/architecture` (13 reglas con fixture); `tests/integration/bootstrap.test.ts`             |
+| 2026-09-16 | US5 credencial de ingesta y CORS por merchant                     | BUILT / TESTED | `tests/integration/ingest-key.test.ts`, `cors.test.ts`; `[invariant:origin-not-allowed]`                                      |
+| 2026-09-16 | US2 ingesta deduplicada y validada                                | BUILT / TESTED | `tests/integration/ingest-events.test.ts` (18 casos), `tests/unit/domain/ingestion`, `logging-privacy.test.ts`                |
+| 2026-09-16 | US3 decisión NO_OP inline con motivo                              | BUILT / TESTED | `tests/unit/domain/ledger/decision.test.ts`, `no-op-reasons.test.ts`; protocolo `PROPUESTO` para el SDK                       |
+| 2026-09-16 | US4 confirmación de exposición                                    | BUILT / TESTED | `tests/integration/confirm-exposure.test.ts`; `[invariant:exposure-decision-unknown]`, `[invariant:exposure-of-no-op]`        |
+| 2026-09-16 | Aislamiento entre merchants (FR-050)                              | TESTED         | `tests/integration/isolation.test.ts` (dedup, decisiones, exposiciones, orígenes, credenciales)                               |
+| 2026-09-16 | Latencia de ingesta (SC-003)                                      | TESTED         | 200 lotes × 20 eventos vía `inject`: p50 = 0,55 ms, p95 = 0,87 ms, máx 1,83 ms (Windows, perfil memoria)                      |
+| 2026-09-16 | Schemathesis sobre `getHealth`, `ingestEvents`, `confirmExposure` | TESTED         | `npm run test:contract`: 1685 casos generados, 0 fallas                                                                       |
+| 2026-09-16 | Hallazgos corregidos durante la implementación                    | —              | `discriminator.mapping` vs Ajv/openapi-typescript (R-05); `type: object` en `Event` (Schemathesis); mapa `ingestion → ledger` |

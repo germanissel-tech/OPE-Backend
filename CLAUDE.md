@@ -20,16 +20,21 @@ Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
 Dentro de una feature que toca HTTP, el orden es:
 
 1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`). La raíz `openapi.yaml` no
-   declara `components`: cada archivo de `components/` se referencia por ruta relativa desde
-   donde se usa y el bundle lo promueve a `#/components/<tipo>/<NombreDeArchivo>`.
+   declara `components` (salvo `securitySchemes`, que `security` referencia por nombre): cada
+   archivo de `components/` se referencia por ruta relativa desde donde se usa y el bundle lo
+   promueve a `#/components/<tipo>/<NombreDeArchivo>`.
 2. `npm run contract:check` en verde (lint, bundle, compatibilidad contra `main`, drift de
    tipos). Si agrega una regla nueva al ruleset, agregar su fixture en
    `tests/contract-rules/fixtures/` (la prueba falla si falta).
 3. Regenerar tipos (`npm run contract:types`). **Nunca editar lo generado a mano.**
-4. Escribir el handler en `src/handlers/<operacion>.ts` tipado con
-   `OperationHandler<"<operationId>">` y registrarlo en `src/main.ts` (único composition root).
-   El servidor rutea por `operationId`; no hay otro mecanismo de rutas. La lógica va en
-   `src/domain/`; el handler sólo traduce DTO ↔ dominio.
+4. Reglas puras en `src/domain/<módulo>/`, caso de uso y puertos en
+   `src/application/<módulo>/`, controller en
+   `src/interface-adapters/http/controllers/<módulo>/<operacion>.ts` tipado con
+   `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ dominio; lee el merchant con
+   `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
+   cableado en `src/composition/` (puerto en `ports.ts`, perfil en `profiles/memory.ts`, caso
+   de uso en `use-cases.ts`, controller en `bootstrap.ts`). El servidor rutea por
+   `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run lint && npm run typecheck && npm run arch && npm test && npm run test:contract`
    en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
    corre CI.
@@ -46,7 +51,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                     |
 | `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                               |
 | `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                         |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/generated/api.d.ts` / falla si está desactualizado                                                 |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                         |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                           |
 | `npm run contract:mock`                           | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato                                |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                         |
@@ -64,15 +69,31 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 
 Los cuatro `check:*` corren dentro de `contract:check`.
 
-### Capas (ADR-006, verificado por `npm run arch`)
+### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
-| Capa                | Qué va ahí                                                                                               | Puede importar de                                             |
-| ------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `src/domain/`       | autoridades y valores puros; una carpeta por autoridad                                                   | sólo `domain/`. **Nada de npm ni de Node, ni tipos**          |
-| `src/ports/`        | interfaces que el dominio y los handlers necesitan (`Clock`, repositorios, plataforma)                   | `domain/`                                                     |
-| `src/adapters/<x>/` | implementaciones: `http` (Fastify + openapi-backend), `clock`, futuros `postgres`, `redis`, `platform-*` | `ports/`, `domain/`, `generated/`, npm; **no** otro adaptador |
-| `src/handlers/`     | un archivo por `operationId`; traduce DTO generado ↔ dominio; recibe puertos                             | `domain/`, `ports/`, `generated/`                             |
-| `src/main.ts`       | composition root: instancia adaptadores y cablea handlers                                                | todo; nadie lo importa                                        |
+`src/` contiene `main.ts`, `composition/` y cuatro anillos; nada más. Dependencia sólo hacia
+adentro:
+
+| Anillo                    | Qué va ahí                                                                                             | Puede importar de                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `src/domain/`             | reglas y valores puros, por módulo                                                                     | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                  |
+| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                             | `domain/`, `application/`. Tampoco npm ni Node                                                        |
+| `src/interface-adapters/` | `http/` (controllers, security, tipos generados, cliente) y `gateways/<módulo>/` (implementan puertos) | `application/`, `domain/`, npm. Un gateway no importa otro gateway; un controller no importa gateways |
+| `src/infrastructure/`     | frameworks y drivers: Fastify + openapi-backend, CORS, logging                                         | todo menos `composition/` y `main.ts`                                                                 |
+| `src/composition/`        | `Ports` (contenedor tipado), perfiles, casos de uso, `bootstrap()`                                     | todo; sólo `main.ts` y las pruebas lo importan                                                        |
+| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
+
+**Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
+`ledger`, `ingestion` (los demás cuando llegue su feature). Cada módulo expone su API pública
+en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
+contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
+agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
+
+**Composición** (DI manual, sin contenedor): `interface Ports` en `src/composition/ports.ts`;
+un puerto nuevo sin proveer en el perfil no compila. `bootstrap(config, { ports?, handlers?,
+logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` de
+`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants de prueba por
+`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; con `OPE_MOCK=1` hay uno por defecto.
 
 ### Tipado (ADR-011, ADR-012; verificado por `lint` y `typecheck`)
 
@@ -95,7 +116,17 @@ Los cuatro `check:*` corren dentro de `contract:check`.
   valida Redocly. Detalle en `specs/001-api-contract-toolchain/research.md` (R-02).
 - Lista de datos personales prohibidos: **sólo** `contracts/rules/pii-denylist.json`.
 - Catálogo de tipos de error: `contracts/problem-types.yaml` (`urn:ope:problem:<slug>`),
-  replicado en `src/adapters/http/problem-details.ts` y verificado por prueba.
+  replicado en `src/interface-adapters/http/problem-details.ts` y verificado por prueba.
+  Catálogo de motivos de `NO_OP`: `contracts/no-op-reasons.yaml`, replicado en
+  `src/domain/ingestion/no-op-reasons.ts` (string con patrón, no enum: ampliar es compatible).
+- Uniones discriminadas (`Event`): `type: object` + `oneOf` + `discriminator` **con `mapping`**
+  y `type: { enum: [valor] }` en cada rama (sin `const`). Ajv no acepta `mapping` y sólo aplica
+  el discriminador a objetos: el servidor lo quita en runtime
+  (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
+  Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
+- Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; el
+  security handler resuelve el merchant antes de validar el body (401 / 403
+  `origin-not-allowed`). Los logs nunca llevan IP, headers ni cuerpo (`request-logging.ts`).
 - Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`.
 - Todo schema de un media type es `$ref` a `components/schemas` (nunca inline).
 - `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
@@ -127,7 +158,9 @@ Los cuatro `check:*` corren dentro de `contract:check`.
 
 ## Convenciones
 
-- TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en `src/main.ts`.
+- TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en
+  `src/composition/` (ADR-013). Identificadores como tipos marcados (`MerchantId`, `SessionId`,
+  …, `src/domain/shared-kernel/`).
 - Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
 - `NO_OP` es un resultado válido con motivo, nunca una excepción.
 - Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
