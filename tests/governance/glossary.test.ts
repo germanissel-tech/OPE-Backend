@@ -58,6 +58,12 @@ describe("check:glossary", () => {
     expect(r.status, r.output).toBe(0);
   });
 
+  it("con el directorio del MVP presente pero sin documentos (como en CI) avisa y no falla", () => {
+    const r = check("mvp-vacio");
+    expect(r.status, r.output).toBe(0);
+    expect(r.output).toContain("aviso");
+  });
+
   it("sin el directorio de documentos del MVP avisa y no falla", () => {
     const r = check("mvp-ausente");
     expect(r.status, r.output).toBe(0);

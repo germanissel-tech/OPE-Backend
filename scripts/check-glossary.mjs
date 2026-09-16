@@ -8,7 +8,7 @@
 // 3. La fuente existe: `constitucion#X` (encabezado que contiene X), `mvp:archivo#X` (bajo el
 //    directorio de documentos del MVP, si está disponible; si no, aviso), o ruta del repo.
 // 4. Toda nota sin uso en el contrato declara `uso: disponible | pendiente`.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   argString,
@@ -32,6 +32,16 @@ const constitution = path.resolve(
 const mvpDocs = path.resolve(
   argString(args, "mvp-docs") ?? process.env["OPE_MVP_DOCS"] ?? path.join(repoRoot, ".."),
 );
+
+/**
+ * Los documentos del MVP están disponibles si el directorio tiene algún `NN-*.md`. Que exista
+ * el directorio no alcanza: en CI el padre del repo existe y está vacío.
+ * @returns {boolean}
+ */
+function mvpDocsAvailable() {
+  if (!exists(mvpDocs)) return false;
+  return readdirSync(mvpDocs).some((name) => /^\d{2}-.*\.md$/.test(name));
+}
 
 const ESTADOS = ["aprobado", "propuesto"];
 const USOS = ["disponible", "pendiente"];
@@ -85,7 +95,7 @@ function checkSource(fuente, where) {
   }
   if (ref.startsWith("mvp:")) {
     const file = path.join(mvpDocs, ref.slice(4));
-    if (!exists(mvpDocs)) {
+    if (!mvpDocsAvailable()) {
       warnings.push(
         `${where}: fuente \`${fuente}\` no verificable: no está el directorio de documentos del MVP (${mvpDocs}); definí OPE_MVP_DOCS para verificarla`,
       );
