@@ -1,0 +1,41 @@
+type: object
+description: >-
+  Error según RFC 9457 (Problem Details for HTTP APIs). Toda respuesta 4xx/5xx de la API usa
+  este esquema con el tipo de contenido `application/problem+json`. Los valores de `type`
+  pertenecen al catálogo `contracts/problem-types.yaml` (URN `urn:ope:problem:<slug>`).
+additionalProperties: false
+required: [type, title, status]
+properties:
+  type:
+    type: string
+    format: uri
+    description: Identificador estable del tipo de problema, del catálogo de OPE.
+  title:
+    type: string
+    description: Resumen corto y fijo para el tipo de problema.
+  status:
+    type: integer
+    minimum: 400
+    maximum: 599
+    description: Código de estado HTTP de la respuesta, repetido en el cuerpo.
+  detail:
+    type: string
+    description: Explicación legible de esta ocurrencia. Nunca incluye detalles internos.
+  instance:
+    type: string
+    description: Referencia URI de la ocurrencia; habitualmente el path del request.
+  errors:
+    type: array
+    description: Violaciones individuales del contrato. Presente sólo en `400` y `422`.
+    items:
+      type: object
+      description: Una violación del contrato en el request.
+      additionalProperties: false
+      required: [pointer, message]
+      properties:
+        pointer:
+          type: string
+          description: JSON Pointer relativo al request (`/query/foo`, `/body/kind`, `/headers/x`).
+        message:
+          type: string
+          description: Descripción de la violación.

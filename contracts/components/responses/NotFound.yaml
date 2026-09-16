@@ -1,0 +1,10 @@
+description: La ruta no existe en el contrato.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:not-found
+      title: Ruta no declarada en el contrato
+      status: 404
+      instance: /v1/health

@@ -1,0 +1,10 @@
+description: Parámetro, header o campo desconocido, ausente o con tipo inválido. `errors` enumera cada violación; el manejador no se invocó.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:validation-failed
+      title: El request no cumple el contrato
+      status: 400
+      instance: /v1/health
