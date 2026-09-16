@@ -1,0 +1,8 @@
+openapi: 3.1.0
+info: { title: Shape fixture, version: 1.0.0 }
+paths:
+  /v1/health:
+    get: { operationId: getHealth, responses: { "200": { description: ok } } }
+  /v1/things:
+    post: { operationId: createThing, responses: { "201": { description: created } } }
+    get: { operationId: listThings, responses: { "200": { description: ok } } }
