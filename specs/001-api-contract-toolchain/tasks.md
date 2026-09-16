@@ -150,8 +150,8 @@ pasa la verificación.
 `getHealth`; dos corridas son idénticas; con un contrato inválido el comando falla antes de
 escribir.
 
-- [ ] T044 [P] [US4] Crear `tests/unit/contract-docs.test.ts`: ejecuta `npm run contract:docs` (`execFile npm` con `shell: true` en Windows) → exit 0 y `docs/api/index.html` contiene `getHealth`, `Estado del servicio`, `application/problem+json` y `2026-09-16T12:00:00Z`; ejecutarlo de nuevo → archivo byte a byte idéntico (SC-006); con env `OPE_CONTRACT_ROOT=tests/contract-rules/fixtures/ope-no-pii.yaml` → exit ≠ 0 y no se escribe `docs/api/index.html` nuevo (FR-032, US4 escenario 2).
-- [ ] T045 [US4] Definir `contract:docs` en `package.json` como `npm run contract:check && redocly build-docs contracts/dist/openapi.yaml -o docs/api/index.html --config redocly.yaml` (respetando `OPE_CONTRACT_ROOT` en `contract:lint`/`contract:bundle` si T044 lo necesita: los scripts leen `process.env.OPE_CONTRACT_ROOT ?? "contracts/openapi.yaml"`; para eso mover `contract:lint` y `contract:bundle` a `scripts/contract-lint.mjs` y `scripts/contract-bundle.mjs`). Correr T044 → verde.
+- [X] T044 [P] [US4] Crear `tests/unit/contract-docs.test.ts`: ejecuta `npm run contract:docs` (`execFile npm` con `shell: true` en Windows) → exit 0 y `docs/api/index.html` contiene `getHealth`, `Estado del servicio`, `application/problem+json` y `2026-09-16T12:00:00Z`; ejecutarlo de nuevo → archivo byte a byte idéntico (SC-006); con env `OPE_CONTRACT_ROOT=tests/contract-rules/fixtures/ope-no-pii.yaml` → exit ≠ 0 y no se escribe `docs/api/index.html` nuevo (FR-032, US4 escenario 2).
+- [X] T045 [US4] Definir `contract:docs` en `package.json` como `npm run contract:check && redocly build-docs contracts/dist/openapi.yaml -o docs/api/index.html --config redocly.yaml` (respetando `OPE_CONTRACT_ROOT` en `contract:lint`/`contract:bundle` si T044 lo necesita: los scripts leen `process.env.OPE_CONTRACT_ROOT ?? "contracts/openapi.yaml"`; para eso mover `contract:lint` y `contract:bundle` a `scripts/contract-lint.mjs` y `scripts/contract-bundle.mjs`). Correr T044 → verde.
 
 **Checkpoint**: US4 completa.
 

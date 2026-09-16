@@ -65,6 +65,16 @@ describe("servidor real sobre el contrato", () => {
     expect(res.json()).toMatchObject({ type: "urn:ope:problem:method-not-allowed", status: 405 });
   });
 
+  it("método no estándar (QUERY) sobre un path declarado → 405; sobre uno no declarado → 404", async () => {
+    const srv = await server(realContract, healthHandlers);
+    const known = await srv.inject({ method: "QUERY" as "GET", url: "/v1/health" });
+    expect(known.statusCode).toBe(405);
+    expect(known.headers.allow).toBe("GET");
+    const unknown = await srv.inject({ method: "QUERY" as "GET", url: "/nope" });
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.json()).toMatchObject({ type: "urn:ope:problem:not-found" });
+  });
+
   it("operación declarada sin manejador → 501 Problem Details, nunca un 200 vacío", async () => {
     const res = await (await server<TwoOps>(twoOps, healthHandlers)).inject({ method: "GET", url: "/v1/things" });
     expect(res.statusCode).toBe(501);
@@ -132,6 +142,15 @@ describe("servidor real sobre el contrato", () => {
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(res.json()).toMatchObject({ type: "urn:ope:problem:response-contract-violation", status: 500 });
     expect(res.body).not.toContain("secreto");
+  });
+
+  it("código de respuesta no declarado → 500 response-contract-violation", async () => {
+    const handlers = {
+      getHealth: async () => ({ status: 203, body: { status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00Z" } }),
+    } as unknown as Handlers;
+    const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toMatchObject({ type: "urn:ope:problem:response-contract-violation" });
   });
 
   it("manejador que lanza → 500 genérico sin exponer el mensaje interno", async () => {

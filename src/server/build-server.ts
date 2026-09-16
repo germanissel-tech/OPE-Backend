@@ -4,7 +4,7 @@
 // - Fastify es sólo el transporte: una ruta comodín delega todo en openapi-backend, y sus
 //   errores propios (JSON inválido, ruta desconocida) también salen como Problem Details.
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
-import { OpenAPIBackend, type Context, type Document, type Request as ApiRequest } from "openapi-backend";
+import { OpenAPIBackend, type Context, type Document } from "openapi-backend";
 import type { ErrorObject } from "ajv";
 import ajvFormats from "ajv-formats";
 import type { operations } from "../generated/api.js";
@@ -69,17 +69,27 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     customizeAjv: (ajv) => ajvFormats.default(ajv),
   });
 
+  /** Métodos declarados en el contrato para un path (vacío si el path no existe). */
+  const allowedMethods = (requestPath: string): string[] =>
+    HTTP_METHODS.filter((method) => api.matchOperation({ method, path: requestPath, headers: {} }) !== undefined);
+
+  /** 405 con `Allow` si el path existe en el contrato con otros métodos; 404 si no existe. */
+  const unroutable = (requestPath: string): HttpResponse => {
+    const allowed = allowedMethods(requestPath);
+    if (allowed.length === 0) {
+      return toHttp(problem("not-found", { instance: requestPath, detail: `No hay ninguna operación para ${requestPath}.` }));
+    }
+    const res = toHttp(problem("method-not-allowed", { instance: requestPath, detail: `Métodos declarados: ${allowed.join(", ")}.` }));
+    return { ...res, headers: { allow: allowed.join(", ") } };
+  };
+
   // Manejadores especiales de openapi-backend → Problem Details.
   api.register({
     validationFail: async (c: Context): Promise<HttpResponse> =>
       toHttp(problem("validation-failed", { instance: c.request.path, errors: toValidationErrors(c.validation.errors) })),
     notFound: async (c: Context): Promise<HttpResponse> =>
       toHttp(problem("not-found", { instance: c.request.path, detail: `No hay ninguna operación para ${c.request.method.toUpperCase()} ${c.request.path}.` })),
-    methodNotAllowed: async (c: Context): Promise<HttpResponse> => {
-      const allowed = HTTP_METHODS.filter((m) => api.matchOperation({ ...c.request, method: m } as ApiRequest) !== undefined);
-      const res = toHttp(problem("method-not-allowed", { instance: c.request.path, detail: `Métodos declarados: ${allowed.join(", ")}.` }));
-      return { ...res, headers: { allow: allowed.join(", ") } };
-    },
+    methodNotAllowed: async (c: Context): Promise<HttpResponse> => unroutable(c.request.path),
     notImplemented: async (c: Context): Promise<HttpResponse> => {
       const operationId = c.operation.operationId ?? "(sin operationId)";
       if (mode === "mock") {
@@ -116,6 +126,11 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
         log.error({ operationId, err }, "el manejador lanzó una excepción");
         return toHttp(problem("internal-error", { instance: c.request.path }));
       }
+      const declared = Object.keys(c.operation.responses ?? {});
+      if (!declared.includes(String(result.status))) {
+        log.error({ operationId, status: result.status, declared }, "el manejador respondió un código no declarado en el contrato");
+        return toHttp(problem("response-contract-violation", { instance: c.request.path }));
+      }
       const validation = api.validateResponse(result.body, operationId, result.status);
       if (!validation.valid) {
         log.error({ operationId, status: result.status, errors: validation.errors }, "la respuesta del manejador no cumple el contrato");
@@ -147,10 +162,13 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   app.route({ method: [...HTTP_METHODS], url: "/", handler: dispatch });
   app.route({ method: [...HTTP_METHODS], url: "/*", handler: dispatch });
 
-  app.setNotFoundHandler(async (request, reply) => send(reply, toHttp(problem("not-found", { instance: pathOf(request.url) }))));
+  // Métodos que Fastify no rutea (por ejemplo QUERY) caen acá: 405 si el path existe, 404 si no.
+  app.setNotFoundHandler(async (request, reply) => send(reply, unroutable(pathOf(request.url))));
 
   app.setErrorHandler(async (error: Error & { code?: string; statusCode?: number }, request, reply) => {
     const instance = pathOf(request.url);
+    // Método no ruteado con body sin content-type: Fastify lo rechaza antes de rutear.
+    if (error.code === "FST_ERR_ROUTE_MISSING_CONTENT_TYPE") return send(reply, unroutable(instance));
     // Errores del parser de Fastify: JSON inválido, body vacío, media type no soportado.
     if (typeof error.code === "string" && error.code.startsWith("FST_ERR_CTP_")) {
       return send(reply, toHttp(problem("validation-failed", { instance, errors: [{ pointer: "/body", message: error.message }] })));
