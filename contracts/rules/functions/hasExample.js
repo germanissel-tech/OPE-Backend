@@ -1,5 +1,5 @@
-// ope-request-example / ope-success-response-example (FR-014): todo media type de request body y
-// de respuesta 2xx lleva al menos un ejemplo (example, examples, o en el schema).
+// ope-request-example / ope-success-response-example (FR-014): every media type of a request body
+// and of a 2xx response carries at least one example (example, examples, or in the schema).
 "use strict";
 const { get, isObject } = require("./_walk.js");
 
@@ -16,7 +16,9 @@ const hasExamples = (obj) => {
 const hasExample = (mediaType, _opts, context) => {
   if (!isObject(mediaType)) return [];
   if (hasExamples(mediaType) || hasExamples(get(mediaType, "schema"))) return [];
-  return [{ message: "Falta ejemplo: agregá `example` o `examples` a este media type.", path: context.path }];
+  return [
+    { message: "Missing example: add `example` or `examples` to this media type.", path: context.path },
+  ];
 };
 
 module.exports = hasExample;

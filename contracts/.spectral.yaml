@@ -1,9 +1,9 @@
-# Ruleset del contrato de OPE. Toda regla propia (ope-*) es `error`: falla el build.
-# Notas de mantenimiento (specs/001-api-contract-toolchain/research.md, R-02):
-# - Estilo bloque, no flow (`then: { field: x }` rompe el cargador de rulesets).
-# - "off" entre comillas (YAML lee `off` como false).
-# - oas3-schema apagada: falla con path items $ref externos en OpenAPI 3.1; la validez
-#   estructural la garantiza `redocly lint` (scripts/contract-lint.mjs).
+# Ruleset of the OPE contract. Every custom rule (ope-*) is `error`: it fails the build.
+# Maintenance notes (specs/001-api-contract-toolchain/research.md, R-02):
+# - Block style, not flow (`then: { field: x }` breaks the ruleset loader).
+# - "off" in quotes (YAML reads `off` as false).
+# - oas3-schema is off: it fails with external path item $refs in OpenAPI 3.1; structural
+#   validity is guaranteed by `redocly lint` (scripts/contract-lint.mjs).
 extends:
   - "spectral:oas"
 functionsDir: ./rules/functions
@@ -20,7 +20,7 @@ functions:
   - requiredCapabilities
 rules:
   oas3-schema: "off"
-  # Heredadas de spectral:oas elevadas a error (FR-012, FR-004, FR-014).
+  # Inherited from spectral:oas, raised to error (FR-012, FR-004, FR-014).
   operation-operationId: error
   operation-operationId-unique: error
   operation-operationId-valid-in-url: error
@@ -34,10 +34,10 @@ rules:
   path-params: error
   duplicated-entry-in-enum: error
 
-  # FR-012: operationId camelCase.
+  # FR-012: camelCase operationId.
   ope-operation-id-camel-case:
-    description: operationId en camelCase (getHealth, ingestEvent).
-    message: "operationId '{{value}}' no es camelCase. Renombralo como verboSustantivo (por ejemplo getHealth)."
+    description: operationId in camelCase (getHealth, ingestEvent).
+    message: "operationId '{{value}}' is not camelCase. Rename it as verbNoun (for example getHealth)."
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].operationId"
     then:
@@ -45,20 +45,20 @@ rules:
       functionOptions:
         type: camel
 
-  # FR-012: summary obligatorio.
+  # FR-012: summary is mandatory.
   ope-operation-summary:
-    description: Toda operación lleva summary.
-    message: "Falta summary en {{path}}. Agregá una línea que describa la operación."
+    description: Every operation carries a summary.
+    message: "Missing summary at {{path}}. Add one line describing the operation."
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
     then:
       field: summary
       function: truthy
 
-  # FR-004: exactamente un tag por operación.
+  # FR-004: exactly one tag per operation.
   ope-operation-single-tag:
-    description: Cada operación usa exactamente un tag.
-    message: "La operación debe tener exactamente un tag ({{path}}). Dejá uno solo del catálogo."
+    description: Each operation uses exactly one tag.
+    message: "The operation must have exactly one tag ({{path}}). Keep a single one from the catalogue."
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].tags"
     then:
@@ -67,10 +67,10 @@ rules:
         min: 1
         max: 1
 
-  # FR-004: catálogo cerrado de tags.
+  # FR-004: closed catalogue of tags.
   ope-tags-closed-catalog:
-    description: Los tags pertenecen al catálogo cerrado del contrato.
-    message: "Tag '{{value}}' fuera del catálogo (system, ingest, decision, outcomes, portal, admin). Usá uno del catálogo; ampliarlo es un cambio de alcance."
+    description: Tags belong to the contract's closed catalogue.
+    message: "Tag '{{value}}' is outside the catalogue (system, ingest, decision, outcomes, portal, admin). Use one from the catalogue; extending it is a scope change."
     severity: error
     given:
       - "$.tags[*].name"
@@ -86,46 +86,46 @@ rules:
           - portal
           - admin
 
-  # FR-013: toda propiedad de esquema con description.
+  # FR-013: every schema property has a description.
   ope-property-description:
-    description: Toda propiedad de esquema lleva description.
-    message: "La propiedad {{property}} no tiene description ({{path}}). Agregá una descripción de qué es y de dónde sale."
+    description: Every schema property carries a description.
+    message: "Property {{property}} has no description ({{path}}). Add a description of what it is and where it comes from."
     severity: error
     given: "$..properties[*]"
     then:
       field: description
       function: truthy
 
-  # FR-014: ejemplo en todo request body.
+  # FR-014: an example in every request body.
   ope-request-example:
-    description: Todo request body lleva ejemplo.
+    description: Every request body carries an example.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].requestBody.content[*]"
     then:
       function: hasExample
 
-  # FR-014: ejemplo en toda respuesta 2xx con cuerpo.
+  # FR-014: an example in every 2xx response with a body.
   ope-success-response-example:
-    description: Toda respuesta 2xx con contenido lleva ejemplo.
+    description: Every 2xx response with content carries an example.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].responses[?(@property.match(/^2\\d\\d$/))].content[*]"
     then:
       function: hasExample
 
-  # FR-015: request bodies cerrados (recursivo).
+  # FR-015: closed request bodies (recursive).
   ope-request-closed-schema:
-    description: Todo objeto de un request body declara additionalProperties false.
+    description: Every object of a request body declares additionalProperties false.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].requestBody.content[*].schema"
     then:
       function: requestClosedSchema
 
-  # FR-016: lista de datos personales prohibidos.
+  # FR-016: denylist of personal data.
   ope-no-pii:
-    description: Ningún nombre de propiedad, parámetro o header está en contracts/rules/pii-denylist.json.
+    description: No property, parameter or header name is in contracts/rules/pii-denylist.json.
     message: "{{error}}"
     severity: error
     given: "$"
@@ -134,45 +134,45 @@ rules:
       functionOptions:
         denylist: ./rules/pii-denylist.json
 
-  # FR-017: merchantId nunca entra por el request.
+  # FR-017: merchantId never comes in through the request.
   ope-no-merchant-id-in-request:
-    description: merchantId se deriva de la credencial; nunca es parámetro ni campo de request.
+    description: merchantId is derived from the credential; it is never a parameter or a request field.
     message: "{{error}}"
     severity: error
     given: "$"
     then:
       function: noMerchantIdInRequest
 
-  # FR-018: errores como Problem Details.
+  # FR-018: errors as Problem Details.
   ope-error-response-problem-details:
-    description: Toda respuesta 4xx/5xx es application/problem+json con ProblemDetails.
+    description: Every 4xx/5xx response is application/problem+json with ProblemDetails.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace].responses[?(@property.match(/^[45]\\d\\d$/))]"
     then:
       function: problemDetailsErrorResponse
 
-  # FR-019: respuestas de error obligatorias.
+  # FR-019: mandatory error responses.
   ope-required-error-responses:
-    description: 500 siempre; 401 si autenticada; 400 y 422 si tiene request body.
+    description: 500 always; 401 if authenticated; 400 and 422 if it has a request body.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
     then:
       function: requiredErrorResponses
 
-  # FR-003: prefijo /v{major} atado a info.version.
+  # FR-003: /v{major} prefix tied to info.version.
   ope-path-version-prefix:
-    description: Todo path lleva el prefijo /v{major} de info.version.
+    description: Every path carries the /v{major} prefix of info.version.
     message: "{{error}}"
     severity: error
     given: "$"
     then:
       function: pathVersionPrefix
 
-  # FR-001/FR-002 (ADR-007): invariantes declaradas completas y con tipo del catálogo.
+  # FR-001/FR-002 (ADR-007): declared invariants are complete and typed from the catalogue.
   ope-invariants:
-    description: Toda x-invariants tiene type (del catálogo), status coherente, rule y description.
+    description: Every x-invariants entry has type (from the catalogue), a consistent status, rule and description.
     message: "{{error}}"
     severity: error
     given: "$"
@@ -181,9 +181,9 @@ rules:
       functionOptions:
         catalog: ./problem-types.yaml
 
-  # FR-004 (ADR-001): ningún 422 genérico; cada 422 nombra su invariante.
+  # FR-004 (ADR-001): no generic 422; each 422 names its invariant.
   ope-no-generic-422:
-    description: Toda respuesta 422 documenta la invariante que la produce, nunca el tipo genérico.
+    description: Every 422 response documents the invariant that produces it, never the generic type.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
@@ -192,9 +192,9 @@ rules:
       functionOptions:
         catalog: ./problem-types.yaml
 
-  # FR-031: capacidad requerida en operaciones autenticadas.
+  # FR-031: required capability on authenticated operations.
   ope-required-capabilities:
-    description: Operación autenticada ⇒ x-required-capabilities no vacío; pública ⇒ sin él.
+    description: Authenticated operation ⇒ non-empty x-required-capabilities; public ⇒ without it.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"

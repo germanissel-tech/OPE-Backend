@@ -1,10 +1,10 @@
 description: |
-  Un evento de comportamiento del SDK. Lista blanca cerrada (03-alcance-mvp.md §4.1): un tipo
-  fuera de esta unión o un campo no declarado rechazan el lote entero (01 §10.3).
-  El `mapping` es explícito para que los tipos generados lleven el valor de cable; el servidor
-  lo quita antes de compilar los validadores porque Ajv no lo soporta (ADR-014).
-# `type: object` es imprescindible: Ajv aplica `discriminator` sólo a objetos y con él omite el
-# `oneOf`, así que sin esta línea un evento que no es objeto pasaría la validación (R-05).
+  A behavioural event from the SDK. Closed allow-list (03-alcance-mvp.md §4.1): a type outside
+  this union or an undeclared field rejects the whole batch (01 §10.3).
+  The `mapping` is explicit so that the generated types carry the wire value; the server strips
+  it before compiling the validators because Ajv does not support it (ADR-014).
+# `type: object` is essential: Ajv applies `discriminator` only to objects and with it skips the
+# `oneOf`, so without this line an event that is not an object would pass validation (R-05).
 type: object
 oneOf:
   - $ref: ./ProductViewed.yaml

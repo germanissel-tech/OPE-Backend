@@ -11,7 +11,7 @@ export const ok: OperationHandler<"getHealth"> = async () => ({
 // Compila: 500 con Problem Details (declarado en el contrato).
 export const problemResponse: OperationHandler<"getHealth"> = async () => ({
   status: 500,
-  body: { type: "urn:ope:problem:internal-error", title: "Error interno", status: 500 },
+  body: { type: "urn:ope:problem:internal-error", title: "Internal error", status: 500 },
 });
 
 // @ts-expect-error faltan contractVersion y timestamp en Health.

@@ -2,14 +2,14 @@ get:
   operationId: getHealth
   tags: [system]
   security: []
-  summary: Estado del servicio
+  summary: Service status
   description: |
-    Devuelve el estado del servicio, la versión del contrato con la que está corriendo y la
-    marca de tiempo del instante de la respuesta. No requiere autenticación. No declara
-    parámetros: cualquier parámetro de query se rechaza con `400`.
+    Returns the service status, the contract version it is running with and the timestamp of
+    the response. Requires no authentication. Declares no parameters: any query parameter is
+    rejected with `400`.
   responses:
     "200":
-      description: El servicio está operativo.
+      description: The service is operational.
       content:
         application/json:
           schema:

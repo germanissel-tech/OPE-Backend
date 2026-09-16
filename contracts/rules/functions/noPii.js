@@ -1,5 +1,5 @@
-// ope-no-pii (FR-016): ninguna propiedad, parámetro ni header puede llamarse como un dato personal
-// de contracts/rules/pii-denylist.json. Se aplica al documento resuelto completo.
+// ope-no-pii (FR-016): no property, parameter or header may be named like a personal datum from
+// contracts/rules/pii-denylist.json. Applies to the whole resolved document.
 "use strict";
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
@@ -7,8 +7,8 @@ const { get, walk } = require("./_walk.js");
 
 /** @import { SpectralContext, SpectralFunction, SpectralResult } from "./_walk.js" */
 
-// Spectral empaqueta las funciones (sin __dirname ni require de JSON): la lista se lee con
-// node:fs, resolviendo la ruta de functionOptions.denylist respecto del ruleset.
+// Spectral bundles the functions (no __dirname, no JSON require): the list is read with
+// node:fs, resolving the functionOptions.denylist path relative to the ruleset.
 /** @type {Map<string, Set<string>>} */
 const cache = new Map();
 
@@ -32,7 +32,7 @@ function loadDenylist(context, relativeFile) {
 
 /** @param {string} name */
 function message(name) {
-  return `'${name}' es un dato personal prohibido (contracts/rules/pii-denylist.json). OPE no almacena información identificatoria: quitá la propiedad o reemplazala por una clave seudónima.`;
+  return `'${name}' is a forbidden personal datum (contracts/rules/pii-denylist.json). OPE stores no identifying information: remove the property or replace it with a pseudonymous key.`;
 }
 
 /** @type {SpectralFunction} */
@@ -44,14 +44,14 @@ const noPii = (document, opts, context) => {
   const base = context.path;
   walk(document, [], (node, nodePath) => {
     const parentKey = nodePath[nodePath.length - 1];
-    // Propiedades de esquema y headers de respuesta/encoding: las claves son los nombres.
+    // Schema properties and response/encoding headers: the keys are the names.
     if ((parentKey === "properties" || parentKey === "headers") && !Array.isArray(node)) {
       for (const name of Object.keys(node)) {
         if (DENY.has(name.toLowerCase()))
           results.push({ message: message(name), path: [...base, ...nodePath, name] });
       }
     }
-    // Parámetros: el nombre está en `name`.
+    // Parameters: the name is in `name`.
     if (parentKey === "parameters" && Array.isArray(node)) {
       node.forEach((param, i) => {
         const name = get(param, "name");

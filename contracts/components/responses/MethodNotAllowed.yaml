@@ -1,10 +1,10 @@
-description: La ruta existe pero no declara este método. El header `Allow` lista los permitidos.
+description: The path exists but does not declare this method. The `Allow` header lists the permitted ones.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:method-not-allowed
-      title: Método no declarado para la ruta
+      title: Method not declared for the path
       status: 405
       instance: /v1/health

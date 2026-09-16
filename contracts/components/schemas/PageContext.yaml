@@ -1,27 +1,27 @@
 type: object
 description: |
-  Lo que el SDK pudo resolver de la página en la que ocurrió el evento (01-arquitectura-mvp.md
-  §3.1.1, `PageContext`). Todo lo que no sea `pageType` es opcional: el SDK reporta lo que resolvió
-  y el backend falla cerrado ante un contexto incompleto (`NO_OP` con motivo `page-context-incomplete`).
-  Lista blanca: ningún otro dato de la página entra (01 §10.2).
+  What the SDK could resolve about the page where the event happened (01-arquitectura-mvp.md
+  §3.1.1, `PageContext`). Everything but `pageType` is optional: the SDK reports what it resolved
+  and the backend fails closed on an incomplete context (`NO_OP` with reason `page-context-incomplete`).
+  Allow-list: no other page data comes in (01 §10.2).
 additionalProperties: false
 required: [pageType]
 properties:
   pageType:
     type: string
-    description: Tipo de página según el adaptador de plataforma del SDK.
+    description: Page type according to the SDK's platform adapter.
     enum: [product, listing, cart, checkout, other]
   productId:
     type: string
-    description: Identificador del producto en la plataforma del merchant, tal como lo expone la página.
+    description: Product identifier on the merchant's platform, as the page exposes it.
     maxLength: 128
   variantId:
     type: string
-    description: Identificador de la variante seleccionada (talle + color), si hay una.
+    description: Identifier of the selected variant (size + colour), if any.
     maxLength: 128
   price:
     $ref: ./Money.yaml
   availability:
     type: string
-    description: Disponibilidad de la variante tal como la muestra la página. Guardia, no claim (01 §4.3).
+    description: Availability of the variant as the page shows it. A guard, not a claim (01 §4.3).
     enum: [in_stock, out_of_stock, unknown]

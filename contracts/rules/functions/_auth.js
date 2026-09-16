@@ -1,13 +1,13 @@
-// Helper compartido por ope-required-error-responses y ope-required-capabilities: qué es una
-// operación autenticada. Módulo propio (no colgado de otra función) para que `checkJs` con TS 7
-// pueda tipar el export de CommonJS.
+// Helper shared by ope-required-error-responses and ope-required-capabilities: what an
+// authenticated operation is. A module of its own (not hung off another function) so that
+// `checkJs` with TS 7 can type the CommonJS export.
 "use strict";
 const { get } = require("./_walk.js");
 
 /** @import { SpectralContext } from "./_walk.js" */
 
 /**
- * Una operación está autenticada si su `security` (propio, o el del root si no lo declara) no está vacío.
+ * An operation is authenticated if its `security` (its own, or the root's if it declares none) is not empty.
  * @param {Record<string, unknown>} operation
  * @param {SpectralContext} context
  * @returns {boolean}

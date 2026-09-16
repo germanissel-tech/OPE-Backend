@@ -19,7 +19,7 @@ describe("contract:docs", () => {
     expect(first.status, first.output).toBe(0);
     const html = readFileSync(output, "utf8");
     expect(html).toContain("getHealth");
-    expect(html).toContain("Estado del servicio");
+    expect(html).toContain("Service status");
     expect(html).toContain("application/problem+json");
     expect(html).toContain("2026-09-16T12:00:00Z");
     // Autocontenido: sin scripts ni hojas de estilo remotas.

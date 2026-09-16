@@ -10,19 +10,19 @@ export const PROBLEM_CONTENT_TYPE = "application/problem+json";
 export const PROBLEM_NAMESPACE = "urn:ope:problem:";
 
 export const PROBLEM_TYPES = {
-  "validation-failed": { status: 400, title: "El request no cumple el contrato" },
-  unauthorized: { status: 401, title: "Credencial ausente o inválida" },
-  "not-found": { status: 404, title: "Ruta no declarada en el contrato" },
-  "method-not-allowed": { status: 405, title: "Método no declarado para la ruta" },
-  unprocessable: { status: 422, title: "Request válido rechazado por semántica" },
-  "internal-error": { status: 500, title: "Error interno" },
-  "response-contract-violation": { status: 500, title: "La respuesta del manejador no cumple el contrato" },
-  "not-implemented": { status: 501, title: "Operación declarada sin manejador" },
-  "origin-not-allowed": { status: 403, title: "Origen no registrado para el merchant" },
-  "session-visitor-mismatch": { status: 422, title: "El lote mezcla sesiones o visitantes" },
-  "event-timestamp-out-of-range": { status: 422, title: "El instante del evento está fuera de tolerancia" },
-  "exposure-decision-unknown": { status: 422, title: "La decisión no existe para este merchant" },
-  "exposure-of-no-op": { status: 422, title: "Una decisión NO_OP no tiene intervención que exponer" },
+  "validation-failed": { status: 400, title: "The request does not satisfy the contract" },
+  unauthorized: { status: 401, title: "Credential missing or invalid" },
+  "not-found": { status: 404, title: "Path not declared in the contract" },
+  "method-not-allowed": { status: 405, title: "Method not declared for the path" },
+  unprocessable: { status: 422, title: "Valid request rejected on semantics" },
+  "internal-error": { status: 500, title: "Internal error" },
+  "response-contract-violation": { status: 500, title: "The handler response does not satisfy the contract" },
+  "not-implemented": { status: 501, title: "Operation declared without a handler" },
+  "origin-not-allowed": { status: 403, title: "Origin not registered for the merchant" },
+  "session-visitor-mismatch": { status: 422, title: "The batch mixes sessions or visitors" },
+  "event-timestamp-out-of-range": { status: 422, title: "The event timestamp is out of tolerance" },
+  "exposure-decision-unknown": { status: 422, title: "The decision does not exist for this merchant" },
+  "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

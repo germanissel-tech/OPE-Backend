@@ -1,10 +1,10 @@
-description: La ruta no existe en el contrato.
+description: The path does not exist in the contract.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:not-found
-      title: Ruta no declarada en el contrato
+      title: Path not declared in the contract
       status: 404
       instance: /v1/health

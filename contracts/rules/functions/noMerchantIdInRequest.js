@@ -1,5 +1,5 @@
-// ope-no-merchant-id-in-request (FR-017, constitución V): merchantId se deriva de la credencial.
-// Nunca entra por path, query, header, cookie ni request body. Las respuestas no se revisan.
+// ope-no-merchant-id-in-request (FR-017, constitution V): merchantId is derived from the credential.
+// It never comes in through path, query, header, cookie or request body. Responses are not checked.
 "use strict";
 const { get, isObject, walkSchema, HTTP_METHODS } = require("./_walk.js");
 
@@ -7,7 +7,7 @@ const { get, isObject, walkSchema, HTTP_METHODS } = require("./_walk.js");
 
 /** @param {unknown} name */
 const normalize = (name) => String(name).toLowerCase().replace(/[_-]/g, "");
-// endsWith: atrapa también X-Merchant-Id y variantes prefijadas (fail-closed).
+// endsWith: also catches X-Merchant-Id and prefixed variants (fail-closed).
 /** @param {unknown} name */
 const isMerchantId = (name) => normalize(name).endsWith("merchantid");
 
@@ -22,7 +22,7 @@ function checkParameters(params, basePath, results) {
     const name = get(param, "name");
     if (name !== undefined && isMerchantId(name)) {
       results.push({
-        message: `'${String(name)}' no puede entrar por el request: merchantId se deriva de la credencial (constitución V). Quitalo del parámetro ${String(get(param, "in"))}.`,
+        message: `'${String(name)}' cannot come in through the request: merchantId is derived from the credential (constitution V). Remove it from the ${String(get(param, "in"))} parameter.`,
         path: [...basePath, i, "name"],
       });
     }
@@ -46,7 +46,7 @@ function checkBody(requestBody, basePath, results) {
       for (const name of Object.keys(properties)) {
         if (isMerchantId(name)) {
           results.push({
-            message: `'${name}' no puede entrar por el request: merchantId se deriva de la credencial (constitución V). Quitalo del body.`,
+            message: `'${name}' cannot come in through the request: merchantId is derived from the credential (constitution V). Remove it from the body.`,
             path: [...schemaPath, "properties", name],
           });
         }

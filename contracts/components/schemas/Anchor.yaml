@@ -1,3 +1,3 @@
 type: string
-description: Punto de anclaje semántico donde se renderiza (o se renderizó) una intervención. El SDK lo resuelve con el mapa de anclajes del merchant.
+description: Semantic anchor point where an intervention is (or was) rendered. The SDK resolves it with the merchant's anchor map.
 enum: [size_selector, price, cta, policies]

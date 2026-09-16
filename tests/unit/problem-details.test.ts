@@ -34,7 +34,7 @@ describe("problem()", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
       type: "urn:ope:problem:validation-failed",
-      title: "El request no cumple el contrato",
+      title: "The request does not satisfy the contract",
       status: 400,
       instance: "/v1/health",
       errors: [{ pointer: "/query/x", message: "must NOT have additional properties" }],
