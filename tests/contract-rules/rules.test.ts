@@ -11,7 +11,7 @@ const fixturesDir = path.resolve("tests/contract-rules/fixtures");
 const rulesetPath = path.resolve("contracts/.spectral.yaml");
 
 // Fixtures que deben pasar sin errores ni warnings.
-const VALID = ["valid.yaml", "merchant-id-in-response.yaml"];
+const VALID = ["valid.yaml", "merchant-id-in-response.yaml", "valid-invariants.yaml", "valid-capabilities.yaml"];
 
 const ERROR = 0; // DiagnosticSeverity.Error
 const WARNING = 1;

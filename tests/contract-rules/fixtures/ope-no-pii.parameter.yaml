@@ -1,4 +1,4 @@
-# Fixture de tests/contract-rules: ope-no-pii.parameter. Generado a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
+# Fixture de tests/contract-rules: ope-no-pii.parameter. Generado por gen-fixtures.mjs a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
 openapi: 3.1.0
 info:
   title: Fixture
@@ -75,6 +75,6 @@ components:
           schema:
             $ref: "#/components/schemas/ProblemDetails"
           example:
-            type: urn:ope:problem:x
+            type: urn:ope:problem:internal-error
             title: t
             status: 500

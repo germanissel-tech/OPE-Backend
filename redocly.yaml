@@ -9,3 +9,13 @@ rules:
   info-license: off
   no-unused-components: error
   security-defined: error
+  # US5 (ADR-004): el schema de un media type vive en components/schemas y se referencia.
+  # Un schema inline no se reutiliza y termina duplicado con variaciones sutiles.
+  rule/media-type-schema-ref:
+    subject:
+      type: MediaType
+      property: schema
+    message: El schema de un media type va en components/schemas y se referencia con $ref; no se escribe inline.
+    severity: error
+    assertions:
+      ref: true

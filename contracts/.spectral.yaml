@@ -15,6 +15,9 @@ functions:
   - requiredErrorResponses
   - pathVersionPrefix
   - problemDetailsErrorResponse
+  - invariants
+  - noGeneric422
+  - requiredCapabilities
 rules:
   oas3-schema: "off"
   # Heredadas de spectral:oas elevadas a error (FR-012, FR-004, FR-014).
@@ -166,3 +169,34 @@ rules:
     given: "$"
     then:
       function: pathVersionPrefix
+
+  # FR-001/FR-002 (ADR-007): invariantes declaradas completas y con tipo del catálogo.
+  ope-invariants:
+    description: Toda x-invariants tiene type (del catálogo), status coherente, rule y description.
+    message: "{{error}}"
+    severity: error
+    given: "$"
+    then:
+      function: invariants
+      functionOptions:
+        catalog: ./problem-types.yaml
+
+  # FR-004 (ADR-001): ningún 422 genérico; cada 422 nombra su invariante.
+  ope-no-generic-422:
+    description: Toda respuesta 422 documenta la invariante que la produce, nunca el tipo genérico.
+    message: "{{error}}"
+    severity: error
+    given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+    then:
+      function: noGeneric422
+      functionOptions:
+        catalog: ./problem-types.yaml
+
+  # FR-031: capacidad requerida en operaciones autenticadas.
+  ope-required-capabilities:
+    description: Operación autenticada ⇒ x-required-capabilities no vacío; pública ⇒ sin él.
+    message: "{{error}}"
+    severity: error
+    given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+    then:
+      function: requiredCapabilities
