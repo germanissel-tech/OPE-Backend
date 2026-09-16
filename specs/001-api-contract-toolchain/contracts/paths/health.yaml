@@ -1,0 +1,23 @@
+get:
+  operationId: getHealth
+  tags: [system]
+  security: []
+  summary: Estado del servicio
+  description: |
+    Devuelve el estado del servicio, la versión del contrato con la que está corriendo y la
+    marca de tiempo del instante de la respuesta. No requiere autenticación. No declara
+    parámetros: cualquier parámetro de query se rechaza con `400`.
+  responses:
+    "200":
+      description: El servicio está operativo.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Health.yaml
+          examples:
+            ok:
+              $ref: ../examples/health-ok.yaml
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

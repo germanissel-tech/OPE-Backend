@@ -1,0 +1,29 @@
+# Catálogo de tipos de problema (RFC 9457 `type`). Única fuente: el servidor importa estas
+# constantes y una prueba verifica que todo `type` emitido pertenece al catálogo.
+# Esquema URN: urn:ope:problem:<slug>. Agregar un tipo es compatible; cambiar o quitar uno, no.
+namespace: "urn:ope:problem:"
+types:
+  - slug: validation-failed
+    status: 400
+    title: El request no cumple el contrato
+  - slug: unauthorized
+    status: 401
+    title: Credencial ausente o inválida
+  - slug: not-found
+    status: 404
+    title: Ruta no declarada en el contrato
+  - slug: method-not-allowed
+    status: 405
+    title: Método no declarado para la ruta
+  - slug: unprocessable
+    status: 422
+    title: Request válido rechazado por semántica
+  - slug: internal-error
+    status: 500
+    title: Error interno
+  - slug: response-contract-violation
+    status: 500
+    title: La respuesta del manejador no cumple el contrato
+  - slug: not-implemented
+    status: 501
+    title: Operación declarada sin manejador
