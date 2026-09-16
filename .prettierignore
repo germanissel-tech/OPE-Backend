@@ -1,0 +1,16 @@
+# Lista única de lo que no se formatea (FR-011): generados, fixtures con violaciones
+# deliberadas, lock y los archivos de Spec Kit (plantillas y skills sin modificar).
+dist/
+node_modules/
+src/generated/
+contracts/dist/
+docs/api/
+.schemathesis/
+package-lock.json
+tests/architecture/fixtures/
+tests/contract-rules/fixtures/
+tests/governance/fixtures/
+tests/lint/fixtures/
+tests/typecheck/fixtures/
+.specify/
+.claude/

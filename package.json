@@ -31,10 +31,14 @@
     "release-check": "node scripts/release-check.mjs",
     "contract:mock": "cross-env OPE_MOCK=1 tsx src/main.ts",
     "contract:docs": "node scripts/contract-docs.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . && node scripts/check-lint-exceptions.mjs",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p tsconfig.scripts.json",
     "arch": "node node_modules/dependency-cruiser/bin/dependency-cruiser.mjs --config .dependency-cruiser.cjs src",
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/main.ts",
-    "typecheck": "tsc -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs"
   },
@@ -47,6 +51,8 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@eslint/js": "^10.0.1",
     "@redocly/cli": "^2.53.2",
     "@stoplight/spectral-cli": "^6.16.3",
     "@stoplight/spectral-core": "^1.23.1",
@@ -54,10 +60,17 @@
     "@types/node": "^22.20.3",
     "cross-env": "^10.0.0",
     "dependency-cruiser": "^18.3.1",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.17.1",
+    "globals": "^17.12.0",
+    "lefthook": "^2.1.14",
     "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.7",
     "redoc": "^2.5.4",
     "tsx": "^4.23.0",
     "typescript": "5.9.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.1"
   }
 }
