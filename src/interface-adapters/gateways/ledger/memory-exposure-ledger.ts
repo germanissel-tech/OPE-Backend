@@ -1,4 +1,4 @@
-// Ledger de exposiciones en memoria. Clave compuesta merchant + decisión.
+// In-memory exposure ledger. Composite key merchant + decision.
 import type { ExposureLedger } from "../../../application/ledger/index.js";
 import type { Exposure } from "../../../domain/ledger/index.js";
 import type { DecisionId, MerchantId } from "../../../domain/shared-kernel/index.js";

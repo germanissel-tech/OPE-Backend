@@ -1,16 +1,16 @@
-// Merchant (01-arquitectura-mvp.md §0.1): el comercio que instala OPE. Lo mínimo para esta feature:
-// identidad, credenciales de ingesta y orígenes registrados (ADR-014).
+// Merchant (01-arquitectura-mvp.md §0.1): the store that installs OPE. The minimum for this
+// feature: identity, ingest credentials and registered origins (ADR-014).
 import type { MerchantId } from "../shared-kernel/index.js";
 
 export interface Merchant {
   merchantId: MerchantId;
-  /** Claves de ingesta activas: una, o dos durante una rotación. Públicas (viajan en el tag). */
+  /** Active ingest keys: one, or two during a rotation. Public (they travel in the tag). */
   ingestKeys: readonly string[];
-  /** Orígenes registrados de la tienda: `scheme://host[:port]`, sin path. */
+  /** Registered origins of the store: `scheme://host[:port]`, no path. */
   origins: readonly string[];
 }
 
-/** Forma canónica de un origen: scheme y host en minúsculas, sin path ni barra final. */
+/** Canonical form of an origin: lowercase scheme and host, no path, no trailing slash. */
 export function normalizeOrigin(origin: string): string | undefined {
   const match = /^([a-z][a-z0-9+.-]*):\/\/([^/?#\s]+)$/i.exec(origin.trim());
   if (!match) return undefined;
@@ -19,8 +19,8 @@ export function normalizeOrigin(origin: string): string | undefined {
 }
 
 /**
- * ¿Puede este origen hablar en nombre del merchant? Sin `Origin` (servidor a servidor, pruebas)
- * no hay nada que verificar: el control es del par credencial + origen cuando el origen existe.
+ * May this origin speak on behalf of the merchant? Without `Origin` (server to server, tests)
+ * there is nothing to verify: the control is the pair credential + origin when the origin exists.
  */
 export function originAllowed(merchant: Merchant, origin: string | undefined): boolean {
   if (origin === undefined) return true;
@@ -29,7 +29,7 @@ export function originAllowed(merchant: Merchant, origin: string | undefined): b
   return merchant.origins.some((o) => normalizeOrigin(o) === wanted);
 }
 
-/** Resuelve la credencial a su merchant. Comparación exacta; una clave pertenece a un solo merchant. */
+/** Resolves the credential to its merchant. Exact comparison; a key belongs to a single merchant. */
 export function findByIngestKey(merchants: readonly Merchant[], key: string): Merchant | undefined {
   if (key === "") return undefined;
   return merchants.find((m) => m.ingestKeys.includes(key));

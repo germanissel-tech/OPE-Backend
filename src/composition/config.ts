@@ -1,13 +1,13 @@
-// Configuración de la aplicación: lo único que main.ts lee del entorno. Sin lógica de negocio.
+// Application configuration: the only thing main.ts reads from the environment. No business logic.
 import path from "node:path";
 import type { ServerMode } from "../infrastructure/http/build-server.js";
 
-/** Un merchant tal como lo describe la configuración (perfil en memoria; la 006 trae el almacén). */
+/** A merchant as configuration describes it (in-memory profile; 006 brings the store). */
 export interface MerchantConfig {
   merchantId: string;
-  /** Claves de ingesta activas (una o dos durante una rotación). */
+  /** Active ingest keys (one, or two during a rotation). */
   ingestKeys: string[];
-  /** Orígenes registrados de la tienda (`scheme://host[:port]`). */
+  /** Registered origins of the store (`scheme://host[:port]`). */
   origins: string[];
 }
 
@@ -17,11 +17,11 @@ export interface AppConfig {
   mode: ServerMode;
   contractPath: string;
   merchants: MerchantConfig[];
-  /** Sólo para pruebas: módulo alternativo que exporta `handlers`. */
+  /** Tests only: alternative module exporting `handlers`. */
   handlersModule: string | undefined;
 }
 
-/** Merchant de prueba para `OPE_MOCK=1` y desarrollo local sin configuración. */
+/** Test merchant for `OPE_MOCK=1` and local development without configuration. */
 export const MOCK_MERCHANT: MerchantConfig = {
   merchantId: "mock-merchant",
   ingestKeys: ["ope_mock_ingest_key"],
@@ -52,24 +52,24 @@ function readMerchants(
   return parseMerchants(raw);
 }
 
-/** Valida la forma mínima: un arreglo de merchants con id, claves y orígenes no vacíos. */
+/** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
 export function parseMerchants(raw: string): MerchantConfig[] {
   const parsed: unknown = JSON.parse(raw);
-  if (!Array.isArray(parsed)) throw new Error("OPE_MERCHANTS debe ser un arreglo JSON de merchants.");
+  if (!Array.isArray(parsed)) throw new Error("OPE_MERCHANTS must be a JSON array of merchants.");
   return parsed.map((item: unknown, i) => {
-    if (typeof item !== "object" || item === null) throw new Error(`merchants[${i}] no es un objeto.`);
+    if (typeof item !== "object" || item === null) throw new Error(`merchants[${i}] is not an object.`);
     const m = item as Record<string, unknown>;
     const merchantId = m["merchantId"];
     const ingestKeys = m["ingestKeys"];
     const origins = m["origins"];
     if (typeof merchantId !== "string" || merchantId === "") {
-      throw new Error(`merchants[${i}].merchantId debe ser un string no vacío.`);
+      throw new Error(`merchants[${i}].merchantId must be a non-empty string.`);
     }
     if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > 2) {
-      throw new Error(`merchants[${i}].ingestKeys debe tener una o dos claves.`);
+      throw new Error(`merchants[${i}].ingestKeys must have one or two keys.`);
     }
     if (!isStringArray(origins) || origins.length === 0) {
-      throw new Error(`merchants[${i}].origins debe tener al menos un origen.`);
+      throw new Error(`merchants[${i}].origins must have at least one origin.`);
     }
     return { merchantId, ingestKeys, origins };
   });

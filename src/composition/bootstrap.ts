@@ -1,6 +1,6 @@
-// Composition root (constitución I; ADR-013): acá y sólo acá se carga el contrato, se eligen
-// los adaptadores (perfil + overrides), se instancian los casos de uso y se cablean los
-// controllers. main.ts sólo llama a esto.
+// Composition root (constitution I; ADR-013): here and only here the contract is loaded, the
+// adapters are chosen (profile + overrides), the use cases are instantiated and the controllers
+// are wired. main.ts only calls this.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -18,24 +18,24 @@ import type { Handlers } from "../interface-adapters/http/typed.js";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 
 export interface BootstrapOverrides {
-  /** Reemplazos puntuales de puertos sobre el perfil (por ejemplo, un reloj fijo en pruebas). */
+  /** Targeted port replacements over the profile (for example, a fixed clock in tests). */
   ports?: Partial<Ports>;
-  /** Manejadores que reemplazan a los cableados (pruebas negativas de contrato). */
+  /** Handlers that replace the wired ones (negative contract tests). */
   handlers?: Handlers;
-  /** `false` en pruebas; `true` o un logger de Fastify en producción. */
+  /** `false` in tests; `true` or a Fastify logger in production. */
   logger?: boolean | FastifyBaseLogger;
 }
 
 export interface App {
   app: FastifyInstance;
   ports: Ports;
-  /** Apaga el servidor y después cada gateway que exponga `close()`, en orden inverso. */
+  /** Shuts down the server and then every gateway exposing `close()`, in reverse order. */
   close: () => Promise<void>;
 }
 
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
-  // El reloj se resuelve primero: los gateways del perfil que dependen de él (dedup) lo comparten.
+  // The clock is resolved first: the profile gateways that depend on it (dedup) share it.
   const clock = overrides.ports?.clock;
   const ports: Ports = { ...memoryPorts(config, clock), ...overrides.ports };
   const useCases = buildUseCases(ports, definition.info.version);
@@ -50,7 +50,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
         };
   const handlers: Handlers = { ...wired, ...(await loadHandlersModule(config)), ...overrides.handlers };
 
-  // En mock también corre la seguridad: el SDK desarrolla contra el mock con la clave real (SC-006).
+  // Security also runs in mock: the SDK develops against the mock with the real key (SC-006).
   const app = await buildServer({
     definition,
     handlers,
@@ -71,7 +71,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
 
 function loadContract(file: string): ContractDocument {
   if (!existsSync(file)) {
-    throw new Error(`No existe el contrato empaquetado ${file}. Corré npm run contract:bundle.`);
+    throw new Error(`Bundled contract ${file} does not exist. Run npm run contract:bundle.`);
   }
   return parse(readFileSync(file, "utf8")) as ContractDocument;
 }

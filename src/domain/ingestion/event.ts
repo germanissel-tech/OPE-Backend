@@ -1,6 +1,6 @@
-// Evento de comportamiento del SDK (03-alcance-mvp.md §4.1; 01-arquitectura-mvp.md §3.1.1 y §10.2).
-// Lista blanca cerrada: exactamente estos tipos, estos campos. El contrato HTTP la valida; acá
-// vive la forma que el dominio entiende, sin depender de los tipos generados.
+// Behavioural event from the SDK (03-alcance-mvp.md §4.1; 01-arquitectura-mvp.md §3.1.1 and §10.2).
+// Closed allow-list: exactly these types, these fields. The HTTP contract validates it; here
+// lives the shape the domain understands, without depending on the generated types.
 import type { EventId, SessionId, VisitorId } from "../shared-kernel/index.js";
 
 export const EVENT_TYPES = [
@@ -23,13 +23,13 @@ export type PageType = "product" | "listing" | "cart" | "checkout" | "other";
 export type Availability = "in_stock" | "out_of_stock" | "unknown";
 export type DeviceClass = "desktop" | "mobile" | "tablet";
 
-/** Importe: monto como string decimal (sin redondeo binario) y moneda ISO 4217 (ADR-014). */
+/** Amount as a decimal string (no binary rounding) and ISO 4217 currency (ADR-014). */
 export interface Money {
   amount: string;
   currency: string;
 }
 
-/** Lo que el SDK pudo resolver de la página. Incompleto ⇒ el backend falla cerrado (NO_OP). */
+/** What the SDK could resolve about the page. Incomplete ⇒ the backend fails closed (NO_OP). */
 export interface PageContext {
   pageType: PageType;
   productId?: string;
@@ -78,7 +78,7 @@ export type CheckoutStep = "cart" | "checkout_started" | "shipping" | "payment" 
 export interface CheckoutAdvanced extends EventBase<"checkout_advanced"> {
   step: CheckoutStep;
 }
-/** Exactamente cuatro señales de salida (03 §4.1); agregar una es cambio de alcance. */
+/** Exactly four exit signals (03 §4.1); adding one is a scope change. */
 export type ExitSignal = "inactivity" | "tab_hidden" | "back_navigation" | "exit_intent";
 export interface ExitSignaled extends EventBase<"exit_signaled"> {
   signal: ExitSignal;

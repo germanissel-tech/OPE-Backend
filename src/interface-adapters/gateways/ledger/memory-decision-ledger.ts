@@ -1,5 +1,5 @@
-// Ledger de decisiones en memoria. Clave compuesta merchant + decisión: una decisión de otro
-// merchant no existe para quien pregunta.
+// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant
+// does not exist for whoever asks.
 import type { DecisionLedger } from "../../../application/ledger/index.js";
 import type { Decision } from "../../../domain/ledger/index.js";
 import type { DecisionId, MerchantId } from "../../../domain/shared-kernel/index.js";

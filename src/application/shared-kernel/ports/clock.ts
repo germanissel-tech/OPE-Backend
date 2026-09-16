@@ -1,4 +1,4 @@
-// Puerto de reloj: el dominio y los manejadores nunca llaman a `new Date()`; reciben un Clock.
+// Clock port: the domain and the handlers never call `new Date()`; they receive a Clock.
 export interface Clock {
   now(): Date;
 }

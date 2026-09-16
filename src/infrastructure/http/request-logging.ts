@@ -1,7 +1,7 @@
-// Logs de request sin datos que no se pueden persistir (01-arquitectura-mvp.md §10.2; FR-016).
-// Fastify loguea por defecto `remoteAddress`, `remotePort` y `host`: acá se reemplaza el
-// serializer por uno que sólo deja método, url y `reqId` (que Fastify agrega solo). La clave de
-// ingesta se redacta además como segunda barrera; el cuerpo nunca se loguea.
+// Request logs without data that cannot be persisted (01-arquitectura-mvp.md §10.2; FR-016).
+// Fastify logs `remoteAddress`, `remotePort` and `host` by default: here the serializer is
+// replaced by one that only keeps method, url and `reqId` (which Fastify adds on its own). The
+// ingest key is also redacted as a second barrier; the body is never logged.
 import type { FastifyBaseLogger, FastifyServerOptions } from "fastify";
 
 export const requestSerializers = {
@@ -15,13 +15,13 @@ export const requestSerializers = {
 
 export const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
 
-/** Opciones de logger de Fastify para `logger: true`. */
+/** Fastify logger options for `logger: true`. */
 export const loggerOptions: Exclude<FastifyServerOptions["logger"], boolean | undefined> = {
   serializers: requestSerializers,
-  redact: { paths: REDACTED_PATHS, censor: "[redactado]" },
+  redact: { paths: REDACTED_PATHS, censor: "[redacted]" },
 };
 
-/** Un logger provisto desde afuera recibe los mismos serializers (sus propios `req`/`res` se pisan). */
+/** A logger provided from outside gets the same serializers (its own `req`/`res` are overridden). */
 export function privateLogger(base: FastifyBaseLogger): FastifyBaseLogger {
   return base.child({}, { serializers: requestSerializers, redact: { paths: REDACTED_PATHS } });
 }

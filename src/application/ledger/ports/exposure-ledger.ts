@@ -1,4 +1,4 @@
-// Puerto del ledger de exposiciones. Clave (merchant, decisión): una repetida no duplica.
+// Exposure ledger port. Key (merchant, decision): a repeated one does not duplicate.
 import type { Exposure } from "../../../domain/ledger/index.js";
 import type { DecisionId, MerchantId } from "../../../domain/shared-kernel/index.js";
 

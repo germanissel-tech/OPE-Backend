@@ -1,6 +1,6 @@
-// Exposición (01-arquitectura-mvp.md §0.1, §5): que una intervención efectivamente se renderizó
-// y fue visible, confirmado por el SDK. Es lo que constituye el estado EXPOSED de la cadena de
-// evidencia; la decisión sola no lo implica.
+// Exposure (01-arquitectura-mvp.md §0.1, §5): that an intervention was actually rendered and
+// visible, confirmed by the SDK. It is what constitutes the EXPOSED state of the evidence
+// chain; the decision alone does not imply it.
 import type { Anchor } from "./decision.js";
 import type { DecisionId, MerchantId, SessionId, VisitorId } from "../shared-kernel/index.js";
 

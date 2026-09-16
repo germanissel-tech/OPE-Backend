@@ -1,4 +1,4 @@
-// API pública del módulo shared-kernel (dominio): identidades marcadas.
+// Public API of the shared-kernel module (domain): branded identities.
 export {
   ID_PATTERN,
   asDecisionId,

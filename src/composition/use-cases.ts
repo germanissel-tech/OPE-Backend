@@ -1,4 +1,4 @@
-// Instancia los casos de uso a partir de los puertos. Los controllers reciben esto, no puertos.
+// Instantiates the use cases from the ports. Controllers receive this, not ports.
 import { makeIngestBatch, type IngestBatch } from "../application/ingestion/index.js";
 import { makeConfirmExposure, type ConfirmExposure } from "../application/ledger/index.js";
 import { makeResolveIngestKey, type ResolveIngestKey } from "../application/merchant/index.js";

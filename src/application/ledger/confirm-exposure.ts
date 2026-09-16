@@ -1,6 +1,6 @@
-// Caso de uso: confirmación de exposición (FR-031). Sólo una decisión propia del merchant que fue
-// intervención puede exponerse; inexistente, ajena o con otra sesión/visitante reciben la misma
-// respuesta (no se revela nada). Devuelve un resultado, nunca lanza por reglas de negocio.
+// Use case: exposure confirmation (FR-031). Only a decision of the merchant's own that was an
+// intervention can be exposed; nonexistent, foreign or with another session/visitor get the same
+// response (nothing is revealed). Returns a result, never throws on business rules.
 import type { DecisionLedger } from "./ports/decision-ledger.js";
 import type { ExposureLedger, ExposureRecordStatus } from "./ports/exposure-ledger.js";
 import type { Anchor, Exposure } from "../../domain/ledger/index.js";
@@ -38,14 +38,14 @@ export function makeConfirmExposure({
       return {
         ok: false,
         invariant: "exposure-decision-unknown",
-        detail: "La decisión no existe para este merchant, sesión y visitante.",
+        detail: "The decision does not exist for this merchant, session and visitor.",
       };
     }
     if (decision.outcome !== "INTERVENE") {
       return {
         ok: false,
         invariant: "exposure-of-no-op",
-        detail: `La decisión ${decision.decisionId} fue NO_OP: no hay intervención que exponer.`,
+        detail: `Decision ${decision.decisionId} was NO_OP: there is no intervention to expose.`,
       };
     }
     const exposure: Exposure = {

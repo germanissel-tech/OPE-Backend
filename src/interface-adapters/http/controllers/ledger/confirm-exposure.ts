@@ -1,5 +1,5 @@
-// confirmExposure (FR-030, FR-031): DTO → caso de uso → 201 recorded | 200 already-recorded |
-// 422 con el tipo de la invariante.
+// confirmExposure (FR-030, FR-031): DTO → use case → 201 recorded | 200 already-recorded |
+// 422 with the type of the invariant.
 import { asDecisionId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { problem } from "../../problem-details.js";
 import { merchantOf } from "../../security/ingest-key.js";

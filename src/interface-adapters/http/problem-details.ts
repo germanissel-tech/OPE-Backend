@@ -1,6 +1,6 @@
-// Problem Details (RFC 9457). Única forma de error de la API.
-// Los tipos de problema replican contracts/problem-types.yaml (la fuente); una prueba verifica
-// que ambos catálogos coinciden.
+// Problem Details (RFC 9457). The API's only error shape.
+// The problem types replicate contracts/problem-types.yaml (the source); a test verifies that
+// both catalogues match.
 import type { components } from "./generated/api.js";
 
 export type ProblemDetails = components["schemas"]["ProblemDetails"];
@@ -38,7 +38,7 @@ export interface ProblemResponse {
   body: ProblemDetails;
 }
 
-/** Construye la respuesta de error para un tipo del catálogo. Nunca incluye detalles internos. */
+/** Builds the error response for a catalogue type. Never includes internal details. */
 export function problem(slug: ProblemSlug, options: ProblemOptions = {}): ProblemResponse {
   const { status, title } = PROBLEM_TYPES[slug];
   const body: ProblemDetails = { type: `${PROBLEM_NAMESPACE}${slug}`, title, status };

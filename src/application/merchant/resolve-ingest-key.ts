@@ -1,5 +1,5 @@
-// Caso de uso: la credencial identifica al merchant y el origen, si viene, tiene que ser suyo.
-// Devuelve un resultado, nunca lanza: el adaptador HTTP traduce cada motivo a su Problem Details.
+// Use case: the credential identifies the merchant and the origin, if present, must be theirs.
+// Returns a result, never throws: the HTTP adapter translates each reason to its Problem Details.
 import { originAllowed, type Merchant } from "../../domain/merchant/index.js";
 import type { MerchantDirectory } from "./ports/merchant-directory.js";
 

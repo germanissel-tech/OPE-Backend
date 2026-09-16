@@ -1,4 +1,4 @@
-// Perfil en memoria: pruebas, mock y las features hasta que llegue la persistencia real (006).
+// In-memory profile: tests, mock and the features until real persistence arrives (006).
 import { memoryEventDedup } from "../../interface-adapters/gateways/ingestion/memory-event-dedup.js";
 import { memoryDecisionLedger } from "../../interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import { memoryExposureLedger } from "../../interface-adapters/gateways/ledger/memory-exposure-ledger.js";

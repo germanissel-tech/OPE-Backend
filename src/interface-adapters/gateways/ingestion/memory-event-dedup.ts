@@ -1,5 +1,5 @@
-// Deduplicación en memoria por merchant: ventana de 24 h o 100 000 ids, lo que ocurra antes
-// (declarada en la descripción de ingestEvents). Un Map por merchant: nunca se cruzan.
+// In-memory deduplication per merchant: window of 24 h or 100,000 ids, whichever comes first
+// (declared in the description of ingestEvents). One Map per merchant: they never cross.
 import type { EventDedup } from "../../../application/ingestion/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
 import type { EventId, MerchantId } from "../../../domain/shared-kernel/index.js";
@@ -12,7 +12,7 @@ export interface DedupWindow {
 export const DEDUP_WINDOW: DedupWindow = { ttlMs: 24 * 60 * 60 * 1000, maxIds: 100_000 };
 
 export function memoryEventDedup(clock: Clock, window: DedupWindow = DEDUP_WINDOW): EventDedup {
-  // Map conserva el orden de inserción: el primero es el más viejo.
+  // Map preserves insertion order: the first one is the oldest.
   const byMerchant = new Map<MerchantId, Map<EventId, number>>();
 
   const bucket = (merchantId: MerchantId): Map<EventId, number> => {

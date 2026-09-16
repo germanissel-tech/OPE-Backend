@@ -1,16 +1,16 @@
-// Tipos de los manejadores, derivados de los tipos generados desde el contrato (FR-046).
-// Un manejador recibe el request tipado de su operación y sólo puede devolver un status
-// declarado con el cuerpo declarado para ese status; cualquier otra cosa no compila.
+// Handler types, derived from the types generated from the contract (FR-046).
+// A handler receives the typed request of its operation and can only return a declared status
+// with the body declared for that status; anything else does not compile.
 import type { operations } from "./generated/api.js";
 
-/** Forma mínima de una operación tal como la genera openapi-typescript. */
+/** Minimal shape of an operation as openapi-typescript generates it. */
 export interface OperationShape {
   parameters: { query?: unknown; header?: unknown; path?: unknown; cookie?: unknown };
   requestBody?: unknown;
   responses: object;
 }
 
-/** Restricción para un mapa de operaciones (funciona con interfaces sin index signature). */
+/** Constraint for an operations map (works with interfaces without an index signature). */
 export type OperationsMap<Ops> = { [Id in keyof Ops]: OperationShape };
 
 type Content<R> = R extends { content: infer C } ? C[keyof C] : undefined;
@@ -23,29 +23,29 @@ type StatusOf<Op extends OperationShape> = Extract<keyof Op["responses"], number
 
 export interface TypedRequest<Op extends OperationShape, Id extends string = string> {
   operationId: Id;
-  /** Path del request, para `instance` de Problem Details. */
+  /** Request path, for the `instance` of Problem Details. */
   instance: string;
   path: Op["parameters"]["path"];
   query: Op["parameters"]["query"];
   headers: Op["parameters"]["header"];
   cookie: Op["parameters"]["cookie"];
   body: Body<Op>;
-  /** Resultado de los security handlers, por nombre de esquema (vacío si la operación es pública). */
+  /** Result of the security handlers, by scheme name (empty if the operation is public). */
   security: SecurityResults;
 }
 
-/** Lo que cada security handler devolvió, indexado por el nombre del esquema del contrato. */
+/** What each security handler returned, indexed by the contract scheme name. */
 export type SecurityResults = Readonly<Record<string, unknown>>;
 
-/** Request tal como lo ve un security handler: sólo los headers (la credencial y el Origin). */
+/** Request as a security handler sees it: only the headers (the credential and the Origin). */
 export interface SecurityRequest {
   headers: Readonly<Record<string, string | string[] | undefined>>;
 }
 
 /**
- * Un security handler devuelve el principal (lo que el controller va a leer) y, opcionalmente,
- * campos seguros para el log del request (nunca credenciales); o lanza un `SecurityError`, que
- * el servidor traduce a Problem Details con su status.
+ * A security handler returns the principal (what the controller will read) and, optionally,
+ * safe fields for the request log (never credentials); or throws a `SecurityError`, which the
+ * server translates to Problem Details with its status.
  */
 export interface SecurityOutcome {
   principal: unknown;
@@ -64,7 +64,7 @@ export class SecurityError extends Error {
   }
 }
 
-/** Unión discriminada por `status` de las respuestas declaradas para la operación. */
+/** Union discriminated by `status` of the responses declared for the operation. */
 export type TypedResponse<Op extends OperationShape> = {
   [S in StatusOf<Op>]: {
     status: S;
@@ -73,17 +73,17 @@ export type TypedResponse<Op extends OperationShape> = {
   };
 }[StatusOf<Op>];
 
-/** Manejador de una operación. Depende sólo de esa operación, no del mapa completo. */
+/** Handler of one operation. Depends only on that operation, not on the whole map. */
 export type Handler<Op extends OperationShape, Id extends string = string> = (
   req: TypedRequest<Op, Id>,
 ) => Promise<TypedResponse<Op>>;
 
-/** Manejador de una operación del contrato generado. */
+/** Handler of one operation of the generated contract. */
 export type OperationHandler<Id extends keyof operations> = Handler<operations[Id], Id>;
 
 /**
- * Mapa operationId → manejador. Parcial porque una operación declarada sin manejador debe
- * responder 501 en runtime (FR-044), no fallar la compilación.
+ * Map operationId → handler. Partial because an operation declared without a handler must
+ * respond 501 at runtime (FR-044), not fail compilation.
  */
 export type Handlers<Ops extends OperationsMap<Ops> = operations> = Partial<{
   [Id in keyof Ops]: Handler<Ops[Id], Id & string>;

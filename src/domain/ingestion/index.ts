@@ -1,4 +1,4 @@
-// API pública del módulo ingestion (dominio): eventos, lote e invariantes, motivos de NO_OP.
+// Public API of the ingestion module (domain): events, batch and invariants, NO_OP reasons.
 export { EVENT_TYPES } from "./event.js";
 export type {
   AddedToCart,

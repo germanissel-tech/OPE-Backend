@@ -1,5 +1,5 @@
-// Contenedor tipado de puertos (ADR-013). Un perfil tiene que proveer todos los campos: agregar
-// un puerto acá sin proveerlo en un perfil no compila (FR-003).
+// Typed container of ports (ADR-013). A profile has to provide every field: adding a port here
+// without providing it in a profile does not compile (FR-003).
 import type { EventDedup } from "../application/ingestion/index.js";
 import type { DecisionLedger, ExposureLedger } from "../application/ledger/index.js";
 import type { MerchantDirectory } from "../application/merchant/index.js";
@@ -14,7 +14,7 @@ export interface Ports {
   exposures: ExposureLedger;
 }
 
-/** Un gateway puede necesitar apagarse (conexiones, timers). En memoria no hay nada que cerrar. */
+/** A gateway may need to shut down (connections, timers). In memory there is nothing to close. */
 export interface Closable {
   close(): Promise<void> | void;
 }
