@@ -38,7 +38,7 @@ verificar que un perfil provea todos los puertos.
 3. **Composición tipada, DI manual**: `composition/ports.ts` declara `interface Ports` con un
    campo por puerto; cada **perfil** (`profiles/memory.ts` ahora; producción después) exporta
    una función que devuelve `Ports` completo, así que un puerto nuevo sin proveer no compila.
-   `bootstrap(config, overrides?: Partial<Ports>)` arma casos de uso y servidor y devuelve
+   `bootstrap(config, overrides?: { ports?: Partial<Ports>; handlers?: Handlers })` arma casos de uso y servidor y devuelve
    `{ app, ports, close }`; `close` apaga en orden inverso. `main.ts` sólo lee configuración,
    llama a `bootstrap` y maneja señales. Reemplazar un adaptador es cambiar el perfil o pasar
    un override (las pruebas pasan `{ clock }`).

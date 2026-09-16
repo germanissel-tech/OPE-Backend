@@ -41,7 +41,7 @@ inline) durante la implementación.
 - **Decisión (DECIDIDO → ADR-013)**: `src/composition/ports.ts` declara `interface Ports`
   con un campo por puerto (`clock`, `ids`, `merchants`, `eventDedup`, `decisions`,
   `exposures`); `src/composition/profiles/memory.ts` exporta `memoryPorts(config): Ports`;
-  `src/composition/bootstrap.ts` exporta `bootstrap(config, overrides?: Partial<Ports>)`
+  `src/composition/bootstrap.ts` exporta `bootstrap(config, overrides?: { ports?: Partial<Ports>; handlers?: Handlers })`
   que devuelve `{ app, ports, close }`. Los casos de uso se instancian en
   `composition/use-cases.ts` recibiendo puertos por parámetro; los controllers reciben casos
   de uso. `main.ts` queda en lectura de configuración, `bootstrap`, `listen`, señales.

@@ -96,7 +96,7 @@ src/
 │   ├── ports.ts                              # interface Ports { clock, ids, merchants, eventDedup, decisions, exposures }
 │   ├── profiles/memory.ts                    # memoryPorts(config): Ports  (perfil de esta feature, pruebas y mock)
 │   ├── use-cases.ts                          # instancia casos de uso con puertos → UseCases
-│   └── bootstrap.ts                          # bootstrap(config, overrides?: Partial<Ports>) → { app, ports, close }
+│   └── bootstrap.ts                          # bootstrap(config, overrides?: { ports?: Partial<Ports>; handlers?: Handlers }) → { app, ports, close }
 ├── domain/                                   # puro: ni npm ni Node; sólo importa domain/
 │   ├── shared-kernel/  index.ts, ids.ts (tipos marcados MerchantId, SessionId, VisitorId, EventId, DecisionId), instant.ts
 │   ├── system/         index.ts, health.ts (serviceHealth, movido)
@@ -158,7 +158,7 @@ consumen los controllers y el cliente; la infraestructura importa hacia adentro)
 ## Diseño de los puntos no triviales
 
 - **Composición** (R-02): `Ports` es una interfaz; `memoryPorts(config)` la implementa entera
-  (si falta un puerto, no compila: FR-003). `bootstrap` = `{ ...memoryPorts(config), ...overrides }`
+  (si falta un puerto, no compila: FR-003). `bootstrap` = `{ ...memoryPorts(config), ...overrides.ports }`
   → `buildUseCases(ports)` → `buildServer({ useCases, ports, config })` → `{ app, ports, close }`.
   `close` cierra Fastify y luego cada gateway que exponga `close()`, en orden inverso. Las
   pruebas de integración usan `bootstrap(testConfig, { clock: fixedClock })`.
