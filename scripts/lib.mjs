@@ -11,7 +11,8 @@ export const contractRoot =
   process.env["OPE_CONTRACT_ROOT"] ?? path.join(repoRoot, "contracts", "openapi.yaml");
 export const bundlePath = path.join(repoRoot, "contracts", "dist", "openapi.yaml");
 export const generatedTypesPath =
-  process.env["OPE_TYPES_FILE"] ?? path.join(repoRoot, "src", "generated", "api.d.ts");
+  process.env["OPE_TYPES_FILE"] ??
+  path.join(repoRoot, "src", "interface-adapters", "http", "generated", "api.d.ts");
 
 /**
  * Comando + argumentos para invocar la CLI de un paquete instalado, sin pasar por los

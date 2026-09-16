@@ -3,11 +3,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
-import { makeGetHealth } from "../../src/handlers/health.js";
+import { makeGetServiceHealth } from "../../src/application/system/index.js";
+import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
+import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { json, problemOf } from "../helpers/json.js";
-import type { components } from "../../src/generated/api.js";
-import type { Handlers, OperationsMap, operations } from "../../src/handlers/typed.js";
+import type { components } from "../../src/interface-adapters/http/generated/api.js";
+import type { Handlers, OperationsMap, operations } from "../../src/interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
 // Tipos del contrato de prueba two-ops.yaml (a mano: es un fixture, no se genera).
@@ -37,7 +38,7 @@ const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
 const now = () => new Date("2026-09-16T12:00:00.000Z");
-const getHealth = makeGetHealth({ contractVersion: "1.0.0", clock: { now } });
+const getHealth = makeGetHealth(makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now } }));
 const healthHandlers: Handlers = { getHealth };
 
 const PROBLEM = "application/problem+json";

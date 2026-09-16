@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serviceHealth } from "../../src/domain/health.js";
+import { serviceHealth } from "../../src/domain/system/index.js";
 
 describe("serviceHealth (dominio)", () => {
   it("es una función pura del reloj y la versión del contrato", () => {

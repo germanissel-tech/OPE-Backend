@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
-import { makeGetHealth } from "../../src/handlers/health.js";
+import { makeGetServiceHealth } from "../../src/application/system/index.js";
+import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
+import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { json } from "../helpers/json.js";
 import type { FastifyInstance } from "fastify";
 
@@ -26,7 +27,11 @@ async function mock(): Promise<FastifyInstance> {
 async function real(): Promise<FastifyInstance> {
   const app = await buildServer({
     definition: contract,
-    handlers: { getHealth: makeGetHealth({ contractVersion: "1.0.0", clock: { now: () => new Date() } }) },
+    handlers: {
+      getHealth: makeGetHealth(
+        makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now: () => new Date() } }),
+      ),
+    },
     mode: "real",
     logger: false,
   });

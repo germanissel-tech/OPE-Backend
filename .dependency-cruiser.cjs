@@ -1,135 +1,143 @@
-// Dirección de dependencias entre capas (ADR-006; constitución I). `npm run arch` y
-// tests/architecture/architecture.test.ts la hacen cumplir. Las rutas usan `(^|/)src/…` para
+// Anillos, módulos y mapa de contextos (ADR-013; constitución I). `npm run arch` y
+// tests/architecture/architecture.test.ts la hacen cumplir. Las rutas usan `(?:^|/)src/…` para
 // que los fixtures bajo tests/architecture/fixtures/src/ matcheen las mismas reglas.
 //
-//   domain   → domain                                   (nada de npm ni de Node, tipos incluidos)
-//   ports    → domain, ports
-//   adapters → ports, domain, el propio adaptador, generated, npm/Node (+ tipos de handlers/typed.ts)
-//   handlers → domain, ports, generated, handlers
-//   client   → generated, npm
-//   main.ts  → todo; nadie lo importa
+// Anillos (dependencia sólo hacia adentro):
+//   domain             → domain                        (nada de npm ni de Node, tipos incluidos)
+//   application        → domain, application
+//   interface-adapters → application, domain, interface-adapters, npm
+//   infrastructure     → todo menos composition y main.ts
+//   composition        → todo; sólo main.ts (y las pruebas) lo importan
+//   main.ts            → composition y Node; nadie lo importa
+//
+// Módulos (dentro de domain/ y application/): un módulo importa de otro sólo por su index.ts y
+// sólo si CONTEXT_MAP lo permite. Agregar un módulo = agregar una entrada acá.
 
-// Grupo no capturante: `$1` en adapters-no-cross debe ser el nombre del adaptador.
+// Grupo no capturante: los back-references `$1`/`$2` deben apuntar a los grupos de las reglas.
 const SRC = "(?:^|/)src/";
-/** @param {string} name */
-/** @param {string} name */
-const layer = (name) => `${SRC}${name}/`;
+const MOD = `${SRC}(domain|application)/`;
+
+/** Mapa de contextos: módulo → módulos de los que puede depender (además de sí mismo). */
+const CONTEXT_MAP = {
+  "shared-kernel": [],
+  system: ["shared-kernel"],
+  merchant: ["shared-kernel"],
+  ingestion: ["shared-kernel", "merchant"],
+  ledger: ["shared-kernel", "ingestion"],
+};
+
+/** Tipos de dependencia que salen del repo: npm y módulos de Node. */
+const EXTERNAL = [
+  "npm",
+  "npm-dev",
+  "npm-optional",
+  "npm-peer",
+  "npm-bundled",
+  "npm-no-pkg",
+  "npm-unknown",
+  "core",
+  "deprecated",
+  "unknown",
+  "undetermined",
+];
+
+/** @type {import('dependency-cruiser').IForbiddenRuleType[]} */
+const contextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => ({
+  name: `context-map:${mod}`,
+  comment: `${mod} sólo depende de: ${[mod, ...allowed].join(", ")} (mapa de contextos, ADR-013)`,
+  severity: "error",
+  from: { path: `${MOD}${mod}/` },
+  to: { path: `${MOD}[^/]+/`, pathNot: `${MOD}(${[mod, ...allowed].join("|")})/` },
+}));
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
+    // --- Anillos --------------------------------------------------------------------------
     {
       name: "domain-is-pure",
       comment: "El dominio no depende de npm ni de módulos de Node: ni en runtime ni en tipos.",
       severity: "error",
-      from: { path: layer("domain") },
-      to: {
-        dependencyTypes: [
-          "npm",
-          "npm-dev",
-          "npm-optional",
-          "npm-peer",
-          "npm-bundled",
-          "npm-no-pkg",
-          "npm-unknown",
-          "core",
-          "deprecated",
-          "unknown",
-          "undetermined",
-        ],
-      },
+      from: { path: `${SRC}domain/` },
+      to: { dependencyTypes: EXTERNAL },
     },
     {
-      name: "domain-no-layers",
-      comment: "El dominio no conoce puertos, adaptadores, manejadores, cliente, generated ni main.",
+      name: "domain-inward",
+      comment: "El dominio no conoce aplicación, adaptadores, infraestructura, composición ni main.",
       severity: "error",
-      from: { path: layer("domain") },
-      to: { path: `${SRC}(ports|adapters|handlers|client|generated|main\\.ts)` },
+      from: { path: `${SRC}domain/` },
+      to: { path: `${SRC}(application|interface-adapters|infrastructure|composition|main\\.ts)` },
     },
     {
-      name: "ports-only-domain",
-      comment: "Los puertos son interfaces sobre el dominio.",
+      name: "application-inward",
+      comment: "Los casos de uso hablan con el mundo por puertos; no conocen adaptadores ni infraestructura.",
       severity: "error",
-      from: { path: layer("ports") },
-      to: { path: `${SRC}(adapters|handlers|client|generated|main\\.ts)` },
+      from: { path: `${SRC}application/` },
+      to: { path: `${SRC}(interface-adapters|infrastructure|composition|main\\.ts)` },
     },
     {
-      name: "ports-are-pure",
+      name: "application-is-pure",
+      comment: "La aplicación tampoco depende de npm ni de Node: sus dependencias son puertos.",
       severity: "error",
-      from: { path: layer("ports") },
-      to: {
-        dependencyTypes: [
-          "npm",
-          "npm-dev",
-          "npm-optional",
-          "npm-peer",
-          "npm-bundled",
-          "npm-no-pkg",
-          "npm-unknown",
-          "core",
-        ],
-      },
+      from: { path: `${SRC}application/` },
+      to: { dependencyTypes: EXTERNAL },
     },
     {
-      name: "adapters-no-cross",
-      comment: "Un adaptador no importa de otro adaptador: se conectan en el composition root.",
+      name: "adapters-inward",
+      comment: "Los adaptadores de interfaz no conocen la infraestructura ni la composición.",
       severity: "error",
-      from: { path: `${SRC}adapters/([^/]+)/` },
-      to: { path: `${SRC}adapters/([^/]+)/`, pathNot: `${SRC}adapters/$1/` },
+      from: { path: `${SRC}interface-adapters/` },
+      to: { path: `${SRC}(infrastructure|composition|main\\.ts)` },
     },
     {
-      name: "adapters-no-handlers",
-      comment: "Un adaptador no importa manejadores; sólo los tipos de handlers/typed.ts.",
+      name: "infrastructure-inward",
+      comment: "La infraestructura no conoce la composición ni main.",
       severity: "error",
-      from: { path: layer("adapters") },
-      to: { path: layer("handlers"), pathNot: `${SRC}handlers/typed\\.ts$` },
+      from: { path: `${SRC}infrastructure/` },
+      to: { path: `${SRC}(composition|main\\.ts)` },
     },
     {
-      name: "adapters-typed-only-types",
-      comment: "La única dependencia adaptador → handlers es de tipos (handlers/typed.ts).",
+      name: "nobody-imports-composition",
+      comment: "Sólo main.ts (y las pruebas) importan el composition root.",
       severity: "error",
-      from: { path: layer("adapters") },
-      to: { path: `${SRC}handlers/typed\\.ts$`, dependencyTypesNot: ["type-only"] },
-    },
-    {
-      name: "handlers-no-adapters",
-      comment: "Los manejadores reciben sus dependencias por puertos; no instancian infraestructura.",
-      severity: "error",
-      from: { path: layer("handlers") },
-      to: { path: `${SRC}(adapters|client|main\\.ts)` },
-    },
-    {
-      name: "handlers-no-runtime-npm",
-      severity: "error",
-      from: { path: layer("handlers") },
-      to: {
-        dependencyTypes: [
-          "npm",
-          "npm-dev",
-          "npm-optional",
-          "npm-peer",
-          "npm-bundled",
-          "npm-no-pkg",
-          "npm-unknown",
-          "core",
-        ],
-        dependencyTypesNot: ["type-only"],
-      },
-    },
-    {
-      name: "client-only-generated",
-      comment: "El cliente sólo conoce los tipos generados y openapi-fetch.",
-      severity: "error",
-      from: { path: layer("client") },
-      to: { path: `${SRC}(domain|ports|adapters|handlers|main\\.ts)` },
+      from: { path: `${SRC}`, pathNot: `${SRC}(composition/|main\\.ts$)` },
+      to: { path: `${SRC}composition/` },
     },
     {
       name: "nobody-imports-main",
-      comment: "main.ts es el composition root: es raíz del grafo, nadie lo importa.",
+      comment: "main.ts es la raíz del grafo; nadie lo importa.",
       severity: "error",
       from: {},
       to: { path: `${SRC}main\\.ts$` },
     },
+    // --- Módulos --------------------------------------------------------------------------
+    {
+      name: "modules-only-via-index",
+      comment: "Un módulo importa de otro sólo por su index.ts (API pública).",
+      severity: "error",
+      from: { path: `${MOD}([^/]+)/` },
+      to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`] },
+    },
+    ...contextRules,
+    {
+      name: "gateways-no-cross",
+      comment:
+        "Un gateway implementa el puerto de su módulo; no importa otro gateway (se conectan en composición).",
+      severity: "error",
+      from: { path: `${SRC}interface-adapters/gateways/([^/]+)/` },
+      to: {
+        path: `${SRC}interface-adapters/gateways/([^/]+)/`,
+        pathNot: `${SRC}interface-adapters/gateways/$1/`,
+      },
+    },
+    {
+      name: "controllers-no-gateways",
+      comment: "Un controller recibe casos de uso; no instancia gateways.",
+      severity: "error",
+      from: { path: `${SRC}interface-adapters/http/` },
+      to: { path: `${SRC}interface-adapters/gateways/` },
+    },
+    // --- Generales ------------------------------------------------------------------------
     {
       name: "no-circular",
       severity: "error",
@@ -138,11 +146,12 @@ module.exports = {
     },
     {
       name: "no-orphans",
-      comment: "Todo módulo de src/ lo usa alguien, salvo main.ts (raíz), client (entrypoint) y generated.",
+      comment:
+        "Todo módulo de src/ lo usa alguien, salvo main.ts (raíz), el cliente (entrypoint) y los generados.",
       severity: "error",
       from: {
         orphan: true,
-        pathNot: [`${SRC}main\\.ts$`, layer("client"), layer("generated"), "\\.d\\.ts$"],
+        pathNot: [`${SRC}main\\.ts$`, `${SRC}interface-adapters/http/client\\.ts$`, "\\.d\\.ts$"],
       },
       to: {},
     },

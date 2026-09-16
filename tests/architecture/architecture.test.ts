@@ -1,4 +1,4 @@
-// FR-040 / FR-041 (ADR-006): la dirección de dependencias entre capas se hace cumplir.
+// FR-001, FR-002, FR-004 (ADR-013): anillos, módulos y mapa de contextos se hacen cumplir.
 // (a) src/ no tiene violaciones; (b) cada regla atrapa la violación de su fixture.
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -31,7 +31,7 @@ async function violations(dir: string): Promise<Violation[]> {
   return output.summary.violations;
 }
 
-describe("arquitectura por capas (dependency-cruiser)", () => {
+describe("arquitectura por anillos y módulos (dependency-cruiser)", () => {
   it("src/ respeta la dirección de dependencias", async () => {
     const found = await violations("src");
     expect(found.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);
@@ -41,23 +41,27 @@ describe("arquitectura por capas (dependency-cruiser)", () => {
     const found = await violations("tests/architecture/fixtures/src");
     const byRule = (name: string) =>
       found.filter((v) => v.rule.name === name).map((v) => `${v.from} -> ${v.to}`);
-    expect(byRule("domain-is-pure")).toContainEqual(expect.stringContaining("domain/bad-npm.ts"));
-    expect(byRule("domain-no-layers")).toContainEqual(expect.stringContaining("domain/bad-adapter.ts"));
-    expect(byRule("ports-only-domain")).toContainEqual(expect.stringContaining("ports/bad-adapter.ts"));
-    expect(byRule("adapters-no-cross")).toContainEqual(expect.stringContaining("adapters/x/bad-cross.ts"));
-    expect(byRule("adapters-no-handlers")).toContainEqual(
-      expect.stringContaining("adapters/x/bad-handlers.ts"),
-    );
-    expect(byRule("adapters-typed-only-types")).toContainEqual(
-      expect.stringContaining("adapters/x/bad-typed-runtime.ts"),
-    );
-    expect(byRule("handlers-no-adapters")).toContainEqual(expect.stringContaining("handlers/bad-adapter.ts"));
-    expect(byRule("handlers-no-runtime-npm")).toContainEqual(expect.stringContaining("handlers/bad-npm.ts"));
-    expect(byRule("client-only-generated")).toContainEqual(expect.stringContaining("client/bad-domain.ts"));
-    expect(byRule("nobody-imports-main")).toContainEqual(expect.stringContaining("some/bad-main.ts"));
+    const expectRule = (name: string, from: string) => {
+      expect(byRule(name), name).toContainEqual(expect.stringContaining(from));
+    };
+    // Anillos
+    expectRule("domain-is-pure", "domain/ingestion/bad-npm.ts");
+    expectRule("domain-inward", "domain/ingestion/bad-application.ts");
+    expectRule("application-inward", "application/ledger/bad-adapter.ts");
+    expectRule("application-is-pure", "application/ledger/bad-npm.ts");
+    expectRule("adapters-inward", "interface-adapters/http/controllers/x/bad-infra.ts");
+    expectRule("infrastructure-inward", "infrastructure/http/bad-composition.ts");
+    expectRule("nobody-imports-composition", "some/bad-composition.ts");
+    expectRule("nobody-imports-main", "some/bad-main.ts");
+    // Módulos
+    expectRule("modules-only-via-index", "application/ledger/bad-internal-import.ts");
+    expectRule("context-map:ledger", "domain/ledger/bad-context.ts");
+    expectRule("context-map:shared-kernel", "domain/shared-kernel/bad-context.ts");
+    expectRule("gateways-no-cross", "interface-adapters/gateways/a/bad-cross.ts");
+    expectRule("controllers-no-gateways", "interface-adapters/http/controllers/x/bad-gateway.ts");
   });
 
-  it("los módulos legítimos del fixture no disparan reglas de capa", async () => {
+  it("los módulos legítimos del fixture no disparan ninguna regla", async () => {
     const found = await violations("tests/architecture/fixtures/src");
     const legit = found.filter((v) => !v.from.includes("bad-") && v.rule.name !== "no-orphans");
     expect(legit.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);
