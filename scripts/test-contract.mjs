@@ -11,6 +11,10 @@ import { bundlePath, repoRoot } from "./lib.mjs";
 
 // Pinned version: the same locally and in CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
+// The server compiles the contract validators at startup: fifteen seconds covers a cold CI runner.
+const STARTUP_TIMEOUT_MS = 15000;
+// Time given to a graceful SIGTERM before SIGKILL.
+const KILL_GRACE_MS = 3000;
 
 /** Test merchant for Schemathesis: the ingest credential travels in every request. */
 const CONTRACT_MERCHANT = {
@@ -71,19 +75,22 @@ function serverCommand() {
   };
 }
 
-/** @returns {Promise<number>} */
-async function main() {
+/** @returns {string | null} the reason the run cannot start, or null */
+function preflight() {
   const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
-  if (uvx.status !== 0) {
-    console.error("test:contract — `uvx` not found. Install uv: https://docs.astral.sh/uv/");
-    return 1;
-  }
-  if (!existsSync(bundlePath)) {
-    console.error(`test:contract — ${bundlePath} does not exist. Run npm run contract:bundle.`);
-    return 1;
-  }
+  if (uvx.status !== 0) return "`uvx` not found. Install uv: https://docs.astral.sh/uv/";
+  if (!existsSync(bundlePath)) return `${bundlePath} does not exist. Run npm run contract:bundle.`;
+  return null;
+}
 
-  const port = await freePort();
+/** @typedef {{ log: () => string; stop: () => Promise<void> }} RunningServer */
+
+/**
+ * Starts the server on `port` with the contract-test merchant, capturing its output.
+ * @param {number} port
+ * @returns {RunningServer}
+ */
+function startServer(port) {
   const { cmd, args } = serverCommand();
   const server = spawn(cmd, args, {
     cwd: repoRoot,
@@ -102,7 +109,6 @@ async function main() {
   };
   server.stdout.on("data", append);
   server.stderr.on("data", append);
-
   /** @returns {Promise<void>} */
   const stop = () =>
     new Promise((resolve) => {
@@ -116,50 +122,70 @@ async function main() {
       server.kill("SIGTERM");
       setTimeout(() => {
         if (server.exitCode === null) server.kill("SIGKILL");
-      }, 3000).unref();
+      }, KILL_GRACE_MS).unref();
     });
+  return { log: () => serverLog, stop };
+}
 
+/**
+ * Runs Schemathesis against `base` and returns its exit code.
+ * @param {string} base
+ * @returns {number}
+ */
+function runSchemathesis(base) {
+  const st = spawnSync(
+    "uvx",
+    [
+      SCHEMATHESIS,
+      "run",
+      bundlePath,
+      "--url",
+      base,
+      "--checks",
+      "all",
+      "--phases",
+      "examples,coverage,fuzzing",
+      "--max-examples",
+      "50",
+      // Ingest credential: authenticated operations demand it (401 without it, and
+      // Schemathesis also tests that path by removing the header).
+      "-H",
+      `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
+      "--report",
+      "junit",
+      "--report-dir",
+      path.join(repoRoot, ".schemathesis"),
+    ],
+    {
+      stdio: "inherit",
+      cwd: repoRoot,
+      // UTF-8 output also on Windows consoles (cp1252).
+      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
+    },
+  );
+  return st.status ?? 1;
+}
+
+/** @returns {Promise<number>} */
+async function main() {
+  const blocker = preflight();
+  if (blocker !== null) {
+    console.error(`test:contract — ${blocker}`);
+    return 1;
+  }
+  const port = await freePort();
+  const server = startServer(port);
   try {
     const base = `http://127.0.0.1:${port}`;
-    await waitForHealth(`${base}/v1/health`, 15000);
+    await waitForHealth(`${base}/v1/health`, STARTUP_TIMEOUT_MS);
     console.log(`test:contract — server at ${base}; running Schemathesis…`);
-    const st = spawnSync(
-      "uvx",
-      [
-        SCHEMATHESIS,
-        "run",
-        bundlePath,
-        "--url",
-        base,
-        "--checks",
-        "all",
-        "--phases",
-        "examples,coverage,fuzzing",
-        "--max-examples",
-        "50",
-        // Ingest credential: authenticated operations demand it (401 without it, and
-        // Schemathesis also tests that path by removing the header).
-        "-H",
-        `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
-        "--report",
-        "junit",
-        "--report-dir",
-        path.join(repoRoot, ".schemathesis"),
-      ],
-      {
-        stdio: "inherit",
-        cwd: repoRoot,
-        // UTF-8 output also on Windows consoles (cp1252).
-        env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
-      },
-    );
-    return st.status ?? 1;
+    return runSchemathesis(base);
   } catch (/** @type {unknown} */ err) {
     console.error(`test:contract — ${err instanceof Error ? err.message : String(err)}`);
-    console.error(serverLog);
+    console.error(server.log());
     return 1;
   } finally {
-    await stop();
+    await server.stop();
   }
 }
 

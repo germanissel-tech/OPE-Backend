@@ -203,23 +203,40 @@ function resolveCompound(words, label, at) {
   }
 }
 
+/**
+ * Keys of an object-shaped value, or none.
+ * @param {unknown} value
+ * @returns {string[]}
+ */
+const keysOf = (value) => Object.keys(value !== null && typeof value === "object" ? value : {});
+
+/**
+ * Every path segment that is not a parameter or a version prefix must resolve.
+ * @param {string} route
+ */
+function resolveRoute(route) {
+  for (const segment of route.split("/").filter(Boolean)) {
+    if (segment.startsWith("{") || /^v\d+$/.test(segment)) continue;
+    resolveCompound(segment.split("-"), segment, `paths ${route}`);
+  }
+}
+
+/**
+ * A schema name resolves without its technical suffix, split by PascalCase words.
+ * @param {string} name
+ */
+function resolveSchema(name) {
+  let stem = name;
+  for (const suffix of SUFFIXES) {
+    if (stem.endsWith(suffix) && stem.length > suffix.length) stem = stem.slice(0, -suffix.length);
+  }
+  const words = stem.split(/(?=[A-Z])/).filter(Boolean);
+  resolveCompound(words, name, `components.schemas.${name}`);
+}
+
 if (doc) {
-  const paths = prop(doc, "paths");
-  for (const route of Object.keys(paths !== null && typeof paths === "object" ? paths : {})) {
-    for (const segment of route.split("/").filter(Boolean)) {
-      if (segment.startsWith("{") || /^v\d+$/.test(segment)) continue;
-      resolveCompound(segment.split("-"), segment, `paths ${route}`);
-    }
-  }
-  const schemas = prop(prop(doc, "components"), "schemas");
-  for (const name of Object.keys(schemas !== null && typeof schemas === "object" ? schemas : {})) {
-    let stem = name;
-    for (const suffix of SUFFIXES) {
-      if (stem.endsWith(suffix) && stem.length > suffix.length) stem = stem.slice(0, -suffix.length);
-    }
-    const words = stem.split(/(?=[A-Z])/).filter(Boolean);
-    resolveCompound(words, name, `components.schemas.${name}`);
-  }
+  for (const route of keysOf(prop(doc, "paths"))) resolveRoute(route);
+  for (const name of keysOf(prop(prop(doc, "components"), "schemas"))) resolveSchema(name);
 }
 
 // --- Unused notes ----------------------------------------------------------------------

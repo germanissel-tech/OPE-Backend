@@ -146,6 +146,16 @@ function codeSegments(text) {
       .split(/\r?\n/)
       .forEach((piece, i) => out.push({ line: startLine + i, text: piece, isComment }));
   };
+  /** A `}` either closes a template substitution (rescan as template) or a block. */
+  const closeBrace = () => {
+    if (templateDepth.length === 0 || templateDepth[templateDepth.length - 1] !== braceDepth) {
+      braceDepth--;
+      return;
+    }
+    const rescanned = scanner.reScanTemplateToken(false);
+    push(rescanned);
+    if (rescanned === ts.SyntaxKind.TemplateTail) templateDepth.pop();
+  };
   let kind = scanner.scan();
   while (kind !== ts.SyntaxKind.EndOfFileToken) {
     switch (kind) {
@@ -163,13 +173,7 @@ function codeSegments(text) {
         braceDepth++;
         break;
       case ts.SyntaxKind.CloseBraceToken:
-        if (templateDepth.length > 0 && templateDepth[templateDepth.length - 1] === braceDepth) {
-          kind = scanner.reScanTemplateToken(false);
-          push(kind);
-          if (kind === ts.SyntaxKind.TemplateTail) templateDepth.pop();
-        } else {
-          braceDepth--;
-        }
+        closeBrace();
         break;
       default:
         break;

@@ -6,12 +6,51 @@ import js from "@eslint/js";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import prettier from "eslint-config-prettier";
 import importX from "eslint-plugin-import-x";
+import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 const TS_FILES = ["**/*.ts", "**/*.mts", "**/*.cts"];
 const JS_FILES = ["**/*.js", "**/*.mjs", "**/*.cjs"];
 const COMMONJS_FILES = ["contracts/rules/functions/*.js", "**/*.cjs"];
+
+// Shape of the code (ADR-016, FR-010..FR-013). Every threshold carries its reason; a value
+// without one is a "voodoo constant". These apply everywhere unless a scope below says otherwise.
+export const SHAPE_RULES = {
+  // 15 is the threshold of Sonar's original cognitive-complexity paper (Campbell, 2018): past it
+  // a function is no longer understood in one reading.
+  "sonarjs/cognitive-complexity": ["error", 15],
+  // From the fourth nesting level the eye loses the condition that opened the block: extract.
+  "max-depth": ["error", 3],
+  // More than four positional arguments get mixed up; the alternative is a named options object.
+  "max-params": ["error", 4],
+  // One screen. Blank lines and comments do not count: prose is not logic.
+  "max-lines-per-function": ["error", { max: 60, skipBlankLines: true, skipComments: true }],
+  // Semantic duplication (FR-011): same knowledge written twice, or a branch that adds nothing.
+  "sonarjs/no-identical-functions": "error",
+  "sonarjs/no-all-duplicated-branches": "error",
+  "sonarjs/no-identical-conditions": "error",
+  "sonarjs/no-collapsible-if": "error",
+  "sonarjs/no-redundant-boolean": "error",
+  // An ignored error is a silent NO_OP without a reason (constitution II).
+  "sonarjs/no-ignored-exceptions": "error",
+};
+
+// Production code only (FR-012): rates 0–1 and times in ms are exactly what must be named.
+// 0, 1 and -1 are structural (empty, first, not found), as are array and type indexes.
+export const SRC_ONLY_RULES = {
+  "@typescript-eslint/no-magic-numbers": [
+    "error",
+    { ignore: [0, 1, -1], ignoreArrayIndexes: true, ignoreTypeIndexes: true, ignoreEnums: true },
+  ],
+};
+
+// Tests: a `describe` callback groups cases, it is not logic; literal values in assertions are
+// the point of the test, not magic.
+export const TEST_ONLY_RULES = {
+  "max-lines-per-function": "off",
+  "@typescript-eslint/no-magic-numbers": "off",
+};
 
 export default tseslint.config(
   {
@@ -39,7 +78,7 @@ export default tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
   eslintComments.recommended,
   {
-    plugins: { "import-x": importX },
+    plugins: { "import-x": importX, sonarjs },
     languageOptions: {
       parserOptions: { project: ["./tsconfig.typecheck.json"], tsconfigRootDir: import.meta.dirname },
       globals: { ...globals.node },
@@ -81,8 +120,11 @@ export default tseslint.config(
       // Exceptions: always with a reason (FR-002). The ones that no longer apply are reported by
       // linterOptions.reportUnusedDisableDirectives (core).
       "@eslint-community/eslint-comments/require-description": ["error", { ignore: [] }],
+      ...SHAPE_RULES,
     },
   },
+  { files: ["src/**/*.ts"], rules: SRC_ONLY_RULES },
+  { files: ["tests/**"], rules: TEST_ONLY_RULES },
   {
     // JavaScript: without type information (checkJs verifies them in tsconfig.scripts.json).
     files: JS_FILES,

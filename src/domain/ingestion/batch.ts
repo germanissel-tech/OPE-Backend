@@ -1,13 +1,19 @@
 // Batch of events of one session and its invariants (contract: EventBatch.x-invariants; ADR-007).
 // The schema already validated shape and ranges; here go the rules the schema cannot express.
+import { hours, minutes } from "../shared-kernel/index.js";
 import type { Event } from "./event.js";
 
 export interface EventBatch {
   events: readonly Event[];
 }
 
-/** Tolerance of the instant relative to the backend clock: 24 h in the past, 5 min in the future. */
-export const TIMESTAMP_TOLERANCE = { pastMs: 24 * 60 * 60 * 1000, futureMs: 5 * 60 * 1000 } as const;
+/** Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants). */
+const TOLERANCE_PAST_HOURS = 24;
+const TOLERANCE_FUTURE_MINUTES = 5;
+export const TIMESTAMP_TOLERANCE = {
+  pastMs: hours(TOLERANCE_PAST_HOURS),
+  futureMs: minutes(TOLERANCE_FUTURE_MINUTES),
+} as const;
 
 export type BatchInvariant = "session-visitor-mismatch" | "event-timestamp-out-of-range";
 

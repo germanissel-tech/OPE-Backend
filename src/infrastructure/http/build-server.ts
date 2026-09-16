@@ -53,6 +53,8 @@ interface HttpResponse {
 }
 
 const HTTP_METHODS = ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"] as const;
+/** First error status: from here on every response of the contract is Problem Details. */
+const FIRST_ERROR_STATUS = 400;
 /** Methods routed by the wildcard route: OPTIONS is left to the CORS preflight (research R-04). */
 const ROUTED_METHODS = HTTP_METHODS.filter((m) => m !== "OPTIONS");
 
@@ -117,22 +119,22 @@ function pathOf(url: string): string {
   return q === -1 ? url : url.slice(0, q);
 }
 
-export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
-  options: BuildServerOptions<Ops>,
-): Promise<FastifyInstance> {
-  const { handlers, mode } = options;
-  // The contract comes in as published, except for `discriminator.mapping` (research R-05).
-  const definition = stripDiscriminatorMappings(options.definition);
+/** The Fastify instance: transport only, with the private logger and CORS when a policy is given. */
+async function createApp(options: Pick<BuildServerOptions, "logger" | "cors">): Promise<FastifyInstance> {
   const logger = options.logger;
   const app =
     logger === undefined || typeof logger === "boolean"
       ? Fastify({ logger: (logger ?? true) ? loggerOptions : false })
       : Fastify({ loggerInstance: privateLogger(logger) });
-  const log = app.log;
   if (options.cors) await registerCors(app, options.cors);
+  return app;
+}
 
-  const api = new OpenAPIBackend({
-    definition,
+/** openapi-backend over the published contract, validating request and response. */
+function createApi(definition: ContractDocument): OpenAPIBackend {
+  return new OpenAPIBackend({
+    // The contract comes in as published, except for `discriminator.mapping` (research R-05).
+    definition: stripDiscriminatorMappings(definition),
     strict: true,
     validate: true,
     // `discriminator: true`: one precise error per branch of the event union, not one per branch.
@@ -141,50 +143,84 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     // ajv-formats is CommonJS: under ESM the callable is in `.default`.
     customizeAjv: (ajv) => ajvFormats.default(ajv),
   });
+}
 
-  /** Methods declared in the contract for a path (empty if the path does not exist). */
-  const allowedMethods = (requestPath: string): string[] =>
-    HTTP_METHODS.filter(
-      (method) => api.matchOperation({ method, path: requestPath, headers: {} }) !== undefined,
+/** 405 with `Allow` if the path exists in the contract with other methods; 404 if it does not. */
+function unroutable(api: OpenAPIBackend, requestPath: string): HttpResponse {
+  const allowed = HTTP_METHODS.filter(
+    (method) => api.matchOperation({ method, path: requestPath, headers: {} }) !== undefined,
+  );
+  if (allowed.length === 0) {
+    return toHttp(
+      problem("not-found", { instance: requestPath, detail: `There is no operation for ${requestPath}.` }),
     );
+  }
+  const res = toHttp(
+    problem("method-not-allowed", {
+      instance: requestPath,
+      detail: `Declared methods: ${allowed.join(", ")}.`,
+    }),
+  );
+  return { ...res, headers: { allow: allowed.join(", ") } };
+}
 
-  /** 405 with `Allow` if the path exists in the contract with other methods; 404 if it does not. */
-  const unroutable = (requestPath: string): HttpResponse => {
-    const allowed = allowedMethods(requestPath);
-    if (allowed.length === 0) {
-      return toHttp(
-        problem("not-found", {
-          instance: requestPath,
-          detail: `There is no operation for ${requestPath}.`,
-        }),
-      );
-    }
-    const res = toHttp(
-      problem("method-not-allowed", {
-        instance: requestPath,
-        detail: `Declared methods: ${allowed.join(", ")}.`,
-      }),
-    );
-    return { ...res, headers: { allow: allowed.join(", ") } };
-  };
+/** The Problem Details of the security handler that failed; `unauthorized` if none said which. */
+function securityFailure(c: BoundaryContext): HttpResponse {
+  const results = c.security as Record<string, unknown> | undefined;
+  for (const [name, result] of Object.entries(results ?? {})) {
+    if (name === "authorized" || typeof result !== "object" || result === null) continue;
+    const error: unknown = (result as { error?: unknown }).error;
+    if (error instanceof SecurityError) return toHttp(problem(error.slug, { instance: c.request.path }));
+  }
+  return toHttp(problem("unauthorized", { instance: c.request.path }));
+}
 
-  // Security handlers: they run before validation and the handler; their error decides the status.
-  for (const [scheme, handler] of Object.entries(options.security ?? {})) {
+/** Security handlers run before validation and the handler; their error decides the status. */
+function registerSecurity(api: OpenAPIBackend, security: Record<string, SecurityHandler>): void {
+  for (const [scheme, handler] of Object.entries(security)) {
     api.registerSecurityHandler(scheme, (c: BoundaryContext) =>
       handler({ headers: c.request.headers as Record<string, string | string[] | undefined> }),
     );
   }
-  const securityFailure = (c: BoundaryContext): HttpResponse => {
-    const results = c.security as Record<string, unknown> | undefined;
-    for (const [name, result] of Object.entries(results ?? {})) {
-      if (name === "authorized" || typeof result !== "object" || result === null) continue;
-      const error: unknown = (result as { error?: unknown }).error;
-      if (error instanceof SecurityError) return toHttp(problem(error.slug, { instance: c.request.path }));
-    }
-    return toHttp(problem("unauthorized", { instance: c.request.path }));
-  };
+}
 
-  // openapi-backend special handlers → Problem Details.
+/** What every registration step needs: the API, the server log and the mode. */
+interface Runtime {
+  api: OpenAPIBackend;
+  log: FastifyBaseLogger;
+  mode: ServerMode;
+}
+
+/** An operation without a handler: the contract example in mock mode, 501 otherwise (FR-044). */
+function notImplemented({ api, mode, log }: Runtime, c: Context): HttpResponse {
+  const operationId = c.operation.operationId ?? "(no operationId)";
+  if (mode === "mock") {
+    try {
+      const mocked = api.mockResponseForOperation(operationId);
+      // The contract example arrives as any; the server assumes nothing about its shape.
+      const body: unknown = mocked.mock;
+      return { status: mocked.status, body, contentType: "application/json" };
+    } catch (err) {
+      log.warn({ operationId, err }, "mock: the operation declares no example");
+      return toHttp(
+        problem("not-implemented", {
+          instance: c.request.path,
+          detail: `Operation ${operationId} declares no example for the mock.`,
+        }),
+      );
+    }
+  }
+  return toHttp(
+    problem("not-implemented", {
+      instance: c.request.path,
+      detail: `Operation ${operationId} is declared in the contract but has no registered handler.`,
+    }),
+  );
+}
+
+/** openapi-backend special handlers → Problem Details. */
+function registerSpecialHandlers(runtime: Runtime): void {
+  const { api } = runtime;
   api.register({
     unauthorizedHandler: async (c: Context): Promise<HttpResponse> => securityFailure(c as BoundaryContext),
     validationFail: async (c: Context): Promise<HttpResponse> =>
@@ -201,39 +237,45 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
           detail: `There is no operation for ${c.request.method.toUpperCase()} ${c.request.path}.`,
         }),
       ),
-    methodNotAllowed: async (c: Context): Promise<HttpResponse> => unroutable(c.request.path),
-    notImplemented: async (c: Context): Promise<HttpResponse> => {
-      const operationId = c.operation.operationId ?? "(no operationId)";
-      if (mode === "mock") {
-        try {
-          const mocked = api.mockResponseForOperation(operationId);
-          // The contract example arrives as any; the server assumes nothing about its shape.
-          const body: unknown = mocked.mock;
-          return { status: mocked.status, body, contentType: "application/json" };
-        } catch (err) {
-          log.warn({ operationId, err }, "mock: the operation declares no example");
-          return toHttp(
-            problem("not-implemented", {
-              instance: c.request.path,
-              detail: `Operation ${operationId} declares no example for the mock.`,
-            }),
-          );
-        }
-      }
-      return toHttp(
-        problem("not-implemented", {
-          instance: c.request.path,
-          detail: `Operation ${operationId} is declared in the contract but has no registered handler.`,
-        }),
-      );
-    },
+    methodNotAllowed: async (c: Context): Promise<HttpResponse> => unroutable(api, c.request.path),
+    notImplemented: async (c: Context): Promise<HttpResponse> => notImplemented(runtime, c),
   });
+}
 
-  // Domain handlers, wrapped: typed request → handler → response validation.
-  for (const [operationId, handler] of Object.entries(handlers) as [
-    string,
-    ((req: unknown) => Promise<HttpResponse>) | undefined,
-  ][]) {
+/** The handler result is only sent if its status and body are what the contract declares (FR-045). */
+function validateResult(
+  { api, log }: Runtime,
+  c: BoundaryContext,
+  operationId: string,
+  result: HttpResponse,
+): HttpResponse {
+  const declared = Object.keys(c.operation.responses ?? {});
+  if (!declared.includes(String(result.status))) {
+    log.error(
+      { operationId, status: result.status, declared },
+      "the handler responded with a status not declared in the contract",
+    );
+    return toHttp(problem("response-contract-violation", { instance: c.request.path }));
+  }
+  const validation = api.validateResponse(result.body, operationId, result.status);
+  if (!validation.valid) {
+    log.error(
+      { operationId, status: result.status, errors: validation.errors },
+      "the handler response does not satisfy the contract",
+    );
+    return toHttp(problem("response-contract-violation", { instance: c.request.path }));
+  }
+  // Every 4xx/5xx of the contract is Problem Details (ruleset rule): the media type follows from the status.
+  const contentType = result.status >= FIRST_ERROR_STATUS ? PROBLEM_CONTENT_TYPE : "application/json";
+  return { ...result, contentType: result.contentType ?? contentType };
+}
+
+type BoundaryHandler = (req: unknown) => Promise<HttpResponse>;
+
+/** Domain handlers, wrapped: typed request → handler → response validation. */
+function registerHandlers(runtime: Runtime, handlers: Record<string, unknown>): void {
+  const { api, log } = runtime;
+  for (const [operationId, handler] of Object.entries(handlers) as [string, BoundaryHandler | undefined][]) {
     if (!handler) continue;
     // openapi-backend throws if the operationId does not exist in the contract (SC-005).
     api.register(
@@ -257,47 +299,27 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
           body: c.request.requestBody,
           security: principals,
         };
-        let result: HttpResponse;
         try {
-          result = await handler(request);
+          return validateResult(runtime, c, operationId, await handler(request));
         } catch (err) {
           log.error({ operationId, err }, "the handler threw an exception");
           return toHttp(problem("internal-error", { instance: c.request.path }));
         }
-        const declared = Object.keys(c.operation.responses ?? {});
-        if (!declared.includes(String(result.status))) {
-          log.error(
-            { operationId, status: result.status, declared },
-            "the handler responded with a status not declared in the contract",
-          );
-          return toHttp(problem("response-contract-violation", { instance: c.request.path }));
-        }
-        const validation = api.validateResponse(result.body, operationId, result.status);
-        if (!validation.valid) {
-          log.error(
-            { operationId, status: result.status, errors: validation.errors },
-            "the handler response does not satisfy the contract",
-          );
-          return toHttp(problem("response-contract-violation", { instance: c.request.path }));
-        }
-        // Every 4xx/5xx of the contract is Problem Details (ruleset rule): the media type follows from the status.
-        const contentType = result.status >= 400 ? PROBLEM_CONTENT_TYPE : "application/json";
-        return { ...result, contentType: result.contentType ?? contentType };
       },
     );
   }
+}
 
-  // Startup fails if the contract is invalid (FR-040).
-  await api.init();
+function send(reply: FastifyReply, res: HttpResponse): FastifyReply {
+  if (res.headers) reply.headers(res.headers);
+  return reply
+    .status(res.status)
+    .type(res.contentType ?? "application/json")
+    .send(res.body);
+}
 
-  const send = (reply: FastifyReply, res: HttpResponse): FastifyReply => {
-    if (res.headers) reply.headers(res.headers);
-    return reply
-      .status(res.status)
-      .type(res.contentType ?? "application/json")
-      .send(res.body);
-  };
-
+/** Wildcard routes delegate to openapi-backend; Fastify's own errors also come out as Problem Details. */
+function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
   const dispatch = async (request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
     const res = (await api.handleRequest(
       {
@@ -312,17 +334,16 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     )) as HttpResponse;
     return send(reply, res);
   };
-
   app.route({ method: [...ROUTED_METHODS], url: "/", handler: dispatch });
   app.route({ method: [...ROUTED_METHODS], url: "/*", handler: dispatch });
 
   // Methods Fastify does not route (for example QUERY) land here: 405 if the path exists, 404 if not.
-  app.setNotFoundHandler(async (request, reply) => send(reply, unroutable(pathOf(request.url))));
+  app.setNotFoundHandler(async (request, reply) => send(reply, unroutable(api, pathOf(request.url))));
 
   app.setErrorHandler(async (error: Error & { code?: string; statusCode?: number }, request, reply) => {
     const instance = pathOf(request.url);
     // Unrouted method with a body and no content-type: Fastify rejects it before routing.
-    if (error.code === "FST_ERR_ROUTE_MISSING_CONTENT_TYPE") return send(reply, unroutable(instance));
+    if (error.code === "FST_ERR_ROUTE_MISSING_CONTENT_TYPE") return send(reply, unroutable(api, instance));
     // Fastify parser errors: invalid JSON, empty body, unsupported media type.
     if (typeof error.code === "string" && error.code.startsWith("FST_ERR_CTP_")) {
       return send(
@@ -332,9 +353,22 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
         ),
       );
     }
-    log.error({ err: error }, "unhandled error");
+    app.log.error({ err: error }, "unhandled error");
     return send(reply, toHttp(problem("internal-error", { instance })));
   });
+}
 
+export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
+  options: BuildServerOptions<Ops>,
+): Promise<FastifyInstance> {
+  const app = await createApp(options);
+  const api = createApi(options.definition);
+  const runtime: Runtime = { api, log: app.log, mode: options.mode };
+  registerSecurity(api, options.security ?? {});
+  registerSpecialHandlers(runtime);
+  registerHandlers(runtime, options.handlers);
+  // Startup fails if the contract is invalid (FR-040).
+  await api.init();
+  mountRoutes(app, api);
   return app;
 }

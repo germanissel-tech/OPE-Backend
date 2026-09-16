@@ -21,6 +21,11 @@ export interface AppConfig {
   handlersModule: string | undefined;
 }
 
+/** Port when `PORT` is not set: the usual local development port. */
+const DEFAULT_PORT = 3000;
+/** One active key, or two during a rotation (ADR-014). */
+const MAX_INGEST_KEYS = 2;
+
 /** Test merchant for `OPE_MOCK=1` and local development without configuration. */
 export const MOCK_MERCHANT: MerchantConfig = {
   merchantId: "mock-merchant",
@@ -31,7 +36,7 @@ export const MOCK_MERCHANT: MerchantConfig = {
 export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => string): AppConfig {
   const mode: ServerMode = env["OPE_MOCK"] === "1" ? "mock" : "real";
   return {
-    port: Number(env["PORT"] ?? 3000),
+    port: Number(env["PORT"] ?? DEFAULT_PORT),
     host: env["HOST"] ?? "127.0.0.1",
     mode,
     contractPath: path.resolve(env["OPE_CONTRACT"] ?? "contracts/dist/openapi.yaml"),
@@ -65,7 +70,7 @@ export function parseMerchants(raw: string): MerchantConfig[] {
     if (typeof merchantId !== "string" || merchantId === "") {
       throw new Error(`merchants[${i}].merchantId must be a non-empty string.`);
     }
-    if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > 2) {
+    if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > MAX_INGEST_KEYS) {
       throw new Error(`merchants[${i}].ingestKeys must have one or two keys.`);
     }
     if (!isStringArray(origins) || origins.length === 0) {

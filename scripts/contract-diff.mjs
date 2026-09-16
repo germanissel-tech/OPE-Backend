@@ -75,83 +75,91 @@ function bundleBase(ref, workDir) {
   return out;
 }
 
+/** @typedef {{ base: string | null; head: string; baseLabel: string; workDir: string | null }} Pair */
+
+/**
+ * The two bundles to compare: explicit files (test mode) or the repo bundle against the base ref.
+ * @param {string | undefined} baseArg
+ * @param {string | undefined} headArg
+ * @returns {Pair}
+ */
+function resolvePair(baseArg, headArg) {
+  if (baseArg !== undefined || headArg !== undefined) {
+    if (baseArg === undefined || headArg === undefined) {
+      throw new Error("Use --base <file> and --head <file> together");
+    }
+    const base = path.resolve(baseArg);
+    return {
+      base: existsSync(base) ? base : null,
+      head: path.resolve(headArg),
+      baseLabel: baseArg,
+      workDir: null,
+    };
+  }
+  if (!existsSync(bundlePath)) {
+    throw new Error(`${bundlePath} does not exist. Run npm run contract:bundle first.`);
+  }
+  const ref = resolveBaseRef();
+  if (!ref) return { base: null, head: bundlePath, baseLabel: "(no base branch)", workDir: null };
+  const workDir = mkdtempSync(path.join(os.tmpdir(), "ope-contract-base-"));
+  return { base: bundleBase(ref, workDir), head: bundlePath, baseLabel: ref, workDir };
+}
+
+/**
+ * Compares two bundles: a major bump is reported and passes; otherwise any breaking change fails.
+ * @param {string} oasdiff
+ * @param {string} base
+ * @param {string} head
+ * @returns {number}
+ */
+function compare(oasdiff, base, head) {
+  const baseVersion = majorOf(base);
+  const headVersion = majorOf(head);
+  if (headVersion.major > baseVersion.major) {
+    const changelog = capture(oasdiff, ["changelog", base, head, "--format", "text"]);
+    process.stdout.write(changelog.stdout);
+    console.log(`Expected incompatible change: major version ${baseVersion.major} → ${headVersion.major}`);
+    return 0;
+  }
+  const result = capture(oasdiff, [
+    "breaking",
+    base,
+    head,
+    "--fail-on",
+    "ERR",
+    "--format",
+    "text",
+    "--severity-levels",
+    SEVERITY_FILE,
+  ]);
+  process.stdout.write(result.stdout);
+  process.stderr.write(result.stderr);
+  if (result.status !== 0) {
+    console.error(
+      `contract:diff — incompatible changes without a major version bump (${headVersion.version}). Fix the contract or raise info.version to ${baseVersion.major + 1}.0.0 and the path prefix to /v${baseVersion.major + 1}/.`,
+    );
+    return result.status;
+  }
+  console.log("No incompatible changes");
+  return 0;
+}
+
 /** @returns {Promise<number>} */
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const baseArg = argString(args, "base");
-  const headArg = argString(args, "head");
-  /** @type {string | null} */
-  let workDir = null;
+  const pair = resolvePair(argString(args, "base"), argString(args, "head"));
   try {
-    /** @type {string | null} */
-    let base;
-    /** @type {string} */
-    let head;
-    /** @type {string} */
-    let baseLabel;
-    if (baseArg !== undefined || headArg !== undefined) {
-      if (baseArg === undefined || headArg === undefined) {
-        throw new Error("Use --base <file> and --head <file> together");
-      }
-      base = path.resolve(baseArg);
-      head = path.resolve(headArg);
-      baseLabel = baseArg;
-      if (!existsSync(base)) base = null;
-    } else {
-      if (!existsSync(bundlePath)) {
-        throw new Error(`${bundlePath} does not exist. Run npm run contract:bundle first.`);
-      }
-      head = bundlePath;
-      const ref = resolveBaseRef();
-      baseLabel = ref ?? "(no base branch)";
-      if (ref) {
-        workDir = mkdtempSync(path.join(os.tmpdir(), "ope-contract-base-"));
-        base = bundleBase(ref, workDir);
-      } else {
-        base = null;
-      }
-    }
-
-    if (!base) {
-      console.log(`WARNING: no base contract at ${baseLabel}, comparison skipped`);
+    if (!pair.base) {
+      console.log(`WARNING: no base contract at ${pair.baseLabel}, comparison skipped`);
       return 0;
     }
-
     const oasdiff = await resolveOasdiff();
-    const baseVersion = majorOf(base);
-    const headVersion = majorOf(head);
-    console.log(`contract:diff — base ${baseLabel} (${baseVersion.version}) → head (${headVersion.version})`);
-
-    if (headVersion.major > baseVersion.major) {
-      const changelog = capture(oasdiff, ["changelog", base, head, "--format", "text"]);
-      process.stdout.write(changelog.stdout);
-      console.log(`Expected incompatible change: major version ${baseVersion.major} → ${headVersion.major}`);
-      return 0;
-    }
-
-    const result = capture(oasdiff, [
-      "breaking",
-      base,
-      head,
-      "--fail-on",
-      "ERR",
-      "--format",
-      "text",
-      "--severity-levels",
-      SEVERITY_FILE,
-    ]);
-    process.stdout.write(result.stdout);
-    process.stderr.write(result.stderr);
-    if (result.status !== 0) {
-      console.error(
-        `contract:diff — incompatible changes without a major version bump (${headVersion.version}). Fix the contract or raise info.version to ${baseVersion.major + 1}.0.0 and the path prefix to /v${baseVersion.major + 1}/.`,
-      );
-      return result.status;
-    }
-    console.log("No incompatible changes");
-    return 0;
+    console.log(
+      `contract:diff — base ${pair.baseLabel} (${majorOf(pair.base).version}) → head (${majorOf(pair.head).version})`,
+    );
+    return compare(oasdiff, pair.base, pair.head);
   } finally {
-    if (workDir) rmSync(workDir, { recursive: true, force: true });
+    if (pair.workDir) rmSync(pair.workDir, { recursive: true, force: true });
   }
 }
 
