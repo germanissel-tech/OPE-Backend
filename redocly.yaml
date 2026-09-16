@@ -1,0 +1,11 @@
+# Lint estructural, bundle y docs del contrato (ver specs/001-api-contract-toolchain/research.md R-03).
+apis:
+  main:
+    root: contracts/openapi.yaml
+extends:
+  - recommended
+rules:
+  # API privada: no hay licencia pública que declarar.
+  info-license: off
+  no-unused-components: error
+  security-defined: error
