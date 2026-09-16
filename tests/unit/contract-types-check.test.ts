@@ -24,7 +24,7 @@ function check(typesFile: string): { status: number; output: string } {
     });
     return { status: 0, output: out };
   } catch (err) {
-    const e = err as { status: number; stdout: string; stderr: string };
+    const e = err as { status: number; stdout?: string; stderr?: string };
     return { status: e.status, output: `${e.stdout ?? ""}${e.stderr ?? ""}` };
   }
 }

@@ -3,8 +3,8 @@
 // `unprocessable` y todos corresponden a una invariante declarada en la operación o en el
 // schema de su request body.
 "use strict";
-const { walkSchema } = require("./_walk.js");
 const { loadCatalog } = require("./_catalog.js");
+const { walkSchema } = require("./_walk.js");
 
 function exampleTypes(media) {
   const out = [];

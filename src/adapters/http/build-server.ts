@@ -3,6 +3,7 @@
 //   request antes del manejador y la respuesta después.
 // - Fastify es sólo el transporte: una ruta comodín delega todo en openapi-backend, y sus
 //   errores propios (JSON inválido, ruta desconocida) también salen como Problem Details.
+import ajvFormats from "ajv-formats";
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -10,16 +11,15 @@ import Fastify, {
   type FastifyRequest,
 } from "fastify";
 import { OpenAPIBackend, type Context, type Document } from "openapi-backend";
-import type { ErrorObject } from "ajv";
-import ajvFormats from "ajv-formats";
-import type { operations } from "../../generated/api.js";
-import type { Handlers, OperationsMap } from "../../handlers/typed.js";
 import {
   PROBLEM_CONTENT_TYPE,
   problem,
   type ProblemResponse,
   type ValidationError,
 } from "./problem-details.js";
+import type { operations } from "../../generated/api.js";
+import type { Handlers, OperationsMap } from "../../handlers/typed.js";
+import type { ErrorObject } from "ajv";
 
 export type ContractDocument = Document;
 export type ServerMode = "real" | "mock";
@@ -42,11 +42,33 @@ interface HttpResponse {
 
 const HTTP_METHODS = ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"] as const;
 
+/** Contexto de openapi-backend con `unknown` donde la librería declara `any`. */
+type BoundaryContext = Context<
+  unknown,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>
+>;
+
+/** Forma del request que reciben los manejadores antes de que el tipo de la operación la refine. */
+interface TypedRequestBoundary {
+  operationId: string;
+  instance: string;
+  path: unknown;
+  query: unknown;
+  headers: unknown;
+  cookie: unknown;
+  body: unknown;
+}
+
 /** Traduce los errores de Ajv a `errors[]` de Problem Details, con punteros relativos al request. */
 function toValidationErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
   return (errors ?? []).map((e) => {
     // Ajv apunta al objeto contenedor en additionalProperties/required; se afina al campo.
-    const detail = e.params["additionalProperty"] ?? e.params["missingProperty"];
+    // `params` es Record<string, any> en Ajv: se lee como unknown y se estrecha.
+    const params: Record<string, unknown> = e.params;
+    const detail = params["additionalProperty"] ?? params["missingProperty"];
     const suffix = typeof detail === "string" ? `/${detail}` : "";
     const pointer = `${e.instancePath}${suffix}`.replace(/^\/requestBody/, "/body") || "/";
     return { pointer, message: e.message ?? "violación del contrato" };
@@ -126,8 +148,10 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
       const operationId = c.operation.operationId ?? "(sin operationId)";
       if (mode === "mock") {
         try {
-          const { status, mock } = api.mockResponseForOperation(operationId);
-          return { status, body: mock, contentType: "application/json" };
+          const mocked = api.mockResponseForOperation(operationId);
+          // El ejemplo del contrato llega como any; el servidor no asume nada sobre su forma.
+          const body: unknown = mocked.mock;
+          return { status: mocked.status, body, contentType: "application/json" };
         } catch (err) {
           log.warn({ operationId, err }, "mock: la operación no declara ejemplo");
           return toHttp(
@@ -154,8 +178,10 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   ][]) {
     if (!handler) continue;
     // openapi-backend lanza si el operationId no existe en el contrato (SC-005).
-    api.register(operationId, async (c: Context): Promise<HttpResponse> => {
-      const request = {
+    api.register(operationId, async (c: BoundaryContext): Promise<HttpResponse> => {
+      // Único borde con openapi-backend: sus tipos son any; acá se leen como unknown y el
+      // manejador recibe el TypedRequest que su firma exige (validado ya contra el contrato).
+      const request: TypedRequestBoundary = {
         operationId,
         instance: c.request.path,
         path: c.request.params,

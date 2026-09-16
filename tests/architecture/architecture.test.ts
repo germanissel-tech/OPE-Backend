@@ -2,12 +2,7 @@
 // (a) src/ no tiene violaciones; (b) cada regla atrapa la violación de su fixture.
 import { createRequire } from "node:module";
 import path from "node:path";
-import {
-  cruise,
-  type ICruiseOptions,
-  type IForbiddenRuleType,
-  type IReporterOutput,
-} from "dependency-cruiser";
+import { cruise, type ICruiseOptions, type IForbiddenRuleType } from "dependency-cruiser";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
@@ -23,12 +18,12 @@ interface Violation {
 }
 
 async function violations(dir: string): Promise<Violation[]> {
-  const result = (await cruise([dir], {
+  const result = await cruise([dir], {
     ...config.options,
     ruleSet: { forbidden: config.forbidden },
     validate: true,
     outputType: "json",
-  })) as IReporterOutput;
+  });
   const output =
     typeof result.output === "string"
       ? (JSON.parse(result.output) as { summary: { violations: Violation[] } })
@@ -64,7 +59,7 @@ describe("arquitectura por capas (dependency-cruiser)", () => {
 
   it("los módulos legítimos del fixture no disparan reglas de capa", async () => {
     const found = await violations("tests/architecture/fixtures/src");
-    const legit = found.filter((v) => !/bad-/.test(v.from) && v.rule.name !== "no-orphans");
+    const legit = found.filter((v) => !v.from.includes("bad-") && v.rule.name !== "no-orphans");
     expect(legit.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);
   });
 });

@@ -74,9 +74,9 @@ export default tseslint.config(
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
-      // Excepciones: siempre con motivo (FR-002).
+      // Excepciones: siempre con motivo (FR-002). Las que ya no aplican las reporta
+      // linterOptions.reportUnusedDisableDirectives (core).
       "@eslint-community/eslint-comments/require-description": ["error", { ignore: [] }],
-      "@eslint-community/eslint-comments/no-unused-disable": "error",
     },
   },
   {

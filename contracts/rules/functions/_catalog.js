@@ -2,8 +2,8 @@
 // Spectral empaqueta las funciones (sin `yaml` ni __dirname), así que el catálogo se parsea
 // línea a línea: tiene forma fija (`namespace:` y una lista `types:` de slug/status/title).
 "use strict";
-const path = require("node:path");
 const { readFileSync } = require("node:fs");
+const path = require("node:path");
 
 const cache = new Map();
 

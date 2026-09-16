@@ -1,8 +1,8 @@
 // ope-no-pii (FR-016): ninguna propiedad, parámetro ni header puede llamarse como un dato personal
 // de contracts/rules/pii-denylist.json. Se aplica al documento resuelto completo.
 "use strict";
-const path = require("node:path");
 const { readFileSync } = require("node:fs");
+const path = require("node:path");
 const { walk } = require("./_walk.js");
 
 // Spectral empaqueta las funciones (sin __dirname ni require de JSON): la lista se lee con

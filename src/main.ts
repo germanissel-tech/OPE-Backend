@@ -58,8 +58,12 @@ async function main(): Promise<void> {
     app.log.info({ signal }, "apagando");
     void app.close().then(() => process.exit(0));
   };
-  process.once("SIGINT", () => shutdown("SIGINT"));
-  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => {
+    shutdown("SIGINT");
+  });
+  process.once("SIGTERM", () => {
+    shutdown("SIGTERM");
+  });
 
   await app.listen({ port: config.port, host: config.host });
   app.log.info(

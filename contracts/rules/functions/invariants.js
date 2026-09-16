@@ -2,8 +2,8 @@
 // esquemas— tiene type, status, rule y description; el type es un slug del catálogo (nunca el
 // genérico `unprocessable`) y el status coincide con el del catálogo.
 "use strict";
-const { walk } = require("./_walk.js");
 const { loadCatalog } = require("./_catalog.js");
+const { walk } = require("./_walk.js");
 
 const FIELDS = ["type", "status", "rule", "description"];
 const GENERIC = "unprocessable";

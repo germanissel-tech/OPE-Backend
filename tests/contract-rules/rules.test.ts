@@ -1,7 +1,7 @@
 // FR-052 / SC-001: cada regla de verificación del contrato tiene un fixture que la viola y una
 // prueba que confirma que la verificación falla nombrando esa regla, con archivo y posición.
-import { createRequire } from "node:module";
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { Document, Spectral, type ISpectralDiagnostic, type Ruleset } from "@stoplight/spectral-core";
 import * as Parsers from "@stoplight/spectral-parsers";
@@ -18,9 +18,6 @@ const VALID = [
   "valid-capabilities.yaml",
 ];
 
-const ERROR = 0; // DiagnosticSeverity.Error
-const WARNING = 1;
-
 let spectral: Spectral;
 
 // Se carga el ruleset con el mismo cargador que usa la CLI (`npm run contract:lint`): migra el
@@ -30,6 +27,12 @@ const require = createRequire(import.meta.url);
 const { getRuleset } = require("@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js") as {
   getRuleset: (file: string) => Promise<Ruleset>;
 };
+
+// La severidad es el enum DiagnosticSeverity de la copia de @stoplight/types que usa
+// spectral-core; se toma del propio tipo del diagnóstico para no depender de otra copia.
+type Severity = ISpectralDiagnostic["severity"];
+const ERROR = 0 as Severity;
+const WARNING = 1 as Severity;
 
 async function lint(file: string): Promise<ISpectralDiagnostic[]> {
   const full = path.join(fixturesDir, file);
@@ -48,7 +51,7 @@ describe("reglas del contrato (contracts/.spectral.yaml)", () => {
 
   it("hay un fixture por cada regla propia (ope-*) del ruleset", () => {
     const ruleset = readFileSync(rulesetPath, "utf8");
-    const opeRules = [...ruleset.matchAll(/^  (ope-[a-z0-9-]+):$/gm)].map((m) => m[1]);
+    const opeRules = [...ruleset.matchAll(/^ {2}(ope-[a-z0-9-]+):$/gm)].map((m) => m[1]);
     expect(opeRules.length).toBeGreaterThanOrEqual(13);
     for (const rule of opeRules) {
       expect(

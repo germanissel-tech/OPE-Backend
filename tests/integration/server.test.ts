@@ -1,17 +1,23 @@
 // US2: el backend sólo puede exponer lo que el contrato declara (FR-040..FR-047, SC-005).
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { parse } from "yaml";
 import { afterEach, describe, expect, it } from "vitest";
-import type { FastifyInstance } from "fastify";
+import { parse } from "yaml";
 import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
-import type { Handlers, OperationsMap, operations } from "../../src/handlers/typed.js";
 import { makeGetHealth } from "../../src/handlers/health.js";
+import { json, problemOf } from "../helpers/json.js";
 import type { components } from "../../src/generated/api.js";
+import type { Handlers, OperationsMap, operations } from "../../src/handlers/typed.js";
+import type { FastifyInstance } from "fastify";
 
 // Tipos del contrato de prueba two-ops.yaml (a mano: es un fixture, no se genera).
-type Thing = { kind: "a" | "b"; note?: string };
-type Problem = { content: { "application/problem+json": components["schemas"]["ProblemDetails"] } };
+interface Thing {
+  kind: "a" | "b";
+  note?: string;
+}
+interface Problem {
+  content: { "application/problem+json": components["schemas"]["ProblemDetails"] };
+}
 interface TwoOps {
   getHealth: operations["getHealth"];
   listThings: {
@@ -31,7 +37,8 @@ const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
 const now = () => new Date("2026-09-16T12:00:00.000Z");
-const healthHandlers: Handlers = { getHealth: makeGetHealth({ contractVersion: "1.0.0", clock: { now } }) };
+const getHealth = makeGetHealth({ contractVersion: "1.0.0", clock: { now } });
+const healthHandlers: Handlers = { getHealth };
 
 const PROBLEM = "application/problem+json";
 
@@ -56,7 +63,7 @@ describe("servidor real sobre el contrato", () => {
     ).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toMatch(/^application\/json/);
-    expect(res.json()).toEqual({
+    expect(json(res)).toEqual({
       status: "ok",
       contractVersion: "1.0.0",
       timestamp: "2026-09-16T12:00:00.000Z",
@@ -67,7 +74,7 @@ describe("servidor real sobre el contrato", () => {
     const res = await (await server(realContract, healthHandlers)).inject({ method: "GET", url: "/nope" });
     expect(res.statusCode).toBe(404);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:not-found", status: 404, instance: "/nope" });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:not-found", status: 404, instance: "/nope" });
   });
 
   it("método no declarado → 405 Problem Details con header Allow", async () => {
@@ -77,7 +84,7 @@ describe("servidor real sobre el contrato", () => {
     expect(res.statusCode).toBe(405);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(res.headers.allow).toBe("GET");
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:method-not-allowed", status: 405 });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:method-not-allowed", status: 405 });
   });
 
   it("método no estándar (QUERY) sobre un path declarado → 405; sobre uno no declarado → 404", async () => {
@@ -87,7 +94,7 @@ describe("servidor real sobre el contrato", () => {
     expect(known.headers.allow).toBe("GET");
     const unknown = await srv.inject({ method: "QUERY" as "GET", url: "/nope" });
     expect(unknown.statusCode).toBe(404);
-    expect(unknown.json()).toMatchObject({ type: "urn:ope:problem:not-found" });
+    expect(json(unknown)).toMatchObject({ type: "urn:ope:problem:not-found" });
   });
 
   it("operación declarada sin manejador → 501 Problem Details, nunca un 200 vacío", async () => {
@@ -96,11 +103,9 @@ describe("servidor real sobre el contrato", () => {
     ).inject({ method: "GET", url: "/v1/things" });
     expect(res.statusCode).toBe(501);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(res.json()).toMatchObject({
-      type: "urn:ope:problem:not-implemented",
-      status: 501,
-      detail: expect.stringContaining("listThings"),
-    });
+    const body = problemOf(res);
+    expect(body).toMatchObject({ type: "urn:ope:problem:not-implemented", status: 501 });
+    expect(body.detail).toContain("listThings");
   });
 
   it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {
@@ -108,19 +113,19 @@ describe("servidor real sobre el contrato", () => {
     const handlers: Handlers = {
       getHealth: async (req) => {
         invoked = true;
-        return healthHandlers.getHealth!(req);
+        return getHealth(req);
       },
     };
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health?x=1" });
     expect(res.statusCode).toBe(400);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    const body = res.json();
+    const body = problemOf(res);
     expect(body).toMatchObject({
       type: "urn:ope:problem:validation-failed",
       status: 400,
       instance: "/v1/health",
     });
-    expect(body.errors[0].pointer).toBe("/query/x");
+    expect(body.errors?.[0]?.pointer).toBe("/query/x");
     expect(invoked).toBe(false);
   });
 
@@ -135,7 +140,7 @@ describe("servidor real sobre el contrato", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:validation-failed", status: 400 });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:validation-failed", status: 400 });
   });
 
   it("campo no declarado en el body → 400 que nombra el campo; no se ignora", async () => {
@@ -151,10 +156,8 @@ describe("servidor real sobre el contrato", () => {
       payload: { kind: "a", extra: 1 },
     });
     expect(res.statusCode).toBe(400);
-    const body = res.json();
-    expect(body.errors.some((e: { pointer: string; message: string }) => e.pointer === "/body/extra")).toBe(
-      true,
-    );
+    const body = problemOf(res);
+    expect(body.errors?.some((e) => e.pointer === "/body/extra")).toBe(true);
   });
 
   it("body válido → el manejador se invoca con el body tipado y responde 201", async () => {
@@ -166,7 +169,7 @@ describe("servidor real sobre el contrato", () => {
       await server<TwoOps>(twoOps, handlers)
     ).inject({ method: "POST", url: "/v1/things", payload: { kind: "b" } });
     expect(res.statusCode).toBe(201);
-    expect(res.json()).toEqual({ kind: "b", note: "creado" });
+    expect(json(res)).toEqual({ kind: "b", note: "creado" });
   });
 
   it("respuesta del manejador fuera del contrato → 500 Problem Details; el cuerpo inválido no sale", async () => {
@@ -176,7 +179,7 @@ describe("servidor real sobre el contrato", () => {
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:response-contract-violation", status: 500 });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation", status: 500 });
     expect(res.body).not.toContain("secreto");
   });
 
@@ -189,7 +192,7 @@ describe("servidor real sobre el contrato", () => {
     } as unknown as Handlers;
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:response-contract-violation" });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation" });
   });
 
   it("manejador que lanza → 500 genérico sin exponer el mensaje interno", async () => {
@@ -200,7 +203,7 @@ describe("servidor real sobre el contrato", () => {
     };
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:internal-error", status: 500 });
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:internal-error", status: 500 });
     expect(res.body).not.toContain("secreto interno");
   });
 
