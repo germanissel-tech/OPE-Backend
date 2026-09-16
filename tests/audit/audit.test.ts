@@ -8,7 +8,14 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 const skill = path.resolve(".claude/skills/auditing-architecture");
-const evals = ["controller-instantiates-infra", "identical-domain-functions", "empty-catch"] as const;
+/** Every eval, with the gate rule that sees its defect, or null when only the cognitive review does. */
+const evals: Record<string, string | null> = {
+  "controller-instantiates-infra": "shape/new-only-in-composition",
+  "identical-domain-functions": "lint/sonarjs/no-identical-functions",
+  "empty-catch": "lint/sonarjs/no-ignored-exceptions",
+  "env-dynamic-import": "shape/no-computed-dynamic-import",
+  "hardcoded-profile": null,
+};
 
 interface Finding {
   id: string;
@@ -47,38 +54,31 @@ function verify(findings: Finding[]): Finding[] {
 }
 
 describe("run-gates.mjs on the eval fixtures", () => {
-  const gatesFor = new Map<string, GateResult[]>();
-  for (const name of evals) {
-    it(`${name}: a gate reports the expected file`, () => {
-      const r = node("run-gates.mjs", ["--dir", `tests/audit/fixtures/${name}/src`, "--json"]);
-      expect(r.status, r.stderr).toBe(0);
-      const out = JSON.parse(r.stdout) as { gates: GateResult[] };
-      gatesFor.set(name, out.gates);
-      const expected = expectedOf(name);
-      const hit = out.gates
-        .flatMap((g) => g.findings)
-        .find((f) => f.file === expected.file && f.line === expected.line);
-      expect(hit, `no gate finding at ${expected.file}:${expected.line}`).toBeDefined();
-    }, 120_000);
+  for (const [name, gateRule] of Object.entries(evals)) {
+    it(
+      gateRule === null
+        ? `${name}: no gate sees it (cognitive review only)`
+        : `${name}: ${gateRule} reports the expected file and line`,
+      () => {
+        const r = node("run-gates.mjs", ["--dir", `tests/audit/fixtures/${name}/src`, "--json"]);
+        expect(r.status, r.stderr).toBe(0);
+        const out = JSON.parse(r.stdout) as { gates: GateResult[] };
+        const expected = expectedOf(name);
+        const rulesAt = out.gates
+          .flatMap((g) => g.findings)
+          .filter((f) => f.file === expected.file && f.line === expected.line)
+          .map((f) => f.rule);
+        if (gateRule === null) expect(rulesAt).toEqual([]);
+        else expect(rulesAt).toContain(gateRule);
+      },
+      120_000,
+    );
   }
-
-  it("the controller that instantiates infrastructure is caught by shape, the other two by lint", () => {
-    const rulesAt = (name: string): string[] => {
-      const expected = expectedOf(name);
-      return (gatesFor.get(name) ?? [])
-        .flatMap((g) => g.findings)
-        .filter((f) => f.file === expected.file && f.line === expected.line)
-        .map((f) => f.rule);
-    };
-    expect(rulesAt("controller-instantiates-infra")).toContain("shape/new-only-in-composition");
-    expect(rulesAt("identical-domain-functions")).toContain("lint/sonarjs/no-identical-functions");
-    expect(rulesAt("empty-catch")).toContain("lint/sonarjs/no-ignored-exceptions");
-  });
 });
 
 describe("verify-finding.mjs", () => {
   it("accepts every expected.json of the evals", () => {
-    for (const name of evals) {
+    for (const name of Object.keys(evals)) {
       const [result] = verify([expectedOf(name)]);
       expect(result?.verified, `${name}: ${result?.reason ?? ""}`).toBe(true);
     }
@@ -116,7 +116,14 @@ describe("verify-finding.mjs", () => {
       { ...base, id: "F-002", rule: { id: "x", source: "guide#Convenciones" }, severity: "medium" },
       { ...base, id: "F-003", rule: { id: "x", source: "arch:controllers-no-gateways" }, severity: "medium" },
       { ...base, id: "F-004", rule: { id: "x", source: "clarity:vague-name" }, severity: "low" },
+      {
+        ...base,
+        id: "F-005",
+        rule: { id: "x", source: "shape:no-computed-dynamic-import" },
+        severity: "medium",
+      },
+      { ...base, id: "F-006", rule: { id: "x", source: "shape:no-such-rule" }, severity: "medium" },
     ]);
-    expect(results.map((r) => r.verified)).toEqual([true, true, true, true]);
+    expect(results.map((r) => r.verified)).toEqual([true, true, true, true, true, false]);
   });
 });

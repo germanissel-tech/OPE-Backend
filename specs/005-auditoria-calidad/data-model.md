@@ -66,8 +66,8 @@ quedan fuera). Verificado por `tests/governance/language.test.ts`.
 | `status`       | `proposed` → `confirmed` \| `refuted`; `refuted` lleva `refutation`                                                                         | sí          |
 | `verified`     | boolean puesto por `verify-finding.mjs`; `reason` si `false`                                                                                | script      |
 
-Regla de severidad ↔ `source`: `ADR-NNN` y `constitution#` ⇒ `high`; `guide#`, `lint:` y
-`arch:` ⇒ `medium` (una regla de lint o de arquitectura en rojo ya la reporta el gate; en un
+Regla de severidad ↔ `source`: `ADR-NNN` y `constitution#` ⇒ `high`; `guide#`, `lint:`, `arch:` y
+`shape:` ⇒ `medium` (una regla de lint o de arquitectura en rojo ya la reporta el gate; en un
 hallazgo cognitivo la fuente `lint:` significa "misma intención, caso que la regla no ve");
 `clarity:<slug>` (nombres, legibilidad; sin fuente formal) ⇒ `low`. `verify-finding` rechaza un hallazgo cuya severidad no corresponde
 a su fuente.

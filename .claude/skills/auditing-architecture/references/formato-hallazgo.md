@@ -22,7 +22,7 @@ ahí entra al reporte.
 | `file`         | ruta relativa al repo con `/`; tiene que existir                                                     |
 | `line`         | entera, dentro del archivo                                                                           |
 | `rule.id`      | slug corto del criterio: `srp-one-authority-per-module`, `dip-port-leaks-infrastructure`…            |
-| `rule.source`  | `ADR-NNN` · `constitution#<sección>` · `guide#<sección>` · `lint:<regla>` · `arch:<regla>` · `clarity:<slug>` |
+| `rule.source`  | `ADR-NNN` · `constitution#<sección>` · `guide#<sección>` · `lint:<regla>` · `arch:<regla>` · `shape:<regla>` · `clarity:<slug>` |
 | `severity`     | `high` · `medium` · `low` — derivada de `rule.source` (tabla siguiente)                              |
 | `evidence`     | el fragmento citado (≤ 20 líneas), no una paráfrasis                                                  |
 | `proposal`     | `{ before, after }`: código, no prosa                                                                |
@@ -34,7 +34,7 @@ ahí entra al reporte.
 | `rule.source`              | severidad | significa                                                     |
 | -------------------------- | --------- | ------------------------------------------------------------- |
 | `ADR-NNN`, `constitution#` | `high`    | viola una decisión registrada o un principio MUST             |
-| `guide#`, `lint:`, `arch:` | `medium`  | viola una convención de la guía o el caso que una regla no ve |
+| `guide#`, `lint:`, `arch:`, `shape:` | `medium`  | viola una convención de la guía o el caso que una regla no ve |
 | `clarity:<slug>`           | `low`     | nombres, legibilidad; sin fuente formal                        |
 
 `verify-finding` rechaza un hallazgo cuya severidad no corresponde a su fuente. Un hallazgo

@@ -11,6 +11,7 @@ interface Rules {
   maxFileLines: (root: string) => string[];
   oneControllerPerOperation: (root: string, bundlePath: string) => string[];
   newOnlyInComposition: (root: string) => string[];
+  noComputedDynamicImport: (root: string) => string[];
 }
 
 let MAX_RING_FILE_LINES: number;
@@ -18,9 +19,17 @@ let kebab: Rules["kebab"];
 let maxFileLines: Rules["maxFileLines"];
 let oneControllerPerOperation: Rules["oneControllerPerOperation"];
 let newOnlyInComposition: Rules["newOnlyInComposition"];
+let noComputedDynamicImport: Rules["noComputedDynamicImport"];
 beforeAll(async () => {
   const mod = (await import(pathToFileURL(path.resolve("scripts/shape-rules.mjs")).href)) as Rules;
-  ({ MAX_RING_FILE_LINES, kebab, maxFileLines, oneControllerPerOperation, newOnlyInComposition } = mod);
+  ({
+    MAX_RING_FILE_LINES,
+    kebab,
+    maxFileLines,
+    oneControllerPerOperation,
+    newOnlyInComposition,
+    noComputedDynamicImport,
+  } = mod);
 });
 
 const src = path.resolve("src");
@@ -66,6 +75,16 @@ describe("shape of the rings", () => {
       "interface-adapters/http/controllers/x/bad-new.ts:7: instantiates Redis from an npm package outside composition",
     ]);
     expect(newOnlyInComposition(fixture("new-allowed"))).toEqual([]);
+  });
+
+  it("src/ has no dynamic import() with a computed specifier", () => {
+    expect(noComputedDynamicImport(src)).toEqual([]);
+  });
+
+  it("a module loaded from a runtime value is reported; a literal dynamic import is not", () => {
+    expect(noComputedDynamicImport(fixture("dynamic-import"))).toEqual([
+      "composition/bad-import.ts:7: dynamic import() of a computed specifier (pathToFileURL(file).href)",
+    ]);
   });
 
   it("the module public-API rule keeps its fixture (FR-041)", () => {

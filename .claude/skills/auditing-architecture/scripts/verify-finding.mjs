@@ -10,6 +10,7 @@
 //   guide#<section>         → a heading of CLAUDE.md contains <section>
 //   lint:<rule>             → the rule id appears in eslint.config.mjs
 //   arch:<rule>             → a rule named <rule> exists in .dependency-cruiser.cjs (context-map:* included)
+//   shape:<rule>            → a rule named <rule> exists in scripts/shape-rules.mjs
 //   clarity:<slug>          → always resolves (low severity, no formal source)
 // Output: the same findings with `verified` and, when false, `reason`. Exit 1 if any is false.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -67,6 +68,10 @@ const RESOLVERS = /** @type {Record<string, (rest: string) => string | null>} */
     const named = config.includes(`name: "${rule}"`) || (rule.startsWith("context-map:") && config.includes("context-map:${mod}"));
     return named ? null : `rule ${rule} is not in .dependency-cruiser.cjs`;
   },
+  "shape:": (rule) =>
+    readFileSync(path.join(repoRoot, "scripts", "shape-rules.mjs"), "utf8").includes(`toFinding("${rule}"`)
+      ? null
+      : `rule ${rule} is not in scripts/shape-rules.mjs`,
   "clarity:": () => null,
 });
 

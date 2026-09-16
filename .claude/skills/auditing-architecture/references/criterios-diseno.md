@@ -15,6 +15,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 - DRY — conocimiento, no texto
 - Claridad — nombres con intención y `NO_OP` con motivo
 - Errores — explícitos, tipados, trazables
+- Composition root — elige, no adivina
 - Qué ya ve un gate (y qué no)
 
 ## SRP — una autoridad por módulo
@@ -119,13 +120,35 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 - **Cumple**: `invariantResponse(req, result)` traduce una invariante a su tipo propio.
 - **Lo ve un gate**: el `catch` vacío sí (lint); el `throw` por regla de negocio no.
 
+## Composition root — elige, no adivina
+
+- **Definición acá**: `composition/` es el único lugar que conoce a la vez perfiles, casos de
+  uso y controllers. Eso no lo exime de los principios: **el perfil es un parámetro**
+  (`Profile = (config, overrides) => { ports, closables }`), nunca un `if` sobre configuración;
+  **el orden de cierre lo declara quien creó** los recursos (el perfil, en `closables`), nunca
+  se infiere de `Object.values(...)`; **los overrides los resuelve el perfil**, que sabe qué
+  gateway depende de cuál; y **ningún seam de pruebas vive en producción**: un módulo cargado
+  desde una variable de entorno o un `import()` con especificador calculado es un vector de
+  ejecución, no una comodidad.
+- **Fuente**: `constitution#I. Separación de autoridades` (composition root único, ningún
+  módulo instancia su infraestructura), `ADR-013`, `shape:no-computed-dynamic-import`.
+- **Viola**: `const ports = config.persistence === "postgres" ? postgresPorts() : memoryPorts()`;
+  `for (const p of Object.values(ports).reverse()) p.close?.()`; `await import(process.env.X)`;
+  `const clock = overrides.ports?.clock` resuelto en el root porque "dedup lo necesita".
+- **Cumple**: `bootstrap(config, { profile })` con `memoryProfile` por defecto; `tracker()`
+  registrando closables en orden de creación; la prueba negativa de contrato como entrada de
+  proceso propia (`tests/contract/fixtures/health-203.ts`).
+- **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4). El `if` sobre configuración,
+  el orden de cierre inferido y el override resuelto en el root, no: son criterio cognitivo, y
+  el tamaño chico del archivo no los disculpa.
+
 ## Qué ya ve un gate (y qué no)
 
 | Gate                | Ve                                                   | No ve                                          |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------- |
 | `lint`              | forma, duplicación semántica, `catch` vacío, `any`   | responsabilidades, nombres, conocimiento       |
 | `arch`              | dirección de dependencias, mapa de contextos         | puertos con forma de infraestructura           |
-| `shape`             | tamaño, un controller por operación, `new` de npm    | dos responsabilidades en un archivo corto      |
+| `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado | dos responsabilidades en un archivo corto; un `if` sobre configuración |
 | `check:duplication` | bloques iguales                                      | mismo conocimiento con distinta forma          |
 | `check:dead-code`   | exports y archivos sin uso                           | abstracciones que existen "por si acaso"       |
 | `test:mutation`     | pruebas que no matan mutantes del cambio             | pruebas que prueban lo incorrecto              |

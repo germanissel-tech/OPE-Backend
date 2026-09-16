@@ -22,8 +22,8 @@
         "id": { "type": "string", "description": "Short slug, e.g. srp-one-authority-per-module." },
         "source": {
           "type": "string",
-          "description": "Where the rule is written down. ADR-NNN | constitution#<section> | guide#<section> | lint:<rule> | arch:<rule> | clarity:<slug> (naming, readability; no formal source)",
-          "pattern": "^(ADR-[0-9]{3}|constitution#.+|guide#.+|lint:[A-Za-z0-9@/_-]+|arch:[A-Za-z0-9:_-]+|clarity:[a-z0-9-]+)$"
+          "description": "Where the rule is written down. ADR-NNN | constitution#<section> | guide#<section> | lint:<rule> | arch:<rule> | shape:<rule> | clarity:<slug> (naming, readability; no formal source)",
+          "pattern": "^(ADR-[0-9]{3}|constitution#.+|guide#.+|lint:[A-Za-z0-9@/_-]+|arch:[A-Za-z0-9:_-]+|shape:[a-z0-9-]+|clarity:[a-z0-9-]+)$"
         }
       }
     },
@@ -54,7 +54,9 @@
     },
     {
       "if": {
-        "properties": { "rule": { "properties": { "source": { "pattern": "^(guide#|lint:|arch:)" } } } }
+        "properties": {
+          "rule": { "properties": { "source": { "pattern": "^(guide#|lint:|arch:|shape:)" } } }
+        }
       },
       "then": { "properties": { "severity": { "const": "medium" } } }
     },

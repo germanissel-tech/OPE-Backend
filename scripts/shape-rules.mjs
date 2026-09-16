@@ -177,7 +177,49 @@ export function newOnlyInComposition(root) {
 }
 
 /**
- * All three rules on one root, as gate findings.
+ * The text of a call argument that starts at `from`, up to its matching closing parenthesis.
+ * @param {string} line
+ * @param {number} from
+ * @returns {string}
+ */
+function argumentAt(line, from) {
+  let depth = 0;
+  for (let i = from; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      if (depth === 0) return line.slice(from, i);
+      depth--;
+    }
+  }
+  return line.slice(from);
+}
+
+/**
+ * Rule 4: no dynamic `import()` with a computed specifier anywhere in src/. A module loaded from a
+ * variable (an environment value, a config field) is code the composition root did not choose:
+ * a test seam or an injection point in production (constitution I). Literal specifiers are fine.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function noComputedDynamicImport(root) {
+  /** @type {string[]} */
+  const out = [];
+  for (const file of tsFiles(root, ".")) {
+    const source = readFileSync(path.join(root, file), "utf8");
+    source.split(/\r?\n/).forEach((line, i) => {
+      for (const m of line.matchAll(/\bimport\s*\(/g)) {
+        const specifier = argumentAt(line, (m.index ?? 0) + m[0].length).trim();
+        if (specifier === "" || /^["'`]/.test(specifier)) continue;
+        out.push(`${file}:${i + 1}: dynamic import() of a computed specifier (${specifier})`);
+      }
+    });
+  }
+  return out;
+}
+
+/**
+ * All four rules on one root, as gate findings.
  * @param {string} root
  * @param {string} bundlePath
  * @returns {{ file: string; line: number; rule: string; message: string }[]}
@@ -197,5 +239,6 @@ export function shapeFindings(root, bundlePath) {
     ...maxFileLines(root).map((t) => toFinding("max-file-lines", t)),
     ...oneControllerPerOperation(root, bundlePath).map((t) => toFinding("one-controller-per-operation", t)),
     ...newOnlyInComposition(root).map((t) => toFinding("new-only-in-composition", t)),
+    ...noComputedDynamicImport(root).map((t) => toFinding("no-computed-dynamic-import", t)),
   ];
 }
