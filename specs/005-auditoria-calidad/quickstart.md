@@ -119,3 +119,21 @@ activa, corre los gates, propone, refuta, verifica y emite el reporte con estado
 `approved` / `changes-required` / `rejected`. Evaluación manual (SC-005): correr la skill
 sobre cada `evals/<nombre>/fixture` tres veces; las tres deben producir el hallazgo de
 `expected.json` confirmado y verificado.
+
+## Estado al cierre (histórico, 2026-09-16)
+
+Resultado de correr este quickstart sobre `005-auditoria-calidad` en el cierre de la
+implementación. Es una foto fechada; el estado vivo lo dan los comandos.
+
+| Sección                | Comando                                               | Resultado                                                                           |
+| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1 Todo junto           | `contract:check`, `quality`, `test`, `test:mutation`  | verde; `Lint exceptions: 0`; `Language exceptions: 0`; mutación 100 % sobre el diff |
+| 1b Compilador          | `tsc --version` / `require("typescript").version`     | 7.0.2 / 6.0.3; `npm outdated` vacío                                                 |
+| 2 Idioma               | `tests/governance/language.test.ts`, `check:language` | verde; contrato traducido compatible (`contract:diff` sin rompientes)               |
+| 3 Forma del código     | `tests/lint`                                          | verde (fixture por regla; `as-src` y `as-test` por alcance)                         |
+| 4 Duplicación y muerto | `duplication.test.ts`, `dead-code.test.ts`            | verde; `src/` sin clones; sin archivos, exports ni dependencias sin uso             |
+| 5 Mutación             | `mutation-diff.test.ts`, `patches.test.ts`, gate real | verde; diff de la rama: 51 mutantes muertos, 0 sobrevivientes, 2 min 24 s           |
+| 6 Forma de los anillos | `tests/architecture`                                  | verde (10 pruebas)                                                                  |
+| 7 Un comando           | `quality`, `.github/workflows/ci.yml`                 | 5 gates verdes; CI con `quality`, `test:mutation` y job `mutation-full` programado  |
+| 8 Auditoría            | `tests/audit`, `evals/RESULTS.md`                     | verde (8 pruebas); 9/9 corridas manuales con MATCH                                  |
+| Cierre                 | `release-check`, `build`, `test:contract`             | OK; Schemathesis 1679 casos, 0 fallas                                               |

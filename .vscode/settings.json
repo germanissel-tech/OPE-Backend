@@ -27,5 +27,10 @@
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
   "eslint.validate": ["javascript", "typescript"],
-  "prettier.requireConfig": true
+  "prettier.requireConfig": true,
+  // ADR-017: the editor's language service is TypeScript 7 (native preview extension) when
+  // available; `typescript.tsdk` stays on the 6.0 API package that the tools import, so
+  // "Use Workspace Version" still resolves to a JS-based service.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.experimental.useTsgo": true
 }

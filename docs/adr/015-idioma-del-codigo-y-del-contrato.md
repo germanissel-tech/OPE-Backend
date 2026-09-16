@@ -1,7 +1,7 @@
 ---
 numero: 15
 titulo: Idioma — código, comentarios y contrato en inglés; documentación de decisión en español
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-16
 fuente: specs/005-auditoria-calidad/research.md
 ---

@@ -1,7 +1,7 @@
 ---
 numero: 17
 titulo: TypeScript 7 como compilador, API 6.0 para las herramientas que la importan
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-16
 fuente: specs/005-auditoria-calidad/research.md
 ---

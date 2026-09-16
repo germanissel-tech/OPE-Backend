@@ -1,7 +1,7 @@
 ---
 numero: 16
 titulo: Gates de calidad — forma del código, duplicación, código muerto y mutación sobre el diff
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-16
 fuente: specs/005-auditoria-calidad/research.md
 ---
@@ -33,8 +33,13 @@ pruebas que confirman lo que el código ya hace. Un check que se puede saltar no
    usadas por CLI llevan motivo.
 4. **Mutación sobre el diff** (Stryker, `test:mutation`): en cada cambio se mutan sólo las
    líneas de `src/` que el cambio introduce o modifica respecto de `origin/main`; ningún
-   mutante puede sobrevivir. El repositorio completo se muta de forma programada e
-   informativa. Quedan fuera tipos generados, composición y `main.ts`.
+   mutante puede sobrevivir (el veredicto se lee del reporte JSON, no del exit code de
+   Stryker). El repositorio completo se muta de forma programada e informativa. Quedan fuera
+   tipos generados, composición, `main.ts` y los `index.ts`. El mutador `StringLiteral` está
+   excluido: los strings de prosa (`detail` de Problem Details, mensajes de log) no son
+   comportamiento, y todo literal tipado (slugs, motivos, estados) ya es un error de
+   compilación al mutarse bajo el checker de TypeScript. Un mutante equivalente o inalcanzable
+   se marca en línea con `// Stryker disable next-line <mutador>: <motivo>`.
 5. **Runner de Stryker parcheado para Vitest 5**: `@stryker-mutator/vitest-runner` 10.0
    construye el nombre de las pruebas con `' '` y Vitest 5 las filtra con `' > '`
    (stryker-js#6210), lo que reporta todo mutante como sobreviviente. Se aplica localmente el
