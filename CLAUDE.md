@@ -38,7 +38,7 @@ Dentro de una feature que toca HTTP, el orden es:
    cableado en `src/composition/` (puerto en `ports.ts`, perfil en `profiles/memory.ts`, caso
    de uso en `use-cases.ts`, controller en `bootstrap.ts`). El servidor rutea por
    `operationId`; no hay otro mecanismo de rutas.
-5. `npm run format:check && npm run lint && npm run typecheck && npm run arch && npm test && npm run test:contract`
+5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
    en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
    corre CI.
 
@@ -70,8 +70,12 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                |
 | `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                 |
 | `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
+| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                 |
+| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                       |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo      |
+| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo             |
 
-Los cinco `check:*` corren dentro de `contract:check`.
+Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
@@ -99,7 +103,31 @@ logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` 
 `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants de prueba por
 `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; con `OPE_MOCK=1` hay uno por defecto.
 
-### Tipado (ADR-011, ADR-012; verificado por `lint` y `typecheck`)
+### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
+
+- Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
+  anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
+  ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
+  −1 e índices exceptuados). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
+  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
+- Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
+  lista las entradas y las exclusiones; los motivos están en el encabezado de
+  `scripts/check-dead-code.mjs` (knip no admite comentarios).
+- Mutación: un cambio no entra si un mutante de sus propias líneas sobrevive. `StringLiteral`
+  está excluido (prosa; los literales tipados ya son errores de compilación al mutarse). El
+  runner lleva `patches/@stryker-mutator+vitest-runner+10.0.0.patch` hasta que stryker-js#6210
+  se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
+- Forma de los anillos (`tests/architecture/shape-rules.ts`): ≤ 300 líneas por archivo en
+  `domain/` y `application/`; un controller por `operationId`; ningún `new` de un paquete npm fuera
+  de `composition/`, `infrastructure/` y los gateways.
+- Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
+  `// Stryker disable next-line <mutador>: <motivo>`.
+
+### Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)
+
+- Compilador: TypeScript 7 (`@typescript/native`) ejecuta `build` y `typecheck`; `typescript` es
+  el alias de `@typescript/typescript6` (API 6.0) que importan typescript-eslint,
+  openapi-typescript y dependency-cruiser, hasta que admitan la API ≥ 7.1 (ADR-017).
 
 - Sin `any` explícito ni valores `any` (`no-unsafe-*`), sin `!`, promesas siempre manejadas,
   `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
