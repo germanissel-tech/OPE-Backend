@@ -24,6 +24,8 @@ import {
   type SecurityHandler,
 } from "../../interface-adapters/http/typed.js";
 import { registerCors, type CorsPolicy } from "./cors.js";
+import { loggerOptions, privateLogger } from "./request-logging.js";
+import { stripDiscriminatorMappings } from "./strip-discriminator-mappings.js";
 import type { operations } from "../../interface-adapters/http/generated/api.js";
 import type { ErrorObject } from "ajv";
 
@@ -92,11 +94,22 @@ function toHttp(res: ProblemResponse): HttpResponse {
   return { status: res.status, body: res.body, contentType: PROBLEM_CONTENT_TYPE };
 }
 
-/** Resultados de los security handlers sin la bandera `authorized` (que no es un principal). */
-function securityResultsOf(c: BoundaryContext): Record<string, unknown> {
-  const results: Record<string, unknown> = { ...(c.security as Record<string, unknown> | undefined) };
-  delete results["authorized"];
-  return results;
+/** Principales por esquema (sin la bandera `authorized`) y campos seguros para el log del request. */
+function securityResultsOf(c: BoundaryContext): {
+  principals: Record<string, unknown>;
+  logFields: Record<string, unknown>;
+} {
+  const principals: Record<string, unknown> = {};
+  const logFields: Record<string, unknown> = {};
+  // openapi-backend deja `security` sin definir cuando la operación es pública.
+  const results = (c.security as Record<string, unknown> | undefined) ?? {};
+  for (const [name, outcome] of Object.entries(results)) {
+    if (name === "authorized" || typeof outcome !== "object" || outcome === null) continue;
+    const { principal, log } = outcome as { principal?: unknown; log?: Record<string, unknown> };
+    principals[name] = principal;
+    Object.assign(logFields, log);
+  }
+  return { principals, logFields };
 }
 
 function pathOf(url: string): string {
@@ -107,8 +120,14 @@ function pathOf(url: string): string {
 export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   options: BuildServerOptions<Ops>,
 ): Promise<FastifyInstance> {
-  const { definition, handlers, mode } = options;
-  const app = Fastify({ logger: options.logger ?? true });
+  const { handlers, mode } = options;
+  // El contrato entra tal cual está publicado, salvo `discriminator.mapping` (research R-05).
+  const definition = stripDiscriminatorMappings(options.definition);
+  const logger = options.logger;
+  const app =
+    logger === undefined || typeof logger === "boolean"
+      ? Fastify({ logger: (logger ?? true) ? loggerOptions : false })
+      : Fastify({ loggerInstance: privateLogger(logger) });
   const log = app.log;
   if (options.cors) await registerCors(app, options.cors);
 
@@ -116,7 +135,8 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     definition,
     strict: true,
     validate: true,
-    ajvOpts: { strict: false, allErrors: true },
+    // `discriminator: true`: un error preciso por rama de la unión de eventos, no uno por rama.
+    ajvOpts: { strict: false, allErrors: true, discriminator: true },
     // Formatos de OpenAPI (date-time, uri, ...) para validar request y response.
     // ajv-formats es CommonJS: bajo ESM el callable está en `.default`.
     customizeAjv: (ajv) => ajvFormats.default(ajv),
@@ -216,44 +236,55 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   ][]) {
     if (!handler) continue;
     // openapi-backend lanza si el operationId no existe en el contrato (SC-005).
-    api.register(operationId, async (c: BoundaryContext): Promise<HttpResponse> => {
-      // Único borde con openapi-backend: sus tipos son any; acá se leen como unknown y el
-      // manejador recibe el TypedRequest que su firma exige (validado ya contra el contrato).
-      const request: TypedRequestBoundary = {
-        operationId,
-        instance: c.request.path,
-        path: c.request.params,
-        query: c.request.query,
-        headers: c.request.headers,
-        cookie: c.request.cookies,
-        body: c.request.requestBody,
-        security: securityResultsOf(c),
-      };
-      let result: HttpResponse;
-      try {
-        result = await handler(request);
-      } catch (err) {
-        log.error({ operationId, err }, "el manejador lanzó una excepción");
-        return toHttp(problem("internal-error", { instance: c.request.path }));
-      }
-      const declared = Object.keys(c.operation.responses ?? {});
-      if (!declared.includes(String(result.status))) {
-        log.error(
-          { operationId, status: result.status, declared },
-          "el manejador respondió un código no declarado en el contrato",
-        );
-        return toHttp(problem("response-contract-violation", { instance: c.request.path }));
-      }
-      const validation = api.validateResponse(result.body, operationId, result.status);
-      if (!validation.valid) {
-        log.error(
-          { operationId, status: result.status, errors: validation.errors },
-          "la respuesta del manejador no cumple el contrato",
-        );
-        return toHttp(problem("response-contract-violation", { instance: c.request.path }));
-      }
-      return { ...result, contentType: result.contentType ?? "application/json" };
-    });
+    api.register(
+      operationId,
+      async (c: BoundaryContext, req: FastifyRequest, reply: FastifyReply): Promise<HttpResponse> => {
+        // Único borde con openapi-backend: sus tipos son any; acá se leen como unknown y el
+        // manejador recibe el TypedRequest que su firma exige (validado ya contra el contrato).
+        const { principals, logFields } = securityResultsOf(c);
+        if (Object.keys(logFields).length > 0) {
+          // Los campos seguros del principal (merchantId) acompañan el resto del log del request.
+          req.log = req.log.child(logFields);
+          reply.log = req.log;
+        }
+        const request: TypedRequestBoundary = {
+          operationId,
+          instance: c.request.path,
+          path: c.request.params,
+          query: c.request.query,
+          headers: c.request.headers,
+          cookie: c.request.cookies,
+          body: c.request.requestBody,
+          security: principals,
+        };
+        let result: HttpResponse;
+        try {
+          result = await handler(request);
+        } catch (err) {
+          log.error({ operationId, err }, "el manejador lanzó una excepción");
+          return toHttp(problem("internal-error", { instance: c.request.path }));
+        }
+        const declared = Object.keys(c.operation.responses ?? {});
+        if (!declared.includes(String(result.status))) {
+          log.error(
+            { operationId, status: result.status, declared },
+            "el manejador respondió un código no declarado en el contrato",
+          );
+          return toHttp(problem("response-contract-violation", { instance: c.request.path }));
+        }
+        const validation = api.validateResponse(result.body, operationId, result.status);
+        if (!validation.valid) {
+          log.error(
+            { operationId, status: result.status, errors: validation.errors },
+            "la respuesta del manejador no cumple el contrato",
+          );
+          return toHttp(problem("response-contract-violation", { instance: c.request.path }));
+        }
+        // Todo 4xx/5xx del contrato es Problem Details (regla del ruleset): el media type sale del status.
+        const contentType = result.status >= 400 ? PROBLEM_CONTENT_TYPE : "application/json";
+        return { ...result, contentType: result.contentType ?? contentType };
+      },
+    );
   }
 
   // Falla el arranque si el contrato es inválido (FR-040).
@@ -268,13 +299,17 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   };
 
   const dispatch = async (request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
-    const res = (await api.handleRequest({
-      method: request.method,
-      path: pathOf(request.url),
-      query: request.query as Record<string, string | string[]>,
-      body: request.body,
-      headers: request.headers as Record<string, string | string[]>,
-    })) as HttpResponse;
+    const res = (await api.handleRequest(
+      {
+        method: request.method,
+        path: pathOf(request.url),
+        query: request.query as Record<string, string | string[]>,
+        body: request.body,
+        headers: request.headers as Record<string, string | string[]>,
+      },
+      request,
+      reply,
+    )) as HttpResponse;
     return send(reply, res);
   };
 

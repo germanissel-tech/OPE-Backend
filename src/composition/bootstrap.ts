@@ -6,6 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { buildServer, type ContractDocument } from "../infrastructure/http/build-server.js";
+import { makeIngestEvents } from "../interface-adapters/http/controllers/ingestion/ingest-events.js";
 import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
 import { INGEST_KEY_SCHEME, makeIngestKeySecurity } from "../interface-adapters/http/security/ingest-key.js";
 import { isClosable, type Ports } from "./ports.js";
@@ -33,11 +34,18 @@ export interface App {
 
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
-  const ports: Ports = { ...memoryPorts(config), ...overrides.ports };
+  // El reloj se resuelve primero: los gateways del perfil que dependen de él (dedup) lo comparten.
+  const clock = overrides.ports?.clock;
+  const ports: Ports = { ...memoryPorts(config, clock), ...overrides.ports };
   const useCases = buildUseCases(ports, definition.info.version);
 
   const wired: Handlers =
-    config.mode === "mock" ? {} : { getHealth: makeGetHealth(useCases.getServiceHealth) };
+    config.mode === "mock"
+      ? {}
+      : {
+          getHealth: makeGetHealth(useCases.getServiceHealth),
+          ingestEvents: makeIngestEvents(useCases.ingestBatch),
+        };
   const handlers: Handlers = { ...wired, ...(await loadHandlersModule(config)), ...overrides.handlers };
 
   // En mock también corre la seguridad: el SDK desarrolla contra el mock con la clave real (SC-006).

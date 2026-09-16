@@ -125,7 +125,7 @@ describe("servidor real sobre el contrato", () => {
   // manejador. Se reemplaza por las pruebas de ingesta y exposición en US2/US4.
   it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
     const s = await server(realContract, healthHandlers, {
-      ingestKey: () => ({ merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } }),
+      ingestKey: () => ({ principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } } }),
     });
     const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
     const bodies: Record<string, Record<string, unknown>> = {

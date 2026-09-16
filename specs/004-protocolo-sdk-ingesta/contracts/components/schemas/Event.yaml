@@ -3,6 +3,9 @@ description: |
   fuera de esta unión o un campo no declarado rechazan el lote entero (01 §10.3).
   El `mapping` es explícito para que los tipos generados lleven el valor de cable; el servidor
   lo quita antes de compilar los validadores porque Ajv no lo soporta (ADR-014).
+# `type: object` es imprescindible: Ajv aplica `discriminator` sólo a objetos y con él omite el
+# `oneOf`, así que sin esta línea un evento que no es objeto pasaría la validación (R-05).
+type: object
 oneOf:
   - $ref: ./ProductViewed.yaml
   - $ref: ./ListingViewed.yaml

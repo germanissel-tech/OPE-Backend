@@ -1,0 +1,6 @@
+# Configuración de Schemathesis (npm run test:contract; scripts/test-contract.mjs).
+# Un request válido según el esquema puede rechazarse por una invariante declarada en
+# `x-invariants` (422 con su tipo del catálogo, ADR-007): para Schemathesis eso no es un
+# rechazo indebido. El resto de los checks queda con sus valores por defecto.
+[checks.positive_data_acceptance]
+expected-statuses = ["2xx", 401, 403, 404, 409, 422, 429, "5xx"]

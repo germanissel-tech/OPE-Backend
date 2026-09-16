@@ -1,5 +1,5 @@
 // Fixture de tests/architecture: violación deliberada o módulo auxiliar.
-import type { Event } from "../ingestion/index.js";
+import type { Id } from "../shared-kernel/index.js";
 export interface Decision {
-  event: Event;
+  id: Id;
 }

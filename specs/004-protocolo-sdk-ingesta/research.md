@@ -22,13 +22,18 @@ inline) durante la implementación.
   se marca; el back-reference `$2` funciona en `pathNot`.
 - **Mapa de contextos inicial** (PROPUESTO en la spec; acá DECIDIDO para esta feature):
 
-  | Módulo          | Depende de                                                                           |
-  | --------------- | ------------------------------------------------------------------------------------ |
-  | `shared-kernel` | —                                                                                    |
-  | `system`        | `shared-kernel`                                                                      |
-  | `merchant`      | `shared-kernel`                                                                      |
-  | `ingestion`     | `shared-kernel`, `merchant`                                                          |
-  | `ledger`        | `shared-kernel`, `ingestion` (una decisión nace de un lote de eventos de una sesión) |
+  | Módulo          | Depende de                                                                         |
+  | --------------- | ---------------------------------------------------------------------------------- |
+  | `shared-kernel` | —                                                                                  |
+  | `system`        | `shared-kernel`                                                                    |
+  | `merchant`      | `shared-kernel`                                                                    |
+  | `ledger`        | `shared-kernel` (registra lo que otros deciden; no sabe de lotes ni de eventos)    |
+  | `ingestion`     | `shared-kernel`, `merchant`, `ledger` (la ingesta emite la decisión y la registra) |
+
+  Corrección durante la implementación: el borrador decía `ledger → ingestion` ("una decisión
+  nace de un lote"); el mapa verificado lo rechazó en cuanto el caso de uso de ingesta quiso
+  registrar la decisión. El ledger es un registro de bajo nivel del que dependen los módulos
+  que deciden; `decide` (motivo del `NO_OP` a partir del lote) vive en `ingestion`.
 
   Agregar un módulo = agregar una entrada; un import fuera del mapa falla el build.
 
@@ -125,6 +130,12 @@ required property 'dwellMs'`; `occurredAt` inválido → `must match format "dat
   punteros son exactos: cumple US2.3 y SC-004.
 - openapi-typescript genera la unión discriminada; el controller estrecha por `type` y el
   `switch` exhaustivo (regla de lint de la 003) obliga a cubrir todos los tipos.
+- **Restricción 3 — `type: object` junto al `oneOf`** (la encontró Schemathesis en la
+  implementación): el keyword `discriminator` de Ajv se declara con `type: "object"`, o sea que
+  **sólo corre cuando el dato es un objeto**, y cuando está presente Ajv **omite** el `oneOf`.
+  Sin `type: object` en `Event`, `{"events": [[null, null]]}` pasaba la validación y llegaba al
+  controller (500). Con `type: object` el arreglo falla antes de llegar al discriminador.
+  Prueba de integración con arreglo, string, `null` y número como evento → 400.
 - **Otra trampa de YAML detectada**: una `description` en escalar plano con `: ` adentro
   ("Tolerancia aceptada: hasta…") se parsea como mapping y Redocly reporta un `$ref` no
   resuelto varias líneas después. Usar `>-` o comillas cuando la descripción lleva dos puntos.

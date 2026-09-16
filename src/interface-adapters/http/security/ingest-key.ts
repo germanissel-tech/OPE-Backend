@@ -28,7 +28,7 @@ export function makeIngestKeySecurity(resolveIngestKey: ResolveIngestKey): Secur
     });
     if (!result.ok) throw new SecurityError(result.reason);
     const principal: IngestPrincipal = { merchant: result.merchant };
-    return principal;
+    return { principal, log: { merchantId: result.merchant.merchantId } };
   };
 }
 

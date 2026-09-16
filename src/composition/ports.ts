@@ -1,5 +1,7 @@
 // Contenedor tipado de puertos (ADR-013). Un perfil tiene que proveer todos los campos: agregar
 // un puerto acá sin proveerlo en un perfil no compila (FR-003).
+import type { EventDedup } from "../application/ingestion/index.js";
+import type { DecisionLedger } from "../application/ledger/index.js";
 import type { MerchantDirectory } from "../application/merchant/index.js";
 import type { Clock, IdGenerator } from "../application/shared-kernel/index.js";
 
@@ -7,6 +9,8 @@ export interface Ports {
   clock: Clock;
   ids: IdGenerator;
   merchants: MerchantDirectory;
+  eventDedup: EventDedup;
+  decisions: DecisionLedger;
 }
 
 /** Un gateway puede necesitar apagarse (conexiones, timers). En memoria no hay nada que cerrar. */

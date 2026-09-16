@@ -22,8 +22,8 @@ const CONTEXT_MAP = {
   "shared-kernel": [],
   system: ["shared-kernel"],
   merchant: ["shared-kernel"],
-  ingestion: ["shared-kernel", "merchant"],
-  ledger: ["shared-kernel", "ingestion"],
+  ledger: ["shared-kernel"],
+  ingestion: ["shared-kernel", "merchant", "ledger"],
 };
 
 /** Tipos de dependencia que salen del repo: npm y módulos de Node. */

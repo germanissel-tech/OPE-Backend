@@ -16,6 +16,7 @@ const VALID = [
   "merchant-id-in-response.yaml",
   "valid-invariants.yaml",
   "valid-capabilities.yaml",
+  "valid-union.yaml",
 ];
 
 let spectral: Spectral;

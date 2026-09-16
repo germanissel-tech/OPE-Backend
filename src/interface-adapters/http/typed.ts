@@ -43,10 +43,15 @@ export interface SecurityRequest {
 }
 
 /**
- * Un security handler devuelve el principal (lo que el controller va a leer) o lanza un
- * `SecurityError`; el servidor traduce el error a Problem Details con su status.
+ * Un security handler devuelve el principal (lo que el controller va a leer) y, opcionalmente,
+ * campos seguros para el log del request (nunca credenciales); o lanza un `SecurityError`, que
+ * el servidor traduce a Problem Details con su status.
  */
-export type SecurityHandler = (req: SecurityRequest) => unknown;
+export interface SecurityOutcome {
+  principal: unknown;
+  log?: Readonly<Record<string, string | number | boolean>>;
+}
+export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome;
 
 export type SecurityFailure = "unauthorized" | "origin-not-allowed";
 

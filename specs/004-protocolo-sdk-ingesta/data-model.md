@@ -114,13 +114,13 @@ orden inverso al arranque después de cerrar Fastify.
 
 ## Mapa de contextos (`.dependency-cruiser.cjs`)
 
-| Módulo          | Depende de                   |
-| --------------- | ---------------------------- |
-| `shared-kernel` | —                            |
-| `system`        | `shared-kernel`              |
-| `merchant`      | `shared-kernel`              |
-| `ingestion`     | `shared-kernel`, `merchant`  |
-| `ledger`        | `shared-kernel`, `ingestion` |
+| Módulo          | Depende de                                                              |
+| --------------- | ----------------------------------------------------------------------- |
+| `shared-kernel` | —                                                                       |
+| `system`        | `shared-kernel`                                                         |
+| `merchant`      | `shared-kernel`                                                         |
+| `ledger`        | `shared-kernel` (registra lo que otros deciden; no sabe de lotes)       |
+| `ingestion`     | `shared-kernel`, `merchant`, `ledger` (la ingesta registra la decisión) |
 
 Regla adicional: un módulo importa de otro **sólo** por `<otro>/index.ts`. Los anillos:
 `domain` ← `application` ← `interface-adapters` ← `infrastructure` ← `composition` ← `main.ts`.
