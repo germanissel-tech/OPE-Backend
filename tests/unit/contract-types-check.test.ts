@@ -7,7 +7,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const script = path.resolve("scripts/contract-types-check.mjs");
-const generated = path.resolve("src/generated/api.d.ts");
+const generated = path.resolve("src/interface-adapters/http/generated/api.d.ts");
 
 let dir: string | undefined;
 afterEach(() => {

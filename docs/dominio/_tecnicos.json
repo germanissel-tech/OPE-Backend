@@ -18,6 +18,14 @@
     "type",
     "title",
     "detail",
-    "instance"
+    "instance",
+    "id",
+    "result",
+    "batch",
+    "context",
+    "class",
+    "confirmation",
+    "to",
+    "from"
   ]
 }

@@ -1,7 +1,7 @@
 // Fixture de tests/lint: viola sólo la regla que lleva en el nombre.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { type Clock } from "../../../src/ports/clock.js";
+import { type Clock } from "../../../src/application/shared-kernel/ports/clock.js";
 
 type Status = "ok" | "degraded";
 

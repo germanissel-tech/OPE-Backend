@@ -1,0 +1,10 @@
+type: apiKey
+in: header
+name: X-OPE-Ingest-Key
+description: |
+  Credencial de ingesta del merchant. Es **pública**: viaja en el tag que el merchant instala
+  (02-integracion-ecommerce.md §3), identifica al merchant y no autentica al visitante. La
+  protección real es el par credencial + origen registrado del merchant (`Origin` del
+  navegador; ver ADR-014). Rotable: hasta dos claves activas por merchant durante la rotación.
+  Distinta de las credenciales del portal. `merchantId` se deriva de ella y nunca viaja en el
+  request (constitución V).

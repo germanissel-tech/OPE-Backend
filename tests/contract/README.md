@@ -8,6 +8,13 @@ código declarado, un cuerpo que valida y Problem Details en los errores.
 
 Requiere `uv` instalado (`uvx --version`). El reporte JUnit queda en `.schemathesis/`.
 
+El servidor arranca con un merchant de prueba (`OPE_MERCHANTS`, definido en el script) y
+Schemathesis manda su credencial en `X-OPE-Ingest-Key` (`-H`); también prueba el camino sin
+header (401). `schemathesis.toml` acepta `422` como respuesta a datos válidos según el esquema:
+es el rechazo por invariante declarada en `x-invariants` (ADR-007), no un error de validación.
+El aviso "schema validation mismatch" sobre `POST /v1/events` es esperable: los instantes que
+Schemathesis genera al azar caen casi siempre fuera de la tolerancia de `occurredAt`.
+
 ## Prueba negativa
 
 ```bash

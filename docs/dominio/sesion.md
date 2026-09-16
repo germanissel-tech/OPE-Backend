@@ -4,7 +4,6 @@ en: session
 contexto: identidad
 estado: aprobado
 fuente: constitucion#VI
-uso: pendiente
 ---
 
 # sesion -> `session`

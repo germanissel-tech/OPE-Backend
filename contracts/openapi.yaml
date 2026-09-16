@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     API HTTP del backend de OPE. Este documento es la única fuente de verdad de toda
     superficie HTTP: el servidor rutea por `operationId` y valida request y response contra
@@ -13,11 +13,22 @@ servers:
   - url: /
     description: Mismo origen (las rutas llevan el prefijo de versión mayor)
 tags:
+  - name: ingest
+    description: Ingesta de señales y confirmaciones desde el SDK del merchant.
   - name: system
     description: Operaciones de estado y soporte del servicio. Sin autenticación.
 paths:
   /v1/health:
     $ref: ./paths/health.yaml
-# Sin `components` en la raíz: cada archivo de components/ se referencia directamente desde
+  /v1/events:
+    $ref: ./paths/events.yaml
+  /v1/exposures:
+    $ref: ./paths/exposures.yaml
+# Casi sin `components` en la raíz: cada archivo de components/ se referencia directamente desde
 # donde se usa y el bundle los promueve a `#/components/<tipo>/<NombreDeArchivo>`. Declararlos
-# acá además dispararía `oas3-unused-component`.
+# acá además dispararía `oas3-unused-component`. Única excepción (ADR-014): `security` referencia
+# los esquemas de seguridad por nombre, no por `$ref`, así que tienen que existir acá.
+components:
+  securitySchemes:
+    ingestKey:
+      $ref: ./components/securitySchemes/ingestKey.yaml

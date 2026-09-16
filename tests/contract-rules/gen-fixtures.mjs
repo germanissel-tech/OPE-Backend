@@ -253,6 +253,39 @@ const fixtures = {
     delete bodySchema(d).properties.meta.additionalProperties;
     return d;
   },
+  // FR-015 (una unión envuelta en `type: object` no se cierra ahí, pero sus ramas sí: una rama
+  // abierta sigue fallando).
+  "ope-request-closed-schema.union.yaml": (d) => {
+    withThings(d);
+    bodySchema(d).properties.meta = {
+      type: "object",
+      description: "Metadatos por variante.",
+      oneOf: [
+        {
+          type: "object",
+          description: "Variante abierta (viola).",
+          properties: { note: { type: "string", description: "Nota." } },
+        },
+      ],
+    };
+    return d;
+  },
+  "valid-union.yaml": (d) => {
+    withThings(d);
+    bodySchema(d).properties.meta = {
+      type: "object",
+      description: "Metadatos por variante.",
+      oneOf: [
+        {
+          type: "object",
+          description: "Variante cerrada.",
+          additionalProperties: false,
+          properties: { note: { type: "string", description: "Nota." } },
+        },
+      ],
+    };
+    return d;
+  },
   // FR-016
   "ope-no-pii.yaml": (d) => {
     d.components.schemas.Health.properties.Email = { type: "string", description: "Correo." };

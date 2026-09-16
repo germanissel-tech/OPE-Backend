@@ -12,6 +12,13 @@ import { bundlePath, repoRoot } from "./lib.mjs";
 // Versión fijada: la misma en local y en CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
 
+/** Merchant de prueba para Schemathesis: la credencial de ingesta viaja en cada request. */
+const CONTRACT_MERCHANT = {
+  merchantId: "contract-test-merchant",
+  ingestKeys: ["ope_contract_test_key"],
+  origins: ["http://127.0.0.1"],
+};
+
 /** @returns {Promise<number>} */
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -80,7 +87,12 @@ async function main() {
   const { cmd, args } = serverCommand();
   const server = spawn(cmd, args, {
     cwd: repoRoot,
-    env: { ...process.env, PORT: String(port), HOST: "127.0.0.1" },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      HOST: "127.0.0.1",
+      OPE_MERCHANTS: process.env["OPE_MERCHANTS"] ?? JSON.stringify([CONTRACT_MERCHANT]),
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let serverLog = "";
@@ -125,6 +137,10 @@ async function main() {
         "examples,coverage,fuzzing",
         "--max-examples",
         "50",
+        // Credencial de ingesta: las operaciones autenticadas la exigen (401 sin ella, y
+        // Schemathesis también prueba ese camino quitando el header).
+        "-H",
+        `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
         "--report",
         "junit",
         "--report-dir",

@@ -1,7 +1,7 @@
 ---
 numero: 6
 titulo: Capas y dirección de dependencias
-estado: aceptada
+estado: reemplazada
 fecha: 2026-09-16
 fuente: specs/002-gobernanza-contrato-codigo/research.md
 ---

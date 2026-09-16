@@ -30,16 +30,27 @@ npm run contract:check   # lint + bundle + compatibilidad + drift de tipos + gob
 npm run format:check && npm run lint   # Prettier y ESLint estricto con tipos
 npm run build && npm run typecheck && npm test
 npm run test:contract    # Schemathesis contra el servidor levantado
-npm run dev              # servidor real en http://127.0.0.1:3000 (PORT, HOST)
+npm run dev              # servidor real en http://127.0.0.1:3000 (PORT, HOST, OPE_MERCHANTS)
 npm run contract:mock    # el mismo servidor respondiendo los ejemplos del contrato
 npm run contract:docs    # docs/api/index.html, autocontenido
 ```
 
-- Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`).
-- Tipos generados: `src/generated/api.d.ts` (commiteado, nunca editado a mano).
+Probar la ingesta a mano (el mock trae un merchant de prueba con la clave `ope_mock_ingest_key`;
+el servidor real lee los merchants de `OPE_MERCHANTS`, un JSON
+`[{ "merchantId", "ingestKeys": [..], "origins": [..] }]`, o de `OPE_MERCHANTS_FILE`):
+
+```bash
+npm run contract:mock
+curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/json" -H "X-OPE-Ingest-Key: ope_mock_ingest_key"   -d '{"events":[{"type":"product_viewed","eventId":"evt_00000001","sessionId":"ses_00000001","visitorId":"vis_00000001","occurredAt":"2026-09-16T12:00:00Z","page":{"pageType":"product","productId":"SKU-1"},"device":"mobile"}]}'
+```
+
+- Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`,
+  catálogos `problem-types.yaml` y `no-op-reasons.yaml`).
+- Tipos generados: `src/interface-adapters/http/generated/api.d.ts` (commiteado, nunca editado a mano).
 - Cliente tipado para SDK y portal: `import { createOpeClient } from "ope-backend/client"`.
 - Reglas del contrato y cómo ampliarlas: `contracts/.spectral.yaml`, `tests/contract-rules/README.md`.
 - Decisiones de arquitectura: `docs/adr/` (citar `ADR-NNN`). Glosario del lenguaje ubicuo:
-  `docs/dominio/`. Capas del código y su verificación: `.dependency-cruiser.cjs`, `npm run arch`.
+  `docs/dominio/`. Anillos, módulos y mapa de contextos (ADR-013): `.dependency-cruiser.cjs`,
+  `npm run arch`.
 - Puerta antes de publicar: `npm run release-check`.
 - Flujo de trabajo para agentes: `CLAUDE.md`.

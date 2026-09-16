@@ -3,11 +3,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
-import { makeGetHealth } from "../../src/handlers/health.js";
+import { makeGetServiceHealth } from "../../src/application/system/index.js";
+import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
+import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { json, problemOf } from "../helpers/json.js";
-import type { components } from "../../src/generated/api.js";
-import type { Handlers, OperationsMap, operations } from "../../src/handlers/typed.js";
+import type { components } from "../../src/interface-adapters/http/generated/api.js";
+import type {
+  Handlers,
+  OperationsMap,
+  SecurityHandler,
+  operations,
+} from "../../src/interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
 // Tipos del contrato de prueba two-ops.yaml (a mano: es un fixture, no se genera).
@@ -37,7 +43,7 @@ const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
 const now = () => new Date("2026-09-16T12:00:00.000Z");
-const getHealth = makeGetHealth({ contractVersion: "1.0.0", clock: { now } });
+const getHealth = makeGetHealth(makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now } }));
 const healthHandlers: Handlers = { getHealth };
 
 const PROBLEM = "application/problem+json";
@@ -51,8 +57,15 @@ afterEach(async () => {
 async function server<Ops extends OperationsMap<Ops> = operations>(
   definition: ContractDocument,
   handlers: Handlers<NoInfer<Ops>>,
+  security?: Record<string, SecurityHandler>,
 ): Promise<FastifyInstance> {
-  app = await buildServer<Ops>({ definition, handlers, mode: "real", logger: false });
+  app = await buildServer<Ops>({
+    definition,
+    handlers,
+    mode: "real",
+    logger: false,
+    ...(security && { security }),
+  });
   return app;
 }
 
@@ -106,6 +119,46 @@ describe("servidor real sobre el contrato", () => {
     const body = problemOf(res);
     expect(body).toMatchObject({ type: "urn:ope:problem:not-implemented", status: 501 });
     expect(body.detail).toContain("listThings");
+  });
+
+  // Sobre el contrato real: una operación autenticada y declarada, sin manejador cableado, es 501.
+  it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
+    const s = await server(realContract, healthHandlers, {
+      ingestKey: () => ({ principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } } }),
+    });
+    const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
+    const bodies: Record<string, Record<string, unknown>> = {
+      "/v1/events": {
+        events: [
+          {
+            type: "product_viewed",
+            eventId: "evt_00000001",
+            ...ids,
+            occurredAt: "2026-09-16T12:00:00Z",
+            page: { pageType: "product", productId: "SKU-1" },
+            device: "mobile",
+          },
+        ],
+      },
+      "/v1/exposures": {
+        decisionId: "dec_00000001",
+        ...ids,
+        exposedAt: "2026-09-16T12:00:00Z",
+        anchor: "size_selector",
+      },
+    };
+    for (const [url, payload] of Object.entries(bodies)) {
+      const res = await s.inject({ method: "POST", url, payload, headers: { "x-ope-ingest-key": "k" } });
+      expect(res.statusCode, url).toBe(501);
+      expect(problemOf(res).type).toBe("urn:ope:problem:not-implemented");
+    }
+  });
+
+  it("una operación con `security` declarado y sin security handler falla cerrada: 401", async () => {
+    const s = await server(realContract, healthHandlers);
+    const res = await s.inject({ method: "POST", url: "/v1/events", payload: {} });
+    expect(res.statusCode).toBe(401);
+    expect(problemOf(res).type).toBe("urn:ope:problem:unauthorized");
   });
 
   it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {

@@ -1,7 +1,7 @@
 // Manejadores alternativos para la prueba negativa de test:contract (US5 escenario 2):
 // getHealth responde 203, un código que el contrato no declara. Schemathesis debe detectarlo.
 // Uso: OPE_HANDLERS_MODULE=tests/contract/fixtures/health-203.ts npm run test:contract
-import type { Handlers } from "../../../src/handlers/typed.js";
+import type { Handlers } from "../../../src/interface-adapters/http/typed.js";
 
 export const handlers = {
   getHealth: async () => ({

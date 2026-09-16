@@ -1,4 +1,4 @@
-// contract:types:check — falla si src/generated/api.d.ts difiere de la regeneración (FR-031).
+// contract:types:check — falla si src/interface-adapters/http/generated/api.d.ts difiere de la regeneración (FR-031).
 import { existsSync, readFileSync } from "node:fs";
 import { generateTypes } from "./contract-types-lib.mjs";
 import { generatedTypesPath } from "./lib.mjs";

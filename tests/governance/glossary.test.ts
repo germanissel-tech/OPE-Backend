@@ -23,6 +23,12 @@ describe("check:glossary", () => {
     expect(r.output).toContain("Glosario: 1 términos, todos con fuente; 1 usados en el contrato");
   });
 
+  it("un schema en PascalCase resuelve al valor de cable en snake_case, y un plural en -es a su singular", () => {
+    const r = check("valor-de-cable");
+    expect(r.status, r.output).toBe(0);
+    expect(r.output).toContain("3 usados en el contrato");
+  });
+
   it("falla ante un sustantivo del contrato sin nota", () => {
     const r = check("huerfano");
     expect(r.status).toBe(1);
@@ -50,6 +56,12 @@ describe("check:glossary", () => {
   it("pasa si la nota sin uso declara `uso: pendiente`", () => {
     const r = check("uso-declarado");
     expect(r.status, r.output).toBe(0);
+  });
+
+  it("con el directorio del MVP presente pero sin documentos (como en CI) avisa y no falla", () => {
+    const r = check("mvp-vacio");
+    expect(r.status, r.output).toBe(0);
+    expect(r.output).toContain("aviso");
   });
 
   it("sin el directorio de documentos del MVP avisa y no falla", () => {

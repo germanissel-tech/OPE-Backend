@@ -6,7 +6,7 @@ export const GENERATED_HEADER =
   "// GENERADO por scripts/contract-types.mjs desde contracts/dist/openapi.yaml — NO EDITAR A MANO.\n" +
   "// Regenerar con: npm run contract:types\n\n";
 
-/** Genera el contenido completo de src/generated/api.d.ts a partir del bundle. */
+/** Genera el contenido completo de src/interface-adapters/http/generated/api.d.ts a partir del bundle. */
 export async function generateTypes() {
   if (!existsSync(bundlePath)) {
     throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);

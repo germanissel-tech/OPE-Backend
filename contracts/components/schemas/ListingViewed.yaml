@@ -1,0 +1,26 @@
+type: object
+description: Vista de un listado o categoría.
+additionalProperties: false
+required: [type, eventId, sessionId, visitorId, occurredAt, page, device]
+properties:
+  type:
+    type: string
+    description: Discriminador del tipo de evento.
+    enum: [listing_viewed]
+  eventId:
+    $ref: ./EventId.yaml
+  sessionId:
+    $ref: ./SessionId.yaml
+  visitorId:
+    $ref: ./VisitorId.yaml
+  occurredAt:
+    type: string
+    format: date-time
+    description: >-
+      Instante del evento según el navegador (RFC 3339). Tolerancia aceptada: hasta 5 minutos a
+      futuro y 24 horas a pasado respecto del reloj del backend; fuera de eso,
+      `event-timestamp-out-of-range`.
+  page:
+    $ref: ./PageContext.yaml
+  device:
+    $ref: ./DeviceClass.yaml
