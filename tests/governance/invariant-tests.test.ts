@@ -20,7 +20,8 @@ describe("check:invariant-tests", () => {
   it("falla nombrando el marcador que falta y dónde está declarada la invariante", () => {
     const r = check("missing");
     expect(r.status).toBe(1);
-    expect(r.output).toContain("[invariant:not-found]");
+    // Se arma en dos partes para que el propio check no cuente esta línea como la prueba.
+    expect(r.output).toContain(["[invariant:", "not-found]"].join(""));
     expect(r.output).toContain("/paths//v1/health/get");
   });
 

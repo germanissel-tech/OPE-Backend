@@ -38,4 +38,7 @@ npm run contract:docs    # docs/api/index.html, autocontenido
 - Tipos generados: `src/generated/api.d.ts` (commiteado, nunca editado a mano).
 - Cliente tipado para SDK y portal: `import { createOpeClient } from "ope-backend/client"`.
 - Reglas del contrato y cómo ampliarlas: `contracts/.spectral.yaml`, `tests/contract-rules/README.md`.
+- Decisiones de arquitectura: `docs/adr/` (citar `ADR-NNN`). Glosario del lenguaje ubicuo:
+  `docs/dominio/`. Capas del código y su verificación: `.dependency-cruiser.cjs`, `npm run arch`.
+- Puerta antes de publicar: `npm run release-check`.
 - Flujo de trabajo para agentes: `CLAUDE.md`.

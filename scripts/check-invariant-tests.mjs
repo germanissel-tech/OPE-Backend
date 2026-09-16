@@ -34,7 +34,8 @@ function collect(node, at) {
 collect(doc, "#");
 
 const tested = new Set();
-for (const file of walkFiles(testsDir, [".test.ts"])) {
+// Los fixtures de las pruebas de gobernanza contienen marcadores de ejemplo: no cuentan.
+for (const file of walkFiles(testsDir, [".test.ts"], ["node_modules", ".git", "dist", "fixtures"])) {
   for (const m of readFileSync(file, "utf8").matchAll(/\[invariant:([a-z0-9-]+)\]/g)) tested.add(m[1]);
 }
 
