@@ -1,5 +1,12 @@
 <!--
-Sync Impact Report
+Sync Impact Report (1.1.0, 2026-09-16)
+- Version change: 1.0.0 → 1.1.0 (MINOR: dos gates nuevos en el Constitution Check y la
+  verificación ejecutable de principios que ya existían; ningún principio cambia).
+- Modified sections: Flujo de desarrollo (gates de invariantes y de glosario; capas y
+  marcadores verificados). Fuente: specs/002-gobernanza-contrato-codigo, ADR-006..ADR-009.
+- Templates: sin cambios; el plan-template lee los gates de esta sección en runtime.
+
+Sync Impact Report (1.0.0)
 - Version change: (template) → 1.0.0
 - Modified principles: n/a (creación inicial)
 - Added sections: Principios I–X, Contrato de datos e identidad, Stack y restricciones
@@ -222,6 +229,13 @@ Decisiones D1 y D2 cerradas al ratificar esta constitución:
    - ¿Introduce un campo nuevo de evento u orden? → está en la lista blanca del contrato y no
      es PII.
    - ¿Introduce una llamada a un modelo de lenguaje en runtime? → rechazado.
+   - ¿Introduce una regla de negocio que el esquema no puede expresar (aritmética entre
+     campos, unicidad, estado de otro recurso)? → se declara en `x-invariants` con su tipo
+     propio de Problem Details y tiene una prueba nombrada por ese tipo (ADR-007).
+   - ¿Introduce un sustantivo nuevo en el contrato? → tiene su nota en `docs/dominio/` con
+     fuente antes de escribirse (ADR-008).
+   - ¿Toca `src/`? → respeta la dirección de dependencias entre capas (`domain` → `ports` →
+     `adapters`/`handlers` → `main.ts`), verificada por `npm run arch` (ADR-006).
 3. `/speckit-tasks` genera tareas; las de contrato y pruebas preceden a las de implementación.
 4. `/speckit-implement` ejecuta. Toda unidad de trabajo termina con pruebas verdes ejecutables.
 
@@ -230,9 +244,12 @@ pruebas de contrato contra el OpenAPI. Existe una prueba end-to-end que ejercita
 completo (evento → decisión → exposición → orden → atribución) usando el adaptador de prueba.
 Las pruebas de contaminación cruzada entre merchants corren en cada build.
 
-**Estado epistémico.** Documentación, specs y reportes marcan cada afirmación como DECIDIDO,
-PROPUESTO o ABIERTO, y el estado del sistema como BUILT / CONNECTED / ACTIVE / TESTED. Nada se
-afirma como funcionando sin evidencia ejecutable.
+**Estado epistémico.** Documentación, specs y reportes marcan cada afirmación como `DECIDIDO`,
+`PROPUESTO` o `ABIERTO`, y el estado del sistema como BUILT / CONNECTED / ACTIVE / TESTED. Nada se
+afirma como funcionando sin evidencia ejecutable. Los marcadores `ABIERTO`, `PROPUESTO` y
+`PLACEHOLDER` son contables (`npm run check:markers`) y `release-check` no pasa con uno
+bloqueante (ADR-009). Las decisiones transversales se registran en `docs/adr/` y se citan como
+`ADR-NNN`; no se escriben cifras de estado en prosa viva.
 
 **Alcance.** Lo que `03-alcance-mvp.md` §5 lista como fuera del MVP MUST NOT entrar por una
 feature; requiere cambio de alcance documentado. Preparar la arquitectura no es entregar la
@@ -257,4 +274,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-16
+**Version**: 1.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-16

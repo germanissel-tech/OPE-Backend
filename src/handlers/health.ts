@@ -1,15 +1,20 @@
-// getHealth (FR-047): estado del servicio, versión del contrato cargado y marca de tiempo.
-// Función pura: el reloj se inyecta desde el composition root.
-import type { OperationHandler } from "../server/handlers.js";
+// getHealth (FR-047): traduce el valor de dominio ServiceHealth al DTO Health del contrato.
+// Recibe el reloj por el puerto Clock; el composition root cablea el del sistema.
+import { serviceHealth } from "../domain/health.js";
+import type { Clock } from "../ports/clock.js";
+import type { OperationHandler } from "./typed.js";
 
 export interface HealthDeps {
   contractVersion: string;
-  now: () => Date;
+  clock: Clock;
 }
 
-export function makeGetHealth({ contractVersion, now }: HealthDeps): OperationHandler<"getHealth"> {
-  return async () => ({
-    status: 200,
-    body: { status: "ok", contractVersion, timestamp: now().toISOString() },
-  });
+export function makeGetHealth({ contractVersion, clock }: HealthDeps): OperationHandler<"getHealth"> {
+  return async () => {
+    const health = serviceHealth({ now: clock.now(), contractVersion });
+    return {
+      status: 200,
+      body: { status: health.status, contractVersion: health.contractVersion, timestamp: health.timestamp.toISOString() },
+    };
+  };
 }

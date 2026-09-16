@@ -7,8 +7,8 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRepl
 import { OpenAPIBackend, type Context, type Document } from "openapi-backend";
 import type { ErrorObject } from "ajv";
 import ajvFormats from "ajv-formats";
-import type { operations } from "../generated/api.js";
-import type { Handlers, OperationsMap } from "./handlers.js";
+import type { operations } from "../../generated/api.js";
+import type { Handlers, OperationsMap } from "../../handlers/typed.js";
 import { PROBLEM_CONTENT_TYPE, problem, type ProblemResponse, type ValidationError } from "./problem-details.js";
 
 export type ContractDocument = Document;

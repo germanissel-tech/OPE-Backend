@@ -1,0 +1,114 @@
+# Fixture de tests/contract-rules/redocly.test.ts
+openapi: 3.1.0
+info:
+  title: Fixture Redocly
+  version: 1.0.0
+  description: Contrato mínimo para las assertions de Redocly.
+  contact:
+    name: OPE
+servers:
+  - url: /
+tags:
+  - name: system
+    description: Sistema.
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      summary: Salud
+      description: Estado.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/things:
+    post:
+      operationId: createThing
+      tags: [system]
+      summary: Crea
+      description: Crea una cosa.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              type: object
+              description: Inline.
+              additionalProperties: false
+              properties:
+                kind:
+                  type: string
+                  description: Clase.
+            example:
+              kind: a
+      responses:
+        "201":
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+        "400":
+          $ref: "#/components/responses/InternalServerError"
+        "422":
+          $ref: "#/components/responses/InternalServerError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  schemas:
+    Health:
+      type: object
+      description: Estado.
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Salud.
+    ThingCreate:
+      type: object
+      description: Cosa.
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          description: Clase.
+    ProblemDetails:
+      type: object
+      description: Problem Details.
+      additionalProperties: false
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          description: Tipo.
+        title:
+          type: string
+          description: Título.
+        status:
+          type: integer
+          description: Código.
+  responses:
+    InternalServerError:
+      description: Error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          example:
+            type: urn:ope:problem:internal-error
+            title: t
+            status: 500

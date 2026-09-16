@@ -3,7 +3,7 @@ import { makeGetHealth } from "../../src/handlers/health.js";
 
 describe("getHealth", () => {
   const fixed = new Date("2026-09-16T12:00:00.000Z");
-  const handler = makeGetHealth({ contractVersion: "1.0.0", now: () => fixed });
+  const handler = makeGetHealth({ contractVersion: "1.0.0", clock: { now: () => fixed } });
 
   it("responde 200 con status, versión del contrato y timestamp del reloj inyectado", async () => {
     const res = await handler({

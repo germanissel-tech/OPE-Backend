@@ -1,7 +1,8 @@
-# Pruebas de las reglas del contrato (FR-052)
+# Pruebas de las reglas del contrato
 
 `rules.test.ts` carga `contracts/.spectral.yaml` con el mismo cargador que la CLI y corre cada
-fixture de `fixtures/`. Convención:
+fixture de `fixtures/`. `redocly.test.ts` hace lo mismo con las assertions de `redocly.yaml`
+sobre `redocly/*.yaml` (las que necesitan ver los `$ref` archivo por archivo). Convención:
 
 - `<regla>.yaml` o `<regla>.<variante>.yaml`: contrato mínimo que viola **sólo** esa regla.
   La prueba exige un error con `code === <regla>`, archivo y posición.
@@ -16,6 +17,12 @@ fixture de `fixtures/`. Convención:
 3. Documentarla en `specs/001-api-contract-toolchain/research.md` (tabla R-02) o en la spec de
    la feature que la introduce.
 
-Los fixtures se escribieron a partir de un contrato base válido de un solo archivo; al
-modificarlos, verificar que siguen disparando una única regla:
-`npx spectral lint tests/contract-rules/fixtures/<f>.yaml --ruleset contracts/.spectral.yaml`.
+Los fixtures se **generan** con `node tests/contract-rules/gen-fixtures.mjs` a partir de un
+contrato base válido; no se editan a mano. Al agregar uno, verificar que dispara una única
+regla: `npx spectral lint tests/contract-rules/fixtures/<f>.yaml --ruleset contracts/.spectral.yaml`.
+
+## Invariantes (feature 002, ADR-007)
+
+`x-invariants` sobre una operación o un schema: `type` (slug del catálogo, nunca
+`unprocessable`), `status`, `rule`, `description`. Cada una necesita una prueba del servidor
+cuyo título contenga `[invariant:<slug>]`; `npm run check:invariant-tests` falla si falta.

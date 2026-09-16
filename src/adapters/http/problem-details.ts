@@ -1,7 +1,7 @@
 // Problem Details (RFC 9457). Única forma de error de la API.
 // Los tipos de problema replican contracts/problem-types.yaml (la fuente); una prueba verifica
 // que ambos catálogos coinciden.
-import type { components } from "../generated/api.js";
+import type { components } from "../../generated/api.js";
 
 export type ProblemDetails = components["schemas"]["ProblemDetails"];
 export type ValidationError = NonNullable<ProblemDetails["errors"]>[number];

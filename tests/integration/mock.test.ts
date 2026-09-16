@@ -4,7 +4,7 @@ import path from "node:path";
 import { parse } from "yaml";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { buildServer, type ContractDocument } from "../../src/server/build-server.js";
+import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
 import { makeGetHealth } from "../../src/handlers/health.js";
 
 const contract = parse(readFileSync(path.resolve("contracts/dist/openapi.yaml"), "utf8")) as ContractDocument;
@@ -23,7 +23,7 @@ async function mock(): Promise<FastifyInstance> {
 async function real(): Promise<FastifyInstance> {
   const app = await buildServer({
     definition: contract,
-    handlers: { getHealth: makeGetHealth({ contractVersion: "1.0.0", now: () => new Date() }) },
+    handlers: { getHealth: makeGetHealth({ contractVersion: "1.0.0", clock: { now: () => new Date() } }) },
     mode: "real",
     logger: false,
   });

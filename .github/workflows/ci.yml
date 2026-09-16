@@ -34,8 +34,10 @@ jobs:
       - run: npm run contract:check
       - run: npm run build
       - run: npm run typecheck
+      - run: npm run arch
       - run: npm test
       - run: npm run test:contract
+      - run: npm run release-check
 
       - name: Publicar reporte de Schemathesis
         if: always()

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
-import { PROBLEM_NAMESPACE, PROBLEM_TYPES, problem } from "../../src/server/problem-details.js";
+import { PROBLEM_NAMESPACE, PROBLEM_TYPES, problem } from "../../src/adapters/http/problem-details.js";
 
 interface Catalog {
   namespace: string;

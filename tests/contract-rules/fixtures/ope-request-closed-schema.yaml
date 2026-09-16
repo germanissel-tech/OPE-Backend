@@ -1,4 +1,4 @@
-# Fixture de tests/contract-rules: ope-request-closed-schema. Generado a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
+# Fixture de tests/contract-rules: ope-request-closed-schema. Generado por gen-fixtures.mjs a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
 openapi: 3.1.0
 info:
   title: Fixture
@@ -44,25 +44,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Cosa a crear.
-              additionalProperties: false
-              required:
-                - kind
-              properties:
-                kind:
-                  type: string
-                  description: Clase de cosa.
-                  enum:
-                    - a
-                    - b
-                meta:
-                  type: object
-                  description: Metadatos.
-                  properties:
-                    note:
-                      type: string
-                      description: Nota.
+              $ref: "#/components/schemas/ThingCreate"
             example:
               kind: a
               meta:
@@ -79,7 +61,7 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
         "422":
-          $ref: "#/components/responses/UnprocessableEntity"
+          $ref: "#/components/responses/ThingUnprocessable"
         "500":
           $ref: "#/components/responses/InternalServerError"
 components:
@@ -112,6 +94,31 @@ components:
         status:
           type: integer
           description: Código HTTP.
+    ThingCreate:
+      type: object
+      description: Cosa a crear.
+      additionalProperties: false
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          description: Clase de cosa.
+          enum:
+            - a
+            - b
+        meta:
+          type: object
+          description: Metadatos.
+          properties:
+            note:
+              type: string
+              description: Nota.
+      x-invariants:
+        - type: validation-failed
+          status: 400
+          rule: kind in [a, b]
+          description: Clase válida.
   responses:
     InternalServerError:
       description: Error interno.
@@ -120,7 +127,7 @@ components:
           schema:
             $ref: "#/components/schemas/ProblemDetails"
           example:
-            type: urn:ope:problem:x
+            type: urn:ope:problem:internal-error
             title: t
             status: 500
     BadRequest:
@@ -130,16 +137,16 @@ components:
           schema:
             $ref: "#/components/schemas/ProblemDetails"
           example:
-            type: urn:ope:problem:x
+            type: urn:ope:problem:validation-failed
             title: t
             status: 400
-    UnprocessableEntity:
+    ThingUnprocessable:
       description: No procesable.
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/ProblemDetails"
           example:
-            type: urn:ope:problem:x
+            type: urn:ope:problem:validation-failed
             title: t
             status: 422
