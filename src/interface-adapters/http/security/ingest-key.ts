@@ -6,7 +6,7 @@ import type { ResolveIngestKey } from "../../../application/merchant/index.js";
 import type { Merchant } from "../../../domain/merchant/index.js";
 
 export const INGEST_KEY_SCHEME = "ingestKey";
-export const INGEST_KEY_HEADER = "x-ope-ingest-key";
+const INGEST_KEY_HEADER = "x-ope-ingest-key";
 
 /** What the security handler leaves for the controllers. */
 export interface IngestPrincipal {

@@ -8,6 +8,8 @@ export type ValidationError = NonNullable<ProblemDetails["errors"]>[number];
 
 export const PROBLEM_CONTENT_TYPE = "application/problem+json";
 export const PROBLEM_NAMESPACE = "urn:ope:problem:";
+/** Every violated invariant is a 422 (ADR-001): the request was valid, its semantics were not. */
+const INVARIANT_STATUS = 422;
 
 export const PROBLEM_TYPES = {
   "validation-failed": { status: 400, title: "The request does not satisfy the contract" },
@@ -36,6 +38,21 @@ export interface ProblemOptions {
 export interface ProblemResponse {
   status: number;
   body: ProblemDetails;
+}
+
+/** A use case result that violated a declared invariant (ADR-007): the contract maps it to 422. */
+export interface InvariantViolation {
+  invariant: ProblemSlug;
+  detail: string;
+}
+
+/** The 422 response of a controller for a violated invariant: one translation for every use case. */
+export function invariantResponse(
+  req: { instance: string },
+  violation: InvariantViolation,
+): { status: typeof INVARIANT_STATUS; body: ProblemDetails } {
+  const { status, body } = problem(violation.invariant, { instance: req.instance, detail: violation.detail });
+  return { status: INVARIANT_STATUS, body: { ...body, status } };
 }
 
 /** Builds the error response for a catalogue type. Never includes internal details. */

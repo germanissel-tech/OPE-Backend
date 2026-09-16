@@ -2,7 +2,7 @@
 // IngestResult, or 422 with the type of the violated invariant. The body already passed the
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
 import { asEventId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
-import { problem } from "../../problem-details.js";
+import { invariantResponse } from "../../problem-details.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import type { IngestBatch } from "../../../../application/ingestion/index.js";
 import type { Event } from "../../../../domain/ingestion/index.js";
@@ -14,7 +14,7 @@ type EventDto = components["schemas"]["Event"];
 type DecisionDto = components["schemas"]["Decision"];
 
 /** An event DTO → domain event. The `switch` is exhaustive: a new type does not compile without a branch. */
-export function toDomainEvent(dto: EventDto): Event {
+function toDomainEvent(dto: EventDto): Event {
   const base = {
     eventId: asEventId(dto.eventId),
     sessionId: asSessionId(dto.sessionId),
@@ -50,7 +50,7 @@ export function toDomainEvent(dto: EventDto): Event {
 }
 
 /** A domain decision → DTO. `merchantId` and `decidedAt` do not travel. */
-export function toDecisionDto(decision: Decision): DecisionDto {
+function toDecisionDto(decision: Decision): DecisionDto {
   const dto: DecisionDto = {
     decisionId: decision.decisionId,
     sessionId: decision.sessionId,
@@ -68,10 +68,7 @@ export function makeIngestEvents(ingestBatch: IngestBatch): OperationHandler<"in
       merchantId: merchant.merchantId,
       batch: { events: req.body.events.map(toDomainEvent) },
     });
-    if (!result.ok) {
-      const { status, body } = problem(result.invariant, { instance: req.instance, detail: result.detail });
-      return { status: 422, body: { ...body, status } };
-    }
+    if (!result.ok) return invariantResponse(req, result);
     const { accepted, duplicates, results, decision } = result.outcome;
     return {
       status: 202,

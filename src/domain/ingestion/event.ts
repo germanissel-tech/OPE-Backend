@@ -3,21 +3,19 @@
 // lives the shape the domain understands, without depending on the generated types.
 import type { EventId, SessionId, VisitorId } from "../shared-kernel/index.js";
 
-export const EVENT_TYPES = [
-  "product_viewed",
-  "listing_viewed",
-  "size_selector_interacted",
-  "variant_selected",
-  "photo_interacted",
-  "block_dwelled",
-  "cta_approached",
-  "product_returned_to",
-  "added_to_cart",
-  "removed_from_cart",
-  "checkout_advanced",
-  "exit_signaled",
-] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
+export type EventType =
+  | "product_viewed"
+  | "listing_viewed"
+  | "size_selector_interacted"
+  | "variant_selected"
+  | "photo_interacted"
+  | "block_dwelled"
+  | "cta_approached"
+  | "product_returned_to"
+  | "added_to_cart"
+  | "removed_from_cart"
+  | "checkout_advanced"
+  | "exit_signaled";
 
 export type PageType = "product" | "listing" | "cart" | "checkout" | "other";
 export type Availability = "in_stock" | "out_of_stock" | "unknown";

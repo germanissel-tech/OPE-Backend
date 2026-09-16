@@ -8,7 +8,7 @@ export interface CorsPolicy {
   isRegisteredOrigin(origin: string): boolean;
 }
 
-export const CORS_ALLOWED_HEADERS = ["content-type", "x-ope-ingest-key"];
+const CORS_ALLOWED_HEADERS = ["content-type", "x-ope-ingest-key"];
 
 export async function registerCors(app: FastifyInstance, policy: CorsPolicy): Promise<void> {
   await app.register(fastifyCors, {

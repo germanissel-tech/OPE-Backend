@@ -27,7 +27,7 @@ const DEFAULT_PORT = 3000;
 const MAX_INGEST_KEYS = 2;
 
 /** Test merchant for `OPE_MOCK=1` and local development without configuration. */
-export const MOCK_MERCHANT: MerchantConfig = {
+const MOCK_MERCHANT: MerchantConfig = {
   merchantId: "mock-merchant",
   ingestKeys: ["ope_mock_ingest_key"],
   origins: ["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -58,7 +58,7 @@ function readMerchants(
 }
 
 /** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
-export function parseMerchants(raw: string): MerchantConfig[] {
+function parseMerchants(raw: string): MerchantConfig[] {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed)) throw new Error("OPE_MERCHANTS must be a JSON array of merchants.");
   return parsed.map((item: unknown, i) => {

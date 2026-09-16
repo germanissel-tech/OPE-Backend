@@ -4,7 +4,7 @@
 // ingest key is also redacted as a second barrier; the body is never logged.
 import type { FastifyBaseLogger, FastifyServerOptions } from "fastify";
 
-export const requestSerializers = {
+const requestSerializers = {
   req(request: { method: string; url: string }): { method: string; url: string } {
     return { method: request.method, url: request.url };
   },
@@ -13,7 +13,7 @@ export const requestSerializers = {
   },
 };
 
-export const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
+const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
 
 /** Fastify logger options for `logger: true`. */
 export const loggerOptions: Exclude<FastifyServerOptions["logger"], boolean | undefined> = {

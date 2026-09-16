@@ -4,8 +4,6 @@
 import type { Anchor } from "./decision.js";
 import type { DecisionId, MerchantId, SessionId, VisitorId } from "../shared-kernel/index.js";
 
-export const EXPOSED = "EXPOSED";
-
 export interface Exposure {
   merchantId: MerchantId;
   decisionId: DecisionId;

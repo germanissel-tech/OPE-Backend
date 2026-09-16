@@ -6,19 +6,19 @@ import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
-export const merchantA: MerchantConfig = {
+const merchantA: MerchantConfig = {
   merchantId: "m_a",
   ingestKeys: ["key-a-1", "key-a-2"],
   origins: ["https://a.example"],
 };
-export const merchantB: MerchantConfig = {
+const merchantB: MerchantConfig = {
   merchantId: "m_b",
   ingestKeys: ["key-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
 };
-export const testMerchants: MerchantConfig[] = [merchantA, merchantB];
+const testMerchants: MerchantConfig[] = [merchantA, merchantB];
 
-export const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
+const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
   port: 0,
   host: "127.0.0.1",
   mode: "real",
