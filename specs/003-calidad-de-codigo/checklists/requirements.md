@@ -32,10 +32,10 @@
 ## Notes
 
 - **Sobre "implementation details"**: la spec nombra `any`, promesas, aserciones non-null,
-  index signatures y `.editorconfig`: son el objeto de la feature (qué construcciones del
-  lenguaje se prohíben), no elecciones de herramienta. Linter, formateador y gestor de hooks
+  index signatures y `.editorconfig`: son el objeto de la feature (quï¿½ construcciones del
+  lenguaje se prohï¿½ben), no elecciones de herramienta. Linter, formateador y gestor de hooks
   quedan para el plan (ver Assumptions).
 - **Sobre "non-technical stakeholders"**: los usuarios son agentes y desarrolladores; se
-  aplicó el criterio de las features 001 y 002.
-- Sin [NEEDS CLARIFICATION]: el usuario aprobó el alcance de siete puntos y las exclusiones
+  aplicï¿½ el criterio de las features 001 y 002.
+- Sin [NEEDS CLARIFICATION]: el usuario aprobï¿½ el alcance de siete puntos y las exclusiones
   (sin migrar scripts a TypeScript, sin duplicar la regla de capas, sin pruebas en el hook).

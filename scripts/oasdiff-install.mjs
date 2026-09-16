@@ -52,10 +52,16 @@ export async function ensureOasdiff() {
   if (existsSync(oasdiffPath)) return oasdiffPath;
   const key = `${process.platform}-${process.arch}`;
   const asset = ASSETS[key];
-  if (!asset) throw new Error(`oasdiff: plataforma sin binario oficial: ${key}. Instalá oasdiff a mano y exportá OASDIFF_BIN.`);
+  if (!asset)
+    throw new Error(
+      `oasdiff: plataforma sin binario oficial: ${key}. Instalá oasdiff a mano y exportá OASDIFF_BIN.`,
+    );
   const fileName = `oasdiff_${OASDIFF_VERSION}_${asset}.tar.gz`;
   console.log(`oasdiff ${OASDIFF_VERSION} no está en caché; descargando ${fileName}…`);
-  const [archive, checksums] = await Promise.all([download(`${RELEASE_BASE}/${fileName}`), download(`${RELEASE_BASE}/checksums.txt`)]);
+  const [archive, checksums] = await Promise.all([
+    download(`${RELEASE_BASE}/${fileName}`),
+    download(`${RELEASE_BASE}/checksums.txt`),
+  ]);
   const expected = checksums
     .toString("utf8")
     .split("\n")
@@ -63,7 +69,8 @@ export async function ensureOasdiff() {
     .find(([, name]) => name === fileName)?.[0];
   if (!expected) throw new Error(`oasdiff: ${fileName} no figura en checksums.txt`);
   const actual = createHash("sha256").update(archive).digest("hex");
-  if (actual !== expected) throw new Error(`oasdiff: checksum inválido para ${fileName} (esperado ${expected}, obtenido ${actual})`);
+  if (actual !== expected)
+    throw new Error(`oasdiff: checksum inválido para ${fileName} (esperado ${expected}, obtenido ${actual})`);
   const binary = extractFromTar(gunzipSync(archive), exeName);
   mkdirSync(cacheDir, { recursive: true });
   const tmp = `${oasdiffPath}.tmp`;

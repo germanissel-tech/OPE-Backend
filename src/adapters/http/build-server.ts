@@ -3,13 +3,23 @@
 //   request antes del manejador y la respuesta después.
 // - Fastify es sólo el transporte: una ruta comodín delega todo en openapi-backend, y sus
 //   errores propios (JSON inválido, ruta desconocida) también salen como Problem Details.
-import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import Fastify, {
+  type FastifyBaseLogger,
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+} from "fastify";
 import { OpenAPIBackend, type Context, type Document } from "openapi-backend";
 import type { ErrorObject } from "ajv";
 import ajvFormats from "ajv-formats";
 import type { operations } from "../../generated/api.js";
 import type { Handlers, OperationsMap } from "../../handlers/typed.js";
-import { PROBLEM_CONTENT_TYPE, problem, type ProblemResponse, type ValidationError } from "./problem-details.js";
+import {
+  PROBLEM_CONTENT_TYPE,
+  problem,
+  type ProblemResponse,
+  type ValidationError,
+} from "./problem-details.js";
 
 export type ContractDocument = Document;
 export type ServerMode = "real" | "mock";
@@ -71,24 +81,46 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
 
   /** Métodos declarados en el contrato para un path (vacío si el path no existe). */
   const allowedMethods = (requestPath: string): string[] =>
-    HTTP_METHODS.filter((method) => api.matchOperation({ method, path: requestPath, headers: {} }) !== undefined);
+    HTTP_METHODS.filter(
+      (method) => api.matchOperation({ method, path: requestPath, headers: {} }) !== undefined,
+    );
 
   /** 405 con `Allow` si el path existe en el contrato con otros métodos; 404 si no existe. */
   const unroutable = (requestPath: string): HttpResponse => {
     const allowed = allowedMethods(requestPath);
     if (allowed.length === 0) {
-      return toHttp(problem("not-found", { instance: requestPath, detail: `No hay ninguna operación para ${requestPath}.` }));
+      return toHttp(
+        problem("not-found", {
+          instance: requestPath,
+          detail: `No hay ninguna operación para ${requestPath}.`,
+        }),
+      );
     }
-    const res = toHttp(problem("method-not-allowed", { instance: requestPath, detail: `Métodos declarados: ${allowed.join(", ")}.` }));
+    const res = toHttp(
+      problem("method-not-allowed", {
+        instance: requestPath,
+        detail: `Métodos declarados: ${allowed.join(", ")}.`,
+      }),
+    );
     return { ...res, headers: { allow: allowed.join(", ") } };
   };
 
   // Manejadores especiales de openapi-backend → Problem Details.
   api.register({
     validationFail: async (c: Context): Promise<HttpResponse> =>
-      toHttp(problem("validation-failed", { instance: c.request.path, errors: toValidationErrors(c.validation.errors) })),
+      toHttp(
+        problem("validation-failed", {
+          instance: c.request.path,
+          errors: toValidationErrors(c.validation.errors),
+        }),
+      ),
     notFound: async (c: Context): Promise<HttpResponse> =>
-      toHttp(problem("not-found", { instance: c.request.path, detail: `No hay ninguna operación para ${c.request.method.toUpperCase()} ${c.request.path}.` })),
+      toHttp(
+        problem("not-found", {
+          instance: c.request.path,
+          detail: `No hay ninguna operación para ${c.request.method.toUpperCase()} ${c.request.path}.`,
+        }),
+      ),
     methodNotAllowed: async (c: Context): Promise<HttpResponse> => unroutable(c.request.path),
     notImplemented: async (c: Context): Promise<HttpResponse> => {
       const operationId = c.operation.operationId ?? "(sin operationId)";
@@ -98,15 +130,28 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
           return { status, body: mock, contentType: "application/json" };
         } catch (err) {
           log.warn({ operationId, err }, "mock: la operación no declara ejemplo");
-          return toHttp(problem("not-implemented", { instance: c.request.path, detail: `La operación ${operationId} no declara ejemplo para el mock.` }));
+          return toHttp(
+            problem("not-implemented", {
+              instance: c.request.path,
+              detail: `La operación ${operationId} no declara ejemplo para el mock.`,
+            }),
+          );
         }
       }
-      return toHttp(problem("not-implemented", { instance: c.request.path, detail: `La operación ${operationId} está declarada en el contrato pero no tiene manejador registrado.` }));
+      return toHttp(
+        problem("not-implemented", {
+          instance: c.request.path,
+          detail: `La operación ${operationId} está declarada en el contrato pero no tiene manejador registrado.`,
+        }),
+      );
     },
   });
 
   // Manejadores de dominio, envueltos: request tipado → manejador → validación de la respuesta.
-  for (const [operationId, handler] of Object.entries(handlers) as [string, ((req: unknown) => Promise<HttpResponse>) | undefined][]) {
+  for (const [operationId, handler] of Object.entries(handlers) as [
+    string,
+    ((req: unknown) => Promise<HttpResponse>) | undefined,
+  ][]) {
     if (!handler) continue;
     // openapi-backend lanza si el operationId no existe en el contrato (SC-005).
     api.register(operationId, async (c: Context): Promise<HttpResponse> => {
@@ -128,12 +173,18 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
       }
       const declared = Object.keys(c.operation.responses ?? {});
       if (!declared.includes(String(result.status))) {
-        log.error({ operationId, status: result.status, declared }, "el manejador respondió un código no declarado en el contrato");
+        log.error(
+          { operationId, status: result.status, declared },
+          "el manejador respondió un código no declarado en el contrato",
+        );
         return toHttp(problem("response-contract-violation", { instance: c.request.path }));
       }
       const validation = api.validateResponse(result.body, operationId, result.status);
       if (!validation.valid) {
-        log.error({ operationId, status: result.status, errors: validation.errors }, "la respuesta del manejador no cumple el contrato");
+        log.error(
+          { operationId, status: result.status, errors: validation.errors },
+          "la respuesta del manejador no cumple el contrato",
+        );
         return toHttp(problem("response-contract-violation", { instance: c.request.path }));
       }
       return { ...result, contentType: result.contentType ?? "application/json" };
@@ -145,7 +196,10 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
 
   const send = (reply: FastifyReply, res: HttpResponse): FastifyReply => {
     if (res.headers) reply.headers(res.headers);
-    return reply.status(res.status).type(res.contentType ?? "application/json").send(res.body);
+    return reply
+      .status(res.status)
+      .type(res.contentType ?? "application/json")
+      .send(res.body);
   };
 
   const dispatch = async (request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
@@ -171,7 +225,12 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     if (error.code === "FST_ERR_ROUTE_MISSING_CONTENT_TYPE") return send(reply, unroutable(instance));
     // Errores del parser de Fastify: JSON inválido, body vacío, media type no soportado.
     if (typeof error.code === "string" && error.code.startsWith("FST_ERR_CTP_")) {
-      return send(reply, toHttp(problem("validation-failed", { instance, errors: [{ pointer: "/body", message: error.message }] })));
+      return send(
+        reply,
+        toHttp(
+          problem("validation-failed", { instance, errors: [{ pointer: "/body", message: error.message }] }),
+        ),
+      );
     }
     log.error({ err: error }, "error no controlado");
     return send(reply, toHttp(problem("internal-error", { instance })));

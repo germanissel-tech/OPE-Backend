@@ -24,7 +24,13 @@ const files = Object.keys(samples).map((f) => path.join(dir, f));
 
 function run(args: string[]): { status: number; output: string } {
   try {
-    return { status: 0, output: execFileSync(process.execPath, [prettier, "--config", config, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }) };
+    return {
+      status: 0,
+      output: execFileSync(process.execPath, [prettier, "--config", config, ...args], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
+    };
   } catch (err) {
     const e = err as { status: number; stdout: string; stderr: string };
     return { status: e.status, output: `${e.stdout}${e.stderr}` };
@@ -49,7 +55,19 @@ describe("formato único (Prettier)", () => {
 
   it(".prettierignore contiene la lista única de exclusiones", () => {
     const ignore = readFileSync(path.resolve(".prettierignore"), "utf8");
-    for (const entry of ["src/generated/", "contracts/dist/", "docs/api/", "tests/architecture/fixtures/", "tests/contract-rules/fixtures/", "tests/governance/fixtures/", "tests/lint/fixtures/", "tests/typecheck/fixtures/", ".specify/", ".claude/", "package-lock.json"]) {
+    for (const entry of [
+      "src/generated/",
+      "contracts/dist/",
+      "docs/api/",
+      "tests/architecture/fixtures/",
+      "tests/contract-rules/fixtures/",
+      "tests/governance/fixtures/",
+      "tests/lint/fixtures/",
+      "tests/typecheck/fixtures/",
+      ".specify/",
+      ".claude/",
+      "package-lock.json",
+    ]) {
       expect(ignore).toContain(entry);
     }
   });

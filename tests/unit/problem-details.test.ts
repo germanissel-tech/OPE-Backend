@@ -14,7 +14,9 @@ const catalog = parse(readFileSync(path.resolve("contracts/problem-types.yaml"),
 describe("catálogo de tipos de problema", () => {
   it("el código replica exactamente contracts/problem-types.yaml", () => {
     expect(PROBLEM_NAMESPACE).toBe(catalog.namespace);
-    const fromCatalog = Object.fromEntries(catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]));
+    const fromCatalog = Object.fromEntries(
+      catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]),
+    );
     expect(PROBLEM_TYPES).toEqual(fromCatalog);
   });
 });

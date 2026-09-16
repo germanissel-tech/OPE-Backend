@@ -24,7 +24,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: 
+              schema:
                 $ref: "#/components/schemas/Health"
               example:
                 status: ok
@@ -41,7 +41,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: 
+            schema:
               type: object
               description: Inline.
               additionalProperties: false

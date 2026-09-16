@@ -4,13 +4,13 @@ Sin datos de dominio. Entidades = configuraciones y sus invariantes.
 
 ## Regla de lint (`eslint.config.mjs`)
 
-| Campo | Regla |
-|---|---|
-| id | `<plugin>/<regla>`; severidad siempre `error` (no hay `warn`) |
-| alcance | `src/`, `tests/`, `scripts/`, `contracts/rules/functions/`, `*.mjs`/`*.cjs` de la raíz; JS sin información de tipos |
-| excluidos | `dist/`, `node_modules/`, `src/generated/`, `contracts/dist/`, `docs/api/`, `tests/**/fixtures/` |
-| excepción inline | `// eslint-disable-next-line <regla> -- <motivo>`; sin motivo ⇒ error; sin uso ⇒ error |
-| formato | ninguna regla de formato activa (`eslint-config-prettier` al final) |
+| Campo            | Regla                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| id               | `<plugin>/<regla>`; severidad siempre `error` (no hay `warn`)                                                       |
+| alcance          | `src/`, `tests/`, `scripts/`, `contracts/rules/functions/`, `*.mjs`/`*.cjs` de la raíz; JS sin información de tipos |
+| excluidos        | `dist/`, `node_modules/`, `src/generated/`, `contracts/dist/`, `docs/api/`, `tests/**/fixtures/`                    |
+| excepción inline | `// eslint-disable-next-line <regla> -- <motivo>`; sin motivo ⇒ error; sin uso ⇒ error                              |
+| formato          | ninguna regla de formato activa (`eslint-config-prettier` al final)                                                 |
 
 Reglas fijadas por la spec: `no-explicit-any`, `no-unsafe-{assignment,member-access,call,return,argument}`,
 `no-floating-promises`, `no-misused-promises`, `no-non-null-assertion`,
@@ -26,11 +26,11 @@ Reglas fijadas por la spec: `no-explicit-any`, `no-unsafe-{assignment,member-acc
 
 ## Proyectos del compilador
 
-| Archivo | Incluye | Opciones clave |
-|---|---|---|
-| `tsconfig.json` | `src/` | base + `noPropertyAccessFromIndexSignature`, `noUncheckedSideEffectImports`, `verbatimModuleSyntax`, `erasableSyntaxOnly`; emite a `dist/` |
-| `tsconfig.typecheck.json` | `src/`, `tests/`, `vitest.config.ts`, `eslint.config.mjs` | extiende el anterior; `noEmit` |
-| `tsconfig.scripts.json` | `scripts/**/*.mjs`, `contracts/rules/functions/*.js`, `tests/contract-rules/gen-fixtures.mjs`, `.dependency-cruiser.cjs` | `allowJs`, `checkJs`, `strict`, `noUncheckedIndexedAccess`, `noEmit` |
+| Archivo                   | Incluye                                                                                                                  | Opciones clave                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tsconfig.json`           | `src/`                                                                                                                   | base + `noPropertyAccessFromIndexSignature`, `noUncheckedSideEffectImports`, `verbatimModuleSyntax`, `erasableSyntaxOnly`; emite a `dist/` |
+| `tsconfig.typecheck.json` | `src/`, `tests/`, `vitest.config.ts`, `eslint.config.mjs`                                                                | extiende el anterior; `noEmit`                                                                                                             |
+| `tsconfig.scripts.json`   | `scripts/**/*.mjs`, `contracts/rules/functions/*.js`, `tests/contract-rules/gen-fixtures.mjs`, `.dependency-cruiser.cjs` | `allowJs`, `checkJs`, `strict`, `noUncheckedIndexedAccess`, `noEmit`                                                                       |
 
 ## Hook (`lefthook.yml`)
 

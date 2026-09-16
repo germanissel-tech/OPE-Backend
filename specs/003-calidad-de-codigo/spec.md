@@ -31,7 +31,7 @@ Esta feature convierte esas expectativas en verificaciones que fallan el build, 
 disciplina de la 001 y la 002: cada regla clave tiene un caso que la viola y una prueba que
 confirma la falla. No cambia comportamiento: la suite completa pasa sin modificar aserciones.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - El tipado fuerte se hace cumplir, no se recomienda (Priority: P1)
 
@@ -190,7 +190,7 @@ se formatea → pasa. El hook tarda segundos, no minutos.
 - **Markdown con tablas anchas** (specs, ADRs): el formateador no las rompe; el ancho de
   línea de prosa se respeta si ya está por debajo y no se reflowea el texto existente.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -252,7 +252,7 @@ se formatea → pasa. El hook tarda segundos, no minutos.
 - **Excepción justificada**: línea, regla, motivo; contable.
 - **Hook**: eventos (pre-commit), pasos (formato, lint, typecheck), tiempo objetivo.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

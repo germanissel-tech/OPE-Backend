@@ -78,17 +78,17 @@ Las pruebas de integración de la 001 pasan sin tocar aserciones; los `curl` de
 Corrida completa el 2026-09-16 en Windows 11 / Node 22.23.2 (rama `002-gobernanza-contrato-codigo`).
 Cifras históricas de esa corrida; el estado vivo lo informan los comandos.
 
-| Elemento | Estado | Evidencia |
-|---|---|---|
-| `contract:check` con las cuatro verificaciones nuevas | BUILT / TESTED | exit 0 en **12 s** (SC-002 < 30 s): `Invariantes: 0 declaradas`, `Glosario: 6 términos, todos con fuente`, `ADRs: 10, sin citas rotas`, `Marcadores: 0 bloqueantes` |
-| `release-check` | BUILT / TESTED | exit 0 (SC-005) |
-| Reglas Spectral `ope-invariants`, `ope-no-generic-422`, `ope-required-capabilities` | TESTED | 11 fixtures, cada uno dispara sólo su regla; 2 fixtures válidos nuevos pasan |
-| Assertion Redocly `rule/media-type-schema-ref` | TESTED | `tests/contract-rules/redocly.test.ts` 3/3 con archivo y línea |
-| `check:invariant-tests` | TESTED | fixtures ok/missing/none 3/3; manual: invariante `not-found` sin prueba → exit 1 nombrando `[invariant:not-found]` y `#/paths//v1/health/get` |
-| `check:glossary` | TESTED | 7 casos (huérfano, sin fuente, fuente inexistente, sin uso, uso declarado, MVP ausente con aviso) |
-| `check:adrs` / `check:markers` | TESTED | 8 casos; `ADR-999` en un doc y `ABIERTO` en el contrato detectados con archivo:línea |
-| Capas + `npm run arch` | BUILT / TESTED | 0 violaciones en `src/`; 10 reglas atrapan su fixture; manual: `import Fastify` en `src/domain/health.ts` → `domain-is-pure` |
-| Sin cambio de comportamiento (SC-003) | TESTED | suite de la 001 sin tocar aserciones; `curl` 200/400/404/405 idénticos |
-| Suite completa | TESTED | `npm test` 108/108 en 17 archivos (37 s); `test:contract` 9/9 |
-| SC-004 (decisiones de la 001 localizables) | TESTED | `docs/adr/001..005` con `fuente: specs/001/research.md`; el research cita cada ADR |
-| CI | BUILT | `arch` y `release-check` agregados al workflow; sin ejecución (no hay push) |
+| Elemento                                                                            | Estado         | Evidencia                                                                                                                                                           |
+| ----------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contract:check` con las cuatro verificaciones nuevas                               | BUILT / TESTED | exit 0 en **12 s** (SC-002 < 30 s): `Invariantes: 0 declaradas`, `Glosario: 6 términos, todos con fuente`, `ADRs: 10, sin citas rotas`, `Marcadores: 0 bloqueantes` |
+| `release-check`                                                                     | BUILT / TESTED | exit 0 (SC-005)                                                                                                                                                     |
+| Reglas Spectral `ope-invariants`, `ope-no-generic-422`, `ope-required-capabilities` | TESTED         | 11 fixtures, cada uno dispara sólo su regla; 2 fixtures válidos nuevos pasan                                                                                        |
+| Assertion Redocly `rule/media-type-schema-ref`                                      | TESTED         | `tests/contract-rules/redocly.test.ts` 3/3 con archivo y línea                                                                                                      |
+| `check:invariant-tests`                                                             | TESTED         | fixtures ok/missing/none 3/3; manual: invariante `not-found` sin prueba → exit 1 nombrando `[invariant:not-found]` y `#/paths//v1/health/get`                       |
+| `check:glossary`                                                                    | TESTED         | 7 casos (huérfano, sin fuente, fuente inexistente, sin uso, uso declarado, MVP ausente con aviso)                                                                   |
+| `check:adrs` / `check:markers`                                                      | TESTED         | 8 casos; `ADR-999` en un doc y `ABIERTO` en el contrato detectados con archivo:línea                                                                                |
+| Capas + `npm run arch`                                                              | BUILT / TESTED | 0 violaciones en `src/`; 10 reglas atrapan su fixture; manual: `import Fastify` en `src/domain/health.ts` → `domain-is-pure`                                        |
+| Sin cambio de comportamiento (SC-003)                                               | TESTED         | suite de la 001 sin tocar aserciones; `curl` 200/400/404/405 idénticos                                                                                              |
+| Suite completa                                                                      | TESTED         | `npm test` 108/108 en 17 archivos (37 s); `test:contract` 9/9                                                                                                       |
+| SC-004 (decisiones de la 001 localizables)                                          | TESTED         | `docs/adr/001..005` con `fuente: specs/001/research.md`; el research cita cada ADR                                                                                  |
+| CI                                                                                  | BUILT          | `arch` y `release-check` agregados al workflow; sin ejecución (no hay push)                                                                                         |

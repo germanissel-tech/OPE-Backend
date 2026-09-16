@@ -4,7 +4,15 @@
 //   node scripts/check-adrs.mjs [--root <dir>]
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { exists, parseArgs, parseFrontmatter, rel, report, stripBackticks, walkFiles } from "./governance-lib.mjs";
+import {
+  exists,
+  parseArgs,
+  parseFrontmatter,
+  rel,
+  report,
+  stripBackticks,
+  walkFiles,
+} from "./governance-lib.mjs";
 import { repoRoot } from "./lib.mjs";
 
 const ESTADOS = ["propuesta", "aceptada", "reemplazada", "abierta"];
@@ -32,7 +40,8 @@ for (const file of walkFiles(adrDir, [".md"])) {
     continue;
   }
   for (const field of ["numero", "titulo", "estado", "fecha", "fuente"]) {
-    if (data[field] === undefined || data[field] === null || data[field] === "") problems.push(`${where}: falta \`${field}\` en el frontmatter`);
+    if (data[field] === undefined || data[field] === null || data[field] === "")
+      problems.push(`${where}: falta \`${field}\` en el frontmatter`);
   }
   if (data.numero !== undefined && Number(data.numero) !== Number(prefix[1])) {
     problems.push(`${where}: \`numero: ${data.numero}\` no coincide con el prefijo ${prefix[1]}`);
@@ -40,7 +49,12 @@ for (const file of walkFiles(adrDir, [".md"])) {
   if (data.estado !== undefined && !ESTADOS.includes(data.estado)) {
     problems.push(`${where}: \`estado: ${data.estado}\` inválido; usar ${ESTADOS.join(" | ")}`);
   }
-  if (data.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(data.fecha instanceof Date ? data.fecha.toISOString().slice(0, 10) : data.fecha))) {
+  if (
+    data.fecha !== undefined &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      String(data.fecha instanceof Date ? data.fecha.toISOString().slice(0, 10) : data.fecha),
+    )
+  ) {
     problems.push(`${where}: \`fecha\` debe ser YYYY-MM-DD`);
   }
   numbers.add(Number(prefix[1]));
@@ -51,7 +65,9 @@ const citing = [
   ...walkFiles(path.join(root, "docs"), [".md"]),
   ...walkFiles(path.join(root, "specs"), [".md"]),
   ...walkFiles(path.join(root, "contracts"), [".yaml", ".yml"]),
-  ...["README.md", "CLAUDE.md", path.join(".specify", "memory", "constitution.md")].map((f) => path.join(root, f)).filter(exists),
+  ...["README.md", "CLAUDE.md", path.join(".specify", "memory", "constitution.md")]
+    .map((f) => path.join(root, f))
+    .filter(exists),
 ];
 let citations = 0;
 for (const file of citing) {
@@ -61,7 +77,8 @@ for (const file of citing) {
     for (const m of stripBackticks(raw).matchAll(CITA)) {
       citations += 1;
       const n = Number(m[1]);
-      if (!numbers.has(n)) problems.push(`${rel(root, file)}:${i + 1}: cita ADR-${m[1]} pero no existe docs/adr/${m[1]}-*.md`);
+      if (!numbers.has(n))
+        problems.push(`${rel(root, file)}:${i + 1}: cita ADR-${m[1]} pero no existe docs/adr/${m[1]}-*.md`);
     }
   });
 }

@@ -17,7 +17,7 @@ herramienta**, no por lectura. Esta feature construye esa verificación y la dej
 una única operación trivial. No incluye ninguna operación de dominio (ingesta, decisión,
 outcomes, portal): esas son features posteriores que dependen de esta.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - El contrato frena al agente que lo viola (Priority: P1)
 
@@ -206,7 +206,7 @@ herramienta lo detecta.
 - **Request a `GET /v1/health` con query params no declarados**: se rechaza con `400`
   (los parámetros desconocidos son violación, igual que los campos desconocidos en el body).
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -324,7 +324,7 @@ herramienta lo detecta.
 - **Tipos generados**: artefacto derivado del contrato empaquetado; commiteado, nunca editado.
 - **Manejador**: función que atiende un `operationId`, tipada por los tipos generados.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

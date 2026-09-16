@@ -11,7 +11,12 @@ const fixturesDir = path.resolve("tests/contract-rules/fixtures");
 const rulesetPath = path.resolve("contracts/.spectral.yaml");
 
 // Fixtures que deben pasar sin errores ni warnings.
-const VALID = ["valid.yaml", "merchant-id-in-response.yaml", "valid-invariants.yaml", "valid-capabilities.yaml"];
+const VALID = [
+  "valid.yaml",
+  "merchant-id-in-response.yaml",
+  "valid-invariants.yaml",
+  "valid-capabilities.yaml",
+];
 
 const ERROR = 0; // DiagnosticSeverity.Error
 const WARNING = 1;
@@ -46,7 +51,10 @@ describe("reglas del contrato (contracts/.spectral.yaml)", () => {
     const opeRules = [...ruleset.matchAll(/^  (ope-[a-z0-9-]+):$/gm)].map((m) => m[1]);
     expect(opeRules.length).toBeGreaterThanOrEqual(13);
     for (const rule of opeRules) {
-      expect(violating.some((f) => f === `${rule}.yaml` || f.startsWith(`${rule}.`)), `falta fixture para ${rule}`).toBe(true);
+      expect(
+        violating.some((f) => f === `${rule}.yaml` || f.startsWith(`${rule}.`)),
+        `falta fixture para ${rule}`,
+      ).toBe(true);
     }
   });
 
@@ -60,7 +68,10 @@ describe("reglas del contrato (contracts/.spectral.yaml)", () => {
     const rule = file.replace(/\.yaml$/, "").split(".")[0];
     const results = await lint(file);
     const hits = results.filter((r) => r.code === rule && r.severity === ERROR);
-    expect(hits.length, `sin error ${rule}; obtenido: ${results.map((r) => r.code).join(", ")}`).toBeGreaterThan(0);
+    expect(
+      hits.length,
+      `sin error ${rule}; obtenido: ${results.map((r) => r.code).join(", ")}`,
+    ).toBeGreaterThan(0);
     for (const hit of hits) {
       expect(hit.source).toContain(file);
       expect(hit.range.start.line).toBeGreaterThanOrEqual(0);

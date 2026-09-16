@@ -10,4 +10,3 @@ uso: pendiente
 # sesion -> `session`
 
 > `sessionId` — Agrupar la secuencia de comportamiento de una visita. Expira.
-

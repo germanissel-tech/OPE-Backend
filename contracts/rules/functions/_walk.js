@@ -29,7 +29,8 @@ function walkSchema(schema, path, visit, seen = new Set()) {
       walkSchema(sub, [...path, "properties", name], visit, seen);
     }
   }
-  if (schema.items && typeof schema.items === "object") walkSchema(schema.items, [...path, "items"], visit, seen);
+  if (schema.items && typeof schema.items === "object")
+    walkSchema(schema.items, [...path, "items"], visit, seen);
   if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
     walkSchema(schema.additionalProperties, [...path, "additionalProperties"], visit, seen);
   }

@@ -16,7 +16,9 @@ import { bundlePath, repoRoot } from "./lib.mjs";
 const args = parseArgs(process.argv.slice(2));
 const bundle = path.resolve(args.bundle ?? bundlePath);
 const glossaryDir = path.resolve(args.glossary ?? path.join(repoRoot, "docs", "dominio"));
-const constitution = path.resolve(args.constitution ?? path.join(repoRoot, ".specify", "memory", "constitution.md"));
+const constitution = path.resolve(
+  args.constitution ?? path.join(repoRoot, ".specify", "memory", "constitution.md"),
+);
 const mvpDocs = path.resolve(args["mvp-docs"] ?? process.env.OPE_MVP_DOCS ?? path.join(repoRoot, ".."));
 
 const ESTADOS = ["aprobado", "propuesto"];
@@ -29,7 +31,9 @@ const warnings = [];
 // --- Lista técnica --------------------------------------------------------------------
 const technicalFile = path.join(glossaryDir, "_tecnicos.json");
 const technical = new Set(
-  (exists(technicalFile) ? JSON.parse(readFileSync(technicalFile, "utf8")).terms ?? [] : []).map((t) => String(t).toLowerCase()),
+  (exists(technicalFile) ? (JSON.parse(readFileSync(technicalFile, "utf8")).terms ?? []) : []).map((t) =>
+    String(t).toLowerCase(),
+  ),
 );
 
 // --- Notas ---------------------------------------------------------------------------
@@ -46,10 +50,13 @@ for (const file of walkFiles(glossaryDir, [".md"]).filter((f) => path.basename(f
       problems.push(`${where}: falta \`${field}\` en el frontmatter`);
     }
   }
-  if (data.estado !== undefined && !ESTADOS.includes(data.estado)) problems.push(`${where}: \`estado: ${data.estado}\` inválido (${ESTADOS.join(" | ")})`);
-  if (data.uso !== undefined && !USOS.includes(data.uso)) problems.push(`${where}: \`uso: ${data.uso}\` inválido (${USOS.join(" | ")})`);
+  if (data.estado !== undefined && !ESTADOS.includes(data.estado))
+    problems.push(`${where}: \`estado: ${data.estado}\` inválido (${ESTADOS.join(" | ")})`);
+  if (data.uso !== undefined && !USOS.includes(data.uso))
+    problems.push(`${where}: \`uso: ${data.uso}\` inválido (${USOS.join(" | ")})`);
   if (typeof data.fuente === "string") checkSource(data.fuente, where);
-  if (typeof data.en === "string") notes.push({ where, en: data.en.toLowerCase(), uso: data.uso, used: false });
+  if (typeof data.en === "string")
+    notes.push({ where, en: data.en.toLowerCase(), uso: data.uso, used: false });
 }
 
 function headingExists(file, section) {
@@ -63,30 +70,47 @@ function headingExists(file, section) {
 function checkSource(fuente, where) {
   const [ref, section] = fuente.split("#");
   if (ref === "constitucion") {
-    if (!exists(constitution)) problems.push(`${where}: fuente \`${fuente}\` pero no existe la constitución en ${constitution}`);
-    else if (!headingExists(constitution, section)) problems.push(`${where}: fuente \`${fuente}\`: ningún encabezado de la constitución contiene "${section}"`);
+    if (!exists(constitution))
+      problems.push(`${where}: fuente \`${fuente}\` pero no existe la constitución en ${constitution}`);
+    else if (!headingExists(constitution, section))
+      problems.push(
+        `${where}: fuente \`${fuente}\`: ningún encabezado de la constitución contiene "${section}"`,
+      );
     return;
   }
   if (ref.startsWith("mvp:")) {
     const file = path.join(mvpDocs, ref.slice(4));
     if (!exists(mvpDocs)) {
-      warnings.push(`${where}: fuente \`${fuente}\` no verificable: no está el directorio de documentos del MVP (${mvpDocs}); definí OPE_MVP_DOCS para verificarla`);
+      warnings.push(
+        `${where}: fuente \`${fuente}\` no verificable: no está el directorio de documentos del MVP (${mvpDocs}); definí OPE_MVP_DOCS para verificarla`,
+      );
       return;
     }
     if (!exists(file)) problems.push(`${where}: fuente \`${fuente}\`: no existe ${file}`);
-    else if (!headingExists(file, section)) problems.push(`${where}: fuente \`${fuente}\`: ningún encabezado de ${ref.slice(4)} contiene "${section}"`);
+    else if (!headingExists(file, section))
+      problems.push(
+        `${where}: fuente \`${fuente}\`: ningún encabezado de ${ref.slice(4)} contiene "${section}"`,
+      );
     return;
   }
   const file = path.resolve(repoRoot, ref);
   if (!exists(file)) problems.push(`${where}: fuente \`${fuente}\`: no existe ${ref}`);
-  else if (!headingExists(file, section)) problems.push(`${where}: fuente \`${fuente}\`: ningún encabezado contiene "${section}"`);
+  else if (!headingExists(file, section))
+    problems.push(`${where}: fuente \`${fuente}\`: ningún encabezado contiene "${section}"`);
 }
 
 // --- Sustantivos del contrato ---------------------------------------------------------
 const doc = exists(bundle) ? readYaml(bundle) : null;
 if (!doc) problems.push(`no existe el bundle ${rel(repoRoot, bundle)}; corré npm run contract:bundle`);
 
-const singular = (w) => (w.endsWith("ies") ? `${w.slice(0, -3)}y` : w.endsWith("es") && !w.endsWith("ses") ? w.slice(0, -2) : w.endsWith("s") ? w.slice(0, -1) : w);
+const singular = (w) =>
+  w.endsWith("ies")
+    ? `${w.slice(0, -3)}y`
+    : w.endsWith("es") && !w.endsWith("ses")
+      ? w.slice(0, -2)
+      : w.endsWith("s")
+        ? w.slice(0, -1)
+        : w;
 const byEn = new Map(notes.map((n) => [n.en, n]));
 
 function resolveWord(word) {
@@ -108,7 +132,9 @@ function resolveCompound(words, label, at) {
   if (resolveWord(whole) || resolveWord(words.join("").toLowerCase())) return;
   const orphan = words.filter((w) => !resolveWord(w));
   if (orphan.length > 0) {
-    problems.push(`${at}: el sustantivo "${label}" no resuelve al glosario (huérfano: ${orphan.join(", ")}); agregá docs/dominio/<termino>.md con en: ${orphan[0].toLowerCase()} o sumalo a _tecnicos.json si es vocabulario técnico`);
+    problems.push(
+      `${at}: el sustantivo "${label}" no resuelve al glosario (huérfano: ${orphan.join(", ")}); agregá docs/dominio/<termino>.md con en: ${orphan[0].toLowerCase()} o sumalo a _tecnicos.json si es vocabulario técnico`,
+    );
   }
 }
 
@@ -121,7 +147,8 @@ if (doc) {
   }
   for (const name of Object.keys(doc.components?.schemas ?? {})) {
     let stem = name;
-    for (const suffix of SUFFIXES) if (stem.endsWith(suffix) && stem.length > suffix.length) stem = stem.slice(0, -suffix.length);
+    for (const suffix of SUFFIXES)
+      if (stem.endsWith(suffix) && stem.length > suffix.length) stem = stem.slice(0, -suffix.length);
     const words = stem.split(/(?=[A-Z])/).filter(Boolean);
     resolveCompound(words, name, `components.schemas.${name}`);
   }
@@ -130,10 +157,14 @@ if (doc) {
 // --- Notas sin uso ------------------------------------------------------------------------
 for (const note of notes) {
   if (!note.used && note.uso === undefined) {
-    problems.push(`${note.where}: el término "${note.en}" no se usa en el contrato; declará \`uso: disponible\` (vocabulario que ningún endpoint expone) o \`uso: pendiente\` (contrato por escribir)`);
+    problems.push(
+      `${note.where}: el término "${note.en}" no se usa en el contrato; declará \`uso: disponible\` (vocabulario que ningún endpoint expone) o \`uso: pendiente\` (contrato por escribir)`,
+    );
   }
 }
 
 for (const w of warnings) console.log(`aviso: ${w}`);
 const used = notes.filter((n) => n.used).length;
-process.exit(report(problems, `Glosario: ${notes.length} términos, todos con fuente; ${used} usados en el contrato`));
+process.exit(
+  report(problems, `Glosario: ${notes.length} términos, todos con fuente; ${used} usados en el contrato`),
+);

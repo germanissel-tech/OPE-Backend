@@ -45,16 +45,27 @@ module.exports = (operation, opts, context) => {
   const media = response.content && response.content["application/problem+json"];
   const types = exampleTypes(media);
   if (types.length === 0) {
-    return [{ message: `La respuesta 422 de ${id} debe tener al menos un ejemplo con el type de la invariante que la produce.`, path: at }];
+    return [
+      {
+        message: `La respuesta 422 de ${id} debe tener al menos un ejemplo con el type de la invariante que la produce.`,
+        path: at,
+      },
+    ];
   }
   const declared = declaredInvariants(operation);
   const results = [];
   for (const type of types) {
     const slug = type.startsWith(namespace) ? type.slice(namespace.length) : type;
     if (slug === "unprocessable") {
-      results.push({ message: `La respuesta 422 de ${id} usa el tipo genérico 'unprocessable'; declará la invariante (x-invariants) con su tipo propio y usalo en el ejemplo.`, path: at });
+      results.push({
+        message: `La respuesta 422 de ${id} usa el tipo genérico 'unprocessable'; declará la invariante (x-invariants) con su tipo propio y usalo en el ejemplo.`,
+        path: at,
+      });
     } else if (!declared.has(slug)) {
-      results.push({ message: `La respuesta 422 de ${id} nombra '${slug}' pero ninguna x-invariants de la operación ni de su request body lo declara.`, path: at });
+      results.push({
+        message: `La respuesta 422 de ${id} nombra '${slug}' pero ninguna x-invariants de la operación ni de su request body lo declara.`,
+        path: at,
+      });
     }
   }
   return results;

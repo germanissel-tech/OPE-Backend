@@ -29,20 +29,20 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
   `functionsDir`).
 - **Mapa regla → requisito**:
 
-  | Requisito | Regla(s) | Mecanismo |
-  |---|---|---|
-  | FR-012 operationId presente, único, camelCase | `operation-operationId` (oas), `operation-operationId-unique` (oas), `ope-operation-id-camel-case` | built-in `casing` |
-  | FR-012 summary/description/tags | `operation-description` (oas), `operation-tags` (oas), `ope-operation-summary` | `truthy` |
-  | FR-004 tags cerrados y exactamente uno | `operation-tag-defined` (oas), `ope-operation-single-tag`, `ope-tags-closed-catalog` | `length` + `enumeration` |
-  | FR-013 propiedades con description | `ope-property-description` | `given: $..properties[*]`, `truthy` |
-  | FR-014 ejemplos en request body y 2xx | `ope-request-example`, `ope-success-response-example` | función custom (acepta `example` o `examples` en el media type o en el schema) |
-  | FR-015 `additionalProperties: false` en request (recursivo) | `ope-request-closed-schema` | función custom que recorre el schema resuelto (objetos anidados, `allOf`, `items`) |
-  | FR-016 lista PII | `ope-no-pii` | función custom; lista en `contracts/rules/pii-denylist.json` (única fuente); compara sin mayúsculas; recorre `properties`, `parameters[].name`, `headers` |
-  | FR-017 merchantId nunca en request | `ope-no-merchant-id-in-request` | función custom; normaliza (`merchant_id`, `merchant-id`, `MerchantId` → `merchantid`); recorre parámetros de path/query/header/cookie y propiedades del request body (recursivo); **no** mira respuestas |
-  | FR-018 errores en Problem Details | `ope-error-response-problem-details` | `resolved: false`; respuestas `4xx`/`5xx` deben tener exactamente `application/problem+json` con `$ref` al esquema `ProblemDetails` (directo o vía `components/responses`) |
-  | FR-019 respuestas obligatorias | `ope-required-error-responses` | función custom: `500` siempre; `401` si la operación tiene `security` no vacío (propio o heredado del root); `400` y `422` si tiene `requestBody` |
-  | FR-003 prefijo `/v{major}` | `ope-path-version-prefix` | función custom: todo path empieza con `/v{major(info.version)}/` |
-  | FR-011 estructura | Redocly lint (`struct`, `no-unresolved-refs`, `no-unused-components`) + `oas3-valid-*`, `no-$ref-siblings` (oas). `oas3-schema` apagada, ver abajo | ver R-03 |
+  | Requisito                                                   | Regla(s)                                                                                                                                           | Mecanismo                                                                                                                                                                                                |
+  | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | FR-012 operationId presente, único, camelCase               | `operation-operationId` (oas), `operation-operationId-unique` (oas), `ope-operation-id-camel-case`                                                 | built-in `casing`                                                                                                                                                                                        |
+  | FR-012 summary/description/tags                             | `operation-description` (oas), `operation-tags` (oas), `ope-operation-summary`                                                                     | `truthy`                                                                                                                                                                                                 |
+  | FR-004 tags cerrados y exactamente uno                      | `operation-tag-defined` (oas), `ope-operation-single-tag`, `ope-tags-closed-catalog`                                                               | `length` + `enumeration`                                                                                                                                                                                 |
+  | FR-013 propiedades con description                          | `ope-property-description`                                                                                                                         | `given: $..properties[*]`, `truthy`                                                                                                                                                                      |
+  | FR-014 ejemplos en request body y 2xx                       | `ope-request-example`, `ope-success-response-example`                                                                                              | función custom (acepta `example` o `examples` en el media type o en el schema)                                                                                                                           |
+  | FR-015 `additionalProperties: false` en request (recursivo) | `ope-request-closed-schema`                                                                                                                        | función custom que recorre el schema resuelto (objetos anidados, `allOf`, `items`)                                                                                                                       |
+  | FR-016 lista PII                                            | `ope-no-pii`                                                                                                                                       | función custom; lista en `contracts/rules/pii-denylist.json` (única fuente); compara sin mayúsculas; recorre `properties`, `parameters[].name`, `headers`                                                |
+  | FR-017 merchantId nunca en request                          | `ope-no-merchant-id-in-request`                                                                                                                    | función custom; normaliza (`merchant_id`, `merchant-id`, `MerchantId` → `merchantid`); recorre parámetros de path/query/header/cookie y propiedades del request body (recursivo); **no** mira respuestas |
+  | FR-018 errores en Problem Details                           | `ope-error-response-problem-details`                                                                                                               | `resolved: false`; respuestas `4xx`/`5xx` deben tener exactamente `application/problem+json` con `$ref` al esquema `ProblemDetails` (directo o vía `components/responses`)                               |
+  | FR-019 respuestas obligatorias                              | `ope-required-error-responses`                                                                                                                     | función custom: `500` siempre; `401` si la operación tiene `security` no vacío (propio o heredado del root); `400` y `422` si tiene `requestBody`                                                        |
+  | FR-003 prefijo `/v{major}`                                  | `ope-path-version-prefix`                                                                                                                          | función custom: todo path empieza con `/v{major(info.version)}/`                                                                                                                                         |
+  | FR-011 estructura                                           | Redocly lint (`struct`, `no-unresolved-refs`, `no-unused-components`) + `oas3-valid-*`, `no-$ref-siblings` (oas). `oas3-schema` apagada, ver abajo | ver R-03                                                                                                                                                                                                 |
 
 - **FR-021 (regla, archivo, posición, cómo corregir)**: Spectral reporta código de regla,
   archivo y línea:columna sobre el contrato multi-archivo (sin bundle previo). El texto "cómo
@@ -78,8 +78,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 
 - **Decisión (DECIDIDO)**: `@redocly/cli@2.x`. `redocly lint` (config `redocly.yaml`, ruleset
   `recommended` con `no-unused-components: error`) como segunda capa estructural; `redocly
-  bundle` produce `contracts/dist/openapi.yaml` (gitignored, artefacto derivado); `redocly
-  build-docs` produce `docs/api/index.html` autocontenido.
+bundle` produce `contracts/dist/openapi.yaml` (gitignored, artefacto derivado); `redocly
+build-docs` produce `docs/api/index.html` autocontenido.
 - **Docs = Redoc, no Scalar**: evita una dependencia más; Redocly ya está instalado.
   Alternativa registrada: `@scalar/cli` si Redoc no fuera determinista.
 - **Verificado (Redocly CLI 2.53.2)**: dos corridas consecutivas de `bundle` y de
@@ -148,7 +148,7 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
   - `api.validateResponse(body, operationId, status)` detecta propiedades extra y tipos
     (FR-043).
   - `api.register('doesNotExist', fn)` lanza `Unknown operationId ... Refusing to register
-    handler` (SC-005).
+handler` (SC-005).
   - Documento inválido (sin `info.version`) → `init()` lanza `Document is not valid OpenAPI`
     (FR-040).
   - `api.mockResponseForOperation(id)` devuelve el `example` declarado (ver R-07).
@@ -189,10 +189,10 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 ## R-08 Pruebas de contrato generadas → Schemathesis vía `uvx`
 
 - **Decisión (DECIDIDO)**: `uvx schemathesis run contracts/dist/openapi.yaml --url
-  http://127.0.0.1:<port> --checks all --phases examples,coverage,fuzzing` orquestado por
+http://127.0.0.1:<port> --checks all --phases examples,coverage,fuzzing` orquestado por
   `scripts/test-contract.mjs` (arranca el servidor en puerto efímero, espera `/v1/health`,
   corre, apaga, propaga el código de salida). Verificado localmente: `uvx schemathesis
-  --version` → 4.27.2. En CI, `astral-sh/setup-uv`.
+--version` → 4.27.2. En CI, `astral-sh/setup-uv`.
 - **Alternativas**: Dredd (sin mantenimiento), Portman/Newman (más pasos, menos cobertura de
   bordes). Schemathesis es el único que genera casos negativos en los bordes de cada esquema
   (US5).
@@ -251,13 +251,13 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 
 ## Resumen de herramientas (versiones a fijar en `package.json`)
 
-| Rol | Paquete | Versión |
-|---|---|---|
-| Lint reglas | `@stoplight/spectral-cli`, `@stoplight/spectral-core` (tests) | 6.16.x |
-| Lint estructural / bundle / docs | `@redocly/cli` | 2.53.x |
-| Breaking changes | `oasdiff` (binario, script de descarga) | 1.32.1 |
-| Tipos | `openapi-typescript` | 7.13.x |
-| Cliente | `openapi-fetch` | 0.17.x |
-| Servidor | `fastify`, `openapi-backend` | 5.12.x, 5.20.x |
-| Pruebas | `vitest`, Schemathesis (uvx) | 5.0.x, 4.27.x |
-| TS | `typescript`, `tsx`, `@types/node` | 5.9.3, 4.x, 22.x |
+| Rol                              | Paquete                                                       | Versión          |
+| -------------------------------- | ------------------------------------------------------------- | ---------------- |
+| Lint reglas                      | `@stoplight/spectral-cli`, `@stoplight/spectral-core` (tests) | 6.16.x           |
+| Lint estructural / bundle / docs | `@redocly/cli`                                                | 2.53.x           |
+| Breaking changes                 | `oasdiff` (binario, script de descarga)                       | 1.32.1           |
+| Tipos                            | `openapi-typescript`                                          | 7.13.x           |
+| Cliente                          | `openapi-fetch`                                               | 0.17.x           |
+| Servidor                         | `fastify`, `openapi-backend`                                  | 5.12.x, 5.20.x   |
+| Pruebas                          | `vitest`, Schemathesis (uvx)                                  | 5.0.x, 4.27.x    |
+| TS                               | `typescript`, `tsx`, `@types/node`                            | 5.9.3, 4.x, 22.x |

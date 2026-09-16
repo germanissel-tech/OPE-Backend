@@ -42,14 +42,14 @@ glosario, 1 configuración de arquitectura, 4 capas, ~10 archivos movidos
 
 ## Constitution Check
 
-| Gate | ¿Aplica? | Cómo se cumple |
-|---|---|---|
+| Gate                                                               | ¿Aplica?                       | Cómo se cumple                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------ | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Toca superficie HTTP → contrato diseñado antes; compatible o major | **Sí, sin operaciones nuevas** | Se agregan dos extensiones (`x-invariants`, `x-required-capabilities`) — forma en [contracts/](contracts/) — y se elimina un componente sin uso. `contract:diff` contra `main`: sin cambios incompatibles (las extensiones `x-` no son parte de la superficie). |
-| Toca persistencia o API → pruebas de aislamiento por merchant | Sí (API) | Sin datos ni credenciales; se mantiene la prueba de FR-017 de la 001 y se agrega `ope-required-capabilities`, que es la base para "merchantId se deriva de la credencial" por operación (fixtures en ambos sentidos). |
-| Plano de decisión | No | — |
-| Ledger / cadena de evidencia | No | — |
-| Campo nuevo de evento u orden | No | — |
-| LLM en runtime | No | — |
+| Toca persistencia o API → pruebas de aislamiento por merchant      | Sí (API)                       | Sin datos ni credenciales; se mantiene la prueba de FR-017 de la 001 y se agrega `ope-required-capabilities`, que es la base para "merchantId se deriva de la credencial" por operación (fixtures en ambos sentidos).                                           |
+| Plano de decisión                                                  | No                             | —                                                                                                                                                                                                                                                               |
+| Ledger / cadena de evidencia                                       | No                             | —                                                                                                                                                                                                                                                               |
+| Campo nuevo de evento u orden                                      | No                             | —                                                                                                                                                                                                                                                               |
+| LLM en runtime                                                     | No                             | —                                                                                                                                                                                                                                                               |
 
 Principio I (separación de autoridades, composition root único): esta feature lo convierte
 en verificación ejecutable (FR-040/FR-041). Principio "estado epistémico": los marcadores
@@ -114,16 +114,16 @@ tests/
 
 ### Comandos npm nuevos / modificados
 
-| Comando | Qué hace |
-|---|---|
-| `check:adrs` | `node scripts/check-adrs.mjs` |
-| `check:markers` | `node scripts/check-markers.mjs` (lista); `-- --strict` falla con bloqueantes |
-| `check:glossary` | `node scripts/check-glossary.mjs` |
-| `check:invariant-tests` | `node scripts/check-invariant-tests.mjs` |
-| `arch` | `depcruise --config .dependency-cruiser.cjs src` |
-| `contract:check` | lint → bundle → diff → types:check → **invariant-tests → glossary → adrs → markers** |
-| `release-check` | `contract:check` + `check:markers --strict` |
-| `test` | incluye `tests/architecture` y `tests/governance` |
+| Comando                 | Qué hace                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `check:adrs`            | `node scripts/check-adrs.mjs`                                                        |
+| `check:markers`         | `node scripts/check-markers.mjs` (lista); `-- --strict` falla con bloqueantes        |
+| `check:glossary`        | `node scripts/check-glossary.mjs`                                                    |
+| `check:invariant-tests` | `node scripts/check-invariant-tests.mjs`                                             |
+| `arch`                  | `depcruise --config .dependency-cruiser.cjs src`                                     |
+| `contract:check`        | lint → bundle → diff → types:check → **invariant-tests → glossary → adrs → markers** |
+| `release-check`         | `contract:check` + `check:markers --strict`                                          |
+| `test`                  | incluye `tests/architecture` y `tests/governance`                                    |
 
 ## Diseño de los puntos no triviales
 
@@ -139,11 +139,11 @@ al final CLAUDE.md y quickstart.
 
 ## Complexity Tracking
 
-| Elemento | Por qué | Alternativa rechazada |
-|---|---|---|
-| Un tercer mecanismo de verificación (assertions de Redocly) | Única forma de ver `$ref` archivo por archivo | Spectral `resolved:false` no llega a los archivos hijos |
-| Cuatro capas para un `getHealth` | La regla tiene que existir antes de la primera autoridad de dominio (003); el costo es 3 archivos de ~10 líneas | Introducirla en la 003 mezclaría refactor con dominio |
-| Fuentes del glosario fuera del repo | Los documentos del MVP son fuente, no artefacto; copiarlos crearía una segunda verdad | Copia en `docs/` — rechazada por la constitución (una sola fuente) |
+| Elemento                                                    | Por qué                                                                                                         | Alternativa rechazada                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Un tercer mecanismo de verificación (assertions de Redocly) | Única forma de ver `$ref` archivo por archivo                                                                   | Spectral `resolved:false` no llega a los archivos hijos            |
+| Cuatro capas para un `getHealth`                            | La regla tiene que existir antes de la primera autoridad de dominio (003); el costo es 3 archivos de ~10 líneas | Introducirla en la 003 mezclaría refactor con dominio              |
+| Fuentes del glosario fuera del repo                         | Los documentos del MVP son fuente, no artefacto; copiarlos crearía una segunda verdad                           | Copia en `docs/` — rechazada por la constitución (una sola fuente) |
 
 ## Re-evaluación del Constitution Check (post-Phase 1)
 

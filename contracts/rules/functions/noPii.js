@@ -31,7 +31,8 @@ module.exports = (document, opts, context) => {
     // Propiedades de esquema y headers de respuesta/encoding: las claves son los nombres.
     if ((parentKey === "properties" || parentKey === "headers") && !Array.isArray(node)) {
       for (const name of Object.keys(node)) {
-        if (DENY.has(name.toLowerCase())) results.push({ message: message(name), path: [...base, ...nodePath, name] });
+        if (DENY.has(name.toLowerCase()))
+          results.push({ message: message(name), path: [...base, ...nodePath, name] });
       }
     }
     // Parámetros: el nombre está en `name`.

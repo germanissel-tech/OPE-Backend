@@ -15,7 +15,10 @@ export const problemResponse: OperationHandler<"getHealth"> = async () => ({
 });
 
 // @ts-expect-error faltan contractVersion y timestamp en Health.
-export const incomplete: OperationHandler<"getHealth"> = async () => ({ status: 200, body: { status: "ok" } });
+export const incomplete: OperationHandler<"getHealth"> = async () => ({
+  status: 200,
+  body: { status: "ok" },
+});
 
 // @ts-expect-error 201 no está declarado para getHealth.
 export const undeclaredStatus: OperationHandler<"getHealth"> = async () => ({

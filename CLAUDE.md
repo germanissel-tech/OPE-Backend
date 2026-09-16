@@ -39,36 +39,36 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 
 ### Comandos
 
-| Comando | Qué hace |
-|---|---|
-| `npm run contract:lint` | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`) |
-| `npm run contract:bundle` | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea) |
-| `npm run contract:diff` | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/generated/api.d.ts` / falla si está desactualizado |
-| `npm run contract:check` | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit |
-| `npm run contract:mock` | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato |
-| `npm run contract:docs` | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla |
-| `npm run build` / `dev` / `typecheck` | `tsc` a `dist/` / `tsx watch` / `tsc --noEmit` incluyendo `tests/types/*.test-d.ts` |
-| `npm test` | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura |
-| `npm run test:contract` | Schemathesis (`uvx`) contra el servidor levantado |
-| `npm run arch` | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006) |
-| `npm run check:invariant-tests` | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]` |
-| `npm run check:glossary` | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente |
-| `npm run check:adrs` | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota |
-| `npm run check:markers` | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes |
-| `npm run release-check` | `contract:check` + marcadores en modo estricto: la puerta antes de publicar |
+| Comando                                           | Qué hace                                                                                                         |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                     |
+| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                               |
+| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                         |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/generated/api.d.ts` / falla si está desactualizado                                                 |
+| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                           |
+| `npm run contract:mock`                           | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato                                |
+| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                         |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / `tsx watch` / `tsc --noEmit` incluyendo `tests/types/*.test-d.ts`                              |
+| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura |
+| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                |
+| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                 |
+| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                            |
+| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                    |
+| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                         |
+| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                               |
+| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
 
 Los cuatro `check:*` corren dentro de `contract:check`.
 
 ### Capas (ADR-006, verificado por `npm run arch`)
 
-| Capa | Qué va ahí | Puede importar de |
-|---|---|---|
-| `src/domain/` | autoridades y valores puros; una carpeta por autoridad | sólo `domain/`. **Nada de npm ni de Node, ni tipos** |
-| `src/ports/` | interfaces que el dominio y los handlers necesitan (`Clock`, repositorios, plataforma) | `domain/` |
+| Capa                | Qué va ahí                                                                                               | Puede importar de                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `src/domain/`       | autoridades y valores puros; una carpeta por autoridad                                                   | sólo `domain/`. **Nada de npm ni de Node, ni tipos**          |
+| `src/ports/`        | interfaces que el dominio y los handlers necesitan (`Clock`, repositorios, plataforma)                   | `domain/`                                                     |
 | `src/adapters/<x>/` | implementaciones: `http` (Fastify + openapi-backend), `clock`, futuros `postgres`, `redis`, `platform-*` | `ports/`, `domain/`, `generated/`, npm; **no** otro adaptador |
-| `src/handlers/` | un archivo por `operationId`; traduce DTO generado ↔ dominio; recibe puertos | `domain/`, `ports/`, `generated/` |
-| `src/main.ts` | composition root: instancia adaptadores y cablea handlers | todo; nadie lo importa |
+| `src/handlers/`     | un archivo por `operationId`; traduce DTO generado ↔ dominio; recibe puertos                             | `domain/`, `ports/`, `generated/`                             |
+| `src/main.ts`       | composition root: instancia adaptadores y cablea handlers                                                | todo; nadie lo importa                                        |
 
 ### Notas operativas del contrato
 

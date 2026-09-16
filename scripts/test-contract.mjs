@@ -42,7 +42,10 @@ function serverCommand() {
   const built = path.join(repoRoot, "dist", "main.js");
   if (existsSync(built) && !process.env.OPE_HANDLERS_MODULE) return [process.execPath, [built]];
   // tsx permite cargar manejadores alternativos en TypeScript (prueba negativa).
-  return [process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), path.join(repoRoot, "src", "main.ts")]];
+  return [
+    process.execPath,
+    [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), path.join(repoRoot, "src", "main.ts")],
+  ];
 }
 
 async function main() {

@@ -30,17 +30,31 @@ if (status !== 0) process.exit(status);
 // Redocly enlaza Redoc desde su CDN. Para que el artefacto sea autocontenido (US4) se inlinea
 // el bundle de la misma versión desde el paquete `redoc` (devDependency fijada).
 const html = readFileSync(out, "utf8");
-const cdnScript = /<script src="https:\/\/cdn\.redocly\.com\/redoc\/v([^/]+)\/bundles\/redoc\.standalone\.js"[^>]*><\/script>/;
+const cdnScript =
+  /<script src="https:\/\/cdn\.redocly\.com\/redoc\/v([^/]+)\/bundles\/redoc\.standalone\.js"[^>]*><\/script>/;
 const match = html.match(cdnScript);
 if (!match) {
-  console.error("contract:docs — no se encontró el <script> de Redoc en el HTML generado; revisar la versión de @redocly/cli.");
+  console.error(
+    "contract:docs — no se encontró el <script> de Redoc en el HTML generado; revisar la versión de @redocly/cli.",
+  );
   process.exit(1);
 }
-const redocPkg = JSON.parse(readFileSync(path.join(repoRoot, "node_modules", "redoc", "package.json"), "utf8"));
+const redocPkg = JSON.parse(
+  readFileSync(path.join(repoRoot, "node_modules", "redoc", "package.json"), "utf8"),
+);
 if (redocPkg.version !== match[1]) {
-  console.error(`contract:docs — @redocly/cli espera Redoc ${match[1]} pero el paquete redoc instalado es ${redocPkg.version}. Alineá la devDependency.`);
+  console.error(
+    `contract:docs — @redocly/cli espera Redoc ${match[1]} pero el paquete redoc instalado es ${redocPkg.version}. Alineá la devDependency.`,
+  );
   process.exit(1);
 }
-const bundle = readFileSync(path.join(repoRoot, "node_modules", "redoc", "bundles", "redoc.standalone.js"), "utf8");
-writeFileSync(out, html.replace(cdnScript, () => `<script>${bundle}</script>`), "utf8");
+const bundle = readFileSync(
+  path.join(repoRoot, "node_modules", "redoc", "bundles", "redoc.standalone.js"),
+  "utf8",
+);
+writeFileSync(
+  out,
+  html.replace(cdnScript, () => `<script>${bundle}</script>`),
+  "utf8",
+);
 console.log(`Documentación autocontenida generada en ${out}`);

@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const contractRoot = process.env.OPE_CONTRACT_ROOT ?? path.join(repoRoot, "contracts", "openapi.yaml");
 export const bundlePath = path.join(repoRoot, "contracts", "dist", "openapi.yaml");
-export const generatedTypesPath = process.env.OPE_TYPES_FILE ?? path.join(repoRoot, "src", "generated", "api.d.ts");
+export const generatedTypesPath =
+  process.env.OPE_TYPES_FILE ?? path.join(repoRoot, "src", "generated", "api.d.ts");
 
 /**
  * Comando + argumentos para invocar la CLI de un paquete instalado, sin pasar por los

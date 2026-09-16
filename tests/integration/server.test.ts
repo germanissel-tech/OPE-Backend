@@ -14,7 +14,10 @@ type Thing = { kind: "a" | "b"; note?: string };
 type Problem = { content: { "application/problem+json": components["schemas"]["ProblemDetails"] } };
 interface TwoOps {
   getHealth: operations["getHealth"];
-  listThings: { parameters: Record<string, never>; responses: { 200: { content: { "application/json": Thing[] } }; 500: Problem } };
+  listThings: {
+    parameters: Record<string, never>;
+    responses: { 200: { content: { "application/json": Thing[] } }; 500: Problem };
+  };
   createThing: {
     parameters: Record<string, never>;
     requestBody: { content: { "application/json": Thing } };
@@ -22,7 +25,8 @@ interface TwoOps {
   };
 }
 
-const load = (file: string): ContractDocument => parse(readFileSync(path.resolve(file), "utf8")) as ContractDocument;
+const load = (file: string): ContractDocument =>
+  parse(readFileSync(path.resolve(file), "utf8")) as ContractDocument;
 const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
@@ -37,17 +41,26 @@ afterEach(async () => {
   app = undefined;
 });
 
-async function server<Ops extends OperationsMap<Ops> = operations>(definition: ContractDocument, handlers: Handlers<NoInfer<Ops>>): Promise<FastifyInstance> {
+async function server<Ops extends OperationsMap<Ops> = operations>(
+  definition: ContractDocument,
+  handlers: Handlers<NoInfer<Ops>>,
+): Promise<FastifyInstance> {
   app = await buildServer<Ops>({ definition, handlers, mode: "real", logger: false });
   return app;
 }
 
 describe("servidor real sobre el contrato", () => {
   it("GET /v1/health responde 200 con un cuerpo conforme al esquema Health", async () => {
-    const res = await (await server(realContract, healthHandlers)).inject({ method: "GET", url: "/v1/health" });
+    const res = await (
+      await server(realContract, healthHandlers)
+    ).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toMatch(/^application\/json/);
-    expect(res.json()).toEqual({ status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00.000Z" });
+    expect(res.json()).toEqual({
+      status: "ok",
+      contractVersion: "1.0.0",
+      timestamp: "2026-09-16T12:00:00.000Z",
+    });
   });
 
   it("ruta no declarada → 404 Problem Details", async () => {
@@ -58,7 +71,9 @@ describe("servidor real sobre el contrato", () => {
   });
 
   it("método no declarado → 405 Problem Details con header Allow", async () => {
-    const res = await (await server(realContract, healthHandlers)).inject({ method: "POST", url: "/v1/health" });
+    const res = await (
+      await server(realContract, healthHandlers)
+    ).inject({ method: "POST", url: "/v1/health" });
     expect(res.statusCode).toBe(405);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(res.headers.allow).toBe("GET");
@@ -76,10 +91,16 @@ describe("servidor real sobre el contrato", () => {
   });
 
   it("operación declarada sin manejador → 501 Problem Details, nunca un 200 vacío", async () => {
-    const res = await (await server<TwoOps>(twoOps, healthHandlers)).inject({ method: "GET", url: "/v1/things" });
+    const res = await (
+      await server<TwoOps>(twoOps, healthHandlers)
+    ).inject({ method: "GET", url: "/v1/things" });
     expect(res.statusCode).toBe(501);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(res.json()).toMatchObject({ type: "urn:ope:problem:not-implemented", status: 501, detail: expect.stringContaining("listThings") });
+    expect(res.json()).toMatchObject({
+      type: "urn:ope:problem:not-implemented",
+      status: 501,
+      detail: expect.stringContaining("listThings"),
+    });
   });
 
   it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {
@@ -94,13 +115,19 @@ describe("servidor real sobre el contrato", () => {
     expect(res.statusCode).toBe(400);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     const body = res.json();
-    expect(body).toMatchObject({ type: "urn:ope:problem:validation-failed", status: 400, instance: "/v1/health" });
+    expect(body).toMatchObject({
+      type: "urn:ope:problem:validation-failed",
+      status: 400,
+      instance: "/v1/health",
+    });
     expect(body.errors[0].pointer).toBe("/query/x");
     expect(invoked).toBe(false);
   });
 
   it("JSON inválido en el body → 400 Problem Details", async () => {
-    const res = await (await server<TwoOps>(twoOps, healthHandlers)).inject({
+    const res = await (
+      await server<TwoOps>(twoOps, healthHandlers)
+    ).inject({
       method: "POST",
       url: "/v1/things",
       headers: { "content-type": "application/json" },
@@ -112,15 +139,22 @@ describe("servidor real sobre el contrato", () => {
   });
 
   it("campo no declarado en el body → 400 que nombra el campo; no se ignora", async () => {
-    const handlers: Handlers<TwoOps> = { ...healthHandlers, createThing: async () => ({ status: 201, body: { kind: "a" } }) };
-    const res = await (await server<TwoOps>(twoOps, handlers)).inject({
+    const handlers: Handlers<TwoOps> = {
+      ...healthHandlers,
+      createThing: async () => ({ status: 201, body: { kind: "a" } }),
+    };
+    const res = await (
+      await server<TwoOps>(twoOps, handlers)
+    ).inject({
       method: "POST",
       url: "/v1/things",
       payload: { kind: "a", extra: 1 },
     });
     expect(res.statusCode).toBe(400);
     const body = res.json();
-    expect(body.errors.some((e: { pointer: string; message: string }) => e.pointer === "/body/extra")).toBe(true);
+    expect(body.errors.some((e: { pointer: string; message: string }) => e.pointer === "/body/extra")).toBe(
+      true,
+    );
   });
 
   it("body válido → el manejador se invoca con el body tipado y responde 201", async () => {
@@ -128,7 +162,9 @@ describe("servidor real sobre el contrato", () => {
       ...healthHandlers,
       createThing: async (req) => ({ status: 201, body: { kind: req.body.kind, note: "creado" } }),
     };
-    const res = await (await server<TwoOps>(twoOps, handlers)).inject({ method: "POST", url: "/v1/things", payload: { kind: "b" } });
+    const res = await (
+      await server<TwoOps>(twoOps, handlers)
+    ).inject({ method: "POST", url: "/v1/things", payload: { kind: "b" } });
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ kind: "b", note: "creado" });
   });
@@ -146,7 +182,10 @@ describe("servidor real sobre el contrato", () => {
 
   it("código de respuesta no declarado → 500 response-contract-violation", async () => {
     const handlers = {
-      getHealth: async () => ({ status: 203, body: { status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00Z" } }),
+      getHealth: async () => ({
+        status: 203,
+        body: { status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00Z" },
+      }),
     } as unknown as Handlers;
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
@@ -166,12 +205,20 @@ describe("servidor real sobre el contrato", () => {
   });
 
   it("no arranca con un contrato inválido y explica el motivo", async () => {
-    const invalid = { openapi: "3.1.0", info: { title: "sin version" }, paths: {} } as unknown as ContractDocument;
-    await expect(buildServer({ definition: invalid, handlers: {}, mode: "real", logger: false })).rejects.toThrow(/version|not valid/i);
+    const invalid = {
+      openapi: "3.1.0",
+      info: { title: "sin version" },
+      paths: {},
+    } as unknown as ContractDocument;
+    await expect(
+      buildServer({ definition: invalid, handlers: {}, mode: "real", logger: false }),
+    ).rejects.toThrow(/version|not valid/i);
   });
 
   it("rechaza registrar un manejador con un operationId inexistente (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
-    await expect(buildServer({ definition: realContract, handlers, mode: "real", logger: false })).rejects.toThrow(/doesNotExist/);
+    await expect(
+      buildServer({ definition: realContract, handlers, mode: "real", logger: false }),
+    ).rejects.toThrow(/doesNotExist/);
   });
 });

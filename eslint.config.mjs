@@ -55,7 +55,10 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: "inline-type-imports" }],
-      "@typescript-eslint/ban-ts-comment": ["error", { "ts-expect-error": "allow-with-description", minimumDescriptionLength: 10 }],
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        { "ts-expect-error": "allow-with-description", minimumDescriptionLength: 10 },
+      ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       // `async` sin `await` es conformidad de interfaz (los manejadores devuelven Promise por
       // contrato); la seguridad real la dan no-floating-promises y no-misused-promises.

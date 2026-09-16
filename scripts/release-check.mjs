@@ -4,7 +4,9 @@ import path from "node:path";
 import { repoRoot, run } from "./lib.mjs";
 
 const npmCli = process.env.npm_execpath;
-const check = npmCli ? run(process.execPath, [npmCli, "run", "contract:check"]) : run("npm", ["run", "contract:check"], { shell: true });
+const check = npmCli
+  ? run(process.execPath, [npmCli, "run", "contract:check"])
+  : run("npm", ["run", "contract:check"], { shell: true });
 if (check !== 0) {
   console.error("release-check: contract:check falló.");
   process.exit(check);

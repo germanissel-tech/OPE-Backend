@@ -13,7 +13,7 @@ Esperado: todo en 0; `lint` termina con `Excepciones de lint: 0`.
 Automático: `npx vitest run tests/lint`. Manual, en `src/domain/health.ts`:
 
 ```ts
-export const leak: any = 1;              // → @typescript-eslint/no-explicit-any
+export const leak: any = 1; // → @typescript-eslint/no-explicit-any
 ```
 
 ```bash

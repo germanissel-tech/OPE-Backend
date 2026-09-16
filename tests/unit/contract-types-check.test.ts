@@ -17,7 +17,11 @@ afterEach(() => {
 
 function check(typesFile: string): { status: number; output: string } {
   try {
-    const out = execFileSync(process.execPath, [script], { encoding: "utf8", env: { ...process.env, OPE_TYPES_FILE: typesFile }, stdio: ["ignore", "pipe", "pipe"] });
+    const out = execFileSync(process.execPath, [script], {
+      encoding: "utf8",
+      env: { ...process.env, OPE_TYPES_FILE: typesFile },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     return { status: 0, output: out };
   } catch (err) {
     const e = err as { status: number; stdout: string; stderr: string };

@@ -10,7 +10,7 @@ ADR-011 (lint y formato) y ADR-012 (compilador y scripts) durante la implementac
   en `eslint.config.mjs`, `@eslint/js` recommended + `strictTypeChecked` + `stylisticTypeChecked`,
   `eslint-plugin-import-x@^4.17` **sólo** para `order`, `no-duplicates` (`prefer-inline`) y
   `first`, y `eslint-config-prettier` al final para apagar toda regla de formato (FR-004).
-- **Por qué no Biome**: sin reglas *type-aware*; no puede prohibir valores `any`, promesas
+- **Por qué no Biome**: sin reglas _type-aware_; no puede prohibir valores `any`, promesas
   flotantes ni `switch` no exhaustivo, que son el núcleo de FR-001.
 - **Por qué no las reglas de resolución de import-x** (`no-unresolved`, `namespace`,
   `default`, `no-named-as-default*`): en el sondeo produjeron 173 falsos positivos porque no
@@ -24,17 +24,18 @@ ADR-011 (lint y formato) y ADR-012 (compilador y scripts) durante la implementac
 - **Sondeo sobre el código actual** (ESLint 10.10.0, typescript-eslint 8.70.0, 6 s): **76
   hallazgos**, todos legítimos o de política:
 
-  | Regla | Cant. | Qué es | Decisión |
-  |---|---|---|---|
-  | `require-await` | 17 | handlers `async` sin `await` (la firma exige `Promise`) | **Apagar** con justificación: `async` como conformidad de interfaz es idiomático; la seguridad real la dan `no-floating-promises` y `no-misused-promises`, que quedan en error |
-  | `import-x/order` | 16 | orden de imports | corregir con `--fix` |
-  | `no-unsafe-assignment` / `-member-access` / `-call` | 14 | `any` que entra desde openapi-backend (`Context.request.*`) y desde `res.json()` de Fastify inject en las pruebas | corregir: tipar el borde (`unknown` + narrowing) y un helper `json<T>()` en las pruebas. Es exactamente lo que la feature existe para atrapar |
-  | `dot-notation` | 7 | `env["PORT"]`, `params["additionalProperty"]` | desaparece al activar `noPropertyAccessFromIndexSignature` (la regla respeta esa opción) |
-  | `restrict-template-expressions` | 5 | interpolar `number`/`unknown` en plantillas | corregir con `String()` o permitir `number` (`allowNumber: true`) |
-  | `no-unnecessary-condition` | 4 | `??` sobre valores no nulos | corregir |
-  | `no-confusing-void-expression`, `no-meaningless-void-operator`, `no-unsafe-enum-comparison`, `consistent-type-definitions`, `no-unnecessary-type-assertion`, `prefer-includes`, `no-regex-spaces`, `no-non-null-assertion` | 12 | varios | corregir uno a uno |
+  | Regla                                                                                                                                                                                                                      | Cant. | Qué es                                                                                                            | Decisión                                                                                                                                                                       |
+  | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | `require-await`                                                                                                                                                                                                            | 17    | handlers `async` sin `await` (la firma exige `Promise`)                                                           | **Apagar** con justificación: `async` como conformidad de interfaz es idiomático; la seguridad real la dan `no-floating-promises` y `no-misused-promises`, que quedan en error |
+  | `import-x/order`                                                                                                                                                                                                           | 16    | orden de imports                                                                                                  | corregir con `--fix`                                                                                                                                                           |
+  | `no-unsafe-assignment` / `-member-access` / `-call`                                                                                                                                                                        | 14    | `any` que entra desde openapi-backend (`Context.request.*`) y desde `res.json()` de Fastify inject en las pruebas | corregir: tipar el borde (`unknown` + narrowing) y un helper `json<T>()` en las pruebas. Es exactamente lo que la feature existe para atrapar                                  |
+  | `dot-notation`                                                                                                                                                                                                             | 7     | `env["PORT"]`, `params["additionalProperty"]`                                                                     | desaparece al activar `noPropertyAccessFromIndexSignature` (la regla respeta esa opción)                                                                                       |
+  | `restrict-template-expressions`                                                                                                                                                                                            | 5     | interpolar `number`/`unknown` en plantillas                                                                       | corregir con `String()` o permitir `number` (`allowNumber: true`)                                                                                                              |
+  | `no-unnecessary-condition`                                                                                                                                                                                                 | 4     | `??` sobre valores no nulos                                                                                       | corregir                                                                                                                                                                       |
+  | `no-confusing-void-expression`, `no-meaningless-void-operator`, `no-unsafe-enum-comparison`, `consistent-type-definitions`, `no-unnecessary-type-assertion`, `prefer-includes`, `no-regex-spaces`, `no-non-null-assertion` | 12    | varios                                                                                                            | corregir uno a uno                                                                                                                                                             |
 
   Ninguno requiere `eslint-disable`; el objetivo SC-003 es **cero excepciones** al cierre.
+
 - **Excepciones** (FR-002, FR-003): `linterOptions.reportUnusedDisableDirectives: "error"`
   (core de ESLint) falla ante un `eslint-disable` que ya no aplica;
   `@eslint-community/eslint-plugin-eslint-comments` con `require-description` falla ante
@@ -66,8 +67,8 @@ ADR-011 (lint y formato) y ADR-012 (compilador y scripts) durante la implementac
   y `.dependency-cruiser.cjs`. `npm run typecheck` corre los dos proyectos.
 - **Sondeo**: 219 diagnósticos, 162 de ellos TS7006 (parámetro implícitamente `any`), que se
   resuelven con `@typedef` compartidos: uno para las funciones de Spectral (`(input, options,
-  context)`) en `_walk.js`, uno para los mutadores del generador de fixtures (`(d: Doc) =>
-  Doc`, anotando el objeto `fixtures` una sola vez), y firmas JSDoc en `governance-lib.mjs` y
+context)`) en `_walk.js`, uno para los mutadores del generador de fixtures (`(d: Doc) =>
+Doc`, anotando el objeto `fixtures` una sola vez), y firmas JSDoc en `governance-lib.mjs` y
   `lib.mjs`. Los ~55 restantes son hallazgos reales (TS2339 propiedad inexistente, TS18046
   `unknown`, TS2810 `stdout` posiblemente `null` en `test-contract.mjs`) — el valor de la
   feature. Estimación: 2–3 h.
@@ -89,7 +90,7 @@ ADR-011 (lint y formato) y ADR-012 (compilador y scripts) durante la implementac
 - **Decisión (DECIDIDO → ADR-011)**: `lefthook@^2.1`. Su `postinstall` instala los hooks
   al hacer `npm install` (verificado: creó `.git/hooks/prepare-commit-msg` y un
   `lefthook.yml` de ejemplo). `lefthook.yml` con `pre-commit` en paralelo: `prettier --check
-  {staged_files}` (glob de los cinco tipos), `eslint {staged_files}` (ts/js), y `typecheck`
+{staged_files}` (glob de los cinco tipos), `eslint {staged_files}` (ts/js), y `typecheck`
   completo (no hay modo parcial que valga). Sin `contract:check` ni `test` (FR-040).
   `git commit --no-verify` sigue disponible; CI es la puerta.
 - **Por qué no husky + lint-staged**: dos paquetes y un script de `prepare`; lefthook trae el
@@ -103,13 +104,13 @@ ADR-011 (lint y formato) y ADR-012 (compilador y scripts) durante la implementac
 
 ## R-07 Pruebas de la feature (FR-051)
 
-| Qué | Cómo |
-|---|---|
+| Qué                                                                                                                                                                                                               | Cómo                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Reglas de lint clave (`no-explicit-any`, `no-unsafe-*`, `no-floating-promises`, `no-non-null-assertion`, `switch-exhaustiveness-check`, `consistent-type-imports`, `import-x/order`, `eslint-disable` sin motivo) | `tests/lint/fixtures/*.ts` con una violación cada uno; `tests/lint/lint.test.ts` corre ESLint por API (`new ESLint({ overrideConfigFile })`) sobre el fixture y afirma el `ruleId`. Los fixtures están en `.prettierignore` y en `ignores` del config real; la prueba los lintea con un config que quita esa exclusión |
-| Formato | `tests/format/format.test.ts`: archivo temporal mal formateado → `prettier --check` falla; `--write` → pasa; segunda pasada no cambia nada |
-| `checkJs` | `tests/typecheck/fixtures/bad-script.mjs` (propiedad inexistente) → `tsc -p` con un tsconfig temporal que lo incluye falla con TS2339 |
-| Compilador | fixtures TS con cada patrón → `tsc` falla con el código esperado |
-| Hook | `tests/hooks/lefthook.test.ts`: `lefthook.yml` parsea, declara `pre-commit` con los tres jobs y ninguno invoca `contract:check`/`test` (verificación estática; ejecutar git hooks en la prueba sería frágil) |
+| Formato                                                                                                                                                                                                           | `tests/format/format.test.ts`: archivo temporal mal formateado → `prettier --check` falla; `--write` → pasa; segunda pasada no cambia nada                                                                                                                                                                             |
+| `checkJs`                                                                                                                                                                                                         | `tests/typecheck/fixtures/bad-script.mjs` (propiedad inexistente) → `tsc -p` con un tsconfig temporal que lo incluye falla con TS2339                                                                                                                                                                                  |
+| Compilador                                                                                                                                                                                                        | fixtures TS con cada patrón → `tsc` falla con el código esperado                                                                                                                                                                                                                                                       |
+| Hook                                                                                                                                                                                                              | `tests/hooks/lefthook.test.ts`: `lefthook.yml` parsea, declara `pre-commit` con los tres jobs y ninguno invoca `contract:check`/`test` (verificación estática; ejecutar git hooks en la prueba sería frágil)                                                                                                           |
 
 ## R-08 Tiempo
 

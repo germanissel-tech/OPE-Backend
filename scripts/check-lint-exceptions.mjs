@@ -9,8 +9,14 @@ import { rel, walkFiles } from "./governance-lib.mjs";
 import { repoRoot } from "./lib.mjs";
 
 // Se arma por partes para que este archivo no se cuente a sí mismo.
-const WORDS = { lint: ["eslint", "disable"].join("-"), ignore: `@ts-${"ignore"}`, expect: `@ts-${"expect"}-error` };
-const DIRECTIVE = new RegExp(`(${WORDS.lint}(?:-next-line|-line)?|${WORDS.ignore}|${WORDS.expect})\\b[^\\n]*`);
+const WORDS = {
+  lint: ["eslint", "disable"].join("-"),
+  ignore: `@ts-${"ignore"}`,
+  expect: `@ts-${"expect"}-error`,
+};
+const DIRECTIVE = new RegExp(
+  `(${WORDS.lint}(?:-next-line|-line)?|${WORDS.ignore}|${WORDS.expect})\\b[^\\n]*`,
+);
 const IGNORE = ["node_modules", ".git", "dist", "fixtures", "generated"];
 
 const roots = [

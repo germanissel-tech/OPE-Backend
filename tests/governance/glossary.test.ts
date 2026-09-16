@@ -5,10 +5,14 @@ import { fixture, runScript } from "./run.js";
 const check = (dir: string) => {
   const base = fixture("glossary", dir);
   return runScript("check-glossary.mjs", [
-    "--bundle", `${base}/bundle.yaml`,
-    "--glossary", `${base}/dominio`,
-    "--constitution", `${base}/constitucion.md`,
-    "--mvp-docs", `${base}/mvp`,
+    "--bundle",
+    `${base}/bundle.yaml`,
+    "--glossary",
+    `${base}/dominio`,
+    "--constitution",
+    `${base}/constitucion.md`,
+    "--mvp-docs",
+    `${base}/mvp`,
   ]);
 };
 

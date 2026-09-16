@@ -38,7 +38,9 @@ function loadContract(file: string): ContractDocument {
 async function loadHandlers(config: Config, contractVersion: string): Promise<Handlers> {
   if (config.mode === "mock") return {};
   if (config.handlersModule) {
-    const mod = (await import(pathToFileURL(path.resolve(config.handlersModule)).href)) as { handlers: Handlers };
+    const mod = (await import(pathToFileURL(path.resolve(config.handlersModule)).href)) as {
+      handlers: Handlers;
+    };
     return mod.handlers;
   }
   return {
@@ -60,7 +62,10 @@ async function main(): Promise<void> {
   process.once("SIGTERM", () => shutdown("SIGTERM"));
 
   await app.listen({ port: config.port, host: config.host });
-  app.log.info({ mode: config.mode, contract: config.contractPath, version: definition.info.version }, "OPE backend listo");
+  app.log.info(
+    { mode: config.mode, contract: config.contractPath, version: definition.info.version },
+    "OPE backend listo",
+  );
 }
 
 main().catch((err: unknown) => {

@@ -11,12 +11,12 @@ el número no existe.
 
 ## Estados
 
-| estado | significa |
-|---|---|
-| `propuesta` | esperando aprobación |
-| `aceptada` | vigente |
-| `reemplazada` | hay un ADR posterior (campo `reemplaza` en el nuevo) |
-| `abierta` | registra algo que todavía no se decidió (ver ADR-010) |
+| estado        | significa                                             |
+| ------------- | ----------------------------------------------------- |
+| `propuesta`   | esperando aprobación                                  |
+| `aceptada`    | vigente                                               |
+| `reemplazada` | hay un ADR posterior (campo `reemplaza` en el nuevo)  |
+| `abierta`     | registra algo que todavía no se decidió (ver ADR-010) |
 
 ## Plantilla
 

@@ -8,7 +8,9 @@ import { buildServer, type ContractDocument } from "../../src/adapters/http/buil
 import { makeGetHealth } from "../../src/handlers/health.js";
 
 const contract = parse(readFileSync(path.resolve("contracts/dist/openapi.yaml"), "utf8")) as ContractDocument;
-const example = parse(readFileSync(path.resolve("contracts/examples/health-ok.yaml"), "utf8")) as { value: unknown };
+const example = parse(readFileSync(path.resolve("contracts/examples/health-ok.yaml"), "utf8")) as {
+  value: unknown;
+};
 
 const apps: FastifyInstance[] = [];
 afterEach(async () => {

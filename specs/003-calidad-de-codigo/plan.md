@@ -45,14 +45,14 @@ archivos JS, un commit de formato sobre ~80 archivos, ~12 fixtures con prueba, 2
 
 ## Constitution Check
 
-| Gate | ¿Aplica? | Cómo se cumple |
-|---|---|---|
-| Superficie HTTP | No | Sin cambios en `contracts/`; `contract:diff` sin diferencias |
-| Persistencia / API → aislamiento por merchant | No | Sin cambios de API; las pruebas existentes se mantienen |
-| Plano de decisión / ledger / campos / LLM | No | — |
-| Regla de negocio no expresable por esquema (`x-invariants`) | No | — |
-| Sustantivo nuevo en el contrato (glosario) | No | — |
-| Toca `src/` → dirección de dependencias | **Sí** | Correcciones de lint dentro de cada archivo, sin imports nuevos entre capas; `npm run arch` sigue en 0 |
+| Gate                                                        | ¿Aplica? | Cómo se cumple                                                                                         |
+| ----------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| Superficie HTTP                                             | No       | Sin cambios en `contracts/`; `contract:diff` sin diferencias                                           |
+| Persistencia / API → aislamiento por merchant               | No       | Sin cambios de API; las pruebas existentes se mantienen                                                |
+| Plano de decisión / ledger / campos / LLM                   | No       | —                                                                                                      |
+| Regla de negocio no expresable por esquema (`x-invariants`) | No       | —                                                                                                      |
+| Sustantivo nuevo en el contrato (glosario)                  | No       | —                                                                                                      |
+| Toca `src/` → dirección de dependencias                     | **Sí**   | Correcciones de lint dentro de cada archivo, sin imports nuevos entre capas; `npm run arch` sigue en 0 |
 
 Principio "una regla sin verificación es decorativa" (ADR-009): esta feature lo aplica a
 "TypeScript `strict`. Sin `any`" de CLAUDE.md. **Resultado pre-Phase 0**: PASA.
@@ -92,14 +92,14 @@ tests/
 
 ### Comandos npm
 
-| Comando | Qué hace |
-|---|---|
-| `lint` | `eslint .` + `node scripts/check-lint-exceptions.mjs` |
-| `lint:fix` | `eslint . --fix` |
-| `format` | `prettier --write .` |
-| `format:check` | `prettier --check .` |
-| `typecheck` | `tsc -p tsconfig.typecheck.json && tsc -p tsconfig.scripts.json` |
-| CI | `format:check` y `lint` después de `contract:check`, antes de `build` |
+| Comando        | Qué hace                                                              |
+| -------------- | --------------------------------------------------------------------- |
+| `lint`         | `eslint .` + `node scripts/check-lint-exceptions.mjs`                 |
+| `lint:fix`     | `eslint . --fix`                                                      |
+| `format`       | `prettier --write .`                                                  |
+| `format:check` | `prettier --check .`                                                  |
+| `typecheck`    | `tsc -p tsconfig.typecheck.json && tsc -p tsconfig.scripts.json`      |
+| CI             | `format:check` y `lint` después de `contract:check`, antes de `build` |
 
 ## Diseño de los puntos no triviales
 
@@ -120,10 +120,10 @@ tests/
 
 ## Complexity Tracking
 
-| Elemento | Por qué | Alternativa rechazada |
-|---|---|---|
-| Un `tsconfig` más (`tsconfig.scripts.json`) | los scripts no son parte del build de `src/` y necesitan `allowJs`/`checkJs` | meterlos en `tsconfig.typecheck.json` mezclaría `include` de fuentes y generaría tipos JS en `dist` |
-| Reglas de import-x limitadas a orden/duplicados | las de resolución dan falsos positivos sin resolver extra y duplican a `tsc` | instalar `eslint-import-resolver-typescript`: más lento y redundante |
+| Elemento                                        | Por qué                                                                      | Alternativa rechazada                                                                               |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Un `tsconfig` más (`tsconfig.scripts.json`)     | los scripts no son parte del build de `src/` y necesitan `allowJs`/`checkJs` | meterlos en `tsconfig.typecheck.json` mezclaría `include` de fuentes y generaría tipos JS en `dist` |
+| Reglas de import-x limitadas a orden/duplicados | las de resolución dan falsos positivos sin resolver extra y duplican a `tsc` | instalar `eslint-import-resolver-typescript`: más lento y redundante                                |
 
 ## Re-evaluación del Constitution Check (post-Phase 1)
 

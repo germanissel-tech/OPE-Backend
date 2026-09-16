@@ -14,7 +14,11 @@ export function makeGetHealth({ contractVersion, clock }: HealthDeps): Operation
     const health = serviceHealth({ now: clock.now(), contractVersion });
     return {
       status: 200,
-      body: { status: health.status, contractVersion: health.contractVersion, timestamp: health.timestamp.toISOString() },
+      body: {
+        status: health.status,
+        contractVersion: health.contractVersion,
+        timestamp: health.timestamp.toISOString(),
+      },
     };
   };
 }

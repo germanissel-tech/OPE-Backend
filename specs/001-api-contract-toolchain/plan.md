@@ -48,16 +48,16 @@ incompatible verificadas, ~8 scripts npm, 1 workflow de CI
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Gate (constitución, "Flujo de desarrollo") | ¿Aplica? | Cómo se cumple |
-|---|---|---|
-| Toca superficie HTTP → contrato diseñado en `specs/001/contracts/` antes de código; compatible o declara major | **Sí** | Diseño completo en [contracts/](contracts/) (raíz, `paths/health.yaml`, `ProblemDetails`, respuestas de error, ejemplos). Primer contrato: `info.version: 1.0.0`, `/v1`. No hay versión previa; el diff se omite con aviso (edge case de la spec). |
-| Toca persistencia o API → tareas de prueba de aislamiento por merchant | **Sí (API)** | No hay datos ni credenciales; la frontera es el contrato. Se cumple con la prueba de la regla FR-017 (`merchantId` en path/query/header/cookie/body → falla) con un fixture por ubicación (research R-13). Las pruebas de contaminación cruzada con datos llegan con la feature 002. |
-| Toca el plano de decisión → sin I/O de red ni escritura bloqueante; salida `NO_OP` posible | No | No hay plano de decisión. El servidor no hace I/O de red saliente. |
-| Toca ledger o cadena de evidencia | No | — |
-| Introduce campo nuevo de evento u orden → lista blanca, no PII | No | Único esquema nuevo: `Health` (`status`, `contractVersion`, `timestamp`) y `ProblemDetails`. Ninguno es PII; la regla `ope-no-pii` lo verifica mecánicamente. |
-| Introduce llamada a modelo de lenguaje en runtime | No | Rechazado por diseño; ninguna dependencia de runtime lo hace. |
+| Gate (constitución, "Flujo de desarrollo")                                                                     | ¿Aplica?     | Cómo se cumple                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Toca superficie HTTP → contrato diseñado en `specs/001/contracts/` antes de código; compatible o declara major | **Sí**       | Diseño completo en [contracts/](contracts/) (raíz, `paths/health.yaml`, `ProblemDetails`, respuestas de error, ejemplos). Primer contrato: `info.version: 1.0.0`, `/v1`. No hay versión previa; el diff se omite con aviso (edge case de la spec).                                   |
+| Toca persistencia o API → tareas de prueba de aislamiento por merchant                                         | **Sí (API)** | No hay datos ni credenciales; la frontera es el contrato. Se cumple con la prueba de la regla FR-017 (`merchantId` en path/query/header/cookie/body → falla) con un fixture por ubicación (research R-13). Las pruebas de contaminación cruzada con datos llegan con la feature 002. |
+| Toca el plano de decisión → sin I/O de red ni escritura bloqueante; salida `NO_OP` posible                     | No           | No hay plano de decisión. El servidor no hace I/O de red saliente.                                                                                                                                                                                                                   |
+| Toca ledger o cadena de evidencia                                                                              | No           | —                                                                                                                                                                                                                                                                                    |
+| Introduce campo nuevo de evento u orden → lista blanca, no PII                                                 | No           | Único esquema nuevo: `Health` (`status`, `contractVersion`, `timestamp`) y `ProblemDetails`. Ninguno es PII; la regla `ope-no-pii` lo verifica mecánicamente.                                                                                                                        |
+| Introduce llamada a modelo de lenguaje en runtime                                                              | No           | Rechazado por diseño; ninguna dependencia de runtime lo hace.                                                                                                                                                                                                                        |
 
 Principios adicionales relevantes:
 
@@ -164,21 +164,21 @@ segundo no.
 
 ### Comandos npm (nombres fijados por CLAUDE.md/HANDOFF)
 
-| Comando | Qué hace |
-|---|---|
-| `contract:lint` | `redocly lint contracts/openapi.yaml` (estructura, refs) + `spectral lint contracts/openapi.yaml --ruleset contracts/.spectral.yaml --fail-severity warn` (estilo + reglas `ope-*`; `oas3-schema` apagada por bug con 3.1 multi-archivo, ver research R-02) |
-| `contract:bundle` | `redocly bundle contracts/openapi.yaml -o contracts/dist/openapi.yaml` |
-| `contract:diff` | `node scripts/contract-diff.mjs` (base = `origin/main` \| `main` \| `$CONTRACT_BASE_REF`) |
-| `contract:types` | `node scripts/contract-types.mjs` |
-| `contract:types:check` | `node scripts/contract-types-check.mjs` |
-| `contract:check` | `contract:lint` → `contract:bundle` → `contract:diff` → `contract:types:check` |
-| `contract:mock` | `OPE_MOCK=1` + servidor (`tsx src/main.ts`) |
-| `contract:docs` | `contract:check` → `redocly build-docs contracts/dist/openapi.yaml -o docs/api/index.html` |
-| `build` | `tsc -p tsconfig.json` |
-| `dev` | `tsx watch src/main.ts` |
-| `test` | `vitest run` |
-| `test:contract` | `contract:bundle` → `node scripts/test-contract.mjs` |
-| `typecheck` | `tsc --noEmit` (incluye `tests/types/*.test-d.ts`) |
+| Comando                | Qué hace                                                                                                                                                                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contract:lint`        | `redocly lint contracts/openapi.yaml` (estructura, refs) + `spectral lint contracts/openapi.yaml --ruleset contracts/.spectral.yaml --fail-severity warn` (estilo + reglas `ope-*`; `oas3-schema` apagada por bug con 3.1 multi-archivo, ver research R-02) |
+| `contract:bundle`      | `redocly bundle contracts/openapi.yaml -o contracts/dist/openapi.yaml`                                                                                                                                                                                      |
+| `contract:diff`        | `node scripts/contract-diff.mjs` (base = `origin/main` \| `main` \| `$CONTRACT_BASE_REF`)                                                                                                                                                                   |
+| `contract:types`       | `node scripts/contract-types.mjs`                                                                                                                                                                                                                           |
+| `contract:types:check` | `node scripts/contract-types-check.mjs`                                                                                                                                                                                                                     |
+| `contract:check`       | `contract:lint` → `contract:bundle` → `contract:diff` → `contract:types:check`                                                                                                                                                                              |
+| `contract:mock`        | `OPE_MOCK=1` + servidor (`tsx src/main.ts`)                                                                                                                                                                                                                 |
+| `contract:docs`        | `contract:check` → `redocly build-docs contracts/dist/openapi.yaml -o docs/api/index.html`                                                                                                                                                                  |
+| `build`                | `tsc -p tsconfig.json`                                                                                                                                                                                                                                      |
+| `dev`                  | `tsx watch src/main.ts`                                                                                                                                                                                                                                     |
+| `test`                 | `vitest run`                                                                                                                                                                                                                                                |
+| `test:contract`        | `contract:bundle` → `node scripts/test-contract.mjs`                                                                                                                                                                                                        |
+| `typecheck`            | `tsc --noEmit` (incluye `tests/types/*.test-d.ts`)                                                                                                                                                                                                          |
 
 ## Diseño de los puntos no triviales
 
@@ -217,6 +217,7 @@ ser breaking).
 ### Compatibilidad (FR-020)
 
 `scripts/contract-diff.mjs`:
+
 1. Resolver base: `CONTRACT_BASE_REF` → `origin/main` → `main`. Si no existe o no contiene
    `contracts/openapi.yaml` ⇒ imprime `AVISO: sin contrato base, comparación omitida` y sale 0.
 2. `git archive <base> contracts | tar -x` a `os.tmpdir()`, `redocly bundle` de la base.
@@ -235,11 +236,11 @@ corregir" (FR-021) y un fixture que la viola en `tests/contract-rules/fixtures/`
 
 Sin violaciones del Constitution Check. Dependencias que podrían discutirse:
 
-| Elemento | Por qué | Alternativa más simple rechazada porque |
-|---|---|---|
-| Binario externo `oasdiff` (Go) | Único que cubre los 7 cambios de FR-020 configurando severidad | `@pb33f/openapi-changes` (npm) no detecta "agregar respuesta de error"; escribir un diff propio sería más código y menos confiable |
-| Herramienta Python (Schemathesis) | Genera casos en bordes de esquema que las pruebas manuales no cubren (US5) | Sin equivalente en Node con mantenimiento activo; `uvx` lo hace de instalación cero |
-| Dos linters (Spectral + Redocly) | Spectral para reglas propias declarativas; Redocly es necesario igual para bundle/docs y aporta lint estructural | Usar sólo uno perdería o el ruleset declarativo o el bundler |
+| Elemento                          | Por qué                                                                                                          | Alternativa más simple rechazada porque                                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Binario externo `oasdiff` (Go)    | Único que cubre los 7 cambios de FR-020 configurando severidad                                                   | `@pb33f/openapi-changes` (npm) no detecta "agregar respuesta de error"; escribir un diff propio sería más código y menos confiable |
+| Herramienta Python (Schemathesis) | Genera casos en bordes de esquema que las pruebas manuales no cubren (US5)                                       | Sin equivalente en Node con mantenimiento activo; `uvx` lo hace de instalación cero                                                |
+| Dos linters (Spectral + Redocly)  | Spectral para reglas propias declarativas; Redocly es necesario igual para bundle/docs y aporta lint estructural | Usar sólo uno perdería o el ruleset declarativo o el bundler                                                                       |
 
 ## Re-evaluación del Constitution Check (post-Phase 1)
 

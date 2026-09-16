@@ -62,7 +62,11 @@ function bundleBase(ref, workDir) {
   }
   const baseRoot = path.join(workDir, "contracts", "openapi.yaml");
   const out = path.join(workDir, "base-bundle.yaml");
-  const status = runCli("redocly", ["bundle", baseRoot, "-o", out, "--config", path.join(repoRoot, "redocly.yaml")], { stdio: "pipe" });
+  const status = runCli(
+    "redocly",
+    ["bundle", baseRoot, "-o", out, "--config", path.join(repoRoot, "redocly.yaml")],
+    { stdio: "pipe" },
+  );
   if (status !== 0) throw new Error(`No se pudo bundlear el contrato base (${ref})`);
   return out;
 }
@@ -81,7 +85,8 @@ async function main() {
       baseLabel = args.base;
       if (!existsSync(base)) base = null;
     } else {
-      if (!existsSync(bundlePath)) throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);
+      if (!existsSync(bundlePath))
+        throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);
       head = bundlePath;
       const ref = resolveBaseRef();
       baseLabel = ref ?? "(sin rama base)";

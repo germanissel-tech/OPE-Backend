@@ -16,11 +16,23 @@ describe("getHealth", () => {
       body: undefined,
     });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00.000Z" });
+    expect(res.body).toEqual({
+      status: "ok",
+      contractVersion: "1.0.0",
+      timestamp: "2026-09-16T12:00:00.000Z",
+    });
   });
 
   it("es una función pura: dos llamadas con el mismo reloj devuelven lo mismo", async () => {
-    const req = { operationId: "getHealth" as const, instance: "/v1/health", path: undefined, query: undefined, headers: undefined, cookie: undefined, body: undefined };
+    const req = {
+      operationId: "getHealth" as const,
+      instance: "/v1/health",
+      path: undefined,
+      query: undefined,
+      headers: undefined,
+      cookie: undefined,
+      body: undefined,
+    };
     expect(await handler(req)).toEqual(await handler(req));
   });
 });

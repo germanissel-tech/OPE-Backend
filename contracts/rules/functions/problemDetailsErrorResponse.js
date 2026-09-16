@@ -24,7 +24,9 @@ module.exports = (response, _opts, context) => {
   if (!content || typeof content !== "object") return fail("falta `content`.");
   const keys = Object.keys(content);
   if (keys.length !== 1 || keys[0] !== "application/problem+json") {
-    return fail(`declara ${keys.join(", ") || "ningún media type"}; tiene que ser exactamente application/problem+json.`);
+    return fail(
+      `declara ${keys.join(", ") || "ningún media type"}; tiene que ser exactamente application/problem+json.`,
+    );
   }
   const media = content["application/problem+json"];
   if (!media || !looksLikeProblemDetails(media.schema)) {

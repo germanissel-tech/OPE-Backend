@@ -17,7 +17,7 @@ en: term
 contexto: ingesta | decision | medicion | portal | plataforma | identidad
 estado: aprobado | propuesto
 fuente: constitucion#VI | mvp:01-arquitectura-mvp.md#7 | ruta/en/el/repo.md#sección
-uso: disponible | pendiente        # sólo si el contrato todavía no usa el término
+uso: disponible | pendiente # sólo si el contrato todavía no usa el término
 ---
 
 # término -> `term`

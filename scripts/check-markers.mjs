@@ -45,12 +45,16 @@ for (const file of files) {
 
 const count = (token) => found.filter((f) => f.token === token).length;
 for (const f of found) console.log(`${f.file}:${f.line}: ${f.token} — ${f.text}`);
-console.log(`Marcadores: ${count("ABIERTO")} abiertos, ${count("PROPUESTO")} propuestos, ${count("PLACEHOLDER")} placeholders`);
+console.log(
+  `Marcadores: ${count("ABIERTO")} abiertos, ${count("PROPUESTO")} propuestos, ${count("PLACEHOLDER")} placeholders`,
+);
 
 const blocking = found.filter((f) => BLOCKING.has(f.token)).length;
 if (strict) {
   if (blocking > 0) {
-    console.error(`release-check: quedan ${blocking} marcadores bloqueantes (ABIERTO/PLACEHOLDER). Resolvelos o registrá la decisión como ADR.`);
+    console.error(
+      `release-check: quedan ${blocking} marcadores bloqueantes (ABIERTO/PLACEHOLDER). Resolvelos o registrá la decisión como ADR.`,
+    );
     process.exit(1);
   }
   const proposed = count("PROPUESTO");
