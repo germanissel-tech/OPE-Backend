@@ -11,6 +11,7 @@ import { repoRoot } from "./lib.mjs";
 export const OASDIFF_VERSION = "1.32.1";
 const RELEASE_BASE = `https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}`;
 
+/** @type {Record<string, string | undefined>} */
 const ASSETS = {
   "linux-x64": "linux_amd64",
   "linux-arm64": "linux_arm64",
@@ -24,13 +25,22 @@ const cacheDir = path.join(repoRoot, "node_modules", ".cache", "oasdiff", OASDIF
 const exeName = process.platform === "win32" ? "oasdiff.exe" : "oasdiff";
 export const oasdiffPath = path.join(cacheDir, exeName);
 
+/**
+ * @param {string} url
+ * @returns {Promise<Buffer>}
+ */
 async function download(url) {
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`No se pudo descargar ${url}: HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
-/** Extrae un único archivo de un tar (ya descomprimido). Formato ustar, sin dependencias. */
+/**
+ * Extrae un único archivo de un tar (ya descomprimido). Formato ustar, sin dependencias.
+ * @param {Buffer} tar
+ * @param {string} wanted
+ * @returns {Buffer}
+ */
 function extractFromTar(tar, wanted) {
   let offset = 0;
   while (offset + 512 <= tar.length) {
@@ -38,7 +48,7 @@ function extractFromTar(tar, wanted) {
     if (header.every((b) => b === 0)) break;
     const name = header.subarray(0, 100).toString("utf8").replace(/\0.*$/s, "");
     const size = parseInt(header.subarray(124, 136).toString("utf8").replace(/\0.*$/s, "").trim(), 8);
-    const typeflag = String.fromCharCode(header[156]);
+    const typeflag = String.fromCharCode(header[156] ?? 0);
     const dataStart = offset + 512;
     if ((typeflag === "0" || typeflag === "\0") && path.posix.basename(name) === wanted) {
       return tar.subarray(dataStart, dataStart + size);
@@ -48,14 +58,21 @@ function extractFromTar(tar, wanted) {
   throw new Error(`El archivo ${wanted} no está en el tarball de oasdiff`);
 }
 
+/** @returns {Promise<string>} */
 export async function ensureOasdiff() {
   if (existsSync(oasdiffPath)) return oasdiffPath;
   const key = `${process.platform}-${process.arch}`;
   const asset = ASSETS[key];
-  if (!asset) throw new Error(`oasdiff: plataforma sin binario oficial: ${key}. Instalá oasdiff a mano y exportá OASDIFF_BIN.`);
+  if (!asset)
+    throw new Error(
+      `oasdiff: plataforma sin binario oficial: ${key}. Instalá oasdiff a mano y exportá OASDIFF_BIN.`,
+    );
   const fileName = `oasdiff_${OASDIFF_VERSION}_${asset}.tar.gz`;
   console.log(`oasdiff ${OASDIFF_VERSION} no está en caché; descargando ${fileName}…`);
-  const [archive, checksums] = await Promise.all([download(`${RELEASE_BASE}/${fileName}`), download(`${RELEASE_BASE}/checksums.txt`)]);
+  const [archive, checksums] = await Promise.all([
+    download(`${RELEASE_BASE}/${fileName}`),
+    download(`${RELEASE_BASE}/checksums.txt`),
+  ]);
   const expected = checksums
     .toString("utf8")
     .split("\n")
@@ -63,7 +80,8 @@ export async function ensureOasdiff() {
     .find(([, name]) => name === fileName)?.[0];
   if (!expected) throw new Error(`oasdiff: ${fileName} no figura en checksums.txt`);
   const actual = createHash("sha256").update(archive).digest("hex");
-  if (actual !== expected) throw new Error(`oasdiff: checksum inválido para ${fileName} (esperado ${expected}, obtenido ${actual})`);
+  if (actual !== expected)
+    throw new Error(`oasdiff: checksum inválido para ${fileName} (esperado ${expected}, obtenido ${actual})`);
   const binary = extractFromTar(gunzipSync(archive), exeName);
   mkdirSync(cacheDir, { recursive: true });
   const tmp = `${oasdiffPath}.tmp`;
@@ -74,17 +92,23 @@ export async function ensureOasdiff() {
   return oasdiffPath;
 }
 
-/** Ruta del binario: OASDIFF_BIN si está definido, si no el de caché (descargándolo si falta). */
+/**
+ * Ruta del binario: OASDIFF_BIN si está definido, si no el de caché (descargándolo si falta).
+ * @returns {Promise<string>}
+ */
 export async function resolveOasdiff() {
-  if (process.env.OASDIFF_BIN) return process.env.OASDIFF_BIN;
+  const override = process.env["OASDIFF_BIN"];
+  if (override) return override;
   return ensureOasdiff();
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   resolveOasdiff()
-    .then((p) => console.log(p))
-    .catch((e) => {
-      console.error(e.message);
+    .then((p) => {
+      console.log(p);
+    })
+    .catch((/** @type {unknown} */ e) => {
+      console.error(e instanceof Error ? e.message : String(e));
       process.exit(1);
     });
 }

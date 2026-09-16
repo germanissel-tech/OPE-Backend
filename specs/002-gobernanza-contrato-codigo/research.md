@@ -7,20 +7,20 @@ se registran como ADR en `docs/adr/` durante la implementación (FR-020); este a
 
 - **Decisión (DECIDIDO)**: tres mecanismos, elegidos por lo que cada uno puede ver:
 
-  | Ve | Mecanismo | Reglas de esta feature |
-  |---|---|---|
-  | El contrato **resuelto** (un solo árbol) | Spectral, función custom, fixture por regla (como en la 001) | `ope-invariants`, `ope-no-generic-422`, `ope-required-capabilities` |
-  | El contrato **sin resolver**, archivo por archivo, con `$ref` visibles | Redocly *assertions* (`redocly.yaml`) | `rule/media-type-schema-ref` |
-  | Contrato **más** otros artefactos (docs, tests, ADRs) | Script Node `.mjs` en `scripts/check-*.mjs`, con fixtures en `tests/governance/` | ADRs, marcadores, glosario, invariante → prueba, arquitectura |
+  | Ve                                                                     | Mecanismo                                                                        | Reglas de esta feature                                              |
+  | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+  | El contrato **resuelto** (un solo árbol)                               | Spectral, función custom, fixture por regla (como en la 001)                     | `ope-invariants`, `ope-no-generic-422`, `ope-required-capabilities` |
+  | El contrato **sin resolver**, archivo por archivo, con `$ref` visibles | Redocly _assertions_ (`redocly.yaml`)                                            | `rule/media-type-schema-ref`                                        |
+  | Contrato **más** otros artefactos (docs, tests, ADRs)                  | Script Node `.mjs` en `scripts/check-*.mjs`, con fixtures en `tests/governance/` | ADRs, marcadores, glosario, invariante → prueba, arquitectura       |
 
 - **Por qué Redocly para "schema por `$ref`"**: Spectral con `resolved: false` sólo ve el archivo
   raíz, y en nuestro contrato los path items son `$ref` a `paths/*.yaml`, así que no llegaría a
   los media types. Redocly lintea los archivos fuente y reporta archivo:línea del hijo.
   **Verificado** (Redocly 2.53.2): la assertion `subject: {type: MediaType, property: schema}`
-  + `assertions: {ref: true}` pasa sobre `contracts/` y falla en
-  `tests/contract-rules/fixtures/valid.yaml:46` (schema inline de `createThing`), con salida
-  `--format json` que incluye `ruleId`, `pointer` y `start.line`. Consecuencia: los fixtures de
-  la 001 que tienen schemas inline se corrigen para seguir siendo válidos.
+  - `assertions: {ref: true}` pasa sobre `contracts/` y falla en
+    `tests/contract-rules/fixtures/valid.yaml:46` (schema inline de `createThing`), con salida
+    `--format json` que incluye `ruleId`, `pointer` y `start.line`. Consecuencia: los fixtures de
+    la 001 que tienen schemas inline se corrigen para seguir siendo válidos.
 - **Alternativa rechazada**: segundo ruleset de Spectral aplicado a `paths/*.yaml` sueltos;
   funciona pero duplica configuración y no aporta nada sobre la assertion de Redocly.
 
@@ -69,7 +69,7 @@ se registran como ADR en `docs/adr/` durante la implementación (FR-020); este a
   el cuerpo de la nota es obligatoria siempre y es lo que hace la nota verificable a ojo.
 - **Semilla del glosario**: las identidades que la constitución VI ya fija en inglés
   (`merchant`, `event`, `session`, `visitor`, `order`, `decision`) con `fuente:
-  constitucion#VI`, `estado: aprobado` y `uso: pendiente` (ningún contrato las usa todavía).
+constitucion#VI`, `estado: aprobado` y `uso: pendiente` (ningún contrato las usa todavía).
   No se traduce nada nuevo: traducir es una decisión (regla tomada de las-animas).
 
 ## R-04 ADRs y marcadores
@@ -101,7 +101,7 @@ se registran como ADR en `docs/adr/` durante la implementación (FR-020); este a
 - **Decisión (DECIDIDO)**: extensión `x-required-capabilities` (array de strings no vacío,
   forma `<recurso>:<accion>`, p. ej. `events:write`) obligatoria cuando la operación tiene
   `security` no vacío (propio o heredado del root) y prohibida cuando es pública (`security:
-  []`). Regla Spectral `ope-required-capabilities`, resuelta, misma función auxiliar de
+[]`). Regla Spectral `ope-required-capabilities`, resuelta, misma función auxiliar de
   `ope-required-error-responses` para decidir si está autenticada. Sin operación real que la
   ejercite hasta la 003; fixtures la prueban en ambos sentidos.
 
@@ -121,26 +121,27 @@ se registran como ADR en `docs/adr/` durante la implementación (FR-020); este a
 - Capas y reglas (rutas con `(^|/)src/…` para que los fixtures bajo `tests/architecture/fixtures/src/`
   matcheen las mismas reglas):
 
-  | Capa | Puede importar | No puede |
-  |---|---|---|
-  | `src/domain/**` | `src/domain` | todo lo demás, `npm`, `core` |
-  | `src/ports/**` | `src/domain`, `src/ports` | adapters, handlers, generated, `npm`, `core` |
+  | Capa                  | Puede importar                                                                | No puede                                             |
+  | --------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
+  | `src/domain/**`       | `src/domain`                                                                  | todo lo demás, `npm`, `core`                         |
+  | `src/ports/**`        | `src/domain`, `src/ports`                                                     | adapters, handlers, generated, `npm`, `core`         |
   | `src/adapters/<x>/**` | `src/ports`, `src/domain`, `src/adapters/<x>`, `src/generated`, `npm`, `core` | otros `src/adapters/<y>`, `src/handlers`, `src/main` |
-  | `src/handlers/**` | `src/domain`, `src/ports`, `src/generated`, `src/handlers` | `src/adapters`, `src/main`, `npm` en runtime |
-  | `src/client/**` | `src/generated`, `npm` | el resto |
-  | `src/generated/**` | nada | — |
-  | `src/main.ts` | todo | nadie lo importa (`to: main` prohibido) |
+  | `src/handlers/**`     | `src/domain`, `src/ports`, `src/generated`, `src/handlers`                    | `src/adapters`, `src/main`, `npm` en runtime         |
+  | `src/client/**`       | `src/generated`, `npm`                                                        | el resto                                             |
+  | `src/generated/**`    | nada                                                                          | —                                                    |
+  | `src/main.ts`         | todo                                                                          | nadie lo importa (`to: main` prohibido)              |
 
   Más: `no-circular` y `no-orphans` (salvo `generated`).
+
 - **Reubicación del código de la 001** (sin cambio de comportamiento):
 
-  | Antes | Después | Capa |
-  |---|---|---|
-  | `src/server/build-server.ts` | `src/adapters/http/build-server.ts` | adaptador HTTP (Fastify + openapi-backend) |
-  | `src/server/problem-details.ts` | `src/adapters/http/problem-details.ts` | adaptador HTTP (DTO de error) |
-  | `src/server/handlers.ts` (tipos) | `src/handlers/typed.ts` | manejadores (tipos DTO desde generated) |
-  | `src/handlers/health.ts` | `src/handlers/health.ts` (traduce) + `src/domain/health.ts` (valor puro `serviceHealth`) + `src/ports/clock.ts` (`Clock`) + `src/adapters/clock/system-clock.ts` | las cuatro capas, con el caso más chico posible |
-  | `src/main.ts` | igual; cablea `systemClock` | composition root |
+  | Antes                            | Después                                                                                                                                                          | Capa                                            |
+  | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+  | `src/server/build-server.ts`     | `src/adapters/http/build-server.ts`                                                                                                                              | adaptador HTTP (Fastify + openapi-backend)      |
+  | `src/server/problem-details.ts`  | `src/adapters/http/problem-details.ts`                                                                                                                           | adaptador HTTP (DTO de error)                   |
+  | `src/server/handlers.ts` (tipos) | `src/handlers/typed.ts`                                                                                                                                          | manejadores (tipos DTO desde generated)         |
+  | `src/handlers/health.ts`         | `src/handlers/health.ts` (traduce) + `src/domain/health.ts` (valor puro `serviceHealth`) + `src/ports/clock.ts` (`Clock`) + `src/adapters/clock/system-clock.ts` | las cuatro capas, con el caso más chico posible |
+  | `src/main.ts`                    | igual; cablea `systemClock`                                                                                                                                      | composition root                                |
 
   `build-server` importa `Handlers` (tipos) de `src/handlers/typed.ts`: adaptador → handlers
   es import de **tipos**; la regla lo permite explícitamente sólo para `typed.ts`

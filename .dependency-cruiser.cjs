@@ -11,6 +11,8 @@
 
 // Grupo no capturante: `$1` en adapters-no-cross debe ser el nombre del adaptador.
 const SRC = "(?:^|/)src/";
+/** @param {string} name */
+/** @param {string} name */
 const layer = (name) => `${SRC}${name}/`;
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -21,7 +23,21 @@ module.exports = {
       comment: "El dominio no depende de npm ni de módulos de Node: ni en runtime ni en tipos.",
       severity: "error",
       from: { path: layer("domain") },
-      to: { dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-bundled", "npm-no-pkg", "npm-unknown", "core", "deprecated", "unknown", "undetermined"] },
+      to: {
+        dependencyTypes: [
+          "npm",
+          "npm-dev",
+          "npm-optional",
+          "npm-peer",
+          "npm-bundled",
+          "npm-no-pkg",
+          "npm-unknown",
+          "core",
+          "deprecated",
+          "unknown",
+          "undetermined",
+        ],
+      },
     },
     {
       name: "domain-no-layers",
@@ -41,7 +57,18 @@ module.exports = {
       name: "ports-are-pure",
       severity: "error",
       from: { path: layer("ports") },
-      to: { dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-bundled", "npm-no-pkg", "npm-unknown", "core"] },
+      to: {
+        dependencyTypes: [
+          "npm",
+          "npm-dev",
+          "npm-optional",
+          "npm-peer",
+          "npm-bundled",
+          "npm-no-pkg",
+          "npm-unknown",
+          "core",
+        ],
+      },
     },
     {
       name: "adapters-no-cross",
@@ -75,7 +102,19 @@ module.exports = {
       name: "handlers-no-runtime-npm",
       severity: "error",
       from: { path: layer("handlers") },
-      to: { dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-bundled", "npm-no-pkg", "npm-unknown", "core"], dependencyTypesNot: ["type-only"] },
+      to: {
+        dependencyTypes: [
+          "npm",
+          "npm-dev",
+          "npm-optional",
+          "npm-peer",
+          "npm-bundled",
+          "npm-no-pkg",
+          "npm-unknown",
+          "core",
+        ],
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "client-only-generated",
@@ -101,7 +140,10 @@ module.exports = {
       name: "no-orphans",
       comment: "Todo módulo de src/ lo usa alguien, salvo main.ts (raíz), client (entrypoint) y generated.",
       severity: "error",
-      from: { orphan: true, pathNot: [`${SRC}main\\.ts$`, layer("client"), layer("generated"), "\\.d\\.ts$"] },
+      from: {
+        orphan: true,
+        pathNot: [`${SRC}main\\.ts$`, layer("client"), layer("generated"), "\\.d\\.ts$"],
+      },
       to: {},
     },
   ],

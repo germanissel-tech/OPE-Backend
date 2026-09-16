@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { PROBLEM_NAMESPACE, PROBLEM_TYPES, problem } from "../../src/adapters/http/problem-details.js";
 
 interface Catalog {
@@ -14,7 +14,9 @@ const catalog = parse(readFileSync(path.resolve("contracts/problem-types.yaml"),
 describe("catálogo de tipos de problema", () => {
   it("el código replica exactamente contracts/problem-types.yaml", () => {
     expect(PROBLEM_NAMESPACE).toBe(catalog.namespace);
-    const fromCatalog = Object.fromEntries(catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]));
+    const fromCatalog = Object.fromEntries(
+      catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]),
+    );
     expect(PROBLEM_TYPES).toEqual(fromCatalog);
   });
 });

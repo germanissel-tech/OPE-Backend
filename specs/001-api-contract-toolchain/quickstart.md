@@ -102,7 +102,7 @@ Esperado: levanta el servidor en un puerto efímero, corre Schemathesis con `--c
 sobre `contracts/dist/openapi.yaml` y termina sin fallas. Prueba negativa: hacer que
 `getHealth` responda `203` (`OPE_HANDLERS_MODULE=tests/contract/fixtures/health-203.ts`) y
 volver a correr → falla en `GET /v1/health` (el servidor convierte el código no declarado en
-`500 response-contract-violation`; Schemathesis lo reporta como *Server error*).
+`500 response-contract-violation`; Schemathesis lo reporta como _Server error_).
 
 ## 7. Compatibilidad (FR-020)
 
@@ -127,16 +127,16 @@ Push de la rama y abrir PR: el workflow `ci` corre `contract:check`, `build`, `t
 
 Corrida completa el 2026-09-16 en Windows 11 / Node 22.23.2 (rama `001-api-contract-toolchain`).
 
-| Elemento | Estado | Evidencia |
-|---|---|---|
-| Contrato multi-archivo + 13 reglas `ope-*` + heredadas | BUILT / TESTED | `npm run contract:check` exit 0 en **9 s** (SC-002 < 30 s); `tests/contract-rules` 29/29 con un fixture por regla (SC-001) |
-| Compatibilidad (oasdiff + severidades) | BUILT / TESTED | `tests/contract-diff` 13/13: 8 incompatibles fallan, 2 compatibles pasan, bump de major pasa, sin base se omite con aviso |
-| Servidor `getHealth` (Fastify + openapi-backend) | BUILT / TESTED | `tests/integration/server.test.ts` 14/14; `curl` manual §3 (200, 400 `/query/x`, 404, 405 `Allow: GET`) |
-| Tipos de manejador (FR-046) y cliente (SC-007) | BUILT / TESTED | `npm run typecheck` exit 0 con `tests/types/*.test-d.ts` (`@ts-expect-error` en los usos incorrectos) |
-| Mock | BUILT / TESTED | `tests/integration/mock.test.ts` 3/3; `curl` manual §4 devuelve el ejemplo y el mismo 400 que el real |
-| Tipos generados y drift | BUILT / TESTED | `contract:types` dos veces → `git status` limpio (SC-006); `tests/unit/contract-types-check.test.ts` 2/2 |
-| Docs | BUILT / TESTED | `tests/unit/contract-docs.test.ts` 2/2: autocontenido (sin script/link remotos), byte a byte idéntico en dos corridas (SC-006), rechaza contrato inválido |
-| Pruebas de contrato generadas | BUILT / TESTED | `npm run test:contract` exit 0 (9 casos, 6 s); negativa con `health-203.ts` exit 1 reportando `GET /v1/health` |
-| SC-003 (texto de la operación sólo en `contracts/`) | TESTED | `grep -r "Estado del servicio"` fuera de `contracts/`, `docs/`, `specs/`: sólo `src/generated/api.d.ts` (derivado) y una aserción en `tests/unit/contract-docs.test.ts` |
-| Suite completa | TESTED | `npm test` 68/68 en 8 archivos (34 s) |
-| CI (`.github/workflows/ci.yml`) | BUILT | Sin ejecución todavía: no hay push. SC-004 (< 5 min) queda por verificar en el primer run; estimado local ≈ 1 min sin contar `npm ci`. |
+| Elemento                                               | Estado         | Evidencia                                                                                                                                                               |
+| ------------------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contrato multi-archivo + 13 reglas `ope-*` + heredadas | BUILT / TESTED | `npm run contract:check` exit 0 en **9 s** (SC-002 < 30 s); `tests/contract-rules` 29/29 con un fixture por regla (SC-001)                                              |
+| Compatibilidad (oasdiff + severidades)                 | BUILT / TESTED | `tests/contract-diff` 13/13: 8 incompatibles fallan, 2 compatibles pasan, bump de major pasa, sin base se omite con aviso                                               |
+| Servidor `getHealth` (Fastify + openapi-backend)       | BUILT / TESTED | `tests/integration/server.test.ts` 14/14; `curl` manual §3 (200, 400 `/query/x`, 404, 405 `Allow: GET`)                                                                 |
+| Tipos de manejador (FR-046) y cliente (SC-007)         | BUILT / TESTED | `npm run typecheck` exit 0 con `tests/types/*.test-d.ts` (`@ts-expect-error` en los usos incorrectos)                                                                   |
+| Mock                                                   | BUILT / TESTED | `tests/integration/mock.test.ts` 3/3; `curl` manual §4 devuelve el ejemplo y el mismo 400 que el real                                                                   |
+| Tipos generados y drift                                | BUILT / TESTED | `contract:types` dos veces → `git status` limpio (SC-006); `tests/unit/contract-types-check.test.ts` 2/2                                                                |
+| Docs                                                   | BUILT / TESTED | `tests/unit/contract-docs.test.ts` 2/2: autocontenido (sin script/link remotos), byte a byte idéntico en dos corridas (SC-006), rechaza contrato inválido               |
+| Pruebas de contrato generadas                          | BUILT / TESTED | `npm run test:contract` exit 0 (9 casos, 6 s); negativa con `health-203.ts` exit 1 reportando `GET /v1/health`                                                          |
+| SC-003 (texto de la operación sólo en `contracts/`)    | TESTED         | `grep -r "Estado del servicio"` fuera de `contracts/`, `docs/`, `specs/`: sólo `src/generated/api.d.ts` (derivado) y una aserción en `tests/unit/contract-docs.test.ts` |
+| Suite completa                                         | TESTED         | `npm test` 68/68 en 8 archivos (34 s)                                                                                                                                   |
+| CI (`.github/workflows/ci.yml`)                        | BUILT          | Sin ejecución todavía: no hay push. SC-004 (< 5 min) queda por verificar en el primer run; estimado local ≈ 1 min sin contar `npm ci`.                                  |

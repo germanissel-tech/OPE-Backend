@@ -12,17 +12,28 @@ import { bundlePath, repoRoot } from "./lib.mjs";
 // Versión fijada: la misma en local y en CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
 
+/** @returns {Promise<number>} */
 function freePort() {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.listen(0, "127.0.0.1", () => {
-      const { port } = srv.address();
-      srv.close(() => resolve(port));
+      const address = srv.address();
+      if (address === null || typeof address === "string") {
+        reject(new Error("No se pudo obtener un puerto libre"));
+        return;
+      }
+      srv.close(() => {
+        resolve(address.port);
+      });
     });
     srv.on("error", reject);
   });
 }
 
+/**
+ * @param {string} url
+ * @param {number} timeoutMs
+ */
 async function waitForHealth(url, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -38,13 +49,22 @@ async function waitForHealth(url, timeoutMs) {
   throw new Error(`El servidor no respondió en ${url} dentro de ${timeoutMs} ms`);
 }
 
+/** @returns {{ cmd: string; args: string[] }} */
 function serverCommand() {
   const built = path.join(repoRoot, "dist", "main.js");
-  if (existsSync(built) && !process.env.OPE_HANDLERS_MODULE) return [process.execPath, [built]];
+  if (existsSync(built) && !process.env["OPE_HANDLERS_MODULE"])
+    return { cmd: process.execPath, args: [built] };
   // tsx permite cargar manejadores alternativos en TypeScript (prueba negativa).
-  return [process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), path.join(repoRoot, "src", "main.ts")]];
+  return {
+    cmd: process.execPath,
+    args: [
+      path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"),
+      path.join(repoRoot, "src", "main.ts"),
+    ],
+  };
 }
 
+/** @returns {Promise<number>} */
 async function main() {
   const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
   if (uvx.status !== 0) {
@@ -57,20 +77,30 @@ async function main() {
   }
 
   const port = await freePort();
-  const [cmd, args] = serverCommand();
+  const { cmd, args } = serverCommand();
   const server = spawn(cmd, args, {
     cwd: repoRoot,
     env: { ...process.env, PORT: String(port), HOST: "127.0.0.1" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let serverLog = "";
-  server.stdout.on("data", (d) => (serverLog += d));
-  server.stderr.on("data", (d) => (serverLog += d));
+  /** @param {Buffer | string} chunk */
+  const append = (chunk) => {
+    serverLog += chunk.toString();
+  };
+  server.stdout.on("data", append);
+  server.stderr.on("data", append);
 
+  /** @returns {Promise<void>} */
   const stop = () =>
     new Promise((resolve) => {
-      if (server.exitCode !== null) return resolve();
-      server.once("exit", () => resolve());
+      if (server.exitCode !== null) {
+        resolve();
+        return;
+      }
+      server.once("exit", () => {
+        resolve();
+      });
       server.kill("SIGTERM");
       setTimeout(() => {
         if (server.exitCode === null) server.kill("SIGKILL");
@@ -108,8 +138,8 @@ async function main() {
       },
     );
     return st.status ?? 1;
-  } catch (err) {
-    console.error(`test:contract — ${err.message}`);
+  } catch (/** @type {unknown} */ err) {
+    console.error(`test:contract — ${err instanceof Error ? err.message : String(err)}`);
     console.error(serverLog);
     return 1;
   } finally {
@@ -117,4 +147,9 @@ async function main() {
   }
 }
 
-main().then((code) => process.exit(code));
+main()
+  .then((code) => process.exit(code))
+  .catch((/** @type {unknown} */ err) => {
+    console.error(`test:contract — ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });

@@ -16,5 +16,5 @@ OPE_HANDLERS_MODULE=tests/contract/fixtures/health-203.ts npm run test:contract
 
 Debe fallar en `GET /v1/health`: el manejador intenta responder `203` (no declarado), el
 servidor lo convierte en `500 response-contract-violation` (FR-043) y Schemathesis lo reporta
-como *Server error* en esa operación. Si se desactivara la validación de respuesta del
-servidor, Schemathesis lo reportaría igual como *Undocumented HTTP status code*. En PowerShell: `$env:OPE_HANDLERS_MODULE="tests/contract/fixtures/health-203.ts"; npm run test:contract`.
+como _Server error_ en esa operación. Si se desactivara la validación de respuesta del
+servidor, Schemathesis lo reportaría igual como _Undocumented HTTP status code_. En PowerShell: `$env:OPE_HANDLERS_MODULE="tests/contract/fixtures/health-203.ts"; npm run test:contract`.

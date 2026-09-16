@@ -11,7 +11,15 @@ interface Problem {
 }
 
 function lint(file: string): Problem[] {
-  const args = [path.resolve("node_modules/@redocly/cli/bin/cli.js"), "lint", path.resolve("tests/contract-rules/redocly", file), "--config", path.resolve("redocly.yaml"), "--format", "json"];
+  const args = [
+    path.resolve("node_modules/@redocly/cli/bin/cli.js"),
+    "lint",
+    path.resolve("tests/contract-rules/redocly", file),
+    "--config",
+    path.resolve("redocly.yaml"),
+    "--format",
+    "json",
+  ];
   let out: string;
   try {
     out = execFileSync(process.execPath, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });

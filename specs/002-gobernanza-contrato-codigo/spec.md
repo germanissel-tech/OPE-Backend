@@ -31,7 +31,7 @@ entre la primera operación de dominio (ingesta, feature 003). Cada regla nueva 
 prueba que demuestra que atrapa la violación, igual que en la 001. El código existente se
 reacomoda en capas sin cambiar comportamiento: todas las pruebas de la 001 siguen en verde.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Las reglas que el esquema no puede expresar quedan declaradas y probadas (Priority: P1)
 
@@ -208,7 +208,7 @@ que es la forma más común en que un contrato grande deja de ser una sola verda
 - **Archivo generado desde el contrato**: los manejadores y puertos pueden importar sus tipos;
   el dominio no lo importa (los DTO se traducen en el manejador).
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -298,7 +298,7 @@ que es la forma más común en que un contrato grande deja de ser una sola verda
 - **Capa**: dominio, puertos, adaptadores, manejadores, composition root; relación "puede
   importar de".
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

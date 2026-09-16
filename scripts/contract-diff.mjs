@@ -7,35 +7,34 @@
 // Salidas: "AVISO: sin contrato base, comparación omitida" (exit 0) cuando no hay base;
 // "Cambio incompatible esperado: versión mayor X → Y" (exit 0) con bump de major;
 // "Sin cambios incompatibles" (exit 0); o el reporte de oasdiff (exit 1).
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { parse } from "yaml";
-import { bundlePath, capture, repoRoot, runCli } from "./lib.mjs";
+import { argString, parseArgs, prop, readYaml } from "./governance-lib.mjs";
+import { bundlePath, capture, captureBuffer, repoRoot, runCli } from "./lib.mjs";
 import { resolveOasdiff } from "./oasdiff-install.mjs";
 
 const SEVERITY_FILE = path.join(repoRoot, "contracts", "oasdiff-severity.txt");
 
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === "--base") args.base = argv[++i];
-    else if (argv[i] === "--head") args.head = argv[++i];
-  }
-  return args;
-}
-
+/**
+ * @param {string} file
+ * @returns {{ version: string; major: number }}
+ */
 function majorOf(file) {
-  const doc = parse(readFileSync(file, "utf8"));
-  const version = String(doc?.info?.version ?? "");
+  const version = String(prop(prop(readYaml(file), "info"), "version") ?? "");
   const major = Number(version.split(".")[0]);
   if (!Number.isInteger(major)) throw new Error(`info.version inválida en ${file}: '${version}'`);
   return { version, major };
 }
 
-/** Resuelve la referencia git base; null si no hay ninguna disponible. */
+/**
+ * Resuelve la referencia git base; null si no hay ninguna disponible.
+ * @returns {string | null}
+ */
 function resolveBaseRef() {
-  const candidates = [process.env.CONTRACT_BASE_REF, "origin/main", "main"].filter(Boolean);
+  const candidates = [process.env["CONTRACT_BASE_REF"], "origin/main", "main"].filter(
+    (c) => typeof c === "string",
+  );
   for (const ref of candidates) {
     const { status } = capture("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
     if (status === 0) return ref;
@@ -43,7 +42,12 @@ function resolveBaseRef() {
   return null;
 }
 
-/** Copia contracts/ de la referencia base (sólo git, sin tar) y lo bundlea. Devuelve la ruta del bundle o null. */
+/**
+ * Copia contracts/ de la referencia base (sólo git, sin tar) y lo bundlea. Devuelve la ruta del bundle o null.
+ * @param {string} ref
+ * @param {string} workDir
+ * @returns {string | null}
+ */
 function bundleBase(ref, workDir) {
   const { status: hasContract } = capture("git", ["cat-file", "-e", `${ref}:contracts/openapi.yaml`]);
   if (hasContract !== 0) return null;
@@ -54,7 +58,7 @@ function bundleBase(ref, workDir) {
     .map((line) => line.trim())
     .filter(Boolean);
   for (const file of files) {
-    const content = capture("git", ["show", `${ref}:${file}`], { encoding: "buffer" });
+    const content = captureBuffer("git", ["show", `${ref}:${file}`]);
     if (content.status !== 0) throw new Error(`git show ${ref}:${file} falló`);
     const target = path.join(workDir, file);
     mkdirSync(path.dirname(target), { recursive: true });
@@ -62,26 +66,41 @@ function bundleBase(ref, workDir) {
   }
   const baseRoot = path.join(workDir, "contracts", "openapi.yaml");
   const out = path.join(workDir, "base-bundle.yaml");
-  const status = runCli("redocly", ["bundle", baseRoot, "-o", out, "--config", path.join(repoRoot, "redocly.yaml")], { stdio: "pipe" });
+  const status = runCli(
+    "redocly",
+    ["bundle", baseRoot, "-o", out, "--config", path.join(repoRoot, "redocly.yaml")],
+    { stdio: "pipe" },
+  );
   if (status !== 0) throw new Error(`No se pudo bundlear el contrato base (${ref})`);
   return out;
 }
 
+/** @returns {Promise<number>} */
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const baseArg = argString(args, "base");
+  const headArg = argString(args, "head");
+  /** @type {string | null} */
   let workDir = null;
   try {
+    /** @type {string | null} */
     let base;
+    /** @type {string} */
     let head;
+    /** @type {string} */
     let baseLabel;
-    if (args.base || args.head) {
-      if (!args.base || !args.head) throw new Error("Usá --base <archivo> y --head <archivo> juntos");
-      base = path.resolve(args.base);
-      head = path.resolve(args.head);
-      baseLabel = args.base;
+    if (baseArg !== undefined || headArg !== undefined) {
+      if (baseArg === undefined || headArg === undefined) {
+        throw new Error("Usá --base <archivo> y --head <archivo> juntos");
+      }
+      base = path.resolve(baseArg);
+      head = path.resolve(headArg);
+      baseLabel = baseArg;
       if (!existsSync(base)) base = null;
     } else {
-      if (!existsSync(bundlePath)) throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);
+      if (!existsSync(bundlePath)) {
+        throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);
+      }
       head = bundlePath;
       const ref = resolveBaseRef();
       baseLabel = ref ?? "(sin rama base)";
@@ -138,7 +157,7 @@ async function main() {
 
 main()
   .then((code) => process.exit(code))
-  .catch((err) => {
-    console.error(`contract:diff — ${err.message}`);
+  .catch((/** @type {unknown} */ err) => {
+    console.error(`contract:diff — ${err instanceof Error ? err.message : String(err)}`);
     process.exit(2);
   });

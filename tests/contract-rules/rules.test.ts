@@ -1,7 +1,7 @@
 // FR-052 / SC-001: cada regla de verificación del contrato tiene un fixture que la viola y una
 // prueba que confirma que la verificación falla nombrando esa regla, con archivo y posición.
-import { createRequire } from "node:module";
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { Document, Spectral, type ISpectralDiagnostic, type Ruleset } from "@stoplight/spectral-core";
 import * as Parsers from "@stoplight/spectral-parsers";
@@ -11,10 +11,12 @@ const fixturesDir = path.resolve("tests/contract-rules/fixtures");
 const rulesetPath = path.resolve("contracts/.spectral.yaml");
 
 // Fixtures que deben pasar sin errores ni warnings.
-const VALID = ["valid.yaml", "merchant-id-in-response.yaml", "valid-invariants.yaml", "valid-capabilities.yaml"];
-
-const ERROR = 0; // DiagnosticSeverity.Error
-const WARNING = 1;
+const VALID = [
+  "valid.yaml",
+  "merchant-id-in-response.yaml",
+  "valid-invariants.yaml",
+  "valid-capabilities.yaml",
+];
 
 let spectral: Spectral;
 
@@ -25,6 +27,12 @@ const require = createRequire(import.meta.url);
 const { getRuleset } = require("@stoplight/spectral-cli/dist/services/linter/utils/getRuleset.js") as {
   getRuleset: (file: string) => Promise<Ruleset>;
 };
+
+// La severidad es el enum DiagnosticSeverity de la copia de @stoplight/types que usa
+// spectral-core; se toma del propio tipo del diagnóstico para no depender de otra copia.
+type Severity = ISpectralDiagnostic["severity"];
+const ERROR = 0 as Severity;
+const WARNING = 1 as Severity;
 
 async function lint(file: string): Promise<ISpectralDiagnostic[]> {
   const full = path.join(fixturesDir, file);
@@ -43,10 +51,13 @@ describe("reglas del contrato (contracts/.spectral.yaml)", () => {
 
   it("hay un fixture por cada regla propia (ope-*) del ruleset", () => {
     const ruleset = readFileSync(rulesetPath, "utf8");
-    const opeRules = [...ruleset.matchAll(/^  (ope-[a-z0-9-]+):$/gm)].map((m) => m[1]);
+    const opeRules = [...ruleset.matchAll(/^ {2}(ope-[a-z0-9-]+):$/gm)].map((m) => m[1]);
     expect(opeRules.length).toBeGreaterThanOrEqual(13);
     for (const rule of opeRules) {
-      expect(violating.some((f) => f === `${rule}.yaml` || f.startsWith(`${rule}.`)), `falta fixture para ${rule}`).toBe(true);
+      expect(
+        violating.some((f) => f === `${rule}.yaml` || f.startsWith(`${rule}.`)),
+        `falta fixture para ${rule}`,
+      ).toBe(true);
     }
   });
 
@@ -60,7 +71,10 @@ describe("reglas del contrato (contracts/.spectral.yaml)", () => {
     const rule = file.replace(/\.yaml$/, "").split(".")[0];
     const results = await lint(file);
     const hits = results.filter((r) => r.code === rule && r.severity === ERROR);
-    expect(hits.length, `sin error ${rule}; obtenido: ${results.map((r) => r.code).join(", ")}`).toBeGreaterThan(0);
+    expect(
+      hits.length,
+      `sin error ${rule}; obtenido: ${results.map((r) => r.code).join(", ")}`,
+    ).toBeGreaterThan(0);
     for (const hit of hits) {
       expect(hit.source).toContain(file);
       expect(hit.range.start.line).toBeGreaterThanOrEqual(0);

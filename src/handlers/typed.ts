@@ -15,7 +15,9 @@ export type OperationsMap<Ops> = { [Id in keyof Ops]: OperationShape };
 
 type Content<R> = R extends { content: infer C } ? C[keyof C] : undefined;
 
-type Body<Op extends OperationShape> = Op["requestBody"] extends { content: infer C } ? C[keyof C] : undefined;
+type Body<Op extends OperationShape> = Op["requestBody"] extends { content: infer C }
+  ? C[keyof C]
+  : undefined;
 
 type StatusOf<Op extends OperationShape> = Extract<keyof Op["responses"], number>;
 

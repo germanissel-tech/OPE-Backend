@@ -21,7 +21,7 @@ function diff(base: string, head: string): Outcome {
     });
     return { status: 0, output: stdout };
   } catch (err) {
-    const e = err as { status: number; stdout: string; stderr: string };
+    const e = err as { status: number; stdout?: string; stderr?: string };
     return { status: e.status, output: `${e.stdout ?? ""}${e.stderr ?? ""}` };
   }
 }

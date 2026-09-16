@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url";
 import { stringify } from "yaml";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+// Los fixtures se construyen mutando objetos JSON libres; el tipo es deliberadamente laxo
+// (cualquier objeto con claves string) porque cada mutador rompe una parte distinta del contrato.
+/** @typedef {Record<string, any>} Doc */
+/** @typedef {(d: Doc) => Doc} Mutator */
 mkdirSync(out, { recursive: true });
 
 const problemSchema = () => ({
@@ -20,6 +25,12 @@ const problemSchema = () => ({
     status: { type: "integer", description: "Código HTTP." },
   },
 });
+/**
+ * @param {string} description
+ * @param {number} status
+ * @param {string} slug
+ * @returns {Doc}
+ */
 const problemResponse = (description, status, slug) => ({
   description,
   content: {
@@ -30,9 +41,15 @@ const problemResponse = (description, status, slug) => ({
   },
 });
 
+/** @returns {Doc} */
 const base = () => ({
   openapi: "3.1.0",
-  info: { title: "Fixture", version: "1.0.0", description: "Contrato mínimo de prueba.", contact: { name: "OPE" } },
+  info: {
+    title: "Fixture",
+    version: "1.0.0",
+    description: "Contrato mínimo de prueba.",
+    contact: { name: "OPE" },
+  },
   servers: [{ url: "/" }],
   tags: [{ name: "system", description: "Sistema." }],
   paths: {
@@ -44,11 +61,16 @@ const base = () => ({
         description: "Devuelve el estado.",
         security: [],
         responses: {
-          "200": {
+          200: {
             description: "OK",
-            content: { "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } } },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Health" },
+                example: { status: "ok" },
+              },
+            },
           },
-          "500": { $ref: "#/components/responses/InternalServerError" },
+          500: { $ref: "#/components/responses/InternalServerError" },
         },
       },
     },
@@ -71,6 +93,7 @@ const base = () => ({
 });
 
 /** Agrega POST /v1/things con request body válido (schema por $ref, como exige rule/media-type-schema-ref). */
+/** @param {Doc} doc */
 const withThings = (doc) => {
   doc.components.schemas.ThingCreate = {
     type: "object",
@@ -104,13 +127,18 @@ const withThings = (doc) => {
         },
       },
       responses: {
-        "201": {
+        201: {
           description: "Creada.",
-          content: { "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } } },
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Health" },
+              example: { status: "ok" },
+            },
+          },
         },
-        "400": { $ref: "#/components/responses/BadRequest" },
-        "422": { $ref: "#/components/responses/ThingUnprocessable" },
-        "500": { $ref: "#/components/responses/InternalServerError" },
+        400: { $ref: "#/components/responses/BadRequest" },
+        422: { $ref: "#/components/responses/ThingUnprocessable" },
+        500: { $ref: "#/components/responses/InternalServerError" },
       },
     },
   };
@@ -124,6 +152,11 @@ const withThings = (doc) => {
 };
 
 /** Agrega un securityScheme y vuelve autenticada la operación dada. */
+/**
+ * @param {Doc} doc
+ * @param {Doc} op
+ * @param {string[] | null} [capabilities] null: autenticada sin capacidad declarada
+ */
 const withAuth = (doc, op, capabilities = ["things:write"]) => {
   doc.components.securitySchemes = {
     ingestKey: { type: "apiKey", in: "header", name: "X-Api-Key", description: "Clave de ingesta." },
@@ -135,15 +168,22 @@ const withAuth = (doc, op, capabilities = ["things:write"]) => {
   return doc;
 };
 
+/** @param {Doc} doc @returns {Doc} */
 const health = (doc) => doc.paths["/v1/health"].get;
+/** @param {Doc} doc @returns {Doc} */
 const things = (doc) => doc.paths["/v1/things"].post;
+/** @param {Doc} doc @returns {Doc} */
 const bodySchema = (doc) => doc.components.schemas.ThingCreate;
 
+/** @type {Record<string, Mutator>} */
 const fixtures = {
   // Válidos
   "valid.yaml": (d) => withThings(d),
   "merchant-id-in-response.yaml": (d) => {
-    d.components.schemas.Health.properties.merchantId = { type: "string", description: "Merchant que respondió." };
+    d.components.schemas.Health.properties.merchantId = {
+      type: "string",
+      description: "Merchant que respondió.",
+    };
     return d;
   },
   "valid-invariants.yaml": (d) => {
@@ -156,46 +196,106 @@ const fixtures = {
   },
   "valid-capabilities.yaml": (d) => withAuth(withThings(d), things(d)),
   // FR-012
-  "operation-operationId.yaml": (d) => { delete health(d).operationId; return d; },
-  "operation-operationId-unique.yaml": (d) => { withThings(d); things(d).operationId = "getHealth"; return d; },
-  "ope-operation-id-camel-case.yaml": (d) => { health(d).operationId = "get_health"; return d; },
-  "ope-operation-summary.yaml": (d) => { delete health(d).summary; return d; },
-  "operation-description.yaml": (d) => { delete health(d).description; return d; },
-  "operation-tags.yaml": (d) => { delete health(d).tags; return d; },
+  "operation-operationId.yaml": (d) => {
+    delete health(d).operationId;
+    return d;
+  },
+  "operation-operationId-unique.yaml": (d) => {
+    withThings(d);
+    things(d).operationId = "getHealth";
+    return d;
+  },
+  "ope-operation-id-camel-case.yaml": (d) => {
+    health(d).operationId = "get_health";
+    return d;
+  },
+  "ope-operation-summary.yaml": (d) => {
+    delete health(d).summary;
+    return d;
+  },
+  "operation-description.yaml": (d) => {
+    delete health(d).description;
+    return d;
+  },
+  "operation-tags.yaml": (d) => {
+    delete health(d).tags;
+    return d;
+  },
   // FR-004
-  "ope-operation-single-tag.yaml": (d) => { health(d).tags = ["system", "admin"]; d.tags.push({ name: "admin", description: "Admin." }); return d; },
-  "ope-tags-closed-catalog.yaml": (d) => { health(d).tags = ["misc"]; d.tags = [{ name: "misc", description: "Fuera de catálogo." }]; return d; },
+  "ope-operation-single-tag.yaml": (d) => {
+    health(d).tags = ["system", "admin"];
+    d.tags.push({ name: "admin", description: "Admin." });
+    return d;
+  },
+  "ope-tags-closed-catalog.yaml": (d) => {
+    health(d).tags = ["misc"];
+    d.tags = [{ name: "misc", description: "Fuera de catálogo." }];
+    return d;
+  },
   // FR-013
-  "ope-property-description.yaml": (d) => { delete d.components.schemas.Health.properties.status.description; return d; },
+  "ope-property-description.yaml": (d) => {
+    delete d.components.schemas.Health.properties.status.description;
+    return d;
+  },
   // FR-014
-  "ope-request-example.yaml": (d) => { withThings(d); delete things(d).requestBody.content["application/json"].example; return d; },
-  "ope-success-response-example.yaml": (d) => { delete health(d).responses["200"].content["application/json"].example; return d; },
+  "ope-request-example.yaml": (d) => {
+    withThings(d);
+    delete things(d).requestBody.content["application/json"].example;
+    return d;
+  },
+  "ope-success-response-example.yaml": (d) => {
+    delete health(d).responses["200"].content["application/json"].example;
+    return d;
+  },
   // FR-015 (objeto anidado abierto)
-  "ope-request-closed-schema.yaml": (d) => { withThings(d); delete bodySchema(d).properties.meta.additionalProperties; return d; },
+  "ope-request-closed-schema.yaml": (d) => {
+    withThings(d);
+    delete bodySchema(d).properties.meta.additionalProperties;
+    return d;
+  },
   // FR-016
-  "ope-no-pii.yaml": (d) => { d.components.schemas.Health.properties.Email = { type: "string", description: "Correo." }; return d; },
+  "ope-no-pii.yaml": (d) => {
+    d.components.schemas.Health.properties.Email = { type: "string", description: "Correo." };
+    return d;
+  },
   "ope-no-pii.parameter.yaml": (d) => {
-    health(d).parameters = [{ name: "phone", in: "query", description: "Teléfono.", schema: { type: "string" } }];
+    health(d).parameters = [
+      { name: "phone", in: "query", description: "Teléfono.", schema: { type: "string" } },
+    ];
     return d;
   },
   // FR-017
   "ope-no-merchant-id-in-request.path.yaml": (d) => {
     const op = health(d);
-    op.parameters = [{ name: "merchantId", in: "path", required: true, description: "Merchant.", schema: { type: "string" } }];
+    op.parameters = [
+      {
+        name: "merchantId",
+        in: "path",
+        required: true,
+        description: "Merchant.",
+        schema: { type: "string" },
+      },
+    ];
     d.paths["/v1/merchants/{merchantId}/health"] = { get: op };
     delete d.paths["/v1/health"];
     return d;
   },
   "ope-no-merchant-id-in-request.query.yaml": (d) => {
-    health(d).parameters = [{ name: "merchant_id", in: "query", description: "Merchant.", schema: { type: "string" } }];
+    health(d).parameters = [
+      { name: "merchant_id", in: "query", description: "Merchant.", schema: { type: "string" } },
+    ];
     return d;
   },
   "ope-no-merchant-id-in-request.header.yaml": (d) => {
-    health(d).parameters = [{ name: "X-Merchant-Id", in: "header", description: "Merchant.", schema: { type: "string" } }];
+    health(d).parameters = [
+      { name: "X-Merchant-Id", in: "header", description: "Merchant.", schema: { type: "string" } },
+    ];
     return d;
   },
   "ope-no-merchant-id-in-request.cookie.yaml": (d) => {
-    health(d).parameters = [{ name: "MerchantId", in: "cookie", description: "Merchant.", schema: { type: "string" } }];
+    health(d).parameters = [
+      { name: "MerchantId", in: "cookie", description: "Merchant.", schema: { type: "string" } },
+    ];
     return d;
   },
   "ope-no-merchant-id-in-request.body.yaml": (d) => {
@@ -207,7 +307,9 @@ const fixtures = {
   "ope-error-response-problem-details.yaml": (d) => {
     health(d).responses["404"] = {
       description: "No encontrado.",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } } },
+      content: {
+        "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } },
+      },
     };
     return d;
   },
@@ -215,7 +317,9 @@ const fixtures = {
     delete d.components.schemas.ProblemDetails;
     d.components.responses.InternalServerError = {
       description: "Error.",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } } },
+      content: {
+        "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } },
+      },
     };
     return d;
   },
@@ -241,7 +345,10 @@ const fixtures = {
     return d;
   },
   // FR-003
-  "ope-path-version-prefix.yaml": (d) => { d.info.version = "2.0.0"; return d; },
+  "ope-path-version-prefix.yaml": (d) => {
+    d.info.version = "2.0.0";
+    return d;
+  },
 
   // ---- Feature 002 ----
   // ope-invariants (FR-002)

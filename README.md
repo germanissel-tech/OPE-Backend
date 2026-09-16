@@ -26,7 +26,8 @@ pruebas de contrato con Schemathesis.
 
 ```bash
 npm ci
-npm run contract:check   # lint + bundle + compatibilidad + drift de tipos
+npm run contract:check   # lint + bundle + compatibilidad + drift de tipos + gobernanza
+npm run format:check && npm run lint   # Prettier y ESLint estricto con tipos
 npm run build && npm run typecheck && npm test
 npm run test:contract    # Schemathesis contra el servidor levantado
 npm run dev              # servidor real en http://127.0.0.1:3000 (PORT, HOST)
