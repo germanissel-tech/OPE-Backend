@@ -24,7 +24,6 @@ const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
   mode: "real",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
   merchants: testMerchants,
-  handlersModule: undefined,
   ...over,
 });
 

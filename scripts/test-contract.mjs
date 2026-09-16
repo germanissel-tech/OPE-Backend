@@ -2,7 +2,7 @@
 // (FR-051, US5). Starts the server on a free port, waits for it to respond, runs
 // `uvx schemathesis` on the bundle and stops the server propagating the exit code.
 //
-// Manual negative test: OPE_HANDLERS_MODULE=tests/contract/fixtures/health-203.ts npm run test:contract
+// Manual negative test: OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import net from "node:net";
@@ -63,14 +63,14 @@ async function waitForHealth(url, timeoutMs) {
 /** @returns {{ cmd: string; args: string[] }} */
 function serverCommand() {
   const built = path.join(repoRoot, "dist", "main.js");
-  if (existsSync(built) && !process.env["OPE_HANDLERS_MODULE"])
-    return { cmd: process.execPath, args: [built] };
-  // tsx allows loading alternative handlers in TypeScript (negative test).
+  // OPE_SERVER_ENTRY: an alternative process entry in TypeScript (the negative test); tsx runs it.
+  const entry = process.env["OPE_SERVER_ENTRY"];
+  if (entry === undefined && existsSync(built)) return { cmd: process.execPath, args: [built] };
   return {
     cmd: process.execPath,
     args: [
       path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"),
-      path.join(repoRoot, "src", "main.ts"),
+      path.resolve(repoRoot, entry ?? path.join("src", "main.ts")),
     ],
   };
 }

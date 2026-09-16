@@ -17,8 +17,6 @@ export interface AppConfig {
   mode: ServerMode;
   contractPath: string;
   merchants: MerchantConfig[];
-  /** Tests only: alternative module exporting `handlers`. */
-  handlersModule: string | undefined;
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -41,7 +39,6 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     mode,
     contractPath: path.resolve(env["OPE_CONTRACT"] ?? "contracts/dist/openapi.yaml"),
     merchants: readMerchants(env, readFile, mode),
-    handlersModule: env["OPE_HANDLERS_MODULE"],
   };
 }
 

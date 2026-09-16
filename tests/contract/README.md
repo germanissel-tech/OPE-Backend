@@ -18,10 +18,12 @@ Schemathesis genera al azar caen casi siempre fuera de la tolerancia de `occurre
 ## Prueba negativa
 
 ```bash
-OPE_HANDLERS_MODULE=tests/contract/fixtures/health-203.ts npm run test:contract
+OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
 ```
 
 Debe fallar en `GET /v1/health`: el manejador intenta responder `203` (no declarado), el
 servidor lo convierte en `500 response-contract-violation` (FR-043) y Schemathesis lo reporta
 como _Server error_ en esa operación. Si se desactivara la validación de respuesta del
-servidor, Schemathesis lo reportaría igual como _Undocumented HTTP status code_. En PowerShell: `$env:OPE_HANDLERS_MODULE="tests/contract/fixtures/health-203.ts"; npm run test:contract`.
+servidor, Schemathesis lo reportaría igual como _Undocumented HTTP status code_. En PowerShell: `$env:OPE_SERVER_ENTRY="tests/contract/fixtures/health-203.ts"; npm run test:contract`.
+El fixture es una entrada de proceso completa (arranca por `composition/start.ts` con sus
+propios handlers): el servidor de producción no carga módulos desde el entorno.
