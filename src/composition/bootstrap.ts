@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { buildServer, type ContractDocument } from "../infrastructure/http/build-server.js";
 import { makeIngestEvents } from "../interface-adapters/http/controllers/ingestion/ingest-events.js";
+import { makeConfirmExposureHandler } from "../interface-adapters/http/controllers/ledger/confirm-exposure.js";
 import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
 import { INGEST_KEY_SCHEME, makeIngestKeySecurity } from "../interface-adapters/http/security/ingest-key.js";
 import { isClosable, type Ports } from "./ports.js";
@@ -45,6 +46,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
       : {
           getHealth: makeGetHealth(useCases.getServiceHealth),
           ingestEvents: makeIngestEvents(useCases.ingestBatch),
+          confirmExposure: makeConfirmExposureHandler(useCases.confirmExposure),
         };
   const handlers: Handlers = { ...wired, ...(await loadHandlersModule(config)), ...overrides.handlers };
 

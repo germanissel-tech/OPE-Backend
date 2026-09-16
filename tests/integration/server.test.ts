@@ -121,8 +121,7 @@ describe("servidor real sobre el contrato", () => {
     expect(body.detail).toContain("listThings");
   });
 
-  // Provisional (feature 004, T009): las operaciones nuevas existen en el contrato antes que su
-  // manejador. Se reemplaza por las pruebas de ingesta y exposición en US2/US4.
+  // Sobre el contrato real: una operación autenticada y declarada, sin manejador cableado, es 501.
   it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
     const s = await server(realContract, healthHandlers, {
       ingestKey: () => ({ principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } } }),
