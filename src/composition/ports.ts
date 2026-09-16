@@ -1,18 +1,12 @@
-// Typed container of ports (ADR-013). A profile has to provide every field: adding a port here
-// without providing it in a profile does not compile (FR-003).
-import type { EventDedup } from "../application/ingestion/index.js";
-import type { DecisionLedger, ExposureLedger } from "../application/ledger/index.js";
-import type { MerchantDirectory } from "../application/merchant/index.js";
-import type { Clock, IdGenerator } from "../application/shared-kernel/index.js";
+// Typed container of ports (ADR-013): the intersection of what every module declares it needs.
+// A profile has to provide every field, so a port a module adds to its slice and no profile
+// provides does not compile (FR-003).
+import type { IngestionPorts } from "./modules/ingestion.js";
+import type { LedgerPorts } from "./modules/ledger.js";
+import type { MerchantPorts } from "./modules/merchant.js";
+import type { SystemPorts } from "./modules/system.js";
 
-export interface Ports {
-  clock: Clock;
-  ids: IdGenerator;
-  merchants: MerchantDirectory;
-  eventDedup: EventDedup;
-  decisions: DecisionLedger;
-  exposures: ExposureLedger;
-}
+export type Ports = SystemPorts & MerchantPorts & IngestionPorts & LedgerPorts;
 
 /** A gateway may need to shut down (connections, timers). In memory there is nothing to close. */
 export interface Closable {

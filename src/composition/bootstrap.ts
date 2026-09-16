@@ -1,15 +1,14 @@
-// Composition root (constitution I; ADR-013): here and only here a profile builds the ports,
-// the use cases are instantiated and the controllers are wired to the contract. Which profile
-// runs is a parameter (in memory by default), never a branch on configuration; what has to
-// be closed, and in which order, is what the profile reports it created.
+// Composition root (constitution I; ADR-013): here and only here a profile builds the ports and
+// the modules wire themselves to the contract. Which profile runs is a parameter (in memory by
+// default), never a branch on configuration; what has to be closed, and in which order, is what
+// the profile reports it created; which operations exist is what the modules serve, checked
+// against the contract before listening.
 import { buildServer } from "../infrastructure/http/build-server.js";
 import { loadContract } from "../infrastructure/http/load-contract.js";
-import { makeIngestEvents } from "../interface-adapters/http/controllers/ingestion/ingest-events.js";
-import { makeConfirmExposureHandler } from "../interface-adapters/http/controllers/ledger/confirm-exposure.js";
-import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
-import { INGEST_KEY_SCHEME, makeIngestKeySecurity } from "../interface-adapters/http/security/ingest-key.js";
+import { assertEveryOperationWired } from "./coverage.js";
+import { MODULES } from "./modules/index.js";
 import { memoryProfile } from "./profiles/memory.js";
-import { buildUseCases, type UseCases } from "./use-cases.js";
+import { wireModules } from "./wiring.js";
 import type { AppConfig } from "./config.js";
 import type { Closable, Ports } from "./ports.js";
 import type { Profile } from "./profile.js";
@@ -34,15 +33,6 @@ export interface App {
   close: () => Promise<void>;
 }
 
-/** One controller per operationId of the contract (verified by tests/architecture/shape.test.ts). */
-function wireControllers(useCases: UseCases): Handlers {
-  return {
-    getHealth: makeGetHealth(useCases.getServiceHealth),
-    ingestEvents: makeIngestEvents(useCases.ingestBatch),
-    confirmExposure: makeConfirmExposureHandler(useCases.confirmExposure),
-  };
-}
-
 async function shutdown(app: FastifyInstance, closables: readonly Closable[]): Promise<void> {
   await app.close();
   for (const closable of [...closables].reverse()) await closable.close();
@@ -51,16 +41,16 @@ async function shutdown(app: FastifyInstance, closables: readonly Closable[]): P
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
   const { ports, closables } = (overrides.profile ?? memoryProfile)(config, overrides.ports ?? {});
-  const useCases = buildUseCases(ports, definition.info.version);
+  const wired = wireModules(MODULES, { ports, contractVersion: definition.info.version });
   // In mock mode the contract examples answer; wired controllers would shadow them.
-  const wired = config.mode === "mock" ? {} : wireControllers(useCases);
+  const handlers: Handlers = { ...(config.mode === "mock" ? {} : wired.handlers), ...overrides.handlers };
+  if (config.mode === "real") assertEveryOperationWired(definition, handlers);
   const app = await buildServer({
     definition,
-    handlers: { ...wired, ...overrides.handlers },
+    handlers,
     mode: config.mode,
-    // Security also runs in mock: the SDK develops against the mock with the real key (SC-006).
-    security: { [INGEST_KEY_SCHEME]: makeIngestKeySecurity(useCases.resolveIngestKey) },
-    cors: ports.merchants,
+    security: wired.security,
+    ...(wired.cors ? { cors: wired.cors } : {}),
     logger: overrides.logger ?? true,
   });
   return { app, ports, close: () => shutdown(app, closables) };

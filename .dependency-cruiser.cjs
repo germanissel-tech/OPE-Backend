@@ -7,7 +7,8 @@
 //   application        → domain, application
 //   interface-adapters → application, domain, interface-adapters, npm
 //   infrastructure     → everything but composition and main.ts
-//   composition        → everything; only main.ts (and the tests) import it
+//   composition        → everything; only main.ts (and the tests) import it. Controllers, security
+//                        handlers and use cases are imported only by composition/modules/<module>.ts
 //   main.ts            → composition and Node; nobody imports it
 //
 // Modules (inside domain/ and application/): a module imports from another only through its
@@ -105,6 +106,17 @@ module.exports = {
       severity: "error",
       from: { path: `${SRC}`, pathNot: `${SRC}(composition/|main\\.ts$)` },
       to: { path: `${SRC}composition/` },
+    },
+    {
+      name: "composition-wires-by-module",
+      comment:
+        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013).",
+      severity: "error",
+      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/modules/` },
+      to: {
+        path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "nobody-imports-main",

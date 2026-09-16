@@ -52,3 +52,28 @@ Todo verificado por dependency-cruiser con un fixture por regla (`tests/architec
 - El mapa de contextos es código revisable en cada PR; un import fuera del mapa falla el build.
 - Sin decoradores ni metadatos en runtime: el dominio y la aplicación son TypeScript plano.
 - Reemplaza a ADR-006; la tabla de capas de `CLAUDE.md` pasa a describir anillos y módulos.
+
+## Enmienda (2026-09-16): cada módulo se cablea solo; arranque fail-closed
+
+La primera versión de `bootstrap.ts` enumeraba los casos de uso (`buildUseCases`) y los
+controllers (`wireControllers`) de todos los módulos en dos mapas centrales: con tres
+operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas de la POC
+(constitución I). Se decide:
+
+1. **Un módulo por archivo en `composition/modules/<módulo>.ts`**: declara el slice de puertos
+   que necesita (`XPorts`), instancia sus casos de uso y devuelve lo que sirve
+   (`{ handlers?, security?, cors? }`). `Ports` es la intersección de los slices; un puerto
+   nuevo sin proveer en el perfil sigue sin compilar.
+2. **El root conserva la lista de módulos** (`MODULES` en `composition/modules/index.ts`), nunca
+   la de operaciones: una operación nueva toca sólo el archivo de su módulo; un módulo nuevo es
+   una línea ahí y otra en `CONTEXT_MAP`. `wireModules` falla si dos módulos sirven el mismo
+   `operationId`, el mismo esquema de seguridad o ambos declaran la política CORS.
+3. **Fail-closed en el arranque** (constitución II): en modo real, `bootstrap` comprueba que
+   toda operación declarada en el contrato tiene handler y **no arranca** si falta alguna. El
+   servidor conserva el 501 para mapas de handlers arbitrarios (FR-044 de la 001), pero en
+   producción un controller olvidado se ve al desplegar, no en un 501 bajo carga.
+4. Regla `composition-wires-by-module` en dependency-cruiser: fuera de `composition/modules/`,
+   `composition/` no importa controllers, security handlers ni casos de uso (con fixture).
+
+El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
+inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, ports?, handlers?, logger? })`.

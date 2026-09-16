@@ -35,9 +35,11 @@ Dentro de una feature que toca HTTP, el orden es:
    `src/interface-adapters/http/controllers/<módulo>/<operacion>.ts` tipado con
    `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ dominio; lee el merchant con
    `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
-   cableado en `src/composition/` (puerto en `ports.ts`, perfil en `profiles/memory.ts`, caso
-   de uso en `use-cases.ts`, controller en `bootstrap.ts`). El servidor rutea por
-   `operationId`; no hay otro mecanismo de rutas.
+   cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
+   instancia sus casos de uso y entrega sus controllers; el perfil en `profiles/memory.ts`
+   provee el puerto nuevo). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
+   `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
+   que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
    en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
    corre CI.
@@ -88,7 +90,7 @@ adentro:
 | `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                             | `domain/`, `application/`. Tampoco npm ni Node                                                        |
 | `src/interface-adapters/` | `http/` (controllers, security, tipos generados, cliente) y `gateways/<módulo>/` (implementan puertos) | `application/`, `domain/`, npm. Un gateway no importa otro gateway; un controller no importa gateways |
 | `src/infrastructure/`     | frameworks y drivers: Fastify + openapi-backend, CORS, logging                                         | todo menos `composition/` y `main.ts`                                                                 |
-| `src/composition/`        | `Ports` (contenedor tipado), perfiles, casos de uso, `bootstrap()`                                     | todo; sólo `main.ts` y las pruebas lo importan                                                        |
+| `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo), `bootstrap()`      | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`      |
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
@@ -97,9 +99,11 @@ en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
 
-**Composición** (DI manual, sin contenedor): `interface Ports` en `src/composition/ports.ts`;
-un puerto nuevo sin proveer en el perfil no compila. `bootstrap(config, { ports?, handlers?,
-logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` de
+**Composición** (DI manual, sin contenedor): cada `src/composition/modules/<módulo>.ts` declara
+sus puertos, instancia sus casos de uso y devuelve `{ handlers?, security?, cors? }`; `Ports`
+es la intersección de esos slices y un puerto nuevo sin proveer en el perfil no compila.
+`bootstrap(config, { profile?, ports?, handlers?, logger? })` devuelve `{ app, ports, close }`
+y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
 `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants de prueba por
 `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; con `OPE_MOCK=1` hay uno por defecto.
 

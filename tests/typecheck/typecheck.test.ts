@@ -57,8 +57,9 @@ describe("hardened compiler (tsconfig.json)", () => {
   it("a profile omitting a port of `Ports` does not compile (FR-003 of feature 004)", () => {
     const r = compile("tsconfig.json", [path.join(fixtures, "ports-incomplete.ts")]);
     expect(r.status).not.toBe(0);
-    // TS2741 with one missing field; TS2739 with several.
-    expect(r.output).toMatch(/TS2741|TS2739/);
+    // `Ports` is an intersection of module slices: the compiler names the slice the field is missing from.
+    expect(r.output).toMatch(/TS2322: Type '.*' is not assignable to type 'Ports'/);
+    expect(r.output).toMatch(/Property '\w+' is missing .* but required in type '\w+Ports'/);
     expect(r.output).toContain("ports-incomplete.ts");
   });
 

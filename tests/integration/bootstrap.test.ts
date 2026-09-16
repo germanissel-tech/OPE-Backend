@@ -1,9 +1,37 @@
 // US1 (FR-003, FR-005; ADR-013): the whole application comes out of the composition root, with
 // the in-memory profile and targeted replacements; close() shuts down in order.
-import { afterEach, describe, expect, it } from "vitest";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { parse, stringify } from "yaml";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
+
+/** The real contract plus one public operation nobody serves, written next to the temp files. */
+function withUnwiredOperation(operationId: string): string {
+  const bundle = parse(readFileSync("contracts/dist/openapi.yaml", "utf8")) as {
+    paths: Record<string, unknown>;
+  };
+  bundle.paths["/v1/orphans"] = {
+    get: {
+      operationId,
+      security: [],
+      responses: {
+        "200": { description: "ok", content: { "application/json": { schema: { type: "object" } } } },
+      },
+    },
+  };
+  const file = path.join(tmp, `${operationId}.yaml`);
+  writeFileSync(file, stringify(bundle));
+  return file;
+}
+
+const tmp = mkdtempSync(path.join(os.tmpdir(), "ope-bootstrap-"));
+afterAll(() => {
+  rmSync(tmp, { recursive: true, force: true });
+});
 
 let app: App | undefined;
 afterEach(async () => {
@@ -54,5 +82,14 @@ describe("bootstrap", () => {
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
     expect(json(res)).toMatchObject({ status: "ok" });
+  });
+
+  // Constitution II (fail-closed): an operation the contract declares and no module serves is
+  // found at boot, not by a 501 in production. The mock serves examples, so it needs no module.
+  it("in real mode it refuses to start when the contract declares an operation no module wires", async () => {
+    const contractPath = withUnwiredOperation("listOrphans");
+    await expect(startTestApp({}, { contractPath })).rejects.toThrow(/no module wires: listOrphans\./);
+    app = await startTestApp({}, { contractPath, mode: "mock" });
+    expect((await app.app.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
   });
 });
