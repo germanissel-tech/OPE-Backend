@@ -16,6 +16,7 @@
     "scripts/**/*.mjs",
     "contracts/rules/functions/*.js",
     "tests/contract-rules/gen-fixtures.mjs",
-    ".dependency-cruiser.cjs"
+    ".dependency-cruiser.cjs",
+    ".claude/skills/*/scripts/*.mjs"
   ]
 }

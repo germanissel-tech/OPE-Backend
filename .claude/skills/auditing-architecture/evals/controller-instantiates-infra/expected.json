@@ -1,0 +1,14 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/controller-instantiates-infra/src/interface-adapters/http/controllers/ledger/confirm-exposure.ts",
+  "line": 5,
+  "rule": { "id": "dip-controller-instantiates-infrastructure", "source": "constitution#I. Separación de autoridades" },
+  "severity": "high",
+  "evidence": "const validator = new Ajv({ allErrors: true });",
+  "proposal": {
+    "before": "const validator = new Ajv({ allErrors: true });",
+    "after": "export function makeConfirmExposure(exposures: ExposureLedger) { ... } // the gateway is wired in composition/profiles"
+  },
+  "coveringTest": "tests/architecture/shape.test.ts: \"src/ instantiates npm packages only in composition, infrastructure and gateways\"",
+  "status": "confirmed"
+}
