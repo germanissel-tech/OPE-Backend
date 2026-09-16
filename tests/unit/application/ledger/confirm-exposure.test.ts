@@ -1,4 +1,4 @@
-// US4 (FR-031, FR-052; ADR-007): invariantes de la exposición, con ledgers falsos.
+// US4 (FR-031, FR-052; ADR-007): exposure invariants, with fake ledgers.
 import { describe, expect, it } from "vitest";
 import {
   makeConfirmExposure,
@@ -60,7 +60,7 @@ const input = (over: Partial<ConfirmExposureInput> = {}): ConfirmExposureInput =
 });
 
 describe("confirmExposure", () => {
-  it("[invariant:exposure-decision-unknown] decisión inexistente o de otro merchant → rechazada", async () => {
+  it("[invariant:exposure-decision-unknown] nonexistent decision or of another merchant → rejected", async () => {
     const f = fakes([decision({ merchantId: B })]);
     const confirm = makeConfirmExposure(f);
     expect(await confirm(input())).toMatchObject({ ok: false, invariant: "exposure-decision-unknown" });
@@ -71,7 +71,7 @@ describe("confirmExposure", () => {
     expect(f.recorded).toEqual([]);
   });
 
-  it("[invariant:exposure-decision-unknown] sesión o visitante distintos de los de la decisión → misma respuesta", async () => {
+  it("[invariant:exposure-decision-unknown] session or visitor different from the decision ones → same response", async () => {
     const confirm = makeConfirmExposure(fakes([decision()]));
     expect(await confirm(input({ sessionId: asSessionId("ses_00000002") }))).toMatchObject({
       ok: false,
@@ -83,14 +83,14 @@ describe("confirmExposure", () => {
     });
   });
 
-  it("[invariant:exposure-of-no-op] decisión NO_OP → rechazada", async () => {
+  it("[invariant:exposure-of-no-op] NO_OP decision → rejected", async () => {
     const noOp = decision({ outcome: "NO_OP", reason: "decision-plane-unavailable" });
     delete noOp.intervention;
     const confirm = makeConfirmExposure(fakes([noOp]));
     expect(await confirm(input())).toMatchObject({ ok: false, invariant: "exposure-of-no-op" });
   });
 
-  it("decisión INTERVENE propia → recorded; repetida → already-recorded sin segundo registro", async () => {
+  it("own INTERVENE decision → recorded; repeated → already-recorded without a second record", async () => {
     const f = fakes([decision()]);
     const confirm = makeConfirmExposure(f);
     expect(await confirm(input())).toEqual({ ok: true, status: "recorded" });

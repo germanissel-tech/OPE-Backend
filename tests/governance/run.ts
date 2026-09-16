@@ -1,4 +1,4 @@
-// Ejecuta un script de scripts/ como proceso hijo y devuelve exit code + salida combinada.
+// Runs a script from scripts/ as a child process and returns exit code + combined output.
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 

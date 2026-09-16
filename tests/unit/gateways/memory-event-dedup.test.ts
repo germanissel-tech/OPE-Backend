@@ -1,4 +1,4 @@
-// US2 (FR-013): deduplicación por eventId dentro del merchant, con ventana declarada.
+// US2 (FR-013): deduplication by eventId within the merchant, with a declared window.
 import { describe, expect, it } from "vitest";
 import { asEventId, asMerchantId } from "../../../src/domain/shared-kernel/index.js";
 import {
@@ -16,30 +16,30 @@ function clockAt(start: number) {
 }
 
 describe("memoryEventDedup", () => {
-  it("la primera vez todos entran; la segunda, ninguno", async () => {
+  it("the first time all come in; the second, none", async () => {
     const dedup = memoryEventDedup(clockAt(0));
     expect([...(await dedup.claim(A, [e(1), e(2)]))]).toEqual([e(1), e(2)]);
     expect([...(await dedup.claim(A, [e(1), e(2)]))]).toEqual([]);
   });
 
-  it("un lote con un evento repetido y uno nuevo devuelve sólo el nuevo", async () => {
+  it("a batch with one repeated and one new event returns only the new one", async () => {
     const dedup = memoryEventDedup(clockAt(0));
     await dedup.claim(A, [e(1)]);
     expect([...(await dedup.claim(A, [e(1), e(2)]))]).toEqual([e(2)]);
   });
 
-  it("el mismo eventId repetido dentro de un lote cuenta una sola vez", async () => {
+  it("the same eventId repeated within a batch counts once", async () => {
     const dedup = memoryEventDedup(clockAt(0));
     expect([...(await dedup.claim(A, [e(1), e(1)]))]).toEqual([e(1)]);
   });
 
-  it("el mismo eventId en otro merchant es otro evento (aislamiento, FR-050)", async () => {
+  it("the same eventId in another merchant is another event (isolation, FR-050)", async () => {
     const dedup = memoryEventDedup(clockAt(0));
     await dedup.claim(A, [e(1)]);
     expect([...(await dedup.claim(B, [e(1)]))]).toEqual([e(1)]);
   });
 
-  it("ventana por tamaño: pasados los N ids por merchant, los más viejos se olvidan", async () => {
+  it("size window: past N ids per merchant, the oldest are forgotten", async () => {
     const dedup = memoryEventDedup(clockAt(0), { maxIds: 3, ttlMs: DEDUP_WINDOW.ttlMs });
     await dedup.claim(A, [e(1), e(2), e(3)]);
     await dedup.claim(A, [e(4)]);
@@ -47,7 +47,7 @@ describe("memoryEventDedup", () => {
     expect([...(await dedup.claim(A, [e(4)]))]).toEqual([]);
   });
 
-  it("ventana por tiempo: pasadas 24 h el id vuelve a entrar", async () => {
+  it("time window: after 24 h the id comes in again", async () => {
     const clock = clockAt(0);
     const dedup = memoryEventDedup(clock);
     await dedup.claim(A, [e(1)]);
@@ -57,7 +57,7 @@ describe("memoryEventDedup", () => {
     expect([...(await dedup.claim(A, [e(1)]))]).toEqual([e(1)]);
   });
 
-  it("la ventana declarada es la del contrato: 24 h o 100 000 ids por merchant", () => {
+  it("the declared window is the contract one: 24 h or 100,000 ids per merchant", () => {
     expect(DEDUP_WINDOW).toEqual({ ttlMs: 24 * 60 * 60 * 1000, maxIds: 100_000 });
   });
 });

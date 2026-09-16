@@ -1,5 +1,5 @@
-// US2 (FR-016; 01-arquitectura-mvp.md §10.2): la IP no se persiste ni se loguea; la clave de
-// ingesta y el cuerpo del request tampoco. Se captura el stream del logger y se inspecciona.
+// US2 (FR-016; 01-arquitectura-mvp.md §10.2): the IP is neither persisted nor logged; neither
+// are the ingest key and the request body. The logger stream is captured and inspected.
 import { Writable } from "node:stream";
 import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
@@ -23,8 +23,8 @@ function capturedLogger(): { logger: pino.Logger; lines: () => string[] } {
   return { logger: pino({ level: "info" }, sink), lines: () => chunks.join("").split("\n").filter(Boolean) };
 }
 
-describe("privacidad en logs", () => {
-  it("un request de ingesta no deja IP, clave, headers ni cuerpo en el log; sí método, url, reqId y merchantId", async () => {
+describe("privacy in logs", () => {
+  it("an ingest request leaves no IP, key, headers or body in the log; it does leave method, url, reqId and merchantId", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({ logger });
     const batch = batchOf(2, 1, { page: { pageType: "product", productId: "SKU-SECRETO" } });
@@ -45,10 +45,10 @@ describe("privacidad en logs", () => {
     expect(incoming?.["req"]).toMatchObject({ method: "POST", url: "/v1/events" });
     expect(incoming?.["reqId"]).toBeDefined();
     const withMerchant = entries.find((e) => e["merchantId"] === "m_a");
-    expect(withMerchant, "el merchant resuelto se loguea para operar").toBeDefined();
+    expect(withMerchant, "the resolved merchant is logged for operations").toBeDefined();
   });
 
-  it("un request rechazado por la credencial tampoco loguea la clave ni la IP", async () => {
+  it("a request rejected by the credential does not log the key or the IP either", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({ logger });
     await postEvents(app.app, batchOf(1), { key: "clave-robada", remoteAddress: "198.51.100.7" });

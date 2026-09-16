@@ -1,4 +1,4 @@
-// FR-022 / FR-023: marcadores contables y puerta de release.
+// FR-022 / FR-023: countable markers and release gate.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 
@@ -6,20 +6,20 @@ const check = (dir: string, strict = false) =>
   runScript("check-markers.mjs", ["--root", fixture("markers", dir), ...(strict ? ["--strict"] : [])]);
 
 describe("check:markers", () => {
-  it("no cuenta marcadores entre backticks ni el estado del frontmatter", () => {
+  it("does not count markers between backticks nor the frontmatter state", () => {
     const r = check("limpio", true);
     expect(r.status, r.output).toBe(0);
     expect(r.output).toContain("Marcadores: 0 abiertos, 0 propuestos, 0 placeholders");
   });
 
-  it("PROPUESTO no bloquea: pasa con aviso en modo estricto", () => {
+  it("PROPUESTO does not block: passes with a warning in strict mode", () => {
     expect(check("propuesto").status).toBe(0);
     const strict = check("propuesto", true);
     expect(strict.status).toBe(0);
     expect(strict.output).toContain("aviso: 1 PROPUESTO");
   });
 
-  it("lista ABIERTO y PLACEHOLDER con archivo, línea y texto; bloquea en modo estricto", () => {
+  it("lists ABIERTO and PLACEHOLDER with file, line and text; blocks in strict mode", () => {
     const list = check("bloqueante");
     expect(list.status).toBe(0);
     expect(list.output).toContain("docs/a.md:3: ABIERTO — Hosting: ABIERTO hasta D3.");

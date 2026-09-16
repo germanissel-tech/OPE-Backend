@@ -1,6 +1,6 @@
-// US1 (FR-001..FR-003, FR-051): cada regla clave de lint atrapa su fixture; el fixture válido
-// pasa limpio. Usa la misma configuración que `npm run lint`, sólo quitando la exclusión de
-// fixtures y apuntando el parser al tsconfig que los incluye.
+// US1 (FR-001..FR-003, FR-051): every key lint rule catches its fixture; the valid fixture
+// passes clean. Uses the same configuration as `npm run lint`, only removing the fixture
+// exclusion and pointing the parser at the tsconfig that includes them.
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { ESLint, type Linter } from "eslint";
@@ -27,8 +27,8 @@ const expected: Record<string, string> = {
 let eslint: ESLint;
 
 beforeAll(async () => {
-  // La misma configuración de `npm run lint`, sin el bloque de `ignores` (los fixtures están
-  // excluidos a propósito) y con el parser apuntando al tsconfig que sí los incluye.
+  // The same configuration as `npm run lint`, without the `ignores` block (fixtures are
+  // excluded on purpose) and with the parser pointing at the tsconfig that does include them.
   const mod = (await import(pathToFileURL(path.resolve("eslint.config.mjs")).href)) as {
     default: Linter.Config[];
   };
@@ -55,22 +55,22 @@ async function lint(file: string): Promise<{ ruleId: string | null; severity: nu
   }));
 }
 
-describe("lint: tipado fuerte que se hace cumplir", () => {
-  it.each(Object.entries(expected))("%s falla con %s", async (file, rule) => {
+describe("lint: strong typing that is enforced", () => {
+  it.each(Object.entries(expected))("%s fails with %s", async (file, rule) => {
     const messages = await lint(file);
     const hit = messages.find((m) => m.ruleId === rule);
-    expect(hit, `sin ${rule}; obtenido: ${messages.map((m) => m.ruleId).join(", ")}`).toBeDefined();
+    expect(hit, `no ${rule}; got: ${messages.map((m) => m.ruleId).join(", ")}`).toBeDefined();
     expect(hit?.severity).toBe(2);
   });
 
-  it("unused-disable.ts falla: una directiva que ya no aplica es un error (core de ESLint)", async () => {
+  it("unused-disable.ts fails: a directive that no longer applies is an error (ESLint core)", async () => {
     const messages = await lint("unused-disable.ts");
     const hit = messages.find((m) => m.message.includes(["Unused eslint", "disable directive"].join("-")));
     expect(hit, `obtenido: ${JSON.stringify(messages)}`).toBeDefined();
     expect(hit?.severity).toBe(2);
   });
 
-  it("valid.ts pasa sin mensajes", async () => {
+  it("valid.ts passes without messages", async () => {
     expect(await lint("valid.ts")).toEqual([]);
   });
 });

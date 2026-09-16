@@ -1,5 +1,5 @@
-// FR-050, SC-005 (constitución V): aislamiento entre merchants, en una sola suite legible.
-// A y B son los merchants de tests/helpers/test-app.ts; cada caso nombra a los dos.
+// FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
+// A and B are the merchants of tests/helpers/test-app.ts; each case names both.
 import { afterEach, describe, expect, it } from "vitest";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
@@ -43,15 +43,15 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
   await app.ports.decisions.record(decision);
 }
 
-describe("aislamiento entre merchants", () => {
-  it("deduplicación: el mismo eventId en A y en B entra en los dos", async () => {
+describe("isolation between merchants", () => {
+  it("deduplication: the same eventId in A and in B comes in for both", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     expect(await ingest(A.key)).toMatchObject({ accepted: 2, duplicates: 0 });
     expect(await ingest(B.key)).toMatchObject({ accepted: 2, duplicates: 0 });
     expect(await ingest(A.key)).toMatchObject({ accepted: 0, duplicates: 2 });
   });
 
-  it("decisiones: una decisión de A no existe para B (ni por el puerto ni por HTTP)", async () => {
+  it("decisions: a decision of A does not exist for B (neither through the port nor through HTTP)", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const { decision } = await ingest(A.key);
     expect(await app.ports.decisions.find(A.id as never, decision.decisionId as never)).toBeDefined();
@@ -61,7 +61,7 @@ describe("aislamiento entre merchants", () => {
     expect(problemOf(res).type).toBe("urn:ope:problem:exposure-decision-unknown");
   });
 
-  it("exposiciones: A expone su intervención; B no la ve ni puede exponerla", async () => {
+  it("exposures: A exposes its intervention; B neither sees it nor can expose it", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     await intervene(A.id, "dec_de_a_00001");
     expect((await postExposure(app.app, exposureOf("dec_de_a_00001"), { key: A.key })).statusCode).toBe(201);
@@ -70,7 +70,7 @@ describe("aislamiento entre merchants", () => {
     expect(asB.statusCode).toBe(422);
   });
 
-  it("orígenes: la clave de A con el Origin de B → 403; cada uno con su origen → pasa", async () => {
+  it("origins: the key of A with the Origin of B → 403; each with its own origin → passes", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const crossed = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), {
       key: A.key,
@@ -89,7 +89,7 @@ describe("aislamiento entre merchants", () => {
     expect([ownA.statusCode, ownB.statusCode]).toEqual([202, 202]);
   });
 
-  it("credenciales: la clave de B no resuelve a A; ninguna respuesta nombra al otro merchant", async () => {
+  it("credentials: the key of B does not resolve to A; no response names the other merchant", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const { decision } = await ingest(A.key);
     const res = await postExposure(app.app, exposureOf(decision.decisionId), { key: B.key });

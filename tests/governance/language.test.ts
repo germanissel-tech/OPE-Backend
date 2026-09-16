@@ -14,7 +14,9 @@ describe("check:language", () => {
   it("fails naming file, line and fragment for accents, words without accents, strings and YAML", () => {
     expect(r.status).toBe(1);
     expect(r.output).toContain("accent.ts:1:");
+    // lang:es -- the fixture content under test is Spanish on purpose
     expect(r.output).toContain("words-only.ts:1: // lista de eventos para el lote");
+    // lang:es -- idem
     expect(r.output).toContain('string.ts:2: "El lote es invalido"');
     expect(r.output).toContain("spanish.yaml:4:");
   });

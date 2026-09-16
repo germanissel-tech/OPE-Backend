@@ -1,6 +1,6 @@
-// FR-053, SC-003: latencia de la ingesta medida por percentil sobre el perfil en memoria.
-// Es una medición reportada, no un SLA: si CI resultara ruidoso, la política del plan es relajar
-// la aserción y conservar el reporte (specs/004-protocolo-sdk-ingesta/plan.md).
+// FR-053, SC-003: ingestion latency measured by percentile on the in-memory profile.
+// It is a reported measurement, not an SLA: if CI turns out noisy, the plan's policy is to relax
+// the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
@@ -23,9 +23,9 @@ function percentile(sorted: number[], p: number): number {
   return sorted[Math.max(0, index)] ?? 0;
 }
 
-describe("latencia de POST /v1/events (perfil en memoria)", () => {
-  it(`p95 de ${BATCHES} lotes de ${EVENTS_PER_BATCH} eventos por debajo de ${P95_BUDGET_MS} ms`, async () => {
-    // Calentamiento: JIT y primeras compilaciones de validadores no cuentan.
+describe("latency of POST /v1/events (in-memory profile)", () => {
+  it(`p95 of ${BATCHES} batches of ${EVENTS_PER_BATCH} events under ${P95_BUDGET_MS} ms`, async () => {
+    // Warm-up: JIT and first validator compilations do not count.
     for (let i = 0; i < 10; i += 1) {
       await postEvents(app.app, batchOf(EVENTS_PER_BATCH, 1_000_000 + i * EVENTS_PER_BATCH), {
         key: "key-a-1",

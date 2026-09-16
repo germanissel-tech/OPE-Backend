@@ -1,4 +1,4 @@
-# Fixture de tests/contract-diff (FR-020): compat-add-enum-in-request. Se compara contra base.yaml.
+# Fixture of tests/contract-diff (FR-020): compat-add-enum-in-request. Compared against base.yaml.
 openapi: 3.1.0
 info:
   title: Fixture diff

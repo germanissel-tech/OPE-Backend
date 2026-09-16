@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { serviceHealth } from "../../src/domain/system/index.js";
 
 describe("serviceHealth (dominio)", () => {
-  it("es una función pura del reloj y la versión del contrato", () => {
+  it("is a pure function of the clock and the contract version", () => {
     const now = new Date("2026-09-16T12:00:00.000Z");
     expect(serviceHealth({ now, contractVersion: "1.0.0" })).toEqual({
       status: "ok",

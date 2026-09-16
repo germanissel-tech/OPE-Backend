@@ -1,4 +1,4 @@
-// FR-011..FR-013: el lenguaje ubicuo se verifica contra el contrato.
+// FR-011..FR-013: the ubiquitous language is verified against the contract.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 
@@ -17,55 +17,55 @@ const check = (dir: string) => {
 };
 
 describe("check:glossary", () => {
-  it("pasa cuando todo sustantivo resuelve y toda nota tiene fuente", () => {
+  it("passes when every noun resolves and every note has a source", () => {
     const r = check("ok");
     expect(r.status, r.output).toBe(0);
     expect(r.output).toContain("Glosario: 1 términos, todos con fuente; 1 usados en el contrato");
   });
 
-  it("un schema en PascalCase resuelve al valor de cable en snake_case, y un plural en -es a su singular", () => {
-    const r = check("valor-de-cable");
+  it("a PascalCase schema resolves to the snake_case wire value, and an -es plural to its singular", () => {
+    const r = check("wire-value");
     expect(r.status, r.output).toBe(0);
     expect(r.output).toContain("3 usados en el contrato");
   });
 
-  it("falla ante un sustantivo del contrato sin nota", () => {
-    const r = check("huerfano");
+  it("fails on a contract noun without a note", () => {
+    const r = check("orphan");
     expect(r.status).toBe(1);
     expect(r.output).toContain("gadgets");
   });
 
-  it("falla ante una nota sin fuente", () => {
-    const r = check("sin-fuente");
+  it("fails on a note without a source", () => {
+    const r = check("no-source");
     expect(r.status).toBe(1);
     expect(r.output).toMatch(/widget\.md: falta `fuente`/);
   });
 
-  it("falla ante una fuente inexistente cuando los documentos del MVP están disponibles", () => {
-    const r = check("fuente-inexistente");
+  it("fails on a nonexistent source when the MVP documents are available", () => {
+    const r = check("missing-source");
     expect(r.status).toBe(1);
-    expect(r.output).toContain("99-nada.md");
+    expect(r.output).toContain("99-none.md");
   });
 
-  it("falla ante una nota sin uso que no declara `uso`", () => {
-    const r = check("sin-uso");
+  it("fails on an unused note that does not declare `uso`", () => {
+    const r = check("unused");
     expect(r.status).toBe(1);
     expect(r.output).toContain("sobrante");
   });
 
-  it("pasa si la nota sin uso declara `uso: pendiente`", () => {
-    const r = check("uso-declarado");
+  it("passes if the unused note declares `uso: pendiente`", () => {
+    const r = check("use-declared");
     expect(r.status, r.output).toBe(0);
   });
 
-  it("con el directorio del MVP presente pero sin documentos (como en CI) avisa y no falla", () => {
-    const r = check("mvp-vacio");
+  it("with the MVP directory present but without documents (as in CI) it warns and does not fail", () => {
+    const r = check("mvp-empty");
     expect(r.status, r.output).toBe(0);
     expect(r.output).toContain("aviso");
   });
 
-  it("sin el directorio de documentos del MVP avisa y no falla", () => {
-    const r = check("mvp-ausente");
+  it("without the MVP documents directory it warns and does not fail", () => {
+    const r = check("mvp-absent");
     expect(r.status, r.output).toBe(0);
     expect(r.output).toContain("aviso");
     expect(r.output).toContain("OPE_MVP_DOCS");

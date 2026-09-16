@@ -1,5 +1,5 @@
-// US4: documentación estática autocontenida desde el contrato; determinista; se rehúsa si el
-// contrato no pasa la verificación (FR-032, SC-006).
+// US4: self-contained static documentation from the contract; deterministic; refuses if the
+// contract does not pass verification (FR-032, SC-006).
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -14,7 +14,7 @@ function docs(env: Record<string, string> = {}): { status: number; output: strin
 }
 
 describe("contract:docs", () => {
-  it("genera un HTML autocontenido con la operación, ejemplo y errores, idéntico en dos corridas", () => {
+  it("generates a self-contained HTML with the operation, example and errors, identical in two runs", () => {
     const first = docs();
     expect(first.status, first.output).toBe(0);
     const html = readFileSync(output, "utf8");
@@ -22,7 +22,7 @@ describe("contract:docs", () => {
     expect(html).toContain("Service status");
     expect(html).toContain("application/problem+json");
     expect(html).toContain("2026-09-16T12:00:00Z");
-    // Autocontenido: sin scripts ni hojas de estilo remotas.
+    // Self-contained: no remote scripts or stylesheets.
     expect(html).not.toMatch(/<script[^>]*src="https?:/);
     expect(html).not.toMatch(/<link[^>]*href="https?:/);
 
@@ -31,7 +31,7 @@ describe("contract:docs", () => {
     expect(readFileSync(output, "utf8")).toBe(html);
   });
 
-  it("se rehúsa a generar documentación de un contrato que no pasa la verificación", () => {
+  it("refuses to generate documentation for a contract that does not pass verification", () => {
     const before = existsSync(output) ? statSync(output).mtimeMs : null;
     const result = docs({ OPE_CONTRACT_ROOT: path.resolve("tests/contract-rules/fixtures/ope-no-pii.yaml") });
     expect(result.status).not.toBe(0);

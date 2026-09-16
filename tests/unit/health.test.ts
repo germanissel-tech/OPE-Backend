@@ -8,7 +8,7 @@ describe("getHealth", () => {
     makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now: () => fixed } }),
   );
 
-  it("responde 200 con status, versión del contrato y timestamp del reloj inyectado", async () => {
+  it("responds 200 with status, contract version and timestamp of the injected clock", async () => {
     const res = await handler({
       operationId: "getHealth",
       instance: "/v1/health",
@@ -27,7 +27,7 @@ describe("getHealth", () => {
     });
   });
 
-  it("es una función pura: dos llamadas con el mismo reloj devuelven lo mismo", async () => {
+  it("is a pure function: two calls with the same clock return the same", async () => {
     const req = {
       operationId: "getHealth" as const,
       instance: "/v1/health",

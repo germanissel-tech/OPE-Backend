@@ -1,6 +1,6 @@
-// US5 (FR-040; ADR-014): sólo la tienda del merchant puede hablar con el backend desde el
-// navegador. El preflight acepta cualquier origen registrado (no trae credencial); el request
-// real exige el par credencial + origen.
+// US5 (FR-040; ADR-014): only the merchant's store can talk to the backend from the browser.
+// The preflight accepts any registered origin (it carries no credential); the real request
+// demands the pair credential + origin.
 import { afterEach, describe, expect, it } from "vitest";
 import { problemOf } from "../helpers/json.js";
 import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
@@ -23,8 +23,8 @@ const preflight = (a: App, origin: string) =>
     },
   });
 
-describe("orígenes por merchant", () => {
-  it("preflight desde un origen registrado → 204 con Allow-Origin, el método y el header de la clave", async () => {
+describe("origins per merchant", () => {
+  it("preflight from a registered origin → 204 with Allow-Origin, the method and the key header", async () => {
     app = await startTestApp();
     const res = await preflight(app, "https://a.example");
     expect(res.statusCode).toBe(204);
@@ -33,40 +33,40 @@ describe("orígenes por merchant", () => {
     expect(String(res.headers["access-control-allow-headers"]).toLowerCase()).toContain("x-ope-ingest-key");
   });
 
-  it("preflight desde un origen que ningún merchant registró → sin Allow-Origin", async () => {
+  it("preflight from an origin no merchant registered → no Allow-Origin", async () => {
     app = await startTestApp();
     const res = await preflight(app, "https://nadie.example");
     expect(res.headers["access-control-allow-origin"]).toBeUndefined();
   });
 
-  it("el preflight no cae en la ruta comodín del contrato (no responde 405)", async () => {
+  it("the preflight does not land on the contract wildcard route (no 405)", async () => {
     app = await startTestApp();
     const res = await preflight(app, "https://b.example");
     expect(res.statusCode).not.toBe(405);
     expect(res.statusCode).toBe(204);
   });
 
-  it("[invariant:origin-not-allowed] clave de un merchant con Origin de otro → 403", async () => {
+  it("[invariant:origin-not-allowed] key of one merchant with the Origin of another → 403", async () => {
     app = await startTestApp();
     const res = await postEvents(app.app, batchOf(1), { key: "key-a-1", origin: "https://b.example" });
     expect(res.statusCode).toBe(403);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:origin-not-allowed", status: 403 });
   });
 
-  it("clave y Origin del mismo merchant → pasa la seguridad y trae Allow-Origin en la respuesta", async () => {
+  it("key and Origin of the same merchant → passes security and carries Allow-Origin in the response", async () => {
     app = await startTestApp();
     const res = await postEvents(app.app, batchOf(1), { key: "key-a-1", origin: "https://a.example" });
     expect([401, 403]).not.toContain(res.statusCode);
     expect(res.headers["access-control-allow-origin"]).toBe("https://a.example");
   });
 
-  it("sin Origin (servidor a servidor, pruebas) se procesa con normalidad", async () => {
+  it("without Origin (server to server, tests) it is processed normally", async () => {
     app = await startTestApp();
     const res = await postEvents(app.app, batchOf(1), { key: "key-a-1" });
     expect([401, 403]).not.toContain(res.statusCode);
   });
 
-  it("no habilita credenciales de navegador (cookies) ni orígenes comodín", async () => {
+  it("enables neither browser credentials (cookies) nor wildcard origins", async () => {
     app = await startTestApp();
     const res = await preflight(app, "https://a.example");
     expect(res.headers["access-control-allow-credentials"]).toBeUndefined();

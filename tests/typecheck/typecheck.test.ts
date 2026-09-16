@@ -1,14 +1,14 @@
-// US3 (FR-020) y US4 (FR-030): tipos en los scripts JavaScript y compilador endurecido.
-// Cada fixture se compila con un tsconfig temporal que extiende el del repo e incluye sólo ese
-// archivo; se afirma el código de error esperado.
+// US3 (FR-020) and US4 (FR-030): types in the JavaScript scripts and hardened compiler.
+// Each fixture is compiled with a temporary tsconfig extending the repo one and including only
+// that file; the expected error code is asserted.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-// El compilador que usan `build` y `typecheck` es TypeScript 7 (`@typescript/native`, ADR-017);
-// `node_modules/typescript` es la API 6.0 para las herramientas y no compila el repo.
+// The compiler `build` and `typecheck` use is TypeScript 7 (`@typescript/native`, ADR-017);
+// `node_modules/typescript` is the 6.0 API for the tools and does not compile the repo.
 const tsc = path.resolve("node_modules/@typescript/native/bin/tsc");
 const fixtures = path.resolve("tests/typecheck/fixtures");
 const dir = mkdtempSync(path.join(os.tmpdir(), "ope-typecheck-"));
@@ -22,7 +22,7 @@ function compile(base: string, files: string[]): { status: number; output: strin
     config,
     JSON.stringify({
       extends: path.resolve(base),
-      // El tsconfig temporal vive fuera del repo: se le indica dónde están los tipos de Node.
+      // The temporary tsconfig lives outside the repo: it is told where the Node types are.
       compilerOptions: {
         noEmit: true,
         rootDir: path.resolve("."),
@@ -41,23 +41,23 @@ function compile(base: string, files: string[]): { status: number; output: strin
   }
 }
 
-describe("compilador endurecido (tsconfig.json)", () => {
+describe("hardened compiler (tsconfig.json)", () => {
   it.each([
     ["index-signature-dot.ts", "TS4111"],
-    // TS 7 emite TS2882 (código propio para side-effect import inexistente); TS ≤ 6 daba TS2307.
+    // TS 7 emits TS2882 (a code of its own for a nonexistent side-effect import); TS ≤ 6 gave TS2307.
     ["side-effect-import.ts", "TS2882"],
     ["erasable-enum.ts", "TS1294"],
-  ])("%s falla con %s", (file, code) => {
+  ])("%s fails with %s", (file, code) => {
     const r = compile("tsconfig.json", [path.join(fixtures, file)]);
     expect(r.status).not.toBe(0);
     expect(r.output).toContain(code);
     expect(r.output).toContain(file);
   });
 
-  it("un perfil que omite un puerto de `Ports` no compila (FR-003 de la feature 004)", () => {
+  it("a profile omitting a port of `Ports` does not compile (FR-003 of feature 004)", () => {
     const r = compile("tsconfig.json", [path.join(fixtures, "ports-incomplete.ts")]);
     expect(r.status).not.toBe(0);
-    // TS2741 con un campo faltante; TS2739 con varios.
+    // TS2741 with one missing field; TS2739 with several.
     expect(r.output).toMatch(/TS2741|TS2739/);
     expect(r.output).toContain("ports-incomplete.ts");
   });
@@ -68,20 +68,20 @@ describe("compilador endurecido (tsconfig.json)", () => {
   });
 });
 
-describe("tipos en scripts JavaScript (tsconfig.scripts.json, checkJs)", () => {
-  it("una propiedad inexistente en un script falla con TS2339/TS2551 nombrando el archivo", () => {
+describe("types in JavaScript scripts (tsconfig.scripts.json, checkJs)", () => {
+  it("a nonexistent property in a script fails with TS2339/TS2551 naming the file", () => {
     const r = compile("tsconfig.scripts.json", [
       path.join(fixtures, "bad-script.mjs"),
       "scripts/governance-lib.mjs",
       "scripts/lib.mjs",
     ]);
     expect(r.status).not.toBe(0);
-    // TS2551 es TS2339 con sugerencia ("¿quisiste decir length?").
+    // TS2551 is TS2339 with a suggestion ("did you mean length?").
     expect(r.output).toMatch(/TS2339|TS2551/);
     expect(r.output).toContain("bad-script.mjs");
   });
 
-  it("el chequeo no cambia el runtime: el script se ejecuta con node tal cual", () => {
+  it("the check does not change the runtime: the script runs with node as is", () => {
     const out = execFileSync(process.execPath, [path.join(fixtures, "bad-script.mjs")], { encoding: "utf8" });
     expect(out.trim()).toBe("undefined");
   });

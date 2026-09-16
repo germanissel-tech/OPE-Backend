@@ -1,6 +1,6 @@
-// US8 (FR-070, SC-008; ADR-017): el compilador que ejecuta `build`/`typecheck` es TypeScript 7 y
-// la API que importan las herramientas (typescript-eslint, openapi-typescript, dependency-cruiser)
-// es la 6.0, instalada con el alias que Microsoft documenta para la convivencia.
+// US8 (FR-070, SC-008; ADR-017): the compiler running `build`/`typecheck` is TypeScript 7 and
+// the API the tools import (typescript-eslint, openapi-typescript, dependency-cruiser) is 6.0,
+// installed with the alias Microsoft documents for the side-by-side setup.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -9,19 +9,19 @@ import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 
-describe("compilador vigente (ADR-017)", () => {
-  it("`tsc` es TypeScript 7", () => {
+describe("current compiler (ADR-017)", () => {
+  it("`tsc` is TypeScript 7", () => {
     const tsc = path.resolve("node_modules/@typescript/native/bin/tsc");
     const out = execFileSync(process.execPath, [tsc, "--version"], { encoding: "utf8" });
     expect(out.trim()).toMatch(/^Version 7\./);
   });
 
-  it('`require("typescript")` es la API 6.0', () => {
+  it('`require("typescript")` is the 6.0 API', () => {
     const ts = require("typescript") as { version: string };
     expect(ts.version).toMatch(/^6\.0\./);
   });
 
-  it("package.json declara el alias de convivencia", () => {
+  it("package.json declares the side-by-side alias", () => {
     const pkg = JSON.parse(readFileSync(path.resolve("package.json"), "utf8")) as {
       devDependencies: Record<string, string>;
     };

@@ -1,5 +1,5 @@
-// US3 escenarios 4 y 5: el chequeo de drift falla si los tipos generados están desactualizados
-// o fueron editados a mano, y pasa cuando coinciden con la regeneración.
+// US3 scenarios 4 and 5: the drift check fails if the generated types are outdated or were
+// edited by hand, and passes when they match the regeneration.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -30,13 +30,13 @@ function check(typesFile: string): { status: number; output: string } {
 }
 
 describe("contract:types:check", () => {
-  it("pasa cuando el archivo commiteado coincide con la regeneración", () => {
+  it("passes when the committed file matches the regeneration", () => {
     const result = check(generated);
     expect(result.status, result.output).toBe(0);
     expect(result.output).toContain("Tipos generados al día");
   });
 
-  it("falla cuando el archivo fue editado a mano", () => {
+  it("fails when the file was edited by hand", () => {
     dir = mkdtempSync(path.join(os.tmpdir(), "ope-types-"));
     const copy = path.join(dir, "api.d.ts");
     copyFileSync(generated, copy);

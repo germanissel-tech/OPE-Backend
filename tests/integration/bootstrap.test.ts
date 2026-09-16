@@ -1,5 +1,5 @@
-// US1 (FR-003, FR-005; ADR-013): la aplicación entera sale del composition root, con perfil de
-// memoria y reemplazos puntuales; close() apaga en orden.
+// US1 (FR-003, FR-005; ADR-013): the whole application comes out of the composition root, with
+// the in-memory profile and targeted replacements; close() shuts down in order.
 import { afterEach, describe, expect, it } from "vitest";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp } from "../helpers/test-app.js";
@@ -12,7 +12,7 @@ afterEach(async () => {
 });
 
 describe("bootstrap", () => {
-  it("devuelve la app, los puertos y close(); GET /v1/health responde como siempre", async () => {
+  it("returns the app, the ports and close(); GET /v1/health responds as always", async () => {
     app = await startTestApp();
     expect(app.ports.clock).toBeDefined();
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
@@ -20,13 +20,13 @@ describe("bootstrap", () => {
     expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.1.0" });
   });
 
-  it("un override de puerto reemplaza al del perfil: el reloj fijo aparece en la respuesta", async () => {
+  it("a port override replaces the profile one: the fixed clock shows in the response", async () => {
     app = await startTestApp({ ports: { clock: fixedClock("2026-01-01T00:00:00.000Z") } });
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(json(res)).toMatchObject({ timestamp: "2026-01-01T00:00:00.000Z" });
   });
 
-  it("sin override usa el reloj del perfil (el del sistema)", async () => {
+  it("without an override it uses the profile clock (the system one)", async () => {
     app = await startTestApp();
     const before = Date.now();
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
@@ -34,7 +34,7 @@ describe("bootstrap", () => {
     expect(Date.parse(body.timestamp)).toBeGreaterThanOrEqual(before - 1000);
   });
 
-  it("close() cierra el servidor y después los gateways que exponen close(), en orden inverso", async () => {
+  it("close() closes the server and then the gateways exposing close(), in reverse order", async () => {
     const closed: string[] = [];
     app = await startTestApp({
       ports: {
@@ -49,7 +49,7 @@ describe("bootstrap", () => {
     await expect(closing.app.inject({ method: "GET", url: "/v1/health" })).rejects.toThrow();
   });
 
-  it("en modo mock responde los ejemplos del contrato", async () => {
+  it("in mock mode it responds with the contract examples", async () => {
     app = await startTestApp({}, { mode: "mock" });
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);

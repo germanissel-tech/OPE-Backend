@@ -45,7 +45,9 @@ const json = args["json"] === true;
 const denylist = /** @type {{ words: string[] }} */ (
   JSON.parse(readFileSync(path.join(repoRoot, "scripts", "language-denylist.json"), "utf8"))
 );
-const wordPattern = new RegExp(`(?<![\\p{L}_$])(?:${denylist.words.join("|")})(?![\\p{L}_$])`, "iu");
+// A hyphen counts as part of the word: slugs and fixture names (`wire-value`) are identifiers,
+// not prose, and "-es" in English text is a suffix, not the Spanish verb.
+const wordPattern = new RegExp(`(?<![\\p{L}_$-])(?:${denylist.words.join("|")})(?![\\p{L}_$-])`, "iu");
 
 /**
  * Exclusion prefixes: .prettierignore entries (directories end with "/") plus the fixed ones.

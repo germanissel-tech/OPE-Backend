@@ -1,9 +1,9 @@
-# Fixture de tests/contract-rules/redocly.test.ts
+# Fixture of tests/contract-rules/redocly.test.ts
 openapi: 3.1.0
 info:
   title: Fixture Redocly
   version: 1.0.0
-  description: Contrato mínimo para las assertions de Redocly.
+  description: Minimal contract for the Redocly assertions.
   contact:
     name: OPE
 servers:
@@ -40,7 +40,7 @@ paths:
       operationId: createThing
       tags: [system]
       summary: Crea
-      description: Crea una cosa.
+      description: Creates a thing.
       security: []
       requestBody:
         required: true
@@ -96,10 +96,10 @@ components:
           description: Tipo.
         title:
           type: string
-          description: Título.
+          description: Title.
         status:
           type: integer
-          description: Código.
+          description: Status code.
   responses:
     InternalServerError:
       description: Error.

@@ -1,5 +1,5 @@
-// FR-001, FR-002, FR-004 (ADR-013): anillos, módulos y mapa de contextos se hacen cumplir.
-// (a) src/ no tiene violaciones; (b) cada regla atrapa la violación de su fixture.
+// FR-001, FR-002, FR-004 (ADR-013): rings, modules and the context map are enforced.
+// (a) src/ has no violations; (b) every rule catches the violation of its fixture.
 import { createRequire } from "node:module";
 import path from "node:path";
 import { cruise, type ICruiseOptions, type IForbiddenRuleType } from "dependency-cruiser";
@@ -31,13 +31,13 @@ async function violations(dir: string): Promise<Violation[]> {
   return output.summary.violations;
 }
 
-describe("arquitectura por anillos y módulos (dependency-cruiser)", () => {
-  it("src/ respeta la dirección de dependencias", async () => {
+describe("architecture by rings and modules (dependency-cruiser)", () => {
+  it("src/ respects the dependency direction", async () => {
     const found = await violations("src");
     expect(found.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);
   });
 
-  it("cada regla atrapa la violación de su fixture", async () => {
+  it("every rule catches the violation of its fixture", async () => {
     const found = await violations("tests/architecture/fixtures/src");
     const byRule = (name: string) =>
       found.filter((v) => v.rule.name === name).map((v) => `${v.from} -> ${v.to}`);
@@ -53,7 +53,7 @@ describe("arquitectura por anillos y módulos (dependency-cruiser)", () => {
     expectRule("infrastructure-inward", "infrastructure/http/bad-composition.ts");
     expectRule("nobody-imports-composition", "some/bad-composition.ts");
     expectRule("nobody-imports-main", "some/bad-main.ts");
-    // Módulos
+    // Modules
     expectRule("modules-only-via-index", "application/ledger/bad-internal-import.ts");
     expectRule("context-map:ledger", "domain/ledger/bad-context.ts");
     expectRule("context-map:shared-kernel", "domain/shared-kernel/bad-context.ts");
@@ -61,7 +61,7 @@ describe("arquitectura por anillos y módulos (dependency-cruiser)", () => {
     expectRule("controllers-no-gateways", "interface-adapters/http/controllers/x/bad-gateway.ts");
   });
 
-  it("los módulos legítimos del fixture no disparan ninguna regla", async () => {
+  it("the legitimate modules of the fixture trigger no rule", async () => {
     const found = await violations("tests/architecture/fixtures/src");
     const legit = found.filter((v) => !v.from.includes("bad-") && v.rule.name !== "no-orphans");
     expect(legit.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);

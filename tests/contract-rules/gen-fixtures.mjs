@@ -1,5 +1,5 @@
-// Genera los fixtures de tests/contract-rules/fixtures/: un contrato mínimo por regla, que
-// viola sólo la regla que lleva en el nombre. No editar los fixtures a mano:
+// Generates the fixtures of tests/contract-rules/fixtures/: one minimal contract per rule, which
+// violates only the rule in its name. Do not edit the fixtures by hand:
 //   node tests/contract-rules/gen-fixtures.mjs
 import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -8,8 +8,8 @@ import { stringify } from "yaml";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 
-// Los fixtures se construyen mutando objetos JSON libres; el tipo es deliberadamente laxo
-// (cualquier objeto con claves string) porque cada mutador rompe una parte distinta del contrato.
+// Fixtures are built by mutating free-form JSON objects; the type is deliberately loose
+// (any object with string keys) because each mutator breaks a different part of the contract.
 /** @typedef {Record<string, any>} Doc */
 /** @typedef {(d: Doc) => Doc} Mutator */
 mkdirSync(out, { recursive: true });
@@ -20,9 +20,9 @@ const problemSchema = () => ({
   additionalProperties: false,
   required: ["type", "title", "status"],
   properties: {
-    type: { type: "string", description: "Tipo de problema." },
-    title: { type: "string", description: "Título." },
-    status: { type: "integer", description: "Código HTTP." },
+    type: { type: "string", description: "Problem type." },
+    title: { type: "string", description: "Title." },
+    status: { type: "integer", description: "HTTP status." },
   },
 });
 /**
@@ -47,7 +47,7 @@ const base = () => ({
   info: {
     title: "Fixture",
     version: "1.0.0",
-    description: "Contrato mínimo de prueba.",
+    description: "Minimal test contract.",
     contact: { name: "OPE" },
   },
   servers: [{ url: "/" }],
@@ -57,8 +57,8 @@ const base = () => ({
       get: {
         operationId: "getHealth",
         tags: ["system"],
-        summary: "Salud del fixture",
-        description: "Devuelve el estado.",
+        summary: "Fixture health",
+        description: "Returns the status.",
         security: [],
         responses: {
           200: {
@@ -92,7 +92,7 @@ const base = () => ({
   },
 });
 
-/** Agrega POST /v1/things con request body válido (schema por $ref, como exige rule/media-type-schema-ref). */
+/** Adds POST /v1/things with a valid request body (schema by $ref, as rule/media-type-schema-ref demands). */
 /** @param {Doc} doc */
 const withThings = (doc) => {
   doc.components.schemas.ThingCreate = {
@@ -101,7 +101,7 @@ const withThings = (doc) => {
     additionalProperties: false,
     required: ["kind"],
     properties: {
-      kind: { type: "string", description: "Clase de cosa.", enum: ["a", "b"] },
+      kind: { type: "string", description: "Kind of thing.", enum: ["a", "b"] },
       meta: {
         type: "object",
         description: "Metadatos.",
@@ -114,8 +114,8 @@ const withThings = (doc) => {
     post: {
       operationId: "createThing",
       tags: ["system"],
-      summary: "Crea una cosa",
-      description: "Crea una cosa.",
+      summary: "Creates a thing",
+      description: "Creates a thing.",
       security: [],
       requestBody: {
         required: true,
@@ -142,29 +142,29 @@ const withThings = (doc) => {
       },
     },
   };
-  doc.components.responses.BadRequest = problemResponse("Request inválido.", 400, "validation-failed");
-  // El 422 nombra la invariante propia (validation-failed) que ThingCreate declara.
+  doc.components.responses.BadRequest = problemResponse("Invalid request.", 400, "validation-failed");
+  // The 422 names the invariant of its own (validation-failed) that ThingCreate declares.
   doc.components.responses.ThingUnprocessable = problemResponse("No procesable.", 422, "validation-failed");
   doc.components.schemas.ThingCreate["x-invariants"] = [
-    { type: "validation-failed", status: 400, rule: "kind in [a, b]", description: "Clase válida." },
+    { type: "validation-failed", status: 400, rule: "kind in [a, b]", description: "Valid kind." },
   ];
   return doc;
 };
 
-/** Agrega un securityScheme y vuelve autenticada la operación dada. */
+/** Adds a securityScheme and makes the given operation authenticated. */
 /**
  * @param {Doc} doc
  * @param {Doc} op
- * @param {string[] | null} [capabilities] null: autenticada sin capacidad declarada
+ * @param {string[] | null} [capabilities] null: authenticated without a declared capability
  */
 const withAuth = (doc, op, capabilities = ["things:write"]) => {
   doc.components.securitySchemes = {
-    ingestKey: { type: "apiKey", in: "header", name: "X-Api-Key", description: "Clave de ingesta." },
+    ingestKey: { type: "apiKey", in: "header", name: "X-Api-Key", description: "Ingest key." },
   };
   op.security = [{ ingestKey: [] }];
   if (capabilities) op["x-required-capabilities"] = capabilities;
   op.responses["401"] = { $ref: "#/components/responses/Unauthorized" };
-  doc.components.responses.Unauthorized = problemResponse("Sin credencial.", 401, "unauthorized");
+  doc.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
   return doc;
 };
 
@@ -177,18 +177,18 @@ const bodySchema = (doc) => doc.components.schemas.ThingCreate;
 
 /** @type {Record<string, Mutator>} */
 const fixtures = {
-  // Válidos
+  // Valid ones
   "valid.yaml": (d) => withThings(d),
   "merchant-id-in-response.yaml": (d) => {
     d.components.schemas.Health.properties.merchantId = {
       type: "string",
-      description: "Merchant que respondió.",
+      description: "Merchant that responded.",
     };
     return d;
   },
   "valid-invariants.yaml": (d) => {
     health(d)["x-invariants"] = [
-      { type: "not-found", status: 404, rule: "el servicio existe", description: "Siempre existe." },
+      { type: "not-found", status: 404, rule: "the service exists", description: "It always exists." },
     ];
     health(d).responses["404"] = { $ref: "#/components/responses/NotFound" };
     d.components.responses.NotFound = problemResponse("No encontrado.", 404, "not-found");
@@ -229,7 +229,7 @@ const fixtures = {
   },
   "ope-tags-closed-catalog.yaml": (d) => {
     health(d).tags = ["misc"];
-    d.tags = [{ name: "misc", description: "Fuera de catálogo." }];
+    d.tags = [{ name: "misc", description: "Outside the catalogue." }];
     return d;
   },
   // FR-013
@@ -253,13 +253,13 @@ const fixtures = {
     delete bodySchema(d).properties.meta.additionalProperties;
     return d;
   },
-  // FR-015 (una unión envuelta en `type: object` no se cierra ahí, pero sus ramas sí: una rama
+  // FR-015 (a union wrapped in `type: object` is not closed there, but its branches are: a branch
   // abierta sigue fallando).
   "ope-request-closed-schema.union.yaml": (d) => {
     withThings(d);
     bodySchema(d).properties.meta = {
       type: "object",
-      description: "Metadatos por variante.",
+      description: "Metadata per variant.",
       oneOf: [
         {
           type: "object",
@@ -274,7 +274,7 @@ const fixtures = {
     withThings(d);
     bodySchema(d).properties.meta = {
       type: "object",
-      description: "Metadatos por variante.",
+      description: "Metadata per variant.",
       oneOf: [
         {
           type: "object",
@@ -293,7 +293,7 @@ const fixtures = {
   },
   "ope-no-pii.parameter.yaml": (d) => {
     health(d).parameters = [
-      { name: "phone", in: "query", description: "Teléfono.", schema: { type: "string" } },
+      { name: "phone", in: "query", description: "Phone.", schema: { type: "string" } },
     ];
     return d;
   },
@@ -386,7 +386,7 @@ const fixtures = {
   // ---- Feature 002 ----
   // ope-invariants (FR-002)
   "ope-invariants.missing-field.yaml": (d) => {
-    health(d)["x-invariants"] = [{ type: "not-found", status: 404, description: "Sin rule." }];
+    health(d)["x-invariants"] = [{ type: "not-found", status: 404, description: "No rule." }];
     return d;
   },
   "ope-invariants.unknown-type.yaml": (d) => {
@@ -433,7 +433,7 @@ for (const stale of readdirSync(out)) {
 }
 for (const [file, mutate] of Object.entries(fixtures)) {
   const doc = mutate(base());
-  const header = `# Fixture de tests/contract-rules: ${file.replace(/\.yaml$/, "")}. Generado por gen-fixtures.mjs a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.\n`;
+  const header = `# Fixture of tests/contract-rules: ${file.replace(/\.yaml$/, "")}. Generated by gen-fixtures.mjs from a minimal valid contract; violates only the rule in its name.\n`;
   writeFileSync(path.join(out, file), header + stringify(doc, { lineWidth: 0 }), "utf8");
 }
-console.log(`${Object.keys(fixtures).length} fixtures en ${out}`);
+console.log(`${Object.keys(fixtures).length} fixtures in ${out}`);

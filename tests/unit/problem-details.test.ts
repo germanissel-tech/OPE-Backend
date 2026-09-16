@@ -15,8 +15,8 @@ interface Catalog {
 
 const catalog = parse(readFileSync(path.resolve("contracts/problem-types.yaml"), "utf8")) as Catalog;
 
-describe("catálogo de tipos de problema", () => {
-  it("el código replica exactamente contracts/problem-types.yaml", () => {
+describe("problem type catalogue", () => {
+  it("the code replicates exactly contracts/problem-types.yaml", () => {
     expect(PROBLEM_NAMESPACE).toBe(catalog.namespace);
     const fromCatalog = Object.fromEntries(
       catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]),
@@ -26,7 +26,7 @@ describe("catálogo de tipos de problema", () => {
 });
 
 describe("problem()", () => {
-  it("arma un Problem Details con type del catálogo y status coherente", () => {
+  it("builds a Problem Details with a catalogue type and a consistent status", () => {
     const res = problem("validation-failed", {
       instance: "/v1/health",
       errors: [{ pointer: "/query/x", message: "must NOT have additional properties" }],
@@ -41,7 +41,7 @@ describe("problem()", () => {
     });
   });
 
-  it("nunca incluye claves fuera del esquema ProblemDetails", () => {
+  it("never includes keys outside the ProblemDetails schema", () => {
     const allowed = ["type", "title", "status", "detail", "instance", "errors"];
     for (const slug of Object.keys(PROBLEM_TYPES) as (keyof typeof PROBLEM_TYPES)[]) {
       const { body } = problem(slug, { detail: "d" });
