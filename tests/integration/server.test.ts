@@ -6,6 +6,7 @@ import { parse } from "yaml";
 import { makeGetServiceHealth } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
+import { problem } from "../../src/interface-adapters/http/problem-details.js";
 import { json, problemOf } from "../helpers/json.js";
 import type { components } from "../../src/interface-adapters/http/generated/api.js";
 import type {
@@ -88,6 +89,7 @@ describe("real server over the contract", () => {
     expect(res.statusCode).toBe(404);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(json(res)).toMatchObject({ type: "urn:ope:problem:not-found", status: 404, instance: "/nope" });
+    expect(problemOf(res).detail).toBe("There is no operation for GET /nope.");
   });
 
   it("undeclared method → 405 Problem Details with Allow header", async () => {
@@ -97,7 +99,12 @@ describe("real server over the contract", () => {
     expect(res.statusCode).toBe(405);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(res.headers.allow).toBe("GET");
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:method-not-allowed", status: 405 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:method-not-allowed",
+      status: 405,
+      instance: "/v1/health",
+      detail: "Declared methods: GET.",
+    });
   });
 
   it("non-standard method (QUERY) on a declared path → 405; on an undeclared one → 404", async () => {
@@ -107,7 +114,11 @@ describe("real server over the contract", () => {
     expect(known.headers.allow).toBe("GET");
     const unknown = await srv.inject({ method: "QUERY" as "GET", url: "/nope" });
     expect(unknown.statusCode).toBe(404);
-    expect(json(unknown)).toMatchObject({ type: "urn:ope:problem:not-found" });
+    expect(json(unknown)).toMatchObject({
+      type: "urn:ope:problem:not-found",
+      instance: "/nope",
+      detail: "There is no operation for /nope.",
+    });
   });
 
   it("operation declared without a handler → 501 Problem Details, never an empty 200", async () => {
@@ -117,7 +128,11 @@ describe("real server over the contract", () => {
     expect(res.statusCode).toBe(501);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     const body = problemOf(res);
-    expect(body).toMatchObject({ type: "urn:ope:problem:not-implemented", status: 501 });
+    expect(body).toMatchObject({
+      type: "urn:ope:problem:not-implemented",
+      status: 501,
+      instance: "/v1/things",
+    });
     expect(body.detail).toContain("listThings");
   });
 
@@ -158,7 +173,7 @@ describe("real server over the contract", () => {
     const s = await server(realContract, healthHandlers);
     const res = await s.inject({ method: "POST", url: "/v1/events", payload: {} });
     expect(res.statusCode).toBe(401);
-    expect(problemOf(res).type).toBe("urn:ope:problem:unauthorized");
+    expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:unauthorized", instance: "/v1/events" });
   });
 
   it("undeclared query → 400 with the violation listed and without invoking the handler", async () => {
@@ -232,7 +247,11 @@ describe("real server over the contract", () => {
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation", status: 500 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:response-contract-violation",
+      status: 500,
+      instance: "/v1/health",
+    });
     expect(res.body).not.toContain("secreto");
   });
 
@@ -245,7 +264,10 @@ describe("real server over the contract", () => {
     } as unknown as Handlers;
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation" });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:response-contract-violation",
+      instance: "/v1/health",
+    });
   });
 
   it("handler that throws → generic 500 without exposing the internal message", async () => {
@@ -256,8 +278,24 @@ describe("real server over the contract", () => {
     };
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:internal-error", status: 500 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:internal-error",
+      status: 500,
+      instance: "/v1/health",
+    });
     expect(res.body).not.toContain("secreto interno");
+  });
+
+  it("a declared 4xx returned by a handler goes out as Problem Details, from 400 on", async () => {
+    const handlers: Handlers = {
+      getHealth: async () => ({
+        status: 400,
+        body: problem("validation-failed", { instance: "/v1/health" }).body,
+      }),
+    };
+    const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
   });
 
   it("does not start with an invalid contract and explains why", async () => {

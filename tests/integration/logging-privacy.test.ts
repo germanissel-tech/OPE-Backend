@@ -57,3 +57,58 @@ describe("privacy in logs", () => {
     expect(log).not.toContain("198.51.100.7");
   });
 });
+
+describe("operational fields in logs", () => {
+  const parsed = (lines: () => string[]): Record<string, unknown>[] =>
+    lines().map((l) => JSON.parse(l) as Record<string, unknown>);
+
+  it("a handler that throws is logged with its operationId and the error", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({
+      logger,
+      handlers: {
+        getHealth: async () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    const res = await app.app.inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(500);
+    const entry = parsed(lines).find((e) => e["msg"] === "the handler threw an exception");
+    expect(entry).toMatchObject({ operationId: "getHealth" });
+    expect(entry?.["err"]).toBeDefined();
+  });
+
+  it("a response outside the contract is logged with operationId, status and what was declared", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({
+      logger,
+      handlers: { getHealth: async () => ({ status: 200, body: { status: "ok" } }) } as never,
+    });
+    await app.app.inject({ method: "GET", url: "/v1/health" });
+    const entry = parsed(lines).find(
+      (e) => e["msg"] === "the handler response does not satisfy the contract",
+    );
+    expect(entry).toMatchObject({ operationId: "getHealth", status: 200 });
+    expect(entry?.["errors"]).toBeDefined();
+  });
+
+  it("an undeclared status is logged with the declared ones", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({
+      logger,
+      handlers: {
+        getHealth: async () => ({
+          status: 203,
+          body: { status: "ok", contractVersion: "1.0.0", timestamp: "2026-09-16T12:00:00Z" },
+        }),
+      } as never,
+    });
+    await app.app.inject({ method: "GET", url: "/v1/health" });
+    const entry = parsed(lines).find(
+      (e) => e["msg"] === "the handler responded with a status not declared in the contract",
+    );
+    expect(entry).toMatchObject({ operationId: "getHealth", status: 203 });
+    expect(entry?.["declared"]).toEqual(["200", "400", "500"]);
+  });
+});

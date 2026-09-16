@@ -50,7 +50,11 @@ describe("origins per merchant", () => {
     app = await startTestApp();
     const res = await postEvents(app.app, batchOf(1), { key: "key-a-1", origin: "https://b.example" });
     expect(res.statusCode).toBe(403);
-    expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:origin-not-allowed", status: 403 });
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:origin-not-allowed",
+      status: 403,
+      instance: "/v1/events",
+    });
   });
 
   it("key and Origin of the same merchant → passes security and carries Allow-Origin in the response", async () => {

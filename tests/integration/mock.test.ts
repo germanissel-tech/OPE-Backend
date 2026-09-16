@@ -19,8 +19,8 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((a) => a.close()));
 });
 
-async function mock(): Promise<FastifyInstance> {
-  const app = await buildServer({ definition: contract, handlers: {}, mode: "mock", logger: false });
+async function mock(definition: ContractDocument = contract): Promise<FastifyInstance> {
+  const app = await buildServer({ definition, handlers: {}, mode: "mock", logger: false });
   apps.push(app);
   return app;
 }
@@ -61,5 +61,17 @@ describe("server in mock mode", () => {
     const fromReal = await (await real()).inject({ method: "GET", url: "/nope" });
     expect(fromMock.statusCode).toBe(404);
     expect(json(fromMock)).toEqual(json(fromReal));
+  });
+
+  it("an operation without an example answers with a value generated from its schema", async () => {
+    const twoOps = parse(
+      readFileSync(path.resolve("tests/integration/fixtures/two-ops.yaml"), "utf8"),
+    ) as ContractDocument;
+    const res = await (
+      await mock(twoOps)
+    ).inject({ method: "POST", url: "/v1/things", payload: { kind: "a" } });
+    expect(res.statusCode).toBe(201);
+    expect(res.headers["content-type"]).toMatch(/^application\/json/);
+    expect(json(res)).toMatchObject({ kind: expect.any(String) as string });
   });
 });

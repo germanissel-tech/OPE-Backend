@@ -168,6 +168,7 @@ function unroutable(api: OpenAPIBackend, requestPath: string): HttpResponse {
 function securityFailure(c: BoundaryContext): HttpResponse {
   const results = c.security as Record<string, unknown> | undefined;
   for (const [name, result] of Object.entries(results ?? {})) {
+    // Stryker disable next-line ConditionalExpression: openapi-backend only stores objects here; the guard is defensive and its mutant is equivalent
     if (name === "authorized" || typeof result !== "object" || result === null) continue;
     const error: unknown = (result as { error?: unknown }).error;
     if (error instanceof SecurityError) return toHttp(problem(error.slug, { instance: c.request.path }));
@@ -191,24 +192,17 @@ interface Runtime {
   mode: ServerMode;
 }
 
-/** An operation without a handler: the contract example in mock mode, 501 otherwise (FR-044). */
-function notImplemented({ api, mode, log }: Runtime, c: Context): HttpResponse {
+/**
+ * An operation without a handler: in mock mode the contract example (or a value generated from the
+ * schema when there is none: openapi-backend never throws here), 501 otherwise (FR-044).
+ */
+function notImplemented({ api, mode }: Runtime, c: Context): HttpResponse {
   const operationId = c.operation.operationId ?? "(no operationId)";
   if (mode === "mock") {
-    try {
-      const mocked = api.mockResponseForOperation(operationId);
-      // The contract example arrives as any; the server assumes nothing about its shape.
-      const body: unknown = mocked.mock;
-      return { status: mocked.status, body, contentType: "application/json" };
-    } catch (err) {
-      log.warn({ operationId, err }, "mock: the operation declares no example");
-      return toHttp(
-        problem("not-implemented", {
-          instance: c.request.path,
-          detail: `Operation ${operationId} declares no example for the mock.`,
-        }),
-      );
-    }
+    const mocked = api.mockResponseForOperation(operationId);
+    // The contract example arrives as any; the server assumes nothing about its shape.
+    const body: unknown = mocked.mock;
+    return { status: mocked.status, body, contentType: "application/json" };
   }
   return toHttp(
     problem("not-implemented", {
@@ -353,6 +347,7 @@ function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
         ),
       );
     }
+    // Stryker disable next-line all: defensive catch-all; no request reaches it through the contract
     app.log.error({ err: error }, "unhandled error");
     return send(reply, toHttp(problem("internal-error", { instance })));
   });

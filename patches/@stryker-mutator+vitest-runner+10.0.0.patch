@@ -1,0 +1,35 @@
+# Fix for stryker-js#6210 (ADR-016): Vitest 5 matches `testNamePattern` against the suite chain
+# joined with " > ", while @stryker-mutator/vitest-runner 10.0.0 builds test ids joined with " ".
+# Every covered mutant then runs zero tests and is reported as Survived. This is the change of
+# stryker-js PR #6214 applied to the compiled output.
+#
+# Retire: when @stryker-mutator/vitest-runner publishes the fix, raise its version and delete
+# this file. patch-package fails `npm install` if the patch no longer applies, so a version
+# bump cannot silently leave it behind.
+
+diff --git a/node_modules/@stryker-mutator/vitest-runner/dist/src/stryker-setup.js b/node_modules/@stryker-mutator/vitest-runner/dist/src/stryker-setup.js
+index aecfacb..bbb824c 100644
+--- a/node_modules/@stryker-mutator/vitest-runner/dist/src/stryker-setup.js
++++ b/node_modules/@stryker-mutator/vitest-runner/dist/src/stryker-setup.js
+@@ -63,7 +63,7 @@ function collectTestName({ name, suite, }) {
+         nameParts.unshift(currentSuite.name);
+         currentSuite = currentSuite.suite;
+     }
+-    return nameParts.join(' ').trim();
++    return nameParts.join(' > ').trim();
+ }
+ function toRawTestId(test) {
+     return `${test.file?.filepath ?? 'unknown.js'}#${collectTestName(test)}`;
+diff --git a/node_modules/@stryker-mutator/vitest-runner/dist/src/test-helpers.js b/node_modules/@stryker-mutator/vitest-runner/dist/src/test-helpers.js
+index 56cc786..2cd9786 100644
+--- a/node_modules/@stryker-mutator/vitest-runner/dist/src/test-helpers.js
++++ b/node_modules/@stryker-mutator/vitest-runner/dist/src/test-helpers.js
+@@ -8,7 +8,7 @@ export function collectTestName({ name, suite, }) {
+         nameParts.unshift(currentSuite.name);
+         currentSuite = currentSuite.suite;
+     }
+-    return nameParts.join(' ').trim();
++    return nameParts.join(' > ').trim();
+ }
+ export function toRawTestId(test) {
+     return `${test.file?.filepath ?? 'unknown.js'}#${collectTestName(test)}`;

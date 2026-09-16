@@ -16,7 +16,11 @@ describe("ingest credential (X-OPE-Ingest-Key)", () => {
     const res = await postEvents(app.app, { garbage: true });
     expect(res.statusCode).toBe(401);
     expect(res.headers["content-type"]).toMatch("application/problem+json");
-    expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:unauthorized", status: 401 });
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:unauthorized",
+      status: 401,
+      instance: "/v1/events",
+    });
   });
 
   it("unknown key → 401; the response does not say whether the key exists for another merchant", async () => {
