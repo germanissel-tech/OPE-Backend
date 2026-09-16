@@ -219,7 +219,7 @@ Proyecto único, raíz `backend/`. Configuraciones en la raíz; scripts de gober
 - [x] T054 [P] Actualizar `docs/adr/README.md` si la lista/índice de ADRs es explícita; agregar al `README.md` del repo (español) la sección de comandos de calidad si existe una tabla equivalente.
 - [x] T055 [P] Verificar `.vscode/extensions.json`: recomendar la extensión de TypeScript nativo si aplica (`ms-vscode.vscode-typescript-next` o la que Microsoft indique para TS 7) y `settings.json` `typescript.tsdk` apuntando a `node_modules/typescript/lib` (API 6.0 para el editor) con comentario.
 - [x] T056 Correr `quickstart.md` completo (§1–§8) y `npm run release-check`; registrar en `specs/005-auditoria-calidad/quickstart.md` una tabla de estado **fechada** con el resultado de cada sección (histórica).
-- [ ] T057 Abrir PR `005-auditoria-calidad` → `main` con la descripción de gates del Constitution Check aplicados (superficie HTTP sólo idioma: `contract:diff` limpio; `src/`: `arch` en 0) y la lista de aserciones de texto modificadas (SC-004). No hacer push sin que el usuario lo pida.
+- [x] T057 Abrir PR `005-auditoria-calidad` → `main` con la descripción de gates del Constitution Check aplicados (superficie HTTP sólo idioma: `contract:diff` limpio; `src/`: `arch` en 0) y la lista de aserciones de texto modificadas (SC-004). No hacer push sin que el usuario lo pida.
 
 ---
 
