@@ -27,3 +27,18 @@ types:
   - slug: not-implemented
     status: 501
     title: Operación declarada sin manejador
+  - slug: origin-not-allowed
+    status: 403
+    title: Origen no registrado para el merchant
+  - slug: session-visitor-mismatch
+    status: 422
+    title: El lote mezcla sesiones o visitantes
+  - slug: event-timestamp-out-of-range
+    status: 422
+    title: El instante del evento está fuera de tolerancia
+  - slug: exposure-decision-unknown
+    status: 422
+    title: La decisión no existe para este merchant
+  - slug: exposure-of-no-op
+    status: 422
+    title: Una decisión NO_OP no tiene intervención que exponer

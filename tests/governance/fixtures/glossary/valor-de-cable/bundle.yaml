@@ -1,0 +1,23 @@
+openapi: 3.1.0
+info:
+  title: f
+  version: 1.0.0
+paths:
+  /v1/exposures:
+    get:
+      operationId: op2
+      responses:
+        "200":
+          description: ok
+  /v1/widgets:
+    get:
+      operationId: op
+      responses:
+        "200":
+          description: ok
+components:
+  schemas:
+    WidgetResponse:
+      type: object
+    WidgetViewed:
+      type: object

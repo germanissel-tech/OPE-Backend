@@ -1,7 +1,7 @@
 ---
 numero: 13
 titulo: Anillos, módulos y composición tipada
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-16
 fuente: specs/004-protocolo-sdk-ingesta/research.md
 reemplaza: 6

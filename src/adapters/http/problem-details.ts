@@ -18,6 +18,11 @@ export const PROBLEM_TYPES = {
   "internal-error": { status: 500, title: "Error interno" },
   "response-contract-violation": { status: 500, title: "La respuesta del manejador no cumple el contrato" },
   "not-implemented": { status: 501, title: "Operación declarada sin manejador" },
+  "origin-not-allowed": { status: 403, title: "Origen no registrado para el merchant" },
+  "session-visitor-mismatch": { status: 422, title: "El lote mezcla sesiones o visitantes" },
+  "event-timestamp-out-of-range": { status: 422, title: "El instante del evento está fuera de tolerancia" },
+  "exposure-decision-unknown": { status: 422, title: "La decisión no existe para este merchant" },
+  "exposure-of-no-op": { status: 422, title: "Una decisión NO_OP no tiene intervención que exponer" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

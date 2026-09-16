@@ -1,0 +1,26 @@
+summary: Lote de una sesión en una ficha de producto
+value:
+  events:
+    - type: product_viewed
+      eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W1
+      sessionId: ses_01JBQ2X8N4K3M7P9R2T5V8W1
+      visitorId: vis_01JBQ2X8N4K3M7P9R2T5V8W1
+      occurredAt: "2026-09-16T12:00:00Z"
+      page:
+        pageType: product
+        productId: SKU-CAMPERA-01
+        price:
+          amount: "129999.00"
+          currency: ARS
+        availability: in_stock
+      device: mobile
+    - type: size_selector_interacted
+      eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W2
+      sessionId: ses_01JBQ2X8N4K3M7P9R2T5V8W1
+      visitorId: vis_01JBQ2X8N4K3M7P9R2T5V8W1
+      occurredAt: "2026-09-16T12:00:04Z"
+      page:
+        pageType: product
+        productId: SKU-CAMPERA-01
+      device: mobile
+      size: M

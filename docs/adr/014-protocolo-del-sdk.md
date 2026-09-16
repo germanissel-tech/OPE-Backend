@@ -1,7 +1,7 @@
 ---
 numero: 14
 titulo: Protocolo del SDK — credencial pública, orígenes, decisión inline y esquema de eventos
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-16
 fuente: specs/004-protocolo-sdk-ingesta/research.md
 ---

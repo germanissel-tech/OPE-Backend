@@ -108,6 +108,38 @@ describe("servidor real sobre el contrato", () => {
     expect(body.detail).toContain("listThings");
   });
 
+  // Provisional (feature 004, T009): las operaciones nuevas existen en el contrato antes que su
+  // manejador. Se reemplaza por las pruebas de ingesta y exposición en US2/US4.
+  it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
+    const s = await server(realContract, healthHandlers);
+    const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
+    const bodies: Record<string, Record<string, unknown>> = {
+      "/v1/events": {
+        events: [
+          {
+            type: "product_viewed",
+            eventId: "evt_00000001",
+            ...ids,
+            occurredAt: "2026-09-16T12:00:00Z",
+            page: { pageType: "product", productId: "SKU-1" },
+            device: "mobile",
+          },
+        ],
+      },
+      "/v1/exposures": {
+        decisionId: "dec_00000001",
+        ...ids,
+        exposedAt: "2026-09-16T12:00:00Z",
+        anchor: "size_selector",
+      },
+    };
+    for (const [url, payload] of Object.entries(bodies)) {
+      const res = await s.inject({ method: "POST", url, payload, headers: { "x-ope-ingest-key": "k" } });
+      expect(res.statusCode, url).toBe(501);
+      expect(problemOf(res).type).toBe("urn:ope:problem:not-implemented");
+    }
+  });
+
   it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {
     let invoked = false;
     const handlers: Handlers = {

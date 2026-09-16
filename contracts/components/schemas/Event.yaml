@@ -1,0 +1,33 @@
+description: |
+  Un evento de comportamiento del SDK. Lista blanca cerrada (03-alcance-mvp.md §4.1): un tipo
+  fuera de esta unión o un campo no declarado rechazan el lote entero (01 §10.3).
+  El `mapping` es explícito para que los tipos generados lleven el valor de cable; el servidor
+  lo quita antes de compilar los validadores porque Ajv no lo soporta (ADR-014).
+oneOf:
+  - $ref: ./ProductViewed.yaml
+  - $ref: ./ListingViewed.yaml
+  - $ref: ./SizeSelectorInteracted.yaml
+  - $ref: ./VariantSelected.yaml
+  - $ref: ./PhotoInteracted.yaml
+  - $ref: ./BlockDwelled.yaml
+  - $ref: ./CtaApproached.yaml
+  - $ref: ./ProductReturnedTo.yaml
+  - $ref: ./AddedToCart.yaml
+  - $ref: ./RemovedFromCart.yaml
+  - $ref: ./CheckoutAdvanced.yaml
+  - $ref: ./ExitSignaled.yaml
+discriminator:
+  propertyName: type
+  mapping:
+    product_viewed: ./ProductViewed.yaml
+    listing_viewed: ./ListingViewed.yaml
+    size_selector_interacted: ./SizeSelectorInteracted.yaml
+    variant_selected: ./VariantSelected.yaml
+    photo_interacted: ./PhotoInteracted.yaml
+    block_dwelled: ./BlockDwelled.yaml
+    cta_approached: ./CtaApproached.yaml
+    product_returned_to: ./ProductReturnedTo.yaml
+    added_to_cart: ./AddedToCart.yaml
+    removed_from_cart: ./RemovedFromCart.yaml
+    checkout_advanced: ./CheckoutAdvanced.yaml
+    exit_signaled: ./ExitSignaled.yaml

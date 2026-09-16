@@ -4,7 +4,6 @@ en: visitor
 contexto: identidad
 estado: aprobado
 fuente: constitucion#VI
-uso: pendiente
 ---
 
 # visitante -> `visitor`

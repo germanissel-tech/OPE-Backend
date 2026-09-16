@@ -1,0 +1,3 @@
+type: string
+description: Identificador de una decisión emitida por OPE. Lo genera el backend y lo cita el SDK al confirmar una exposición.
+pattern: "^[A-Za-z0-9_-]{8,64}$"

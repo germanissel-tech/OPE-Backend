@@ -1,0 +1,13 @@
+type: object
+description: Importe monetario. El monto viaja como string decimal para no perder precisión (ADR-014).
+additionalProperties: false
+required: [amount, currency]
+properties:
+  amount:
+    type: string
+    description: Monto con hasta dos decimales, punto como separador, sin signo ni separadores de miles.
+    pattern: '^\d+(\.\d{1,2})?$'
+  currency:
+    type: string
+    description: Moneda en ISO 4217.
+    pattern: "^[A-Z]{3}$"

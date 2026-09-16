@@ -4,7 +4,6 @@ en: decision
 contexto: medicion
 estado: aprobado
 fuente: constitucion#IX
-uso: pendiente
 ---
 
 # decision -> `decision`

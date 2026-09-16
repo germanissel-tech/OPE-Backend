@@ -1,0 +1,51 @@
+post:
+  operationId: ingestEvents
+  tags: [ingest]
+  security:
+    - ingestKey: []
+  x-required-capabilities:
+    - events:write
+  summary: Ingesta de un lote de eventos del SDK
+  description: |
+    Recibe un lote de eventos de comportamiento de **una** sesión, identificado el merchant por la
+    credencial de ingesta. Valida contra la lista blanca (cualquier campo no declarado rechaza
+    el lote entero con `400`), deduplica por `eventId` dentro del merchant (ventana: 24 horas o
+    100.000 eventos por merchant, lo que ocurra antes, en el perfil en memoria) y devuelve la
+    decisión para la sesión. Un lote rechazado no produce decisión.
+
+    Nada fuera de la lista blanca se registra ni se escribe en logs; la dirección IP no se
+    persiste (01-arquitectura-mvp.md §10.2).
+  x-invariants:
+    - type: origin-not-allowed
+      status: 403
+      rule: si el request trae Origin, Origin pertenece a los orígenes registrados del merchant de la credencial
+      description: La credencial es pública; el origen registrado es la otra mitad del control (ADR-014).
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/EventBatch.yaml
+        examples:
+          batch:
+            $ref: ../examples/event-batch.yaml
+  responses:
+    "202":
+      description: Lote aceptado. Los duplicados se reportan por evento; la decisión es para la sesión.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/IngestResult.yaml
+          examples:
+            accepted:
+              $ref: ../examples/ingest-result.yaml
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "422":
+      $ref: ../components/responses/EventBatchUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

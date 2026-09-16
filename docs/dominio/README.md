@@ -27,6 +27,10 @@ uso: disponible | pendiente # sólo si el contrato todavía no usa el término
 Notas: falsos amigos, qué NO es, relación con otros términos.
 ```
 
+Las **señales** de 03-alcance-mvp.md §4.1 viven en `eventos/`, una nota por tipo de evento, con
+`en` igual al valor de cable (`product_viewed`, …): así `ProductViewed` en el contrato resuelve a
+su nota. El resto de las notas va en la raíz del directorio.
+
 `fuente` con `mvp:` apunta a los documentos del MVP en `..` (fuera del repo, a propósito); se
 verifica cuando el directorio está disponible (`OPE_MVP_DOCS`). `_tecnicos.json` es la única
 lista de vocabulario técnico.

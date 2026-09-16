@@ -1,0 +1,14 @@
+summary: Lote aceptado, un duplicado, sin intervención
+value:
+  accepted: 1
+  duplicates: 1
+  results:
+    - eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W1
+      status: duplicate
+    - eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W2
+      status: accepted
+  decision:
+    decisionId: dec_01JBQ2X8N4K3M7P9R2T5V8W9
+    sessionId: ses_01JBQ2X8N4K3M7P9R2T5V8W1
+    outcome: NO_OP
+    reason: decision-plane-unavailable

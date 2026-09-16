@@ -1,0 +1,11 @@
+type: object
+description: Resultado de un evento del lote.
+additionalProperties: false
+required: [eventId, status]
+properties:
+  eventId:
+    $ref: ./EventId.yaml
+  status:
+    type: string
+    description: "`accepted`: entró y quedó registrado. `duplicate`: ya se había recibido para este merchant (reintento o replay); no se registra dos veces."
+    enum: [accepted, duplicate]

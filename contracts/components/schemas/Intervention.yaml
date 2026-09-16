@@ -1,0 +1,14 @@
+type: object
+description: |
+  PROPUESTO — Lugar reservado para la intervención que el plano de decisión emitirá en features
+  posteriores. El equipo del SDK valida esta forma antes de la 010; hasta entonces ninguna
+  decisión la trae (`outcome` es siempre `NO_OP`).
+additionalProperties: false
+required: [messageVersionId, anchor]
+properties:
+  messageVersionId:
+    type: string
+    description: Versión del mensaje curado a renderizar. El texto lo sirve el catálogo de mensajes, no este contrato.
+    maxLength: 128
+  anchor:
+    $ref: ./Anchor.yaml

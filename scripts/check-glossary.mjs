@@ -143,15 +143,18 @@ for (const file of walkFiles(glossaryDir, [".md"]).filter((f) => path.basename(f
 const doc = exists(bundle) ? readYaml(bundle) : null;
 if (!doc) problems.push(`no existe el bundle ${rel(repoRoot, bundle)}; corré npm run contract:bundle`);
 
-/** @param {string} w */
-const singular = (w) =>
-  w.endsWith("ies")
-    ? `${w.slice(0, -3)}y`
-    : w.endsWith("es") && !w.endsWith("ses")
-      ? w.slice(0, -2)
-      : w.endsWith("s")
-        ? w.slice(0, -1)
-        : w;
+/**
+ * Candidatos a singular de una palabra en inglés (`widgets` → widget; `boxes` → box;
+ * `exposures` → exposure, no `exposur`; `policies` → policy).
+ * @param {string} w
+ * @returns {string[]}
+ */
+const singulars = (w) => {
+  if (w.endsWith("ies")) return [`${w.slice(0, -3)}y`];
+  if (w.endsWith("es") && !w.endsWith("ses")) return [w.slice(0, -1), w.slice(0, -2)];
+  if (w.endsWith("s")) return [w.slice(0, -1)];
+  return [];
+};
 const byEn = new Map(notes.map((n) => [n.en, n]));
 
 /**
@@ -160,7 +163,7 @@ const byEn = new Map(notes.map((n) => [n.en, n]));
  */
 function resolveWord(word) {
   const w = word.toLowerCase();
-  for (const candidate of [w, singular(w)]) {
+  for (const candidate of [w, ...singulars(w)]) {
     if (technical.has(candidate)) return true;
     const note = byEn.get(candidate);
     if (note) {
@@ -172,14 +175,15 @@ function resolveWord(word) {
 }
 
 /**
- * Un nombre compuesto resuelve entero, o palabra por palabra.
+ * Un nombre compuesto resuelve entero (`foo-bar`, `foobar` o, para los valores de cable de
+ * un discriminador, `foo_bar`), o palabra por palabra.
  * @param {string[]} words
  * @param {string} label
  * @param {string} at
  */
 function resolveCompound(words, label, at) {
-  const whole = words.join("-").toLowerCase();
-  if (resolveWord(whole) || resolveWord(words.join("").toLowerCase())) return;
+  const lower = words.map((w) => w.toLowerCase());
+  if (["-", "", "_"].some((sep) => resolveWord(lower.join(sep)))) return;
   const orphan = words.filter((w) => !resolveWord(w));
   const first = orphan[0];
   if (first !== undefined) {
