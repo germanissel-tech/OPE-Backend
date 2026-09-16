@@ -46,30 +46,30 @@ describe("contract:diff (oasdiff with OPE severities)", () => {
     const result = diff(base, path.join(fixtures, file));
     expect(result.status, result.output).not.toBe(0);
     expect(result.output).toContain(check);
-    expect(result.output).toContain("sin aumento de versión mayor");
+    expect(result.output).toContain("without a major version bump");
   });
 
   it.each(compatible)("%s passes as compatible", (file) => {
     const result = diff(base, path.join(fixtures, file));
     expect(result.status, result.output).toBe(0);
-    expect(result.output).toContain("Sin cambios incompatibles");
+    expect(result.output).toContain("No incompatible changes");
   });
 
   it("the same contract reports no changes", () => {
     const result = diff(base, base);
     expect(result.status).toBe(0);
-    expect(result.output).toContain("Sin cambios incompatibles");
+    expect(result.output).toContain("No incompatible changes");
   });
 
   it("an incompatible change with an increased major version passes and reports it as expected", () => {
     const result = diff(base, path.join(fixtures, "major-bump.yaml"));
     expect(result.status, result.output).toBe(0);
-    expect(result.output).toContain("Cambio incompatible esperado: versión mayor 1 → 2");
+    expect(result.output).toContain("Expected incompatible change: major version 1 → 2");
   });
 
   it("without a base contract the comparison is skipped with a warning", () => {
     const result = diff(path.join(fixtures, "no-existe.yaml"), base);
     expect(result.status).toBe(0);
-    expect(result.output).toContain("AVISO: sin contrato base");
+    expect(result.output).toContain("WARNING: no base contract");
   });
 });

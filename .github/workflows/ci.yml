@@ -1,5 +1,5 @@
-# FR-060: en cada cambio, verificación del contrato (lint, bundle, compatibilidad contra main,
-# drift de tipos), compilación, typecheck, pruebas unitarias/integración y pruebas de contrato.
+# FR-060: on every change, contract verification (lint, bundle, compatibility against main,
+# type drift), build, typecheck, unit/integration tests and contract tests.
 name: ci
 
 on:
@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # contract:diff compara contra origin/main; hace falta el historial completo.
+          # contract:diff compares against origin/main; the full history is needed.
           fetch-depth: 0
 
-      - name: Traer main como base de comparación
+      - name: Fetch main as the comparison base
         if: github.ref != 'refs/heads/main'
         run: git fetch --no-tags origin main:refs/remotes/origin/main
 
@@ -41,7 +41,7 @@ jobs:
       - run: npm run test:contract
       - run: npm run release-check
 
-      - name: Publicar reporte de Schemathesis
+      - name: Publish the Schemathesis report
         if: always()
         uses: actions/upload-artifact@v4
         with:

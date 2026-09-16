@@ -34,7 +34,8 @@ const TEXT_EXTENSIONS = [".yaml", ".yml", ".json"];
 const EXTENSIONS = [...CODE_EXTENSIONS, ...TEXT_EXTENSIONS];
 const ALWAYS_EXCLUDED = ["scripts/language-denylist.json", "patches/"];
 const SPANISH_CHARS = /[áéíóúñÁÉÍÓÚÑ¿¡]/u;
-const ALLOW = /lang:es(?:\s*--\s*(\S.*))?/;
+// The directive must open the comment: a mention of `lang:es` in prose is not an exception.
+const ALLOW = /^\s*(?:\/\/|#|\/\*+|\*)?\s*lang:es(?:\s*--\s*(\S.*))?/;
 const FRAGMENT_MAX = 80;
 
 const args = parseArgs(process.argv.slice(2));

@@ -1,5 +1,5 @@
 {
-  "_doc": "Spanish function words that do not exist in English (ADR-015). check-language.mjs matches them on word boundaries, case-insensitively, in comments and strings only. Single-letter words are excluded on purpose (`y`, `o`, `a` collide with CLI flags and variable names); a Spanish sentence always carries another word from this list. Accented characters are a separate detector. Single list; extend here.",
+  "_doc": "Spanish function words that do not exist in English (ADR-015). check-language.mjs matches them on word boundaries, case-insensitively, in comments and strings only. Single-letter words are excluded on purpose (`y`, `o`, `a` collide with CLI flags and variable names); a Spanish sentence always carries another word from this list. Accented characters are a separate detector. `en` and `es` are left out: they are language codes and glossary field names, not prose. Single list; extend here.",
   "words": [
     "el",
     "la",
@@ -10,7 +10,6 @@
     "unos",
     "unas",
     "de",
-    "en",
     "del",
     "al",
     "que",
@@ -33,7 +32,6 @@
     "eso",
     "su",
     "sus",
-    "es",
     "son",
     "hay",
     "tiene",

@@ -1,12 +1,12 @@
-// contract:diff — compara el contrato empaquetado con el de la rama principal y falla ante
-// cambios incompatibles si la versión mayor no aumentó (FR-020).
+// contract:diff — compares the bundled contract with the main branch one and fails on
+// incompatible changes if the major version did not increase (FR-020).
 //
 //   node scripts/contract-diff.mjs                       # base: $CONTRACT_BASE_REF | origin/main | main
-//   node scripts/contract-diff.mjs --base a.yaml --head b.yaml   # modo pruebas: dos archivos
+//   node scripts/contract-diff.mjs --base a.yaml --head b.yaml   # test mode: two files
 //
-// Salidas: "AVISO: sin contrato base, comparación omitida" (exit 0) cuando no hay base;
-// "Cambio incompatible esperado: versión mayor X → Y" (exit 0) con bump de major;
-// "Sin cambios incompatibles" (exit 0); o el reporte de oasdiff (exit 1).
+// Outputs: "WARNING: no base contract, comparison skipped" (exit 0) when there is no base;
+// "Expected incompatible change: major version X → Y" (exit 0) with a major bump;
+// "No incompatible changes" (exit 0); or the oasdiff report (exit 1).
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,12 +23,12 @@ const SEVERITY_FILE = path.join(repoRoot, "contracts", "oasdiff-severity.txt");
 function majorOf(file) {
   const version = String(prop(prop(readYaml(file), "info"), "version") ?? "");
   const major = Number(version.split(".")[0]);
-  if (!Number.isInteger(major)) throw new Error(`info.version inválida en ${file}: '${version}'`);
+  if (!Number.isInteger(major)) throw new Error(`invalid info.version in ${file}: '${version}'`);
   return { version, major };
 }
 
 /**
- * Resuelve la referencia git base; null si no hay ninguna disponible.
+ * Resolves the base git reference; null if none is available.
  * @returns {string | null}
  */
 function resolveBaseRef() {
@@ -43,7 +43,7 @@ function resolveBaseRef() {
 }
 
 /**
- * Copia contracts/ de la referencia base (sólo git, sin tar) y lo bundlea. Devuelve la ruta del bundle o null.
+ * Copies contracts/ from the base reference (git only, no tar) and bundles it. Returns the bundle path or null.
  * @param {string} ref
  * @param {string} workDir
  * @returns {string | null}
@@ -52,14 +52,14 @@ function bundleBase(ref, workDir) {
   const { status: hasContract } = capture("git", ["cat-file", "-e", `${ref}:contracts/openapi.yaml`]);
   if (hasContract !== 0) return null;
   const listing = capture("git", ["ls-tree", "-r", "--name-only", ref, "contracts"]);
-  if (listing.status !== 0) throw new Error(`git ls-tree falló: ${listing.stderr}`);
+  if (listing.status !== 0) throw new Error(`git ls-tree failed: ${listing.stderr}`);
   const files = listing.stdout
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
   for (const file of files) {
     const content = captureBuffer("git", ["show", `${ref}:${file}`]);
-    if (content.status !== 0) throw new Error(`git show ${ref}:${file} falló`);
+    if (content.status !== 0) throw new Error(`git show ${ref}:${file} failed`);
     const target = path.join(workDir, file);
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, content.stdout);
@@ -71,7 +71,7 @@ function bundleBase(ref, workDir) {
     ["bundle", baseRoot, "-o", out, "--config", path.join(repoRoot, "redocly.yaml")],
     { stdio: "pipe" },
   );
-  if (status !== 0) throw new Error(`No se pudo bundlear el contrato base (${ref})`);
+  if (status !== 0) throw new Error(`Could not bundle the base contract (${ref})`);
   return out;
 }
 
@@ -91,7 +91,7 @@ async function main() {
     let baseLabel;
     if (baseArg !== undefined || headArg !== undefined) {
       if (baseArg === undefined || headArg === undefined) {
-        throw new Error("Usá --base <archivo> y --head <archivo> juntos");
+        throw new Error("Use --base <file> and --head <file> together");
       }
       base = path.resolve(baseArg);
       head = path.resolve(headArg);
@@ -99,11 +99,11 @@ async function main() {
       if (!existsSync(base)) base = null;
     } else {
       if (!existsSync(bundlePath)) {
-        throw new Error(`No existe ${bundlePath}. Corré npm run contract:bundle primero.`);
+        throw new Error(`${bundlePath} does not exist. Run npm run contract:bundle first.`);
       }
       head = bundlePath;
       const ref = resolveBaseRef();
-      baseLabel = ref ?? "(sin rama base)";
+      baseLabel = ref ?? "(no base branch)";
       if (ref) {
         workDir = mkdtempSync(path.join(os.tmpdir(), "ope-contract-base-"));
         base = bundleBase(ref, workDir);
@@ -113,7 +113,7 @@ async function main() {
     }
 
     if (!base) {
-      console.log(`AVISO: sin contrato base en ${baseLabel}, comparación omitida`);
+      console.log(`WARNING: no base contract at ${baseLabel}, comparison skipped`);
       return 0;
     }
 
@@ -125,7 +125,7 @@ async function main() {
     if (headVersion.major > baseVersion.major) {
       const changelog = capture(oasdiff, ["changelog", base, head, "--format", "text"]);
       process.stdout.write(changelog.stdout);
-      console.log(`Cambio incompatible esperado: versión mayor ${baseVersion.major} → ${headVersion.major}`);
+      console.log(`Expected incompatible change: major version ${baseVersion.major} → ${headVersion.major}`);
       return 0;
     }
 
@@ -144,11 +144,11 @@ async function main() {
     process.stderr.write(result.stderr);
     if (result.status !== 0) {
       console.error(
-        `contract:diff — cambios incompatibles sin aumento de versión mayor (${headVersion.version}). Corregí el contrato o subí info.version a ${baseVersion.major + 1}.0.0 y el prefijo de rutas a /v${baseVersion.major + 1}/.`,
+        `contract:diff — incompatible changes without a major version bump (${headVersion.version}). Fix the contract or raise info.version to ${baseVersion.major + 1}.0.0 and the path prefix to /v${baseVersion.major + 1}/.`,
       );
       return result.status;
     }
-    console.log("Sin cambios incompatibles");
+    console.log("No incompatible changes");
     return 0;
   } finally {
     if (workDir) rmSync(workDir, { recursive: true, force: true });

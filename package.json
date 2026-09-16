@@ -2,7 +2,7 @@
   "name": "ope-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend del MVP de OPE. API-first: contracts/openapi.yaml es la fuente de verdad de toda superficie HTTP.",
+  "description": "OPE MVP backend. API-first: contracts/openapi.yaml is the source of truth for every HTTP surface.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -27,7 +27,7 @@
     "check:glossary": "node scripts/check-glossary.mjs",
     "check:adrs": "node scripts/check-adrs.mjs",
     "check:markers": "node scripts/check-markers.mjs",
-    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers",
+    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers && npm run check:language",
     "release-check": "node scripts/release-check.mjs",
     "contract:mock": "cross-env OPE_MOCK=1 tsx src/main.ts",
     "contract:docs": "node scripts/contract-docs.mjs",

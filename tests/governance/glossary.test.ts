@@ -20,13 +20,13 @@ describe("check:glossary", () => {
   it("passes when every noun resolves and every note has a source", () => {
     const r = check("ok");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("Glosario: 1 términos, todos con fuente; 1 usados en el contrato");
+    expect(r.output).toContain("Glossary: 1 terms, all with a source; 1 used in the contract");
   });
 
   it("a PascalCase schema resolves to the snake_case wire value, and an -es plural to its singular", () => {
     const r = check("wire-value");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("3 usados en el contrato");
+    expect(r.output).toContain("3 used in the contract");
   });
 
   it("fails on a contract noun without a note", () => {
@@ -38,7 +38,7 @@ describe("check:glossary", () => {
   it("fails on a note without a source", () => {
     const r = check("no-source");
     expect(r.status).toBe(1);
-    expect(r.output).toMatch(/widget\.md: falta `fuente`/);
+    expect(r.output).toMatch(/widget\.md: `fuente` is missing/);
   });
 
   it("fails on a nonexistent source when the MVP documents are available", () => {
@@ -61,13 +61,13 @@ describe("check:glossary", () => {
   it("with the MVP directory present but without documents (as in CI) it warns and does not fail", () => {
     const r = check("mvp-empty");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("aviso");
+    expect(r.output).toContain("warning");
   });
 
   it("without the MVP documents directory it warns and does not fail", () => {
     const r = check("mvp-absent");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("aviso");
+    expect(r.output).toContain("warning");
     expect(r.output).toContain("OPE_MVP_DOCS");
   });
 });

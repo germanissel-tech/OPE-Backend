@@ -1,10 +1,10 @@
-// check:markers — lista los marcadores de estado epistémico (ABIERTO, PROPUESTO, PLACEHOLDER)
-// en el contrato y la documentación; con --strict falla si queda alguno bloqueante (FR-022, FR-023).
+// check:markers — lists the epistemic-state markers (ABIERTO, PROPUESTO, PLACEHOLDER) in the
+// contract and the documentation; with --strict it fails if a blocking one remains (FR-022, FR-023).
 //
 //   node scripts/check-markers.mjs [--root <dir>] [--strict]
 //
-// No cuentan: lo escrito entre backticks (para poder nombrarlos en las guías) ni el campo
-// `estado:` del frontmatter. specs/ y .specify/ quedan fuera: son históricos.
+// Not counted: what is written between backticks (so guides can name them) and the `estado:`
+// frontmatter field. specs/ and .specify/ are left out: they are historical.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { argString, exists, parseArgs, rel, stripBackticks, walkFiles } from "./governance-lib.mjs";
@@ -49,18 +49,18 @@ for (const file of files) {
 const count = (token) => found.filter((f) => f.token === token).length;
 for (const f of found) console.log(`${f.file}:${f.line}: ${f.token} — ${f.text}`);
 console.log(
-  `Marcadores: ${count("ABIERTO")} abiertos, ${count("PROPUESTO")} propuestos, ${count("PLACEHOLDER")} placeholders`,
+  `Markers: ${count("ABIERTO")} open, ${count("PROPUESTO")} proposed, ${count("PLACEHOLDER")} placeholders`,
 );
 
 const blocking = found.filter((f) => BLOCKING.has(f.token)).length;
 if (strict) {
   if (blocking > 0) {
     console.error(
-      `release-check: quedan ${blocking} marcadores bloqueantes (ABIERTO/PLACEHOLDER). Resolvelos o registrá la decisión como ADR.`,
+      `release-check: ${blocking} blocking markers remain (ABIERTO/PLACEHOLDER). Resolve them or record the decision as an ADR.`,
     );
     process.exit(1);
   }
   const proposed = count("PROPUESTO");
-  if (proposed > 0) console.log(`aviso: ${proposed} PROPUESTO pendientes de aprobación`);
+  if (proposed > 0) console.log(`warning: ${proposed} PROPUESTO pending approval`);
 }
 process.exit(0);

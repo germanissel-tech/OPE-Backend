@@ -1,7 +1,10 @@
 # OPE-Backend — instrucciones para agentes
 
 Backend del MVP de OPE (Zona B). Se construye de cero; la POC no es base de código.
-Idioma de documentación, specs y commits: **español**. Código e identificadores: inglés.
+Idioma (ADR-015): documentación, specs, ADRs, glosario y commits en **español**. Código, comentarios,
+strings, mensajes de error y de log, contrato OpenAPI (descripciones, catálogos, mensajes de reglas),
+configuraciones y CI en **inglés**; `npm run check:language` lo hace cumplir. Excepción en línea:
+`// lang:es -- motivo` (sin motivo falla; se cuentan, objetivo `Language exceptions: 0`).
 
 ## Fuentes de verdad, en este orden
 
@@ -63,11 +66,12 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                    |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                         |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                               |
+| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)        |
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Excepciones de lint: N`) / arregla lo automático             |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                 |
 | `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
 
-Los cuatro `check:*` corren dentro de `contract:check`.
+Los cinco `check:*` corren dentro de `contract:check`.
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
@@ -101,7 +105,7 @@ logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` 
   `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
   se lee como `unknown` y se estrecha (ver `build-server.ts`, `tests/helpers/json.ts`).
 - Una excepción va **en la línea**, con motivo: `// eslint-disable-next-line <regla> -- <motivo>`.
-  Sin motivo o sin uso, falla. Objetivo permanente: `Excepciones de lint: 0`.
+  Sin motivo o sin uso, falla. Objetivo permanente: `Lint exceptions: 0`.
 - Scripts JavaScript (`scripts/`, `contracts/rules/functions/`) se verifican con `checkJs`:
   toda función exportada lleva su firma en JSDoc; los valores desconocidos se leen con
   `prop()`/`isObject()`; los tipos compartidos son `@typedef` importables (`@import`).

@@ -1,21 +1,21 @@
-# Lint estructural, bundle y docs del contrato (ver specs/001-api-contract-toolchain/research.md R-03).
+# Structural lint, bundle and docs of the contract (see specs/001-api-contract-toolchain/research.md R-03).
 apis:
   main:
     root: contracts/openapi.yaml
 extends:
   - recommended
 rules:
-  # API privada: no hay licencia pública que declarar.
+  # Private API: no public licence to declare.
   info-license: off
   no-unused-components: error
   security-defined: error
-  # US5 (ADR-004): el schema de un media type vive en components/schemas y se referencia.
-  # Un schema inline no se reutiliza y termina duplicado con variaciones sutiles.
+  # US5 (ADR-004): the schema of a media type lives in components/schemas and is referenced.
+  # An inline schema is not reused and ends up duplicated with subtle variations.
   rule/media-type-schema-ref:
     subject:
       type: MediaType
       property: schema
-    message: El schema de un media type va en components/schemas y se referencia con $ref; no se escribe inline.
+    message: The schema of a media type goes in components/schemas and is referenced with $ref; it is not written inline.
     severity: error
     assertions:
       ref: true

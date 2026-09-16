@@ -1,6 +1,6 @@
-// Cuenta las excepciones de lint vigentes (FR-003): directivas de desactivación del linter y
-// del compilador fuera de fixtures y de las pruebas de tipos. Informativo: nunca falla; que una excepción
-// tenga motivo lo exige ESLint (require-description) y ban-ts-comment.
+// Counts the current lint exceptions (FR-003): linter and compiler disable directives outside
+// fixtures and the type tests. Informative: it never fails; that an exception has a reason is
+// demanded by ESLint (require-description) and ban-ts-comment.
 //
 //   node scripts/check-lint-exceptions.mjs
 import { readFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import path from "node:path";
 import { rel, walkFiles } from "./governance-lib.mjs";
 import { repoRoot } from "./lib.mjs";
 
-// Se arma por partes para que este archivo no se cuente a sí mismo.
+// Assembled in parts so this file does not count itself.
 const WORDS = {
   lint: ["eslint", "disable"].join("-"),
   ignore: `@ts-${"ignore"}`,
@@ -30,7 +30,7 @@ const roots = [
 const found = [];
 for (const root of roots) {
   for (const file of walkFiles(root, [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"], IGNORE)) {
-    // Las pruebas de tipos desactivan el compilador a propósito (SC-007 de la 001).
+    // The type tests disable the compiler on purpose (SC-007 of 001).
     if (file.includes(`${path.sep}tests${path.sep}types${path.sep}`)) continue;
     readFileSync(file, "utf8")
       .split(/\r?\n/)
@@ -41,4 +41,4 @@ for (const root of roots) {
   }
 }
 for (const f of found) console.log(f);
-console.log(`Excepciones de lint: ${found.length}`);
+console.log(`Lint exceptions: ${found.length}`);

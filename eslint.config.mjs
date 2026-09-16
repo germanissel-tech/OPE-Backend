@@ -1,7 +1,7 @@
-// Lint del repositorio (ADR-011). Hace cumplir "TypeScript strict, sin any" de CLAUDE.md:
-// reglas type-aware en modo estricto sobre src/ y tests/; los scripts JS se lintean sin tipos
-// (sus tipos los verifica tsconfig.scripts.json con checkJs). El formato es de Prettier:
-// eslint-config-prettier va al final y apaga toda regla estilística.
+// Repository lint (ADR-011). Enforces the "TypeScript strict, no any" of CLAUDE.md: type-aware
+// rules in strict mode over src/ and tests/; JS scripts are linted without types (their types
+// are verified by tsconfig.scripts.json with checkJs). Formatting belongs to Prettier:
+// eslint-config-prettier goes last and turns off every stylistic rule.
 import js from "@eslint/js";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import prettier from "eslint-config-prettier";
@@ -15,7 +15,7 @@ const COMMONJS_FILES = ["contracts/rules/functions/*.js", "**/*.cjs"];
 
 export default tseslint.config(
   {
-    // Generados y fixtures con violaciones deliberadas (misma lista que .prettierignore).
+    // Generated files and fixtures with deliberate violations (same list as .prettierignore).
     ignores: [
       "dist/**",
       "node_modules/**",
@@ -46,8 +46,8 @@ export default tseslint.config(
     },
     linterOptions: { reportUnusedDisableDirectives: "error" },
     rules: {
-      // Tipado fuerte (FR-001). Las no-unsafe-* ya vienen en strictTypeChecked; se repiten las
-      // que la spec nombra para que no dependan de la preset.
+      // Strong typing (FR-001). The no-unsafe-* rules already come with strictTypeChecked; the
+      // ones the spec names are repeated so they do not depend on the preset.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unsafe-assignment": "error",
       "@typescript-eslint/no-unsafe-member-access": "error",
@@ -64,10 +64,10 @@ export default tseslint.config(
         { "ts-expect-error": "allow-with-description", minimumDescriptionLength: 10 },
       ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
-      // `async` sin `await` es conformidad de interfaz (los manejadores devuelven Promise por
-      // contrato); la seguridad real la dan no-floating-promises y no-misused-promises.
+      // `async` without `await` is interface conformance (handlers return a Promise by
+      // contract); the real safety comes from no-floating-promises and no-misused-promises.
       "@typescript-eslint/require-await": "off",
-      // Imports: sólo orden y duplicados. La resolución la garantiza tsc (research R-01).
+      // Imports: order and duplicates only. Resolution is guaranteed by tsc (research R-01).
       "import-x/first": "error",
       "import-x/no-duplicates": ["error", { "prefer-inline": true }],
       "import-x/order": [
@@ -78,18 +78,18 @@ export default tseslint.config(
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
-      // Excepciones: siempre con motivo (FR-002). Las que ya no aplican las reporta
+      // Exceptions: always with a reason (FR-002). The ones that no longer apply are reported by
       // linterOptions.reportUnusedDisableDirectives (core).
       "@eslint-community/eslint-comments/require-description": ["error", { ignore: [] }],
     },
   },
   {
-    // JavaScript: sin información de tipos (checkJs los verifica en tsconfig.scripts.json).
+    // JavaScript: without type information (checkJs verifies them in tsconfig.scripts.json).
     files: JS_FILES,
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    // Funciones custom de Spectral y configs .cjs: CommonJS por diseño (ADR-004).
+    // Spectral custom functions and .cjs configs: CommonJS by design (ADR-004).
     files: COMMONJS_FILES,
     languageOptions: { sourceType: "commonjs" },
     rules: { "@typescript-eslint/no-require-imports": "off" },

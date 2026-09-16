@@ -1,3 +1,3 @@
 # Doc
 
-Hosting: ABIERTO hasta D3.
+Hosting: ABIERTO until D3.

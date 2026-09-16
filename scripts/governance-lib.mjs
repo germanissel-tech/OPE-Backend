@@ -1,14 +1,14 @@
-// Utilidades compartidas por los scripts de gobernanza (check-adrs, check-markers,
-// check-glossary, check-invariant-tests). Sin dependencias de shell. Tipos en JSDoc.
+// Utilities shared by the governance scripts (check-adrs, check-markers, check-glossary,
+// check-invariant-tests, check-language). No shell dependencies. Types in JSDoc.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parse } from "yaml";
 
 /**
- * Recorre `dir` recursivamente y devuelve los archivos con alguna de las extensiones dadas.
+ * Walks `dir` recursively and returns the files with any of the given extensions.
  * @param {string} dir
  * @param {readonly string[]} extensions
- * @param {readonly string[]} [ignore] nombres de directorio que no se recorren
+ * @param {readonly string[]} [ignore] directory names that are not walked
  * @returns {string[]}
  */
 export function walkFiles(dir, extensions, ignore = ["node_modules", ".git", "dist"]) {
@@ -49,7 +49,7 @@ export function exists(file) {
 /** @typedef {Record<string, unknown>} Frontmatter */
 
 /**
- * Separa el frontmatter YAML (`---` … `---`) del cuerpo de un markdown.
+ * Splits the YAML frontmatter (`---` … `---`) from the body of a markdown.
  * @param {string} markdown
  * @returns {{ data: Frontmatter | null; body: string; error?: string }}
  */
@@ -60,7 +60,7 @@ export function parseFrontmatter(markdown) {
   try {
     const data = /** @type {unknown} */ (parse(front));
     if (data !== null && data !== undefined && (typeof data !== "object" || Array.isArray(data))) {
-      return { data: null, body, error: "el frontmatter no es un objeto" };
+      return { data: null, body, error: "the frontmatter is not an object" };
     }
     return { data: /** @type {Frontmatter} */ (data ?? {}), body };
   } catch (err) {
@@ -69,7 +69,7 @@ export function parseFrontmatter(markdown) {
 }
 
 /**
- * Lee y parsea un YAML. El tipo del contenido lo decide quien lo consume.
+ * Reads and parses a YAML. The content type is decided by the consumer.
  * @param {string} file
  * @returns {unknown}
  */
@@ -78,7 +78,7 @@ export function readYaml(file) {
 }
 
 /**
- * Quita los spans entre backticks de una línea (lo citado no cuenta como marcador).
+ * Removes the backtick spans of a line (what is quoted does not count as a marker).
  * @param {string} line
  * @returns {string}
  */
@@ -87,7 +87,7 @@ export function stripBackticks(line) {
 }
 
 /**
- * Imprime problemas (si hay) y devuelve el exit code.
+ * Prints problems (if any) and returns the exit code.
  * @param {readonly string[]} problems
  * @param {string} okMessage
  * @returns {0 | 1}
@@ -95,7 +95,7 @@ export function stripBackticks(line) {
 export function report(problems, okMessage) {
   if (problems.length > 0) {
     for (const p of problems) console.error(`  - ${p}`);
-    console.error(`${problems.length} problema(s).`);
+    console.error(`${problems.length} problem(s).`);
     return 1;
   }
   console.log(okMessage);
@@ -103,7 +103,7 @@ export function report(problems, okMessage) {
 }
 
 /**
- * Ruta relativa al root, con separadores POSIX, para mensajes estables entre plataformas.
+ * Path relative to the root, with POSIX separators, for messages stable across platforms.
  * @param {string} root
  * @param {string} file
  * @returns {string}
@@ -115,7 +115,7 @@ export function rel(root, file) {
 /** @typedef {Record<string, string | true>} ParsedArgs */
 
 /**
- * Parseo mínimo de argumentos `--clave valor` y `--flag`.
+ * Minimal parsing of `--key value` and `--flag` arguments.
  * @param {readonly string[]} argv
  * @returns {ParsedArgs}
  */
@@ -138,7 +138,7 @@ export function parseArgs(argv) {
 }
 
 /**
- * Valor string de un argumento parseado, o undefined si no vino o vino como flag.
+ * String value of a parsed argument, or undefined if absent or given as a flag.
  * @param {ParsedArgs} args
  * @param {string} key
  * @returns {string | undefined}
@@ -149,7 +149,7 @@ export function argString(args, key) {
 }
 
 /**
- * Lee una propiedad de un objeto desconocido sin asumir su forma.
+ * Reads a property of an unknown object without assuming its shape.
  * @param {unknown} obj
  * @param {string} key
  * @returns {unknown}

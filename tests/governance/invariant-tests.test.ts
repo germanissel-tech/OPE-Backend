@@ -14,7 +14,7 @@ describe("check:invariant-tests", () => {
   it("passes when every invariant has its [invariant:<slug>] test", () => {
     const r = check("ok");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("Invariantes: 1 declaradas, 1 con prueba");
+    expect(r.output).toContain("Invariants: 1 declared, 1 with a test");
   });
 
   it("fails naming the missing marker and where the invariant is declared", () => {
@@ -28,6 +28,6 @@ describe("check:invariant-tests", () => {
   it("with zero invariants it passes and says so", () => {
     const r = check("none");
     expect(r.status).toBe(0);
-    expect(r.output).toContain("Invariantes: 0 declaradas");
+    expect(r.output).toContain("Invariants: 0 declared");
   });
 });

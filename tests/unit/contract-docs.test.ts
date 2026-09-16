@@ -36,7 +36,7 @@ describe("contract:docs", () => {
     const result = docs({ OPE_CONTRACT_ROOT: path.resolve("tests/contract-rules/fixtures/ope-no-pii.yaml") });
     expect(result.status).not.toBe(0);
     expect(result.output).toContain("ope-no-pii");
-    expect(result.output).toContain("no se genera documentación");
+    expect(result.output).toContain("no documentation is generated");
     const after = existsSync(output) ? statSync(output).mtimeMs : null;
     expect(after).toBe(before);
   });

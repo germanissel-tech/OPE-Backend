@@ -1,9 +1,9 @@
-// contract:types — genera src/interface-adapters/http/generated/api.d.ts desde el bundle (FR-030).
-// Determinista: opciones fijas y fin de línea LF.
+// contract:types — generates src/interface-adapters/http/generated/api.d.ts from the bundle (FR-030).
+// Deterministic: fixed options and LF line endings.
 import { writeFileSync } from "node:fs";
 import { generateTypes } from "./contract-types-lib.mjs";
 import { generatedTypesPath } from "./lib.mjs";
 
 const source = await generateTypes();
 writeFileSync(generatedTypesPath, source, "utf8");
-console.log(`Tipos generados en ${generatedTypesPath}`);
+console.log(`Types generated at ${generatedTypesPath}`);

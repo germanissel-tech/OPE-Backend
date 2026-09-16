@@ -33,7 +33,7 @@ describe("contract:types:check", () => {
   it("passes when the committed file matches the regeneration", () => {
     const result = check(generated);
     expect(result.status, result.output).toBe(0);
-    expect(result.output).toContain("Tipos generados al día");
+    expect(result.output).toContain("Generated types are up to date");
   });
 
   it("fails when the file was edited by hand", () => {
@@ -43,6 +43,6 @@ describe("contract:types:check", () => {
     writeFileSync(copy, `${readFileSync(copy, "utf8")}\nexport type Editado = true;\n`);
     const result = check(copy);
     expect(result.status).toBe(1);
-    expect(result.output).toContain("Tipos generados desactualizados");
+    expect(result.output).toContain("Generated types are outdated");
   });
 });

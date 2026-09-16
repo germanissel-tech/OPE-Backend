@@ -8,7 +8,7 @@ describe("check:adrs", () => {
   it("passes with valid ADRs and existing citations", () => {
     const r = check("ok");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toMatch(/ADRs: 2, \d+ citas, sin citas rotas/);
+    expect(r.output).toMatch(/ADRs: 2, \d+ citations, none broken/);
   });
 
   it("fails on a citation to a nonexistent ADR, with file and line", () => {
@@ -21,7 +21,7 @@ describe("check:adrs", () => {
   it("fails if a frontmatter field is missing", () => {
     const r = check("frontmatter-incompleto");
     expect(r.status).toBe(1);
-    expect(r.output).toContain("falta `estado`");
+    expect(r.output).toContain("`estado` is missing");
   });
 
   it("fails if the number does not match the file prefix", () => {

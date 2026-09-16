@@ -1,13 +1,13 @@
-// check:glossary — el lenguaje ubicuo contra el contrato (FR-010..FR-014; ADR-008).
+// check:glossary — the ubiquitous language against the contract (FR-010..FR-014; ADR-008).
 //
 //   node scripts/check-glossary.mjs [--bundle f] [--glossary d] [--constitution f] [--mvp-docs d]
 //
-// 1. Todo sustantivo del contrato (segmentos de ruta, nombres de schema) resuelve al `en` de
-//    una nota de docs/dominio/ o a la lista técnica (_tecnicos.json).
-// 2. Toda nota tiene frontmatter completo y `fuente`.
-// 3. La fuente existe: `constitucion#X` (encabezado que contiene X), `mvp:archivo#X` (bajo el
-//    directorio de documentos del MVP, si está disponible; si no, aviso), o ruta del repo.
-// 4. Toda nota sin uso en el contrato declara `uso: disponible | pendiente`.
+// 1. Every contract noun (path segments, schema names) resolves to the `en` of a note in
+//    docs/dominio/ or to the technical list (_tecnicos.json).
+// 2. Every note has a complete frontmatter and a `fuente` (source).
+// 3. The source exists: `constitucion#X` (a heading containing X), `mvp:file#X` (under the MVP
+//    documents directory, if available; otherwise a warning), or a repo path.
+// 4. Every note unused in the contract declares `uso: disponible | pendiente`.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -34,8 +34,8 @@ const mvpDocs = path.resolve(
 );
 
 /**
- * Los documentos del MVP están disponibles si el directorio tiene algún `NN-*.md`. Que exista
- * el directorio no alcanza: en CI el padre del repo existe y está vacío.
+ * The MVP documents are available if the directory has some `NN-*.md`. The directory existing
+ * is not enough: in CI the repo's parent exists and is empty.
  * @returns {boolean}
  */
 function mvpDocsAvailable() {
@@ -43,8 +43,8 @@ function mvpDocsAvailable() {
   return readdirSync(mvpDocs).some((name) => /^\d{2}-.*\.md$/.test(name));
 }
 
-const ESTADOS = ["aprobado", "propuesto"];
-const USOS = ["disponible", "pendiente"];
+const STATES = ["aprobado", "propuesto"];
+const USES = ["disponible", "pendiente"];
 const SUFFIXES = ["Request", "Response", "List", "Create", "Update"];
 
 /** @type {string[]} */
@@ -52,7 +52,7 @@ const problems = [];
 /** @type {string[]} */
 const warnings = [];
 
-// --- Lista técnica --------------------------------------------------------------------
+// --- Technical list ------------------------------------------------------------------
 const technicalFile = path.join(glossaryDir, "_tecnicos.json");
 /** @returns {string[]} */
 function loadTechnical() {
@@ -63,7 +63,7 @@ function loadTechnical() {
 }
 const technical = new Set(loadTechnical());
 
-// --- Fuentes ---------------------------------------------------------------------------
+// --- Sources -------------------------------------------------------------------------
 /**
  * @param {string} file
  * @param {string | undefined} section
@@ -78,17 +78,17 @@ function headingExists(file, section) {
 }
 
 /**
- * @param {string} fuente
+ * @param {string} source
  * @param {string} where
  */
-function checkSource(fuente, where) {
-  const [ref = "", section] = fuente.split("#");
+function checkSource(source, where) {
+  const [ref = "", section] = source.split("#");
   if (ref === "constitucion") {
     if (!exists(constitution)) {
-      problems.push(`${where}: fuente \`${fuente}\` pero no existe la constitución en ${constitution}`);
+      problems.push(`${where}: source \`${source}\` but the constitution does not exist at ${constitution}`);
     } else if (!headingExists(constitution, section)) {
       problems.push(
-        `${where}: fuente \`${fuente}\`: ningún encabezado de la constitución contiene "${String(section)}"`,
+        `${where}: source \`${source}\`: no heading of the constitution contains "${String(section)}"`,
       );
     }
     return;
@@ -97,65 +97,65 @@ function checkSource(fuente, where) {
     const file = path.join(mvpDocs, ref.slice(4));
     if (!mvpDocsAvailable()) {
       warnings.push(
-        `${where}: fuente \`${fuente}\` no verificable: no está el directorio de documentos del MVP (${mvpDocs}); definí OPE_MVP_DOCS para verificarla`,
+        `${where}: source \`${source}\` not verifiable: the MVP documents directory is missing (${mvpDocs}); set OPE_MVP_DOCS to verify it`,
       );
       return;
     }
     if (!exists(file)) {
-      problems.push(`${where}: fuente \`${fuente}\`: no existe ${file}`);
+      problems.push(`${where}: source \`${source}\`: ${file} does not exist`);
     } else if (!headingExists(file, section)) {
       problems.push(
-        `${where}: fuente \`${fuente}\`: ningún encabezado de ${ref.slice(4)} contiene "${String(section)}"`,
+        `${where}: source \`${source}\`: no heading of ${ref.slice(4)} contains "${String(section)}"`,
       );
     }
     return;
   }
   const file = path.resolve(repoRoot, ref);
   if (!exists(file)) {
-    problems.push(`${where}: fuente \`${fuente}\`: no existe ${ref}`);
+    problems.push(`${where}: source \`${source}\`: ${ref} does not exist`);
   } else if (!headingExists(file, section)) {
-    problems.push(`${where}: fuente \`${fuente}\`: ningún encabezado contiene "${String(section)}"`);
+    problems.push(`${where}: source \`${source}\`: no heading contains "${String(section)}"`);
   }
 }
 
-// --- Notas ---------------------------------------------------------------------------
-/** @typedef {{ where: string; en: string; uso: unknown; used: boolean }} Note */
+// --- Notes -------------------------------------------------------------------------
+/** @typedef {{ where: string; en: string; use: unknown; used: boolean }} Note */
 /** @type {Note[]} */
 const notes = [];
 for (const file of walkFiles(glossaryDir, [".md"]).filter((f) => path.basename(f) !== "README.md")) {
   const where = rel(repoRoot, file) || path.basename(file);
   const { data, error } = parseFrontmatter(readFileSync(file, "utf8"));
   if (!data) {
-    problems.push(`${where}: sin frontmatter válido${error ? ` (${error})` : ""}`);
+    problems.push(`${where}: no valid frontmatter${error ? ` (${error})` : ""}`);
     continue;
   }
   for (const field of ["es", "en", "contexto", "estado", "fuente"]) {
     const value = data[field];
     if (value === undefined || value === null || String(value).trim() === "") {
-      problems.push(`${where}: falta \`${field}\` en el frontmatter`);
+      problems.push(`${where}: \`${field}\` is missing in the frontmatter`);
     }
   }
-  const estado = data["estado"];
-  if (estado !== undefined && (typeof estado !== "string" || !ESTADOS.includes(estado))) {
-    problems.push(`${where}: \`estado: ${String(estado)}\` inválido (${ESTADOS.join(" | ")})`);
+  const state = data["estado"];
+  if (state !== undefined && (typeof state !== "string" || !STATES.includes(state))) {
+    problems.push(`${where}: invalid \`estado: ${String(state)}\` (${STATES.join(" | ")})`);
   }
-  const uso = data["uso"];
-  if (uso !== undefined && (typeof uso !== "string" || !USOS.includes(uso))) {
-    problems.push(`${where}: \`uso: ${String(uso)}\` inválido (${USOS.join(" | ")})`);
+  const use = data["uso"];
+  if (use !== undefined && (typeof use !== "string" || !USES.includes(use))) {
+    problems.push(`${where}: invalid \`uso: ${String(use)}\` (${USES.join(" | ")})`);
   }
-  const fuente = data["fuente"];
-  if (typeof fuente === "string") checkSource(fuente, where);
+  const source = data["fuente"];
+  if (typeof source === "string") checkSource(source, where);
   const en = data["en"];
-  if (typeof en === "string") notes.push({ where, en: en.toLowerCase(), uso, used: false });
+  if (typeof en === "string") notes.push({ where, en: en.toLowerCase(), use, used: false });
 }
 
-// --- Sustantivos del contrato ---------------------------------------------------------
+// --- Contract nouns -------------------------------------------------------
 const doc = exists(bundle) ? readYaml(bundle) : null;
-if (!doc) problems.push(`no existe el bundle ${rel(repoRoot, bundle)}; corré npm run contract:bundle`);
+if (!doc) problems.push(`bundle ${rel(repoRoot, bundle)} does not exist; run npm run contract:bundle`);
 
 /**
- * Candidatos a singular de una palabra en inglés (`widgets` → widget; `boxes` → box;
- * `exposures` → exposure, no `exposur`; `policies` → policy).
+ * Singular candidates of an English word (`widgets` → widget; `boxes` → box;
+ * `exposures` → exposure, not `exposur`; `policies` → policy).
  * @param {string} w
  * @returns {string[]}
  */
@@ -185,8 +185,8 @@ function resolveWord(word) {
 }
 
 /**
- * Un nombre compuesto resuelve entero (`foo-bar`, `foobar` o, para los valores de cable de
- * un discriminador, `foo_bar`), o palabra por palabra.
+ * A compound name resolves as a whole (`foo-bar`, `foobar` or, for the wire values of a
+ * discriminator, `foo_bar`), or word by word.
  * @param {string[]} words
  * @param {string} label
  * @param {string} at
@@ -198,7 +198,7 @@ function resolveCompound(words, label, at) {
   const first = orphan[0];
   if (first !== undefined) {
     problems.push(
-      `${at}: el sustantivo "${label}" no resuelve al glosario (huérfano: ${orphan.join(", ")}); agregá docs/dominio/<termino>.md con en: ${first.toLowerCase()} o sumalo a _tecnicos.json si es vocabulario técnico`,
+      `${at}: noun "${label}" does not resolve to the glossary (orphan: ${orphan.join(", ")}); add docs/dominio/<term>.md with en: ${first.toLowerCase()} or add it to _tecnicos.json if it is technical vocabulary`,
     );
   }
 }
@@ -222,17 +222,17 @@ if (doc) {
   }
 }
 
-// --- Notas sin uso ------------------------------------------------------------------------
+// --- Unused notes ----------------------------------------------------------------------
 for (const note of notes) {
-  if (!note.used && note.uso === undefined) {
+  if (!note.used && note.use === undefined) {
     problems.push(
-      `${note.where}: el término "${note.en}" no se usa en el contrato; declará \`uso: disponible\` (vocabulario que ningún endpoint expone) o \`uso: pendiente\` (contrato por escribir)`,
+      `${note.where}: term "${note.en}" is not used in the contract; declare \`uso: disponible\` (vocabulary no endpoint exposes) or \`uso: pendiente\` (contract yet to be written)`,
     );
   }
 }
 
-for (const w of warnings) console.log(`aviso: ${w}`);
+for (const w of warnings) console.log(`warning: ${w}`);
 const used = notes.filter((n) => n.used).length;
 process.exit(
-  report(problems, `Glosario: ${notes.length} términos, todos con fuente; ${used} usados en el contrato`),
+  report(problems, `Glossary: ${notes.length} terms, all with a source; ${used} used in the contract`),
 );

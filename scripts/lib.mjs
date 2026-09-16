@@ -1,5 +1,5 @@
-// Utilidades compartidas por los scripts del contrato. Sin dependencias de shell: corren
-// igual en Windows, macOS y Linux. Tipos en JSDoc, verificados por tsconfig.scripts.json.
+// Utilities shared by the contract scripts. No shell dependencies: they run the same on
+// Windows, macOS and Linux. Types in JSDoc, verified by tsconfig.scripts.json.
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,8 +15,8 @@ export const generatedTypesPath =
   path.join(repoRoot, "src", "interface-adapters", "http", "generated", "api.d.ts");
 
 /**
- * Comando + argumentos para invocar la CLI de un paquete instalado, sin pasar por los
- * wrappers .cmd de node_modules/.bin (fallan en Windows con espacios en la ruta).
+ * Command + arguments to invoke the CLI of an installed package, bypassing the .cmd wrappers
+ * of node_modules/.bin (they fail on Windows with spaces in the path).
  */
 const CLI_ENTRIES = /** @type {const} */ ({
   redocly: "@redocly/cli/bin/cli.js",
@@ -35,7 +35,7 @@ export function cli(name) {
 }
 
 /**
- * Ejecuta un comando heredando stdio y devuelve el código de salida.
+ * Runs a command inheriting stdio and returns the exit code.
  * @param {string} cmd
  * @param {string[]} args
  * @param {SpawnSyncOptions} [options]
@@ -48,7 +48,7 @@ export function run(cmd, args, options = {}) {
 }
 
 /**
- * Ejecuta la CLI de un paquete (ver `cli`).
+ * Runs the CLI of a package (see `cli`).
  * @param {CliName} name
  * @param {string[]} args
  * @param {SpawnSyncOptions} [options]
@@ -62,7 +62,7 @@ export function runCli(name, args, options = {}) {
 /** @typedef {{ status: number; stdout: string; stderr: string }} Captured */
 
 /**
- * Ejecuta un comando capturando stdout/stderr como texto UTF-8.
+ * Runs a command capturing stdout/stderr as UTF-8 text.
  * @param {string} cmd
  * @param {string[]} args
  * @param {SpawnSyncOptions} [options]
@@ -75,8 +75,8 @@ export function capture(cmd, args, options = {}) {
 }
 
 /**
- * Ejecuta un comando capturando stdout como bytes (para contenido binario o con codificación
- * desconocida, como `git show`).
+ * Runs a command capturing stdout as bytes (for binary content or unknown encoding, such as
+ * `git show`).
  * @param {string} cmd
  * @param {string[]} args
  * @returns {{ status: number; stdout: Buffer }}
