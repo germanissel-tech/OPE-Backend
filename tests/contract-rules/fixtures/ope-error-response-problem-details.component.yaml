@@ -1,0 +1,54 @@
+# Fixture de tests/contract-rules: ope-error-response-problem-details.component. Generado a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
+openapi: 3.1.0
+info:
+  title: Fixture
+  version: 1.0.0
+  description: Contrato mínimo de prueba.
+  contact:
+    name: OPE
+servers:
+  - url: /
+tags:
+  - name: system
+    description: Sistema.
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      tags:
+        - system
+      summary: Estado del servicio
+      description: Devuelve el estado.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  schemas:
+    Health:
+      type: object
+      description: Estado.
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Estado del servicio.
+  responses:
+    InternalServerError:
+      description: Error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Health"
+          example:
+            status: ok

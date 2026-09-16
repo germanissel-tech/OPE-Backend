@@ -1,0 +1,18 @@
+{
+  "_doc": "Nombres de propiedad, parámetro o header que nunca pueden aparecer en el contrato (constitución VII: OPE no almacena información identificatoria). Comparación sin distinguir mayúsculas. Ampliar esta lista es la única forma de agregar una prohibición; la regla ope-no-pii la lee de acá. La excepción para `password` en el login del portal se implementará como override de Spectral acotado a ese esquema cuando exista.",
+  "deny": [
+    "email",
+    "name",
+    "firstName",
+    "lastName",
+    "phone",
+    "address",
+    "document",
+    "dni",
+    "ip",
+    "ipAddress",
+    "card",
+    "cardNumber",
+    "password"
+  ]
+}
