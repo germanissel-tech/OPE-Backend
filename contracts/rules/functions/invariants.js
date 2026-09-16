@@ -3,21 +3,27 @@
 // genérico `unprocessable`) y el status coincide con el del catálogo.
 "use strict";
 const { loadCatalog } = require("./_catalog.js");
-const { walk } = require("./_walk.js");
+const { get, isObject, walk } = require("./_walk.js");
+
+/** @import { SpectralFunction, SpectralResult } from "./_walk.js" */
 
 const FIELDS = ["type", "status", "rule", "description"];
 const GENERIC = "unprocessable";
 
-module.exports = (document, opts, context) => {
-  const { types } = loadCatalog(context, opts && opts.catalog);
+/** @type {SpectralFunction} */
+const invariants = (document, opts, context) => {
+  const { types } = loadCatalog(context, get(opts, "catalog"));
+  /** @type {SpectralResult[]} */
   const results = [];
   const base = context.path;
   walk(document, [], (node, nodePath) => {
-    if (Array.isArray(node) || !Array.isArray(node["x-invariants"])) return;
-    node["x-invariants"].forEach((inv, i) => {
+    if (Array.isArray(node)) return;
+    const declared = node["x-invariants"];
+    if (!Array.isArray(declared)) return;
+    declared.forEach((inv, i) => {
       const at = [...base, ...nodePath, "x-invariants", i];
       const where = `Invariante en ${nodePath.join("/") || "raíz"}#${i}`;
-      if (!inv || typeof inv !== "object") {
+      if (!isObject(inv)) {
         results.push({
           message: `${where}: debe ser un objeto con type, status, rule y description.`,
           path: at,
@@ -30,25 +36,27 @@ module.exports = (document, opts, context) => {
           results.push({ message: `${where}: falta ${field}.`, path: at });
         }
       }
-      if (typeof inv.type !== "string") return;
-      if (inv.type === GENERIC) {
+      const type = inv["type"];
+      if (typeof type !== "string") return;
+      if (type === GENERIC) {
         results.push({
           message: `${where}: 'unprocessable' es genérico; declará un tipo propio para la regla en contracts/problem-types.yaml.`,
           path: [...at, "type"],
         });
         return;
       }
-      const entry = types.get(inv.type);
+      const entry = types.get(type);
       if (!entry) {
         results.push({
-          message: `${where}: el type '${inv.type}' no está en contracts/problem-types.yaml; agregalo al catálogo o corregí el slug.`,
+          message: `${where}: el type '${type}' no está en contracts/problem-types.yaml; agregalo al catálogo o corregí el slug.`,
           path: [...at, "type"],
         });
         return;
       }
-      if (inv.status !== undefined && Number(inv.status) !== entry.status) {
+      const status = inv["status"];
+      if (status !== undefined && Number(status) !== entry.status) {
         results.push({
-          message: `${where}: status ${inv.status} no coincide con el del catálogo para '${inv.type}' (${entry.status}).`,
+          message: `${where}: status ${String(status)} no coincide con el del catálogo para '${type}' (${String(entry.status)}).`,
           path: [...at, "status"],
         });
       }
@@ -56,3 +64,5 @@ module.exports = (document, opts, context) => {
   });
   return results;
 };
+
+module.exports = invariants;

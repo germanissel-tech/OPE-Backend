@@ -1,16 +1,18 @@
 // ope-required-capabilities (FR-031): toda operación autenticada declara la capacidad que exige
 // (`x-required-capabilities`, forma recurso:accion); una operación pública no la declara.
 "use strict";
+const { isObject } = require("./_walk.js");
+const { isAuthenticated } = require("./requiredErrorResponses.js");
+
+/** @import { SpectralFunction } from "./_walk.js" */
 
 const CAPABILITY = /^[a-z][a-z-]*:[a-z][a-z-]*$/;
 
-module.exports = (operation, _opts, context) => {
-  if (!operation || typeof operation !== "object") return [];
-  const root =
-    (context.documentInventory && context.documentInventory.resolved) || context.document.data || {};
-  const security = operation.security !== undefined ? operation.security : root.security;
-  const authenticated = Array.isArray(security) && security.length > 0;
-  const id = operation.operationId || "(sin operationId)";
+/** @type {SpectralFunction} */
+const requiredCapabilities = (operation, _opts, context) => {
+  if (!isObject(operation)) return [];
+  const authenticated = isAuthenticated(operation, context);
+  const id = String(operation["operationId"] ?? "(sin operationId)");
   const caps = operation["x-required-capabilities"];
   const at = [...context.path, "x-required-capabilities"];
 
@@ -40,3 +42,5 @@ module.exports = (operation, _opts, context) => {
       path: at,
     }));
 };
+
+module.exports = requiredCapabilities;

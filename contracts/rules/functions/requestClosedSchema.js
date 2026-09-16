@@ -3,10 +3,14 @@
 "use strict";
 const { walkSchema, isObjectSchema } = require("./_walk.js");
 
-module.exports = (schema, _opts, context) => {
+/** @import { SpectralFunction, SpectralResult } from "./_walk.js" */
+
+/** @type {SpectralFunction} */
+const requestClosedSchema = (schema, _opts, context) => {
+  /** @type {SpectralResult[]} */
   const results = [];
   walkSchema(schema, context.path, (node, nodePath) => {
-    if (isObjectSchema(node) && node.additionalProperties !== false) {
+    if (isObjectSchema(node) && node["additionalProperties"] !== false) {
       results.push({
         message:
           "El esquema de request no declara additionalProperties: false; los campos no declarados deben rechazarse (constitución VII). Agregalo en este objeto.",
@@ -16,3 +20,5 @@ module.exports = (schema, _opts, context) => {
   });
   return results;
 };
+
+module.exports = requestClosedSchema;

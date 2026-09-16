@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url";
 import { stringify } from "yaml";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+// Los fixtures se construyen mutando objetos JSON libres; el tipo es deliberadamente laxo
+// (cualquier objeto con claves string) porque cada mutador rompe una parte distinta del contrato.
+/** @typedef {Record<string, any>} Doc */
+/** @typedef {(d: Doc) => Doc} Mutator */
 mkdirSync(out, { recursive: true });
 
 const problemSchema = () => ({
@@ -20,6 +25,12 @@ const problemSchema = () => ({
     status: { type: "integer", description: "Código HTTP." },
   },
 });
+/**
+ * @param {string} description
+ * @param {number} status
+ * @param {string} slug
+ * @returns {Doc}
+ */
 const problemResponse = (description, status, slug) => ({
   description,
   content: {
@@ -30,6 +41,7 @@ const problemResponse = (description, status, slug) => ({
   },
 });
 
+/** @returns {Doc} */
 const base = () => ({
   openapi: "3.1.0",
   info: {
@@ -81,6 +93,7 @@ const base = () => ({
 });
 
 /** Agrega POST /v1/things con request body válido (schema por $ref, como exige rule/media-type-schema-ref). */
+/** @param {Doc} doc */
 const withThings = (doc) => {
   doc.components.schemas.ThingCreate = {
     type: "object",
@@ -139,6 +152,11 @@ const withThings = (doc) => {
 };
 
 /** Agrega un securityScheme y vuelve autenticada la operación dada. */
+/**
+ * @param {Doc} doc
+ * @param {Doc} op
+ * @param {string[] | null} [capabilities] null: autenticada sin capacidad declarada
+ */
 const withAuth = (doc, op, capabilities = ["things:write"]) => {
   doc.components.securitySchemes = {
     ingestKey: { type: "apiKey", in: "header", name: "X-Api-Key", description: "Clave de ingesta." },
@@ -150,10 +168,14 @@ const withAuth = (doc, op, capabilities = ["things:write"]) => {
   return doc;
 };
 
+/** @param {Doc} doc @returns {Doc} */
 const health = (doc) => doc.paths["/v1/health"].get;
+/** @param {Doc} doc @returns {Doc} */
 const things = (doc) => doc.paths["/v1/things"].post;
+/** @param {Doc} doc @returns {Doc} */
 const bodySchema = (doc) => doc.components.schemas.ThingCreate;
 
+/** @type {Record<string, Mutator>} */
 const fixtures = {
   // Válidos
   "valid.yaml": (d) => withThings(d),

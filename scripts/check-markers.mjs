@@ -7,15 +7,15 @@
 // `estado:` del frontmatter. specs/ y .specify/ quedan fuera: son históricos.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { exists, parseArgs, rel, stripBackticks, walkFiles } from "./governance-lib.mjs";
+import { argString, exists, parseArgs, rel, stripBackticks, walkFiles } from "./governance-lib.mjs";
 import { repoRoot } from "./lib.mjs";
 
 const TOKENS = /\b(ABIERTO|PROPUESTO|PLACEHOLDER)\b/g;
 const BLOCKING = new Set(["ABIERTO", "PLACEHOLDER"]);
 
 const args = parseArgs(process.argv.slice(2));
-const root = path.resolve(args.root ?? repoRoot);
-const strict = args.strict === true;
+const root = path.resolve(argString(args, "root") ?? repoRoot);
+const strict = args["strict"] === true;
 
 const files = [
   ...walkFiles(path.join(root, "contracts"), [".yaml", ".yml"]),
@@ -23,6 +23,8 @@ const files = [
   ...["README.md", "CLAUDE.md"].map((f) => path.join(root, f)).filter(exists),
 ];
 
+/** @typedef {{ file: string; line: number; token: string; text: string }} Marker */
+/** @type {Marker[]} */
 const found = [];
 for (const file of files) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
@@ -38,11 +40,12 @@ for (const file of files) {
     }
     const line = stripBackticks(raw);
     for (const m of line.matchAll(TOKENS)) {
-      found.push({ file: rel(root, file), line: i + 1, token: m[1], text: raw.trim() });
+      found.push({ file: rel(root, file), line: i + 1, token: m[1] ?? "", text: raw.trim() });
     }
   });
 }
 
+/** @param {string} token */
 const count = (token) => found.filter((f) => f.token === token).length;
 for (const f of found) console.log(`${f.file}:${f.line}: ${f.token} — ${f.text}`);
 console.log(

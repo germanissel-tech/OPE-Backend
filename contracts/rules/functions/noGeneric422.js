@@ -4,45 +4,66 @@
 // schema de su request body.
 "use strict";
 const { loadCatalog } = require("./_catalog.js");
-const { walkSchema } = require("./_walk.js");
+const { get, isObject, walkSchema } = require("./_walk.js");
 
+/** @import { SpectralFunction, SpectralResult } from "./_walk.js" */
+
+/**
+ * @param {unknown} media
+ * @returns {string[]}
+ */
 function exampleTypes(media) {
+  /** @type {unknown[]} */
   const out = [];
-  if (!media || typeof media !== "object") return out;
-  if (media.example && typeof media.example === "object") out.push(media.example.type);
-  if (media.examples && typeof media.examples === "object") {
-    for (const ex of Object.values(media.examples)) {
-      if (ex && typeof ex === "object" && ex.value && typeof ex.value === "object") out.push(ex.value.type);
+  if (!isObject(media)) return [];
+  const example = media["example"];
+  if (isObject(example)) out.push(example["type"]);
+  const examples = media["examples"];
+  if (isObject(examples)) {
+    for (const ex of Object.values(examples)) {
+      const value = get(ex, "value");
+      if (isObject(value)) out.push(value["type"]);
     }
   }
   return out.filter((t) => typeof t === "string");
 }
 
+/**
+ * @param {Record<string, unknown>} operation
+ * @returns {Set<string>}
+ */
 function declaredInvariants(operation) {
+  /** @type {Set<string>} */
   const slugs = new Set();
+  /** @param {unknown} node */
   const collect = (node) => {
-    if (node && Array.isArray(node["x-invariants"])) {
-      for (const inv of node["x-invariants"]) if (inv && typeof inv.type === "string") slugs.add(inv.type);
+    const declared = get(node, "x-invariants");
+    if (!Array.isArray(declared)) return;
+    for (const inv of declared) {
+      const type = get(inv, "type");
+      if (typeof type === "string") slugs.add(type);
     }
   };
   collect(operation);
-  const content = operation.requestBody && operation.requestBody.content;
-  if (content && typeof content === "object") {
+  const content = get(operation["requestBody"], "content");
+  if (isObject(content)) {
     for (const media of Object.values(content)) {
-      if (media && media.schema) walkSchema(media.schema, [], (schema) => collect(schema));
+      const schema = get(media, "schema");
+      if (schema) walkSchema(schema, [], (node) => collect(node));
     }
   }
   return slugs;
 }
 
-module.exports = (operation, opts, context) => {
-  if (!operation || typeof operation !== "object") return [];
-  const response = operation.responses && operation.responses["422"];
+/** @type {SpectralFunction} */
+const noGeneric422 = (operation, opts, context) => {
+  if (!isObject(operation)) return [];
+  const response = get(operation["responses"], "422");
   if (!response) return [];
-  const { namespace } = loadCatalog(context, opts && opts.catalog);
-  const id = operation.operationId || "(sin operationId)";
+  const { namespace } = loadCatalog(context, get(opts, "catalog"));
+  const id = String(operation["operationId"] ?? "(sin operationId)");
   const at = [...context.path, "responses", "422"];
-  const media = response.content && response.content["application/problem+json"];
+  const media = get(get(response, "content"), "application/problem+json");
   const types = exampleTypes(media);
   if (types.length === 0) {
     return [
@@ -53,6 +74,7 @@ module.exports = (operation, opts, context) => {
     ];
   }
   const declared = declaredInvariants(operation);
+  /** @type {SpectralResult[]} */
   const results = [];
   for (const type of types) {
     const slug = type.startsWith(namespace) ? type.slice(namespace.length) : type;
@@ -70,3 +92,5 @@ module.exports = (operation, opts, context) => {
   }
   return results;
 };
+
+module.exports = noGeneric422;

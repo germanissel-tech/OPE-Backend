@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  argString,
   exists,
   parseArgs,
   parseFrontmatter,
@@ -19,18 +20,21 @@ const ESTADOS = ["propuesta", "aceptada", "reemplazada", "abierta"];
 const CITA = /\bADR-(\d{3})\b/g;
 
 const args = parseArgs(process.argv.slice(2));
-const root = path.resolve(args.root ?? repoRoot);
+const root = path.resolve(argString(args, "root") ?? repoRoot);
 const adrDir = path.join(root, "docs", "adr");
 
+/** @type {string[]} */
 const problems = [];
+/** @type {Set<number>} */
 const numbers = new Set();
 
 for (const file of walkFiles(adrDir, [".md"])) {
   const name = path.basename(file);
   if (name === "README.md") continue;
   const where = rel(root, file);
-  const prefix = name.match(/^(\d{3})-[a-z0-9-]+\.md$/);
-  if (!prefix) {
+  const prefix = /^(\d{3})-[a-z0-9-]+\.md$/.exec(name);
+  const number = prefix?.[1];
+  if (number === undefined) {
     problems.push(`${where}: el nombre debe ser NNN-slug-en-kebab.md`);
     continue;
   }
@@ -40,24 +44,24 @@ for (const file of walkFiles(adrDir, [".md"])) {
     continue;
   }
   for (const field of ["numero", "titulo", "estado", "fecha", "fuente"]) {
-    if (data[field] === undefined || data[field] === null || data[field] === "")
+    const value = data[field];
+    if (value === undefined || value === null || value === "") {
       problems.push(`${where}: falta \`${field}\` en el frontmatter`);
+    }
   }
-  if (data.numero !== undefined && Number(data.numero) !== Number(prefix[1])) {
-    problems.push(`${where}: \`numero: ${data.numero}\` no coincide con el prefijo ${prefix[1]}`);
+  if (data["numero"] !== undefined && Number(data["numero"]) !== Number(number)) {
+    problems.push(`${where}: \`numero: ${String(data["numero"])}\` no coincide con el prefijo ${number}`);
   }
-  if (data.estado !== undefined && !ESTADOS.includes(data.estado)) {
-    problems.push(`${where}: \`estado: ${data.estado}\` inválido; usar ${ESTADOS.join(" | ")}`);
+  const estado = data["estado"];
+  if (estado !== undefined && (typeof estado !== "string" || !ESTADOS.includes(estado))) {
+    problems.push(`${where}: \`estado: ${String(estado)}\` inválido; usar ${ESTADOS.join(" | ")}`);
   }
-  if (
-    data.fecha !== undefined &&
-    !/^\d{4}-\d{2}-\d{2}$/.test(
-      String(data.fecha instanceof Date ? data.fecha.toISOString().slice(0, 10) : data.fecha),
-    )
-  ) {
+  const rawFecha = data["fecha"];
+  const fecha = rawFecha instanceof Date ? rawFecha.toISOString().slice(0, 10) : rawFecha;
+  if (fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(fecha))) {
     problems.push(`${where}: \`fecha\` debe ser YYYY-MM-DD`);
   }
-  numbers.add(Number(prefix[1]));
+  numbers.add(Number(number));
 }
 
 // Citas: en docs, specs, contrato, guías y constitución.
@@ -76,9 +80,10 @@ for (const file of citing) {
     // Lo citado entre backticks es un ejemplo, no una cita.
     for (const m of stripBackticks(raw).matchAll(CITA)) {
       citations += 1;
-      const n = Number(m[1]);
-      if (!numbers.has(n))
-        problems.push(`${rel(root, file)}:${i + 1}: cita ADR-${m[1]} pero no existe docs/adr/${m[1]}-*.md`);
+      const cited = m[1] ?? "";
+      if (!numbers.has(Number(cited))) {
+        problems.push(`${rel(root, file)}:${i + 1}: cita ADR-${cited} pero no existe docs/adr/${cited}-*.md`);
+      }
     }
   });
 }

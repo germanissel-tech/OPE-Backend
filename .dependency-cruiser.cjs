@@ -11,6 +11,8 @@
 
 // Grupo no capturante: `$1` en adapters-no-cross debe ser el nombre del adaptador.
 const SRC = "(?:^|/)src/";
+/** @param {string} name */
+/** @param {string} name */
 const layer = (name) => `${SRC}${name}/`;
 
 /** @type {import('dependency-cruiser').IConfiguration} */
