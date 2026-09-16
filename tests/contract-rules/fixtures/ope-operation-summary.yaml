@@ -41,7 +41,7 @@ components:
       properties:
         status:
           type: string
-          description: Estado del servicio.
+          description: Salud.
     ProblemDetails:
       type: object
       description: Problem Details (RFC 9457).

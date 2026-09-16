@@ -1,0 +1,46 @@
+# FR-060: en cada cambio, verificación del contrato (lint, bundle, compatibilidad contra main,
+# drift de tipos), compilación, typecheck, pruebas unitarias/integración y pruebas de contrato.
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # contract:diff compara contra origin/main; hace falta el historial completo.
+          fetch-depth: 0
+
+      - name: Traer main como base de comparación
+        if: github.ref != 'refs/heads/main'
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: npm ci
+      - run: npm run contract:check
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:contract
+
+      - name: Publicar reporte de Schemathesis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schemathesis-junit
+          path: .schemathesis/
+          if-no-files-found: ignore

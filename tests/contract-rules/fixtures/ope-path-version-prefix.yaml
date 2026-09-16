@@ -17,7 +17,7 @@ paths:
       operationId: getHealth
       tags:
         - system
-      summary: Estado del servicio
+      summary: Salud del fixture
       description: Devuelve el estado.
       security: []
       responses:
@@ -42,7 +42,7 @@ components:
       properties:
         status:
           type: string
-          description: Estado del servicio.
+          description: Salud.
     ProblemDetails:
       type: object
       description: Problem Details (RFC 9457).
