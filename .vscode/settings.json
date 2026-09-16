@@ -21,5 +21,11 @@
   // El único HTML del repo es el generado; no hay nada fuente que validar.
   "html.validate.scripts": false,
   "html.validate.styles": false,
-  "files.eol": "\n"
+  "files.eol": "\n",
+  // Formato y lint en el editor con las mismas herramientas del repo.
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
+  "eslint.validate": ["javascript", "typescript"],
+  "prettier.requireConfig": true
 }

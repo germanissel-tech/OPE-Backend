@@ -30,7 +30,9 @@ Dentro de una feature que toca HTTP, el orden es:
    `OperationHandler<"<operationId>">` y registrarlo en `src/main.ts` (único composition root).
    El servidor rutea por `operationId`; no hay otro mecanismo de rutas. La lógica va en
    `src/domain/`; el handler sólo traduce DTO ↔ dominio.
-5. `npm run typecheck && npm run arch && npm test && npm run test:contract` en verde.
+5. `npm run format:check && npm run lint && npm run typecheck && npm run arch && npm test && npm run test:contract`
+   en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
+   corre CI.
 
 Antes del paso 1, si la operación trae **un sustantivo nuevo**, su nota en `docs/dominio/`
 (ADR-008); si trae **una regla que el esquema no expresa**, su `x-invariants` con tipo propio
@@ -56,6 +58,8 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                    |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                         |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                               |
+| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Excepciones de lint: N`) / arregla lo automático             |
 | `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
 
 Los cuatro `check:*` corren dentro de `contract:check`.
@@ -69,6 +73,20 @@ Los cuatro `check:*` corren dentro de `contract:check`.
 | `src/adapters/<x>/` | implementaciones: `http` (Fastify + openapi-backend), `clock`, futuros `postgres`, `redis`, `platform-*` | `ports/`, `domain/`, `generated/`, npm; **no** otro adaptador |
 | `src/handlers/`     | un archivo por `operationId`; traduce DTO generado ↔ dominio; recibe puertos                             | `domain/`, `ports/`, `generated/`                             |
 | `src/main.ts`       | composition root: instancia adaptadores y cablea handlers                                                | todo; nadie lo importa                                        |
+
+### Tipado (ADR-011, ADR-012; verificado por `lint` y `typecheck`)
+
+- Sin `any` explícito ni valores `any` (`no-unsafe-*`), sin `!`, promesas siempre manejadas,
+  `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
+  se lee como `unknown` y se estrecha (ver `build-server.ts`, `tests/helpers/json.ts`).
+- Una excepción va **en la línea**, con motivo: `// eslint-disable-next-line <regla> -- <motivo>`.
+  Sin motivo o sin uso, falla. Objetivo permanente: `Excepciones de lint: 0`.
+- Scripts JavaScript (`scripts/`, `contracts/rules/functions/`) se verifican con `checkJs`:
+  toda función exportada lleva su firma en JSDoc; los valores desconocidos se leen con
+  `prop()`/`isObject()`; los tipos compartidos son `@typedef` importables (`@import`).
+- `erasableSyntaxOnly`: sin `enum` ni parámetros de propiedad; uniones de literales y campos
+  explícitos. `noPropertyAccessFromIndexSignature`: `env["PORT"]`, no `env.PORT`.
+- Formato: Prettier, y nada más. `npm run format` antes de commitear; el hook lo verifica.
 
 ### Notas operativas del contrato
 

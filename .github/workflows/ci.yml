@@ -32,6 +32,8 @@ jobs:
 
       - run: npm ci
       - run: npm run contract:check
+      - run: npm run format:check
+      - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
       - run: npm run arch

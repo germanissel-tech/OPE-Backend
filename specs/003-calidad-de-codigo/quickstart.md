@@ -67,4 +67,21 @@ los `curl` de `specs/001-api-contract-toolchain/quickstart.md` §3/§4 iguales.
 
 ## Estado al cierre de la feature
 
-(se completa en implement, con fecha y evidencia)
+Corrida completa el 2026-09-16 en Windows 11 / Node 22.23.2 (rama `003-calidad-de-codigo`).
+Cifras históricas de esa corrida; el estado vivo lo informan los comandos.
+
+| Elemento                              | Estado         | Evidencia                                                                                                                                                                                                      |
+| ------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format:check` + `lint` + `typecheck` | BUILT / TESTED | exit 0 en **14 s** (SC-002 < 60 s); `Excepciones de lint: 0` (SC-003)                                                                                                                                          |
+| Reglas de lint clave                  | TESTED         | `tests/lint` 15/15: 14 fixtures fallan con su regla (`no-explicit-any`, `no-unsafe-*`, promesas, `!`, `switch`, imports, directivas sin motivo/sin uso, `@ts-expect-error` sin descripción); `valid.ts` limpio |
+| Formato                               | TESTED         | `tests/format` 3/3: falla, corrige, idempotente, LF; lista única en `.prettierignore`                                                                                                                          |
+| `checkJs` en scripts                  | TESTED         | `tests/typecheck` 2/2 para scripts: TS2551 en `bad-script.mjs` y el script ejecuta igual con `node`; manual: `lenght` en `check-markers.mjs` → `typecheck` falla y el script sigue corriendo                   |
+| Compilador endurecido                 | TESTED         | `tests/typecheck` 4/4: TS4111, TS2307, TS1294 y `valid.ts`; `npm run build` OK                                                                                                                                 |
+| Hook de pre-commit                    | BUILT / TESTED | `tests/hooks` 3/3; manual: archivo mal formateado → commit rechazado en **5 s**; la instalación la hace `npm install` (`.git/hooks/pre-commit`)                                                                |
+| Sin cambio de comportamiento (SC-004) | TESTED         | suite anterior sin tocar aserciones; `test:contract` 9/9; `arch` 0 violaciones                                                                                                                                 |
+| Suite completa                        | TESTED         | `npm test` 135/135 en 21 archivos (40 s); `release-check: OK`                                                                                                                                                  |
+| CI                                    | BUILT          | `format:check` y `lint` agregados al workflow; se verifica en el primer push                                                                                                                                   |
+
+Nota: `tests/contract-rules/gen-fixtures.mjs` declara `Doc` como `Record<string, any>` en JSDoc
+a propósito (los mutadores rompen partes arbitrarias de un contrato de prueba); es el único
+lugar con `any` y está fuera del alcance de `no-explicit-any` (JS sin tipos en ESLint).
