@@ -12,5 +12,9 @@ tests/contract-rules/fixtures/
 tests/governance/fixtures/
 tests/lint/fixtures/
 tests/typecheck/fixtures/
+tests/audit/fixtures/
+patches/
+reports/
+.stryker-tmp/
 .specify/
 .claude/
