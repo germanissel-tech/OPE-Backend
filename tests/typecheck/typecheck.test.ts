@@ -7,7 +7,9 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-const tsc = path.resolve("node_modules/typescript/bin/tsc");
+// El compilador que usan `build` y `typecheck` es TypeScript 7 (`@typescript/native`, ADR-017);
+// `node_modules/typescript` es la API 6.0 para las herramientas y no compila el repo.
+const tsc = path.resolve("node_modules/@typescript/native/bin/tsc");
 const fixtures = path.resolve("tests/typecheck/fixtures");
 const dir = mkdtempSync(path.join(os.tmpdir(), "ope-typecheck-"));
 afterAll(() => {
@@ -42,7 +44,8 @@ function compile(base: string, files: string[]): { status: number; output: strin
 describe("compilador endurecido (tsconfig.json)", () => {
   it.each([
     ["index-signature-dot.ts", "TS4111"],
-    ["side-effect-import.ts", "TS2307"],
+    // TS 7 emite TS2882 (código propio para side-effect import inexistente); TS ≤ 6 daba TS2307.
+    ["side-effect-import.ts", "TS2882"],
     ["erasable-enum.ts", "TS1294"],
   ])("%s falla con %s", (file, code) => {
     const r = compile("tsconfig.json", [path.join(fixtures, file)]);

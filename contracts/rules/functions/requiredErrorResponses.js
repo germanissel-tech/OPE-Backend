@@ -1,21 +1,10 @@
 // ope-required-error-responses (FR-019): 500 siempre; 401 si la operación está autenticada
 // (security propio no vacío, o heredado del root); 400 y 422 si tiene requestBody.
 "use strict";
-const { get, isObject } = require("./_walk.js");
+const { isAuthenticated } = require("./_auth.js");
+const { isObject } = require("./_walk.js");
 
-/** @import { SpectralContext, SpectralFunction } from "./_walk.js" */
-
-/**
- * Una operación está autenticada si su `security` (propio, o el del root si no lo declara) no está vacío.
- * @param {Record<string, unknown>} operation
- * @param {SpectralContext} context
- * @returns {boolean}
- */
-function isAuthenticated(operation, context) {
-  const root = context.documentInventory?.resolved ?? context.document.data;
-  const security = operation["security"] !== undefined ? operation["security"] : get(root, "security");
-  return Array.isArray(security) && security.length > 0;
-}
+/** @import { SpectralFunction } from "./_walk.js" */
 
 /** @type {SpectralFunction} */
 const requiredErrorResponses = (operation, _opts, context) => {
@@ -35,4 +24,3 @@ const requiredErrorResponses = (operation, _opts, context) => {
 };
 
 module.exports = requiredErrorResponses;
-module.exports.isAuthenticated = isAuthenticated;

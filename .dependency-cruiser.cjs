@@ -26,7 +26,10 @@ const CONTEXT_MAP = {
   ingestion: ["shared-kernel", "merchant", "ledger"],
 };
 
-/** Tipos de dependencia que salen del repo: npm y módulos de Node. */
+/**
+ * Tipos de dependencia que salen del repo: npm y módulos de Node.
+ * @type {import("dependency-cruiser").DependencyType[]}
+ */
 const EXTERNAL = [
   "npm",
   "npm-dev",

@@ -1,8 +1,8 @@
 // ope-required-capabilities (FR-031): toda operación autenticada declara la capacidad que exige
 // (`x-required-capabilities`, forma recurso:accion); una operación pública no la declara.
 "use strict";
+const { isAuthenticated } = require("./_auth.js");
 const { isObject } = require("./_walk.js");
-const { isAuthenticated } = require("./requiredErrorResponses.js");
 
 /** @import { SpectralFunction } from "./_walk.js" */
 

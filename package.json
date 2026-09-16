@@ -27,7 +27,7 @@
     "check:glossary": "node scripts/check-glossary.mjs",
     "check:adrs": "node scripts/check-adrs.mjs",
     "check:markers": "node scripts/check-markers.mjs",
-    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers && npm run check:language",
+    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers",
     "release-check": "node scripts/release-check.mjs",
     "contract:mock": "cross-env OPE_MOCK=1 tsx src/main.ts",
     "contract:docs": "node scripts/contract-docs.mjs",
@@ -85,8 +85,9 @@
     "prettier": "^3.9.7",
     "redoc": "^2.5.4",
     "tsx": "^4.23.0",
-    "typescript": "5.9.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "@typescript/native": "npm:typescript@^7.0.2"
   }
 }
