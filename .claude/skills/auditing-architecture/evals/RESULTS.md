@@ -46,3 +46,26 @@ código viejo.
 En las tres corridas `hardcoded-profile` produjo además los hallazgos del orden de cierre
 (línea 22) y del override resuelto en el root (línea 18), ambos `ADR-013`/`high` y verificados;
 el esperado es el del perfil y los otros dos son correctos (el README del eval lo dice).
+
+## 2026-09-16 — segundo desafío: la lista central de operaciones
+
+Corregido lo anterior, el usuario preguntó si `wireControllers` iba a tener "los cientos de
+miles de millones de casos de uso de todos los posibles módulos". Sí: `use-cases.ts` y
+`wireControllers` eran dos mapas centrales que crecían con cada operación del sistema, y la
+skill los habría dado por buenos (el criterio OCP hablaba de `switch` en casos de uso, y
+"es el composition root" seguía cubriendo la lista).
+
+Cambios: cada módulo se cablea solo en `composition/modules/<módulo>.ts` y el root conserva
+`MODULES` (ADR-013, enmienda); regla `arch/composition-wires-by-module` con fixture;
+arranque fail-closed si el contrato declara una operación sin módulo; criterio OCP y
+"Composition root" reescritos; refutación cerrada ("hoy son tres" no refuta); eval nuevo.
+
+| Eval                | Corrida A | Gate que lo ve                     |
+| ------------------- | --------- | ---------------------------------- |
+| central-wiring-list | MATCH     | `arch/composition-wires-by-module` |
+
+Una sola corrida en esta sesión (las dos restantes de SC-005 quedan para la próxima). El gate
+reporta el archivo (una dependencia va de archivo a archivo, sin línea); la revisión puso la
+línea (31, primera entrada del mapa de controllers), un segundo hallazgo equivalente sobre
+`buildUseCases` (línea 22, correcto y opcional según el README) y refutó un tercero sobre el
+tipo del mapa (`Record<string, …>`) como artefacto del stub del fixture.

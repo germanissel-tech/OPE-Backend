@@ -1,0 +1,14 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/central-wiring-list/src/composition/bootstrap.ts",
+  "line": 31,
+  "rule": { "id": "composition-root-lists-operations", "source": "ADR-013" },
+  "severity": "high",
+  "evidence": "getHealth: makeGetHealth(useCases.getServiceHealth),\n    ingestEvents: makeIngestEvents(useCases.ingestBatch),\n    confirmExposure: makeConfirmExposureHandler(useCases.confirmExposure),",
+  "proposal": {
+    "before": "export function wireControllers(ports: Ports) { const useCases = buildUseCases(ports); return { getHealth: makeGetHealth(useCases.getServiceHealth), ingestEvents: makeIngestEvents(useCases.ingestBatch), confirmExposure: makeConfirmExposureHandler(useCases.confirmExposure) }; }",
+    "after": "// composition/modules/system.ts\nexport const systemModule: Module<SystemPorts> = ({ ports, contractVersion }) => ({ handlers: { getHealth: makeGetHealth(makeGetServiceHealth({ contractVersion, clock: ports.clock })) } });\n// composition/bootstrap.ts\nconst wired = wireModules(MODULES, { ports, contractVersion });"
+  },
+  "coveringTest": "tests/architecture/architecture.test.ts: \"composition-wires-by-module\" (composition/ outside modules/ imports no controller, security handler or use case)",
+  "status": "confirmed"
+}

@@ -15,6 +15,7 @@ const evals: Record<string, string | null> = {
   "empty-catch": "lint/sonarjs/no-ignored-exceptions",
   "env-dynamic-import": "shape/no-computed-dynamic-import",
   "hardcoded-profile": null,
+  "central-wiring-list": "arch/composition-wires-by-module",
 };
 
 interface Finding {
@@ -64,10 +65,13 @@ describe("run-gates.mjs on the eval fixtures", () => {
         expect(r.status, r.stderr).toBe(0);
         const out = JSON.parse(r.stdout) as { gates: GateResult[] };
         const expected = expectedOf(name);
+        // arch findings carry no line (a dependency is file to file): they match on the file alone.
+        // `no-orphans` on a one-file fixture is a scope artifact (nothing imports it), not a defect.
         const rulesAt = out.gates
           .flatMap((g) => g.findings)
-          .filter((f) => f.file === expected.file && f.line === expected.line)
-          .map((f) => f.rule);
+          .filter((f) => f.file === expected.file && (f.line === undefined || f.line === expected.line))
+          .map((f) => f.rule)
+          .filter((rule) => rule !== "arch/no-orphans");
         if (gateRule === null) expect(rulesAt).toEqual([]);
         else expect(rulesAt).toContain(gateRule);
       },

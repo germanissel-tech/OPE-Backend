@@ -34,15 +34,21 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 
 ## OCP — agregar sin tocar
 
-- **Definición acá**: un módulo nuevo es una entrada en `CONTEXT_MAP` y una carpeta; un puerto
-  nuevo es un campo en `Ports` que el compilador obliga a proveer; una operación nueva es un
-  controller nuevo, no un `if` en uno existente (ADR-013).
-- **Fuente**: `ADR-013`, `guide#Anillos y módulos`.
+- **Definición acá**: un módulo nuevo es una entrada en `CONTEXT_MAP`, otra en `MODULES` y una
+  carpeta; un puerto nuevo es un campo en el slice de puertos del módulo que el compilador
+  obliga a proveer en el perfil; una operación nueva es un controller nuevo **y una línea en el
+  módulo que la sirve** (`composition/modules/<módulo>.ts`), no un `if` en un controller ni una
+  entrada en un mapa central del root (ADR-013).
+- **Fuente**: `ADR-013`, `guide#Anillos y módulos`, `arch:composition-wires-by-module`.
 - **Viola**: un `switch` sobre `merchantId` o sobre "tipo de merchant" dentro de un caso de uso;
-  un controller que rutea por `operationId` a mano.
-- **Cumple**: `composition/ports.ts` + `profiles/memory.ts`: el perfil nuevo no modifica los
-  casos de uso.
-- **Lo ve un gate**: no. Es criterio cognitivo.
+  un controller que rutea por `operationId` a mano; un composition root que enumera casos de uso
+  o controllers de todos los módulos (`getHealth: makeGetHealth(...)`, `ingestEvents: ...`):
+  crece con cada operación del sistema, no con cada módulo. "Hoy son tres" no lo refuta.
+- **Cumple**: `composition/modules/ledger.ts` instancia sus casos de uso y entrega sus
+  controllers; `bootstrap.ts` sólo conoce `MODULES`; `profiles/memory.ts` no toca los casos de
+  uso.
+- **Lo ve un gate**: el root que importa controllers, security handlers o casos de uso sí
+  (`arch`); el `switch` sobre merchant, no.
 
 ## LSP — perfiles intercambiables
 
@@ -122,8 +128,12 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 
 ## Composition root — elige, no adivina
 
-- **Definición acá**: `composition/` es el único lugar que conoce a la vez perfiles, casos de
-  uso y controllers. Eso no lo exime de los principios: **el perfil es un parámetro**
+- **Definición acá**: `composition/` es el único lugar que conoce a la vez perfiles, módulos y
+  contrato. Eso no lo exime de los principios: **cada módulo se cablea solo**
+  (`composition/modules/<módulo>.ts` instancia sus casos de uso y entrega sus controllers,
+  security handlers y políticas); el root conserva la lista de módulos, nunca la de
+  operaciones, y **se niega a arrancar** si el contrato declara una operación que ningún
+  módulo sirve; **el perfil es un parámetro**
   (`Profile = (config, overrides) => { ports, closables }`), nunca un `if` sobre configuración;
   **el orden de cierre lo declara quien creó** los recursos (el perfil, en `closables`), nunca
   se infiere de `Object.values(...)`; **los overrides los resuelve el perfil**, que sabe qué
@@ -131,23 +141,28 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   desde una variable de entorno o un `import()` con especificador calculado es un vector de
   ejecución, no una comodidad.
 - **Fuente**: `constitution#I. Separación de autoridades` (composition root único, ningún
-  módulo instancia su infraestructura), `ADR-013`, `shape:no-computed-dynamic-import`.
-- **Viola**: `const ports = config.persistence === "postgres" ? postgresPorts() : memoryPorts()`;
+  módulo instancia su infraestructura), `constitution#II. Fail-closed` (operación declarada sin
+  servir), `ADR-013`, `shape:no-computed-dynamic-import`, `arch:composition-wires-by-module`.
+- **Viola**: `wireControllers(useCases)` con una entrada por operación del sistema;
+  `const ports = config.persistence === "postgres" ? postgresPorts() : memoryPorts()`;
   `for (const p of Object.values(ports).reverse()) p.close?.()`; `await import(process.env.X)`;
   `const clock = overrides.ports?.clock` resuelto en el root porque "dedup lo necesita".
-- **Cumple**: `bootstrap(config, { profile })` con `memoryProfile` por defecto; `tracker()`
-  registrando closables en orden de creación; la prueba negativa de contrato como entrada de
-  proceso propia (`tests/contract/fixtures/health-203.ts`).
-- **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4). El `if` sobre configuración,
-  el orden de cierre inferido y el override resuelto en el root, no: son criterio cognitivo, y
-  el tamaño chico del archivo no los disculpa.
+- **Cumple**: `wireModules(MODULES, { ports, contractVersion })` y
+  `assertEveryOperationWired(definition, handlers)`; `bootstrap(config, { profile })` con
+  `memoryProfile` por defecto; `tracker()` registrando closables en orden de creación; la
+  prueba negativa de contrato como entrada de proceso propia
+  (`tests/contract/fixtures/health-203.ts`).
+- **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4); el root que importa
+  controllers o casos de uso sí (`arch`). El `if` sobre configuración, el orden de cierre
+  inferido y el override resuelto en el root, no: son criterio cognitivo, y el tamaño chico
+  del archivo no los disculpa.
 
 ## Qué ya ve un gate (y qué no)
 
 | Gate                | Ve                                                   | No ve                                          |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------- |
 | `lint`              | forma, duplicación semántica, `catch` vacío, `any`   | responsabilidades, nombres, conocimiento       |
-| `arch`              | dirección de dependencias, mapa de contextos         | puertos con forma de infraestructura           |
+| `arch`              | dirección de dependencias, mapa de contextos, root que importa controllers o casos de uso | puertos con forma de infraestructura           |
 | `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado | dos responsabilidades en un archivo corto; un `if` sobre configuración |
 | `check:duplication` | bloques iguales                                      | mismo conocimiento con distinta forma          |
 | `check:dead-code`   | exports y archivos sin uso                           | abstracciones que existen "por si acaso"       |

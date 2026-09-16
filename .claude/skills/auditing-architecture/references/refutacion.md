@@ -19,7 +19,8 @@ del reporte, no en la lista principal. Un hallazgo que sobrevive a todas pasa a 
    que el composition root conozca a todos (ADR-013), el `mapping` que se quita en runtime
    (ADR-014), el alias de TypeScript (ADR-017) son decisiones, no defectos. Un ADR justifica **lo
    que dice**, no lo que se le parece: ADR-013 no dice que el root pueda elegir el perfil con un
-   `if`, inferir el orden de cierre ni cargar módulos desde el entorno.
+   `if`, inferir el orden de cierre, cargar módulos desde el entorno ni enumerar las
+   operaciones de todos los módulos (dice lo contrario: cada módulo se cablea solo).
 3. **¿La prueba propuesta fallaría hoy?** Si `coveringTest` no puede fallar con el código actual,
    el hallazgo no describe un defecto observable.
 4. **¿Cambia por el mismo motivo?** Dos bloques parecidos son DRY si evolucionan por razones
@@ -31,9 +32,11 @@ del reporte, no en la lista principal. Un hallazgo que sobrevive a todas pasa a 
 ## Por principio
 
 - **SRP**: ¿las dos "responsabilidades" que se ven cambian juntas siempre? Entonces son una.
-- **Composition root**: que sea el root justifica que conozca a todos; **no** justifica un `if`
-  sobre configuración, un orden de cierre inferido, overrides resueltos ahí ni un seam de
-  pruebas. "Es chico y está cableado a mano" no refuta nada de eso.
+- **Composition root**: que sea el root justifica que conozca a todos los **módulos**; **no**
+  justifica un `if` sobre configuración, un orden de cierre inferido, overrides resueltos ahí,
+  un seam de pruebas ni un mapa central de operaciones o casos de uso. "Es chico y está
+  cableado a mano" y "hoy son tres" no refutan nada de eso: la lista crece con cada operación
+  de cada módulo, no con cada módulo.
 - **OCP**: ¿el `switch` enumera un catálogo cerrado por diseño (`EventType`, `ProblemSlug`) con
   `switch-exhaustiveness-check`? Eso es OCP cumplido por el compilador, no violado.
 - **LSP**: ¿la diferencia de comportamiento entre implementaciones está declarada en el puerto

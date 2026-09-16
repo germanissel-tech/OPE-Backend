@@ -100,7 +100,7 @@ Estado global, regla fija:
 
 ## Evaluación
 
-`evals/<nombre>/` trae tres escenarios con su `expected.json` y su README; los fixtures viven en
+`evals/<nombre>/` trae un escenario por defecto conocido, con su `expected.json` y su README; los fixtures viven en
 `tests/audit/fixtures/<nombre>/src`. `npm test -- tests/audit` verifica la mitad determinista;
 la cognitiva se evalúa corriendo esta skill sobre cada fixture y comparando con `expected.json`
 (resultados fechados en `evals/RESULTS.md`).
