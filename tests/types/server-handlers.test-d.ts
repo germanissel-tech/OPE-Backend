@@ -1,6 +1,6 @@
 // FR-046 / US2 escenario 7: un manejador sólo compila si devuelve un status declarado con el
 // cuerpo declarado. Este archivo se verifica con `npm run typecheck` (no se ejecuta).
-import type { Handlers, OperationHandler } from "../../src/server/handlers.js";
+import type { Handlers, OperationHandler } from "../../src/handlers/typed.js";
 
 // Compila: 200 con Health completo.
 export const ok: OperationHandler<"getHealth"> = async () => ({

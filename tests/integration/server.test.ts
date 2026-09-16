@@ -4,8 +4,8 @@ import path from "node:path";
 import { parse } from "yaml";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { buildServer, type ContractDocument } from "../../src/server/build-server.js";
-import type { Handlers, OperationsMap, operations } from "../../src/server/handlers.js";
+import { buildServer, type ContractDocument } from "../../src/adapters/http/build-server.js";
+import type { Handlers, OperationsMap, operations } from "../../src/handlers/typed.js";
 import { makeGetHealth } from "../../src/handlers/health.js";
 import type { components } from "../../src/generated/api.js";
 
@@ -27,7 +27,7 @@ const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
 const now = () => new Date("2026-09-16T12:00:00.000Z");
-const healthHandlers: Handlers = { getHealth: makeGetHealth({ contractVersion: "1.0.0", now }) };
+const healthHandlers: Handlers = { getHealth: makeGetHealth({ contractVersion: "1.0.0", clock: { now } }) };
 
 const PROBLEM = "application/problem+json";
 

@@ -4,9 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
+import { systemClock } from "./adapters/clock/system-clock.js";
+import { buildServer, type ContractDocument, type ServerMode } from "./adapters/http/build-server.js";
 import { makeGetHealth } from "./handlers/health.js";
-import { buildServer, type ContractDocument, type ServerMode } from "./server/build-server.js";
-import type { Handlers } from "./server/handlers.js";
+import type { Handlers } from "./handlers/typed.js";
 
 interface Config {
   port: number;
@@ -41,7 +42,7 @@ async function loadHandlers(config: Config, contractVersion: string): Promise<Ha
     return mod.handlers;
   }
   return {
-    getHealth: makeGetHealth({ contractVersion, now: () => new Date() }),
+    getHealth: makeGetHealth({ contractVersion, clock: systemClock }),
   };
 }
 
