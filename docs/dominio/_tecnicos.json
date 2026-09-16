@@ -1,0 +1,23 @@
+{
+  "_doc": "Vocabulario técnico del contrato (envoltorios, errores, versión): no es dominio y no necesita nota en el glosario. Única lista; ampliar acá.",
+  "terms": [
+    "health",
+    "problem",
+    "details",
+    "error",
+    "errors",
+    "v1",
+    "request",
+    "response",
+    "list",
+    "create",
+    "update",
+    "pointer",
+    "message",
+    "status",
+    "type",
+    "title",
+    "detail",
+    "instance"
+  ]
+}
