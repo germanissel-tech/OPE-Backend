@@ -1,0 +1,14 @@
+# Hook de pre-commit (ADR-011): formato y lint sobre lo staged, typecheck completo.
+# No corre contract:check ni las pruebas: eso lo hace CI, y CLAUDE.md lo exige antes de commitear.
+# Se instala solo con `npm install` (postinstall de lefthook). Saltear: git commit --no-verify.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,mts,cts,js,mjs,cjs,json,yaml,yml,md}"
+      run: node node_modules/prettier/bin/prettier.cjs --check {staged_files}
+    - name: lint
+      glob: "*.{ts,mts,cts,js,mjs,cjs}"
+      run: node node_modules/eslint/bin/eslint.js {staged_files}
+    - name: typecheck
+      run: npm run typecheck
