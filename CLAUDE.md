@@ -72,7 +72,7 @@ Dentro de una feature que toca HTTP, el orden es:
 - TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en `src/main.ts`.
 - Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
 - `NO_OP` es un resultado válido con motivo, nunca una excepción.
-- Marcar afirmaciones como **DECIDIDO / PROPUESTO / ABIERTO** y estado del sistema como
+- Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
   **BUILT / CONNECTED / ACTIVE / TESTED**. No afirmar que algo funciona sin prueba ejecutable.
 - Commits: conventional commits, en español, un cambio por commit. No commitear sin que las
   pruebas pasen. No hacer push sin que el usuario lo pida.

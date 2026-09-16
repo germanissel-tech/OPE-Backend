@@ -53,7 +53,7 @@ Sin el directorio de los documentos del MVP (`OPE_MVP_DOCS=/no/existe`), las fue
 ## 5. ADRs y marcadores (US3)
 
 ```bash
-npm run check:adrs             # escribir "ADR-999" en un doc → falla
+npm run check:adrs             # escribir `ADR-999` en un doc → falla
 npm run check:markers          # lista archivo:línea:texto
 npm run check:markers -- --strict   # sale 1 si hay ABIERTO o PLACEHOLDER
 ```

@@ -1,6 +1,6 @@
 # Research — Feature 001: cadena de herramientas del contrato API
 
-**Fecha**: 2026-09-16 · **Estado**: completo (sin NEEDS CLARIFICATION pendientes)
+**Fecha**: 2026-09-16 · **Estado**: completo (sin NEEDS CLARIFICATION pendientes). Las decisiones transversales están registradas en `docs/adr/` (ADR-001 a ADR-005); este archivo conserva la evidencia.
 
 Cada decisión indica su estado epistémico (DECIDIDO / PROPUESTO / ABIERTO) y, cuando hubo
 verificación ejecutable durante la investigación, la evidencia. Lo que dice "verificar en
@@ -18,6 +18,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
   `engines` y `.nvmrc` para que local y CI coincidan.
 
 ## R-02 Lint de estilo y reglas propias → Spectral
+
+**Registrado como ADR-004** (herramientas del contrato). Evidencia y detalle abajo.
 
 - **Decisión (DECIDIDO)**: `@stoplight/spectral-cli@6.16.x` con ruleset en
   `contracts/.spectral.yaml` que extiende `spectral:oas` y agrega las reglas de OPE como
@@ -72,6 +74,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 
 ## R-03 Lint estructural, bundle y docs → Redocly CLI
 
+**Registrado como ADR-004.**
+
 - **Decisión (DECIDIDO)**: `@redocly/cli@2.x`. `redocly lint` (config `redocly.yaml`, ruleset
   `recommended` con `no-unused-components: error`) como segunda capa estructural; `redocly
   bundle` produce `contracts/dist/openapi.yaml` (gitignored, artefacto derivado); `redocly
@@ -85,6 +89,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 - `contract:docs` ejecuta `contract:check` antes (FR-032).
 
 ## R-04 Breaking changes → oasdiff (binario) con severidades custom
+
+**Registrado como ADR-003** (versionado) y **ADR-004** (herramienta).
 
 - **Decisión (DECIDIDO)**: `oasdiff` v1.32.1, binario Go descargado de GitHub Releases por
   `scripts/oasdiff-install.mjs` (versión y checksums fijados en el script; destino
@@ -130,6 +136,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 
 ## R-06 Servidor: validación en runtime y routing por operationId → openapi-backend sobre Fastify
 
+**El mapa de códigos 400/422 está registrado como ADR-001.**
+
 - **Decisión (DECIDIDO)**: `openapi-backend@5.20` como router/validador, con Fastify 5 como
   transporte HTTP (una única ruta comodín delega en `api.handleRequest`).
 - **Evidencia** (openapi-backend 5.20.3, documento 3.1, `strict: true`, `ajvOpts: {strict: false}`):
@@ -163,6 +171,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
   `ajv-formats` si hace falta).
 
 ## R-07 Mock → el mismo servidor en modo mock (reemplaza a Prism)
+
+**Registrado como ADR-005.**
 
 - **Decisión (DECIDIDO, desvío respecto de HANDOFF)**: `npm run contract:mock` levanta el
   mismo servidor con `OPE_MOCK=1`: no registra manejadores de dominio y el handler
@@ -208,6 +218,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
 
 ## R-11 Espacio de nombres de `type` de Problem Details
 
+**Registrado como ADR-002.**
+
 - **Decisión (DECIDIDO)**: URN `urn:ope:problem:<slug>` (por ejemplo
   `urn:ope:problem:validation-failed`). RFC 9457 §3.1 permite URIs no dereferenciables y
   recomienda que sean estables; un URN no depende de un dominio cuya propiedad no está
@@ -222,6 +234,8 @@ implementación" es una hipótesis que la tarea correspondiente debe confirmar c
   UX si se sirviera documentación, pero exige un dominio que hoy no es DECIDIDO.
 
 ## R-12 Versionado del contrato
+
+**Registrado como ADR-003.**
 
 - **Decisión (DECIDIDO)**: `info.version: 1.0.0` desde el inicio (el prefijo `/v1` implica
   major 1; con `0.x` la regla de "breaking ⇒ major" no tendría sentido). Regla
