@@ -1,0 +1,23 @@
+openapi: 3.1.0
+info:
+  title: OPE Backend API
+  version: 1.0.0
+  description: |
+    API HTTP del backend de OPE. Este documento es la única fuente de verdad de toda
+    superficie HTTP: el servidor rutea por `operationId` y valida request y response contra
+    él. Todo error se expresa como Problem Details (RFC 9457) con `application/problem+json`.
+    OPE no almacena información identificatoria: ningún esquema declara datos personales.
+  contact:
+    name: OPE Backend
+servers:
+  - url: /
+    description: Mismo origen (las rutas llevan el prefijo de versión mayor)
+tags:
+  - name: system
+    description: Operaciones de estado y soporte del servicio. Sin autenticación.
+paths:
+  /v1/health:
+    $ref: ./paths/health.yaml
+# Sin `components` en la raíz: cada archivo de components/ se referencia directamente desde
+# donde se usa y el bundle los promueve a `#/components/<tipo>/<NombreDeArchivo>`. Declararlos
+# acá además dispararía `oas3-unused-component`.

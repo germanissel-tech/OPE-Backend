@@ -1,0 +1,10 @@
+description: La operación existe en el contrato pero el servidor no registró un manejador para ella.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:not-implemented
+      title: Operación declarada sin manejador
+      status: 501
+      instance: /v1/health

@@ -1,0 +1,10 @@
+description: La ruta existe pero no declara este método. El header `Allow` lista los permitidos.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:method-not-allowed
+      title: Método no declarado para la ruta
+      status: 405
+      instance: /v1/health

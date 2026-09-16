@@ -1,0 +1,50 @@
+# Fixture de tests/contract-diff (FR-020): brk-request-field-required. Se compara contra base.yaml.
+openapi: 3.1.0
+info:
+  title: Fixture diff
+  version: 1.0.0
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+        "500":
+          description: err
+  /v1/things:
+    post:
+      operationId: createThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - a
+                    - b
+                note:
+                  type: string
+              required:
+                - note
+      responses:
+        "201":
+          description: created
+        "500":
+          description: err

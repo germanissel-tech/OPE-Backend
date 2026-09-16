@@ -1,0 +1,19 @@
+type: object
+description: Estado del servicio.
+additionalProperties: false
+required: [status, contractVersion, timestamp]
+properties:
+  status:
+    type: string
+    description: >-
+      `ok` cuando el servicio puede atender requests. `degraded` queda reservado para cuando
+      existan dependencias externas cuya caída no impida responder.
+    enum: [ok, degraded]
+  contractVersion:
+    type: string
+    description: Versión semántica del contrato OpenAPI que el servidor cargó al arrancar.
+    pattern: '^\d+\.\d+\.\d+$'
+  timestamp:
+    type: string
+    format: date-time
+    description: Instante UTC en que se produjo la respuesta (RFC 3339).

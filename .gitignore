@@ -6,3 +6,7 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+# artefactos derivados del contrato
+contracts/dist/
+docs/api/
+.schemathesis/

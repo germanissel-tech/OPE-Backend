@@ -18,3 +18,24 @@ repositorio de trabajo (`../01-arquitectura-mvp.md`, `../02-integracion-ecommerc
 ## Stack
 
 Node.js LTS · TypeScript estricto · PostgreSQL (durable) · Redis (sesión caliente).
+
+## Empezar
+
+Requisitos: Node.js 22 (`.nvmrc`), npm 10+, [`uv`](https://docs.astral.sh/uv/) para las
+pruebas de contrato con Schemathesis.
+
+```bash
+npm ci
+npm run contract:check   # lint + bundle + compatibilidad + drift de tipos
+npm run build && npm run typecheck && npm test
+npm run test:contract    # Schemathesis contra el servidor levantado
+npm run dev              # servidor real en http://127.0.0.1:3000 (PORT, HOST)
+npm run contract:mock    # el mismo servidor respondiendo los ejemplos del contrato
+npm run contract:docs    # docs/api/index.html, autocontenido
+```
+
+- Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`).
+- Tipos generados: `src/generated/api.d.ts` (commiteado, nunca editado a mano).
+- Cliente tipado para SDK y portal: `import { createOpeClient } from "ope-backend/client"`.
+- Reglas del contrato y cómo ampliarlas: `contracts/.spectral.yaml`, `tests/contract-rules/README.md`.
+- Flujo de trabajo para agentes: `CLAUDE.md`.

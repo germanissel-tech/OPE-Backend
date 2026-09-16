@@ -19,11 +19,42 @@ Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
 
 Dentro de una feature que toca HTTP, el orden es:
 
-1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`).
-2. `npm run contract:check` en verde (lint, bundle, breaking-change check).
+1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`). La raíz `openapi.yaml` no
+   declara `components`: cada archivo de `components/` se referencia por ruta relativa desde
+   donde se usa y el bundle lo promueve a `#/components/<tipo>/<NombreDeArchivo>`.
+2. `npm run contract:check` en verde (lint, bundle, compatibilidad contra `main`, drift de
+   tipos). Si agrega una regla nueva al ruleset, agregar su fixture en
+   `tests/contract-rules/fixtures/` (la prueba falla si falta).
 3. Regenerar tipos (`npm run contract:types`). **Nunca editar lo generado a mano.**
-4. Escribir el handler, ruteado por `operationId`.
-5. Pruebas de contrato y unitarias en verde.
+4. Escribir el handler en `src/handlers/<operacion>.ts` tipado con
+   `OperationHandler<"<operationId>">` y registrarlo en `src/main.ts` (único composition root).
+   El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
+5. `npm run typecheck && npm test && npm run test:contract` en verde.
+
+### Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npm run contract:lint` | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`) |
+| `npm run contract:bundle` | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea) |
+| `npm run contract:diff` | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/generated/api.d.ts` / falla si está desactualizado |
+| `npm run contract:check` | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit |
+| `npm run contract:mock` | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato |
+| `npm run contract:docs` | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla |
+| `npm run build` / `dev` / `typecheck` | `tsc` a `dist/` / `tsx watch` / `tsc --noEmit` incluyendo `tests/types/*.test-d.ts` |
+| `npm test` | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad |
+| `npm run test:contract` | Schemathesis (`uvx`) contra el servidor levantado |
+
+### Notas operativas del contrato
+
+- Ruleset de Spectral en estilo bloque (no `{ a: b }`), `"off"` entre comillas.
+  `oas3-schema` está apagada por un bug con path items `$ref` en 3.1; la estructura la
+  valida Redocly. Detalle en `specs/001-api-contract-toolchain/research.md` (R-02).
+- Lista de datos personales prohibidos: **sólo** `contracts/rules/pii-denylist.json`.
+- Catálogo de tipos de error: `contracts/problem-types.yaml` (`urn:ope:problem:<slug>`),
+  replicado en `src/server/problem-details.ts` y verificado por prueba.
+- Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`.
 
 ## Reglas que fallan el build (no son sugerencias)
 

@@ -1,0 +1,56 @@
+{
+  "name": "ope-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend del MVP de OPE. API-first: contracts/openapi.yaml es la fuente de verdad de toda superficie HTTP.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    }
+  },
+  "scripts": {
+    "contract:lint": "node scripts/contract-lint.mjs",
+    "contract:bundle": "node scripts/contract-bundle.mjs",
+    "contract:diff": "node scripts/contract-diff.mjs",
+    "contract:types": "node scripts/contract-types.mjs",
+    "contract:types:check": "node scripts/contract-types-check.mjs",
+    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check",
+    "contract:mock": "cross-env OPE_MOCK=1 tsx src/main.ts",
+    "contract:docs": "node scripts/contract-docs.mjs",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "fastify": "^5.12.5",
+    "openapi-backend": "^5.20.3",
+    "openapi-fetch": "^0.17.0",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.53.2",
+    "@stoplight/spectral-cli": "^6.16.3",
+    "@stoplight/spectral-core": "^1.23.1",
+    "@stoplight/spectral-ruleset-bundler": "^1.7.0",
+    "@types/node": "^22.20.3",
+    "cross-env": "^10.0.0",
+    "openapi-typescript": "^7.13.0",
+    "redoc": "^2.5.4",
+    "tsx": "^4.23.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

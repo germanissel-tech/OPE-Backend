@@ -1,0 +1,74 @@
+# Fixture de tests/contract-rules: ope-path-version-prefix. Generado a partir de un contrato mínimo válido; viola sólo la regla que lleva en el nombre.
+openapi: 3.1.0
+info:
+  title: Fixture
+  version: 2.0.0
+  description: Contrato mínimo de prueba.
+  contact:
+    name: OPE
+servers:
+  - url: /
+tags:
+  - name: system
+    description: Sistema.
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      tags:
+        - system
+      summary: Salud del fixture
+      description: Devuelve el estado.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  schemas:
+    Health:
+      type: object
+      description: Estado.
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Salud.
+    ProblemDetails:
+      type: object
+      description: Problem Details (RFC 9457).
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          description: Tipo de problema.
+        title:
+          type: string
+          description: Título.
+        status:
+          type: integer
+          description: Código HTTP.
+  responses:
+    InternalServerError:
+      description: Error interno.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          example:
+            type: urn:ope:problem:x
+            title: t
+            status: 500

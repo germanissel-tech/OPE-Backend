@@ -1,0 +1,125 @@
+# Contrato de prueba: dos operaciones además de getHealth. `createThing` tiene request body y
+# `listThings` no tendrá manejador (debe responder 501).
+openapi: 3.1.0
+info:
+  title: Fixture two-ops
+  version: 1.0.0
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/things:
+    get:
+      operationId: listThings
+      security: []
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Thing"
+              example:
+                - kind: a
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: createThing
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Thing"
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Thing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, contractVersion, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        contractVersion:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Thing:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [a, b]
+        note:
+          type: string
+    ProblemDetails:
+      type: object
+      additionalProperties: false
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [pointer, message]
+            properties:
+              pointer:
+                type: string
+              message:
+                type: string
+  responses:
+    BadRequest:
+      description: bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    InternalServerError:
+      description: error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
