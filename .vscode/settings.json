@@ -1,0 +1,25 @@
+{
+  // Artefactos generados: no se editan, no se buscan, no se lintean.
+  // docs/api/index.html lleva Redoc inlineado (~1 MB minificado); contracts/dist es el bundle.
+  "files.exclude": {
+    "docs/api/": true,
+    "contracts/dist/": true,
+    ".schemathesis/": true
+  },
+  "search.exclude": {
+    "docs/api/": true,
+    "contracts/dist/": true,
+    "src/generated/": true,
+    "dist/": true,
+    "node_modules/": true
+  },
+  "files.watcherExclude": {
+    "**/docs/api/**": true,
+    "**/contracts/dist/**": true,
+    "**/.schemathesis/**": true
+  },
+  // El único HTML del repo es el generado; no hay nada fuente que validar.
+  "html.validate.scripts": false,
+  "html.validate.styles": false,
+  "files.eol": "\n"
+}
