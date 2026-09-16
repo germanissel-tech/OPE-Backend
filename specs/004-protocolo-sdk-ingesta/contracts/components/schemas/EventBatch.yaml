@@ -1,0 +1,21 @@
+type: object
+description: Lote de eventos de **una** sesión. Todos los eventos deben pertenecer al mismo visitante (`session-visitor-mismatch` si no).
+additionalProperties: false
+required: [events]
+x-invariants:
+  - type: session-visitor-mismatch
+    status: 422
+    rule: todos los events[].sessionId son iguales entre sí y todos los events[].visitorId son iguales entre sí
+    description: Una sesión pertenece a un visitante; un lote mezcla como mucho reintentos de la misma sesión.
+  - type: event-timestamp-out-of-range
+    status: 422
+    rule: para todo evento, now - 24h <= occurredAt <= now + 5min
+    description: Un reloj de navegador mal puesto no contamina la secuencia; fuera de tolerancia se rechaza el lote.
+properties:
+  events:
+    type: array
+    description: Eventos en el orden en que el SDK los capturó. El orden lo da `occurredAt`, no la posición.
+    minItems: 1
+    maxItems: 50
+    items:
+      $ref: ./Event.yaml

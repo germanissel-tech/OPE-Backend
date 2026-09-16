@@ -1,0 +1,30 @@
+type: object
+description: Retorno a un producto visto antes en la sesión (comparación A → B → A). Se observa y registra; no tiene mensajes propios en el MVP.
+additionalProperties: false
+required: [type, eventId, sessionId, visitorId, occurredAt, page, device, previousProductId]
+properties:
+  type:
+    type: string
+    description: Discriminador del tipo de evento.
+    enum: [product_returned_to]
+  eventId:
+    $ref: ./EventId.yaml
+  sessionId:
+    $ref: ./SessionId.yaml
+  visitorId:
+    $ref: ./VisitorId.yaml
+  occurredAt:
+    type: string
+    format: date-time
+    description: >-
+      Instante del evento según el navegador (RFC 3339). Tolerancia aceptada: hasta 5 minutos a
+      futuro y 24 horas a pasado respecto del reloj del backend; fuera de eso,
+      `event-timestamp-out-of-range`.
+  page:
+    $ref: ./PageContext.yaml
+  device:
+    $ref: ./DeviceClass.yaml
+  previousProductId:
+    type: string
+    description: Producto desde el que se volvió.
+    maxLength: 128

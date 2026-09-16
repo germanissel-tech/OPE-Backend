@@ -1,0 +1,3 @@
+type: string
+description: Identificador de la visita, generado por el SDK. Agrupa la secuencia de comportamiento; expira.
+pattern: "^[A-Za-z0-9_-]{8,64}$"

@@ -1,0 +1,20 @@
+type: object
+description: Respuesta a un lote aceptado. Trae el resultado por evento y la decisión para la sesión.
+additionalProperties: false
+required: [accepted, duplicates, results, decision]
+properties:
+  accepted:
+    type: integer
+    description: Cantidad de eventos que entraron.
+    minimum: 0
+  duplicates:
+    type: integer
+    description: Cantidad de eventos ya recibidos antes.
+    minimum: 0
+  results:
+    type: array
+    description: Un resultado por evento, en el orden del lote.
+    items:
+      $ref: ./EventResult.yaml
+  decision:
+    $ref: ./Decision.yaml

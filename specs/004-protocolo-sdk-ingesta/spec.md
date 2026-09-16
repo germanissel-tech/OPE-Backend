@@ -322,8 +322,10 @@ permisos más amplios que el origen que pregunta.
   antes de usarse (`event`, `session`, `visitor`, `exposure`, `decision`, `ingestion`,
   `ledger`, `no-op`, `anchor`, `page`, `product`, `variant`, `device`).
 - **FR-052**: Toda regla no expresable por esquema MUST declararse como invariante con su tipo
-  propio y prueba nombrada: al menos evento duplicado, exposición de decisión inexistente o
-  ajena, exposición de `NO_OP`, sesión con dos visitantes, instante fuera de tolerancia.
+  propio y prueba nombrada: al menos exposición de decisión inexistente o ajena, exposición de
+  `NO_OP`, sesión con dos visitantes, instante fuera de tolerancia, origen no registrado. El
+  evento duplicado no es un rechazo sino un resultado (`duplicate`): se prueba como
+  idempotencia con prueba nombrada, no como invariante.
 - **FR-053**: La latencia de la ingesta MUST medirse por percentil en las pruebas (p50/p95)
   sobre el perfil en memoria y reportarse; no es un SLA.
 
