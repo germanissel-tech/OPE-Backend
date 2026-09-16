@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { buildServer, type ContractDocument } from "../infrastructure/http/build-server.js";
 import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
+import { INGEST_KEY_SCHEME, makeIngestKeySecurity } from "../interface-adapters/http/security/ingest-key.js";
 import { isClosable, type Ports } from "./ports.js";
 import { memoryPorts } from "./profiles/memory.js";
 import { buildUseCases } from "./use-cases.js";
@@ -32,17 +33,20 @@ export interface App {
 
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
-  const ports: Ports = { ...memoryPorts(), ...overrides.ports };
+  const ports: Ports = { ...memoryPorts(config), ...overrides.ports };
   const useCases = buildUseCases(ports, definition.info.version);
 
   const wired: Handlers =
     config.mode === "mock" ? {} : { getHealth: makeGetHealth(useCases.getServiceHealth) };
   const handlers: Handlers = { ...wired, ...(await loadHandlersModule(config)), ...overrides.handlers };
 
+  // En mock también corre la seguridad: el SDK desarrolla contra el mock con la clave real (SC-006).
   const app = await buildServer({
     definition,
     handlers,
     mode: config.mode,
+    security: { [INGEST_KEY_SCHEME]: makeIngestKeySecurity(useCases.resolveIngestKey) },
+    cors: ports.merchants,
     logger: overrides.logger ?? true,
   });
 

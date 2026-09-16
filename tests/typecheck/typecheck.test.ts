@@ -54,7 +54,8 @@ describe("compilador endurecido (tsconfig.json)", () => {
   it("un perfil que omite un puerto de `Ports` no compila (FR-003 de la feature 004)", () => {
     const r = compile("tsconfig.json", [path.join(fixtures, "ports-incomplete.ts")]);
     expect(r.status).not.toBe(0);
-    expect(r.output).toContain("TS2741");
+    // TS2741 con un campo faltante; TS2739 con varios.
+    expect(r.output).toMatch(/TS2741|TS2739/);
     expect(r.output).toContain("ports-incomplete.ts");
   });
 

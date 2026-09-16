@@ -17,6 +17,7 @@ describe("getHealth", () => {
       headers: undefined,
       cookie: undefined,
       body: undefined,
+      security: {},
     });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -35,6 +36,7 @@ describe("getHealth", () => {
       headers: undefined,
       cookie: undefined,
       body: undefined,
+      security: {},
     };
     expect(await handler(req)).toEqual(await handler(req));
   });

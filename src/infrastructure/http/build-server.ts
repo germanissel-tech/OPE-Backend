@@ -17,8 +17,14 @@ import {
   type ProblemResponse,
   type ValidationError,
 } from "../../interface-adapters/http/problem-details.js";
+import {
+  SecurityError,
+  type Handlers,
+  type OperationsMap,
+  type SecurityHandler,
+} from "../../interface-adapters/http/typed.js";
+import { registerCors, type CorsPolicy } from "./cors.js";
 import type { operations } from "../../interface-adapters/http/generated/api.js";
-import type { Handlers, OperationsMap } from "../../interface-adapters/http/typed.js";
 import type { ErrorObject } from "ajv";
 
 export type ContractDocument = Document;
@@ -29,6 +35,10 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
   /** NoInfer: el mapa de operaciones se fija explícitamente (por defecto, el generado). */
   handlers: Handlers<NoInfer<Ops>>;
   mode: ServerMode;
+  /** Security handlers por nombre de esquema del contrato (`securitySchemes`). */
+  security?: Record<string, SecurityHandler>;
+  /** Política de orígenes para CORS; sin ella, el servidor no negocia CORS. */
+  cors?: CorsPolicy;
   /** `false` en pruebas; `true` o un logger de Fastify en producción. */
   logger?: boolean | FastifyBaseLogger;
 }
@@ -41,6 +51,8 @@ interface HttpResponse {
 }
 
 const HTTP_METHODS = ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"] as const;
+/** Métodos que rutea la ruta comodín: OPTIONS queda para el preflight CORS (research R-04). */
+const ROUTED_METHODS = HTTP_METHODS.filter((m) => m !== "OPTIONS");
 
 /** Contexto de openapi-backend con `unknown` donde la librería declara `any`. */
 type BoundaryContext = Context<
@@ -60,6 +72,7 @@ interface TypedRequestBoundary {
   headers: unknown;
   cookie: unknown;
   body: unknown;
+  security: Record<string, unknown>;
 }
 
 /** Traduce los errores de Ajv a `errors[]` de Problem Details, con punteros relativos al request. */
@@ -79,6 +92,13 @@ function toHttp(res: ProblemResponse): HttpResponse {
   return { status: res.status, body: res.body, contentType: PROBLEM_CONTENT_TYPE };
 }
 
+/** Resultados de los security handlers sin la bandera `authorized` (que no es un principal). */
+function securityResultsOf(c: BoundaryContext): Record<string, unknown> {
+  const results: Record<string, unknown> = { ...(c.security as Record<string, unknown> | undefined) };
+  delete results["authorized"];
+  return results;
+}
+
 function pathOf(url: string): string {
   const q = url.indexOf("?");
   return q === -1 ? url : url.slice(0, q);
@@ -90,6 +110,7 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   const { definition, handlers, mode } = options;
   const app = Fastify({ logger: options.logger ?? true });
   const log = app.log;
+  if (options.cors) await registerCors(app, options.cors);
 
   const api = new OpenAPIBackend({
     definition,
@@ -127,8 +148,25 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     return { ...res, headers: { allow: allowed.join(", ") } };
   };
 
+  // Security handlers: corren antes de la validación y del manejador; su error decide el status.
+  for (const [scheme, handler] of Object.entries(options.security ?? {})) {
+    api.registerSecurityHandler(scheme, (c: BoundaryContext) =>
+      handler({ headers: c.request.headers as Record<string, string | string[] | undefined> }),
+    );
+  }
+  const securityFailure = (c: BoundaryContext): HttpResponse => {
+    const results = c.security as Record<string, unknown> | undefined;
+    for (const [name, result] of Object.entries(results ?? {})) {
+      if (name === "authorized" || typeof result !== "object" || result === null) continue;
+      const error: unknown = (result as { error?: unknown }).error;
+      if (error instanceof SecurityError) return toHttp(problem(error.slug, { instance: c.request.path }));
+    }
+    return toHttp(problem("unauthorized", { instance: c.request.path }));
+  };
+
   // Manejadores especiales de openapi-backend → Problem Details.
   api.register({
+    unauthorizedHandler: async (c: Context): Promise<HttpResponse> => securityFailure(c as BoundaryContext),
     validationFail: async (c: Context): Promise<HttpResponse> =>
       toHttp(
         problem("validation-failed", {
@@ -189,6 +227,7 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
         headers: c.request.headers,
         cookie: c.request.cookies,
         body: c.request.requestBody,
+        security: securityResultsOf(c),
       };
       let result: HttpResponse;
       try {
@@ -239,8 +278,8 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
     return send(reply, res);
   };
 
-  app.route({ method: [...HTTP_METHODS], url: "/", handler: dispatch });
-  app.route({ method: [...HTTP_METHODS], url: "/*", handler: dispatch });
+  app.route({ method: [...ROUTED_METHODS], url: "/", handler: dispatch });
+  app.route({ method: [...ROUTED_METHODS], url: "/*", handler: dispatch });
 
   // Métodos que Fastify no rutea (por ejemplo QUERY) caen acá: 405 si el path existe, 404 si no.
   app.setNotFoundHandler(async (request, reply) => send(reply, unroutable(pathOf(request.url))));

@@ -8,7 +8,12 @@ import { buildServer, type ContractDocument } from "../../src/infrastructure/htt
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { json, problemOf } from "../helpers/json.js";
 import type { components } from "../../src/interface-adapters/http/generated/api.js";
-import type { Handlers, OperationsMap, operations } from "../../src/interface-adapters/http/typed.js";
+import type {
+  Handlers,
+  OperationsMap,
+  SecurityHandler,
+  operations,
+} from "../../src/interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
 // Tipos del contrato de prueba two-ops.yaml (a mano: es un fixture, no se genera).
@@ -52,8 +57,15 @@ afterEach(async () => {
 async function server<Ops extends OperationsMap<Ops> = operations>(
   definition: ContractDocument,
   handlers: Handlers<NoInfer<Ops>>,
+  security?: Record<string, SecurityHandler>,
 ): Promise<FastifyInstance> {
-  app = await buildServer<Ops>({ definition, handlers, mode: "real", logger: false });
+  app = await buildServer<Ops>({
+    definition,
+    handlers,
+    mode: "real",
+    logger: false,
+    ...(security && { security }),
+  });
   return app;
 }
 
@@ -112,7 +124,9 @@ describe("servidor real sobre el contrato", () => {
   // Provisional (feature 004, T009): las operaciones nuevas existen en el contrato antes que su
   // manejador. Se reemplaza por las pruebas de ingesta y exposición en US2/US4.
   it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
-    const s = await server(realContract, healthHandlers);
+    const s = await server(realContract, healthHandlers, {
+      ingestKey: () => ({ merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } }),
+    });
     const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
     const bodies: Record<string, Record<string, unknown>> = {
       "/v1/events": {
@@ -139,6 +153,13 @@ describe("servidor real sobre el contrato", () => {
       expect(res.statusCode, url).toBe(501);
       expect(problemOf(res).type).toBe("urn:ope:problem:not-implemented");
     }
+  });
+
+  it("una operación con `security` declarado y sin security handler falla cerrada: 401", async () => {
+    const s = await server(realContract, healthHandlers);
+    const res = await s.inject({ method: "POST", url: "/v1/events", payload: {} });
+    expect(res.statusCode).toBe(401);
+    expect(problemOf(res).type).toBe("urn:ope:problem:unauthorized");
   });
 
   it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {
