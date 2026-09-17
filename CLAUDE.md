@@ -22,6 +22,10 @@ Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
 
 Dentro de una feature que toca HTTP, el orden es:
 
+0. La operación existe en `contracts/api-map.yaml` como `planned`, con consumidor, tag,
+   capacidades, feature y fuente (ADR-019). Nada entra al contrato sin estar antes en el mapa:
+   `check:api-map` compara los dos en ambos sentidos. Construirla es pasarla a `built` y, si es
+   la primera de su consumidor, referenciar su esquema de seguridad desde la raíz.
 1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`). La raíz `openapi.yaml` no
    declara `components` (salvo `securitySchemes`, que `security` referencia por nombre): cada
    archivo de `components/` se referencia por ruta relativa desde donde se usa y el bundle lo
@@ -51,30 +55,31 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 
 ### Comandos
 
-| Comando                                           | Qué hace                                                                                                         |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                     |
-| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                               |
-| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                         |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                         |
-| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                           |
-| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                         |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`  |
-| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura |
-| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                |
-| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                 |
-| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                            |
-| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                    |
-| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                         |
-| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                               |
-| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)        |
-| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                 |
-| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
-| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                 |
-| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                       |
-| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo      |
-| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo             |
+| Comando                                           | Qué hace                                                                                                                |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                            |
+| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                      |
+| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                |
+| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                  |
+| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`         |
+| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura        |
+| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                       |
+| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                        |
+| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                   |
+| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                           |
+| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                |
+| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                      |
+| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida |
+| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)               |
+| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                       |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                        |
+| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                             |
+| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                        |
+| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                              |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo             |
+| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo                    |
 
 Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
@@ -180,7 +185,26 @@ contrato con una operación que ningún módulo sirve no arranca.
 - `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
   involucra sus campos): `type` (slug del catálogo, nunca `unprocessable`), `status`, `rule`,
   `description`. Toda `422` nombra en su ejemplo la invariante que la produce.
-- Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él.
+- Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él. El
+  vocabulario de capacidades es cerrado por consumidor (`consumers.<x>.capabilities` del mapa).
+- **Consumidores (ADR-020)**: el tag fija el consumidor (`system` → público; `ingest`,
+  `decision` → SDK con `ingestKey`; `outcomes` → plataforma con `platformKey`; `portal` →
+  `portalSession`; `admin` → `adminToken`) y `ope-consumer-security` exige exactamente ese
+  esquema. Los esquemas y componentes que ninguna operación construida usa (`platformKey`,
+  `portalSession`, `adminToken`, parámetros de paginación, `Page`) existen como archivos en
+  `components/` **sin referencia desde la raíz** (Redocly rechaza componentes sin uso); entran
+  a la raíz con su primera operación.
+- Operación `outcomes` (notificación servidor a servidor) ⇒ `x-idempotency: { key, first,
+repeat }` (clave = propiedad requerida del body; dos 2xx distintos) y respuesta `409
+idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro final) ⇒
+  `x-collection: true`, parámetros `cursor`/`limit`/`from`/`to` por `$ref` y `200` con un
+  `<X>Page` (`items`, `nextCursor?`).
+- `merchantId` en la ruta sólo bajo el consumidor `admin` (constitución V v1.2.0, ADR-020); en
+  query y body, nunca.
+- Ciclo de vida (ADR-019): depreciar = `deprecated: true` en la operación + estado `deprecated`
+  en el mapa + anuncio en la descripción; retirar = quitar del contrato + `retired` con
+  `retiredIn` + versión mayor. La documentación publicada muestra la superficie planeada
+  generada desde el mapa (`contract:docs`).
 
 ### Documentación viva
 

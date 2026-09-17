@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const script = path.resolve("scripts/contract-docs.mjs");
 const output = path.resolve("docs/api/index.html");
+const bundle = path.resolve("contracts/dist/openapi.yaml");
 
 function docs(env: Record<string, string> = {}): { status: number; output: string } {
   const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...process.env, ...env } });
@@ -21,6 +22,7 @@ describe("contract:docs", () => {
   it(
     "generates a self-contained HTML with the operation, example and errors, identical in two runs",
     () => {
+      const bundleBefore = readFileSync(bundle, "utf8");
       const first = docs();
       expect(first.status, first.output).toBe(0);
       const html = readFileSync(output, "utf8");
@@ -28,6 +30,11 @@ describe("contract:docs", () => {
       expect(html).toContain("Service status");
       expect(html).toContain("application/problem+json");
       expect(html).toContain("2026-09-16T12:00:00Z");
+      // The planned surface comes from the contract map; the bundle itself stays untouched.
+      expect(html).toContain("Planned surface");
+      expect(html).toContain("notifyOrder");
+      expect(html).toContain("listDecisions");
+      expect(readFileSync(bundle, "utf8")).toBe(bundleBefore);
       // Self-contained: no remote scripts or stylesheets.
       expect(html).not.toMatch(/<script[^>]*src="https?:/);
       expect(html).not.toMatch(/<link[^>]*href="https?:/);

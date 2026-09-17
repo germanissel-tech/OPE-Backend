@@ -61,6 +61,13 @@ mapa; `contracts/dist/openapi.yaml` no cambia (`git status` limpio salvo `docs/a
 
 ## Estado (histórico, fechado)
 
-| Fecha      | Estado                                                    |
-| ---------- | --------------------------------------------------------- |
-| 2026-09-17 | Plan aprobado; diseño del mapa y convenciones; sin código |
+| Fecha      | Elemento                                                      | Estado         | Evidencia                                                                                                         |
+| ---------- | ------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 2026-09-17 | Plan aprobado; diseño del mapa y convenciones                 | —              | Redocly rechaza esquemas sin uso (R-02); Spectral acepta la tabla en `info.description` (R-01)                    |
+| 2026-09-17 | US1 mapa gobernado y `check:api-map`                          | BUILT / TESTED | `Map: 3 built, 20 planned, 0 deprecated, 0 retired`; 22 fixtures en `tests/governance/fixtures/api-map/`          |
+| 2026-09-17 | US2 consumidores, esquemas y capacidades; enmienda V (v1.2.0) | BUILT / TESTED | `ope-consumer-security`, capacidades por consumidor, `merchantId` en ruta sólo bajo `admin`; fixtures por regla   |
+| 2026-09-17 | US3 idempotencia de notificaciones                            | BUILT / TESTED | `ope-outcomes-idempotency` con 4 fixtures + `valid-outcomes.yaml`                                                 |
+| 2026-09-17 | US4 paginación de colecciones                                 | BUILT / TESTED | `ope-collection-pagination` con 3 fixtures + `valid-portal.yaml`; verificada sobre el contrato multi-archivo      |
+| 2026-09-17 | US5 ciclo de vida                                             | BUILT / TESTED | estados cerrados y coherencia `deprecated`/`retired` en los fixtures del mapa; protocolo en ADR-019 y `CLAUDE.md` |
+| 2026-09-17 | Documentación publicada con la superficie planeada            | BUILT / TESTED | `contract:docs` agrega "Planned surface" desde el mapa; el bundle no cambia (`tests/unit/contract-docs.test.ts`)  |
+| 2026-09-17 | Contrato construido sin cambios                               | TESTED         | `contract:diff` sin cambios incompatibles; Schemathesis sin cambios sobre las tres operaciones                    |
