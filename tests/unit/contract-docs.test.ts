@@ -13,23 +13,31 @@ function docs(env: Record<string, string> = {}): { status: number; output: strin
   return { status: r.status ?? 1, output: `${r.stdout}${r.stderr}` };
 }
 
-describe("contract:docs", () => {
-  it("generates a self-contained HTML with the operation, example and errors, identical in two runs", () => {
-    const first = docs();
-    expect(first.status, first.output).toBe(0);
-    const html = readFileSync(output, "utf8");
-    expect(html).toContain("getHealth");
-    expect(html).toContain("Service status");
-    expect(html).toContain("application/problem+json");
-    expect(html).toContain("2026-09-16T12:00:00Z");
-    // Self-contained: no remote scripts or stylesheets.
-    expect(html).not.toMatch(/<script[^>]*src="https?:/);
-    expect(html).not.toMatch(/<link[^>]*href="https?:/);
+// Two full runs of contract:check plus two Redocly builds: ~50 s alone, more under the load of
+// the whole suite. The budget is the work, not the default.
+const TWO_BUILDS_TIMEOUT = 240_000;
 
-    const second = docs();
-    expect(second.status, second.output).toBe(0);
-    expect(readFileSync(output, "utf8")).toBe(html);
-  });
+describe("contract:docs", () => {
+  it(
+    "generates a self-contained HTML with the operation, example and errors, identical in two runs",
+    () => {
+      const first = docs();
+      expect(first.status, first.output).toBe(0);
+      const html = readFileSync(output, "utf8");
+      expect(html).toContain("getHealth");
+      expect(html).toContain("Service status");
+      expect(html).toContain("application/problem+json");
+      expect(html).toContain("2026-09-16T12:00:00Z");
+      // Self-contained: no remote scripts or stylesheets.
+      expect(html).not.toMatch(/<script[^>]*src="https?:/);
+      expect(html).not.toMatch(/<link[^>]*href="https?:/);
+
+      const second = docs();
+      expect(second.status, second.output).toBe(0);
+      expect(readFileSync(output, "utf8")).toBe(html);
+    },
+    TWO_BUILDS_TIMEOUT,
+  );
 
   it("refuses to generate documentation for a contract that does not pass verification", () => {
     const before = existsSync(output) ? statSync(output).mtimeMs : null;
