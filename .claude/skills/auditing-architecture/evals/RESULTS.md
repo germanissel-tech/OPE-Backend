@@ -40,7 +40,7 @@ código viejo.
 
 | Eval                | Corrida A | Corrida B | Corrida C | Gate que lo ve                    |
 | ------------------- | --------- | --------- | --------- | --------------------------------- |
-| hardcoded-profile   | MATCH     | MATCH     | MATCH     | ninguno (cognitivo)               |
+| hardcoded-profile   | MATCH     | MATCH     | MATCH     | ninguno entonces; `shape/no-config-branch-in-root` desde el cuarto desafío |
 | env-dynamic-import  | MATCH     | MATCH     | MATCH     | `shape/no-computed-dynamic-import` |
 
 En las tres corridas `hardcoded-profile` produjo además los hallazgos del orden de cierre
@@ -88,3 +88,22 @@ repetido en un archivo donde alguna ocurrencia no está verificada por un tipo l
 Una corrida. La revisión propuso además la lista de señales sin nombre (refutado: misma
 corrección que el esperado) y un "fallo de `close()` tragado" (refutado: una promesa rechazada
 sin `catch` termina el proceso con código 1; la prueba propuesta pasaría hoy).
+
+## 2026-09-17 — cuarto desafío: el modo que atravesaba tres capas
+
+El usuario cuestionó `config.mode === "mock"` en `bootstrap.ts`: con inyección de dependencias
+bien aplicada, real o mock tiene que ser transparente. Era cierto: `mode` se consultaba en
+`config.ts`, `bootstrap.ts` (dos veces) y `build-server.ts`, y el criterio "Composition root"
+ya prohibía el `if` sobre configuración —lo escribí yo y no me lo apliqué—. Al desafiar el mock
+en sí (¿qué da que el servidor real en memoria no dé?) la respuesta fue: nada, y menos fidelidad.
+Se retiró (ADR-018).
+
+Cambios: regla 5 de `shape` (`no-config-branch-in-root`, determinista, con fixture), que
+además ahora ve el defecto de `hardcoded-profile`; criterio "no hay modos" con fuente ADR-018;
+refutación cerrada ("es sólo un flag para el mock"); eval `mode-flag-across-layers`.
+
+| Eval                    | Corrida A | Gate que lo ve                                        |
+| ----------------------- | --------- | ----------------------------------------------------- |
+| mode-flag-across-layers | MATCH     | `shape/no-config-branch-in-root` en el root; el `if (mode)` en infraestructura, ninguno |
+
+Una corrida.

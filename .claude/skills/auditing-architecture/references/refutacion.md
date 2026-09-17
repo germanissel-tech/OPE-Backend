@@ -20,7 +20,8 @@ del reporte, no en la lista principal. Un hallazgo que sobrevive a todas pasa a 
    (ADR-014), el alias de TypeScript (ADR-017) son decisiones, no defectos. Un ADR justifica **lo
    que dice**, no lo que se le parece: ADR-013 no dice que el root pueda elegir el perfil con un
    `if`, inferir el orden de cierre, cargar módulos desde el entorno ni enumerar las
-   operaciones de todos los módulos (dice lo contrario: cada módulo se cablea solo).
+   operaciones de todos los módulos (dice lo contrario: cada módulo se cablea solo). ADR-018
+   dice que no hay modos: "es sólo un flag para el mock" no justifica un `mode` en tres capas.
 3. **¿La prueba propuesta fallaría hoy?** Si `coveringTest` no puede fallar con el código actual,
    el hallazgo no describe un defecto observable.
 4. **¿Cambia por el mismo motivo?** Dos bloques parecidos son DRY si evolucionan por razones

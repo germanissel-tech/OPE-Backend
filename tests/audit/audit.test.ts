@@ -14,9 +14,10 @@ const evals: Record<string, string | null> = {
   "identical-domain-functions": "lint/sonarjs/no-identical-functions",
   "empty-catch": "lint/sonarjs/no-ignored-exceptions",
   "env-dynamic-import": "shape/no-computed-dynamic-import",
-  "hardcoded-profile": null,
+  "hardcoded-profile": "shape/no-config-branch-in-root",
   "central-wiring-list": "arch/composition-wires-by-module",
   "magic-signal-strings": "lint/ope/no-magic-strings",
+  "mode-flag-across-layers": null,
 };
 
 interface Finding {

@@ -149,12 +149,17 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   se infiere de `Object.values(...)`; **los overrides los resuelve el perfil**, que sabe qué
   gateway depende de cuál; y **ningún seam de pruebas vive en producción**: un módulo cargado
   desde una variable de entorno o un `import()` con especificador calculado es un vector de
-  ejecución, no una comodidad.
+  ejecución, no una comodidad; y **no hay modos**: lo que varía se inyecta como objeto (un
+  perfil, un módulo, un puerto), nunca como una bandera (`mode`, `isMock`, `env === "test"`) que
+  el root lee y las capas de abajo vuelven a consultar. Un "modo" que no es la implementación
+  de ningún puerto no es un servicio: es una decisión tomada en el medio (ADR-018).
 - **Fuente**: `constitution#I. Separación de autoridades` (composition root único, ningún
   módulo instancia su infraestructura), `constitution#II. Fail-closed` (operación declarada sin
-  servir), `ADR-013`, `shape:no-computed-dynamic-import`, `arch:composition-wires-by-module`.
+  servir), `ADR-013`, `ADR-018`, `shape:no-computed-dynamic-import`,
+  `shape:no-config-branch-in-root`, `arch:composition-wires-by-module`.
 - **Viola**: `wireControllers(useCases)` con una entrada por operación del sistema;
   `const ports = config.persistence === "postgres" ? postgresPorts() : memoryPorts()`;
+  `buildServer({ handlers, mode: config.mode })` con `if (mode === "mock")` en infraestructura;
   `for (const p of Object.values(ports).reverse()) p.close?.()`; `await import(process.env.X)`;
   `const clock = overrides.ports?.clock` resuelto en el root porque "dedup lo necesita".
 - **Cumple**: `wireModules(MODULES, { ports, contractVersion })` y
@@ -162,10 +167,11 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   `memoryProfile` por defecto; `tracker()` registrando closables en orden de creación; la
   prueba negativa de contrato como entrada de proceso propia
   (`tests/contract/fixtures/health-203.ts`).
-- **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4); el root que importa
-  controllers o casos de uso sí (`arch`). El `if` sobre configuración, el orden de cierre
-  inferido y el override resuelto en el root, no: son criterio cognitivo, y el tamaño chico
-  del archivo no los disculpa.
+- **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4); la condición sobre
+  `config.<campo>` en `composition/` sí (`shape` regla 5); el root que importa controllers o
+  casos de uso sí (`arch`). La bandera que **baja** a infraestructura (`mode` como parámetro y
+  `if (mode === …)` en `infrastructure/`), el orden de cierre inferido y el override resuelto
+  en el root, no: son criterio cognitivo, y el tamaño chico del archivo no los disculpa.
 
 ## Qué ya ve un gate (y qué no)
 
@@ -173,7 +179,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------- |
 | `lint`              | forma, duplicación semántica, `catch` vacío, `any`, literal repetido sin tipar | responsabilidades, nombres, conocimiento, literal único sin nombre |
 | `arch`              | dirección de dependencias, mapa de contextos, root que importa controllers o casos de uso | puertos con forma de infraestructura           |
-| `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado | dos responsabilidades en un archivo corto; un `if` sobre configuración |
+| `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado, condición sobre `config.x` en `composition/` | dos responsabilidades en un archivo corto; la bandera de modo que baja a infraestructura |
 | `check:duplication` | bloques iguales                                      | mismo conocimiento con distinta forma          |
 | `check:dead-code`   | exports y archivos sin uso                           | abstracciones que existen "por si acaso"       |
 | `test:mutation`     | pruebas que no matan mutantes del cambio             | pruebas que prueban lo incorrecto              |
