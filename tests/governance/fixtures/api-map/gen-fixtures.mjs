@@ -143,8 +143,11 @@ for (const [name, mutate] of Object.entries(cases)) {
   const dir = path.join(here, name);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(path.join(dir, "securitySchemes"), { recursive: true });
-  mkdirSync(path.join(dir, "specs", "004-ingest"), { recursive: true });
-  mkdirSync(path.join(dir, "specs", "001-toolchain"), { recursive: true });
+  // A file inside each spec directory: git does not track empty directories (CI would not see them).
+  for (const spec of ["001-toolchain", "004-ingest"]) {
+    mkdirSync(path.join(dir, "specs", spec), { recursive: true });
+    writeFileSync(path.join(dir, "specs", spec, "spec.md"), `# ${spec}\n`);
+  }
   for (const [file, content] of Object.entries(SCHEMES)) writeFileSync(path.join(dir, "securitySchemes", file), content);
   writeFileSync(path.join(dir, "constitucion.md"), "# Test constitution\n\n## I · First principle\n\nx\n");
   if (name !== "mvp-absent") {
