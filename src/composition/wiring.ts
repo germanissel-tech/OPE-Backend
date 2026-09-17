@@ -2,12 +2,14 @@
 // use cases and hands back the controllers, security handlers and policies it serves. The
 // composition root keeps the list of modules, never the list of operations: a new operation
 // touches the file of its module; a new module is one entry in `MODULES`, like in `CONTEXT_MAP`.
+import type { ContractDocument } from "../infrastructure/http/build-server.js";
 import type { CorsPolicy } from "../infrastructure/http/cors.js";
 import type { Handlers, SecurityHandler } from "../interface-adapters/http/typed.js";
 
 export interface ModuleContext<P> {
   ports: P;
-  contractVersion: string;
+  /** The published contract the server is governed by (version, operations, examples). */
+  contract: ContractDocument;
 }
 
 /** What one module contributes to the server. Every field is optional: a module may only serve a policy. */

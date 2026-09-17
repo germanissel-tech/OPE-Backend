@@ -63,7 +63,6 @@ async function server<Ops extends OperationsMap<Ops> = operations>(
   app = await buildServer<Ops>({
     definition,
     handlers,
-    mode: "real",
     logger: false,
     ...(security && { security }),
   });
@@ -313,15 +312,15 @@ describe("real server over the contract", () => {
       info: { title: "no version" },
       paths: {},
     } as unknown as ContractDocument;
-    await expect(
-      buildServer({ definition: invalid, handlers: {}, mode: "real", logger: false }),
-    ).rejects.toThrow(/version|not valid/i);
+    await expect(buildServer({ definition: invalid, handlers: {}, logger: false })).rejects.toThrow(
+      /version|not valid/i,
+    );
   });
 
   it("refuses to register a handler with a nonexistent operationId (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
-    await expect(
-      buildServer({ definition: realContract, handlers, mode: "real", logger: false }),
-    ).rejects.toThrow(/doesNotExist/);
+    await expect(buildServer({ definition: realContract, handlers, logger: false })).rejects.toThrow(
+      /doesNotExist/,
+    );
   });
 });

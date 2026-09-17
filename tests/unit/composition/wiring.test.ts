@@ -17,7 +17,9 @@ const getHealth = handler as unknown as OperationHandler<"getHealth">;
 const ingestEvents = handler as unknown as OperationHandler<"ingestEvents">;
 const security: SecurityHandler = () => ({ principal: null });
 const cors = { isRegisteredOrigin: () => true };
-const context = { ports: {}, contractVersion: "1.0.0" };
+const contractOf = (version: string) =>
+  ({ openapi: "3.1.0", info: { title: "t", version }, paths: {} }) as ContractDocument;
+const context = { ports: {}, contract: contractOf("1.0.0") };
 
 describe("wireModules", () => {
   it("merges handlers, security schemes and the CORS policy of every module, in order", () => {
@@ -39,16 +41,17 @@ describe("wireModules", () => {
     expect("cors" in wireModules([() => ({ handlers: { getHealth } })], context)).toBe(false);
   });
 
-  it("passes every module the same ports and contract version", () => {
+  it("passes every module the same ports and contract", () => {
     const ports = { clock: { now: () => new Date() } };
+    const contract = contractOf("2.0.0");
     const received: unknown[] = [];
     wireModules<typeof ports>([(c) => (received.push(c), {}), (c) => (received.push(c), {})], {
       ports,
-      contractVersion: "2.0.0",
+      contract,
     });
     expect(received).toEqual([
-      { ports, contractVersion: "2.0.0" },
-      { ports, contractVersion: "2.0.0" },
+      { ports, contract },
+      { ports, contract },
     ]);
   });
 

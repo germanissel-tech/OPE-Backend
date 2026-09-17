@@ -1,6 +1,6 @@
-// Application configuration: the only thing main.ts reads from the environment. No business logic.
+// Application configuration: the only thing main.ts reads from the environment. No business
+// logic and no built-in merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
-import type { ServerMode } from "../infrastructure/http/build-server.js";
 
 /** A merchant as configuration describes it (in-memory profile; 006 brings the store). */
 export interface MerchantConfig {
@@ -14,7 +14,6 @@ export interface MerchantConfig {
 export interface AppConfig {
   port: number;
   host: string;
-  mode: ServerMode;
   contractPath: string;
   merchants: MerchantConfig[];
 }
@@ -24,34 +23,21 @@ const DEFAULT_PORT = 3000;
 /** One active key, or two during a rotation (ADR-014). */
 const MAX_INGEST_KEYS = 2;
 
-/** Test merchant for `OPE_MOCK=1` and local development without configuration. */
-const MOCK_MERCHANT: MerchantConfig = {
-  merchantId: "mock-merchant",
-  ingestKeys: ["ope_mock_ingest_key"],
-  origins: ["http://localhost:3000", "http://127.0.0.1:3000"],
-};
-
 export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => string): AppConfig {
-  const mode: ServerMode = env["OPE_MOCK"] === "1" ? "mock" : "real";
   return {
     port: Number(env["PORT"] ?? DEFAULT_PORT),
     host: env["HOST"] ?? "127.0.0.1",
-    mode,
     contractPath: path.resolve(env["OPE_CONTRACT"] ?? "contracts/dist/openapi.yaml"),
-    merchants: readMerchants(env, readFile, mode),
+    merchants: readMerchants(env, readFile),
   };
 }
 
-function readMerchants(
-  env: NodeJS.ProcessEnv,
-  readFile: (file: string) => string,
-  mode: ServerMode,
-): MerchantConfig[] {
+/** `OPE_MERCHANTS` (JSON) or `OPE_MERCHANTS_FILE`; none configured means none. */
+function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) => string): MerchantConfig[] {
   const inline = env["OPE_MERCHANTS"];
   const file = env["OPE_MERCHANTS_FILE"];
   const raw = inline ?? (file !== undefined ? readFile(path.resolve(file)) : undefined);
-  if (raw === undefined) return mode === "mock" ? [MOCK_MERCHANT] : [];
-  return parseMerchants(raw);
+  return raw === undefined ? [] : parseMerchants(raw);
 }
 
 /** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */

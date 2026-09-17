@@ -8,7 +8,10 @@ export interface SystemPorts {
   clock: Clock;
 }
 
-export const systemModule: Module<SystemPorts> = ({ ports, contractVersion }) => {
-  const getServiceHealth = makeGetServiceHealth({ contractVersion, clock: ports.clock });
+export const systemModule: Module<SystemPorts> = ({ ports, contract }) => {
+  const getServiceHealth = makeGetServiceHealth({
+    contractVersion: contract.info.version,
+    clock: ports.clock,
+  });
   return { handlers: { getHealth: makeGetHealth(getServiceHealth) } };
 };

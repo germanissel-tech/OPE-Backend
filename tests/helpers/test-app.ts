@@ -21,7 +21,6 @@ const testMerchants: MerchantConfig[] = [merchantA, merchantB];
 const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
   port: 0,
   host: "127.0.0.1",
-  mode: "real",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
   merchants: testMerchants,
   ...over,

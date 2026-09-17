@@ -5,9 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
+import { MODULES } from "../../src/composition/modules/index.js";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
+import type { Ports } from "../../src/composition/ports.js";
+import type { Module } from "../../src/composition/wiring.js";
+import type { Handlers } from "../../src/interface-adapters/http/typed.js";
 
 /** The real contract plus one public operation nobody serves, written next to the temp files. */
 function withUnwiredOperation(operationId: string): string {
@@ -77,19 +81,15 @@ describe("bootstrap", () => {
     await expect(closing.app.inject({ method: "GET", url: "/v1/health" })).rejects.toThrow();
   });
 
-  it("in mock mode it responds with the contract examples", async () => {
-    app = await startTestApp({}, { mode: "mock" });
-    const res = await app.app.inject({ method: "GET", url: "/v1/health" });
-    expect(res.statusCode).toBe(200);
-    expect(json(res)).toMatchObject({ status: "ok" });
-  });
-
   // Constitution II (fail-closed): an operation the contract declares and no module serves is
-  // found at boot, not by a 501 in production. The mock serves examples, so it needs no module.
-  it("in real mode it refuses to start when the contract declares an operation no module wires", async () => {
+  // found at boot, not by a 501 in production. A module passed by a caller may serve it.
+  it("refuses to start when the contract declares an operation no module wires", async () => {
     const contractPath = withUnwiredOperation("listOrphans");
     await expect(startTestApp({}, { contractPath })).rejects.toThrow(/no module wires: listOrphans\./);
-    app = await startTestApp({}, { contractPath, mode: "mock" });
-    expect((await app.app.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
+    const orphans: Module<Ports> = () => ({
+      handlers: { listOrphans: async () => ({ status: 200, body: {} }) } as unknown as Handlers,
+    });
+    app = await startTestApp({ modules: [...MODULES, orphans] }, { contractPath });
+    expect((await app.app.inject({ method: "GET", url: "/v1/orphans" })).statusCode).toBe(200);
   });
 });

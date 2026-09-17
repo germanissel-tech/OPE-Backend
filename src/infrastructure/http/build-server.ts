@@ -30,17 +30,15 @@ import type { operations } from "../../interface-adapters/http/generated/api.js"
 import type { ErrorObject } from "ajv";
 
 export type ContractDocument = Document;
-export type ServerMode = "real" | "mock";
 
 export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations> {
   definition: ContractDocument;
   /** NoInfer: the operations map is set explicitly (by default, the generated one). */
   handlers: Handlers<NoInfer<Ops>>;
-  mode: ServerMode;
   /** Security handlers by contract scheme name (`securitySchemes`). */
   security?: Record<string, SecurityHandler>;
   /** Origin policy for CORS; without it, the server does not negotiate CORS. */
-  cors?: CorsPolicy;
+  cors?: CorsPolicy | undefined;
   /** `false` in tests; `true` or a Fastify logger in production. */
   logger?: boolean | FastifyBaseLogger;
 }
@@ -55,6 +53,9 @@ interface HttpResponse {
 const HTTP_METHODS = ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"] as const;
 /** Media type of every successful response of the contract (errors are PROBLEM_CONTENT_TYPE). */
 const JSON_CONTENT_TYPE = "application/json";
+/** What an operation declared without a handler answers (FR-044); the composition root refuses to start with one. */
+const NOT_IMPLEMENTED_DETAIL = (operationId: string): string =>
+  `Operation ${operationId} is declared in the contract but has no registered handler.`;
 /** JSON pointer of the request body in Problem Details `errors`; openapi-backend validates it as `/requestBody`. */
 const BODY_POINTER = "/body";
 const REQUEST_BODY_PREFIX = "/requestBody";
@@ -204,26 +205,13 @@ function registerSecurity(api: OpenAPIBackend, security: Record<string, Security
 interface Runtime {
   api: OpenAPIBackend;
   log: FastifyBaseLogger;
-  mode: ServerMode;
 }
 
-/**
- * An operation without a handler: in mock mode the contract example (or a value generated from the
- * schema when there is none: openapi-backend never throws here), 501 otherwise (FR-044).
- */
-function notImplemented({ api, mode }: Runtime, c: Context): HttpResponse {
+/** An operation declared in the contract without a handler: 501, never an empty 200 (FR-044). */
+function notImplemented(c: Context): HttpResponse {
   const operationId = c.operation.operationId ?? "(no operationId)";
-  if (mode === "mock") {
-    const mocked = api.mockResponseForOperation(operationId);
-    // The contract example arrives as any; the server assumes nothing about its shape.
-    const body: unknown = mocked.mock;
-    return { status: mocked.status, body, contentType: JSON_CONTENT_TYPE };
-  }
   return toHttp(
-    problem("not-implemented", {
-      instance: c.request.path,
-      detail: `Operation ${operationId} is declared in the contract but has no registered handler.`,
-    }),
+    problem("not-implemented", { instance: c.request.path, detail: NOT_IMPLEMENTED_DETAIL(operationId) }),
   );
 }
 
@@ -247,7 +235,7 @@ function registerSpecialHandlers(runtime: Runtime): void {
         }),
       ),
     methodNotAllowed: async (c: Context): Promise<HttpResponse> => unroutable(api, c.request.path),
-    notImplemented: async (c: Context): Promise<HttpResponse> => notImplemented(runtime, c),
+    notImplemented: async (c: Context): Promise<HttpResponse> => notImplemented(c),
   });
 }
 
@@ -376,7 +364,7 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
 ): Promise<FastifyInstance> {
   const app = await createApp(options);
   const api = createApi(options.definition);
-  const runtime: Runtime = { api, log: app.log, mode: options.mode };
+  const runtime: Runtime = { api, log: app.log };
   registerSecurity(api, options.security ?? {});
   registerSpecialHandlers(runtime);
   registerHandlers(runtime, options.handlers);

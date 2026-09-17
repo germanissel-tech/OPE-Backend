@@ -228,11 +228,4 @@ describe("inline decision (US3)", () => {
     });
     expect(await app.ports.decisions.find("m_b" as never, id as never)).toBeUndefined();
   });
-
-  it("in mock mode the response carries the decision of the contract example", async () => {
-    app = await startTestApp({}, { mode: "mock" });
-    const res = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
-    expect(res.statusCode).toBe(202);
-    expect(json(res)).toMatchObject({ decision: { outcome: "NO_OP" } });
-  });
 });

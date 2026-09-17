@@ -18,8 +18,5 @@ export async function start(config: AppConfig, overrides: BootstrapOverrides = {
     });
   }
   await app.listen({ port: config.port, host: config.host });
-  app.log.info(
-    { mode: config.mode, contract: config.contractPath, merchants: config.merchants.length },
-    "OPE backend ready",
-  );
+  app.log.info({ contract: config.contractPath, merchants: config.merchants.length }, "OPE backend ready");
 }
