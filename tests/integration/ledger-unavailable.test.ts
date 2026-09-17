@@ -9,6 +9,7 @@ import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../
 import {
   flakyLedger,
   recordingLogger,
+  unavailableAssignmentLedger,
   unavailableDecisionLedger,
   unavailableExposureLedger,
 } from "../helpers/unavailable-ledgers.js";
@@ -61,6 +62,21 @@ describe("ledger unavailable", () => {
     expect(reported?.level).toBe("error");
     expect(reported?.fields).toMatchObject({ merchantId: "m_a" });
     expect(JSON.stringify(reported)).not.toContain("vis_00000001");
+  });
+
+  it("ingestion with the assignment ledger down → 202 NO_OP ledger-unavailable, no assignment and no decision recorded", async () => {
+    const { logger, entries } = recordingLogger();
+    app = await startTestApp({
+      ports: { clock: fixedClock(NOW), assignments: unavailableAssignmentLedger(), logger },
+    });
+    const res = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: KEY });
+    expect(res.statusCode).toBe(202);
+    const body = json(res) as IngestResult;
+    expect(body.decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
+    expect(await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never)).toBeUndefined();
+    const reported = entries.find((e) => e.message.includes("assignment not recorded"));
+    expect(reported?.level).toBe("error");
+    expect(reported?.fields).toMatchObject({ merchantId: "m_a", decisionId: body.decision.decisionId });
   });
 
   it("exposure with the exposure ledger down → 503 Problem Details ledger-unavailable with Retry-After, nothing recorded", async () => {

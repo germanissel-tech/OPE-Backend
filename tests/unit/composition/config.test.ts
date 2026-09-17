@@ -46,7 +46,9 @@ describe("readConfig", () => {
   });
 
   it("merchants come inline from OPE_MERCHANTS or from OPE_MERCHANTS_FILE, inline first", () => {
-    expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants).toEqual([merchant]);
+    expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants).toEqual([
+      { ...merchant, experiments: [] },
+    ]);
     const read = (file: string): string => {
       expect(file).toBe(path.resolve("config/m.json"));
       return JSON.stringify([merchant, { ...merchant, merchantId: "m_b" }]);
@@ -55,6 +57,93 @@ describe("readConfig", () => {
     expect(
       readConfig({ OPE_MERCHANTS: "[]", OPE_MERCHANTS_FILE: "config/m.json" }, noFile).merchants,
     ).toEqual([]);
+  });
+
+  it("experiments are optional, treatmentPercent defaults to 50, and the shape is validated", () => {
+    const exp = {
+      experimentId: "exp_00000001",
+      seed: "s",
+      status: "active",
+      startedAt: "2026-09-17T00:00:00Z",
+    };
+    const withExp = { ...merchant, experiments: [exp] };
+    const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
+    expect(parsed?.experiments).toEqual([{ ...exp, treatmentPercent: 50 }]);
+    expect(
+      readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments,
+    ).toEqual([]);
+    const closed = { ...exp, experimentId: "exp_00000002", status: "closed", treatmentPercent: 20 };
+    const two = { ...merchant, experiments: [closed, exp] };
+    expect(
+      readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments,
+    ).toHaveLength(2);
+  });
+
+  it.each([
+    [
+      [
+        { experimentId: "exp_00000001", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
+        { experimentId: "exp_00000002", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
+      ],
+      "merchants[0].experiments must have at most one active experiment.",
+    ],
+    [
+      [{ experimentId: "bad id", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
+      "merchants[0].experiments[0].experimentId must match",
+    ],
+    [
+      [
+        {
+          experimentId: "exp_00000001",
+          seed: "s",
+          status: "active",
+          startedAt: "2026-09-17T00:00:00Z",
+          treatmentPercent: 101,
+        },
+      ],
+      "merchants[0].experiments[0].treatmentPercent must be an integer between 0 and 100.",
+    ],
+    [
+      [
+        {
+          experimentId: "exp_00000001",
+          seed: "s",
+          status: "active",
+          startedAt: "2026-09-17T00:00:00Z",
+          treatmentPercent: -1,
+        },
+      ],
+      "merchants[0].experiments[0].treatmentPercent",
+    ],
+    [
+      [
+        {
+          experimentId: "exp_00000001",
+          seed: "s",
+          status: "active",
+          startedAt: "2026-09-17T00:00:00Z",
+          treatmentPercent: 12.5,
+        },
+      ],
+      "merchants[0].experiments[0].treatmentPercent",
+    ],
+    [
+      [{ experimentId: "exp_00000001", seed: "", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
+      "merchants[0].experiments[0].seed must be a non-empty string.",
+    ],
+    [
+      [{ experimentId: "exp_00000001", seed: "s", status: "paused", startedAt: "2026-09-17T00:00:00Z" }],
+      "merchants[0].experiments[0].status must be one of active, closed.",
+    ],
+    [
+      [{ experimentId: "exp_00000001", seed: "s", status: "active", startedAt: "yesterday" }],
+      "merchants[0].experiments[0].startedAt must be an RFC 3339 date-time.",
+    ],
+    ["nope", "merchants[0].experiments must be an array of experiments."],
+  ])("experiments=%j is refused: %s", (experiments, message) => {
+    const raw = JSON.stringify([{ ...merchant, experiments }]);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
   });
 
   it.each([

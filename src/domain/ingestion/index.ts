@@ -25,6 +25,6 @@ export type {
 } from "./event.js";
 export { checkBatch, TIMESTAMP_TOLERANCE } from "./batch.js";
 export type { BatchCheck, BatchInvariant, EventBatch } from "./batch.js";
-export { decide } from "./decide.js";
+export { decide, decideArm } from "./decide.js";
 export { NO_OP_REASONS } from "./no-op-reasons.js";
 export type { NoOpReason } from "./no-op-reasons.js";

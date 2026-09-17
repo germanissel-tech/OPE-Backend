@@ -1,5 +1,6 @@
 // Ledgers that report "unavailable" (ADR-021): the memory implementations never do, so the
 // degradation path is exercised with these fakes injected as port overrides.
+import type { AssignmentLedger } from "../../src/application/experiment/index.js";
 import type { DecisionLedger, ExposureLedger } from "../../src/application/ledger/index.js";
 
 export const unavailableDecisionLedger = (): DecisionLedger => ({
@@ -8,6 +9,11 @@ export const unavailableDecisionLedger = (): DecisionLedger => ({
 });
 
 export const unavailableExposureLedger = (): ExposureLedger => ({
+  record: () => "unavailable",
+  find: () => undefined,
+});
+
+export const unavailableAssignmentLedger = (): AssignmentLedger => ({
   record: () => "unavailable",
   find: () => undefined,
 });

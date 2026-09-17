@@ -1,8 +1,17 @@
-// Use case: ingestion of a batch (FR-012..FR-014, FR-020, FR-021). Invariants → dedup → NO_OP
-// decision with a reason → record in the ledger. Returns a result, never throws on business rules.
-import { checkBatch, decide, type BatchInvariant, type EventBatch } from "../../domain/ingestion/index.js";
-import { noOp, type Decision } from "../../domain/ledger/index.js";
+// Use case: ingestion of a batch (FR-012..FR-014, FR-020, FR-021). Invariants → assignment
+// (constitution III: recorded when it happens, before any decision) → dedup → NO_OP decision
+// with a reason → record in the ledger. Returns a result, never throws on business rules; a
+// ledger that cannot accept a record degrades to NO_OP `ledger-unavailable` (ADR-021).
+import {
+  checkBatch,
+  decideArm,
+  type BatchInvariant,
+  type EventBatch,
+  type NoOpReason,
+} from "../../domain/ingestion/index.js";
+import { noOp, type Decision, type DecisionExperiment, type NoOpInput } from "../../domain/ledger/index.js";
 import type { EventId, MerchantId } from "../../domain/shared-kernel/index.js";
+import type { AssignVisitor } from "../experiment/index.js";
 import type { DecisionLedger } from "../ledger/index.js";
 import type { Clock, IdGenerator, Logger } from "../shared-kernel/index.js";
 import type { EventDedup } from "./ports/event-dedup.js";
@@ -35,29 +44,50 @@ export interface IngestBatchDeps {
   logger: Logger;
   eventDedup: EventDedup;
   decisions: DecisionLedger;
+  assignVisitor: AssignVisitor;
 }
 
-export function makeIngestBatch({ clock, ids, logger, eventDedup, decisions }: IngestBatchDeps): IngestBatch {
+const LEDGER_UNAVAILABLE: NoOpReason = "ledger-unavailable";
+
+/** One result per event, in batch order; a repeated eventId inside the batch counts once. */
+function resultsOf(batch: EventBatch, entered: ReadonlySet<EventId>): EventResult[] {
+  const seen = new Set<EventId>();
+  return batch.events.map((e) => {
+    const status = entered.has(e.eventId) && !seen.has(e.eventId) ? "accepted" : "duplicate";
+    seen.add(e.eventId);
+    return { eventId: e.eventId, status };
+  });
+}
+
+export function makeIngestBatch(deps: IngestBatchDeps): IngestBatch {
+  const { clock, ids, logger, eventDedup, decisions, assignVisitor } = deps;
+
+  /** Records the decision; when the ledger cannot, the intervention is suppressed (ADR-021). */
+  const recordOrDegrade = async (base: Omit<NoOpInput, "reason">, decision: Decision): Promise<Decision> => {
+    if ((await decisions.record(decision)) !== "unavailable") return decision;
+    logger.error(
+      { merchantId: base.merchantId, decisionId: base.decisionId },
+      "decision not recorded: ledger-unavailable",
+    );
+    return noOp({ ...base, reason: LEDGER_UNAVAILABLE });
+  };
+
   return async ({ merchantId, batch }) => {
     const now = clock.now();
     const check = checkBatch(batch, now);
     if (!check.ok) return { ok: false, invariant: check.invariant, detail: check.detail };
-
     const first = batch.events[0];
     if (first === undefined) throw new Error("The contract guarantees at least one event per batch.");
 
-    const entered = await eventDedup.claim(
-      merchantId,
-      batch.events.map((e) => e.eventId),
+    const assigned = await assignVisitor({ merchantId, visitorId: first.visitorId });
+    const results = resultsOf(
+      batch,
+      await eventDedup.claim(
+        merchantId,
+        batch.events.map((e) => e.eventId),
+      ),
     );
-    const seen = new Set<EventId>();
-    const results: EventResult[] = batch.events.map((e) => {
-      const status = entered.has(e.eventId) && !seen.has(e.eventId) ? "accepted" : "duplicate";
-      seen.add(e.eventId);
-      return { eventId: e.eventId, status };
-    });
     const accepted = results.filter((r) => r.status === "accepted").length;
-
     const base = {
       decisionId: ids.decisionId(),
       merchantId,
@@ -65,17 +95,25 @@ export function makeIngestBatch({ clock, ids, logger, eventDedup, decisions }: I
       visitorId: first.visitorId,
       decidedAt: now,
     };
-    let decision = noOp({ ...base, reason: decide(batch) });
-    if ((await decisions.record(decision)) === "unavailable") {
-      // ADR-021: the ledger could not accept the decision; the intervention is suppressed and
-      // the fact is visible in the operational log (never with the visitor).
-      decision = noOp({ ...base, reason: "ledger-unavailable" });
-      logger.error(
-        { merchantId, decisionId: decision.decisionId },
-        "decision not recorded: ledger-unavailable",
-      );
-    }
 
+    let decision: Decision;
+    if (assigned.ok) {
+      const experiment: DecisionExperiment | undefined = assigned.assignment && {
+        experimentId: assigned.assignment.experimentId,
+        arm: assigned.assignment.arm,
+      };
+      const reason = decideArm(experiment?.arm, batch);
+      decision = await recordOrDegrade(
+        base,
+        noOp(experiment ? { ...base, experiment, reason } : { ...base, reason }),
+      );
+    } else {
+      logger.error(
+        { merchantId, decisionId: base.decisionId },
+        "assignment not recorded: ledger-unavailable",
+      );
+      decision = noOp({ ...base, reason: LEDGER_UNAVAILABLE });
+    }
     return { ok: true, outcome: { accepted, duplicates: results.length - accepted, results, decision } };
   };
 }
