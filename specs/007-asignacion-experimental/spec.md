@@ -168,7 +168,7 @@ memoria nunca falla, pero el contrato del puerto y el camino de degradación que
 decisión escrita y probados con un ledger falso que reporta no disponible.
 
 **Why this priority**: la 008 va a poner una base de datos detrás de estos puertos. Si la
-semántica se decide entonces, el código de la 006 nacerá asumiendo escrituras síncronas e
+semántica se decide entonces, el código de la 007 nacerá asumiendo escrituras síncronas e
 infalibles y habrá que reescribirlo. 01 §4.6 y §4.7 lo fijan: ninguna escritura bloqueante;
 ledger no disponible ⇒ se suprime la intervención.
 
@@ -309,7 +309,7 @@ imprime las cifras en un formato estable y termina con éxito aunque las cifras 
   y tasa de error para una duración y una concurrencia declaradas; MUST NOT fallar por las
   cifras (sin SLA).
 - **FR-041**: Las cifras obtenidas MUST registrarse en el quickstart de la feature con fecha y
-  máquina, como línea base para la 007.
+  máquina, como línea base para la 008.
 
 **Aislamiento, glosario, verificación**
 
@@ -360,7 +360,7 @@ imprime las cifras en un formato estable y termina con éxito aunque las cifras 
 ## Assumptions
 
 - Los experimentos vienen de la misma configuración que los merchants (variable de entorno o
-  archivo), con la misma validación fail-closed al arrancar; el almacén real llega con la 007.
+  archivo), con la misma validación fail-closed al arrancar; el almacén real llega con la 008.
 - El reparto por defecto, si un experimento no lo declara, es 50 % TREATMENT.
 - "Muestra grande" en las pruebas de reparto es del orden de cien mil visitantes generados;
   la tolerancia es ±1 punto porcentual.
