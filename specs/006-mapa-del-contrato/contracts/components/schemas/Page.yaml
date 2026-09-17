@@ -1,0 +1,15 @@
+type: object
+description: |
+  Envelope of a paginated collection (ADR-020). Every collection read defines its own `<X>Page`
+  with the same shape and typed `items`; there is no `total` (costly and unstable under writes).
+additionalProperties: false
+required: [items]
+properties:
+  items:
+    type: array
+    description: Items of this page, newest first.
+    items: {}
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

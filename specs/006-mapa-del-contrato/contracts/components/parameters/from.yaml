@@ -1,0 +1,7 @@
+name: from
+in: query
+required: false
+description: Start of the time window (RFC 3339), inclusive.
+schema:
+  type: string
+  format: date-time

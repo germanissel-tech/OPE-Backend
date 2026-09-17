@@ -1,0 +1,7 @@
+type: http
+scheme: bearer
+bearerFormat: opaque
+description: |
+  PROPOSED — Token of an OPE operator (ADR-020). It belongs to no merchant: admin operations
+  name the merchant they act on in the path, the single exception to "merchantId never in the
+  request" (constitution V, amendment). Issued out of band; audited.
