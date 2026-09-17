@@ -157,16 +157,206 @@ const withThings = (doc) => {
  * @param {Doc} op
  * @param {string[] | null} [capabilities] null: authenticated without a declared capability
  */
-const withAuth = (doc, op, capabilities = ["things:write"]) => {
+const withAuth = (doc, op, capabilities = ["events:write"]) => {
   doc.components.securitySchemes = {
+    ...doc.components.securitySchemes,
     ingestKey: { type: "apiKey", in: "header", name: "X-Api-Key", description: "Ingest key." },
   };
+  withTag(doc, op, "ingest");
   op.security = [{ ingestKey: [] }];
   if (capabilities) op["x-required-capabilities"] = capabilities;
   op.responses["401"] = { $ref: "#/components/responses/Unauthorized" };
   doc.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
   return doc;
 };
+
+/**
+ * Gives the operation a tag of the given consumer (the tag fixes the consumer, ADR-020) and declares it.
+ * @param {Doc} doc @param {Doc} op @param {string} tag
+ */
+const withTag = (doc, op, tag) => {
+  op.tags = [tag];
+  if (!doc.tags.some((/** @type {Doc} */ t) => t.name === tag))
+    doc.tags.push({ name: tag, description: `${tag}.` });
+  return doc;
+};
+
+/** A security scheme of the given consumer, declared in the fixture. */
+/** @param {Doc} doc @param {string} name */
+const withScheme = (doc, name) => {
+  doc.components.securitySchemes = {
+    ...doc.components.securitySchemes,
+    [name]: { type: "http", scheme: "bearer", description: `${name} token.` },
+  };
+  return doc;
+};
+
+/** Adds the planned notifyOrder of the platform consumer, valid per ADR-020 (x-idempotency + 409). */
+/** @param {Doc} doc */
+const withNotifyOrder = (doc) => {
+  doc.components.schemas.OrderNotification = {
+    type: "object",
+    description: "Confirmed order.",
+    additionalProperties: false,
+    required: ["orderId", "amount"],
+    properties: {
+      orderId: { type: "string", description: "Order identity of the platform." },
+      amount: { type: "string", description: "Amount." },
+    },
+  };
+  doc.components.securitySchemes = {
+    ...doc.components.securitySchemes,
+    platformKey: { type: "apiKey", in: "header", name: "X-OPE-Platform-Key", description: "Platform key." },
+  };
+  doc.components.responses.BadRequest = problemResponse("Invalid request.", 400, "validation-failed");
+  doc.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
+  doc.components.responses.Conflict = problemResponse("Conflict.", 409, "idempotency-conflict");
+  doc.components.responses.OrderUnprocessable = problemResponse("Unprocessable.", 422, "validation-failed");
+  doc.components.schemas.OrderNotification["x-invariants"] = [
+    {
+      type: "validation-failed",
+      status: 400,
+      rule: "amount is a decimal string",
+      description: "Valid amount.",
+    },
+  ];
+  const ok = {
+    description: "Recorded.",
+    content: {
+      "application/json": { schema: { $ref: "#/components/schemas/Health" }, example: { status: "ok" } },
+    },
+  };
+  doc.paths["/v1/orders"] = {
+    post: {
+      operationId: "notifyOrder",
+      tags: ["outcomes"],
+      summary: "Notifies an order",
+      description: "Notifies a confirmed order.",
+      security: [{ platformKey: [] }],
+      "x-required-capabilities": ["orders:write"],
+      "x-idempotency": { key: "orderId", first: "201", repeat: "200" },
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/OrderNotification" },
+            example: { orderId: "o-1", amount: "10.00" },
+          },
+        },
+      },
+      responses: {
+        201: ok,
+        200: ok,
+        400: { $ref: "#/components/responses/BadRequest" },
+        401: { $ref: "#/components/responses/Unauthorized" },
+        409: { $ref: "#/components/responses/Conflict" },
+        422: { $ref: "#/components/responses/OrderUnprocessable" },
+        500: { $ref: "#/components/responses/InternalServerError" },
+      },
+    },
+  };
+  doc.tags.push({ name: "outcomes", description: "outcomes." });
+  return doc;
+};
+/** @param {Doc} doc @returns {Doc} */
+const orders = (doc) => doc.paths["/v1/orders"].post;
+
+/** Adds the planned listDecisions (collection) and getDecision (single) of the portal consumer. */
+/** @param {Doc} doc */
+const withPortal = (doc) => {
+  withScheme(doc, "portalSession");
+  doc.components.schemas.DecisionPage = {
+    type: "object",
+    description: "Page of decisions.",
+    additionalProperties: false,
+    required: ["items"],
+    properties: {
+      items: { type: "array", description: "Decisions.", items: { $ref: "#/components/schemas/Health" } },
+      nextCursor: { type: "string", description: "Next page." },
+    },
+  };
+  doc.components.parameters = {
+    cursor: { name: "cursor", in: "query", description: "Cursor.", schema: { type: "string" } },
+    limit: {
+      name: "limit",
+      in: "query",
+      description: "Limit.",
+      schema: { type: "integer", minimum: 1, maximum: 100 },
+    },
+    from: {
+      name: "from",
+      in: "query",
+      description: "From.",
+      schema: { type: "string", format: "date-time" },
+    },
+    to: { name: "to", in: "query", description: "To.", schema: { type: "string", format: "date-time" } },
+  };
+  doc.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
+  const page = {
+    description: "Page.",
+    content: {
+      "application/json": { schema: { $ref: "#/components/schemas/DecisionPage" }, example: { items: [] } },
+    },
+  };
+  doc.paths["/v1/portal/decisions"] = {
+    get: {
+      operationId: "listDecisions",
+      tags: ["portal"],
+      summary: "Lists decisions",
+      description: "Lists the decisions of the merchant.",
+      security: [{ portalSession: [] }],
+      "x-required-capabilities": ["ledger:read"],
+      "x-collection": true,
+      parameters: [
+        { $ref: "#/components/parameters/cursor" },
+        { $ref: "#/components/parameters/limit" },
+        { $ref: "#/components/parameters/from" },
+        { $ref: "#/components/parameters/to" },
+      ],
+      responses: {
+        200: page,
+        401: { $ref: "#/components/responses/Unauthorized" },
+        500: { $ref: "#/components/responses/InternalServerError" },
+      },
+    },
+  };
+  doc.paths["/v1/portal/decisions/{decisionId}"] = {
+    get: {
+      operationId: "getDecision",
+      tags: ["portal"],
+      summary: "Reads a decision",
+      description: "Reads one decision.",
+      security: [{ portalSession: [] }],
+      "x-required-capabilities": ["ledger:read"],
+      parameters: [
+        {
+          name: "decisionId",
+          in: "path",
+          required: true,
+          description: "Decision.",
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: {
+          description: "Decision.",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Health" },
+              example: { status: "ok" },
+            },
+          },
+        },
+        401: { $ref: "#/components/responses/Unauthorized" },
+        500: { $ref: "#/components/responses/InternalServerError" },
+      },
+    },
+  };
+  doc.tags.push({ name: "portal", description: "portal." });
+  return doc;
+};
+/** @param {Doc} doc @returns {Doc} */
+const decisions = (doc) => doc.paths["/v1/portal/decisions"].get;
 
 /** @param {Doc} doc @returns {Doc} */
 const health = (doc) => doc.paths["/v1/health"].get;
@@ -195,6 +385,29 @@ const fixtures = {
     return d;
   },
   "valid-capabilities.yaml": (d) => withAuth(withThings(d), things(d)),
+  "valid-outcomes.yaml": (d) => withNotifyOrder(d),
+  "valid-portal.yaml": (d) => withPortal(d),
+  "valid-admin-path.yaml": (d) => {
+    withThings(d);
+    withScheme(d, "adminToken");
+    withTag(d, things(d), "admin");
+    things(d).security = [{ adminToken: [] }];
+    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
+    d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
+    things(d).parameters = [
+      {
+        name: "merchantId",
+        in: "path",
+        required: true,
+        description: "Merchant.",
+        schema: { type: "string" },
+      },
+    ];
+    d.paths["/v1/admin/merchants/{merchantId}/things"] = d.paths["/v1/things"];
+    delete d.paths["/v1/things"];
+    return d;
+  },
   // FR-012
   "operation-operationId.yaml": (d) => {
     delete health(d).operationId;
@@ -424,6 +637,85 @@ const fixtures = {
     withAuth(withThings(d), things(d), null);
     d.security = things(d).security;
     delete things(d).security;
+    return d;
+  },
+  "ope-required-capabilities.foreign.yaml": (d) => {
+    withPortal(d);
+    d.paths["/v1/portal/decisions/{decisionId}"].get["x-required-capabilities"] = ["orders:write"];
+    return d;
+  },
+  // ope-consumer-security (feature 006 FR-012, ADR-020)
+  "ope-consumer-security.yaml": (d) => {
+    withAuth(withThings(d), things(d));
+    withScheme(d, "platformKey");
+    things(d).security = [{ platformKey: [] }];
+    return d;
+  },
+  "ope-consumer-security.public.yaml": (d) => {
+    withAuth(withThings(d), things(d));
+    health(d).security = [{ ingestKey: [] }];
+    return d;
+  },
+  "ope-consumer-security.two-requirements.yaml": (d) => {
+    withAuth(withThings(d), things(d));
+    withScheme(d, "platformKey");
+    things(d).security = [{ ingestKey: [] }, { platformKey: [] }];
+    return d;
+  },
+  "ope-no-merchant-id-in-request.admin-body.yaml": (d) => {
+    withThings(d);
+    withScheme(d, "adminToken");
+    withTag(d, things(d), "admin");
+    things(d).security = [{ adminToken: [] }];
+    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
+    d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
+    bodySchema(d).properties.merchantId = { type: "string", description: "Merchant." };
+    return d;
+  },
+  // ope-outcomes-idempotency (feature 006 FR-021, ADR-020)
+  "ope-outcomes-idempotency.yaml": (d) => {
+    withNotifyOrder(d);
+    delete orders(d)["x-idempotency"];
+    return d;
+  },
+  "ope-outcomes-idempotency.key.yaml": (d) => {
+    withNotifyOrder(d);
+    orders(d)["x-idempotency"].key = "amountless";
+    return d;
+  },
+  "ope-outcomes-idempotency.codes.yaml": (d) => {
+    withNotifyOrder(d);
+    orders(d)["x-idempotency"].repeat = "201";
+    return d;
+  },
+  "ope-outcomes-idempotency.conflict.yaml": (d) => {
+    withNotifyOrder(d);
+    delete orders(d).responses["409"];
+    delete d.components.responses.Conflict;
+    return d;
+  },
+  // ope-collection-pagination (feature 006 FR-031, ADR-020)
+  "ope-collection-pagination.yaml": (d) => {
+    withPortal(d);
+    delete decisions(d)["x-collection"];
+    return d;
+  },
+  "ope-collection-pagination.params.yaml": (d) => {
+    withPortal(d);
+    decisions(d).parameters = [
+      { name: "page", in: "query", description: "Page.", schema: { type: "integer" } },
+      { name: "offset", in: "query", description: "Offset.", schema: { type: "integer" } },
+    ];
+    delete d.components.parameters;
+    return d;
+  },
+  "ope-collection-pagination.envelope.yaml": (d) => {
+    withPortal(d);
+    decisions(d).responses["200"].content["application/json"].schema = {
+      $ref: "#/components/schemas/Health",
+    };
+    delete d.components.schemas.DecisionPage;
     return d;
   },
 };

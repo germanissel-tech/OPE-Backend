@@ -48,6 +48,10 @@ curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/
 
 - Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`,
   catálogos `problem-types.yaml` y `no-op-reasons.yaml`).
+- Mapa del contrato: `contracts/api-map.yaml` — toda la superficie HTTP del MVP, construida y
+  planeada, con consumidor, esquema de seguridad, feature y fuente (ADR-019, ADR-020);
+  `npm run check:api-map` la mantiene coherente con el contrato. La documentación generada
+  (`npm run contract:docs`) muestra la superficie planeada.
 - Tipos generados: `src/interface-adapters/http/generated/api.d.ts` (commiteado, nunca editado a mano).
 - Cliente tipado para SDK y portal: `import { createOpeClient } from "ope-backend/client"`.
 - Reglas del contrato y cómo ampliarlas: `contracts/.spectral.yaml`, `tests/contract-rules/README.md`.

@@ -1,0 +1,248 @@
+# Contract map (ADR-019): every HTTP operation the backend exposes or will expose, before it is
+# built. `openapi.yaml` describes what exists; this file describes what exists and what is
+# planned. `npm run check:api-map` compares both ways: an operation in the contract without an
+# entry here, or a `built` entry without its operation, fails the build.
+#
+# consumers: who calls the API. The tag of an operation fixes its consumer; the consumer fixes
+#   its security scheme (a file under components/securitySchemes/, referenced from the root only
+#   once an operation uses it) and the closed vocabulary of capabilities (ADR-020).
+# features: the roadmap; every operation names the feature that builds it. Features with a
+#   directory under specs/ are verified against it; the rest against this list.
+# operations: status is one of planned | built | deprecated | retired.
+consumers:
+  public:
+    securityScheme: null
+    tags: [system]
+    capabilities: []
+  sdk:
+    securityScheme: ingestKey
+    tags: [ingest, decision]
+    capabilities: [events:write, config:read, diagnostics:write, orders:corroborate]
+  platform:
+    securityScheme: platformKey
+    tags: [outcomes]
+    capabilities: [orders:write, returns:write, catalog:write]
+  portal:
+    securityScheme: portalSession
+    tags: [portal]
+    capabilities: [results:read, ledger:read]
+  admin:
+    securityScheme: adminToken
+    tags: [admin]
+    capabilities: [merchants:write, credentials:rotate, experiments:write, flags:write, messages:publish]
+features:
+  "007": Experimental assignment and ledger
+  "008": Persistence and resilience
+  "009": Outcomes — orders, returns, browser corroboration
+  "010": Configuration, flags, kill switch and administration
+  "011": Catalogue and stock
+  "012": Message catalogue
+  "017": ITT analysis and merchant portal
+operations:
+  - operationId: getHealth
+    method: get
+    path: /v1/health
+    consumer: public
+    tag: system
+    capabilities: []
+    feature: "001"
+    status: built
+    source: specs/001-api-contract-toolchain/spec.md#User Story
+  - operationId: ingestEvents
+    method: post
+    path: /v1/events
+    consumer: sdk
+    tag: ingest
+    capabilities: [events:write]
+    feature: "004"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#3.1
+  - operationId: confirmExposure
+    method: post
+    path: /v1/exposures
+    consumer: sdk
+    tag: ingest
+    capabilities: [events:write]
+    feature: "004"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#5
+  - operationId: getSdkConfig
+    method: get
+    path: /v1/sdk/config
+    consumer: sdk
+    tag: ingest
+    capabilities: [config:read]
+    feature: "010"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#3
+  - operationId: reportAnchorDiagnostics
+    method: post
+    path: /v1/sdk/diagnostics
+    consumer: sdk
+    tag: ingest
+    capabilities: [diagnostics:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#3.1.1
+  - operationId: corroborateOrder
+    method: post
+    path: /v1/orders/corroborations
+    consumer: sdk
+    tag: ingest
+    capabilities: [orders:corroborate]
+    feature: "009"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#5.1
+  - operationId: notifyOrder
+    method: post
+    path: /v1/orders
+    consumer: platform
+    tag: outcomes
+    capabilities: [orders:write]
+    feature: "009"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#5.2
+  - operationId: notifyReturn
+    method: post
+    path: /v1/returns
+    consumer: platform
+    tag: outcomes
+    capabilities: [returns:write]
+    feature: "009"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#5.4
+  - operationId: upsertCatalogSnapshot
+    method: put
+    path: /v1/catalog
+    consumer: platform
+    tag: outcomes
+    capabilities: [catalog:write]
+    feature: "011"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#4
+  - operationId: getExperimentResults
+    method: get
+    path: /v1/portal/results
+    consumer: portal
+    tag: portal
+    capabilities: [results:read]
+    feature: "017"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#5.3
+  - operationId: getAccumulationStatus
+    method: get
+    path: /v1/portal/accumulation
+    consumer: portal
+    tag: portal
+    capabilities: [results:read]
+    feature: "017"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#5.7
+  - operationId: listDecisions
+    method: get
+    path: /v1/portal/decisions
+    consumer: portal
+    tag: portal
+    capabilities: [ledger:read]
+    feature: "017"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#5.7
+  - operationId: listExposures
+    method: get
+    path: /v1/portal/exposures
+    consumer: portal
+    tag: portal
+    capabilities: [ledger:read]
+    feature: "017"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#5.7
+  - operationId: listOrders
+    method: get
+    path: /v1/portal/orders
+    consumer: portal
+    tag: portal
+    capabilities: [ledger:read]
+    feature: "017"
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#5.2
+  - operationId: listMerchants
+    method: get
+    path: /v1/admin/merchants
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#14.1
+  - operationId: createMerchant
+    method: post
+    path: /v1/admin/merchants
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#14.1
+  - operationId: rotateIngestKey
+    method: post
+    path: /v1/admin/merchants/{merchantId}/ingest-keys
+    consumer: admin
+    tag: admin
+    capabilities: [credentials:rotate]
+    feature: "010"
+    status: planned
+    source: docs/adr/014-protocolo-del-sdk.md
+  - operationId: rotatePlatformKey
+    method: post
+    path: /v1/admin/merchants/{merchantId}/platform-keys
+    consumer: admin
+    tag: admin
+    capabilities: [credentials:rotate]
+    feature: "010"
+    status: planned
+    source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
+  - operationId: createExperiment
+    method: post
+    path: /v1/admin/merchants/{merchantId}/experiments
+    consumer: admin
+    tag: admin
+    capabilities: [experiments:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#4.1
+  - operationId: closeExperiment
+    method: post
+    path: /v1/admin/merchants/{merchantId}/experiments/{experimentId}/close
+    consumer: admin
+    tag: admin
+    capabilities: [experiments:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: putFlags
+    method: put
+    path: /v1/admin/merchants/{merchantId}/flags
+    consumer: admin
+    tag: admin
+    capabilities: [flags:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: setKillSwitch
+    method: put
+    path: /v1/admin/merchants/{merchantId}/kill-switch
+    consumer: admin
+    tag: admin
+    capabilities: [flags:write]
+    feature: "010"
+    status: planned
+    source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: publishMessageCatalog
+    method: post
+    path: /v1/admin/merchants/{merchantId}/message-catalog
+    consumer: admin
+    tag: admin
+    capabilities: [messages:publish]
+    feature: "012"
+    status: planned
+    source: mvp:03-alcance-mvp.md#4.4

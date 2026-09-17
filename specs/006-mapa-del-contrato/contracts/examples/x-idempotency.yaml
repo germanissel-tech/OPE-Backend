@@ -1,0 +1,14 @@
+# Shape of the `x-idempotency` extension required on every `outcomes` operation (ADR-020,
+# rule ope-outcomes-idempotency). Shown on the planned notifyOrder as a sample.
+post:
+  operationId: notifyOrder
+  tags: [outcomes]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - orders:write
+  x-idempotency:
+    key: orderId # required property of the request body; the platform's authoritative identity
+    first: "201" # first reception: the record is created
+    repeat: "200" # same key, same content: the same record, nothing changes
+  # same key, different content → 409 urn:ope:problem:idempotency-conflict (never overwritten)

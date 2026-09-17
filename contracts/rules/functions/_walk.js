@@ -9,7 +9,7 @@
  * @typedef {object} SpectralContext
  * @property {JsonPath} path absolute path of the received value within the document
  * @property {{ owner: { source: string } }} rule rule invoking the function; `owner.source` is the ruleset path
- * @property {{ data: unknown }} document unresolved document
+ * @property {{ data: unknown; source?: string }} document unresolved document and the file it came from
  * @property {{ resolved: unknown } | undefined} [documentInventory] document with $refs resolved
  */
 

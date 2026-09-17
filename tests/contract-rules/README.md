@@ -21,6 +21,18 @@ Los fixtures se **generan** con `node tests/contract-rules/gen-fixtures.mjs` a p
 contrato base válido; no se editan a mano. Al agregar uno, verificar que dispara una única
 regla: `npx spectral lint tests/contract-rules/fixtures/<f>.yaml --ruleset contracts/.spectral.yaml`.
 
+## Consumidores, idempotencia y paginación (feature 006, ADR-020)
+
+Cuatro reglas leen `contracts/api-map.yaml` (`functionOptions.map`, cargado por
+`_apiMap.js`): `ope-consumer-security` (el tag fija el consumidor y el consumidor el esquema),
+`ope-required-capabilities` (vocabulario por consumidor), `ope-no-merchant-id-in-request`
+(excepción acotada: `merchantId` en la ruta sólo bajo `admin`) y las dos de forma:
+`ope-outcomes-idempotency` (`x-idempotency` + `409` en toda operación `outcomes`) y
+`ope-collection-pagination` (`x-collection`, parámetros comunes y `<X>Page` en toda lectura de
+colección del portal; corre sobre el documento sin resolver y lee los path items `$ref` desde
+disco). Los fixtures válidos `valid-outcomes.yaml`, `valid-portal.yaml` y `valid-admin-path.yaml`
+muestran la forma correcta de cada consumidor.
+
 ## Invariantes (feature 002, ADR-007)
 
 `x-invariants` sobre una operación o un schema: `type` (slug del catálogo, nunca

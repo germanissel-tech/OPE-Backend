@@ -42,3 +42,6 @@ types:
   - slug: exposure-of-no-op
     status: 422
     title: A NO_OP decision has no intervention to expose
+  - slug: idempotency-conflict
+    status: 409
+    title: Same identity, different content

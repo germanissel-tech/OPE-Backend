@@ -1,0 +1,9 @@
+type: apiKey
+in: header
+name: X-OPE-Platform-Key
+description: |
+  Server-to-server secret of the merchant's platform (ADR-020). It never travels in a browser
+  nor in the tag: only the platform's backend holds it, over TLS. Identifies the merchant; up
+  to two active keys during a rotation. No CORS applies (there is no browser). An HMAC
+  signature of the body with a time window is PROPOSED and decided with the first platform
+  adapter (02-integracion-ecommerce.md §6).

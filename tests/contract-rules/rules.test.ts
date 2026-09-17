@@ -17,6 +17,9 @@ const VALID = [
   "valid-invariants.yaml",
   "valid-capabilities.yaml",
   "valid-union.yaml",
+  "valid-outcomes.yaml",
+  "valid-portal.yaml",
+  "valid-admin-path.yaml",
 ];
 
 let spectral: Spectral;

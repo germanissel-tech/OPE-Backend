@@ -1,0 +1,7 @@
+type: http
+scheme: bearer
+bearerFormat: opaque
+description: |
+  PROPOSED — Session token of a person of the merchant using the portal (ADR-020). Identifies
+  the person and the merchant they belong to; every portal read is scoped to that merchant.
+  Issued and revoked by the portal feature; shape and lifetime decided there.

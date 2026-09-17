@@ -11,6 +11,8 @@ servers:
 tags:
   - name: system
     description: Sistema.
+  - name: ingest
+    description: ingest.
 paths:
   /v1/health:
     get:
@@ -35,7 +37,7 @@ paths:
     post:
       operationId: createThing
       tags:
-        - system
+        - ingest
       summary: Creates a thing
       description: Creates a thing.
       security:
@@ -68,7 +70,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       x-required-capabilities:
-        - things:write
+        - events:write
 components:
   schemas:
     Health:

@@ -8,7 +8,7 @@
 // 3. The source exists: `constitucion#X` (a heading containing X), `mvp:file#X` (under the MVP
 //    documents directory, if available; otherwise a warning), or a repo path.
 // 4. Every note unused in the contract declares `uso: disponible | pendiente`.
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   argString,
@@ -19,6 +19,7 @@ import {
   readYaml,
   rel,
   report,
+  verifySource,
   walkFiles,
 } from "./governance-lib.mjs";
 import { bundlePath, repoRoot } from "./lib.mjs";
@@ -32,16 +33,6 @@ const constitution = path.resolve(
 const mvpDocs = path.resolve(
   argString(args, "mvp-docs") ?? process.env["OPE_MVP_DOCS"] ?? path.join(repoRoot, ".."),
 );
-
-/**
- * The MVP documents are available if the directory has some `NN-*.md`. The directory existing
- * is not enough: in CI the repo's parent exists and is empty.
- * @returns {boolean}
- */
-function mvpDocsAvailable() {
-  if (!exists(mvpDocs)) return false;
-  return readdirSync(mvpDocs).some((name) => /^\d{2}-.*\.md$/.test(name));
-}
 
 const STATES = ["aprobado", "propuesto"];
 const USES = ["disponible", "pendiente"];
@@ -64,58 +55,16 @@ function loadTechnical() {
 const technical = new Set(loadTechnical());
 
 // --- Sources -------------------------------------------------------------------------
-/**
- * @param {string} file
- * @param {string | undefined} section
- * @returns {boolean}
- */
-function headingExists(file, section) {
-  if (!section) return true;
-  const needle = section.toLowerCase();
-  return readFileSync(file, "utf8")
-    .split(/\r?\n/)
-    .some((line) => /^#{1,6}\s/.test(line) && line.toLowerCase().includes(needle));
-}
+const roots = { repoRoot, constitution, mvpDocs };
 
 /**
  * @param {string} source
  * @param {string} where
  */
 function checkSource(source, where) {
-  const [ref = "", section] = source.split("#");
-  if (ref === "constitucion") {
-    if (!exists(constitution)) {
-      problems.push(`${where}: source \`${source}\` but the constitution does not exist at ${constitution}`);
-    } else if (!headingExists(constitution, section)) {
-      problems.push(
-        `${where}: source \`${source}\`: no heading of the constitution contains "${String(section)}"`,
-      );
-    }
-    return;
-  }
-  if (ref.startsWith("mvp:")) {
-    const file = path.join(mvpDocs, ref.slice(4));
-    if (!mvpDocsAvailable()) {
-      warnings.push(
-        `${where}: source \`${source}\` not verifiable: the MVP documents directory is missing (${mvpDocs}); set OPE_MVP_DOCS to verify it`,
-      );
-      return;
-    }
-    if (!exists(file)) {
-      problems.push(`${where}: source \`${source}\`: ${file} does not exist`);
-    } else if (!headingExists(file, section)) {
-      problems.push(
-        `${where}: source \`${source}\`: no heading of ${ref.slice(4)} contains "${String(section)}"`,
-      );
-    }
-    return;
-  }
-  const file = path.resolve(repoRoot, ref);
-  if (!exists(file)) {
-    problems.push(`${where}: source \`${source}\`: ${ref} does not exist`);
-  } else if (!headingExists(file, section)) {
-    problems.push(`${where}: source \`${source}\`: no heading contains "${String(section)}"`);
-  }
+  const { problem, warning } = verifySource(source, where, roots);
+  if (problem) problems.push(problem);
+  if (warning) warnings.push(warning);
 }
 
 // --- Notes -------------------------------------------------------------------------

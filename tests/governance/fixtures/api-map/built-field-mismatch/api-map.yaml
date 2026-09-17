@@ -1,0 +1,76 @@
+consumers:
+  public:
+    securityScheme: null
+    tags:
+      - system
+    capabilities: []
+  sdk:
+    securityScheme: ingestKey
+    tags:
+      - ingest
+    capabilities:
+      - events:write
+  portal:
+    securityScheme: portalSession
+    tags:
+      - portal
+    capabilities:
+      - ledger:read
+  admin:
+    securityScheme: adminToken
+    tags:
+      - admin
+    capabilities:
+      - flags:write
+features:
+  "010": Configuration
+operations:
+  - operationId: getHealth
+    method: get
+    path: /v1/health
+    consumer: public
+    tag: system
+    capabilities: []
+    feature: "001"
+    status: built
+    source: constitucion#I
+  - operationId: ingestEvents
+    method: post
+    path: /v1/events
+    consumer: public
+    tag: system
+    capabilities: []
+    feature: "004"
+    status: built
+    source: mvp:01-x.md#Intro
+  - operationId: listOldThings
+    method: get
+    path: /v1/old-things
+    consumer: sdk
+    tag: ingest
+    capabilities:
+      - events:write
+    feature: "004"
+    status: deprecated
+    source: constitucion#I
+  - operationId: listGone
+    method: get
+    path: /v1/gone
+    consumer: sdk
+    tag: ingest
+    capabilities:
+      - events:write
+    feature: "001"
+    status: retired
+    source: constitucion#I
+    retiredIn: 1.0.0
+  - operationId: putFlags
+    method: put
+    path: /v1/admin/merchants/{merchantId}/flags
+    consumer: admin
+    tag: admin
+    capabilities:
+      - flags:write
+    feature: "010"
+    status: planned
+    source: constitucion#I
