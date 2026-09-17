@@ -36,6 +36,7 @@ const expected: Record<string, string> = {
   "no-ignored-exceptions.ts": "sonarjs/no-ignored-exceptions",
   // Only under src/ (FR-012): the fixture is linted as if it lived there.
   "as-src/no-magic-numbers.ts": "@typescript-eslint/no-magic-numbers",
+  "as-src/no-magic-strings.ts": "ope/no-magic-strings",
 };
 
 let eslint: ESLint;
@@ -98,6 +99,10 @@ describe("lint: strong typing that is enforced", () => {
 describe("lint: shape of the code by scope (ADR-016)", () => {
   it("0, 1, -1 and array indexes are not magic numbers under src/", async () => {
     expect(await lint("as-src/magic-numbers-allowed.ts")).toEqual([]);
+  });
+
+  it("literals the compiler checks, declarations, keys and punctuation are not magic strings", async () => {
+    expect(await lint("as-src/magic-strings-allowed.ts")).toEqual([]);
   });
 
   it("long functions and magic numbers are allowed under tests/", async () => {

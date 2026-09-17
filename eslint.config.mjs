@@ -9,6 +9,7 @@ import importX from "eslint-plugin-import-x";
 import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import ope from "./scripts/lint/no-magic-strings.mjs";
 
 const TS_FILES = ["**/*.ts", "**/*.mts", "**/*.cts"];
 const JS_FILES = ["**/*.js", "**/*.mjs", "**/*.cjs"];
@@ -43,6 +44,10 @@ export const SRC_ONLY_RULES = {
     "error",
     { ignore: [0, 1, -1], ignoreArrayIndexes: true, ignoreTypeIndexes: true, ignoreEnums: true },
   ],
+  // The string counterpart (scripts/lint/no-magic-strings.mjs): a literal repeated in a file where
+  // some occurrence is not checked by a literal type. Typed catalogues (`ProblemSlug`, `NodeJS.Signals`)
+  // are the compiler's constants and stay as literals; anything else repeated gets a name.
+  "ope/no-magic-strings": "error",
 };
 
 // Tests: a `describe` callback groups cases, it is not logic; literal values in assertions are
@@ -78,7 +83,7 @@ export default tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
   eslintComments.recommended,
   {
-    plugins: { "import-x": importX, sonarjs },
+    plugins: { "import-x": importX, sonarjs, ope },
     languageOptions: {
       parserOptions: { project: ["./tsconfig.typecheck.json"], tsconfigRootDir: import.meta.dirname },
       globals: { ...globals.node },

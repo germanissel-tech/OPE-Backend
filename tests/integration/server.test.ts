@@ -208,7 +208,16 @@ describe("real server over the contract", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:validation-failed", status: 400 });
+    const body = problemOf(res);
+    expect(body).toMatchObject({
+      type: "urn:ope:problem:validation-failed",
+      status: 400,
+      instance: "/v1/things",
+    });
+    // The parser error points at the whole body, with Fastify's message.
+    expect(body.errors).toHaveLength(1);
+    expect(body.errors?.[0]?.pointer).toBe("/body");
+    expect(body.errors?.[0]?.message).toMatch(/JSON/);
   });
 
   it("undeclared field in the body → 400 naming the field; it is not ignored", async () => {

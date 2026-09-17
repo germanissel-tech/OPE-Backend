@@ -112,7 +112,8 @@ y, en modo real, falla si el contrato declara una operación que ningún módulo
 - Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
   anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
   ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
-  −1 e índices exceptuados). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
+  −1 e índices exceptuados); strings repetidos sin tipar sólo con nombre en `src/`
+  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
   por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
 - Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
   lista las entradas y las exclusiones; los motivos están en el encabezado de
@@ -198,6 +199,11 @@ y, en modo real, falla si el contrato declara una operación que ningún módulo
   `src/composition/` (ADR-013). Identificadores como tipos marcados (`MerchantId`, `SessionId`,
   …, `src/domain/shared-kernel/`).
 - Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
+- Literales de la plataforma (señales, métodos, headers, media types, claves reservadas de una
+  librería) se declaran una vez, con nombre y tipo (`HTTP_METHODS`, `SHUTDOWN_SIGNALS`); un
+  literal repetido en `src/` donde alguna ocurrencia no la verifica un tipo literal falla el
+  lint (`ope/no-magic-strings`). Donde el tipo es una unión de literales (`ProblemSlug`,
+  `NodeJS.Signals`) el literal se queda: el compilador es la constante.
 - `NO_OP` es un resultado válido con motivo, nunca una excepción.
 - Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
   **BUILT / CONNECTED / ACTIVE / TESTED**. No afirmar que algo funciona sin prueba ejecutable.

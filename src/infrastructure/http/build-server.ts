@@ -53,6 +53,11 @@ interface HttpResponse {
 }
 
 const HTTP_METHODS = ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"] as const;
+/** Media type of every successful response of the contract (errors are PROBLEM_CONTENT_TYPE). */
+const JSON_CONTENT_TYPE = "application/json";
+/** JSON pointer of the request body in Problem Details `errors`; openapi-backend validates it as `/requestBody`. */
+const BODY_POINTER = "/body";
+const REQUEST_BODY_PREFIX = "/requestBody";
 /** First error status: from here on every response of the contract is Problem Details. */
 const FIRST_ERROR_STATUS = 400;
 /** Methods routed by the wildcard route: OPTIONS is left to the CORS preflight (research R-04). */
@@ -87,8 +92,11 @@ function toValidationErrors(errors: ErrorObject[] | null | undefined): Validatio
     const params: Record<string, unknown> = e.params;
     const detail = params["additionalProperty"] ?? params["missingProperty"];
     const suffix = typeof detail === "string" ? `/${detail}` : "";
-    const pointer = `${e.instancePath}${suffix}`.replace(/^\/requestBody/, "/body") || "/";
-    return { pointer, message: e.message ?? "contract violation" };
+    const raw = `${e.instancePath}${suffix}`;
+    const pointer = raw.startsWith(REQUEST_BODY_PREFIX)
+      ? `${BODY_POINTER}${raw.slice(REQUEST_BODY_PREFIX.length)}`
+      : raw;
+    return { pointer: pointer || "/", message: e.message ?? "contract violation" };
   });
 }
 
@@ -97,16 +105,26 @@ function toHttp(res: ProblemResponse): HttpResponse {
 }
 
 /** Principals by scheme (without the `authorized` flag) and safe fields for the request log. */
+/**
+ * What each security handler left in `context.security`, by scheme name. openapi-backend leaves
+ * `security` undefined when the operation is public and adds its own boolean `authorized`.
+ */
+function securityOutcomes(c: BoundaryContext): [string, Record<string, unknown>][] {
+  const results = (c.security as Record<string, unknown> | undefined) ?? {};
+  // Stryker disable ConditionalExpression,LogicalOperator: openapi-backend only stores handler objects and the boolean `authorized` here; the guard is defensive and its mutants are equivalent
+  return Object.entries(results).filter(
+    (entry): entry is [string, Record<string, unknown>] => typeof entry[1] === "object" && entry[1] !== null,
+  );
+  // Stryker restore ConditionalExpression,LogicalOperator
+}
+
 function securityResultsOf(c: BoundaryContext): {
   principals: Record<string, unknown>;
   logFields: Record<string, unknown>;
 } {
   const principals: Record<string, unknown> = {};
   const logFields: Record<string, unknown> = {};
-  // openapi-backend leaves `security` undefined when the operation is public.
-  const results = (c.security as Record<string, unknown> | undefined) ?? {};
-  for (const [name, outcome] of Object.entries(results)) {
-    if (name === "authorized" || typeof outcome !== "object" || outcome === null) continue;
+  for (const [name, outcome] of securityOutcomes(c)) {
     const { principal, log } = outcome as { principal?: unknown; log?: Record<string, unknown> };
     principals[name] = principal;
     Object.assign(logFields, log);
@@ -166,11 +184,8 @@ function unroutable(api: OpenAPIBackend, requestPath: string): HttpResponse {
 
 /** The Problem Details of the security handler that failed; `unauthorized` if none said which. */
 function securityFailure(c: BoundaryContext): HttpResponse {
-  const results = c.security as Record<string, unknown> | undefined;
-  for (const [name, result] of Object.entries(results ?? {})) {
-    // Stryker disable next-line ConditionalExpression: openapi-backend only stores objects here; the guard is defensive and its mutant is equivalent
-    if (name === "authorized" || typeof result !== "object" || result === null) continue;
-    const error: unknown = (result as { error?: unknown }).error;
+  for (const [, result] of securityOutcomes(c)) {
+    const error: unknown = result["error"];
     if (error instanceof SecurityError) return toHttp(problem(error.slug, { instance: c.request.path }));
   }
   return toHttp(problem("unauthorized", { instance: c.request.path }));
@@ -202,7 +217,7 @@ function notImplemented({ api, mode }: Runtime, c: Context): HttpResponse {
     const mocked = api.mockResponseForOperation(operationId);
     // The contract example arrives as any; the server assumes nothing about its shape.
     const body: unknown = mocked.mock;
-    return { status: mocked.status, body, contentType: "application/json" };
+    return { status: mocked.status, body, contentType: JSON_CONTENT_TYPE };
   }
   return toHttp(
     problem("not-implemented", {
@@ -260,7 +275,7 @@ function validateResult(
     return toHttp(problem("response-contract-violation", { instance: c.request.path }));
   }
   // Every 4xx/5xx of the contract is Problem Details (ruleset rule): the media type follows from the status.
-  const contentType = result.status >= FIRST_ERROR_STATUS ? PROBLEM_CONTENT_TYPE : "application/json";
+  const contentType = result.status >= FIRST_ERROR_STATUS ? PROBLEM_CONTENT_TYPE : JSON_CONTENT_TYPE;
   return { ...result, contentType: result.contentType ?? contentType };
 }
 
@@ -308,7 +323,7 @@ function send(reply: FastifyReply, res: HttpResponse): FastifyReply {
   if (res.headers) reply.headers(res.headers);
   return reply
     .status(res.status)
-    .type(res.contentType ?? "application/json")
+    .type(res.contentType ?? JSON_CONTENT_TYPE)
     .send(res.body);
 }
 
@@ -343,7 +358,10 @@ function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
       return send(
         reply,
         toHttp(
-          problem("validation-failed", { instance, errors: [{ pointer: "/body", message: error.message }] }),
+          problem("validation-failed", {
+            instance,
+            errors: [{ pointer: BODY_POINTER, message: error.message }],
+          }),
         ),
       );
     }
