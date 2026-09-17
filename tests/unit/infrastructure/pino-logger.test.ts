@@ -52,6 +52,15 @@ describe("pinoLogger", () => {
     expect(fastifyLoggerOf(stub)).toBeUndefined();
   });
 
+  it("silentLogger() is silent: its pino instance runs at level 'silent'", () => {
+    // FastifyBaseLogger only types `level`; the pino instance behind it is what decides.
+    const instance = fastifyLoggerOf(silentLogger()) as pino.Logger | undefined;
+    expect(instance?.level).toBe("silent");
+    for (const level of ["error", "warn", "info"] as const) {
+      expect(instance?.isLevelEnabled(level), level).toBe(false);
+    }
+  });
+
   it("the server runs on a foreign logger without request logging", async () => {
     const calls: string[] = [];
     const stub: Logger = {
