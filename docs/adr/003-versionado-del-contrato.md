@@ -27,3 +27,8 @@ un lugar único donde la versión se exprese.
 
 - Un cambio incompatible implica `2.0.0` **y** `/v2/`.
 - Agregar valores de enum en request y campos opcionales en respuesta es compatible.
+- Precisión (ADR-021, 2026-09-17): "agregar una respuesta de error" es incompatible cuando es
+  **4xx** (una forma nueva de rechazar a un cliente válido); una **5xx** nueva es una condición
+  del servidor que todo cliente tolera igual (Problem Details) y es compatible. oasdiff no las
+  distingue (`response-non-success-status-added` queda en aviso); la 4xx la detecta el chequeo
+  propio `ope-client-error-response-added` de `contract:diff`.

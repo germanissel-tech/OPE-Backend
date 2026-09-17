@@ -11,6 +11,8 @@ post:
     does an exposure exist (`EXPOSED` state of the evidence chain, 01 §5); the decision alone
     does not imply it. The decision must exist for the credential's merchant and must have
     been an intervention. A repeated confirmation does not duplicate the record.
+    If the ledger cannot record the exposure, the response is `503` with `Retry-After`;
+    nothing was recorded and the SDK retries (ADR-021).
   x-invariants:
     - type: exposure-decision-unknown
       status: 422
@@ -62,3 +64,5 @@ post:
       $ref: ../components/responses/ExposureUnprocessable.yaml
     "500":
       $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

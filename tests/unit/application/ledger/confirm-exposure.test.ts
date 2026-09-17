@@ -34,7 +34,7 @@ function fakes(decisions: Decision[]) {
   const store = new Map(decisions.map((d) => [`${d.merchantId}/${d.decisionId}`, d]));
   const recorded: string[] = [];
   const decisionLedger: DecisionLedger = {
-    record: () => undefined,
+    record: () => "accepted",
     find: (m, id) => store.get(`${m}/${id}`),
   };
   const exposureLedger: ExposureLedger = {
@@ -96,5 +96,15 @@ describe("confirmExposure", () => {
     expect(await confirm(input())).toEqual({ ok: true, status: "recorded" });
     expect(await confirm(input())).toEqual({ ok: true, status: "already-recorded" });
     expect(f.recorded).toEqual(["m_a/dec_00000001"]);
+  });
+
+  it("exposure ledger unavailable → not ok, no invariant, nothing recorded (ADR-021)", async () => {
+    const f = fakes([decision()]);
+    const confirm = makeConfirmExposure({
+      decisionLedger: f.decisionLedger,
+      exposureLedger: { record: () => "unavailable", find: () => undefined },
+    });
+    expect(await confirm(input())).toEqual({ ok: false, unavailable: true });
+    expect(f.recorded).toEqual([]);
   });
 });

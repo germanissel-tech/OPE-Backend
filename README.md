@@ -38,8 +38,11 @@ No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranc
 infraestructura, valida y autentica igual que en producción y responde con comportamiento real.
 `dev` carga el merchant de desarrollo de `config/dev-merchants.json` (clave `ope_dev_ingest_key`);
 en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
-`[{ "merchantId", "ingestKeys": [..], "origins": [..] }]`, o de `OPE_MERCHANTS_FILE`, y sin
-ninguno el servidor no autentica a nadie.
+`[{ "merchantId", "ingestKeys": [..], "origins": [..], "experiments": [..] }]`, o de
+`OPE_MERCHANTS_FILE`, y sin ninguno el servidor no autentica a nadie. Un experimento activo
+(`{ "experimentId", "treatmentPercent", "seed", "status": "active", "startedAt" }`) asigna cada
+visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún
+visitante se asigna y toda decisión es `NO_OP` con motivo `no-active-experiment`.
 
 ```bash
 npm run dev
@@ -48,6 +51,9 @@ curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/
 
 - Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`,
   catálogos `problem-types.yaml` y `no-op-reasons.yaml`).
+- Carga informativa: `npm run build && npm run test:load` (autocannon; `OPE_LOAD_DURATION`,
+  `OPE_LOAD_CONNECTIONS`, `OPE_LOAD_VISITORS`). Cifras de referencia en
+  `specs/007-asignacion-experimental/quickstart.md`.
 - Mapa del contrato: `contracts/api-map.yaml` — toda la superficie HTTP del MVP, construida y
   planeada, con consumidor, esquema de seguridad, feature y fuente (ADR-019, ADR-020);
   `npm run check:api-map` la mantiene coherente con el contrato. La documentación generada

@@ -26,6 +26,7 @@ export const PROBLEM_TYPES = {
   "exposure-decision-unknown": { status: 422, title: "The decision does not exist for this merchant" },
   "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
   "idempotency-conflict": { status: 409, title: "Same identity, different content" },
+  "ledger-unavailable": { status: 503, title: "The ledger is not available" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;
@@ -54,6 +55,20 @@ export function invariantResponse(
 ): { status: typeof INVARIANT_STATUS; body: ProblemDetails } {
   const { status, body } = problem(violation.invariant, { instance: req.instance, detail: violation.detail });
   return { status: INVARIANT_STATUS, body: { ...body, status } };
+}
+
+/** Seconds the SDK waits before retrying a write the ledger could not accept (ADR-021). */
+const LEDGER_RETRY_AFTER_SECONDS = 5;
+const UNAVAILABLE_STATUS = 503;
+
+/** 503 Problem Details for a ledger that could not accept the record, with Retry-After (ADR-021). */
+export function ledgerUnavailableResponse(req: { instance: string }): {
+  status: typeof UNAVAILABLE_STATUS;
+  body: ProblemDetails;
+  headers: Record<string, string>;
+} {
+  const { body } = problem("ledger-unavailable", { instance: req.instance });
+  return { status: UNAVAILABLE_STATUS, body, headers: { "retry-after": String(LEDGER_RETRY_AFTER_SECONDS) } };
 }
 
 /** Builds the error response for a catalogue type. Never includes internal details. */

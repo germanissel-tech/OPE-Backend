@@ -25,7 +25,8 @@ const CONTEXT_MAP = {
   system: ["shared-kernel"],
   merchant: ["shared-kernel"],
   ledger: ["shared-kernel"],
-  ingestion: ["shared-kernel", "merchant", "ledger"],
+  experiment: ["shared-kernel"],
+  ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
 };
 
 /**

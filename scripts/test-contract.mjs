@@ -3,18 +3,14 @@
 // `uvx schemathesis` on the bundle and stops the server propagating the exit code.
 //
 // Manual negative test: OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import { bundlePath, repoRoot } from "./lib.mjs";
+import { startBuiltServer } from "./server-lib.mjs";
 
 // Pinned version: the same locally and in CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
-// The server compiles the contract validators at startup: fifteen seconds covers a cold CI runner.
-const STARTUP_TIMEOUT_MS = 15000;
-// Time given to a graceful SIGTERM before SIGKILL.
-const KILL_GRACE_MS = 3000;
 
 /** Test merchant for Schemathesis: the ingest credential travels in every request. */
 const CONTRACT_MERCHANT = {
@@ -23,108 +19,12 @@ const CONTRACT_MERCHANT = {
   origins: ["http://127.0.0.1"],
 };
 
-/** @returns {Promise<number>} */
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.listen(0, "127.0.0.1", () => {
-      const address = srv.address();
-      if (address === null || typeof address === "string") {
-        reject(new Error("Could not get a free port"));
-        return;
-      }
-      srv.close(() => {
-        resolve(address.port);
-      });
-    });
-    srv.on("error", reject);
-  });
-}
-
-/**
- * @param {string} url
- * @param {number} timeoutMs
- */
-async function waitForHealth(url, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      // Any HTTP response means the server is listening (in the negative test it is not 200).
-      await fetch(url);
-      return;
-    } catch {
-      // the server is not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error(`The server did not respond at ${url} within ${timeoutMs} ms`);
-}
-
-/** @returns {{ cmd: string; args: string[] }} */
-function serverCommand() {
-  const built = path.join(repoRoot, "dist", "main.js");
-  // OPE_SERVER_ENTRY: an alternative process entry in TypeScript (the negative test); tsx runs it.
-  const entry = process.env["OPE_SERVER_ENTRY"];
-  if (entry === undefined && existsSync(built)) return { cmd: process.execPath, args: [built] };
-  return {
-    cmd: process.execPath,
-    args: [
-      path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"),
-      path.resolve(repoRoot, entry ?? path.join("src", "main.ts")),
-    ],
-  };
-}
-
 /** @returns {string | null} the reason the run cannot start, or null */
 function preflight() {
   const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
   if (uvx.status !== 0) return "`uvx` not found. Install uv: https://docs.astral.sh/uv/";
   if (!existsSync(bundlePath)) return `${bundlePath} does not exist. Run npm run contract:bundle.`;
   return null;
-}
-
-/** @typedef {{ log: () => string; stop: () => Promise<void> }} RunningServer */
-
-/**
- * Starts the server on `port` with the contract-test merchant, capturing its output.
- * @param {number} port
- * @returns {RunningServer}
- */
-function startServer(port) {
-  const { cmd, args } = serverCommand();
-  const server = spawn(cmd, args, {
-    cwd: repoRoot,
-    env: {
-      ...process.env,
-      PORT: String(port),
-      HOST: "127.0.0.1",
-      OPE_MERCHANTS: process.env["OPE_MERCHANTS"] ?? JSON.stringify([CONTRACT_MERCHANT]),
-    },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let serverLog = "";
-  /** @param {Buffer | string} chunk */
-  const append = (chunk) => {
-    serverLog += chunk.toString();
-  };
-  server.stdout.on("data", append);
-  server.stderr.on("data", append);
-  /** @returns {Promise<void>} */
-  const stop = () =>
-    new Promise((resolve) => {
-      if (server.exitCode !== null) {
-        resolve();
-        return;
-      }
-      server.once("exit", () => {
-        resolve();
-      });
-      server.kill("SIGTERM");
-      setTimeout(() => {
-        if (server.exitCode === null) server.kill("SIGKILL");
-      }, KILL_GRACE_MS).unref();
-    });
-  return { log: () => serverLog, stop };
 }
 
 /**
@@ -173,17 +73,12 @@ async function main() {
     console.error(`test:contract — ${blocker}`);
     return 1;
   }
-  const port = await freePort();
-  const server = startServer(port);
+  const server = await startBuiltServer({
+    OPE_MERCHANTS: process.env["OPE_MERCHANTS"] ?? JSON.stringify([CONTRACT_MERCHANT]),
+  });
   try {
-    const base = `http://127.0.0.1:${port}`;
-    await waitForHealth(`${base}/v1/health`, STARTUP_TIMEOUT_MS);
-    console.log(`test:contract — server at ${base}; running Schemathesis…`);
-    return runSchemathesis(base);
-  } catch (/** @type {unknown} */ err) {
-    console.error(`test:contract — ${err instanceof Error ? err.message : String(err)}`);
-    console.error(server.log());
-    return 1;
+    console.log(`test:contract — server at ${server.base}; running Schemathesis…`);
+    return runSchemathesis(server.base);
   } finally {
     await server.stop();
   }

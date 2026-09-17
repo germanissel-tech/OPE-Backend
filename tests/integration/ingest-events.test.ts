@@ -77,6 +77,14 @@ describe("POST /v1/events", () => {
     ]);
   });
 
+  it("the same eventId twice inside one batch counts once: accepted, then duplicate", async () => {
+    app = await withClock();
+    const twice = { events: [eventOf(1, { occurredAt: NOW }), eventOf(1, { occurredAt: NOW })] };
+    const body = json(await postEvents(app.app, twice, { key: "key-a-1" })) as IngestResult;
+    expect(body).toMatchObject({ accepted: 1, duplicates: 1 });
+    expect(body.results.map((r) => r.status)).toEqual(["accepted", "duplicate"]);
+  });
+
   it("the same eventId in another merchant is another event (isolation FR-050)", async () => {
     app = await withClock();
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });

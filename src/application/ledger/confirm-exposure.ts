@@ -18,7 +18,10 @@ export interface ConfirmExposureInput {
 export type ExposureInvariant = "exposure-decision-unknown" | "exposure-of-no-op";
 
 export type ConfirmExposureResult =
-  { ok: true; status: ExposureRecordStatus } | { ok: false; invariant: ExposureInvariant; detail: string };
+  | { ok: true; status: Exclude<ExposureRecordStatus, "unavailable"> }
+  | { ok: false; invariant: ExposureInvariant; detail: string }
+  /** The ledger could not accept the exposure (ADR-021): nothing recorded, the SDK retries. */
+  | { ok: false; unavailable: true };
 
 export type ConfirmExposure = (input: ConfirmExposureInput) => Promise<ConfirmExposureResult>;
 
@@ -56,6 +59,8 @@ export function makeConfirmExposure({
       exposedAt: input.exposedAt,
       anchor: input.anchor,
     };
-    return { ok: true, status: await exposureLedger.record(exposure) };
+    const status = await exposureLedger.record(exposure);
+    if (status === "unavailable") return { ok: false, unavailable: true };
+    return { ok: true, status };
   };
 }

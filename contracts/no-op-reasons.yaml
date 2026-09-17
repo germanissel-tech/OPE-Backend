@@ -9,3 +9,12 @@ reasons:
   - slug: page-context-incomplete
     emitter: orchestrator
     description: The page context is not enough to decide (for example, a product page without a resolved product).
+  - slug: control-arm
+    emitter: assignment
+    description: The visitor belongs to the CONTROL arm of the active experiment; the policy never intervenes (01 §4.1).
+  - slug: no-active-experiment
+    emitter: assignment
+    description: The merchant has no active experiment; nothing is assigned and nothing is intervened.
+  - slug: ledger-unavailable
+    emitter: orchestrator
+    description: The ledger could not accept the record; the intervention is suppressed rather than left unmeasured (01 §4.7).

@@ -55,31 +55,32 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 
 ### Comandos
 
-| Comando                                           | Qué hace                                                                                                                |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                            |
-| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                      |
-| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                |
-| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                  |
-| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`         |
-| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura        |
-| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                       |
-| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                        |
-| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                   |
-| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                           |
-| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                |
-| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                      |
-| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida |
-| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)               |
-| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                       |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                        |
-| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                             |
-| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                        |
-| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                              |
-| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo             |
-| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo                    |
+| Comando                                           | Qué hace                                                                                                                                     |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                 |
+| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                           |
+| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                                     |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                     |
+| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                       |
+| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                     |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                              |
+| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura                             |
+| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                            |
+| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                                             |
+| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                        |
+| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                |
+| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                     |
+| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                           |
+| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida                      |
+| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                    |
+| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                            |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                             |
+| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                                                  |
+| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                             |
+| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                   |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo                                  |
+| `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras |
+| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo                                         |
 
 Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
@@ -98,7 +99,7 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `ingestion` (los demás cuando llegue su feature). Cada módulo expone su API pública
+`ledger`, `experiment`, `ingestion` (los demás cuando llegue su feature). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
@@ -177,6 +178,15 @@ contrato con una operación que ningún módulo sirve no arranca.
   el discriminador a objetos: el servidor lo quita en runtime
   (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
   Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
+- **Ledger (ADR-021)**: todo `record()` devuelve `accepted | unavailable` (`RecordOutcome`);
+  ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
+  (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
+  los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
+- **Asignación (ADR-022)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
+  `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `assignArm` es pura
+  (FNV-1a en el dominio); la asignación se registra con el primer lote aceptado; CONTROL
+  resuelve `NO_OP` `control-arm`; sin experimento, `no-active-experiment`. El brazo y el
+  experimento **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; el
   security handler resuelve el merchant antes de validar el body (401 / 403
   `origin-not-allowed`). Los logs nunca llevan IP, headers ni cuerpo (`request-logging.ts`).

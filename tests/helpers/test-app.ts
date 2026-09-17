@@ -11,11 +11,22 @@ const merchantA: MerchantConfig = {
   merchantId: "m_a",
   ingestKeys: ["key-a-1", "key-a-2"],
   origins: ["https://a.example"],
+  // Everyone in TREATMENT: the decision reasons of feature 004 stay observable through A.
+  experiments: [
+    {
+      experimentId: "exp_a_000001",
+      treatmentPercent: 100,
+      seed: "seed-a",
+      status: "active",
+      startedAt: "2026-09-17T00:00:00Z",
+    },
+  ],
 };
-const merchantB: MerchantConfig = {
+export const merchantB: MerchantConfig = {
   merchantId: "m_b",
   ingestKeys: ["key-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
+  experiments: [],
 };
 const testMerchants: MerchantConfig[] = [merchantA, merchantB];
 

@@ -36,10 +36,14 @@ const breaking: [string, string][] = [
   ["brk-change-type.yaml", "response-property-type-changed"],
   ["brk-change-format.yaml", "response-property-type-specialized"],
   ["brk-remove-request-enum.yaml", "request-property-enum-value-removed"],
-  ["brk-add-error-response.yaml", "response-non-success-status-added"],
+  ["brk-add-error-response.yaml", "ope-client-error-response-added"],
 ];
 
-const compatible = ["compat-add-optional-and-op.yaml", "compat-add-enum-in-request.yaml"];
+const compatible = [
+  "compat-add-optional-and-op.yaml",
+  "compat-add-enum-in-request.yaml",
+  "compat-add-server-error-response.yaml",
+];
 
 describe("contract:diff (oasdiff with OPE severities)", () => {
   it.each(breaking)("%s fails as incompatible with check %s", (file, check) => {

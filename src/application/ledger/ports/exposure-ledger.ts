@@ -2,7 +2,7 @@
 import type { Exposure } from "../../../domain/ledger/index.js";
 import type { DecisionId, MerchantId } from "../../../domain/shared-kernel/index.js";
 
-export type ExposureRecordStatus = "recorded" | "already-recorded";
+export type ExposureRecordStatus = "recorded" | "already-recorded" | "unavailable";
 
 export interface ExposureLedger {
   record(exposure: Exposure): Promise<ExposureRecordStatus> | ExposureRecordStatus;

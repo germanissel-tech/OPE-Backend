@@ -10,6 +10,7 @@ export type SessionId = Branded<string, "SessionId">;
 export type VisitorId = Branded<string, "VisitorId">;
 export type EventId = Branded<string, "EventId">;
 export type DecisionId = Branded<string, "DecisionId">;
+export type ExperimentId = Branded<string, "ExperimentId">;
 
 /** Constructors: the contract already validated the pattern; here only the brand is applied. */
 export const asMerchantId = (value: string): MerchantId => value as MerchantId;
@@ -17,3 +18,4 @@ export const asSessionId = (value: string): SessionId => value as SessionId;
 export const asVisitorId = (value: string): VisitorId => value as VisitorId;
 export const asEventId = (value: string): EventId => value as EventId;
 export const asDecisionId = (value: string): DecisionId => value as DecisionId;
+export const asExperimentId = (value: string): ExperimentId => value as ExperimentId;

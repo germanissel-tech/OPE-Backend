@@ -1,4 +1,4 @@
 response-optional-property-removed err
-response-non-success-status-added err
+response-non-success-status-added warn
 response-property-type-specialized err
 response-property-type-generalized err
