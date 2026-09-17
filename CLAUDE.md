@@ -58,9 +58,8 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                         |
 | `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                         |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                           |
-| `npm run contract:mock`                           | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato                                |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                         |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / `tsx watch` / `tsc --noEmit` incluyendo `tests/types/*.test-d.ts`                              |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`  |
 | `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura |
 | `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                |
 | `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                 |
@@ -104,8 +103,10 @@ sus puertos, instancia sus casos de uso y devuelve `{ handlers?, security?, cors
 es la intersección de esos slices y un puerto nuevo sin proveer en el perfil no compila.
 `bootstrap(config, { profile?, ports?, handlers?, logger? })` devuelve `{ app, ports, close }`
 y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
-`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants de prueba por
-`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; con `OPE_MOCK=1` hay uno por defecto.
+`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por
+`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No hay servidor
+mock ni modo (ADR-018): el composition root no decide sobre configuración (`shape` regla 5); un
+contrato con una operación que ningún módulo sirve no arranca.
 
 ### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
 
@@ -122,9 +123,10 @@ y, en modo real, falla si el contrato declara una operación que ningún módulo
   está excluido (prosa; los literales tipados ya son errores de compilación al mutarse). El
   runner lleva `patches/@stryker-mutator+vitest-runner+10.0.0.patch` hasta que stryker-js#6210
   se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
-- Forma de los anillos (`tests/architecture/shape-rules.ts`): ≤ 300 líneas por archivo en
-  `domain/` y `application/`; un controller por `operationId`; ningún `new` de un paquete npm fuera
-  de `composition/`, `infrastructure/` y los gateways.
+- Forma de los anillos (`scripts/shape-rules.mjs`, `tests/architecture/shape.test.ts`): ≤ 300
+  líneas por archivo en `domain/` y `application/`; un controller por `operationId`; ningún `new`
+  de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
+  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`).
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
 

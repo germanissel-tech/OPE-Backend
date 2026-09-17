@@ -39,6 +39,10 @@ que no se congela el compilador ni se degrada ninguna herramienta.
 
 ## Consecuencias
 
+- `package.json` lleva `overrides.openapi-typescript.typescript = "$typescript"`: openapi-typescript
+  declara peer `typescript@^5` y sin el override `npm install` (no `npm ci`) falla con ERESOLVE
+  contra el alias 6.0. Se retira junto con el alias.
+
 - Compilación y typecheck más rápidos; el repo está en la versión mayor vigente del
   compilador desde ahora, no cuando el ecosistema termine de migrar.
 - Hay dos copias de TypeScript en `node_modules` (una nativa, una JS) hasta el retiro del

@@ -30,18 +30,20 @@ npm run contract:check   # lint + bundle + compatibilidad + drift de tipos + gob
 npm run format:check && npm run lint   # Prettier y ESLint estricto con tipos
 npm run build && npm run typecheck && npm test
 npm run test:contract    # Schemathesis contra el servidor levantado
-npm run dev              # servidor real en http://127.0.0.1:3000 (PORT, HOST, OPE_MERCHANTS)
-npm run contract:mock    # el mismo servidor respondiendo los ejemplos del contrato
+npm run dev              # servidor real en memoria en http://127.0.0.1:3000 con el merchant de config/dev-merchants.json
 npm run contract:docs    # docs/api/index.html, autocontenido
 ```
 
-Probar la ingesta a mano (el mock trae un merchant de prueba con la clave `ope_mock_ingest_key`;
-el servidor real lee los merchants de `OPE_MERCHANTS`, un JSON
-`[{ "merchantId", "ingestKeys": [..], "origins": [..] }]`, o de `OPE_MERCHANTS_FILE`):
+No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranca sin
+infraestructura, valida y autentica igual que en producción y responde con comportamiento real.
+`dev` carga el merchant de desarrollo de `config/dev-merchants.json` (clave `ope_dev_ingest_key`);
+en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
+`[{ "merchantId", "ingestKeys": [..], "origins": [..] }]`, o de `OPE_MERCHANTS_FILE`, y sin
+ninguno el servidor no autentica a nadie.
 
 ```bash
-npm run contract:mock
-curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/json" -H "X-OPE-Ingest-Key: ope_mock_ingest_key"   -d '{"events":[{"type":"product_viewed","eventId":"evt_00000001","sessionId":"ses_00000001","visitorId":"vis_00000001","occurredAt":"2026-09-16T12:00:00Z","page":{"pageType":"product","productId":"SKU-1"},"device":"mobile"}]}'
+npm run dev
+curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/json" -H "X-OPE-Ingest-Key: ope_dev_ingest_key"   -d '{"events":[{"type":"product_viewed","eventId":"evt_00000001","sessionId":"ses_00000001","visitorId":"vis_00000001","occurredAt":"2026-09-16T12:00:00Z","page":{"pageType":"product","productId":"SKU-1"},"device":"mobile"}]}'
 ```
 
 - Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`,

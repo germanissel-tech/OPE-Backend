@@ -25,7 +25,7 @@ Importar `../system/index.js` desde `ledger` → `context-map:ledger`.
 ## 3. Ingesta (US2) y decisión (US3)
 
 ```bash
-npm run contract:mock            # merchant de prueba por defecto; clave en la salida
+npm run dev                      # (ADR-018: sin mock) merchant de desarrollo de config/dev-merchants.json, clave ope_dev_ingest_key
 ```
 
 ```bash
