@@ -66,16 +66,16 @@ Proyecto único, raíz `backend/`. Contrato en `contracts/`, gobernanza en `scri
 
 ### Tests
 
-- [ ] T011 [P] [US2] En `tests/contract-rules/gen-fixtures.mjs` agregar mutadores: `ope-consumer-security.yaml` (operación `ingest` con `security: [{ platformKey: [] }]` y el esquema declarado en la raíz del fixture), `ope-consumer-security.public.yaml` (`getHealth` con `security: [{ ingestKey: [] }]`), `ope-consumer-security.two-requirements.yaml` (`ingest` con `ingestKey` y `platformKey` como alternativas), `ope-required-capabilities.foreign.yaml` (`portal` GET de un recurso con `orders:write`), `ope-no-merchant-id-in-request.admin-body.yaml` (`admin` con `merchantId` en body → falla), `valid-admin-path.yaml` (`admin` con `{merchantId}` en ruta → pasa; agregar a `VALID` en `rules.test.ts`). Los fixtures declaran el mapa que usan: el generador copia `contracts/api-map.yaml` junto a cada fixture como `api-map.yaml` (el ruleset lo referencia por ruta relativa).
-- [ ] T012 [P] [US2] En `tests/contract-rules/rules.test.ts`: los fixtures `valid-*` nuevos en `VALID`; la prueba "hay un fixture por cada regla propia" sigue cubriendo las reglas nuevas; caso explícito: `ope-no-merchant-id-in-request` sigue fallando en `path` para todo consumidor que no sea `admin` (fixture `ope-no-merchant-id-in-request.path.yaml` existente).
+- [x] T011 [P] [US2] En `tests/contract-rules/gen-fixtures.mjs` agregar mutadores: `ope-consumer-security.yaml` (operación `ingest` con `security: [{ platformKey: [] }]` y el esquema declarado en la raíz del fixture), `ope-consumer-security.public.yaml` (`getHealth` con `security: [{ ingestKey: [] }]`), `ope-consumer-security.two-requirements.yaml` (`ingest` con `ingestKey` y `platformKey` como alternativas), `ope-required-capabilities.foreign.yaml` (`portal` GET de un recurso con `orders:write`), `ope-no-merchant-id-in-request.admin-body.yaml` (`admin` con `merchantId` en body → falla), `valid-admin-path.yaml` (`admin` con `{merchantId}` en ruta → pasa; agregar a `VALID` en `rules.test.ts`). Los fixtures declaran el mapa que usan: el generador copia `contracts/api-map.yaml` junto a cada fixture como `api-map.yaml` (el ruleset lo referencia por ruta relativa).
+- [x] T012 [P] [US2] En `tests/contract-rules/rules.test.ts`: los fixtures `valid-*` nuevos en `VALID`; la prueba "hay un fixture por cada regla propia" sigue cubriendo las reglas nuevas; caso explícito: `ope-no-merchant-id-in-request` sigue fallando en `path` para todo consumidor que no sea `admin` (fixture `ope-no-merchant-id-in-request.path.yaml` existente).
 
 ### Implementation
 
-- [ ] T013 [US2] Crear `contracts/rules/functions/_apiMap.js`: carga y memoiza `api-map.yaml` relativo a `context.rule.owner.source` (patrón de `_catalog.js`), expone `consumerOfTag(map, tag)`, `schemeOfConsumer(map, consumer)`, `capabilitiesOfConsumer(map, consumer)` con JSDoc y `@typedef ApiMap`.
-- [ ] T014 [US2] Crear `contracts/rules/functions/consumerSecurity.js` (`ope-consumer-security`, `given: $.paths[*][get,…]`, `functionOptions.map: ./api-map.yaml`): consumidor por tag (tag desconocido → error); `public` ⇒ `security` debe ser `[]`; otro ⇒ `security` debe ser exactamente `[{ <scheme>: [] }]` (un requisito, un esquema, sin scopes); mensajes en inglés con el consumidor y el esquema esperados. Registrar en `contracts/.spectral.yaml` (estilo bloque).
-- [ ] T015 [US2] Modificar `contracts/rules/functions/requiredCapabilities.js`: `functionOptions.map`; además de lo actual, cada capacidad debe pertenecer a `capabilitiesOfConsumer(consumerOfTag(tag))`; mensaje que nombra la capacidad y el consumidor. Actualizar la entrada del ruleset.
-- [ ] T016 [US2] Modificar `contracts/rules/functions/noMerchantIdInRequest.js`: recibe `functionOptions.map`; un parámetro `in: path` llamado `merchantId` se permite sólo si el consumidor del tag de la operación es `admin`; query, header, cookie y body siguen prohibidos para todos; comentario de cabecera citando ADR-020 y la enmienda. Actualizar la entrada del ruleset.
-- [ ] T017 [US2] `node tests/contract-rules/gen-fixtures.mjs`, `npx vitest run tests/contract-rules`, `npm run contract:lint` en verde.
+- [x] T013 [US2] Crear `contracts/rules/functions/_apiMap.js`: carga y memoiza `api-map.yaml` relativo a `context.rule.owner.source` (patrón de `_catalog.js`), expone `consumerOfTag(map, tag)`, `schemeOfConsumer(map, consumer)`, `capabilitiesOfConsumer(map, consumer)` con JSDoc y `@typedef ApiMap`.
+- [x] T014 [US2] Crear `contracts/rules/functions/consumerSecurity.js` (`ope-consumer-security`, `given: $.paths[*][get,…]`, `functionOptions.map: ./api-map.yaml`): consumidor por tag (tag desconocido → error); `public` ⇒ `security` debe ser `[]`; otro ⇒ `security` debe ser exactamente `[{ <scheme>: [] }]` (un requisito, un esquema, sin scopes); mensajes en inglés con el consumidor y el esquema esperados. Registrar en `contracts/.spectral.yaml` (estilo bloque).
+- [x] T015 [US2] Modificar `contracts/rules/functions/requiredCapabilities.js`: `functionOptions.map`; además de lo actual, cada capacidad debe pertenecer a `capabilitiesOfConsumer(consumerOfTag(tag))`; mensaje que nombra la capacidad y el consumidor. Actualizar la entrada del ruleset.
+- [x] T016 [US2] Modificar `contracts/rules/functions/noMerchantIdInRequest.js`: recibe `functionOptions.map`; un parámetro `in: path` llamado `merchantId` se permite sólo si el consumidor del tag de la operación es `admin`; query, header, cookie y body siguen prohibidos para todos; comentario de cabecera citando ADR-020 y la enmienda. Actualizar la entrada del ruleset.
+- [x] T017 [US2] `node tests/contract-rules/gen-fixtures.mjs`, `npx vitest run tests/contract-rules`, `npm run contract:lint` en verde.
 
 ---
 
@@ -87,12 +87,12 @@ Proyecto único, raíz `backend/`. Contrato en `contracts/`, gobernanza en `scri
 
 ### Tests
 
-- [ ] T018 [P] [US3] Mutadores en `gen-fixtures.mjs`: `valid-outcomes.yaml` (operación `notifyOrder` completa según `specs/006-mapa-del-contrato/contracts/examples/x-idempotency.yaml`: `platformKey` en la raíz del fixture, body con `orderId` requerido, `201`, `200`, `400`, `401`, `409` con ejemplo `idempotency-conflict`, `422`, `500`); `ope-outcomes-idempotency.yaml` (sin la extensión); `.key.yaml` (`key` que no es propiedad requerida del body); `.codes.yaml` (`first` = `repeat`); `.conflict.yaml` (sin `409`). Agregar `valid-outcomes.yaml` a `VALID`.
+- [x] T018 [P] [US3] Mutadores en `gen-fixtures.mjs`: `valid-outcomes.yaml` (operación `notifyOrder` completa según `specs/006-mapa-del-contrato/contracts/examples/x-idempotency.yaml`: `platformKey` en la raíz del fixture, body con `orderId` requerido, `201`, `200`, `400`, `401`, `409` con ejemplo `idempotency-conflict`, `422`, `500`); `ope-outcomes-idempotency.yaml` (sin la extensión); `.key.yaml` (`key` que no es propiedad requerida del body); `.codes.yaml` (`first` = `repeat`); `.conflict.yaml` (sin `409`). Agregar `valid-outcomes.yaml` a `VALID`.
 
 ### Implementation
 
-- [ ] T019 [US3] Crear `contracts/rules/functions/outcomesIdempotency.js` (`ope-outcomes-idempotency`, `given` operaciones, filtra por tag `outcomes`): exige `x-idempotency` objeto con `key` string, `first` y `repeat` strings 2xx distintos presentes en `responses`, `key` en `required` del schema del request body (resuelto por `$ref` del documento), y `responses["409"]` presente; mensajes en inglés. Registrar en el ruleset.
-- [ ] T020 [US3] Verificar fixtures y lint en verde.
+- [x] T019 [US3] Crear `contracts/rules/functions/outcomesIdempotency.js` (`ope-outcomes-idempotency`, `given` operaciones, filtra por tag `outcomes`): exige `x-idempotency` objeto con `key` string, `first` y `repeat` strings 2xx distintos presentes en `responses`, `key` en `required` del schema del request body (resuelto por `$ref` del documento), y `responses["409"]` presente; mensajes en inglés. Registrar en el ruleset.
+- [x] T020 [US3] Verificar fixtures y lint en verde.
 
 ---
 
@@ -104,12 +104,12 @@ Proyecto único, raíz `backend/`. Contrato en `contracts/`, gobernanza en `scri
 
 ### Tests
 
-- [ ] T021 [P] [US4] Mutadores: `valid-portal.yaml` (`listDecisions`: `GET /v1/portal/decisions`, `portalSession` en la raíz, `x-collection: true`, los cuatro parámetros por `$ref` a `components/parameters/*`, `200` con `$ref` a `DecisionPage` = `Page` con `items` tipados, `401`, `500`; más `getDecision` `GET /v1/portal/decisions/{decisionId}` sin paginación → pasa); `ope-collection-pagination.yaml` (sin `x-collection`); `.params.yaml` (`page`/`offset` propios en vez de los comunes); `.envelope.yaml` (`200` con array pelado). Agregar `valid-portal.yaml` a `VALID`.
+- [x] T021 [P] [US4] Mutadores: `valid-portal.yaml` (`listDecisions`: `GET /v1/portal/decisions`, `portalSession` en la raíz, `x-collection: true`, los cuatro parámetros por `$ref` a `components/parameters/*`, `200` con `$ref` a `DecisionPage` = `Page` con `items` tipados, `401`, `500`; más `getDecision` `GET /v1/portal/decisions/{decisionId}` sin paginación → pasa); `ope-collection-pagination.yaml` (sin `x-collection`); `.params.yaml` (`page`/`offset` propios en vez de los comunes); `.envelope.yaml` (`200` con array pelado). Agregar `valid-portal.yaml` a `VALID`.
 
 ### Implementation
 
-- [ ] T022 [US4] Crear `contracts/rules/functions/collectionPagination.js` (`ope-collection-pagination`): `GET` con tag `portal` cuya ruta no termina en `}` ⇒ exige `x-collection: true`, parámetros con `name` ∈ {cursor, limit, from, to} (los cuatro), `200` con schema `$ref` cuyo nombre termina en `Page` y cuyo objeto tiene `items` array y `additionalProperties: false`; otras rutas del portal no se tocan. Registrar en el ruleset.
-- [ ] T023 [US4] `node tests/contract-rules/gen-fixtures.mjs`, pruebas y lint en verde. Commit `feat(contrato): reglas de consumidor, capacidades, idempotencia y paginación con fixtures (ADR-020)`.
+- [x] T022 [US4] Crear `contracts/rules/functions/collectionPagination.js` (`ope-collection-pagination`): `GET` con tag `portal` cuya ruta no termina en `}` ⇒ exige `x-collection: true`, parámetros con `name` ∈ {cursor, limit, from, to} (los cuatro), `200` con schema `$ref` cuyo nombre termina en `Page` y cuyo objeto tiene `items` array y `additionalProperties: false`; otras rutas del portal no se tocan. Registrar en el ruleset.
+- [x] T023 [US4] `node tests/contract-rules/gen-fixtures.mjs`, pruebas y lint en verde. Commit `feat(contrato): reglas de consumidor, capacidades, idempotencia y paginación con fixtures (ADR-020)`.
 
 ---
 

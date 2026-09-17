@@ -18,6 +18,9 @@ functions:
   - invariants
   - noGeneric422
   - requiredCapabilities
+  - consumerSecurity
+  - outcomesIdempotency
+  - collectionPagination
 rules:
   oas3-schema: "off"
   # Inherited from spectral:oas, raised to error (FR-012, FR-004, FR-014).
@@ -142,6 +145,8 @@ rules:
     given: "$"
     then:
       function: noMerchantIdInRequest
+      functionOptions:
+        map: ./api-map.yaml
 
   # FR-018: errors as Problem Details.
   ope-error-response-problem-details:
@@ -200,3 +205,36 @@ rules:
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
     then:
       function: requiredCapabilities
+      functionOptions:
+        map: ./api-map.yaml
+
+  # FR-012 of feature 006 (ADR-020): the tag fixes the consumer; the consumer fixes the scheme.
+  ope-consumer-security:
+    description: Public operations declare security []; the rest, exactly the scheme of their consumer.
+    message: "{{error}}"
+    severity: error
+    given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+    then:
+      function: consumerSecurity
+      functionOptions:
+        map: ./api-map.yaml
+
+  # FR-021 of feature 006 (ADR-020): server-to-server notifications are idempotent by contract.
+  ope-outcomes-idempotency:
+    description: Every outcomes operation declares x-idempotency (key, first, repeat) and a 409.
+    message: "{{error}}"
+    severity: error
+    given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+    then:
+      function: outcomesIdempotency
+
+  # FR-031 of feature 006 (ADR-020): portal collections paginate the same way.
+  ope-collection-pagination:
+    description: A GET of a portal collection declares x-collection, the common parameters and a <X>Page.
+    message: "{{error}}"
+    severity: error
+    # Unresolved: the rule checks that the parameters and the page are shared by $ref.
+    resolved: false
+    given: "$.paths[*]"
+    then:
+      function: collectionPagination
