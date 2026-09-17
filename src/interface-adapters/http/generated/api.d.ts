@@ -44,6 +44,8 @@ export type paths = {
          *     does an exposure exist (`EXPOSED` state of the evidence chain, 01 §5); the decision alone
          *     does not imply it. The decision must exist for the credential's merchant and must have
          *     been an intervention. A repeated confirmation does not duplicate the record.
+         *     If the ledger cannot record the exposure, the response is `503` with `Retry-After`;
+         *     nothing was recorded and the SDK retries (ADR-021).
          */
         post: operations["confirmExposure"];
         delete?: never;
@@ -566,6 +568,29 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /**
+         * @description The ledger cannot accept the record right now (ADR-021). Nothing was recorded: retry after the
+         *     indicated seconds. The ingestion never answers this — it degrades to a NO_OP decision with the
+         *     reason `ledger-unavailable` — because a batch is not retried once deduplicated.
+         */
+        ServiceUnavailable: {
+            headers: {
+                /** @description Seconds to wait before retrying. */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:ledger-unavailable",
+                 *       "title": "The ledger is not available",
+                 *       "status": 503,
+                 *       "instance": "/v1/exposures"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description The operation requires a credential and no valid one was presented. */
         Unauthorized: {
             headers: {
@@ -662,6 +687,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             422: components["responses"]["ExposureUnprocessable"];
             500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     getHealth: {

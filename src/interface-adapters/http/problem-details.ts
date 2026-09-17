@@ -26,6 +26,7 @@ export const PROBLEM_TYPES = {
   "exposure-decision-unknown": { status: 422, title: "The decision does not exist for this merchant" },
   "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
   "idempotency-conflict": { status: 409, title: "Same identity, different content" },
+  "ledger-unavailable": { status: 503, title: "The ledger is not available" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

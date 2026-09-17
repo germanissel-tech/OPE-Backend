@@ -1,7 +1,7 @@
 ---
 numero: 22
 titulo: Asignación experimental — función, clave, registro y motivo visible
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-17
 fuente: specs/007-asignacion-experimental/research.md
 ---

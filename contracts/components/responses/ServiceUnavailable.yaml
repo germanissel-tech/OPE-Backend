@@ -1,0 +1,19 @@
+description: |
+  The ledger cannot accept the record right now (ADR-021). Nothing was recorded: retry after the
+  indicated seconds. The ingestion never answers this — it degrades to a NO_OP decision with the
+  reason `ledger-unavailable` — because a batch is not retried once deduplicated.
+headers:
+  Retry-After:
+    description: Seconds to wait before retrying.
+    schema:
+      type: integer
+      minimum: 1
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:ledger-unavailable
+      title: The ledger is not available
+      status: 503
+      instance: /v1/exposures

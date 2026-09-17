@@ -10,11 +10,55 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { argString, parseArgs, prop, readYaml } from "./governance-lib.mjs";
+import { argString, isRecord, parseArgs, prop, readYaml } from "./governance-lib.mjs";
 import { bundlePath, capture, captureBuffer, repoRoot, runCli } from "./lib.mjs";
 import { resolveOasdiff } from "./oasdiff-install.mjs";
 
 const SEVERITY_FILE = path.join(repoRoot, "contracts", "oasdiff-severity.txt");
+const HTTP_METHODS = ["get", "put", "post", "delete", "patch", "options", "head", "trace"];
+
+/**
+ * Response status codes of every operation, keyed by `method path`.
+ * @param {string} file
+ * @returns {Map<string, Set<string>>}
+ */
+function responsesByOperation(file) {
+  /** @type {Map<string, Set<string>>} */
+  const out = new Map();
+  const paths = prop(readYaml(file), "paths");
+  for (const [route, item] of Object.entries(isRecord(paths) ? paths : {})) {
+    for (const method of HTTP_METHODS) {
+      const responses = prop(prop(item, method), "responses");
+      if (isRecord(responses)) out.set(`${method.toUpperCase()} ${route}`, new Set(Object.keys(responses)));
+    }
+  }
+  return out;
+}
+
+/**
+ * OPE check (ADR-003 as refined by ADR-021): a new 4xx on an existing operation is a new way for
+ * a valid client to be rejected and is incompatible; a new 5xx is a server-side condition every
+ * client has to tolerate anyway (Problem Details) and is compatible. oasdiff cannot tell them
+ * apart (`response-non-success-status-added` covers both), so it stays a warning there.
+ * @param {string} base
+ * @param {string} head
+ * @returns {string[]} one line per added client error response
+ */
+function addedClientErrorResponses(base, head) {
+  const before = responsesByOperation(base);
+  const after = responsesByOperation(head);
+  /** @type {string[]} */
+  const added = [];
+  for (const [operation, statuses] of after) {
+    const previous = before.get(operation);
+    if (!previous) continue;
+    for (const status of statuses) {
+      if (/^4\d\d$/.test(status) && !previous.has(status))
+        added.push(`${operation}: added the client error response ${status}`);
+    }
+  }
+  return added;
+}
 
 /**
  * @param {string} file
@@ -134,11 +178,13 @@ function compare(oasdiff, base, head) {
   ]);
   process.stdout.write(result.stdout);
   process.stderr.write(result.stderr);
-  if (result.status !== 0) {
+  const clientErrors = addedClientErrorResponses(base, head);
+  for (const line of clientErrors) console.error(`error\t[ope-client-error-response-added] ${line}`);
+  if (result.status !== 0 || clientErrors.length > 0) {
     console.error(
       `contract:diff — incompatible changes without a major version bump (${headVersion.version}). Fix the contract or raise info.version to ${baseVersion.major + 1}.0.0 and the path prefix to /v${baseVersion.major + 1}/.`,
     );
-    return result.status;
+    return result.status !== 0 ? result.status : 1;
   }
   console.log("No incompatible changes");
   return 0;

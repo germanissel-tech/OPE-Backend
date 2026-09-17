@@ -1,7 +1,7 @@
 ---
 numero: 21
 titulo: Semántica de escritura del ledger — diferida, acotada y fail-closed
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-17
 fuente: specs/007-asignacion-experimental/research.md
 ---
@@ -38,7 +38,10 @@ síncronas e infalibles.
    el registro de la decisión falla después de reclamar la deduplicación, el lote ya
    respondió `202` y el hecho queda en el log operativo; no se revierte la asignación (asignar
    es registrar la intención de tratar, no la decisión).
-5. **El camino de degradación se prueba siempre**, con ledgers falsos que reportan
+5. **Compatibilidad**: declarar la `503` en una operación existente es compatible — una
+   respuesta 5xx nueva es una condición del servidor, no una forma nueva de rechazar a un
+   cliente válido — y precisa ADR-003: sólo una 4xx nueva sube la versión mayor.
+6. **El camino de degradación se prueba siempre**, con ledgers falsos que reportan
    `unavailable`, aunque la implementación vigente nunca lo haga.
 
 ## Consecuencias

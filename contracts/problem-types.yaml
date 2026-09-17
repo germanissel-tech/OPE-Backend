@@ -45,3 +45,6 @@ types:
   - slug: idempotency-conflict
     status: 409
     title: Same identity, different content
+  - slug: ledger-unavailable
+    status: 503
+    title: The ledger is not available
