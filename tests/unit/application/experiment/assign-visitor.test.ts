@@ -73,11 +73,12 @@ describe("assignVisitor", () => {
 
   it("idempotency: the second time it returns the recorded assignment without recording again", async () => {
     const { ledger, recorded } = fakeLedger();
-    const { assign } = deps(ledger);
+    const { assign, entries } = deps(ledger);
     const first = await assign({ merchantId: A, visitorId: visitor });
     const second = await assign({ merchantId: A, visitorId: visitor });
     expect(second).toEqual(first);
     expect(recorded).toHaveLength(1);
+    expect(entries.filter((e) => e.message.startsWith("assignment-drift"))).toEqual([]);
   });
 
   it("ledger unavailable → not ok with reason ledger-unavailable", async () => {

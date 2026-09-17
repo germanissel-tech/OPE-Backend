@@ -45,6 +45,7 @@
     "check:duplication": "node scripts/check-duplication.mjs",
     "check:dead-code": "node scripts/check-dead-code.mjs",
     "quality": "node scripts/quality.mjs",
+    "test:load": "node scripts/load-test.mjs",
     "test:mutation": "node scripts/mutation-diff.mjs",
     "postinstall": "patch-package"
   },
@@ -68,8 +69,10 @@
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/typescript-checker": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@types/autocannon": "^7.12.7",
     "@types/node": "^22.20.3",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "autocannon": "^8.0.0",
     "cross-env": "^10.1.0",
     "dependency-cruiser": "^18.3.1",
     "eslint": "^10.10.0",

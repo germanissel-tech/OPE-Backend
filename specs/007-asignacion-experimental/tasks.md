@@ -120,17 +120,17 @@ y `tests/integration/`.
 
 **Independent Test**: el comando corre, imprime la línea `load: …` y termina en 0.
 
-- [ ] T030 [US5] `npm i -D autocannon@^8`; extraer de `scripts/test-contract.mjs` el arranque del servidor construido y la espera de salud a `scripts/server-lib.mjs` (`startBuiltServer({ env, port? }) → { base, stop() }`, `waitForHealth(url, timeoutMs)`) con JSDoc; `test-contract.mjs` la usa (sin cambio de comportamiento: `npm run test:contract` en verde).
-- [ ] T031 [US5] Crear `scripts/load-test.mjs`: arranca el servidor con `OPE_MERCHANTS` de prueba (merchant con experimento activo 50 %), corre autocannon (`connections` = `OPE_LOAD_CONNECTIONS` ?? 20, `duration` = `OPE_LOAD_DURATION` ?? 30, `setupRequest` que arma un lote de 20 eventos con `eventId` únicos y `visitorId` rotando entre `OPE_LOAD_VISITORS` ?? 1000, header `X-OPE-Ingest-Key`), imprime `load: <req/s> batches/s, p50 <ms>, p95 <ms>, p99 <ms>, errors <n>, non2xx <n> (<s> s, <c> connections)` y termina en 0; `package.json`: `"test:load": "node scripts/load-test.mjs"`; `tests/unit/scripts/load-test.test.ts` opcional: sólo que el script parsea y expone la línea de salida con `OPE_LOAD_DURATION=1` (marcar con presupuesto propio; si supera 10 s en CI, dejarlo fuera de `npm test`).
-- [ ] T032 [US5] Correr `npm run build && npm run test:load` y registrar las cifras (máquina, fecha, parámetros) en `specs/007-asignacion-experimental/quickstart.md`.
+- [x] T030 [US5] `npm i -D autocannon@^8`; extraer de `scripts/test-contract.mjs` el arranque del servidor construido y la espera de salud a `scripts/server-lib.mjs` (`startBuiltServer({ env, port? }) → { base, stop() }`, `waitForHealth(url, timeoutMs)`) con JSDoc; `test-contract.mjs` la usa (sin cambio de comportamiento: `npm run test:contract` en verde).
+- [x] T031 [US5] Crear `scripts/load-test.mjs`: arranca el servidor con `OPE_MERCHANTS` de prueba (merchant con experimento activo 50 %), corre autocannon (`connections` = `OPE_LOAD_CONNECTIONS` ?? 20, `duration` = `OPE_LOAD_DURATION` ?? 30, `setupRequest` que arma un lote de 20 eventos con `eventId` únicos y `visitorId` rotando entre `OPE_LOAD_VISITORS` ?? 1000, header `X-OPE-Ingest-Key`), imprime `load: <req/s> batches/s, p50 <ms>, p95 <ms>, p99 <ms>, errors <n>, non2xx <n> (<s> s, <c> connections)` y termina en 0; `package.json`: `"test:load": "node scripts/load-test.mjs"`; `tests/unit/scripts/load-test.test.ts` opcional: sólo que el script parsea y expone la línea de salida con `OPE_LOAD_DURATION=1` (marcar con presupuesto propio; si supera 10 s en CI, dejarlo fuera de `npm test`).
+- [x] T032 [US5] Correr `npm run build && npm run test:load` y registrar las cifras (máquina, fecha, parámetros) en `specs/007-asignacion-experimental/quickstart.md`.
 
 ---
 
 ## Phase 7: Polish — guía, README y cierre (commit 4, parte b)
 
-- [ ] T033 [P] Actualizar `CLAUDE.md`: módulo `experiment` en la lista de módulos y en el mapa; sección "Composición" (`experiments` en `OPE_MERCHANTS`); notas del contrato: `RecordOutcome` y la regla de degradación (ADR-021), `503` sólo en exposición, brazo nunca como campo (ADR-022); comandos: `test:load`.
-- [ ] T034 [P] Actualizar `README.md` (configurar un experimento en `OPE_MERCHANTS`; `npm run test:load`) y `tests/contract/README.md` si el servidor de Schemathesis necesita el experimento (no: sin experimento decide `no-active-experiment`).
-- [ ] T035 Verificación final `npm run contract:check && npm run quality && npm test && npm run test:contract && npm run release-check && npm run test:mutation`; quickstart con tabla de estado fechada (BUILT / TESTED por historia, p95 por brazo, cifras de carga); marcar `[x]` todas las tareas. Commit `chore(007): prueba de carga, guía de agentes y cierre de la feature`.
+- [x] T033 [P] Actualizar `CLAUDE.md`: módulo `experiment` en la lista de módulos y en el mapa; sección "Composición" (`experiments` en `OPE_MERCHANTS`); notas del contrato: `RecordOutcome` y la regla de degradación (ADR-021), `503` sólo en exposición, brazo nunca como campo (ADR-022); comandos: `test:load`.
+- [x] T034 [P] Actualizar `README.md` (configurar un experimento en `OPE_MERCHANTS`; `npm run test:load`) y `tests/contract/README.md` si el servidor de Schemathesis necesita el experimento (no: sin experimento decide `no-active-experiment`).
+- [x] T035 Verificación final `npm run contract:check && npm run quality && npm test && npm run test:contract && npm run release-check && npm run test:mutation`; quickstart con tabla de estado fechada (BUILT / TESTED por historia, p95 por brazo, cifras de carga); marcar `[x]` todas las tareas. Commit `chore(007): prueba de carga, guía de agentes y cierre de la feature`.
 
 ---
 

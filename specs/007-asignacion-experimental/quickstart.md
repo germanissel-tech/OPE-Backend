@@ -66,6 +66,27 @@ npx vitest run tests/integration/isolation.test.ts tests/integration/ingest-late
 
 ## Estado (histórico, fechado)
 
-| Fecha      | Estado                                                |
-| ---------- | ----------------------------------------------------- |
-| 2026-09-17 | Plan aprobado; hash y reparto verificados; sin código |
+| Fecha      | Elemento                                                       | Estado         | Evidencia                                                                                                                        |
+| ---------- | -------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-17 | Plan aprobado; hash y reparto verificados                      | —              | research R-01: FNV-1a ±0,3 pp sobre 100k visitantes                                                                              |
+| 2026-09-17 | US4 semántica de escritura del ledger (ADR-021)                | BUILT / TESTED | `RecordOutcome`; `tests/integration/ledger-unavailable.test.ts` (ingesta 202 `ledger-unavailable`, exposición 503, recuperación) |
+| 2026-09-17 | US1 asignación determinista y estable                          | BUILT / TESTED | `tests/unit/domain/experiment/assignment.test.ts` (determinismo, reparto 50/20/80 ±1 pp, independencia, bordes, vectores FNV)    |
+| 2026-09-17 | US2 registro `ASSIGNED` idempotente                            | BUILT / TESTED | `tests/unit/application/experiment/assign-visitor.test.ts`, `memory-assignment-ledger.test.ts`, `integration/assignment.test.ts` |
+| 2026-09-17 | US3 CONTROL en el mismo pipeline, brazo nunca como campo       | BUILT / TESTED | `integration/assignment.test.ts`; latencia por brazo p95 CONTROL 1,10 ms / TREATMENT 0,91 ms (inject, Windows)                   |
+| 2026-09-17 | Aislamiento (mismo visitante en dos merchants; cerrado/activo) | TESTED         | `integration/isolation.test.ts`                                                                                                  |
+| 2026-09-17 | US5 prueba de carga informativa (`npm run test:load`)          | BUILT          | Windows 11, Node 22, perfil memoria, servidor construido, lotes de 20 eventos (ver abajo)                                        |
+
+Cifras de carga de referencia (2026-09-17, misma máquina; autocannon expone p90 y p97,5, no
+p95; **no es SLA**):
+
+| Duración | Conexiones | Lotes/s | p50   | p90    | p97,5  | p99    | Errores |
+| -------- | ---------- | ------- | ----- | ------ | ------ | ------ | ------- |
+| 5 s      | 20         | 1895    | 9 ms  | 16 ms  | 20 ms  | 22 ms  | 0       |
+| 30 s     | 20         | 931     | 18 ms | 39 ms  | 46 ms  | 49 ms  | 0       |
+| 15 s     | 100        | 1101    | 63 ms | 187 ms | 223 ms | 238 ms | 0       |
+
+Lectura: una instancia en memoria sostiene ~1.000 lotes/s (~20.000 eventos/s) con 20
+conexiones; el throughput cae con la duración porque el ledger y la deduplicación en memoria
+crecen sin límite de retención (argumento para la 008: persistencia con buffer acotado). Con
+100 conexiones la latencia sube por encima del objetivo de diseño de 150 ms en p99 sólo en
+cola; el piloto (01 §5.6) está órdenes de magnitud por debajo de estas cifras.
