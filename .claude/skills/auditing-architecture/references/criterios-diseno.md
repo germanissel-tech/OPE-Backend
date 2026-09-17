@@ -50,16 +50,23 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 - **Lo ve un gate**: el root que importa controllers, security handlers o casos de uso sí
   (`arch`); el `switch` sobre merchant, no.
 
-## LSP — perfiles intercambiables
+## LSP — implementaciones intercambiables, enlazadas en su módulo
 
-- **Definición acá**: cualquier implementación de un puerto (`memory-*`, futura `postgres-*`)
-  se cambia en `composition/profiles/` sin tocar una prueba de caso de uso ni un controller.
-- **Fuente**: `ADR-013`, `constitution#X. Puertos en los dos bordes`.
+- **Definición acá**: los puertos son las interfaces (`application/<módulo>/ports/`), los
+  gateways las implementaciones (`interface-adapters/gateways/<módulo>/`), y **el enlace vive
+  con el módulo**: `composition/modules/<módulo>.ts` publica una tabla por tecnología
+  (`memoryLedgerPorts`, `postgresLedgerPorts(pool)`; conviven). Un perfil es un **despliegue**
+  que compone una tabla por módulo, no un "entorno" que conoce los gateways de todos. Cualquier
+  implementación se cambia en su módulo y una línea del perfil, sin tocar una prueba de caso de
+  uso ni un controller.
+- **Fuente**: `ADR-013`, `constitution#X. Puertos en los dos bordes`, `arch:profiles-compose-modules`.
 - **Viola**: un gateway que devuelve `undefined` donde el puerto promete `Promise<Decision>`;
-  un caso de uso que hace `instanceof MemoryDecisionLedger`.
-- **Cumple**: `tests/helpers/test-app.ts` reemplaza el reloj por override sin tocar nada más.
-- **Lo ve un gate**: el tipado atrapa la firma; no atrapa la semántica (p. ej. un `find` que
-  revela existencia para otro merchant: constitución V).
+  un caso de uso que hace `instanceof MemoryDecisionLedger`; un perfil "en memoria hoy,
+  Postgres cuando llegue" que importa gateways de cinco módulos y se reemplazaría entero.
+- **Cumple**: `profiles/memory.ts` = `bind(systemKernelPorts)`, `bind(memoryLedgerPorts)`…;
+  `tests/helpers/test-app.ts` reemplaza el reloj por override sin tocar nada más.
+- **Lo ve un gate**: el perfil que importa gateways sí (`arch`); el tipado atrapa la firma; no
+  atrapa la semántica (p. ej. un `find` que revela existencia para otro merchant: constitución V).
 
 ## ISP — puertos por caso de uso
 
@@ -178,7 +185,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 | Gate                | Ve                                                   | No ve                                          |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------- |
 | `lint`              | forma, duplicación semántica, `catch` vacío, `any`, literal repetido sin tipar | responsabilidades, nombres, conocimiento, literal único sin nombre |
-| `arch`              | dirección de dependencias, mapa de contextos, root que importa controllers o casos de uso | puertos con forma de infraestructura           |
+| `arch`              | dirección de dependencias, mapa de contextos, root que importa controllers o casos de uso, perfil que importa gateways | puertos con forma de infraestructura           |
 | `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado, condición sobre `config.x` en `composition/` | dos responsabilidades en un archivo corto; la bandera de modo que baja a infraestructura |
 | `check:duplication` | bloques iguales                                      | mismo conocimiento con distinta forma          |
 | `check:dead-code`   | exports y archivos sin uso                           | abstracciones que existen "por si acaso"       |

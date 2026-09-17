@@ -107,3 +107,20 @@ refutación cerrada ("es sólo un flag para el mock"); eval `mode-flag-across-la
 | mode-flag-across-layers | MATCH     | `shape/no-config-branch-in-root` en el root; el `if (mode)` en infraestructura, ninguno |
 
 Una corrida.
+
+## 2026-09-17 — quinto desafío: el perfil como "entorno"
+
+El usuario leyó en `profile.ts` "builds every port for one environment (in memory today;
+Postgres/Redis when they arrive)" y preguntó si eso no era, otra vez, un modo en vez de una
+interfaz con implementaciones. Lo era a nivel de archivo: el perfil conocía los gateways de los
+cinco módulos y "se reemplazaría entero" al llegar Postgres; un despliegue mixto no cabía sin
+copia o sin `if`. Ahora cada módulo publica su tabla de enlaces por tecnología
+(`memoryLedgerPorts: Bindings<LedgerPorts>`) y el perfil compone una por módulo
+(`binder(overrides).bind(...)`, ADR-013 punto 5 de la enmienda). Regla `arch/profiles-compose-modules`
+con fixture; criterio LSP reescrito; refutación cerrada.
+
+| Eval                   | Corrida A | Gate que lo ve                   |
+| ---------------------- | --------- | -------------------------------- |
+| profile-picks-gateways | MATCH     | `arch/profiles-compose-modules` |
+
+Una corrida.
