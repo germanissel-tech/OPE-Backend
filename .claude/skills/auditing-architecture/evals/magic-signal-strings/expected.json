@@ -1,0 +1,14 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/magic-signal-strings/src/composition/start.ts",
+  "line": 13,
+  "rule": { "id": "repeated-literal-into-untyped-string", "source": "lint:ope/no-magic-strings" },
+  "severity": "medium",
+  "evidence": "process.once(\"SIGINT\", () => {\n    shutdown(\"SIGINT\");\n  });\n  process.once(\"SIGTERM\", () => {\n    shutdown(\"SIGTERM\");\n  });",
+  "proposal": {
+    "before": "const shutdown = (signal: string): void => { … };\nprocess.once(\"SIGINT\", () => { shutdown(\"SIGINT\"); });\nprocess.once(\"SIGTERM\", () => { shutdown(\"SIGTERM\"); });",
+    "after": "const SHUTDOWN_SIGNALS = [\"SIGINT\", \"SIGTERM\"] as const satisfies readonly NodeJS.Signals[];\nconst shutdown = (signal: NodeJS.Signals): void => { … };\nfor (const signal of SHUTDOWN_SIGNALS) process.once(signal, () => { shutdown(signal); });"
+  },
+  "coveringTest": "tests/lint/lint.test.ts: \"as-src/no-magic-strings.ts fails with ope/no-magic-strings\"",
+  "status": "confirmed"
+}

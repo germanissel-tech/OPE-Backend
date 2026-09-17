@@ -106,13 +106,23 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 
 - **Definición acá**: un nombre dice qué decide, no cómo (`confirmExposure`, no
   `processExposureRequest`); todo resultado negativo es un valor con motivo, nunca una
-  ausencia (`{ ok: false, invariant, detail }`, `NO_OP` con `reason` del catálogo).
-- **Fuente**: `constitution#II. Fail-closed`, `guide#Convenciones`, `clarity:<slug>` cuando no
-  hay regla escrita.
+  ausencia (`{ ok: false, invariant, detail }`, `NO_OP` con `reason` del catálogo); **un literal
+  de la plataforma** (señal, método, header, media type, clave reservada de una librería) **se
+  escribe una vez, con nombre y tipo** (`HTTP_METHODS`, `INGEST_KEY_HEADER`, `SHUTDOWN_SIGNALS
+  … satisfies readonly NodeJS.Signals[]`). Un literal repetido no es magia cuando cada
+  ocurrencia la verifica un tipo literal (`problem("validation-failed")`, `process.once("SIGINT")`):
+  ahí el compilador es la constante.
+- **Fuente**: `constitution#II. Fail-closed`, `guide#Convenciones`, `lint:ope/no-magic-strings`,
+  `lint:@typescript-eslint/no-magic-numbers`, `clarity:<slug>` cuando no hay regla escrita.
 - **Viola**: `data`, `handle`, `process` como nombres; un `boolean` devuelto donde el llamador
-  necesita saber por qué; un comentario que explica lo que un nombre podría decir.
-- **Cumple**: `checkBatch` devuelve la primera invariante violada con `detail`.
-- **Lo ve un gate**: no.
+  necesita saber por qué; un comentario que explica lo que un nombre podría decir;
+  `shutdown("SIGINT")` con `signal: string` después de `process.once("SIGINT", …)`; una lista de
+  señales, métodos u orígenes escrita en línea sin nombre.
+- **Cumple**: `checkBatch` devuelve la primera invariante violada con `detail`; `start.ts` recorre
+  `SHUTDOWN_SIGNALS` y pasa la señal tipada.
+- **Lo ve un gate**: el literal repetido sin tipar sí (`lint`); el literal **único** sin nombre
+  (`.type("application/json")` una sola vez) y la lista en línea, no: criterio cognitivo. Antes
+  de reportar: ¿la posición está tipada por una unión de literales? Entonces no es magia.
 
 ## Errores — explícitos, tipados, trazables
 
@@ -161,7 +171,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 
 | Gate                | Ve                                                   | No ve                                          |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------- |
-| `lint`              | forma, duplicación semántica, `catch` vacío, `any`   | responsabilidades, nombres, conocimiento       |
+| `lint`              | forma, duplicación semántica, `catch` vacío, `any`, literal repetido sin tipar | responsabilidades, nombres, conocimiento, literal único sin nombre |
 | `arch`              | dirección de dependencias, mapa de contextos, root que importa controllers o casos de uso | puertos con forma de infraestructura           |
 | `shape`             | tamaño, un controller por operación, `new` de npm, `import()` calculado | dos responsabilidades en un archivo corto; un `if` sobre configuración |
 | `check:duplication` | bloques iguales                                      | mismo conocimiento con distinta forma          |

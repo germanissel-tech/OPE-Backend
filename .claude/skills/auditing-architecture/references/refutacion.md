@@ -47,7 +47,10 @@ del reporte, no en la lista principal. Un hallazgo que sobrevive a todas pasa a 
 - **DRY**: ¿la "réplica" tiene prueba de réplica (`problem-types.yaml` ↔ `problem-details.ts`)?
   Entonces es la técnica elegida (ADR-002), no duplicación.
 - **Claridad**: ¿el nombre corto es un término del glosario (`docs/dominio/`)? Entonces es el
-  lenguaje ubicuo, no un nombre pobre.
+  lenguaje ubicuo, no un nombre pobre. ¿El literal "mágico" está en una posición que el
+  compilador verifica contra una unión de literales (`ProblemSlug`, `NodeJS.Signals`, una
+  clave declarada)? Entonces el tipo es la constante y el literal se queda. "Es el nombre de la
+  señal, todo el mundo lo conoce" **no** refuta la repetición hacia un `string` sin tipar.
 - **Errores**: ¿el `catch` tiene un comentario que explica por qué se ignora, o el bloque `try`
   es una sola sentencia simple? `sonarjs/no-ignored-exceptions` lo admite; el hallazgo también.
 

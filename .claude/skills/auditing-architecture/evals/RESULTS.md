@@ -69,3 +69,22 @@ reporta el archivo (una dependencia va de archivo a archivo, sin línea); la rev
 línea (31, primera entrada del mapa de controllers), un segundo hallazgo equivalente sobre
 `buildUseCases` (línea 22, correcto y opcional según el README) y refutó un tercero sobre el
 tipo del mapa (`Record<string, …>`) como artefacto del stub del fixture.
+
+## 2026-09-16 — tercer desafío: strings mágicos que ningún gate medía
+
+El usuario señaló `"SIGINT"`/`"SIGTERM"` en `start.ts`. Ningún gate lo veía: `no-magic-numbers`
+sólo cubre números y `sonarjs/no-duplicate-string` ignora literales de menos de 10 caracteres y
+marca slugs tipados (`problem("validation-failed")`) que no son magia. Se escribió una regla
+propia con tipos, `ope/no-magic-strings` (`scripts/lint/no-magic-strings.mjs`): literal
+repetido en un archivo donde alguna ocurrencia no está verificada por un tipo literal. Sobre
+`src/` destapó además `"application/json"` ×3, `"/body"` ×2, `"authorized"` ×2 y
+`"discriminator"`/`"mapping"` ×5, todos corregidos. `run-gates` ahora aplica las reglas de
+`src/` a los fixtures con `src/` propio (antes `no-magic-numbers` tampoco corría ahí).
+
+| Eval                 | Corrida A | Gate que lo ve              |
+| -------------------- | --------- | --------------------------- |
+| magic-signal-strings | MATCH     | `lint/ope/no-magic-strings` |
+
+Una corrida. La revisión propuso además la lista de señales sin nombre (refutado: misma
+corrección que el esperado) y un "fallo de `close()` tragado" (refutado: una promesa rechazada
+sin `catch` termina el proceso con código 1; la prueba propuesta pasaría hoy).

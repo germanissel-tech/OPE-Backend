@@ -16,6 +16,7 @@ const evals: Record<string, string | null> = {
   "env-dynamic-import": "shape/no-computed-dynamic-import",
   "hardcoded-profile": null,
   "central-wiring-list": "arch/composition-wires-by-module",
+  "magic-signal-strings": "lint/ope/no-magic-strings",
 };
 
 interface Finding {

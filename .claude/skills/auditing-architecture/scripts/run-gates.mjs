@@ -22,9 +22,11 @@ const repoRoot = path.resolve(here, "..", "..", "..", "..");
 const lib = await import(pathToFileURL(path.join(repoRoot, "scripts", "lib.mjs")).href);
 const governance = await import(pathToFileURL(path.join(repoRoot, "scripts", "governance-lib.mjs")).href);
 const shape = await import(pathToFileURL(path.join(repoRoot, "scripts", "shape-rules.mjs")).href);
+const lintConfig = await import(pathToFileURL(path.join(repoRoot, "eslint.config.mjs")).href);
 const { capture } = /** @type {{ capture: (cmd: string, args: string[], options?: object) => { status: number; stdout: string; stderr: string } }} */ (lib);
 const { parseArgs, argString } = /** @type {{ parseArgs: (argv: readonly string[]) => Record<string, string | true>; argString: (args: Record<string, string | true>, key: string) => string | undefined }} */ (governance);
 const { shapeFindings } = /** @type {{ shapeFindings: (root: string, bundle: string) => Finding[] }} */ (shape);
+const { SRC_ONLY_RULES } = /** @type {{ SRC_ONLY_RULES: Record<string, unknown> }} */ (lintConfig);
 
 /**
  * @param {string} dir absolute
@@ -82,13 +84,17 @@ function resolveScope(args) {
 
 /**
  * @param {string[]} files
+ * @param {string} root
  * @returns {GateResult}
  */
-function lintGate(files) {
+function lintGate(files, root) {
   if (files.length === 0) return { gate: "lint", mode: "blocking", status: "pass", findings: [] };
   const eslint = path.join(repoRoot, "node_modules", "eslint", "bin", "eslint.js");
+  // The src-only rules match `src/**` of the repo; a fixture with its own src/ gets them by flag.
+  const srcOnly =
+    root === "src" ? [] : Object.entries(SRC_ONLY_RULES).flatMap(([rule, level]) => ["--rule", JSON.stringify({ [rule]: level })]);
   // Files are explicit: `--no-ignore` lets the eval fixtures (under an ignored folder) be linted.
-  const r = capture(process.execPath, [eslint, "--no-ignore", "--format", "json", ...files]);
+  const r = capture(process.execPath, [eslint, "--no-ignore", "--format", "json", ...srcOnly, ...files]);
   /** @type {{ filePath: string; messages: { line: number; ruleId: string | null; message: string }[] }[]} */
   let results;
   try {
@@ -168,7 +174,7 @@ function scriptGate(script, files, extra = []) {
 const args = parseArgs(process.argv.slice(2));
 const { scope, files, root, diff } = resolveScope(args);
 const gates = [
-  lintGate(files),
+  lintGate(files, root),
   archGate(files, root),
   shapeGate(files, root),
   scriptGate("check-duplication.mjs", files),
