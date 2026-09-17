@@ -46,6 +46,9 @@ export function exists(file) {
   }
 }
 
+/** HTTP methods of an OpenAPI path item, lowercase, as the contract writes them. */
+export const HTTP_METHODS_LOWER = ["get", "put", "post", "delete", "patch", "options", "head", "trace"];
+
 /** @typedef {Record<string, unknown>} Frontmatter */
 
 /**
@@ -167,4 +170,79 @@ export function prop(obj, key) {
  */
 export function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// --- Sources (glossary notes, contract map) ----------------------------------------------
+
+/**
+ * The MVP documents are available if the directory has some `NN-*.md`. The directory existing
+ * is not enough: in CI the repo's parent exists and is empty.
+ * @param {string} mvpDocs
+ * @returns {boolean}
+ */
+export function mvpDocsAvailable(mvpDocs) {
+  if (!exists(mvpDocs)) return false;
+  return readdirSync(mvpDocs).some((name) => /^\d{2}-.*\.md$/.test(name));
+}
+
+/**
+ * @param {string} file
+ * @param {string | undefined} section
+ * @returns {boolean}
+ */
+export function headingExists(file, section) {
+  if (!section) return true;
+  const needle = section.toLowerCase();
+  return readFileSync(file, "utf8")
+    .split(/\r?\n/)
+    .some((line) => /^#{1,6}\s/.test(line) && line.toLowerCase().includes(needle));
+}
+
+/** @typedef {{ repoRoot: string; constitution: string; mvpDocs: string }} SourceRoots */
+
+/**
+ * Verifies a source reference: `constitucion#X` (a heading of the constitution contains X),
+ * `mvp:file#X` (a document of the MVP, if the directory is available; otherwise a warning) or a
+ * repo path with an optional `#X` heading. Returns the problem or the warning to report.
+ * @param {string} source
+ * @param {string} where
+ * @param {SourceRoots} roots
+ * @returns {{ problem?: string; warning?: string }}
+ */
+export function verifySource(source, where, roots) {
+  const [ref = "", section] = source.split("#");
+  if (ref === "constitucion") {
+    if (!exists(roots.constitution)) {
+      return {
+        problem: `${where}: source \`${source}\` but the constitution does not exist at ${roots.constitution}`,
+      };
+    }
+    if (!headingExists(roots.constitution, section)) {
+      return {
+        problem: `${where}: source \`${source}\`: no heading of the constitution contains "${String(section)}"`,
+      };
+    }
+    return {};
+  }
+  if (ref.startsWith("mvp:")) {
+    const file = path.join(roots.mvpDocs, ref.slice(4));
+    if (!mvpDocsAvailable(roots.mvpDocs)) {
+      return {
+        warning: `${where}: source \`${source}\` not verifiable: the MVP documents directory is missing (${roots.mvpDocs}); set OPE_MVP_DOCS to verify it`,
+      };
+    }
+    if (!exists(file)) return { problem: `${where}: source \`${source}\`: ${file} does not exist` };
+    if (!headingExists(file, section)) {
+      return {
+        problem: `${where}: source \`${source}\`: no heading of ${ref.slice(4)} contains "${String(section)}"`,
+      };
+    }
+    return {};
+  }
+  const file = path.resolve(roots.repoRoot, ref);
+  if (!exists(file)) return { problem: `${where}: source \`${source}\`: ${ref} does not exist` };
+  if (!headingExists(file, section)) {
+    return { problem: `${where}: source \`${source}\`: no heading contains "${String(section)}"` };
+  }
+  return {};
 }

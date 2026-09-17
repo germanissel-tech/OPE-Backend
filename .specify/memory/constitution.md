@@ -1,4 +1,11 @@
 <!--
+Sync Impact Report (1.2.0, 2026-09-17)
+- Version change: 1.1.0 → 1.2.0 (MINOR: una excepción acotada al principio V para el
+  consumidor `admin`, verificada por lint; ningún otro principio cambia).
+- Modified sections: V (merchantId en la ruta sólo bajo operaciones de administración,
+  ADR-020). Fuente: specs/006-mapa-del-contrato, aprobada por el usuario el 2026-09-17.
+- Templates: sin cambios.
+
 Sync Impact Report (1.1.0, 2026-09-16)
 - Version change: 1.0.0 → 1.1.0 (MINOR: dos gates nuevos en el Constitution Check y la
   verificación ejecutable de principios que ya existían; ningún principio cambia).
@@ -107,7 +114,10 @@ sistema restringe la acción y el claim. Lo que no se sabe no se convierte en pr
 ### V. Aislamiento por merchant como invariante
 
 - `merchantId` MUST derivarse siempre de la credencial autenticada. MUST NOT tomarse del body,
-  la query ni el path.
+  la query ni el path, **salvo en las operaciones del consumidor `admin`** (ADR-020): su
+  credencial es de un operador de OPE, no de un merchant, y el merchant administrado es un
+  recurso de la ruta. La excepción está acotada por lint: en query y body sigue prohibido para
+  todos; en la ruta, para todo consumidor que no sea `admin`.
 - `merchantId` MUST formar parte de toda frontera de datos: cada consulta y cada escritura a
   Redis y a PostgreSQL lo incluye en la clave o en el predicado.
 - Clave de ingesta por merchant, rotable y distinta de las credenciales del portal.
@@ -274,4 +284,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-16
+**Version**: 1.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17

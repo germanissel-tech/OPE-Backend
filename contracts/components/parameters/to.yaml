@@ -1,0 +1,7 @@
+name: to
+in: query
+required: false
+description: End of the time window (RFC 3339), exclusive.
+schema:
+  type: string
+  format: date-time

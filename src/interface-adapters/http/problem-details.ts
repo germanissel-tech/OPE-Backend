@@ -25,6 +25,7 @@ export const PROBLEM_TYPES = {
   "event-timestamp-out-of-range": { status: 422, title: "The event timestamp is out of tolerance" },
   "exposure-decision-unknown": { status: 422, title: "The decision does not exist for this merchant" },
   "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
+  "idempotency-conflict": { status: 409, title: "Same identity, different content" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

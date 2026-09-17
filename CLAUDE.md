@@ -195,7 +195,8 @@ contrato con una operación que ningún módulo sirve no arranca.
 
 ## Reglas que fallan el build (no son sugerencias)
 
-- `merchantId` nunca en path, query ni body: se deriva de la credencial.
+- `merchantId` nunca en path, query ni body: se deriva de la credencial. Única excepción: en
+  la ruta de las operaciones del consumidor `admin` (ADR-020; constitución V, v1.2.0).
 - Ningún campo de dato personal en ningún esquema (lista en el ruleset de lint).
 - Todo request body con `additionalProperties: false`.
 - Todo error es RFC 9457 Problem Details.

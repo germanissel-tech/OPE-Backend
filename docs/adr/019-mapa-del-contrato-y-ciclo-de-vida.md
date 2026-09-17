@@ -1,7 +1,7 @@
 ---
 numero: 19
 titulo: Mapa del contrato y ciclo de vida de una operación
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-17
 fuente: specs/006-mapa-del-contrato/research.md
 ---

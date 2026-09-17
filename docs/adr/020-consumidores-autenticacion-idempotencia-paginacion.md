@@ -1,7 +1,7 @@
 ---
 numero: 20
 titulo: Consumidores de la API — autenticación, capacidades, idempotencia y paginación
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-17
 fuente: specs/006-mapa-del-contrato/research.md
 ---
