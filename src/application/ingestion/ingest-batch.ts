@@ -4,7 +4,7 @@ import { checkBatch, decide, type BatchInvariant, type EventBatch } from "../../
 import { noOp, type Decision } from "../../domain/ledger/index.js";
 import type { EventId, MerchantId } from "../../domain/shared-kernel/index.js";
 import type { DecisionLedger } from "../ledger/index.js";
-import type { Clock, IdGenerator } from "../shared-kernel/index.js";
+import type { Clock, IdGenerator, Logger } from "../shared-kernel/index.js";
 import type { EventDedup } from "./ports/event-dedup.js";
 
 export interface IngestBatchInput {
@@ -32,11 +32,12 @@ export type IngestBatch = (input: IngestBatchInput) => Promise<IngestBatchResult
 export interface IngestBatchDeps {
   clock: Clock;
   ids: IdGenerator;
+  logger: Logger;
   eventDedup: EventDedup;
   decisions: DecisionLedger;
 }
 
-export function makeIngestBatch({ clock, ids, eventDedup, decisions }: IngestBatchDeps): IngestBatch {
+export function makeIngestBatch({ clock, ids, logger, eventDedup, decisions }: IngestBatchDeps): IngestBatch {
   return async ({ merchantId, batch }) => {
     const now = clock.now();
     const check = checkBatch(batch, now);
@@ -57,15 +58,23 @@ export function makeIngestBatch({ clock, ids, eventDedup, decisions }: IngestBat
     });
     const accepted = results.filter((r) => r.status === "accepted").length;
 
-    const decision = noOp({
+    const base = {
       decisionId: ids.decisionId(),
       merchantId,
       sessionId: first.sessionId,
       visitorId: first.visitorId,
       decidedAt: now,
-      reason: decide(batch),
-    });
-    await decisions.record(decision);
+    };
+    let decision = noOp({ ...base, reason: decide(batch) });
+    if ((await decisions.record(decision)) === "unavailable") {
+      // ADR-021: the ledger could not accept the decision; the intervention is suppressed and
+      // the fact is visible in the operational log (never with the visitor).
+      decision = noOp({ ...base, reason: "ledger-unavailable" });
+      logger.error(
+        { merchantId, decisionId: decision.decisionId },
+        "decision not recorded: ledger-unavailable",
+      );
+    }
 
     return { ok: true, outcome: { accepted, duplicates: results.length - accepted, results, decision } };
   };

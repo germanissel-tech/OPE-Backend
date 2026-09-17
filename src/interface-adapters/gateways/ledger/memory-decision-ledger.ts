@@ -10,6 +10,7 @@ export function memoryDecisionLedger(): DecisionLedger {
   return {
     record(decision) {
       decisions.set(key(decision.merchantId, decision.decisionId), decision);
+      return "accepted";
     },
     find(merchantId, decisionId) {
       return decisions.get(key(merchantId, decisionId));
