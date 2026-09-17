@@ -8,7 +8,8 @@
 //   interface-adapters → application, domain, interface-adapters, npm
 //   infrastructure     → everything but composition and main.ts
 //   composition        → everything; only main.ts (and the tests) import it. Controllers, security
-//                        handlers and use cases are imported only by composition/modules/<module>.ts
+//                        handlers, use cases and gateways are bound in composition/modules/<module>.ts;
+//                        a profile (composition/profiles/) composes modules, it never picks gateways
 //   main.ts            → composition and Node; nobody imports it
 //
 // Modules (inside domain/ and application/): a module imports from another only through its
@@ -117,6 +118,14 @@ module.exports = {
         path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
         dependencyTypesNot: ["type-only"],
       },
+    },
+    {
+      name: "profiles-compose-modules",
+      comment:
+        "A profile is a deployment: it composes one binding table per module (composition/modules/<module>.ts); it never picks gateways itself (ADR-013).",
+      severity: "error",
+      from: { path: `${SRC}composition/profiles/` },
+      to: { path: `${SRC}interface-adapters/gateways/` },
     },
     {
       name: "nobody-imports-main",
