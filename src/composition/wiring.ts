@@ -19,6 +19,9 @@ export interface ModuleWiring {
   cors?: CorsPolicy;
 }
 
+/** How a module's ports are served by one technology: a factory per port, called only when no override replaces it. */
+export type Bindings<P> = { readonly [K in keyof P]: () => P[K] };
+
 /** A module declares the slice of ports it needs (`P`); the root proves `Ports` covers every slice. */
 export type Module<P> = (context: ModuleContext<P>) => ModuleWiring;
 

@@ -4,9 +4,10 @@
 import type { IngestionPorts } from "./modules/ingestion.js";
 import type { LedgerPorts } from "./modules/ledger.js";
 import type { MerchantPorts } from "./modules/merchant.js";
+import type { SharedKernelPorts } from "./modules/shared-kernel.js";
 import type { SystemPorts } from "./modules/system.js";
 
-export type Ports = SystemPorts & MerchantPorts & IngestionPorts & LedgerPorts;
+export type Ports = SharedKernelPorts & SystemPorts & MerchantPorts & IngestionPorts & LedgerPorts;
 
 /** A gateway may need to shut down (connections, timers). In memory there is nothing to close. */
 export interface Closable {
