@@ -1,5 +1,5 @@
 // US1 (FR-003, FR-005; ADR-013): the whole application comes out of the composition root, with
-// the in-memory profile and targeted replacements; close() shuts down in order.
+// the local profile and targeted replacements; close() shuts down in order.
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";

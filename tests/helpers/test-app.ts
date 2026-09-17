@@ -1,7 +1,8 @@
-// Test application: the whole graph through the composition root with the in-memory profile,
+// Test application: the whole graph through the composition root with the local profile,
 // dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
@@ -31,12 +32,15 @@ export function fixedClock(at: string | Date): Clock {
   return { now: () => date };
 }
 
-/** Starts the whole app; `logger: false` unless the override says otherwise. */
+/** Starts the whole app; silent logger unless `ports.logger` says otherwise. */
 export async function startTestApp(
   overrides: BootstrapOverrides = {},
   config: Partial<AppConfig> = {},
 ): Promise<App> {
-  return bootstrap(testConfig(config), { logger: false, ...overrides });
+  return bootstrap(testConfig(config), {
+    ...overrides,
+    ports: { logger: silentLogger(), ...overrides.ports },
+  });
 }
 
 /** A valid event with unique ids; `over` overrides any field (even with garbage, on purpose). */

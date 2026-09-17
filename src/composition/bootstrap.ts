@@ -1,6 +1,6 @@
 // Composition root (constitution I; ADR-013): here and only here a profile builds the ports and
 // the modules wire themselves to the contract. Which profile and which modules run are
-// parameters (in memory and every module of the system by default; a test or a tool may pass
+// parameters (the local deployment and every module of the system by default; a test or a tool may pass
 // others), never a branch on configuration; what has to be closed, and in which order, is what
 // the profile reports it created; which operations exist is what the modules serve, checked
 // against the contract before listening.
@@ -8,16 +8,16 @@ import { buildServer } from "../infrastructure/http/build-server.js";
 import { loadContract } from "../infrastructure/http/load-contract.js";
 import { assertEveryOperationWired } from "./coverage.js";
 import { MODULES } from "./modules/index.js";
-import { memoryProfile } from "./profiles/memory.js";
+import { localProfile } from "./profiles/local.js";
 import { wireModules, type Module } from "./wiring.js";
 import type { AppConfig } from "./config.js";
 import type { Closable, Ports } from "./ports.js";
 import type { Profile } from "./profile.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
-import type { FastifyBaseLogger, FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 export interface BootstrapOverrides {
-  /** The profile that builds the ports; in memory unless a caller (main, a test) says otherwise. */
+  /** The profile that builds the ports; the local one unless a caller (main, a test) says otherwise. */
   profile?: Profile;
   /** The modules that serve the contract; all of them unless a caller (a test, a tool) says otherwise. */
   modules?: readonly Module<Ports>[];
@@ -25,8 +25,6 @@ export interface BootstrapOverrides {
   ports?: Partial<Ports>;
   /** Handlers that replace the wired ones (negative contract tests). */
   handlers?: Handlers;
-  /** `false` in tests; `true` or a Fastify logger in production. */
-  logger?: boolean | FastifyBaseLogger;
 }
 
 export interface App {
@@ -43,7 +41,7 @@ async function shutdown(app: FastifyInstance, closables: readonly Closable[]): P
 
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
-  const { ports, closables } = (overrides.profile ?? memoryProfile)(config, overrides.ports ?? {});
+  const { ports, closables } = (overrides.profile ?? localProfile)(config, overrides.ports ?? {});
   const wired = wireModules(overrides.modules ?? MODULES, { ports, contract: definition });
   const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
   assertEveryOperationWired(definition, handlers);
@@ -52,7 +50,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
     handlers,
     security: wired.security,
     cors: wired.cors,
-    logger: overrides.logger ?? true,
+    logger: ports.logger,
   });
   return { app, ports, close: () => shutdown(app, closables) };
 }

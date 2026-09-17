@@ -23,9 +23,10 @@ import {
   type OperationsMap,
   type SecurityHandler,
 } from "../../interface-adapters/http/typed.js";
+import { fastifyLoggerOf } from "../logging/pino-logger.js";
 import { registerCors, type CorsPolicy } from "./cors.js";
-import { loggerOptions, privateLogger } from "./request-logging.js";
 import { stripDiscriminatorMappings } from "./strip-discriminator-mappings.js";
+import type { Logger } from "../../application/shared-kernel/index.js";
 import type { operations } from "../../interface-adapters/http/generated/api.js";
 import type { ErrorObject } from "ajv";
 
@@ -39,8 +40,8 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
   security?: Record<string, SecurityHandler>;
   /** Origin policy for CORS; without it, the server does not negotiate CORS. */
   cors?: CorsPolicy | undefined;
-  /** `false` in tests; `true` or a Fastify logger in production. */
-  logger?: boolean | FastifyBaseLogger;
+  /** The process logger; Fastify's request log shares its stream when it is pino-backed. */
+  logger: Logger;
 }
 
 interface HttpResponse {
@@ -138,13 +139,14 @@ function pathOf(url: string): string {
   return q === -1 ? url : url.slice(0, q);
 }
 
-/** The Fastify instance: transport only, with the private logger and CORS when a policy is given. */
+/**
+ * The Fastify instance: transport only, with CORS when a policy is given. Request logging runs
+ * on the stream of the process logger; a foreign `Logger` (a test stub) gets no request log.
+ */
 async function createApp(options: Pick<BuildServerOptions, "logger" | "cors">): Promise<FastifyInstance> {
-  const logger = options.logger;
-  const app =
-    logger === undefined || typeof logger === "boolean"
-      ? Fastify({ logger: (logger ?? true) ? loggerOptions : false })
-      : Fastify({ loggerInstance: privateLogger(logger) });
+  const loggerInstance = fastifyLoggerOf(options.logger);
+  // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
+  const app = Fastify(loggerInstance ? { loggerInstance } : {});
   if (options.cors) await registerCors(app, options.cors);
   return app;
 }

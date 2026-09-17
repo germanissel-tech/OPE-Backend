@@ -45,7 +45,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   o controllers de todos los módulos (`getHealth: makeGetHealth(...)`, `ingestEvents: ...`):
   crece con cada operación del sistema, no con cada módulo. "Hoy son tres" no lo refuta.
 - **Cumple**: `composition/modules/ledger.ts` instancia sus casos de uso y entrega sus
-  controllers; `bootstrap.ts` sólo conoce `MODULES`; `profiles/memory.ts` no toca los casos de
+  controllers; `bootstrap.ts` sólo conoce `MODULES`; `profiles/local.ts` no toca los casos de
   uso.
 - **Lo ve un gate**: el root que importa controllers, security handlers o casos de uso sí
   (`arch`); el `switch` sobre merchant, no.
@@ -63,7 +63,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 - **Viola**: un gateway que devuelve `undefined` donde el puerto promete `Promise<Decision>`;
   un caso de uso que hace `instanceof MemoryDecisionLedger`; un perfil "en memoria hoy,
   Postgres cuando llegue" que importa gateways de cinco módulos y se reemplazaría entero.
-- **Cumple**: `profiles/memory.ts` = `bind(systemKernelPorts)`, `bind(memoryLedgerPorts)`…;
+- **Cumple**: `profiles/local.ts` = `bind(systemKernelPorts)`, `bind(memoryLedgerPorts)`…;
   `tests/helpers/test-app.ts` reemplaza el reloj por override sin tocar nada más.
 - **Lo ve un gate**: el perfil que importa gateways sí (`arch`); el tipado atrapa la firma; no
   atrapa la semántica (p. ej. un `find` que revela existencia para otro merchant: constitución V).
@@ -140,8 +140,15 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   `constitution#II. Fail-closed`.
 - **Viola**: `catch (e) {}`; `throw new Error("invalid")` en un caso de uso por una regla de
   negocio; un `status: 422` con `type: unprocessable` genérico.
-- **Cumple**: `invariantResponse(req, result)` traduce una invariante a su tipo propio.
-- **Lo ve un gate**: el `catch` vacío sí (lint); el `throw` por regla de negocio no.
+- **Cumple**: `invariantResponse(req, result)` traduce una invariante a su tipo propio; una
+  excepción que un módulo deja escapar termina **ese request** en 500 `internal-error` sin
+  mensaje ni traza y con el `operationId` en el log (`build-server.ts`), y el proceso sigue; una
+  excepción fuera de un request (`uncaughtException`, `unhandledRejection`) se loguea y el
+  proceso sale 1 (`composition/lifecycle.ts`): no se intenta recuperar un estado que no se
+  puede confiar. Un cierre que falla o excede la gracia también sale 1.
+- **Lo ve un gate**: el `catch` vacío sí (lint); el `throw` por regla de negocio no. Tampoco ve
+  un `process.on("uncaughtException", () => {})` que trague el error o que "reinicie": eso es
+  criterio cognitivo con fuente `constitution#II. Fail-closed`.
 
 ## Composition root — elige, no adivina
 
@@ -171,7 +178,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
   `const clock = overrides.ports?.clock` resuelto en el root porque "dedup lo necesita".
 - **Cumple**: `wireModules(MODULES, { ports, contractVersion })` y
   `assertEveryOperationWired(definition, handlers)`; `bootstrap(config, { profile })` con
-  `memoryProfile` por defecto; `tracker()` registrando closables en orden de creación; la
+  `localProfile` por defecto; `binder()` registrando closables en orden de creación; la
   prueba negativa de contrato como entrada de proceso propia
   (`tests/contract/fixtures/health-203.ts`).
 - **Lo ve un gate**: el `import()` calculado sí (`shape` regla 4); la condición sobre

@@ -37,7 +37,7 @@ Dentro de una feature que toca HTTP, el orden es:
    `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
    cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
    su tabla de enlaces por tecnología, instancia sus casos de uso y entrega sus controllers; el
-   perfil en `profiles/memory.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
+   perfil en `profiles/local.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
    `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
    que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
@@ -102,10 +102,15 @@ agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/
 los puertos que necesita (`LedgerPorts`), cómo los sirve cada tecnología
 (`memoryLedgerPorts: Bindings<LedgerPorts>`; `postgresLedgerPorts(pool)` cuando llegue) y lo
 que sirve (`{ handlers?, security?, cors? }`). `Ports` es la intersección de esos slices y un
-puerto nuevo sin proveer no compila. Un perfil (`profiles/memory.ts`) es un despliegue: compone
+puerto nuevo sin proveer no compila. Un perfil (`profiles/local.ts`) es un despliegue: compone
 una tabla de enlaces por módulo con `binder(overrides).bind(...)`; nunca elige gateways por su
 cuenta (`arch`: `profiles-compose-modules`).
-`bootstrap(config, { profile?, ports?, handlers?, logger? })` devuelve `{ app, ports, close }`
+`bootstrap(config, { profile?, modules?, ports?, handlers? })` devuelve `{ app, ports, close }`; el
+logger es un puerto (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y las
+pruebas lo reemplazan por `ports.logger`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
+SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
+no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
+`ConfigError` (variable + problema) lo que no puede arrancar el servidor
 y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
 `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por
 `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No hay servidor

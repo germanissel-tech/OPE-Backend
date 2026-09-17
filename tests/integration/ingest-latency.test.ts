@@ -1,4 +1,4 @@
-// FR-053, SC-003: ingestion latency measured by percentile on the in-memory profile.
+// FR-053, SC-003: ingestion latency measured by percentile on the local profile (memory ledgers).
 // It is a reported measurement, not an SLA: if CI turns out noisy, the plan's policy is to relax
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
@@ -23,7 +23,7 @@ function percentile(sorted: number[], p: number): number {
   return sorted[Math.max(0, index)] ?? 0;
 }
 
-describe("latency of POST /v1/events (in-memory profile)", () => {
+describe("latency of POST /v1/events (local profile)", () => {
   it(`p95 of ${BATCHES} batches of ${EVENTS_PER_BATCH} events under ${P95_BUDGET_MS} ms`, async () => {
     // Warm-up: JIT and first validator compilations do not count.
     for (let i = 0; i < 10; i += 1) {

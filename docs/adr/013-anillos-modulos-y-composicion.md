@@ -36,7 +36,7 @@ verificar que un perfil provea todos los puertos.
    `context-map:<módulo>`; agregar un módulo es agregar una entrada. En `interface-adapters` los
    controllers y gateways también se agrupan por módulo; un gateway no importa otro gateway.
 3. **Composición tipada, DI manual**: `composition/ports.ts` declara `interface Ports` con un
-   campo por puerto; cada **perfil** (`profiles/memory.ts` ahora; producción después) exporta
+   campo por puerto; cada **perfil** (`profiles/local.ts` ahora; producción después) exporta
    una función que devuelve `Ports` completo, así que un puerto nuevo sin proveer no compila.
    `bootstrap(config, overrides?: { ports?: Partial<Ports>; handlers?: Handlers })` arma casos de uso y servidor y devuelve
    `{ app, ports, close }`; `close` apaga en orden inverso. `main.ts` sólo lee configuración,
@@ -78,7 +78,7 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    (2026-09-17). `composition/modules/<módulo>.ts` declara lo que el módulo necesita
    (`LedgerPorts`), cómo lo sirve cada tecnología (`memoryLedgerPorts: Bindings<LedgerPorts>`,
    `postgresLedgerPorts(pool)` cuando llegue: conviven, no se reemplazan) y lo que el módulo
-   sirve (`ledgerModule`). Un perfil (`profiles/memory.ts`) compone **una tabla de enlaces por
+   sirve (`ledgerModule`). Un perfil (`profiles/local.ts`) compone **una tabla de enlaces por
    módulo** con `binder(overrides).bind(...)`: el override reemplaza el puerto antes de
    construirlo, lo construido se registra en orden para el cierre, y un despliegue mixto
    (Postgres para ledgers, Redis para dedup, configuración para merchants) es la forma normal.
@@ -87,4 +87,12 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    no importa `interface-adapters/gateways/` (con fixture).
 
 El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
-inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, ports?, handlers?, logger? })`.
+inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, modules?, ports?, handlers? })`. 6. **El logger es un puerto y el proceso falla cerrado** (2026-09-17). `Logger` vive en
+`application/shared-kernel/ports/`; `infrastructure/logging/pino-logger.ts` lo implementa
+sobre pino con los serializadores privados y Fastify comparte esa instancia; el root no
+conoce ningún tipo del framework. `composition/lifecycle.ts` adjunta al proceso el apagado
+ordenado (SIGINT/SIGTERM → `close()` → salida 0; fallo o timeout de gracia → salida 1) y el
+corte ante `uncaughtException`/`unhandledRejection` (log + salida 1, sin intentar recuperar
+un estado que no se puede confiar); el proceso es un parámetro, así que se prueba sin señales.
+`readConfig` valida (`PORT` decimal 0–65535, blanco = no definido, merchants con forma) y
+rechaza con `ConfigError` nombrando la variable.

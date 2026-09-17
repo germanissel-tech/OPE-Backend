@@ -5,7 +5,7 @@ Fixture: `tests/audit/fixtures/profile-picks-gateways/src`.
 **Defecto**: un perfil "por entorno" que conoce los gateways de todos los módulos y que "será
 reemplazado por el de Postgres cuando llegue". Es el modo a nivel de archivo: un despliegue
 mixto (Postgres para ledgers, Redis para dedup) obliga a una segunda copia o a un `if`, y la
-decisión de implementación de cada puerto vive lejos de su módulo. Es el `profiles/memory.ts`
+decisión de implementación de cada puerto vive lejos de su módulo. Es el `profiles/memory.ts` (hoy `profiles/local.ts`)
 anterior a la enmienda de ADR-013 sobre enlaces, condensado.
 
 **Lo ve un gate**: sí — `arch/profiles-compose-modules` (`composition/profiles/` no importa

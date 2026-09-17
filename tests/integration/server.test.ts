@@ -1,10 +1,13 @@
 // US2: the backend can only expose what the contract declares (FR-040..FR-047, SC-005).
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { Writable } from "node:stream";
+import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { makeGetServiceHealth } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
+import { pinoLogger, silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { problem } from "../../src/interface-adapters/http/problem-details.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -63,7 +66,7 @@ async function server<Ops extends OperationsMap<Ops> = operations>(
   app = await buildServer<Ops>({
     definition,
     handlers,
-    logger: false,
+    logger: silentLogger(),
     ...(security && { security }),
   });
   return app;
@@ -118,6 +121,42 @@ describe("real server over the contract", () => {
       instance: "/nope",
       detail: "There is no operation for /nope.",
     });
+  });
+
+  // Robustness: an exception a module lets escape ends that request as 500 Problem Details
+  // (type from the catalogue, no message, no stack) and is logged; the server keeps serving.
+  it("an exception escaping a handler → 500 internal-error without internals, logged, and the server survives", async () => {
+    const lines: string[] = [];
+    const sink = new Writable({
+      write(chunk: Buffer | string, _enc, cb) {
+        lines.push(chunk.toString());
+        cb();
+      },
+    });
+    const logger = pinoLogger(pino({ level: "info" }, sink));
+    const failing: Handlers<TwoOps> = {
+      getHealth,
+      listThings: () => {
+        throw new Error("secret detail from a gateway");
+      },
+    };
+    const s = await buildServer<TwoOps>({ definition: twoOps, handlers: failing, logger });
+    app = s;
+    const res = await s.inject({ method: "GET", url: "/v1/things" });
+    expect(res.statusCode).toBe(500);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
+    expect(problemOf(res)).toEqual({
+      type: "urn:ope:problem:internal-error",
+      title: "Internal error",
+      status: 500,
+      instance: "/v1/things",
+    });
+    expect(res.body).not.toContain("secret detail");
+    const logged = lines.join("");
+    expect(logged).toContain("secret detail from a gateway");
+    expect(logged).toContain('"operationId":"listThings"');
+    expect(logged).toContain("the handler threw an exception");
+    expect((await s.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
   });
 
   it("operation declared without a handler → 501 Problem Details, never an empty 200", async () => {
@@ -312,14 +351,14 @@ describe("real server over the contract", () => {
       info: { title: "no version" },
       paths: {},
     } as unknown as ContractDocument;
-    await expect(buildServer({ definition: invalid, handlers: {}, logger: false })).rejects.toThrow(
+    await expect(buildServer({ definition: invalid, handlers: {}, logger: silentLogger() })).rejects.toThrow(
       /version|not valid/i,
     );
   });
 
   it("refuses to register a handler with a nonexistent operationId (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
-    await expect(buildServer({ definition: realContract, handlers, logger: false })).rejects.toThrow(
+    await expect(buildServer({ definition: realContract, handlers, logger: silentLogger() })).rejects.toThrow(
       /doesNotExist/,
     );
   });

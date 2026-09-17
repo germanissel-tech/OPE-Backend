@@ -59,7 +59,10 @@ describe("hardened compiler (tsconfig.json)", () => {
     expect(r.status).not.toBe(0);
     // `Ports` is an intersection of module slices: the compiler names the slice the field is missing from.
     expect(r.output).toMatch(/TS2322: Type '.*' is not assignable to type 'Ports'/);
-    expect(r.output).toMatch(/Property '\w+' is missing .* but required in type '\w+Ports'/);
+    // One missing field names it; several are listed: either way the slice that requires them is named.
+    expect(r.output).toMatch(
+      /(Property '\w+' is missing .* but required in|is missing the following properties from) type '\w+Ports'/,
+    );
     expect(r.output).toContain("ports-incomplete.ts");
   });
 

@@ -2,7 +2,7 @@
 // Fastify logs `remoteAddress`, `remotePort` and `host` by default: here the serializer is
 // replaced by one that only keeps method, url and `reqId` (which Fastify adds on its own). The
 // ingest key is also redacted as a second barrier; the body is never logged.
-import type { FastifyBaseLogger, FastifyServerOptions } from "fastify";
+import type { FastifyBaseLogger } from "fastify";
 
 const requestSerializers = {
   req(request: { method: string; url: string }): { method: string; url: string } {
@@ -15,13 +15,10 @@ const requestSerializers = {
 
 const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
 
-/** Fastify logger options for `logger: true`. */
-export const loggerOptions: Exclude<FastifyServerOptions["logger"], boolean | undefined> = {
-  serializers: requestSerializers,
-  redact: { paths: REDACTED_PATHS, censor: "[redacted]" },
-};
-
-/** A logger provided from outside gets the same serializers (its own `req`/`res` are overridden). */
+/** Any pino logger gets the same serializers and redaction (its own `req`/`res` are overridden). */
 export function privateLogger(base: FastifyBaseLogger): FastifyBaseLogger {
-  return base.child({}, { serializers: requestSerializers, redact: { paths: REDACTED_PATHS } });
+  return base.child(
+    {},
+    { serializers: requestSerializers, redact: { paths: REDACTED_PATHS, censor: "[redacted]" } },
+  );
 }

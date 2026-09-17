@@ -1,4 +1,4 @@
-// Merchant directory loaded from configuration (in-memory profile).
+// Merchant directory loaded from configuration (local profile).
 import { findByIngestKey, normalizeOrigin, type Merchant } from "../../../domain/merchant/index.js";
 import { asMerchantId } from "../../../domain/shared-kernel/index.js";
 import type { MerchantDirectory } from "../../../application/merchant/index.js";

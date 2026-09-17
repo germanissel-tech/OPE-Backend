@@ -14,7 +14,7 @@ reemplaza: 5
 ADR-005 decidió que el mock fuera "el mismo servidor en modo mock" (`OPE_MOCK=1`): sin
 handlers, respondiendo el ejemplo del contrato para cada operación. Tenía sentido cuando el
 repo no tenía dominio ni perfil en memoria y era lo único que corría. Desde la 004 el servidor
-real arranca con `memoryProfile` sin infraestructura, valida, autentica y responde las tres
+real arranca con el perfil local (`profiles/local.ts`) sin infraestructura, valida, autentica y responde las tres
 operaciones con comportamiento real (dedup, invariantes, `NO_OP` con motivo).
 
 Al revisar el composition root aparecieron los costos del modo: `config.mode` consultado en
@@ -49,7 +49,7 @@ una operación declarada y no implementada— ya no existe en `main`: el arranqu
 - Reemplaza a ADR-005. ADR-001 sigue valiendo para el servidor real (el mock ya no existe).
 - Desaparecen `tests/integration/mock.test.ts` y las pruebas "en modo mock"; la fidelidad que
   probaban (mismo 400, mismo 404) es trivial: es el mismo código.
-- `bootstrap(config, { profile?, modules?, ports?, handlers?, logger? })`: los cuatro seams de
+- `bootstrap(config, { profile?, modules?, ports?, handlers? })`: los cuatro seams de
   inyección los usan las pruebas y las herramientas del contrato (la prueba negativa de
   `test:contract` pasa `handlers`); el producto no los toca.
 - Toda respuesta exitosa sigue necesitando ejemplo en el contrato (`ope-success-response-example`):
