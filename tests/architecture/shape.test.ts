@@ -12,6 +12,7 @@ interface Rules {
   oneControllerPerOperation: (root: string, bundlePath: string) => string[];
   newOnlyInComposition: (root: string) => string[];
   noComputedDynamicImport: (root: string) => string[];
+  noConfigBranchInRoot: (root: string) => string[];
 }
 
 let MAX_RING_FILE_LINES: number;
@@ -20,6 +21,7 @@ let maxFileLines: Rules["maxFileLines"];
 let oneControllerPerOperation: Rules["oneControllerPerOperation"];
 let newOnlyInComposition: Rules["newOnlyInComposition"];
 let noComputedDynamicImport: Rules["noComputedDynamicImport"];
+let noConfigBranchInRoot: Rules["noConfigBranchInRoot"];
 beforeAll(async () => {
   const mod = (await import(pathToFileURL(path.resolve("scripts/shape-rules.mjs")).href)) as Rules;
   ({
@@ -29,6 +31,7 @@ beforeAll(async () => {
     oneControllerPerOperation,
     newOnlyInComposition,
     noComputedDynamicImport,
+    noConfigBranchInRoot,
   } = mod);
 });
 
@@ -84,6 +87,17 @@ describe("shape of the rings", () => {
   it("a module loaded from a runtime value is reported; a literal dynamic import is not", () => {
     expect(noComputedDynamicImport(fixture("dynamic-import"))).toEqual([
       "composition/bad-import.ts:7: dynamic import() of a computed specifier (pathToFileURL(file).href)",
+    ]);
+  });
+
+  it("the composition root of src/ takes no decision on configuration", () => {
+    expect(noConfigBranchInRoot(src)).toEqual([]);
+  });
+
+  it("a root that branches on a config field is reported per line; passing a field on and config.ts are not", () => {
+    expect(noConfigBranchInRoot(fixture("config-branch"))).toEqual([
+      "composition/bootstrap.ts:9: the composition root branches on configuration (config.mode ===)",
+      "composition/bootstrap.ts:10: the composition root branches on configuration (if (config.mode)",
     ]);
   });
 

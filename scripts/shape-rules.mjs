@@ -218,8 +218,35 @@ export function noComputedDynamicImport(root) {
   return out;
 }
 
+/** A condition on a configuration field: `if (config.x`, `config.x === …`, `config.x ? …`, `switch (config.x`. */
+const CONFIG_BRANCH =
+  /\b(?:if|while|switch)\s*\([^)]*\bconfig\.\w+|\bconfig\.\w+\s*(?:===|!==|==|!=|\?[^?.]|&&|\|\|)/;
+
 /**
- * All four rules on one root, as gate findings.
+ * Rule 5: the composition root does not branch on configuration. Which profile, which modules
+ * and which defaults apply is decided once, at the process entry, and injected; a `config.x`
+ * inside a condition under composition/ is a decision taken in the middle and repeated below
+ * (ADR-013). Reading a field to pass it on (`config.port`) is fine; `config.ts` parses, it is exempt.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function noConfigBranchInRoot(root) {
+  /** @type {string[]} */
+  const out = [];
+  for (const file of tsFiles(root, "composition")) {
+    if (file === "composition/config.ts") continue;
+    readFileSync(path.join(root, file), "utf8")
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        const m = CONFIG_BRANCH.exec(line);
+        if (m) out.push(`${file}:${i + 1}: the composition root branches on configuration (${m[0].trim()})`);
+      });
+  }
+  return out;
+}
+
+/**
+ * All five rules on one root, as gate findings.
  * @param {string} root
  * @param {string} bundlePath
  * @returns {{ file: string; line: number; rule: string; message: string }[]}
@@ -240,5 +267,6 @@ export function shapeFindings(root, bundlePath) {
     ...oneControllerPerOperation(root, bundlePath).map((t) => toFinding("one-controller-per-operation", t)),
     ...newOnlyInComposition(root).map((t) => toFinding("new-only-in-composition", t)),
     ...noComputedDynamicImport(root).map((t) => toFinding("no-computed-dynamic-import", t)),
+    ...noConfigBranchInRoot(root).map((t) => toFinding("no-config-branch-in-root", t)),
   ];
 }
