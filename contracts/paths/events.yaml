@@ -5,21 +5,21 @@ post:
     - ingestKey: []
   x-required-capabilities:
     - events:write
-  summary: Ingesta de un lote de eventos del SDK
+  summary: Ingest a batch of SDK events
   description: |
-    Recibe un lote de eventos de comportamiento de **una** sesión, identificado el merchant por la
-    credencial de ingesta. Valida contra la lista blanca (cualquier campo no declarado rechaza
-    el lote entero con `400`), deduplica por `eventId` dentro del merchant (ventana: 24 horas o
-    100.000 eventos por merchant, lo que ocurra antes, en el perfil en memoria) y devuelve la
-    decisión para la sesión. Un lote rechazado no produce decisión.
+    Receives a batch of behavioural events from **one** session, with the merchant identified by
+    the ingest credential. Validates against the allow-list (any undeclared field rejects the
+    whole batch with `400`), deduplicates by `eventId` within the merchant (window: 24 hours or
+    100,000 events per merchant, whichever comes first, in the in-memory profile) and returns
+    the decision for the session. A rejected batch produces no decision.
 
-    Nada fuera de la lista blanca se registra ni se escribe en logs; la dirección IP no se
-    persiste (01-arquitectura-mvp.md §10.2).
+    Nothing outside the allow-list is stored or written to logs; the IP address is not
+    persisted (01-arquitectura-mvp.md §10.2).
   x-invariants:
     - type: origin-not-allowed
       status: 403
-      rule: si el request trae Origin, Origin pertenece a los orígenes registrados del merchant de la credencial
-      description: La credencial es pública; el origen registrado es la otra mitad del control (ADR-014).
+      rule: if the request carries Origin, Origin belongs to the registered origins of the credential's merchant
+      description: The credential is public; the registered origin is the other half of the control (ADR-014).
   requestBody:
     required: true
     content:
@@ -31,7 +31,7 @@ post:
             $ref: ../examples/event-batch.yaml
   responses:
     "202":
-      description: Lote aceptado. Los duplicados se reportan por evento; la decisión es para la sesión.
+      description: Batch accepted. Duplicates are reported per event; the decision is for the session.
       content:
         application/json:
           schema:

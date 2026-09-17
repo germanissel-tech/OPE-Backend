@@ -1,30 +1,29 @@
-// Aplicación de prueba: el grafo completo por el composition root con el perfil de memoria,
+// Test application: the whole graph through the composition root with the local profile,
 // dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
-export const merchantA: MerchantConfig = {
+const merchantA: MerchantConfig = {
   merchantId: "m_a",
   ingestKeys: ["key-a-1", "key-a-2"],
   origins: ["https://a.example"],
 };
-export const merchantB: MerchantConfig = {
+const merchantB: MerchantConfig = {
   merchantId: "m_b",
   ingestKeys: ["key-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
 };
-export const testMerchants: MerchantConfig[] = [merchantA, merchantB];
+const testMerchants: MerchantConfig[] = [merchantA, merchantB];
 
-export const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
+const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
   port: 0,
   host: "127.0.0.1",
-  mode: "real",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
   merchants: testMerchants,
-  handlersModule: undefined,
   ...over,
 });
 
@@ -33,15 +32,18 @@ export function fixedClock(at: string | Date): Clock {
   return { now: () => date };
 }
 
-/** Arranca la app entera; `logger: false` salvo que el override diga otra cosa. */
+/** Starts the whole app; silent logger unless `ports.logger` says otherwise. */
 export async function startTestApp(
   overrides: BootstrapOverrides = {},
   config: Partial<AppConfig> = {},
 ): Promise<App> {
-  return bootstrap(testConfig(config), { logger: false, ...overrides });
+  return bootstrap(testConfig(config), {
+    ...overrides,
+    ports: { logger: silentLogger(), ...overrides.ports },
+  });
 }
 
-/** Un evento válido con ids únicos; `over` pisa cualquier campo (incluso con basura, a propósito). */
+/** A valid event with unique ids; `over` overrides any field (even with garbage, on purpose). */
 export function eventOf(n: number, over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     type: "product_viewed",
@@ -55,7 +57,7 @@ export function eventOf(n: number, over: Record<string, unknown> = {}): Record<s
   };
 }
 
-/** Lote de `n` eventos válidos de la misma sesión, con ids únicos a partir de `from`. */
+/** Batch of `n` valid events of the same session, with unique ids starting at `from`. */
 export function batchOf(n: number, from = 1, over: Record<string, unknown> = {}): { events: unknown[] } {
   return { events: Array.from({ length: n }, (_, i) => eventOf(from + i, over)) };
 }

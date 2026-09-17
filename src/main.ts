@@ -1,33 +1,16 @@
-// Punto de entrada: lee la configuración, arranca por el composition root y maneja señales.
-// Ninguna instancia concreta vive acá (ADR-013).
+// Entry point: reads the configuration and starts through the composition root.
+// No concrete instance lives here (ADR-013). Anything that stops the start, configuration
+// included, comes out as one line and exit code 1.
 import { readFileSync } from "node:fs";
-import { bootstrap } from "./composition/bootstrap.js";
 import { readConfig } from "./composition/config.js";
+import { start } from "./composition/start.js";
 
 async function main(): Promise<void> {
-  const config = readConfig(process.env, (file) => readFileSync(file, "utf8"));
-  const { app, close } = await bootstrap(config);
-
-  const shutdown = (signal: string): void => {
-    app.log.info({ signal }, "apagando");
-    void close().then(() => process.exit(0));
-  };
-  process.once("SIGINT", () => {
-    shutdown("SIGINT");
-  });
-  process.once("SIGTERM", () => {
-    shutdown("SIGTERM");
-  });
-
-  await app.listen({ port: config.port, host: config.host });
-  app.log.info(
-    { mode: config.mode, contract: config.contractPath, merchants: config.merchants.length },
-    "OPE backend listo",
-  );
+  await start(readConfig(process.env, (file) => readFileSync(file, "utf8")));
 }
 
 main().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
-  console.error(`No se pudo arrancar el servidor: ${message}`);
+  console.error(`Could not start the server: ${message}`);
   process.exit(1);
 });

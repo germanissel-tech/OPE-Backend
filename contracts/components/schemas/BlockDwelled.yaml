@@ -1,11 +1,11 @@
 type: object
-description: Scroll y permanencia sobre un bloque de la ficha.
+description: Scroll and dwell over a block of the product page.
 additionalProperties: false
 required: [type, eventId, sessionId, visitorId, occurredAt, page, device, block, dwellMs]
 properties:
   type:
     type: string
-    description: Discriminador del tipo de evento.
+    description: Discriminator of the event type.
     enum: [block_dwelled]
   eventId:
     $ref: ./EventId.yaml
@@ -17,8 +17,8 @@ properties:
     type: string
     format: date-time
     description: >-
-      Instante del evento según el navegador (RFC 3339). Tolerancia aceptada: hasta 5 minutos a
-      futuro y 24 horas a pasado respecto del reloj del backend; fuera de eso,
+      Instant of the event according to the browser (RFC 3339). Accepted tolerance: up to 5
+      minutes in the future and 24 hours in the past relative to the backend clock; beyond that,
       `event-timestamp-out-of-range`.
   page:
     $ref: ./PageContext.yaml
@@ -26,10 +26,10 @@ properties:
     $ref: ./DeviceClass.yaml
   block:
     type: string
-    description: Bloque semántico de la ficha sobre el que se detuvo.
+    description: Semantic block of the product page the visitor dwelled on.
     enum: [description, size_guide, reviews, policies, price, gallery, cta]
   dwellMs:
     type: integer
-    description: Milisegundos de permanencia sobre el bloque.
+    description: Milliseconds of dwell over the block.
     minimum: 0
     maximum: 3600000

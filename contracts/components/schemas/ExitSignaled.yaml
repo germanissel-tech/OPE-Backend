@@ -1,11 +1,11 @@
 type: object
-description: Señal de salida. Exactamente las cuatro de 03 §4.1; agregar una es cambio de alcance.
+description: Exit signal. Exactly the four of 03 §4.1; adding one is a scope change.
 additionalProperties: false
 required: [type, eventId, sessionId, visitorId, occurredAt, page, device, signal]
 properties:
   type:
     type: string
-    description: Discriminador del tipo de evento.
+    description: Discriminator of the event type.
     enum: [exit_signaled]
   eventId:
     $ref: ./EventId.yaml
@@ -17,8 +17,8 @@ properties:
     type: string
     format: date-time
     description: >-
-      Instante del evento según el navegador (RFC 3339). Tolerancia aceptada: hasta 5 minutos a
-      futuro y 24 horas a pasado respecto del reloj del backend; fuera de eso,
+      Instant of the event according to the browser (RFC 3339). Accepted tolerance: up to 5
+      minutes in the future and 24 hours in the past relative to the backend clock; beyond that,
       `event-timestamp-out-of-range`.
   page:
     $ref: ./PageContext.yaml
@@ -26,5 +26,5 @@ properties:
     $ref: ./DeviceClass.yaml
   signal:
     type: string
-    description: Cuál de las cuatro señales de salida.
+    description: Which of the four exit signals.
     enum: [inactivity, tab_hidden, back_navigation, exit_intent]

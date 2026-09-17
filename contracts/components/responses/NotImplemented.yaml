@@ -1,10 +1,10 @@
-description: La operación existe en el contrato pero el servidor no registró un manejador para ella.
+description: The operation exists in the contract but the server registered no handler for it.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:not-implemented
-      title: Operación declarada sin manejador
+      title: Operation declared without a handler
       status: 501
       instance: /v1/health

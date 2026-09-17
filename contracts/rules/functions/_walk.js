@@ -1,22 +1,22 @@
-// Utilidades y tipos compartidos por las funciones custom de Spectral (CommonJS).
-// Tipos en JSDoc, verificados por tsconfig.scripts.json (checkJs).
+// Utilities and types shared by the Spectral custom functions (CommonJS).
+// Types in JSDoc, verified by tsconfig.scripts.json (checkJs).
 "use strict";
 
 /** @typedef {(string | number)[]} JsonPath */
 
 /**
- * Contexto que Spectral pasa a una función custom. Sólo lo que las reglas de OPE usan.
+ * Context Spectral passes to a custom function. Only what OPE's rules use.
  * @typedef {object} SpectralContext
- * @property {JsonPath} path ruta absoluta del valor recibido dentro del documento
- * @property {{ owner: { source: string } }} rule regla que invoca la función; `owner.source` es la ruta del ruleset
- * @property {{ data: unknown }} document documento sin resolver
- * @property {{ resolved: unknown } | undefined} [documentInventory] documento con los $ref resueltos
+ * @property {JsonPath} path absolute path of the received value within the document
+ * @property {{ owner: { source: string } }} rule rule invoking the function; `owner.source` is the ruleset path
+ * @property {{ data: unknown }} document unresolved document
+ * @property {{ resolved: unknown } | undefined} [documentInventory] document with $refs resolved
  */
 
 /** @typedef {{ message: string; path?: JsonPath }} SpectralResult */
 
 /**
- * Firma de una función custom de Spectral.
+ * Signature of a Spectral custom function.
  * @typedef {(input: unknown, options: unknown, context: SpectralContext) => SpectralResult[]} SpectralFunction
  */
 
@@ -33,7 +33,7 @@ function isObject(value) {
 }
 
 /**
- * Lee una propiedad de un valor desconocido sin asumir su forma.
+ * Reads a property of an unknown value without assuming its shape.
  * @param {unknown} value
  * @param {string} key
  * @returns {unknown}
@@ -43,7 +43,7 @@ function get(value, key) {
 }
 
 /**
- * Recorre todo objeto/array del documento invocando visit(node, path). Omite ejemplos y extensiones.
+ * Walks every object/array of the document invoking visit(node, path). Skips examples and extensions.
  * @param {unknown} node
  * @param {JsonPath} path
  * @param {(node: JsonObject | unknown[], path: JsonPath) => void} visit
@@ -68,7 +68,7 @@ function walk(node, path, visit) {
 const SCHEMA_CHILD_KEYS = ["allOf", "anyOf", "oneOf"];
 
 /**
- * Recorre un esquema JSON y sus sub-esquemas (properties, items, allOf/anyOf/oneOf, additionalProperties).
+ * Walks a JSON schema and its sub-schemas (properties, items, allOf/anyOf/oneOf, additionalProperties).
  * @param {unknown} schema
  * @param {JsonPath} path
  * @param {(schema: JsonObject, path: JsonPath) => void} visit

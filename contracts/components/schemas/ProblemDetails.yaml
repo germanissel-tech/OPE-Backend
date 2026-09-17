@@ -1,41 +1,41 @@
 type: object
 description: >-
-  Error según RFC 9457 (Problem Details for HTTP APIs). Toda respuesta 4xx/5xx de la API usa
-  este esquema con el tipo de contenido `application/problem+json`. Los valores de `type`
-  pertenecen al catálogo `contracts/problem-types.yaml` (URN `urn:ope:problem:<slug>`).
+  Error according to RFC 9457 (Problem Details for HTTP APIs). Every 4xx/5xx response of the
+  API uses this schema with the `application/problem+json` content type. The values of `type`
+  belong to the catalogue `contracts/problem-types.yaml` (URN `urn:ope:problem:<slug>`).
 additionalProperties: false
 required: [type, title, status]
 properties:
   type:
     type: string
     format: uri
-    description: Identificador estable del tipo de problema, del catálogo de OPE.
+    description: Stable identifier of the problem type, from OPE's catalogue.
   title:
     type: string
-    description: Resumen corto y fijo para el tipo de problema.
+    description: Short, fixed summary for the problem type.
   status:
     type: integer
     minimum: 400
     maximum: 599
-    description: Código de estado HTTP de la respuesta, repetido en el cuerpo.
+    description: HTTP status code of the response, repeated in the body.
   detail:
     type: string
-    description: Explicación legible de esta ocurrencia. Nunca incluye detalles internos.
+    description: Human-readable explanation of this occurrence. Never includes internal details.
   instance:
     type: string
-    description: Referencia URI de la ocurrencia; habitualmente el path del request.
+    description: URI reference of the occurrence; usually the request path.
   errors:
     type: array
-    description: Violaciones individuales del contrato. Presente sólo en `400` y `422`.
+    description: Individual contract violations. Present only in `400` and `422`.
     items:
       type: object
-      description: Una violación del contrato en el request.
+      description: One contract violation in the request.
       additionalProperties: false
       required: [pointer, message]
       properties:
         pointer:
           type: string
-          description: JSON Pointer relativo al request (`/query/foo`, `/body/kind`, `/headers/x`).
+          description: JSON Pointer relative to the request (`/query/foo`, `/body/kind`, `/headers/x`).
         message:
           type: string
-          description: Descripción de la violación.
+          description: Description of the violation.

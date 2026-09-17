@@ -1,20 +1,20 @@
 type: object
-description: Lote de eventos de **una** sesión. Todos los eventos deben pertenecer al mismo visitante (`session-visitor-mismatch` si no).
+description: Batch of events from **one** session. Every event must belong to the same visitor (`session-visitor-mismatch` otherwise).
 additionalProperties: false
 required: [events]
 x-invariants:
   - type: session-visitor-mismatch
     status: 422
-    rule: todos los events[].sessionId son iguales entre sí y todos los events[].visitorId son iguales entre sí
-    description: Una sesión pertenece a un visitante; un lote mezcla como mucho reintentos de la misma sesión.
+    rule: all events[].sessionId are equal to each other and all events[].visitorId are equal to each other
+    description: A session belongs to one visitor; a batch mixes at most retries of the same session.
   - type: event-timestamp-out-of-range
     status: 422
-    rule: para todo evento, now - 24h <= occurredAt <= now + 5min
-    description: Un reloj de navegador mal puesto no contamina la secuencia; fuera de tolerancia se rechaza el lote.
+    rule: for every event, now - 24h <= occurredAt <= now + 5min
+    description: A badly set browser clock does not contaminate the sequence; out of tolerance, the batch is rejected.
 properties:
   events:
     type: array
-    description: Eventos en el orden en que el SDK los capturó. El orden lo da `occurredAt`, no la posición.
+    description: Events in the order the SDK captured them. Ordering comes from `occurredAt`, not from the position.
     minItems: 1
     maxItems: 50
     items:

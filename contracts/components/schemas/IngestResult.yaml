@@ -1,19 +1,19 @@
 type: object
-description: Respuesta a un lote aceptado. Trae el resultado por evento y la decisión para la sesión.
+description: Response to an accepted batch. Carries the result per event and the decision for the session.
 additionalProperties: false
 required: [accepted, duplicates, results, decision]
 properties:
   accepted:
     type: integer
-    description: Cantidad de eventos que entraron.
+    description: Number of events that came in.
     minimum: 0
   duplicates:
     type: integer
-    description: Cantidad de eventos ya recibidos antes.
+    description: Number of events already received before.
     minimum: 0
   results:
     type: array
-    description: Un resultado por evento, en el orden del lote.
+    description: One result per event, in batch order.
     items:
       $ref: ./EventResult.yaml
   decision:

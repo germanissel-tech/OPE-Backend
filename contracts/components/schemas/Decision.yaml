@@ -1,8 +1,9 @@
 type: object
 description: |
-  La decisión de OPE para la sesión tras procesar el lote. Siempre existe: no intervenir es un
-  resultado con motivo, nunca una ausencia (constitución II). `reason` es un string del catálogo
-  `contracts/no-op-reasons.yaml`; el catálogo se amplía sin cambio incompatible (por eso no es enum).
+  OPE's decision for the session after processing the batch. It always exists: not intervening
+  is a result with a reason, never an absence (constitution II). `reason` is a string from the
+  catalogue `contracts/no-op-reasons.yaml`; the catalogue grows without an incompatible change
+  (which is why it is not an enum).
 additionalProperties: false
 required: [decisionId, sessionId, outcome, reason]
 properties:
@@ -12,11 +13,11 @@ properties:
     $ref: ./SessionId.yaml
   outcome:
     type: string
-    description: "`NO_OP`: no intervenir. `INTERVENE` queda reservado para el plano de decisión (PROPUESTO)."
+    description: "`NO_OP`: do not intervene. `INTERVENE` is reserved for the decision plane (PROPUESTO)."
     enum: [NO_OP, INTERVENE]
   reason:
     type: string
-    description: Motivo del resultado, del catálogo `contracts/no-op-reasons.yaml` (por ejemplo `decision-plane-unavailable`).
+    description: Reason for the outcome, from the catalogue `contracts/no-op-reasons.yaml` (for example `decision-plane-unavailable`).
     pattern: "^[a-z][a-z0-9-]*$"
   intervention:
     $ref: ./Intervention.yaml

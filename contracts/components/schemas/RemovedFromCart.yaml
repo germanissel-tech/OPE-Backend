@@ -1,11 +1,11 @@
 type: object
-description: Eliminación del carrito. El retorno a la ficha llega como `product_viewed` posterior; juntos son el amplificador de barrera (03 §4.2).
+description: Removal from the cart. The return to the product page arrives as a later `product_viewed`; together they are the barrier amplifier (03 §4.2).
 additionalProperties: false
 required: [type, eventId, sessionId, visitorId, occurredAt, page, device]
 properties:
   type:
     type: string
-    description: Discriminador del tipo de evento.
+    description: Discriminator of the event type.
     enum: [removed_from_cart]
   eventId:
     $ref: ./EventId.yaml
@@ -17,8 +17,8 @@ properties:
     type: string
     format: date-time
     description: >-
-      Instante del evento según el navegador (RFC 3339). Tolerancia aceptada: hasta 5 minutos a
-      futuro y 24 horas a pasado respecto del reloj del backend; fuera de eso,
+      Instant of the event according to the browser (RFC 3339). Accepted tolerance: up to 5
+      minutes in the future and 24 hours in the past relative to the backend clock; beyond that,
       `event-timestamp-out-of-range`.
   page:
     $ref: ./PageContext.yaml

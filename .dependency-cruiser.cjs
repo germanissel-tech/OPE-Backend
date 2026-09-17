@@ -1,23 +1,25 @@
-// Anillos, módulos y mapa de contextos (ADR-013; constitución I). `npm run arch` y
-// tests/architecture/architecture.test.ts la hacen cumplir. Las rutas usan `(?:^|/)src/…` para
-// que los fixtures bajo tests/architecture/fixtures/src/ matcheen las mismas reglas.
+// Rings, modules and context map (ADR-013; constitution I). `npm run arch` and
+// tests/architecture/architecture.test.ts enforce it. Paths use `(?:^|/)src/…` so that the
+// fixtures under tests/architecture/fixtures/src/ match the same rules.
 //
-// Anillos (dependencia sólo hacia adentro):
-//   domain             → domain                        (nada de npm ni de Node, tipos incluidos)
+// Rings (dependency inward only):
+//   domain             → domain                        (nothing from npm or Node, types included)
 //   application        → domain, application
 //   interface-adapters → application, domain, interface-adapters, npm
-//   infrastructure     → todo menos composition y main.ts
-//   composition        → todo; sólo main.ts (y las pruebas) lo importan
-//   main.ts            → composition y Node; nadie lo importa
+//   infrastructure     → everything but composition and main.ts
+//   composition        → everything; only main.ts (and the tests) import it. Controllers, security
+//                        handlers, use cases and gateways are bound in composition/modules/<module>.ts;
+//                        a profile (composition/profiles/) composes modules, it never picks gateways
+//   main.ts            → composition and Node; nobody imports it
 //
-// Módulos (dentro de domain/ y application/): un módulo importa de otro sólo por su index.ts y
-// sólo si CONTEXT_MAP lo permite. Agregar un módulo = agregar una entrada acá.
+// Modules (inside domain/ and application/): a module imports from another only through its
+// index.ts and only if CONTEXT_MAP allows it. Adding a module = adding an entry here.
 
-// Grupo no capturante: los back-references `$1`/`$2` deben apuntar a los grupos de las reglas.
+// Non-capturing group: the `$1`/`$2` back-references must point at the rules' own groups.
 const SRC = "(?:^|/)src/";
 const MOD = `${SRC}(domain|application)/`;
 
-/** Mapa de contextos: módulo → módulos de los que puede depender (además de sí mismo). */
+/** Context map: module → modules it may depend on (besides itself). */
 const CONTEXT_MAP = {
   "shared-kernel": [],
   system: ["shared-kernel"],
@@ -26,7 +28,10 @@ const CONTEXT_MAP = {
   ingestion: ["shared-kernel", "merchant", "ledger"],
 };
 
-/** Tipos de dependencia que salen del repo: npm y módulos de Node. */
+/**
+ * Dependency types that leave the repo: npm and Node modules.
+ * @type {import("dependency-cruiser").DependencyType[]}
+ */
 const EXTERNAL = [
   "npm",
   "npm-dev",
@@ -44,7 +49,7 @@ const EXTERNAL = [
 /** @type {import('dependency-cruiser').IForbiddenRuleType[]} */
 const contextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => ({
   name: `context-map:${mod}`,
-  comment: `${mod} sólo depende de: ${[mod, ...allowed].join(", ")} (mapa de contextos, ADR-013)`,
+  comment: `${mod} depends only on: ${[mod, ...allowed].join(", ")} (context map, ADR-013)`,
   severity: "error",
   from: { path: `${MOD}${mod}/` },
   to: { path: `${MOD}[^/]+/`, pathNot: `${MOD}(${[mod, ...allowed].join("|")})/` },
@@ -53,67 +58,86 @@ const contextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => ({
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
-    // --- Anillos --------------------------------------------------------------------------
+    // --- Rings ------------------------------------------------------------------------
     {
       name: "domain-is-pure",
-      comment: "El dominio no depende de npm ni de módulos de Node: ni en runtime ni en tipos.",
+      comment: "The domain depends neither on npm nor on Node modules: not at runtime, not in types.",
       severity: "error",
       from: { path: `${SRC}domain/` },
       to: { dependencyTypes: EXTERNAL },
     },
     {
       name: "domain-inward",
-      comment: "El dominio no conoce aplicación, adaptadores, infraestructura, composición ni main.",
+      comment: "The domain knows nothing of application, adapters, infrastructure, composition or main.",
       severity: "error",
       from: { path: `${SRC}domain/` },
       to: { path: `${SRC}(application|interface-adapters|infrastructure|composition|main\\.ts)` },
     },
     {
       name: "application-inward",
-      comment: "Los casos de uso hablan con el mundo por puertos; no conocen adaptadores ni infraestructura.",
+      comment: "Use cases talk to the world through ports; they know nothing of adapters or infrastructure.",
       severity: "error",
       from: { path: `${SRC}application/` },
       to: { path: `${SRC}(interface-adapters|infrastructure|composition|main\\.ts)` },
     },
     {
       name: "application-is-pure",
-      comment: "La aplicación tampoco depende de npm ni de Node: sus dependencias son puertos.",
+      comment: "The application does not depend on npm or Node either: its dependencies are ports.",
       severity: "error",
       from: { path: `${SRC}application/` },
       to: { dependencyTypes: EXTERNAL },
     },
     {
       name: "adapters-inward",
-      comment: "Los adaptadores de interfaz no conocen la infraestructura ni la composición.",
+      comment: "Interface adapters know nothing of infrastructure or composition.",
       severity: "error",
       from: { path: `${SRC}interface-adapters/` },
       to: { path: `${SRC}(infrastructure|composition|main\\.ts)` },
     },
     {
       name: "infrastructure-inward",
-      comment: "La infraestructura no conoce la composición ni main.",
+      comment: "Infrastructure knows nothing of composition or main.",
       severity: "error",
       from: { path: `${SRC}infrastructure/` },
       to: { path: `${SRC}(composition|main\\.ts)` },
     },
     {
       name: "nobody-imports-composition",
-      comment: "Sólo main.ts (y las pruebas) importan el composition root.",
+      comment: "Only main.ts (and the tests) import the composition root.",
       severity: "error",
       from: { path: `${SRC}`, pathNot: `${SRC}(composition/|main\\.ts$)` },
       to: { path: `${SRC}composition/` },
     },
     {
+      name: "composition-wires-by-module",
+      comment:
+        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013).",
+      severity: "error",
+      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/modules/` },
+      to: {
+        path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
+        dependencyTypesNot: ["type-only"],
+      },
+    },
+    {
+      name: "profiles-compose-modules",
+      comment:
+        "A profile is a deployment: it composes one binding table per module (composition/modules/<module>.ts); it never picks gateways itself (ADR-013).",
+      severity: "error",
+      from: { path: `${SRC}composition/profiles/` },
+      to: { path: `${SRC}interface-adapters/gateways/` },
+    },
+    {
       name: "nobody-imports-main",
-      comment: "main.ts es la raíz del grafo; nadie lo importa.",
+      comment: "main.ts is the root of the graph; nobody imports it.",
       severity: "error",
       from: {},
       to: { path: `${SRC}main\\.ts$` },
     },
-    // --- Módulos --------------------------------------------------------------------------
+    // --- Modules ------------------------------------------------------------------------
     {
       name: "modules-only-via-index",
-      comment: "Un módulo importa de otro sólo por su index.ts (API pública).",
+      comment: "A module imports from another only through its index.ts (public API).",
       severity: "error",
       from: { path: `${MOD}([^/]+)/` },
       to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`] },
@@ -122,7 +146,7 @@ module.exports = {
     {
       name: "gateways-no-cross",
       comment:
-        "Un gateway implementa el puerto de su módulo; no importa otro gateway (se conectan en composición).",
+        "A gateway implements the port of its module; it does not import another gateway (they are wired in composition).",
       severity: "error",
       from: { path: `${SRC}interface-adapters/gateways/([^/]+)/` },
       to: {
@@ -132,12 +156,12 @@ module.exports = {
     },
     {
       name: "controllers-no-gateways",
-      comment: "Un controller recibe casos de uso; no instancia gateways.",
+      comment: "A controller receives use cases; it does not instantiate gateways.",
       severity: "error",
       from: { path: `${SRC}interface-adapters/http/` },
       to: { path: `${SRC}interface-adapters/gateways/` },
     },
-    // --- Generales ------------------------------------------------------------------------
+    // --- General ----------------------------------------------------------------------
     {
       name: "no-circular",
       severity: "error",
@@ -147,7 +171,7 @@ module.exports = {
     {
       name: "no-orphans",
       comment:
-        "Todo módulo de src/ lo usa alguien, salvo main.ts (raíz), el cliente (entrypoint) y los generados.",
+        "Every module of src/ is used by someone, except main.ts (root), the client (entrypoint) and generated files.",
       severity: "error",
       from: {
         orphan: true,

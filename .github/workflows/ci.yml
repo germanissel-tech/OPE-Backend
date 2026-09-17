@@ -1,23 +1,29 @@
-# FR-060: en cada cambio, verificación del contrato (lint, bundle, compatibilidad contra main,
-# drift de tipos), compilación, typecheck, pruebas unitarias/integración y pruebas de contrato.
+# FR-060: on every change, contract verification (lint, bundle, compatibility against main,
+# type drift), build, typecheck, quality gates (ADR-016), unit/integration tests, mutation
+# testing on the changed lines, and contract tests. A weekly job mutates everything, informatively.
 name: ci
 
 on:
   push:
     branches: ["**"]
   pull_request:
+  schedule:
+    # Monday 06:00 UTC: the full mutation sweep (informative, see the mutation-full job).
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   ci:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          # contract:diff compara contra origin/main; hace falta el historial completo.
+          # contract:diff compares against origin/main; the full history is needed.
           fetch-depth: 0
 
-      - name: Traer main como base de comparación
+      - name: Fetch main as the comparison base
         if: github.ref != 'refs/heads/main'
         run: git fetch --no-tags origin main:refs/remotes/origin/main
 
@@ -37,14 +43,39 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm run arch
+      - run: npm run quality
       - run: npm test
+      - run: npm run test:mutation
       - run: npm run test:contract
       - run: npm run release-check
 
-      - name: Publicar reporte de Schemathesis
+      - name: Publish the Schemathesis report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: schemathesis-junit
           path: .schemathesis/
+          if-no-files-found: ignore
+
+  mutation-full:
+    # The whole repo mutated, informatively: the score is a trend, not a gate (FR-031).
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run contract:bundle
+      - run: npm run test:mutation -- --all
+        continue-on-error: true
+      - name: Publish the mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
           if-no-files-found: ignore

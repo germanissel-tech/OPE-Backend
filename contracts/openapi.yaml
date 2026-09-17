@@ -3,20 +3,20 @@ info:
   title: OPE Backend API
   version: 1.1.0
   description: |
-    API HTTP del backend de OPE. Este documento es la única fuente de verdad de toda
-    superficie HTTP: el servidor rutea por `operationId` y valida request y response contra
-    él. Todo error se expresa como Problem Details (RFC 9457) con `application/problem+json`.
-    OPE no almacena información identificatoria: ningún esquema declara datos personales.
+    HTTP API of the OPE backend. This document is the single source of truth for every HTTP
+    surface: the server routes by `operationId` and validates request and response against
+    it. Every error is expressed as Problem Details (RFC 9457) with `application/problem+json`.
+    OPE stores no identifying information: no schema declares personal data.
   contact:
     name: OPE Backend
 servers:
   - url: /
-    description: Mismo origen (las rutas llevan el prefijo de versión mayor)
+    description: Same origin (paths carry the major-version prefix)
 tags:
   - name: ingest
-    description: Ingesta de señales y confirmaciones desde el SDK del merchant.
+    description: Ingestion of signals and confirmations from the merchant's SDK.
   - name: system
-    description: Operaciones de estado y soporte del servicio. Sin autenticación.
+    description: Service status and support operations. No authentication.
 paths:
   /v1/health:
     $ref: ./paths/health.yaml
@@ -24,10 +24,10 @@ paths:
     $ref: ./paths/events.yaml
   /v1/exposures:
     $ref: ./paths/exposures.yaml
-# Casi sin `components` en la raíz: cada archivo de components/ se referencia directamente desde
-# donde se usa y el bundle los promueve a `#/components/<tipo>/<NombreDeArchivo>`. Declararlos
-# acá además dispararía `oas3-unused-component`. Única excepción (ADR-014): `security` referencia
-# los esquemas de seguridad por nombre, no por `$ref`, así que tienen que existir acá.
+# Almost no `components` at the root: each file under components/ is referenced directly from
+# where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
+# them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`
+# references security schemes by name, not by `$ref`, so they have to exist here.
 components:
   securitySchemes:
     ingestKey:

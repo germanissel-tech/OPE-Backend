@@ -10,3 +10,6 @@ coverage/
 contracts/dist/
 docs/api/
 .schemathesis/
+# reportes de mutación y sandbox de Stryker
+reports/
+.stryker-tmp/

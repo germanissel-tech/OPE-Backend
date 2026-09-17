@@ -1,4 +1,4 @@
-summary: Lote de una sesión en una ficha de producto
+summary: Batch of one session on a product page
 value:
   events:
     - type: product_viewed

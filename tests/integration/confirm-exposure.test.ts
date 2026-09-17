@@ -1,4 +1,4 @@
-// US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures de punta a punta.
+// US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
 import { afterEach, describe, expect, it } from "vitest";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
@@ -26,7 +26,7 @@ const exposure = (decisionId: string, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** Ninguna ruta HTTP produce INTERVENE en esta feature: se inyecta por el puerto del ledger. */
+/** No HTTP route produces INTERVENE in this feature: it is injected through the ledger port. */
 async function interveneDecision(a: App, merchantId: string, decisionId: string): Promise<void> {
   const decision: Decision = {
     decisionId: decisionId as Decision["decisionId"],
@@ -47,7 +47,7 @@ async function noOpDecisionId(a: App, key: string): Promise<string> {
 }
 
 describe("POST /v1/exposures", () => {
-  it("[invariant:exposure-decision-unknown] decisionId inventado → 422 con su tipo", async () => {
+  it("[invariant:exposure-decision-unknown] made-up decisionId → 422 with its type", async () => {
     app = await withClock();
     const res = await postExposure(app.app, exposure("dec_nadie0000"), { key: "key-a-1" });
     expect(res.statusCode).toBe(422);
@@ -55,7 +55,7 @@ describe("POST /v1/exposures", () => {
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:exposure-decision-unknown", status: 422 });
   });
 
-  it("decisión de otro merchant → la misma respuesta que inexistente (aislamiento FR-050, no revela)", async () => {
+  it("decision of another merchant → the same response as nonexistent (isolation FR-050, reveals nothing)", async () => {
     app = await withClock();
     await interveneDecision(app, "m_b", "dec_de_b_00001");
     const res = await postExposure(app.app, exposure("dec_de_b_00001"), { key: "key-a-1" });
@@ -64,7 +64,7 @@ describe("POST /v1/exposures", () => {
     expect(res.body).not.toContain("m_b");
   });
 
-  it("[invariant:exposure-of-no-op] decisión NO_OP real (de un lote) → 422 con su tipo", async () => {
+  it("[invariant:exposure-of-no-op] real NO_OP decision (from a batch) → 422 with its type", async () => {
     app = await withClock();
     const decisionId = await noOpDecisionId(app, "key-a-1");
     const res = await postExposure(app.app, exposure(decisionId), { key: "key-a-1" });
@@ -72,7 +72,7 @@ describe("POST /v1/exposures", () => {
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:exposure-of-no-op", status: 422 });
   });
 
-  it("decisión INTERVENE propia → 201 recorded; repetida → 200 already-recorded; una sola exposición", async () => {
+  it("own INTERVENE decision → 201 recorded; repeated → 200 already-recorded; a single exposure", async () => {
     app = await withClock();
     await interveneDecision(app, "m_a", "dec_intervene1");
     const first = await postExposure(app.app, exposure("dec_intervene1"), { key: "key-a-1" });
@@ -89,7 +89,7 @@ describe("POST /v1/exposures", () => {
     expect(await app.ports.exposures.find("m_b" as never, "dec_intervene1" as never)).toBeUndefined();
   });
 
-  it("campo extra → 400; sin clave → 401; Origin de otro merchant → 403", async () => {
+  it("extra field → 400; no key → 401; Origin of another merchant → 403", async () => {
     app = await withClock();
     await interveneDecision(app, "m_a", "dec_intervene1");
     const extra = await postExposure(app.app, exposure("dec_intervene1", { email: "x" }), { key: "key-a-1" });

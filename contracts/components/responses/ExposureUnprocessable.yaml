@@ -1,20 +1,20 @@
-description: La confirmación cumple el esquema pero no puede registrarse.
+description: The confirmation satisfies the schema but cannot be recorded.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     examples:
       decisionUnknown:
-        summary: Decisión inexistente o de otro merchant
+        summary: Decision nonexistent or belonging to another merchant
         value:
           type: urn:ope:problem:exposure-decision-unknown
-          title: La decisión no existe para este merchant
+          title: The decision does not exist for this merchant
           status: 422
           instance: /v1/exposures
       noOp:
-        summary: La decisión fue NO_OP
+        summary: The decision was NO_OP
         value:
           type: urn:ope:problem:exposure-of-no-op
-          title: Una decisión NO_OP no tiene intervención que exponer
+          title: A NO_OP decision has no intervention to expose
           status: 422
           instance: /v1/exposures

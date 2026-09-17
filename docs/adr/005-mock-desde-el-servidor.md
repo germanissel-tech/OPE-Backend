@@ -1,12 +1,15 @@
 ---
 numero: 5
 titulo: El mock es el mismo servidor en modo mock
-estado: aceptada
+estado: reemplazada
 fecha: 2026-09-16
 fuente: specs/001-api-contract-toolchain/research.md
 ---
 
 # ADR-005 — El mock es el mismo servidor en modo mock
+
+> Reemplazada por ADR-018: no hay servidor mock; el servidor real con el perfil en memoria cumple
+> el mismo propósito con más fidelidad.
 
 ## Contexto
 

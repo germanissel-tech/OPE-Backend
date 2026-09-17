@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "$comment": "Mutation testing (ADR-016, FR-030..FR-033). Run through scripts/mutation-diff.mjs: on a change it mutates only the src/ lines the change introduced (break at 100%); with --all it mutates everything, informatively. The vitest runner carries patches/@stryker-mutator+vitest-runner+10.0.0.patch until stryker-js#6210 is released.",
+  "$commentMutator": "StringLiteral is excluded: free-text strings (Problem Details `detail`, log messages) are prose, not behaviour, and every typed literal (slugs, reasons, statuses) already turns into a compile error under the TypeScript checker when mutated. Everything else mutates.",
+  "mutator": { "excludedMutations": ["StringLiteral"] },
+  "testRunner": "vitest",
+  "vitest": { "configFile": "vitest.config.ts" },
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/**/*.ts",
+    "!src/interface-adapters/http/generated/**",
+    "!src/composition/**",
+    "!src/main.ts",
+    "!src/**/index.ts",
+    "!src/**/*.d.ts"
+  ],
+  "ignorePatterns": ["reports", "docs", ".schemathesis", "specs", "patches"],
+  "reporters": ["clear-text", "progress", "html", "json"],
+  "htmlReporter": { "fileName": "reports/mutation/index.html" },
+  "jsonReporter": { "fileName": "reports/mutation/report.json" },
+  "tempDirName": ".stryker-tmp",
+  "concurrency": 4
+}

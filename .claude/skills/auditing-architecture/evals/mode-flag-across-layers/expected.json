@@ -1,0 +1,17 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/mode-flag-across-layers/src/infrastructure/http/build-server.ts",
+  "line": 15,
+  "rule": {
+    "id": "mode-flag-consulted-below-the-root",
+    "source": "ADR-018"
+  },
+  "severity": "high",
+  "evidence": "if (mode === \"mock\") {\n    const mocked = api.mockResponseForOperation(operationId);\n    return { status: mocked.status, body: mocked.mock };\n  }",
+  "proposal": {
+    "before": "export function notImplemented(api: Api, mode: ServerMode, operationId: string): Response {\n  if (mode === \"mock\") { … }\n  return { status: 501, … };\n}",
+    "after": "// The server knows no modes: an operation without a handler is 501, always. Whoever wants\n// other answers wires other handlers (a module, an override), and the root refuses to start\n// if the contract declares an operation nobody serves.\nexport function notImplemented(operationId: string): Response {\n  return { status: 501, body: { type: \"urn:ope:problem:not-implemented\", status: 501 } };\n}"
+  },
+  "coveringTest": "tests/unit/main.test.ts: \"nothing names a server mode, a mock switch or a built-in merchant\"",
+  "status": "confirmed"
+}

@@ -1,35 +1,33 @@
-// El contrato declara `discriminator.mapping` explícito (así openapi-typescript genera el valor de
-// cable y no el nombre del esquema), pero Ajv con `discriminator: true` lo rechaza al compilar
-// ("mapping is not supported"). Esta es la única transformación que se le hace al contrato en
-// runtime: quitar `mapping` del documento en memoria antes de dárselo a openapi-backend. Ajv
-// infiere el mismo mapeo desde el `enum` de cada rama (research R-05; ADR-014).
+// The contract declares an explicit `discriminator.mapping` (so openapi-typescript generates the
+// wire value and not the schema name), but Ajv with `discriminator: true` rejects it at compile
+// time ("mapping is not supported"). This is the only transformation applied to the contract at
+// runtime: removing `mapping` from the in-memory document before handing it to openapi-backend.
+// Ajv infers the same mapping from the `enum` of each branch (research R-05; ADR-014).
 
-/** Devuelve una copia del documento sin ningún `discriminator.mapping`. No muta el original. */
-export function stripDiscriminatorMappings<T>(document: T): T {
-  return strip(structuredClone(document)) as T;
+/** The one OpenAPI object this module touches: a `discriminator` with the `mapping` Ajv rejects. */
+interface Discriminator {
+  mapping?: unknown;
 }
 
-function strip(node: unknown): unknown {
-  if (Array.isArray(node)) {
-    for (const item of node) strip(item);
-    return node;
-  }
-  if (typeof node !== "object" || node === null) return node;
-  const record = node as Record<string, unknown>;
-  const discriminator = record["discriminator"];
+/** Every `discriminator` object of the document that carries a `mapping`, in document order. */
+function* discriminatorsWithMapping(node: unknown): Generator<Discriminator> {
+  if (typeof node !== "object" || node === null) return;
+  // An array has no `discriminator` property: the same read covers both shapes.
+  const discriminator = (node as { discriminator?: unknown }).discriminator;
   if (typeof discriminator === "object" && discriminator !== null && "mapping" in discriminator) {
-    delete (discriminator as Record<string, unknown>)["mapping"];
+    yield discriminator;
   }
-  for (const value of Object.values(record)) strip(value);
-  return node;
+  for (const value of Object.values(node)) yield* discriminatorsWithMapping(value);
 }
 
-/** ¿Queda algún `discriminator.mapping`? Para la prueba y para fallar temprano si algo cambia. */
+/** Returns a copy of the document without any `discriminator.mapping`. Does not mutate the original. */
+export function stripDiscriminatorMappings<T>(document: T): T {
+  const copy = structuredClone(document);
+  for (const discriminator of discriminatorsWithMapping(copy)) delete discriminator.mapping;
+  return copy;
+}
+
+/** Is any `discriminator.mapping` left? For the test and to fail early if something changes. */
 export function hasDiscriminatorMappings(node: unknown): boolean {
-  if (Array.isArray(node)) return node.some(hasDiscriminatorMappings);
-  if (typeof node !== "object" || node === null) return false;
-  const record = node as Record<string, unknown>;
-  const discriminator = record["discriminator"];
-  if (typeof discriminator === "object" && discriminator !== null && "mapping" in discriminator) return true;
-  return Object.values(record).some(hasDiscriminatorMappings);
+  return !discriminatorsWithMapping(node).next().done;
 }

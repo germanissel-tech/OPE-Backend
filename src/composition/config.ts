@@ -1,75 +1,104 @@
-// Configuración de la aplicación: lo único que main.ts lee del entorno. Sin lógica de negocio.
+// Application configuration: the only thing main.ts reads from the environment. No business
+// logic and no built-in merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
-import type { ServerMode } from "../infrastructure/http/build-server.js";
 
-/** Un merchant tal como lo describe la configuración (perfil en memoria; la 006 trae el almacén). */
+/** A merchant as configuration describes it (local profile; 006 brings the store). */
 export interface MerchantConfig {
   merchantId: string;
-  /** Claves de ingesta activas (una o dos durante una rotación). */
+  /** Active ingest keys (one, or two during a rotation). */
   ingestKeys: string[];
-  /** Orígenes registrados de la tienda (`scheme://host[:port]`). */
+  /** Registered origins of the store (`scheme://host[:port]`). */
   origins: string[];
 }
 
 export interface AppConfig {
   port: number;
   host: string;
-  mode: ServerMode;
   contractPath: string;
   merchants: MerchantConfig[];
-  /** Sólo para pruebas: módulo alternativo que exporta `handlers`. */
-  handlersModule: string | undefined;
 }
 
-/** Merchant de prueba para `OPE_MOCK=1` y desarrollo local sin configuración. */
-export const MOCK_MERCHANT: MerchantConfig = {
-  merchantId: "mock-merchant",
-  ingestKeys: ["ope_mock_ingest_key"],
-  origins: ["http://localhost:3000", "http://127.0.0.1:3000"],
-};
+/** Port when `PORT` is not set: the usual local development port. */
+const DEFAULT_PORT = 3000;
+/** `PORT=0` asks the OS for a free port (tests); 65535 is the last TCP port. */
+const MAX_PORT = 65535;
+/** One active key, or two during a rotation (ADR-014). */
+const MAX_INGEST_KEYS = 2;
 
+/** The environment variables the server reads; anything else in the environment is ignored. */
+type Variable = "PORT" | "HOST" | "OPE_CONTRACT" | "OPE_MERCHANTS" | "OPE_MERCHANTS_FILE";
+
+/** A configuration value that cannot start the server: named after the variable, never silently defaulted. */
+export class ConfigError extends Error {
+  constructor(variable: Variable | `merchants[${number}]${string}`, problem: string) {
+    super(`${variable} ${problem}.`);
+    this.name = "ConfigError";
+  }
+}
+
+/** Builds the configuration from the environment, or throws a `ConfigError` naming what is wrong. */
 export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => string): AppConfig {
-  const mode: ServerMode = env["OPE_MOCK"] === "1" ? "mock" : "real";
   return {
-    port: Number(env["PORT"] ?? 3000),
-    host: env["HOST"] ?? "127.0.0.1",
-    mode,
-    contractPath: path.resolve(env["OPE_CONTRACT"] ?? "contracts/dist/openapi.yaml"),
-    merchants: readMerchants(env, readFile, mode),
-    handlersModule: env["OPE_HANDLERS_MODULE"],
+    port: readPort(text(env, "PORT")),
+    host: text(env, "HOST") ?? "127.0.0.1",
+    contractPath: path.resolve(text(env, "OPE_CONTRACT") ?? "contracts/dist/openapi.yaml"),
+    merchants: readMerchants(env, readFile),
   };
 }
 
-function readMerchants(
-  env: NodeJS.ProcessEnv,
-  readFile: (file: string) => string,
-  mode: ServerMode,
-): MerchantConfig[] {
-  const inline = env["OPE_MERCHANTS"];
-  const file = env["OPE_MERCHANTS_FILE"];
-  const raw = inline ?? (file !== undefined ? readFile(path.resolve(file)) : undefined);
-  if (raw === undefined) return mode === "mock" ? [MOCK_MERCHANT] : [];
-  return parseMerchants(raw);
+/** A variable set to blank counts as unset: nothing here means "empty string". */
+function text(env: NodeJS.ProcessEnv, name: Variable): string | undefined {
+  const value = env[name]?.trim();
+  return value === undefined || value === "" ? undefined : value;
 }
 
-/** Valida la forma mínima: un arreglo de merchants con id, claves y orígenes no vacíos. */
-export function parseMerchants(raw: string): MerchantConfig[] {
-  const parsed: unknown = JSON.parse(raw);
-  if (!Array.isArray(parsed)) throw new Error("OPE_MERCHANTS debe ser un arreglo JSON de merchants.");
+/** Decimal digits only: `Number()` would also accept hex, exponents and blanks. */
+const DECIMAL = /^\d+$/;
+
+function readPort(raw: string | undefined): number {
+  if (raw === undefined) return DEFAULT_PORT;
+  const port = DECIMAL.test(raw) ? Number(raw) : Number.NaN;
+  if (!Number.isInteger(port) || port > MAX_PORT) {
+    throw new ConfigError("PORT", `must be an integer between 0 and ${MAX_PORT}, got "${raw}"`);
+  }
+  return port;
+}
+
+/** `OPE_MERCHANTS` (JSON) or `OPE_MERCHANTS_FILE`; none configured means none. */
+function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) => string): MerchantConfig[] {
+  const inline = text(env, "OPE_MERCHANTS");
+  const file = text(env, "OPE_MERCHANTS_FILE");
+  const raw = inline ?? (file !== undefined ? readFile(path.resolve(file)) : undefined);
+  return raw === undefined ? [] : parseMerchants(raw);
+}
+
+/** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
+function parseMerchants(raw: string): MerchantConfig[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new ConfigError(
+      "OPE_MERCHANTS",
+      `is not valid JSON (${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
+  if (!Array.isArray(parsed)) throw new ConfigError("OPE_MERCHANTS", "must be a JSON array of merchants");
   return parsed.map((item: unknown, i) => {
-    if (typeof item !== "object" || item === null) throw new Error(`merchants[${i}] no es un objeto.`);
+    if (typeof item !== "object" || item === null)
+      throw new ConfigError(`merchants[${i}]`, "is not an object");
     const m = item as Record<string, unknown>;
     const merchantId = m["merchantId"];
     const ingestKeys = m["ingestKeys"];
     const origins = m["origins"];
     if (typeof merchantId !== "string" || merchantId === "") {
-      throw new Error(`merchants[${i}].merchantId debe ser un string no vacío.`);
+      throw new ConfigError(`merchants[${i}].merchantId`, "must be a non-empty string");
     }
-    if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > 2) {
-      throw new Error(`merchants[${i}].ingestKeys debe tener una o dos claves.`);
+    if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > MAX_INGEST_KEYS) {
+      throw new ConfigError(`merchants[${i}].ingestKeys`, "must have one or two keys");
     }
     if (!isStringArray(origins) || origins.length === 0) {
-      throw new Error(`merchants[${i}].origins debe tener al menos un origen.`);
+      throw new ConfigError(`merchants[${i}].origins`, "must have at least one origin");
     }
     return { merchantId, ingestKeys, origins };
   });

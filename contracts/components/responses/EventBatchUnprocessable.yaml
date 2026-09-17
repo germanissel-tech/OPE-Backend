@@ -1,20 +1,20 @@
-description: El lote cumple el esquema pero viola una invariante de ingesta.
+description: The batch satisfies the schema but violates an ingestion invariant.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     examples:
       sessionVisitorMismatch:
-        summary: Dos visitantes en la misma sesión
+        summary: Two visitors in the same session
         value:
           type: urn:ope:problem:session-visitor-mismatch
-          title: El lote mezcla sesiones o visitantes
+          title: The batch mixes sessions or visitors
           status: 422
           instance: /v1/events
       timestampOutOfRange:
-        summary: Instante fuera de tolerancia
+        summary: Timestamp out of tolerance
         value:
           type: urn:ope:problem:event-timestamp-out-of-range
-          title: El instante del evento está fuera de tolerancia
+          title: The event timestamp is out of tolerance
           status: 422
           instance: /v1/events

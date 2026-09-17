@@ -1,5 +1,5 @@
 type: object
-description: Resultado del registro de la exposición.
+description: Result of recording the exposure.
 additionalProperties: false
 required: [decisionId, status]
 properties:
@@ -7,5 +7,5 @@ properties:
     $ref: ./DecisionId.yaml
   status:
     type: string
-    description: "`recorded`: quedó registrada como EXPOSED. `already-recorded`: ya estaba; el registro no cambió."
+    description: "`recorded`: recorded as EXPOSED. `already-recorded`: it already was; the record did not change."
     enum: [recorded, already-recorded]

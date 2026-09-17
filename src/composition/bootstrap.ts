@@ -1,85 +1,56 @@
-// Composition root (constitución I; ADR-013): acá y sólo acá se carga el contrato, se eligen
-// los adaptadores (perfil + overrides), se instancian los casos de uso y se cablean los
-// controllers. main.ts sólo llama a esto.
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { parse } from "yaml";
-import { buildServer, type ContractDocument } from "../infrastructure/http/build-server.js";
-import { makeIngestEvents } from "../interface-adapters/http/controllers/ingestion/ingest-events.js";
-import { makeConfirmExposureHandler } from "../interface-adapters/http/controllers/ledger/confirm-exposure.js";
-import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
-import { INGEST_KEY_SCHEME, makeIngestKeySecurity } from "../interface-adapters/http/security/ingest-key.js";
-import { isClosable, type Ports } from "./ports.js";
-import { memoryPorts } from "./profiles/memory.js";
-import { buildUseCases } from "./use-cases.js";
+// Composition root (constitution I; ADR-013): here and only here a profile builds the ports and
+// the modules wire themselves to the contract. Which profile and which modules run are
+// parameters (the local deployment and every module of the system by default; a test or a tool may pass
+// others), never a branch on configuration; what has to be closed, and in which order, is what
+// the profile reports it created; which operations exist is what the modules serve, checked
+// against the contract before listening.
+import { buildServer } from "../infrastructure/http/build-server.js";
+import { loadContract } from "../infrastructure/http/load-contract.js";
+import { assertEveryOperationWired } from "./coverage.js";
+import { MODULES } from "./modules/index.js";
+import { localProfile } from "./profiles/local.js";
+import { wireModules, type Module } from "./wiring.js";
 import type { AppConfig } from "./config.js";
+import type { Closable, Ports } from "./ports.js";
+import type { Profile } from "./profile.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
-import type { FastifyBaseLogger, FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 export interface BootstrapOverrides {
-  /** Reemplazos puntuales de puertos sobre el perfil (por ejemplo, un reloj fijo en pruebas). */
+  /** The profile that builds the ports; the local one unless a caller (main, a test) says otherwise. */
+  profile?: Profile;
+  /** The modules that serve the contract; all of them unless a caller (a test, a tool) says otherwise. */
+  modules?: readonly Module<Ports>[];
+  /** Targeted port replacements the profile applies (for example, a fixed clock in tests). */
   ports?: Partial<Ports>;
-  /** Manejadores que reemplazan a los cableados (pruebas negativas de contrato). */
+  /** Handlers that replace the wired ones (negative contract tests). */
   handlers?: Handlers;
-  /** `false` en pruebas; `true` o un logger de Fastify en producción. */
-  logger?: boolean | FastifyBaseLogger;
 }
 
 export interface App {
   app: FastifyInstance;
   ports: Ports;
-  /** Apaga el servidor y después cada gateway que exponga `close()`, en orden inverso. */
+  /** Shuts down the server, then what the profile created, in reverse creation order. */
   close: () => Promise<void>;
+}
+
+async function shutdown(app: FastifyInstance, closables: readonly Closable[]): Promise<void> {
+  await app.close();
+  for (const closable of [...closables].reverse()) await closable.close();
 }
 
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
-  // El reloj se resuelve primero: los gateways del perfil que dependen de él (dedup) lo comparten.
-  const clock = overrides.ports?.clock;
-  const ports: Ports = { ...memoryPorts(config, clock), ...overrides.ports };
-  const useCases = buildUseCases(ports, definition.info.version);
-
-  const wired: Handlers =
-    config.mode === "mock"
-      ? {}
-      : {
-          getHealth: makeGetHealth(useCases.getServiceHealth),
-          ingestEvents: makeIngestEvents(useCases.ingestBatch),
-          confirmExposure: makeConfirmExposureHandler(useCases.confirmExposure),
-        };
-  const handlers: Handlers = { ...wired, ...(await loadHandlersModule(config)), ...overrides.handlers };
-
-  // En mock también corre la seguridad: el SDK desarrolla contra el mock con la clave real (SC-006).
+  const { ports, closables } = (overrides.profile ?? localProfile)(config, overrides.ports ?? {});
+  const wired = wireModules(overrides.modules ?? MODULES, { ports, contract: definition });
+  const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
+  assertEveryOperationWired(definition, handlers);
   const app = await buildServer({
     definition,
     handlers,
-    mode: config.mode,
-    security: { [INGEST_KEY_SCHEME]: makeIngestKeySecurity(useCases.resolveIngestKey) },
-    cors: ports.merchants,
-    logger: overrides.logger ?? true,
+    security: wired.security,
+    cors: wired.cors,
+    logger: ports.logger,
   });
-
-  const close = async (): Promise<void> => {
-    await app.close();
-    for (const port of Object.values(ports).reverse()) {
-      if (isClosable(port)) await port.close();
-    }
-  };
-  return { app, ports, close };
-}
-
-function loadContract(file: string): ContractDocument {
-  if (!existsSync(file)) {
-    throw new Error(`No existe el contrato empaquetado ${file}. Corré npm run contract:bundle.`);
-  }
-  return parse(readFileSync(file, "utf8")) as ContractDocument;
-}
-
-async function loadHandlersModule(config: AppConfig): Promise<Handlers> {
-  if (config.handlersModule === undefined) return {};
-  const mod = (await import(pathToFileURL(path.resolve(config.handlersModule)).href)) as {
-    handlers: Handlers;
-  };
-  return mod.handlers;
+  return { app, ports, close: () => shutdown(app, closables) };
 }

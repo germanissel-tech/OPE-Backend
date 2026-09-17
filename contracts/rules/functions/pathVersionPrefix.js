@@ -1,4 +1,4 @@
-// ope-path-version-prefix (FR-003): todo path empieza con /v{major} donde major es el de info.version.
+// ope-path-version-prefix (FR-003): every path starts with /v{major} where major is the one of info.version.
 "use strict";
 const { get, isObject } = require("./_walk.js");
 
@@ -11,7 +11,7 @@ const pathVersionPrefix = (document, _opts, context) => {
   if (!/^\d+$/.test(major)) {
     return [
       {
-        message: `info.version debe ser semver MAJOR.MINOR.PATCH; es '${version}'.`,
+        message: `info.version must be semver MAJOR.MINOR.PATCH; it is '${version}'.`,
         path: [...context.path, "info", "version"],
       },
     ];
@@ -23,7 +23,7 @@ const pathVersionPrefix = (document, _opts, context) => {
   for (const route of Object.keys(isObject(paths) ? paths : {})) {
     if (!route.startsWith(prefix)) {
       results.push({
-        message: `El path ${route} no lleva el prefijo ${prefix} que corresponde a info.version ${version}. Un cambio de major cambia el prefijo.`,
+        message: `Path ${route} does not carry the ${prefix} prefix that corresponds to info.version ${version}. A major change changes the prefix.`,
         path: [...context.path, "paths", route],
       });
     }

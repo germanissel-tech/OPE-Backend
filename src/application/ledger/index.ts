@@ -1,4 +1,4 @@
-// API pública del módulo ledger (aplicación).
+// Public API of the ledger module (application).
 export { makeConfirmExposure } from "./confirm-exposure.js";
 export type {
   ConfirmExposure,

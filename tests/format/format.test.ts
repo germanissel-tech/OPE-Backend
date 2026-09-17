@@ -1,4 +1,4 @@
-// US2 (FR-010..FR-012): un solo formato, verificado, corregible e idempotente; lista única de
+// US2 (FR-010..FR-012): a single format, verified, fixable and idempotent; single list of
 // exclusiones.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -17,7 +17,7 @@ const samples: Record<string, string> = {
   "a.ts": "const x = {a:1,b:'dos'}\nexport default x\n",
   "b.json": '{"a":1,\n"b":[1,2]}\n',
   "c.yaml": "a:   1\nb:\n    - x\n",
-  "d.md": "# Título\n\nTexto con *énfasis*   y espacios.\n",
+  "d.md": "# Title\n\nText with *emphasis*   and spaces.\n",
 };
 for (const [name, content] of Object.entries(samples)) writeFileSync(path.join(dir, name), content);
 const files = Object.keys(samples).map((f) => path.join(dir, f));
@@ -37,14 +37,14 @@ function run(args: string[]): { status: number; output: string } {
   }
 }
 
-describe("formato único (Prettier)", () => {
-  it("--check falla nombrando cada archivo mal formateado", () => {
+describe("single format (Prettier)", () => {
+  it("--check fails naming each badly formatted file", () => {
     const r = run(["--check", ...files]);
     expect(r.status).not.toBe(0);
     for (const f of Object.keys(samples)) expect(r.output).toContain(f);
   });
 
-  it("--write corrige y --check pasa; una segunda pasada es idempotente", () => {
+  it("--write fixes and --check passes; a second pass is idempotent", () => {
     expect(run(["--write", ...files]).status).toBe(0);
     expect(run(["--check", ...files]).status).toBe(0);
     const before = files.map((f) => readFileSync(f, "utf8"));
@@ -53,7 +53,7 @@ describe("formato único (Prettier)", () => {
     expect(before.every((c) => !c.includes("\r\n"))).toBe(true);
   });
 
-  it(".prettierignore contiene la lista única de exclusiones", () => {
+  it(".prettierignore holds the single list of exclusions", () => {
     const ignore = readFileSync(path.resolve(".prettierignore"), "utf8");
     for (const entry of [
       "src/interface-adapters/http/generated/",
@@ -64,6 +64,9 @@ describe("formato único (Prettier)", () => {
       "tests/governance/fixtures/",
       "tests/lint/fixtures/",
       "tests/typecheck/fixtures/",
+      "tests/audit/fixtures/",
+      "patches/",
+      "reports/",
       ".specify/",
       ".claude/",
       "package-lock.json",

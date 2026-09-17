@@ -1,5 +1,5 @@
-// Puerto de deduplicación: reclama los eventIds de un lote para el merchant y devuelve los que
-// entraron (los demás ya se habían visto). La ventana la declara la implementación.
+// Deduplication port: claims the eventIds of a batch for the merchant and returns those that
+// came in (the rest had already been seen). The window is declared by the implementation.
 import type { EventId, MerchantId } from "../../../domain/shared-kernel/index.js";
 
 export interface EventDedup {

@@ -1,11 +1,15 @@
-// US2: el backend sólo puede exponer lo que el contrato declara (FR-040..FR-047, SC-005).
+// US2: the backend can only expose what the contract declares (FR-040..FR-047, SC-005).
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { Writable } from "node:stream";
+import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { makeGetServiceHealth } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
+import { pinoLogger, silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
+import { problem } from "../../src/interface-adapters/http/problem-details.js";
 import { json, problemOf } from "../helpers/json.js";
 import type { components } from "../../src/interface-adapters/http/generated/api.js";
 import type {
@@ -16,7 +20,7 @@ import type {
 } from "../../src/interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
-// Tipos del contrato de prueba two-ops.yaml (a mano: es un fixture, no se genera).
+// Types of the test contract two-ops.yaml (by hand: it is a fixture, not generated).
 interface Thing {
   kind: "a" | "b";
   note?: string;
@@ -62,15 +66,14 @@ async function server<Ops extends OperationsMap<Ops> = operations>(
   app = await buildServer<Ops>({
     definition,
     handlers,
-    mode: "real",
-    logger: false,
+    logger: silentLogger(),
     ...(security && { security }),
   });
   return app;
 }
 
-describe("servidor real sobre el contrato", () => {
-  it("GET /v1/health responde 200 con un cuerpo conforme al esquema Health", async () => {
+describe("real server over the contract", () => {
+  it("GET /v1/health responds 200 with a body conforming to the Health schema", async () => {
     const res = await (
       await server(realContract, healthHandlers)
     ).inject({ method: "GET", url: "/v1/health" });
@@ -88,41 +91,91 @@ describe("servidor real sobre el contrato", () => {
     expect(res.statusCode).toBe(404);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(json(res)).toMatchObject({ type: "urn:ope:problem:not-found", status: 404, instance: "/nope" });
+    expect(problemOf(res).detail).toBe("There is no operation for GET /nope.");
   });
 
-  it("método no declarado → 405 Problem Details con header Allow", async () => {
+  it("undeclared method → 405 Problem Details with Allow header", async () => {
     const res = await (
       await server(realContract, healthHandlers)
     ).inject({ method: "POST", url: "/v1/health" });
     expect(res.statusCode).toBe(405);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     expect(res.headers.allow).toBe("GET");
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:method-not-allowed", status: 405 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:method-not-allowed",
+      status: 405,
+      instance: "/v1/health",
+      detail: "Declared methods: GET.",
+    });
   });
 
-  it("método no estándar (QUERY) sobre un path declarado → 405; sobre uno no declarado → 404", async () => {
+  it("non-standard method (QUERY) on a declared path → 405; on an undeclared one → 404", async () => {
     const srv = await server(realContract, healthHandlers);
     const known = await srv.inject({ method: "QUERY" as "GET", url: "/v1/health" });
     expect(known.statusCode).toBe(405);
     expect(known.headers.allow).toBe("GET");
     const unknown = await srv.inject({ method: "QUERY" as "GET", url: "/nope" });
     expect(unknown.statusCode).toBe(404);
-    expect(json(unknown)).toMatchObject({ type: "urn:ope:problem:not-found" });
+    expect(json(unknown)).toMatchObject({
+      type: "urn:ope:problem:not-found",
+      instance: "/nope",
+      detail: "There is no operation for /nope.",
+    });
   });
 
-  it("operación declarada sin manejador → 501 Problem Details, nunca un 200 vacío", async () => {
+  // Robustness: an exception a module lets escape ends that request as 500 Problem Details
+  // (type from the catalogue, no message, no stack) and is logged; the server keeps serving.
+  it("an exception escaping a handler → 500 internal-error without internals, logged, and the server survives", async () => {
+    const lines: string[] = [];
+    const sink = new Writable({
+      write(chunk: Buffer | string, _enc, cb) {
+        lines.push(chunk.toString());
+        cb();
+      },
+    });
+    const logger = pinoLogger(pino({ level: "info" }, sink));
+    const failing: Handlers<TwoOps> = {
+      getHealth,
+      listThings: () => {
+        throw new Error("secret detail from a gateway");
+      },
+    };
+    const s = await buildServer<TwoOps>({ definition: twoOps, handlers: failing, logger });
+    app = s;
+    const res = await s.inject({ method: "GET", url: "/v1/things" });
+    expect(res.statusCode).toBe(500);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
+    expect(problemOf(res)).toEqual({
+      type: "urn:ope:problem:internal-error",
+      title: "Internal error",
+      status: 500,
+      instance: "/v1/things",
+    });
+    expect(res.body).not.toContain("secret detail");
+    const logged = lines.join("");
+    expect(logged).toContain("secret detail from a gateway");
+    expect(logged).toContain('"operationId":"listThings"');
+    expect(logged).toContain("the handler threw an exception");
+    expect((await s.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
+  });
+
+  it("operation declared without a handler → 501 Problem Details, never an empty 200", async () => {
     const res = await (
       await server<TwoOps>(twoOps, healthHandlers)
     ).inject({ method: "GET", url: "/v1/things" });
     expect(res.statusCode).toBe(501);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
     const body = problemOf(res);
-    expect(body).toMatchObject({ type: "urn:ope:problem:not-implemented", status: 501 });
+    expect(body).toMatchObject({
+      type: "urn:ope:problem:not-implemented",
+      status: 501,
+      instance: "/v1/things",
+    });
     expect(body.detail).toContain("listThings");
   });
 
-  // Sobre el contrato real: una operación autenticada y declarada, sin manejador cableado, es 501.
-  it("POST /v1/events y /v1/exposures declaradas sin manejador → 501 (nunca 404)", async () => {
+  // On the real contract: an authenticated, declared operation without a wired handler is 501.
+  it("POST /v1/events and /v1/exposures declared without a handler → 501 (never 404)", async () => {
     const s = await server(realContract, healthHandlers, {
       ingestKey: () => ({ principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } } }),
     });
@@ -154,14 +207,14 @@ describe("servidor real sobre el contrato", () => {
     }
   });
 
-  it("una operación con `security` declarado y sin security handler falla cerrada: 401", async () => {
+  it("an operation with declared `security` and no security handler fails closed: 401", async () => {
     const s = await server(realContract, healthHandlers);
     const res = await s.inject({ method: "POST", url: "/v1/events", payload: {} });
     expect(res.statusCode).toBe(401);
-    expect(problemOf(res).type).toBe("urn:ope:problem:unauthorized");
+    expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:unauthorized", instance: "/v1/events" });
   });
 
-  it("query no declarada → 400 con la violación enumerada y sin invocar el manejador", async () => {
+  it("undeclared query → 400 with the violation listed and without invoking the handler", async () => {
     let invoked = false;
     const handlers: Handlers = {
       getHealth: async (req) => {
@@ -182,7 +235,7 @@ describe("servidor real sobre el contrato", () => {
     expect(invoked).toBe(false);
   });
 
-  it("JSON inválido en el body → 400 Problem Details", async () => {
+  it("invalid JSON in the body → 400 Problem Details", async () => {
     const res = await (
       await server<TwoOps>(twoOps, healthHandlers)
     ).inject({
@@ -193,10 +246,19 @@ describe("servidor real sobre el contrato", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:validation-failed", status: 400 });
+    const body = problemOf(res);
+    expect(body).toMatchObject({
+      type: "urn:ope:problem:validation-failed",
+      status: 400,
+      instance: "/v1/things",
+    });
+    // The parser error points at the whole body, with Fastify's message.
+    expect(body.errors).toHaveLength(1);
+    expect(body.errors?.[0]?.pointer).toBe("/body");
+    expect(body.errors?.[0]?.message).toMatch(/JSON/);
   });
 
-  it("campo no declarado en el body → 400 que nombra el campo; no se ignora", async () => {
+  it("undeclared field in the body → 400 naming the field; it is not ignored", async () => {
     const handlers: Handlers<TwoOps> = {
       ...healthHandlers,
       createThing: async () => ({ status: 201, body: { kind: "a" } }),
@@ -213,7 +275,7 @@ describe("servidor real sobre el contrato", () => {
     expect(body.errors?.some((e) => e.pointer === "/body/extra")).toBe(true);
   });
 
-  it("body válido → el manejador se invoca con el body tipado y responde 201", async () => {
+  it("valid body → the handler is invoked with the typed body and responds 201", async () => {
     const handlers: Handlers<TwoOps> = {
       ...healthHandlers,
       createThing: async (req) => ({ status: 201, body: { kind: req.body.kind, note: "creado" } }),
@@ -225,18 +287,22 @@ describe("servidor real sobre el contrato", () => {
     expect(json(res)).toEqual({ kind: "b", note: "creado" });
   });
 
-  it("respuesta del manejador fuera del contrato → 500 Problem Details; el cuerpo inválido no sale", async () => {
+  it("handler response outside the contract → 500 Problem Details; the invalid body does not go out", async () => {
     const handlers = {
-      getHealth: async () => ({ status: 200, body: { status: "ok", secreto: "no debe salir" } }),
+      getHealth: async () => ({ status: 200, body: { status: "ok", secret: "must not go out" } }),
     } as unknown as Handlers;
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
     expect(res.headers["content-type"]).toMatch(PROBLEM);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation", status: 500 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:response-contract-violation",
+      status: 500,
+      instance: "/v1/health",
+    });
     expect(res.body).not.toContain("secreto");
   });
 
-  it("código de respuesta no declarado → 500 response-contract-violation", async () => {
+  it("undeclared response status → 500 response-contract-violation", async () => {
     const handlers = {
       getHealth: async () => ({
         status: 203,
@@ -245,10 +311,13 @@ describe("servidor real sobre el contrato", () => {
     } as unknown as Handlers;
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:response-contract-violation" });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:response-contract-violation",
+      instance: "/v1/health",
+    });
   });
 
-  it("manejador que lanza → 500 genérico sin exponer el mensaje interno", async () => {
+  it("handler that throws → generic 500 without exposing the internal message", async () => {
     const handlers: Handlers = {
       getHealth: async () => {
         throw new Error("secreto interno");
@@ -256,25 +325,41 @@ describe("servidor real sobre el contrato", () => {
     };
     const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(500);
-    expect(json(res)).toMatchObject({ type: "urn:ope:problem:internal-error", status: 500 });
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:internal-error",
+      status: 500,
+      instance: "/v1/health",
+    });
     expect(res.body).not.toContain("secreto interno");
   });
 
-  it("no arranca con un contrato inválido y explica el motivo", async () => {
-    const invalid = {
-      openapi: "3.1.0",
-      info: { title: "sin version" },
-      paths: {},
-    } as unknown as ContractDocument;
-    await expect(
-      buildServer({ definition: invalid, handlers: {}, mode: "real", logger: false }),
-    ).rejects.toThrow(/version|not valid/i);
+  it("a declared 4xx returned by a handler goes out as Problem Details, from 400 on", async () => {
+    const handlers: Handlers = {
+      getHealth: async () => ({
+        status: 400,
+        body: problem("validation-failed", { instance: "/v1/health" }).body,
+      }),
+    };
+    const res = await (await server(realContract, handlers)).inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
   });
 
-  it("rechaza registrar un manejador con un operationId inexistente (SC-005)", async () => {
+  it("does not start with an invalid contract and explains why", async () => {
+    const invalid = {
+      openapi: "3.1.0",
+      info: { title: "no version" },
+      paths: {},
+    } as unknown as ContractDocument;
+    await expect(buildServer({ definition: invalid, handlers: {}, logger: silentLogger() })).rejects.toThrow(
+      /version|not valid/i,
+    );
+  });
+
+  it("refuses to register a handler with a nonexistent operationId (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
-    await expect(
-      buildServer({ definition: realContract, handlers, mode: "real", logger: false }),
-    ).rejects.toThrow(/doesNotExist/);
+    await expect(buildServer({ definition: realContract, handlers, logger: silentLogger() })).rejects.toThrow(
+      /doesNotExist/,
+    );
   });
 });

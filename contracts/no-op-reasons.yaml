@@ -1,10 +1,11 @@
-# Catálogo de motivos de NO_OP (Decision.reason). Se amplía sin cambio incompatible: el
-# contrato lo declara como string con patrón, no como enum (ADR-014). Cada motivo lo emite
-# una autoridad; el ledger lo registra tal cual (constitución II: NO_OP con motivo explícito).
+# Catalogue of NO_OP reasons (Decision.reason). Extended without an incompatible change: the
+# contract declares it as a string with a pattern, not as an enum (ADR-014). Each reason is
+# emitted by one authority; the ledger records it as is (constitution II: NO_OP with an
+# explicit reason).
 reasons:
   - slug: decision-plane-unavailable
-    emitter: orquestador
-    description: No hay plano de decisión disponible (feature 004–009); toda sesión resuelve NO_OP.
+    emitter: orchestrator
+    description: No decision plane is available (features 004–009); every session resolves to NO_OP.
   - slug: page-context-incomplete
-    emitter: orquestador
-    description: El contexto de página no alcanza para decidir (por ejemplo, ficha sin producto resuelto).
+    emitter: orchestrator
+    description: The page context is not enough to decide (for example, a product page without a resolved product).

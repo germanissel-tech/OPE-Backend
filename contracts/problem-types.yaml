@@ -1,44 +1,44 @@
-# Catálogo de tipos de problema (RFC 9457 `type`). Única fuente: el servidor importa estas
-# constantes y una prueba verifica que todo `type` emitido pertenece al catálogo.
-# Esquema URN: urn:ope:problem:<slug>. Agregar un tipo es compatible; cambiar o quitar uno, no.
+# Catalogue of problem types (RFC 9457 `type`). Single source: the server imports these
+# constants and a test verifies that every emitted `type` belongs to the catalogue.
+# URN scheme: urn:ope:problem:<slug>. Adding a type is compatible; changing or removing one is not.
 namespace: "urn:ope:problem:"
 types:
   - slug: validation-failed
     status: 400
-    title: El request no cumple el contrato
+    title: The request does not satisfy the contract
   - slug: unauthorized
     status: 401
-    title: Credencial ausente o inválida
+    title: Credential missing or invalid
   - slug: not-found
     status: 404
-    title: Ruta no declarada en el contrato
+    title: Path not declared in the contract
   - slug: method-not-allowed
     status: 405
-    title: Método no declarado para la ruta
+    title: Method not declared for the path
   - slug: unprocessable
     status: 422
-    title: Request válido rechazado por semántica
+    title: Valid request rejected on semantics
   - slug: internal-error
     status: 500
-    title: Error interno
+    title: Internal error
   - slug: response-contract-violation
     status: 500
-    title: La respuesta del manejador no cumple el contrato
+    title: The handler response does not satisfy the contract
   - slug: not-implemented
     status: 501
-    title: Operación declarada sin manejador
+    title: Operation declared without a handler
   - slug: origin-not-allowed
     status: 403
-    title: Origen no registrado para el merchant
+    title: Origin not registered for the merchant
   - slug: session-visitor-mismatch
     status: 422
-    title: El lote mezcla sesiones o visitantes
+    title: The batch mixes sessions or visitors
   - slug: event-timestamp-out-of-range
     status: 422
-    title: El instante del evento está fuera de tolerancia
+    title: The event timestamp is out of tolerance
   - slug: exposure-decision-unknown
     status: 422
-    title: La decisión no existe para este merchant
+    title: The decision does not exist for this merchant
   - slug: exposure-of-no-op
     status: 422
-    title: Una decisión NO_OP no tiene intervención que exponer
+    title: A NO_OP decision has no intervention to expose

@@ -1,5 +1,5 @@
-// check:adrs — el registro de decisiones está bien formado y ninguna cita apunta a un ADR
-// inexistente (FR-020, FR-021).
+// check:adrs — the decision record is well formed and no citation points at a nonexistent
+// ADR (FR-020, FR-021).
 //
 //   node scripts/check-adrs.mjs [--root <dir>]
 import { readFileSync } from "node:fs";
@@ -16,8 +16,8 @@ import {
 } from "./governance-lib.mjs";
 import { repoRoot } from "./lib.mjs";
 
-const ESTADOS = ["propuesta", "aceptada", "reemplazada", "abierta"];
-const CITA = /\bADR-(\d{3})\b/g;
+const STATES = ["propuesta", "aceptada", "reemplazada", "abierta"];
+const CITATION = /\bADR-(\d{3})\b/g;
 
 const args = parseArgs(process.argv.slice(2));
 const root = path.resolve(argString(args, "root") ?? repoRoot);
@@ -35,36 +35,36 @@ for (const file of walkFiles(adrDir, [".md"])) {
   const prefix = /^(\d{3})-[a-z0-9-]+\.md$/.exec(name);
   const number = prefix?.[1];
   if (number === undefined) {
-    problems.push(`${where}: el nombre debe ser NNN-slug-en-kebab.md`);
+    problems.push(`${where}: the name must be NNN-kebab-slug.md`);
     continue;
   }
   const { data, error } = parseFrontmatter(readFileSync(file, "utf8"));
   if (!data) {
-    problems.push(`${where}: sin frontmatter válido${error ? ` (${error})` : ""}`);
+    problems.push(`${where}: no valid frontmatter${error ? ` (${error})` : ""}`);
     continue;
   }
   for (const field of ["numero", "titulo", "estado", "fecha", "fuente"]) {
     const value = data[field];
     if (value === undefined || value === null || value === "") {
-      problems.push(`${where}: falta \`${field}\` en el frontmatter`);
+      problems.push(`${where}: \`${field}\` is missing in the frontmatter`);
     }
   }
   if (data["numero"] !== undefined && Number(data["numero"]) !== Number(number)) {
-    problems.push(`${where}: \`numero: ${String(data["numero"])}\` no coincide con el prefijo ${number}`);
+    problems.push(`${where}: \`numero: ${String(data["numero"])}\` does not match the ${number} prefix`);
   }
-  const estado = data["estado"];
-  if (estado !== undefined && (typeof estado !== "string" || !ESTADOS.includes(estado))) {
-    problems.push(`${where}: \`estado: ${String(estado)}\` inválido; usar ${ESTADOS.join(" | ")}`);
+  const state = data["estado"];
+  if (state !== undefined && (typeof state !== "string" || !STATES.includes(state))) {
+    problems.push(`${where}: invalid \`estado: ${String(state)}\`; use ${STATES.join(" | ")}`);
   }
-  const rawFecha = data["fecha"];
-  const fecha = rawFecha instanceof Date ? rawFecha.toISOString().slice(0, 10) : rawFecha;
-  if (fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(fecha))) {
-    problems.push(`${where}: \`fecha\` debe ser YYYY-MM-DD`);
+  const rawDate = data["fecha"];
+  const date = rawDate instanceof Date ? rawDate.toISOString().slice(0, 10) : rawDate;
+  if (date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
+    problems.push(`${where}: \`fecha\` must be YYYY-MM-DD`);
   }
   numbers.add(Number(number));
 }
 
-// Citas: en docs, specs, contrato, guías y constitución.
+// Citations: in docs, specs, contract, guides and constitution.
 const citing = [
   ...walkFiles(path.join(root, "docs"), [".md"]),
   ...walkFiles(path.join(root, "specs"), [".md"]),
@@ -77,15 +77,17 @@ let citations = 0;
 for (const file of citing) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((raw, i) => {
-    // Lo citado entre backticks es un ejemplo, no una cita.
-    for (const m of stripBackticks(raw).matchAll(CITA)) {
+    // What is quoted between backticks is an example, not a citation.
+    for (const m of stripBackticks(raw).matchAll(CITATION)) {
       citations += 1;
       const cited = m[1] ?? "";
       if (!numbers.has(Number(cited))) {
-        problems.push(`${rel(root, file)}:${i + 1}: cita ADR-${cited} pero no existe docs/adr/${cited}-*.md`);
+        problems.push(
+          `${rel(root, file)}:${i + 1}: cites ADR-${cited} but docs/adr/${cited}-*.md does not exist`,
+        );
       }
     }
   });
 }
 
-process.exit(report(problems, `ADRs: ${numbers.size}, ${citations} citas, sin citas rotas`));
+process.exit(report(problems, `ADRs: ${numbers.size}, ${citations} citations, none broken`));

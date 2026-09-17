@@ -1,4 +1,4 @@
-// contract:bundle — resuelve el contrato multi-archivo en contracts/dist/openapi.yaml (FR-002).
+// contract:bundle — resolves the multi-file contract into contracts/dist/openapi.yaml (FR-002).
 import path from "node:path";
 import { bundlePath, contractRoot, repoRoot, runCli } from "./lib.mjs";
 

@@ -5,25 +5,25 @@ post:
     - ingestKey: []
   x-required-capabilities:
     - events:write
-  summary: Confirmación de exposición de una intervención
+  summary: Confirm the exposure of an intervention
   description: |
-    El SDK confirma que la intervención de una decisión se renderizó y fue visible. Sólo entonces
-    existe una exposición (estado `EXPOSED` de la cadena de evidencia, 01 §5); la decisión sola no
-    la implica. La decisión tiene que existir para el merchant de la credencial y haber sido una
-    intervención. Una confirmación repetida no duplica el registro.
+    The SDK confirms that the intervention of a decision was rendered and visible. Only then
+    does an exposure exist (`EXPOSED` state of the evidence chain, 01 §5); the decision alone
+    does not imply it. The decision must exist for the credential's merchant and must have
+    been an intervention. A repeated confirmation does not duplicate the record.
   x-invariants:
     - type: exposure-decision-unknown
       status: 422
-      rule: existe una decisión con decisionId emitida para el merchant de la credencial
-      description: Una decisión de otro merchant se trata como inexistente (no se revela que existe).
+      rule: a decision with decisionId issued for the credential's merchant exists
+      description: A decision of another merchant is treated as nonexistent (its existence is not revealed).
     - type: exposure-of-no-op
       status: 422
       rule: decision.outcome == INTERVENE
-      description: Una decisión NO_OP no tiene intervención que exponer.
+      description: A NO_OP decision has no intervention to expose.
     - type: origin-not-allowed
       status: 403
-      rule: si el request trae Origin, Origin pertenece a los orígenes registrados del merchant de la credencial
-      description: Igual que en la ingesta.
+      rule: if the request carries Origin, Origin belongs to the registered origins of the credential's merchant
+      description: Same as for ingestion.
   requestBody:
     required: true
     content:
@@ -35,7 +35,7 @@ post:
             $ref: ../examples/exposure-confirmation.yaml
   responses:
     "201":
-      description: Exposición registrada.
+      description: Exposure recorded.
       content:
         application/json:
           schema:
@@ -44,7 +44,7 @@ post:
             recorded:
               $ref: ../examples/exposure-recorded.yaml
     "200":
-      description: Ya estaba registrada; nada cambió.
+      description: Already recorded; nothing changed.
       content:
         application/json:
           schema:

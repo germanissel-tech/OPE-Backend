@@ -1,5 +1,5 @@
-# Contrato de prueba: dos operaciones además de getHealth. `createThing` tiene request body y
-# `listThings` no tendrá manejador (debe responder 501).
+# Test contract: two operations besides getHealth. `createThing` has a request body and
+# `listThings` will have no handler (it must respond 501).
 openapi: 3.1.0
 info:
   title: Fixture two-ops

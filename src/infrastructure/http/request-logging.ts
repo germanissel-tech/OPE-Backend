@@ -1,10 +1,10 @@
-// Logs de request sin datos que no se pueden persistir (01-arquitectura-mvp.md §10.2; FR-016).
-// Fastify loguea por defecto `remoteAddress`, `remotePort` y `host`: acá se reemplaza el
-// serializer por uno que sólo deja método, url y `reqId` (que Fastify agrega solo). La clave de
-// ingesta se redacta además como segunda barrera; el cuerpo nunca se loguea.
-import type { FastifyBaseLogger, FastifyServerOptions } from "fastify";
+// Request logs without data that cannot be persisted (01-arquitectura-mvp.md §10.2; FR-016).
+// Fastify logs `remoteAddress`, `remotePort` and `host` by default: here the serializer is
+// replaced by one that only keeps method, url and `reqId` (which Fastify adds on its own). The
+// ingest key is also redacted as a second barrier; the body is never logged.
+import type { FastifyBaseLogger } from "fastify";
 
-export const requestSerializers = {
+const requestSerializers = {
   req(request: { method: string; url: string }): { method: string; url: string } {
     return { method: request.method, url: request.url };
   },
@@ -13,15 +13,12 @@ export const requestSerializers = {
   },
 };
 
-export const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
+const REDACTED_PATHS = ["req.headers['x-ope-ingest-key']", "headers['x-ope-ingest-key']"];
 
-/** Opciones de logger de Fastify para `logger: true`. */
-export const loggerOptions: Exclude<FastifyServerOptions["logger"], boolean | undefined> = {
-  serializers: requestSerializers,
-  redact: { paths: REDACTED_PATHS, censor: "[redactado]" },
-};
-
-/** Un logger provisto desde afuera recibe los mismos serializers (sus propios `req`/`res` se pisan). */
+/** Any pino logger gets the same serializers and redaction (its own `req`/`res` are overridden). */
 export function privateLogger(base: FastifyBaseLogger): FastifyBaseLogger {
-  return base.child({}, { serializers: requestSerializers, redact: { paths: REDACTED_PATHS } });
+  return base.child(
+    {},
+    { serializers: requestSerializers, redact: { paths: REDACTED_PATHS, censor: "[redacted]" } },
+  );
 }

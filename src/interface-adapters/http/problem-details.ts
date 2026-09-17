@@ -1,6 +1,6 @@
-// Problem Details (RFC 9457). Única forma de error de la API.
-// Los tipos de problema replican contracts/problem-types.yaml (la fuente); una prueba verifica
-// que ambos catálogos coinciden.
+// Problem Details (RFC 9457). The API's only error shape.
+// The problem types replicate contracts/problem-types.yaml (the source); a test verifies that
+// both catalogues match.
 import type { components } from "./generated/api.js";
 
 export type ProblemDetails = components["schemas"]["ProblemDetails"];
@@ -8,21 +8,23 @@ export type ValidationError = NonNullable<ProblemDetails["errors"]>[number];
 
 export const PROBLEM_CONTENT_TYPE = "application/problem+json";
 export const PROBLEM_NAMESPACE = "urn:ope:problem:";
+/** Every violated invariant is a 422 (ADR-001): the request was valid, its semantics were not. */
+const INVARIANT_STATUS = 422;
 
 export const PROBLEM_TYPES = {
-  "validation-failed": { status: 400, title: "El request no cumple el contrato" },
-  unauthorized: { status: 401, title: "Credencial ausente o inválida" },
-  "not-found": { status: 404, title: "Ruta no declarada en el contrato" },
-  "method-not-allowed": { status: 405, title: "Método no declarado para la ruta" },
-  unprocessable: { status: 422, title: "Request válido rechazado por semántica" },
-  "internal-error": { status: 500, title: "Error interno" },
-  "response-contract-violation": { status: 500, title: "La respuesta del manejador no cumple el contrato" },
-  "not-implemented": { status: 501, title: "Operación declarada sin manejador" },
-  "origin-not-allowed": { status: 403, title: "Origen no registrado para el merchant" },
-  "session-visitor-mismatch": { status: 422, title: "El lote mezcla sesiones o visitantes" },
-  "event-timestamp-out-of-range": { status: 422, title: "El instante del evento está fuera de tolerancia" },
-  "exposure-decision-unknown": { status: 422, title: "La decisión no existe para este merchant" },
-  "exposure-of-no-op": { status: 422, title: "Una decisión NO_OP no tiene intervención que exponer" },
+  "validation-failed": { status: 400, title: "The request does not satisfy the contract" },
+  unauthorized: { status: 401, title: "Credential missing or invalid" },
+  "not-found": { status: 404, title: "Path not declared in the contract" },
+  "method-not-allowed": { status: 405, title: "Method not declared for the path" },
+  unprocessable: { status: 422, title: "Valid request rejected on semantics" },
+  "internal-error": { status: 500, title: "Internal error" },
+  "response-contract-violation": { status: 500, title: "The handler response does not satisfy the contract" },
+  "not-implemented": { status: 501, title: "Operation declared without a handler" },
+  "origin-not-allowed": { status: 403, title: "Origin not registered for the merchant" },
+  "session-visitor-mismatch": { status: 422, title: "The batch mixes sessions or visitors" },
+  "event-timestamp-out-of-range": { status: 422, title: "The event timestamp is out of tolerance" },
+  "exposure-decision-unknown": { status: 422, title: "The decision does not exist for this merchant" },
+  "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;
@@ -38,7 +40,22 @@ export interface ProblemResponse {
   body: ProblemDetails;
 }
 
-/** Construye la respuesta de error para un tipo del catálogo. Nunca incluye detalles internos. */
+/** A use case result that violated a declared invariant (ADR-007): the contract maps it to 422. */
+export interface InvariantViolation {
+  invariant: ProblemSlug;
+  detail: string;
+}
+
+/** The 422 response of a controller for a violated invariant: one translation for every use case. */
+export function invariantResponse(
+  req: { instance: string },
+  violation: InvariantViolation,
+): { status: typeof INVARIANT_STATUS; body: ProblemDetails } {
+  const { status, body } = problem(violation.invariant, { instance: req.instance, detail: violation.detail });
+  return { status: INVARIANT_STATUS, body: { ...body, status } };
+}
+
+/** Builds the error response for a catalogue type. Never includes internal details. */
 export function problem(slug: ProblemSlug, options: ProblemOptions = {}): ProblemResponse {
   const { status, title } = PROBLEM_TYPES[slug];
   const body: ProblemDetails = { type: `${PROBLEM_NAMESPACE}${slug}`, title, status };

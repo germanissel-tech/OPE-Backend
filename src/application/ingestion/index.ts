@@ -1,4 +1,4 @@
-// API pública del módulo ingestion (aplicación).
+// Public API of the ingestion module (application).
 export { makeIngestBatch } from "./ingest-batch.js";
 export type {
   EventResult,

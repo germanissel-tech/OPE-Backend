@@ -1,10 +1,10 @@
-description: Falla interna, excepción no controlada o respuesta del manejador que no cumple el contrato. No expone detalles internos.
+description: Internal failure, unhandled exception or a handler response that does not satisfy the contract. Exposes no internal details.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:internal-error
-      title: Error interno
+      title: Internal error
       status: 500
       instance: /v1/health

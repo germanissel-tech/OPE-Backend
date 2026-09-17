@@ -1,4 +1,4 @@
-// Caso de uso: estado del servicio. Envuelve el valor de dominio con el reloj inyectado.
+// Use case: service status. Wraps the domain value with the injected clock.
 import { serviceHealth, type ServiceHealth } from "../../domain/system/index.js";
 import type { Clock } from "../shared-kernel/index.js";
 

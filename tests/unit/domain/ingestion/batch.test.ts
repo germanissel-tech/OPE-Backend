@@ -1,4 +1,4 @@
-// US2 (FR-015, FR-052; ADR-007): invariantes del lote, en el dominio puro.
+// US2 (FR-015, FR-052; ADR-007): batch invariants, in the pure domain.
 import { describe, expect, it } from "vitest";
 import { checkBatch, TIMESTAMP_TOLERANCE, type Event } from "../../../../src/domain/ingestion/index.js";
 import { asEventId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
@@ -22,15 +22,15 @@ function event(n: number, over: Partial<Event> = {}): Event {
 }
 
 describe("checkBatch", () => {
-  it("un lote de una sesión, un visitante y instantes en tolerancia está ok", () => {
+  it("a batch of one session, one visitor and instants within tolerance is ok", () => {
     expect(checkBatch({ events: [event(1), event(2), event(3)] }, now)).toEqual({ ok: true });
   });
 
-  it("un lote de un solo evento está ok", () => {
+  it("a batch of a single event is ok", () => {
     expect(checkBatch({ events: [event(1)] }, now)).toEqual({ ok: true });
   });
 
-  it("[invariant:session-visitor-mismatch] dos visitantes en el mismo lote → rechazado", () => {
+  it("[invariant:session-visitor-mismatch] two visitors in the same batch → rejected", () => {
     const result = checkBatch(
       { events: [event(1), event(2, { visitorId: asVisitorId("vis_00000002") })] },
       now,
@@ -38,7 +38,7 @@ describe("checkBatch", () => {
     expect(result).toMatchObject({ ok: false, invariant: "session-visitor-mismatch" });
   });
 
-  it("[invariant:session-visitor-mismatch] dos sesiones en el mismo lote → rechazado", () => {
+  it("[invariant:session-visitor-mismatch] two sessions in the same batch → rejected", () => {
     const result = checkBatch(
       { events: [event(1), event(2, { sessionId: asSessionId("ses_00000002") })] },
       now,
@@ -46,20 +46,20 @@ describe("checkBatch", () => {
     expect(result).toMatchObject({ ok: false, invariant: "session-visitor-mismatch" });
   });
 
-  it("[invariant:event-timestamp-out-of-range] instante fuera de tolerancia → rechazado", () => {
+  it("[invariant:event-timestamp-out-of-range] timestamp out of tolerance → rejected", () => {
     const future = checkBatch({ events: [event(1, { occurredAt: at(6 * MIN) })] }, now);
     expect(future).toMatchObject({ ok: false, invariant: "event-timestamp-out-of-range" });
     const past = checkBatch({ events: [event(1, { occurredAt: at(-25 * HOUR) })] }, now);
     expect(past).toMatchObject({ ok: false, invariant: "event-timestamp-out-of-range" });
   });
 
-  it("los bordes de la tolerancia (+5 min, -24 h) pasan", () => {
+  it("the tolerance edges (+5 min, -24 h) pass", () => {
     expect(TIMESTAMP_TOLERANCE).toEqual({ pastMs: 24 * HOUR, futureMs: 5 * MIN });
     expect(checkBatch({ events: [event(1, { occurredAt: at(5 * MIN) })] }, now)).toEqual({ ok: true });
     expect(checkBatch({ events: [event(1, { occurredAt: at(-24 * HOUR) })] }, now)).toEqual({ ok: true });
   });
 
-  it("la primera invariante violada gana: mezcla de sesión antes que instante", () => {
+  it("the first violated invariant wins: session mix before timestamp", () => {
     const result = checkBatch(
       { events: [event(1), event(2, { sessionId: asSessionId("ses_00000002"), occurredAt: at(HOUR) })] },
       now,

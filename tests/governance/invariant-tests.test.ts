@@ -1,4 +1,4 @@
-// FR-003: toda invariante declarada tiene una prueba nombrada por su slug.
+// FR-003: every declared invariant has a test named by its slug.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 
@@ -11,23 +11,23 @@ const check = (dir: string) =>
   ]);
 
 describe("check:invariant-tests", () => {
-  it("pasa cuando cada invariante tiene su prueba [invariant:<slug>]", () => {
+  it("passes when every invariant has its [invariant:<slug>] test", () => {
     const r = check("ok");
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain("Invariantes: 1 declaradas, 1 con prueba");
+    expect(r.output).toContain("Invariants: 1 declared, 1 with a test");
   });
 
-  it("falla nombrando el marcador que falta y dónde está declarada la invariante", () => {
+  it("fails naming the missing marker and where the invariant is declared", () => {
     const r = check("missing");
     expect(r.status).toBe(1);
-    // Se arma en dos partes para que el propio check no cuente esta línea como la prueba.
+    // Built in two parts so the check itself does not count this line as the test.
     expect(r.output).toContain(["[invariant:", "not-found]"].join(""));
     expect(r.output).toContain("/paths//v1/health/get");
   });
 
-  it("con cero invariantes pasa informándolo", () => {
+  it("with zero invariants it passes and says so", () => {
     const r = check("none");
     expect(r.status).toBe(0);
-    expect(r.output).toContain("Invariantes: 0 declaradas");
+    expect(r.output).toContain("Invariants: 0 declared");
   });
 });

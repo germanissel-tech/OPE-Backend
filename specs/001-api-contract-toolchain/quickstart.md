@@ -73,6 +73,9 @@ Esperado: `200` JSON `{status, contractVersion, timestamp}`; `400` problem+json 
 
 ## 4. Mock (US3)
 
+> Histórico: el servidor mock se retiró (ADR-018). Hoy `npm run dev` levanta el servidor real en
+> memoria con el mismo comportamiento de validación.
+
 ```bash
 npm run contract:mock
 curl -i http://127.0.0.1:3000/v1/health

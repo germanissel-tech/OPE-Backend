@@ -1,5 +1,5 @@
 type: object
-description: Confirmación del SDK de que una intervención se renderizó y fue visible. Es lo que constituye una exposición (01 §3.1), no la decisión.
+description: Confirmation from the SDK that an intervention was rendered and visible. This is what constitutes an exposure (01 §3.1), not the decision.
 additionalProperties: false
 required: [decisionId, sessionId, visitorId, exposedAt, anchor]
 properties:
@@ -12,6 +12,6 @@ properties:
   exposedAt:
     type: string
     format: date-time
-    description: Instante en que la intervención fue visible, según el navegador.
+    description: Instant at which the intervention was visible, according to the browser.
   anchor:
     $ref: ./Anchor.yaml

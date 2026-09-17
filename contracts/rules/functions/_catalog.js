@@ -1,6 +1,6 @@
-// Lee contracts/problem-types.yaml desde una función custom de Spectral.
-// Spectral empaqueta las funciones (sin `yaml` ni __dirname), así que el catálogo se parsea
-// línea a línea: tiene forma fija (`namespace:` y una lista `types:` de slug/status/title).
+// Reads contracts/problem-types.yaml from a Spectral custom function.
+// Spectral bundles the functions (no `yaml`, no __dirname), so the catalogue is parsed line by
+// line: it has a fixed shape (`namespace:` and a `types:` list of slug/status/title).
 "use strict";
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
@@ -14,7 +14,7 @@ const path = require("node:path");
 const cache = new Map();
 
 /**
- * Devuelve el catálogo de tipos de problema indicado en functionOptions (relativo al ruleset).
+ * Returns the problem-type catalogue named in functionOptions (relative to the ruleset).
  * @param {SpectralContext} context
  * @param {unknown} relativeFile
  * @returns {Catalog}

@@ -1,7 +1,7 @@
-// ope-no-generic-422 (FR-004; ADR-001, ADR-007): toda respuesta 422 de una operación documenta,
-// con sus ejemplos, exactamente qué invariante la produce: ningún ejemplo usa el tipo genérico
-// `unprocessable` y todos corresponden a una invariante declarada en la operación o en el
-// schema de su request body.
+// ope-no-generic-422 (FR-004; ADR-001, ADR-007): every 422 response of an operation documents,
+// through its examples, exactly which invariant produces it: no example uses the generic type
+// `unprocessable` and all of them correspond to an invariant declared on the operation or on
+// the schema of its request body.
 "use strict";
 const { loadCatalog } = require("./_catalog.js");
 const { get, isObject, walkSchema } = require("./_walk.js");
@@ -61,14 +61,14 @@ const noGeneric422 = (operation, opts, context) => {
   const response = get(operation["responses"], "422");
   if (!response) return [];
   const { namespace } = loadCatalog(context, get(opts, "catalog"));
-  const id = String(operation["operationId"] ?? "(sin operationId)");
+  const id = String(operation["operationId"] ?? "(no operationId)");
   const at = [...context.path, "responses", "422"];
   const media = get(get(response, "content"), "application/problem+json");
   const types = exampleTypes(media);
   if (types.length === 0) {
     return [
       {
-        message: `La respuesta 422 de ${id} debe tener al menos un ejemplo con el type de la invariante que la produce.`,
+        message: `The 422 response of ${id} must have at least one example with the type of the invariant that produces it.`,
         path: at,
       },
     ];
@@ -80,12 +80,12 @@ const noGeneric422 = (operation, opts, context) => {
     const slug = type.startsWith(namespace) ? type.slice(namespace.length) : type;
     if (slug === "unprocessable") {
       results.push({
-        message: `La respuesta 422 de ${id} usa el tipo genérico 'unprocessable'; declará la invariante (x-invariants) con su tipo propio y usalo en el ejemplo.`,
+        message: `The 422 response of ${id} uses the generic type 'unprocessable'; declare the invariant (x-invariants) with a type of its own and use it in the example.`,
         path: at,
       });
     } else if (!declared.has(slug)) {
       results.push({
-        message: `La respuesta 422 de ${id} nombra '${slug}' pero ninguna x-invariants de la operación ni de su request body lo declara.`,
+        message: `The 422 response of ${id} names '${slug}' but no x-invariants of the operation or of its request body declares it.`,
         path: at,
       });
     }

@@ -1,6 +1,6 @@
-# Hook de pre-commit (ADR-011): formato y lint sobre lo staged, typecheck completo.
-# No corre contract:check ni las pruebas: eso lo hace CI, y CLAUDE.md lo exige antes de commitear.
-# Se instala solo con `npm install` (postinstall de lefthook). Saltear: git commit --no-verify.
+# Pre-commit hook (ADR-011): format and lint on staged files, full typecheck.
+# Does not run contract:check or the tests: CI does, and CLAUDE.md demands them before committing.
+# Installs itself with `npm install` (lefthook postinstall). Skip: git commit --no-verify.
 pre-commit:
   parallel: true
   jobs:

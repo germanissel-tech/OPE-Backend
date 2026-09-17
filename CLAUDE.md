@@ -1,7 +1,10 @@
 # OPE-Backend — instrucciones para agentes
 
 Backend del MVP de OPE (Zona B). Se construye de cero; la POC no es base de código.
-Idioma de documentación, specs y commits: **español**. Código e identificadores: inglés.
+Idioma (ADR-015): documentación, specs, ADRs, glosario y commits en **español**. Código, comentarios,
+strings, mensajes de error y de log, contrato OpenAPI (descripciones, catálogos, mensajes de reglas),
+configuraciones y CI en **inglés**; `npm run check:language` lo hace cumplir. Excepción en línea:
+`// lang:es -- motivo` (sin motivo falla; se cuentan, objetivo `Language exceptions: 0`).
 
 ## Fuentes de verdad, en este orden
 
@@ -32,10 +35,12 @@ Dentro de una feature que toca HTTP, el orden es:
    `src/interface-adapters/http/controllers/<módulo>/<operacion>.ts` tipado con
    `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ dominio; lee el merchant con
    `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
-   cableado en `src/composition/` (puerto en `ports.ts`, perfil en `profiles/memory.ts`, caso
-   de uso en `use-cases.ts`, controller en `bootstrap.ts`). El servidor rutea por
-   `operationId`; no hay otro mecanismo de rutas.
-5. `npm run format:check && npm run lint && npm run typecheck && npm run arch && npm test && npm run test:contract`
+   cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
+   su tabla de enlaces por tecnología, instancia sus casos de uso y entrega sus controllers; el
+   perfil en `profiles/local.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
+   `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
+   que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
+5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
    en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
    corre CI.
 
@@ -53,9 +58,8 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                         |
 | `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                         |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                           |
-| `npm run contract:mock`                           | El mismo servidor en modo mock (`OPE_MOCK=1`): responde los ejemplos del contrato                                |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                         |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / `tsx watch` / `tsc --noEmit` incluyendo `tests/types/*.test-d.ts`                              |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`  |
 | `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura |
 | `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                |
 | `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                 |
@@ -63,11 +67,16 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                    |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                         |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                               |
+| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)        |
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Excepciones de lint: N`) / arregla lo automático             |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                 |
 | `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                      |
+| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                 |
+| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                       |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo      |
+| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo             |
 
-Los cuatro `check:*` corren dentro de `contract:check`.
+Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
@@ -80,7 +89,7 @@ adentro:
 | `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                             | `domain/`, `application/`. Tampoco npm ni Node                                                        |
 | `src/interface-adapters/` | `http/` (controllers, security, tipos generados, cliente) y `gateways/<módulo>/` (implementan puertos) | `application/`, `domain/`, npm. Un gateway no importa otro gateway; un controller no importa gateways |
 | `src/infrastructure/`     | frameworks y drivers: Fastify + openapi-backend, CORS, logging                                         | todo menos `composition/` y `main.ts`                                                                 |
-| `src/composition/`        | `Ports` (contenedor tipado), perfiles, casos de uso, `bootstrap()`                                     | todo; sólo `main.ts` y las pruebas lo importan                                                        |
+| `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo), `bootstrap()`      | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`      |
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
@@ -89,19 +98,58 @@ en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
 
-**Composición** (DI manual, sin contenedor): `interface Ports` en `src/composition/ports.ts`;
-un puerto nuevo sin proveer en el perfil no compila. `bootstrap(config, { ports?, handlers?,
-logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` de
-`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants de prueba por
-`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; con `OPE_MOCK=1` hay uno por defecto.
+**Composición** (DI manual, sin contenedor): cada `src/composition/modules/<módulo>.ts` declara
+los puertos que necesita (`LedgerPorts`), cómo los sirve cada tecnología
+(`memoryLedgerPorts: Bindings<LedgerPorts>`; `postgresLedgerPorts(pool)` cuando llegue) y lo
+que sirve (`{ handlers?, security?, cors? }`). `Ports` es la intersección de esos slices y un
+puerto nuevo sin proveer no compila. Un perfil (`profiles/local.ts`) es un despliegue: compone
+una tabla de enlaces por módulo con `binder(overrides).bind(...)`; nunca elige gateways por su
+cuenta (`arch`: `profiles-compose-modules`).
+`bootstrap(config, { profile?, modules?, ports?, handlers? })` devuelve `{ app, ports, close }`; el
+logger es un puerto (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y las
+pruebas lo reemplazan por `ports.logger`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
+SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
+no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
+`ConfigError` (variable + problema) lo que no puede arrancar el servidor
+y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
+`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por
+`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No hay servidor
+mock ni modo (ADR-018): el composition root no decide sobre configuración (`shape` regla 5); un
+contrato con una operación que ningún módulo sirve no arranca.
 
-### Tipado (ADR-011, ADR-012; verificado por `lint` y `typecheck`)
+### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
+
+- Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
+  anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
+  ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
+  −1 e índices exceptuados); strings repetidos sin tipar sólo con nombre en `src/`
+  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
+  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
+- Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
+  lista las entradas y las exclusiones; los motivos están en el encabezado de
+  `scripts/check-dead-code.mjs` (knip no admite comentarios).
+- Mutación: un cambio no entra si un mutante de sus propias líneas sobrevive. `StringLiteral`
+  está excluido (prosa; los literales tipados ya son errores de compilación al mutarse). El
+  runner lleva `patches/@stryker-mutator+vitest-runner+10.0.0.patch` hasta que stryker-js#6210
+  se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
+- Forma de los anillos (`scripts/shape-rules.mjs`, `tests/architecture/shape.test.ts`): ≤ 300
+  líneas por archivo en `domain/` y `application/`; un controller por `operationId`; ningún `new`
+  de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
+  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`).
+- Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
+  `// Stryker disable next-line <mutador>: <motivo>`.
+
+### Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)
+
+- Compilador: TypeScript 7 (`@typescript/native`) ejecuta `build` y `typecheck`; `typescript` es
+  el alias de `@typescript/typescript6` (API 6.0) que importan typescript-eslint,
+  openapi-typescript y dependency-cruiser, hasta que admitan la API ≥ 7.1 (ADR-017).
 
 - Sin `any` explícito ni valores `any` (`no-unsafe-*`), sin `!`, promesas siempre manejadas,
   `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
   se lee como `unknown` y se estrecha (ver `build-server.ts`, `tests/helpers/json.ts`).
 - Una excepción va **en la línea**, con motivo: `// eslint-disable-next-line <regla> -- <motivo>`.
-  Sin motivo o sin uso, falla. Objetivo permanente: `Excepciones de lint: 0`.
+  Sin motivo o sin uso, falla. Objetivo permanente: `Lint exceptions: 0`.
 - Scripts JavaScript (`scripts/`, `contracts/rules/functions/`) se verifican con `checkJs`:
   toda función exportada lleva su firma en JSDoc; los valores desconocidos se leen con
   `prop()`/`isObject()`; los tipos compartidos son `@typedef` importables (`@import`).
@@ -162,6 +210,11 @@ logger? })` devuelve `{ app, ports, close }`; las pruebas usan `startTestApp()` 
   `src/composition/` (ADR-013). Identificadores como tipos marcados (`MerchantId`, `SessionId`,
   …, `src/domain/shared-kernel/`).
 - Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
+- Literales de la plataforma (señales, métodos, headers, media types, claves reservadas de una
+  librería) se declaran una vez, con nombre y tipo (`HTTP_METHODS`, `SHUTDOWN_SIGNALS`); un
+  literal repetido en `src/` donde alguna ocurrencia no la verifica un tipo literal falla el
+  lint (`ope/no-magic-strings`). Donde el tipo es una unión de literales (`ProblemSlug`,
+  `NodeJS.Signals`) el literal se queda: el compilador es la constante.
 - `NO_OP` es un resultado válido con motivo, nunca una excepción.
 - Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
   **BUILT / CONNECTED / ACTIVE / TESTED**. No afirmar que algo funciona sin prueba ejecutable.

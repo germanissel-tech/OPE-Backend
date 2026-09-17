@@ -1,19 +1,25 @@
-// Lote de eventos de una sesión y sus invariantes (contrato: EventBatch.x-invariants; ADR-007).
-// El esquema ya validó forma y rangos; acá van las reglas que el esquema no expresa.
+// Batch of events of one session and its invariants (contract: EventBatch.x-invariants; ADR-007).
+// The schema already validated shape and ranges; here go the rules the schema cannot express.
+import { hours, minutes } from "../shared-kernel/index.js";
 import type { Event } from "./event.js";
 
 export interface EventBatch {
   events: readonly Event[];
 }
 
-/** Tolerancia del instante respecto del reloj del backend: 24 h a pasado, 5 min a futuro. */
-export const TIMESTAMP_TOLERANCE = { pastMs: 24 * 60 * 60 * 1000, futureMs: 5 * 60 * 1000 } as const;
+/** Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants). */
+const TOLERANCE_PAST_HOURS = 24;
+const TOLERANCE_FUTURE_MINUTES = 5;
+export const TIMESTAMP_TOLERANCE = {
+  pastMs: hours(TOLERANCE_PAST_HOURS),
+  futureMs: minutes(TOLERANCE_FUTURE_MINUTES),
+} as const;
 
 export type BatchInvariant = "session-visitor-mismatch" | "event-timestamp-out-of-range";
 
 export type BatchCheck = { ok: true } | { ok: false; invariant: BatchInvariant; detail: string };
 
-/** Devuelve la primera invariante violada (en el orden en que están declaradas) o `ok`. */
+/** Returns the first violated invariant (in declaration order) or `ok`. */
 export function checkBatch(batch: EventBatch, now: Date): BatchCheck {
   const [first, ...rest] = batch.events;
   if (first === undefined) return { ok: true };
@@ -22,7 +28,7 @@ export function checkBatch(batch: EventBatch, now: Date): BatchCheck {
       return {
         ok: false,
         invariant: "session-visitor-mismatch",
-        detail: `El evento ${event.eventId} no pertenece a la sesión y el visitante del lote.`,
+        detail: `Event ${event.eventId} does not belong to the session and visitor of the batch.`,
       };
     }
   }
@@ -34,7 +40,7 @@ export function checkBatch(batch: EventBatch, now: Date): BatchCheck {
       return {
         ok: false,
         invariant: "event-timestamp-out-of-range",
-        detail: `El instante del evento ${event.eventId} está fuera de la tolerancia (24 h a pasado, 5 min a futuro).`,
+        detail: `The timestamp of event ${event.eventId} is out of tolerance (24 h in the past, 5 min in the future).`,
       };
     }
   }

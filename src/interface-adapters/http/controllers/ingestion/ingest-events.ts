@@ -1,8 +1,8 @@
-// ingestEvents (FR-010..FR-016, FR-020): DTO del contrato → lote del dominio → caso de uso → 202
-// IngestResult, o 422 con el tipo de la invariante violada. El body ya pasó la validación del
-// contrato; acá sólo se traduce (ids marcados, instantes, unión por `type`).
+// ingestEvents (FR-010..FR-016, FR-020): contract DTO → domain batch → use case → 202
+// IngestResult, or 422 with the type of the violated invariant. The body already passed the
+// contract validation; here it is only translated (branded ids, instants, union by `type`).
 import { asEventId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
-import { problem } from "../../problem-details.js";
+import { invariantResponse } from "../../problem-details.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import type { IngestBatch } from "../../../../application/ingestion/index.js";
 import type { Event } from "../../../../domain/ingestion/index.js";
@@ -13,8 +13,8 @@ import type { OperationHandler } from "../../typed.js";
 type EventDto = components["schemas"]["Event"];
 type DecisionDto = components["schemas"]["Decision"];
 
-/** Un DTO de evento → evento del dominio. El `switch` es exhaustivo: un tipo nuevo no compila sin rama. */
-export function toDomainEvent(dto: EventDto): Event {
+/** An event DTO → domain event. The `switch` is exhaustive: a new type does not compile without a branch. */
+function toDomainEvent(dto: EventDto): Event {
   const base = {
     eventId: asEventId(dto.eventId),
     sessionId: asSessionId(dto.sessionId),
@@ -49,8 +49,8 @@ export function toDomainEvent(dto: EventDto): Event {
   }
 }
 
-/** Una decisión del dominio → DTO. `merchantId` y `decidedAt` no viajan. */
-export function toDecisionDto(decision: Decision): DecisionDto {
+/** A domain decision → DTO. `merchantId` and `decidedAt` do not travel. */
+function toDecisionDto(decision: Decision): DecisionDto {
   const dto: DecisionDto = {
     decisionId: decision.decisionId,
     sessionId: decision.sessionId,
@@ -68,10 +68,7 @@ export function makeIngestEvents(ingestBatch: IngestBatch): OperationHandler<"in
       merchantId: merchant.merchantId,
       batch: { events: req.body.events.map(toDomainEvent) },
     });
-    if (!result.ok) {
-      const { status, body } = problem(result.invariant, { instance: req.instance, detail: result.detail });
-      return { status: 422, body: { ...body, status } };
-    }
+    if (!result.ok) return invariantResponse(req, result);
     const { accepted, duplicates, results, decision } = result.outcome;
     return {
       status: 202,

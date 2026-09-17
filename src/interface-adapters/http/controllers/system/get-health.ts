@@ -1,4 +1,4 @@
-// getHealth (FR-047): traduce el resultado del caso de uso al DTO Health del contrato.
+// getHealth (FR-047): translates the use case result to the contract's Health DTO.
 import type { GetServiceHealth } from "../../../../application/system/index.js";
 import type { OperationHandler } from "../../typed.js";
 

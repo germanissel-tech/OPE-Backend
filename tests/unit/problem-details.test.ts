@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import {
   PROBLEM_NAMESPACE,
   PROBLEM_TYPES,
+  invariantResponse,
   problem,
 } from "../../src/interface-adapters/http/problem-details.js";
 
@@ -15,8 +16,8 @@ interface Catalog {
 
 const catalog = parse(readFileSync(path.resolve("contracts/problem-types.yaml"), "utf8")) as Catalog;
 
-describe("catálogo de tipos de problema", () => {
-  it("el código replica exactamente contracts/problem-types.yaml", () => {
+describe("problem type catalogue", () => {
+  it("the code replicates exactly contracts/problem-types.yaml", () => {
     expect(PROBLEM_NAMESPACE).toBe(catalog.namespace);
     const fromCatalog = Object.fromEntries(
       catalog.types.map((t) => [t.slug, { status: t.status, title: t.title }]),
@@ -26,7 +27,7 @@ describe("catálogo de tipos de problema", () => {
 });
 
 describe("problem()", () => {
-  it("arma un Problem Details con type del catálogo y status coherente", () => {
+  it("builds a Problem Details with a catalogue type and a consistent status", () => {
     const res = problem("validation-failed", {
       instance: "/v1/health",
       errors: [{ pointer: "/query/x", message: "must NOT have additional properties" }],
@@ -34,19 +35,36 @@ describe("problem()", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
       type: "urn:ope:problem:validation-failed",
-      title: "El request no cumple el contrato",
+      title: "The request does not satisfy the contract",
       status: 400,
       instance: "/v1/health",
       errors: [{ pointer: "/query/x", message: "must NOT have additional properties" }],
     });
   });
 
-  it("nunca incluye claves fuera del esquema ProblemDetails", () => {
+  it("never includes keys outside the ProblemDetails schema", () => {
     const allowed = ["type", "title", "status", "detail", "instance", "errors"];
     for (const slug of Object.keys(PROBLEM_TYPES) as (keyof typeof PROBLEM_TYPES)[]) {
       const { body } = problem(slug, { detail: "d" });
       for (const key of Object.keys(body)) expect(allowed).toContain(key);
       expect(body.status).toBe(PROBLEM_TYPES[slug].status);
     }
+  });
+});
+
+describe("invariantResponse()", () => {
+  it("translates a violated invariant to the 422 of its catalogue type, with detail and instance", () => {
+    const res = invariantResponse(
+      { instance: "/v1/events" },
+      { invariant: "session-visitor-mismatch", detail: "two visitors" },
+    );
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({
+      type: "urn:ope:problem:session-visitor-mismatch",
+      title: PROBLEM_TYPES["session-visitor-mismatch"].title,
+      status: 422,
+      detail: "two visitors",
+      instance: "/v1/events",
+    });
   });
 });

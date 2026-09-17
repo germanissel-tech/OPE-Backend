@@ -1,6 +1,6 @@
-// Estado del servicio: el valor de dominio más chico posible, sin ninguna dependencia.
-// `degraded` queda reservado para cuando existan dependencias externas cuya caída no impida
-// responder (constitución II: el sistema degrada, no promete).
+// Service status: the smallest possible domain value, with no dependency at all.
+// `degraded` is reserved for when external dependencies exist whose outage does not prevent
+// responding (constitution II: the system degrades, it does not promise).
 export type ServiceStatus = "ok" | "degraded";
 
 export interface ServiceHealth {

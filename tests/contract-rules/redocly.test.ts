@@ -1,5 +1,5 @@
-// US5 (FR-030): el schema de un media type siempre es $ref. Assertion de Redocly (redocly.yaml),
-// verificada sobre los archivos fuente, con archivo y línea.
+// US5 (FR-030): the schema of a media type is always a $ref. Redocly assertion (redocly.yaml),
+// verified on the source files, with file and line.
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -32,7 +32,7 @@ function lint(file: string): Problem[] {
 const RULE = "rule/media-type-schema-ref";
 
 describe("rule/media-type-schema-ref (Redocly)", () => {
-  it.each(["inline-request.yaml", "inline-response.yaml"])("%s falla con archivo y línea", (file) => {
+  it.each(["inline-request.yaml", "inline-response.yaml"])("%s fails with file and line", (file) => {
     const hits = lint(file).filter((p) => p.ruleId === RULE);
     expect(hits.length).toBeGreaterThan(0);
     for (const hit of hits) {

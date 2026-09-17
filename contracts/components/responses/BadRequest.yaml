@@ -1,10 +1,10 @@
-description: Parámetro, header o campo desconocido, ausente o con tipo inválido. `errors` enumera cada violación; el manejador no se invocó.
+description: Unknown, missing or wrongly typed parameter, header or field. `errors` lists each violation; the handler was not invoked.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:validation-failed
-      title: El request no cumple el contrato
+      title: The request does not satisfy the contract
       status: 400
       instance: /v1/health

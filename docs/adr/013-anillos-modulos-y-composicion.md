@@ -36,7 +36,7 @@ verificar que un perfil provea todos los puertos.
    `context-map:<módulo>`; agregar un módulo es agregar una entrada. En `interface-adapters` los
    controllers y gateways también se agrupan por módulo; un gateway no importa otro gateway.
 3. **Composición tipada, DI manual**: `composition/ports.ts` declara `interface Ports` con un
-   campo por puerto; cada **perfil** (`profiles/memory.ts` ahora; producción después) exporta
+   campo por puerto; cada **perfil** (`profiles/local.ts` ahora; producción después) exporta
    una función que devuelve `Ports` completo, así que un puerto nuevo sin proveer no compila.
    `bootstrap(config, overrides?: { ports?: Partial<Ports>; handlers?: Handlers })` arma casos de uso y servidor y devuelve
    `{ app, ports, close }`; `close` apaga en orden inverso. `main.ts` sólo lee configuración,
@@ -52,3 +52,47 @@ Todo verificado por dependency-cruiser con un fixture por regla (`tests/architec
 - El mapa de contextos es código revisable en cada PR; un import fuera del mapa falla el build.
 - Sin decoradores ni metadatos en runtime: el dominio y la aplicación son TypeScript plano.
 - Reemplaza a ADR-006; la tabla de capas de `CLAUDE.md` pasa a describir anillos y módulos.
+
+## Enmienda (2026-09-16): cada módulo se cablea solo; arranque fail-closed
+
+La primera versión de `bootstrap.ts` enumeraba los casos de uso (`buildUseCases`) y los
+controllers (`wireControllers`) de todos los módulos en dos mapas centrales: con tres
+operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas de la POC
+(constitución I). Se decide:
+
+1. **Un módulo por archivo en `composition/modules/<módulo>.ts`**: declara el slice de puertos
+   que necesita (`XPorts`), instancia sus casos de uso y devuelve lo que sirve
+   (`{ handlers?, security?, cors? }`). `Ports` es la intersección de los slices; un puerto
+   nuevo sin proveer en el perfil sigue sin compilar.
+2. **El root conserva la lista de módulos** (`MODULES` en `composition/modules/index.ts`), nunca
+   la de operaciones: una operación nueva toca sólo el archivo de su módulo; un módulo nuevo es
+   una línea ahí y otra en `CONTEXT_MAP`. `wireModules` falla si dos módulos sirven el mismo
+   `operationId`, el mismo esquema de seguridad o ambos declaran la política CORS.
+3. **Fail-closed en el arranque** (constitución II): en modo real, `bootstrap` comprueba que
+   toda operación declarada en el contrato tiene handler y **no arranca** si falta alguna. El
+   servidor conserva el 501 para mapas de handlers arbitrarios (FR-044 de la 001), pero en
+   producción un controller olvidado se ve al desplegar, no en un 501 bajo carga.
+4. Regla `composition-wires-by-module` en dependency-cruiser: fuera de `composition/modules/`,
+   `composition/` no importa controllers, security handlers ni casos de uso (con fixture).
+5. **El enlace de cada puerto vive con su módulo; el perfil es un despliegue, no un entorno**
+   (2026-09-17). `composition/modules/<módulo>.ts` declara lo que el módulo necesita
+   (`LedgerPorts`), cómo lo sirve cada tecnología (`memoryLedgerPorts: Bindings<LedgerPorts>`,
+   `postgresLedgerPorts(pool)` cuando llegue: conviven, no se reemplazan) y lo que el módulo
+   sirve (`ledgerModule`). Un perfil (`profiles/local.ts`) compone **una tabla de enlaces por
+   módulo** con `binder(overrides).bind(...)`: el override reemplaza el puerto antes de
+   construirlo, lo construido se registra en orden para el cierre, y un despliegue mixto
+   (Postgres para ledgers, Redis para dedup, configuración para merchants) es la forma normal.
+   Cambiar la base de datos de un módulo = un archivo en `gateways/<módulo>/`, una tabla en su
+   módulo y una línea en el perfil. Regla `profiles-compose-modules`: `composition/profiles/`
+   no importa `interface-adapters/gateways/` (con fixture).
+
+El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
+inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, modules?, ports?, handlers? })`. 6. **El logger es un puerto y el proceso falla cerrado** (2026-09-17). `Logger` vive en
+`application/shared-kernel/ports/`; `infrastructure/logging/pino-logger.ts` lo implementa
+sobre pino con los serializadores privados y Fastify comparte esa instancia; el root no
+conoce ningún tipo del framework. `composition/lifecycle.ts` adjunta al proceso el apagado
+ordenado (SIGINT/SIGTERM → `close()` → salida 0; fallo o timeout de gracia → salida 1) y el
+corte ante `uncaughtException`/`unhandledRejection` (log + salida 1, sin intentar recuperar
+un estado que no se puede confiar); el proceso es un parámetro, así que se prueba sin señales.
+`readConfig` valida (`PORT` decimal 0–65535, blanco = no definido, merchants con forma) y
+rechaza con `ConfigError` nombrando la variable.

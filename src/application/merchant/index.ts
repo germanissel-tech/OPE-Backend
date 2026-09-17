@@ -1,4 +1,4 @@
-// API pública del módulo merchant (aplicación).
+// Public API of the merchant module (application).
 export { makeResolveIngestKey } from "./resolve-ingest-key.js";
 export type {
   ResolveIngestKey,

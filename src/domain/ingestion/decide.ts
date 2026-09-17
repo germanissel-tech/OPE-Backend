@@ -1,6 +1,6 @@
-// Motivo del NO_OP para un lote. Sin plano de decisión (llega en features posteriores), lo único
-// que se distingue es el contexto incompleto: una ficha de producto sin producto resuelto no
-// permite decidir nada (01-arquitectura-mvp.md §3.1.1, fail-closed).
+// NO_OP reason for a batch. Without a decision plane (it arrives in later features), the only
+// thing that can be told apart is an incomplete context: a product page without a resolved
+// product allows no decision at all (01-arquitectura-mvp.md §3.1.1, fail-closed).
 import type { EventBatch } from "./batch.js";
 import type { NoOpReason } from "./no-op-reasons.js";
 

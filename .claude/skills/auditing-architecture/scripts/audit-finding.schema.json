@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ope:audit:finding",
+  "title": "AuditFinding",
+  "description": "A design-review finding proposed by the auditing-architecture skill. verify-finding.mjs validates each one against this schema, then checks that file:line exists and that rule.source resolves.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "file", "line", "rule", "severity", "evidence", "proposal", "coveringTest", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^F-[0-9]{3}$" },
+    "file": {
+      "type": "string",
+      "description": "Repo-relative path with forward slashes.",
+      "pattern": "^[^\\\\]+$"
+    },
+    "line": { "type": "integer", "minimum": 1 },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source"],
+      "properties": {
+        "id": { "type": "string", "description": "Short slug, e.g. srp-one-authority-per-module." },
+        "source": {
+          "type": "string",
+          "description": "Where the rule is written down. ADR-NNN | constitution#<section> | guide#<section> | lint:<rule> | arch:<rule> | shape:<rule> | clarity:<slug> (naming, readability; no formal source)",
+          "pattern": "^(ADR-[0-9]{3}|constitution#.+|guide#.+|lint:[A-Za-z0-9@/_-]+|arch:[A-Za-z0-9:_-]+|shape:[a-z0-9-]+|clarity:[a-z0-9-]+)$"
+        }
+      }
+    },
+    "severity": { "enum": ["high", "medium", "low"] },
+    "evidence": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after"],
+      "properties": { "before": { "type": "string" }, "after": { "type": "string" } }
+    },
+    "coveringTest": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["proposed", "confirmed", "refuted"] },
+    "refutation": { "type": "string", "description": "Required when status is refuted." },
+    "verified": { "type": "boolean", "description": "Set by verify-finding.mjs." },
+    "reason": { "type": "string", "description": "Set by verify-finding.mjs when verified is false." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "refuted" } } },
+      "then": { "required": ["refutation"] }
+    },
+    {
+      "if": {
+        "properties": { "rule": { "properties": { "source": { "pattern": "^(ADR-|constitution#)" } } } }
+      },
+      "then": { "properties": { "severity": { "const": "high" } } }
+    },
+    {
+      "if": {
+        "properties": { "rule": { "properties": { "source": { "pattern": "^(guide#|lint:|arch:|shape:)" } } } }
+      },
+      "then": { "properties": { "severity": { "const": "medium" } } }
+    },
+    {
+      "if": { "properties": { "rule": { "properties": { "source": { "pattern": "^clarity:" } } } } },
+      "then": { "properties": { "severity": { "const": "low" } } }
+    }
+  ]
+}

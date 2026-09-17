@@ -1,10 +1,10 @@
-description: La credencial es válida pero el `Origin` del navegador no está entre los orígenes registrados del merchant.
+description: The credential is valid but the browser's `Origin` is not among the merchant's registered origins.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:origin-not-allowed
-      title: Origen no registrado para el merchant
+      title: Origin not registered for the merchant
       status: 403
       instance: /v1/events

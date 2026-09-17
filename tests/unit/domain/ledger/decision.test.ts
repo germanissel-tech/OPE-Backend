@@ -1,4 +1,4 @@
-// US3 (FR-020, FR-021): la decisión siempre existe, con motivo; sin plano de decisión es NO_OP.
+// US3 (FR-020, FR-021): the decision always exists, with a reason; without a decision plane it is NO_OP.
 import { describe, expect, it } from "vitest";
 import { decide, type Event, type PageContext } from "../../../../src/domain/ingestion/index.js";
 import { noOp } from "../../../../src/domain/ledger/index.js";
@@ -22,7 +22,7 @@ const viewed = (page: PageContext): Event => ({
 });
 
 describe("noOp", () => {
-  it("produce una decisión NO_OP sin intervención, con todo lo que el ledger registra", () => {
+  it("produces a NO_OP decision without intervention, with everything the ledger records", () => {
     const decision = noOp({
       decisionId: asDecisionId("dec_00000001"),
       merchantId: asMerchantId("m_a"),
@@ -44,23 +44,23 @@ describe("noOp", () => {
   });
 });
 
-describe("decide (sin plano de decisión)", () => {
-  it("ficha de producto sin productId en ningún evento → page-context-incomplete", () => {
+describe("decide (without a decision plane)", () => {
+  it("product page without productId in any event → page-context-incomplete", () => {
     expect(decide({ events: [viewed({ pageType: "product" })] })).toBe("page-context-incomplete");
   });
 
-  it("ficha con productId → decision-plane-unavailable", () => {
+  it("product page with productId → decision-plane-unavailable", () => {
     expect(decide({ events: [viewed({ pageType: "product", productId: "SKU-1" })] })).toBe(
       "decision-plane-unavailable",
     );
   });
 
-  it("basta un evento de la ficha con producto resuelto", () => {
+  it("one product-page event with a resolved product is enough", () => {
     const events = [viewed({ pageType: "product" }), viewed({ pageType: "product", productId: "SKU-1" })];
     expect(decide({ events })).toBe("decision-plane-unavailable");
   });
 
-  it("un lote sin ficha de producto (sólo listado) → decision-plane-unavailable", () => {
+  it("a batch without a product page (listing only) → decision-plane-unavailable", () => {
     expect(decide({ events: [viewed({ pageType: "listing" })] })).toBe("decision-plane-unavailable");
   });
 });

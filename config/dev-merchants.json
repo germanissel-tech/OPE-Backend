@@ -1,0 +1,7 @@
+[
+  {
+    "merchantId": "dev-merchant",
+    "ingestKeys": ["ope_dev_ingest_key"],
+    "origins": ["http://localhost:3000", "http://127.0.0.1:3000"]
+  }
+]

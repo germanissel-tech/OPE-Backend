@@ -2,7 +2,7 @@
   "name": "ope-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend del MVP de OPE. API-first: contracts/openapi.yaml es la fuente de verdad de toda superficie HTTP.",
+  "description": "OPE MVP backend. API-first: contracts/openapi.yaml is the source of truth for every HTTP surface.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -27,9 +27,8 @@
     "check:glossary": "node scripts/check-glossary.mjs",
     "check:adrs": "node scripts/check-adrs.mjs",
     "check:markers": "node scripts/check-markers.mjs",
-    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers",
+    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers && npm run check:language",
     "release-check": "node scripts/release-check.mjs",
-    "contract:mock": "cross-env OPE_MOCK=1 tsx src/main.ts",
     "contract:docs": "node scripts/contract-docs.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -38,9 +37,15 @@
     "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p tsconfig.scripts.json",
     "arch": "node node_modules/dependency-cruiser/bin/dependency-cruiser.mjs --config .dependency-cruiser.cjs src",
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/main.ts",
+    "dev": "cross-env OPE_MERCHANTS_FILE=config/dev-merchants.json tsx watch src/main.ts",
     "test": "vitest run",
-    "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs"
+    "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs",
+    "check:language": "node scripts/check-language.mjs",
+    "check:duplication": "node scripts/check-duplication.mjs",
+    "check:dead-code": "node scripts/check-dead-code.mjs",
+    "quality": "node scripts/quality.mjs",
+    "test:mutation": "node scripts/mutation-diff.mjs",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
@@ -57,22 +62,36 @@
     "@redocly/cli": "^2.53.2",
     "@stoplight/spectral-cli": "^6.16.3",
     "@stoplight/spectral-core": "^1.23.1",
+    "@stoplight/spectral-parsers": "^1.0.5",
     "@stoplight/spectral-ruleset-bundler": "^1.7.0",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/typescript-checker": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "^22.20.3",
-    "cross-env": "^10.0.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "cross-env": "^10.1.0",
     "dependency-cruiser": "^18.3.1",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-sonarjs": "^4.2.1",
     "globals": "^17.12.0",
+    "jscpd": "^5.2.1",
+    "knip": "^6.36.0",
     "lefthook": "^2.1.14",
     "openapi-typescript": "^7.13.0",
+    "patch-package": "^8.0.1",
     "pino": "^10.3.1",
     "prettier": "^3.9.7",
     "redoc": "^2.5.4",
     "tsx": "^4.23.0",
-    "typescript": "5.9.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.1"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }

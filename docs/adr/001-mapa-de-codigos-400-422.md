@@ -31,4 +31,4 @@ reporta es una violación del esquema.
 
 - El cliente ramifica por `type`, nunca por `detail`.
 - Un `422` sin invariante declarada falla el lint (`ope-no-generic-422`).
-- El mock (ADR-005) hereda el mismo mapa porque es el mismo código.
+- No hay un mock que pueda divergir del mapa: el servidor real en memoria es lo que se usa para desarrollar contra el contrato (ADR-018).

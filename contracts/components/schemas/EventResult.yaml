@@ -1,5 +1,5 @@
 type: object
-description: Resultado de un evento del lote.
+description: Result of one event of the batch.
 additionalProperties: false
 required: [eventId, status]
 properties:
@@ -7,5 +7,5 @@ properties:
     $ref: ./EventId.yaml
   status:
     type: string
-    description: "`accepted`: entró y quedó registrado. `duplicate`: ya se había recibido para este merchant (reintento o replay); no se registra dos veces."
+    description: "`accepted`: it came in and was recorded. `duplicate`: it had already been received for this merchant (retry or replay); it is not recorded twice."
     enum: [accepted, duplicate]

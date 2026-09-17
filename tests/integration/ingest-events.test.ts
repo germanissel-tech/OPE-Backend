@@ -1,4 +1,4 @@
-// US2 y US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events de punta a punta.
+// US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
 import { afterEach, describe, expect, it } from "vitest";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, eventOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
@@ -17,7 +17,7 @@ const NOW = "2026-09-16T12:00:00.000Z";
 const withClock = () => startTestApp({ ports: { clock: fixedClock(NOW) } });
 const at = (offsetMs: number) => new Date(Date.parse(NOW) + offsetMs).toISOString();
 
-/** Un evento de cada tipo de 03 §4.1, con sus atributos propios. */
+/** One event of each type of 03 §4.1, with its own attributes. */
 const ONE_OF_EACH: Record<string, unknown>[] = [
   { type: "product_viewed" },
   { type: "listing_viewed", page: { pageType: "listing" } },
@@ -39,7 +39,7 @@ function batchOfEach(from = 1): { events: unknown[] } {
 }
 
 describe("POST /v1/events", () => {
-  it("lote de 20 eventos válidos (uno de cada tipo) → 202 con resultado por evento y decisión NO_OP", async () => {
+  it("batch of 20 valid events (one of each type) → 202 with a result per event and a NO_OP decision", async () => {
     app = await withClock();
     const res = await postEvents(app.app, batchOfEach(), { key: "key-a-1" });
     expect(res.statusCode, res.body).toBe(202);
@@ -55,7 +55,7 @@ describe("POST /v1/events", () => {
     expect(body.decision.sessionId).toBe("ses_00000001");
   });
 
-  it("evento duplicado: reenviar el mismo lote → todos `duplicate`, nada se registra dos veces (idempotencia)", async () => {
+  it("duplicate event: resending the same batch → all `duplicate`, nothing is recorded twice (idempotency)", async () => {
     app = await withClock();
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
@@ -65,7 +65,7 @@ describe("POST /v1/events", () => {
     expect(body.results.map((r) => r.status)).toEqual(["duplicate", "duplicate", "duplicate"]);
   });
 
-  it("un lote con un evento nuevo y uno repetido reporta cada uno con su estado", async () => {
+  it("a batch with one new and one repeated event reports each with its status", async () => {
     app = await withClock();
     await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(2, 1, { occurredAt: NOW }), { key: "key-a-1" });
@@ -77,14 +77,14 @@ describe("POST /v1/events", () => {
     ]);
   });
 
-  it("el mismo eventId en otro merchant es otro evento (aislamiento FR-050)", async () => {
+  it("the same eventId in another merchant is another event (isolation FR-050)", async () => {
     app = await withClock();
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-b-1" });
     expect(json(res)).toMatchObject({ accepted: 3, duplicates: 0 });
   });
 
-  it("campo no declarado en un evento → 400 con el puntero exacto, y nada del lote se registra", async () => {
+  it("undeclared field in an event → 400 with the exact pointer, and nothing of the batch is recorded", async () => {
     app = await withClock();
     const bad = { events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, foo: 1 })] };
     const res = await postEvents(app.app, bad, { key: "key-a-1" });
@@ -92,12 +92,12 @@ describe("POST /v1/events", () => {
     const problem = problemOf(res);
     expect(problem.type).toBe("urn:ope:problem:validation-failed");
     expect(problem.errors?.map((e) => e.pointer)).toContain("/body/events/1/foo");
-    // El lote rechazado no dejó rastro: los mismos ids entran como nuevos.
+    // The rejected batch left no trace: the same ids come in as new.
     const again = await postEvents(app.app, batchOf(2, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(json(again)).toMatchObject({ accepted: 2, duplicates: 0 });
   });
 
-  it("dato personal en el contexto de página (page.email) → 400 nombrando el campo; no se limpia", async () => {
+  it("personal datum in the page context (page.email) → 400 naming the field; it is not scrubbed", async () => {
     app = await withClock();
     const bad = { events: [eventOf(1, { occurredAt: NOW, page: { pageType: "product", email: "a@b.c" } })] };
     const res = await postEvents(app.app, bad, { key: "key-a-1" });
@@ -105,7 +105,7 @@ describe("POST /v1/events", () => {
     expect(problemOf(res).errors?.map((e) => e.pointer)).toContain("/body/events/0/page/email");
   });
 
-  it("tipo de evento desconocido → 400 que nombra el discriminador", async () => {
+  it("unknown event type → 400 naming the discriminator", async () => {
     app = await withClock();
     const res = await postEvents(
       app.app,
@@ -117,7 +117,7 @@ describe("POST /v1/events", () => {
     expect(errors.some((e) => e.pointer === "/body/events/0" && e.message.includes('tag "type"'))).toBe(true);
   });
 
-  it("campo propio faltante en su rama (block_dwelled sin dwellMs) → 400 preciso", async () => {
+  it("missing own field in its branch (block_dwelled without dwellMs) → precise 400", async () => {
     app = await withClock();
     const res = await postEvents(
       app.app,
@@ -128,7 +128,7 @@ describe("POST /v1/events", () => {
     expect(problemOf(res).errors?.map((e) => e.pointer)).toContain("/body/events/0/dwellMs");
   });
 
-  it("un evento que no es un objeto (arreglo, string, null) → 400, nunca pasa la unión", async () => {
+  it("an event that is not an object (array, string, null) → 400, never passes the union", async () => {
     app = await withClock();
     for (const events of [[[null, null]], ["product_viewed"], [null], [42]]) {
       const res = await postEvents(app.app, { events }, { key: "key-a-1" });
@@ -137,7 +137,7 @@ describe("POST /v1/events", () => {
     }
   });
 
-  it("lote vacío o de más de 50 eventos → 400", async () => {
+  it("empty batch or more than 50 events → 400", async () => {
     app = await withClock();
     expect((await postEvents(app.app, { events: [] }, { key: "key-a-1" })).statusCode).toBe(400);
     expect(
@@ -145,7 +145,7 @@ describe("POST /v1/events", () => {
     ).toBe(400);
   });
 
-  it("[invariant:session-visitor-mismatch] dos visitantes en el lote → 422 con su tipo", async () => {
+  it("[invariant:session-visitor-mismatch] two visitors in the batch → 422 with its type", async () => {
     app = await withClock();
     const mixed = {
       events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, visitorId: "vis_00000002" })],
@@ -155,7 +155,7 @@ describe("POST /v1/events", () => {
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:session-visitor-mismatch", status: 422 });
   });
 
-  it("[invariant:event-timestamp-out-of-range] instante fuera de tolerancia → 422 con su tipo", async () => {
+  it("[invariant:event-timestamp-out-of-range] timestamp out of tolerance → 422 with its type", async () => {
     app = await withClock();
     const res = await postEvents(
       app.app,
@@ -169,7 +169,7 @@ describe("POST /v1/events", () => {
     });
   });
 
-  it("un lote rechazado por invariante no produce decisión ni registra eventos", async () => {
+  it("a batch rejected by an invariant produces no decision and records no events", async () => {
     app = await withClock();
     const mixed = {
       events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, visitorId: "vis_00000002" })],
@@ -179,15 +179,15 @@ describe("POST /v1/events", () => {
     expect(json(again)).toMatchObject({ accepted: 2, duplicates: 0 });
   });
 
-  it("merchantId y clave nunca aparecen en la respuesta", async () => {
+  it("merchantId and key never appear in the response", async () => {
     app = await withClock();
     const res = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(res.body).not.toMatch(/m_a|key-a-1|merchantId/);
   });
 });
 
-describe("decisión inline (US3)", () => {
-  it("cada lote produce un decisionId distinto con el patrón del contrato y la sesión del lote", async () => {
+describe("inline decision (US3)", () => {
+  it("each batch produces a distinct decisionId with the contract pattern and the batch session", async () => {
     app = await withClock();
     const r1 = json(
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
@@ -200,7 +200,7 @@ describe("decisión inline (US3)", () => {
     expect(r1.decision.sessionId).toBe("ses_00000001");
   });
 
-  it("ficha de producto sin productId → reason page-context-incomplete; lote normal → decision-plane-unavailable", async () => {
+  it("product page without productId → reason page-context-incomplete; normal batch → decision-plane-unavailable", async () => {
     app = await withClock();
     const incomplete = { events: [eventOf(1, { occurredAt: NOW, page: { pageType: "product" } })] };
     const r1 = json(await postEvents(app.app, incomplete, { key: "key-a-1" })) as IngestResult;
@@ -211,7 +211,7 @@ describe("decisión inline (US3)", () => {
     expect(r2.decision.reason).toBe("decision-plane-unavailable");
   });
 
-  it("la decisión queda en el ledger con merchant, sesión, visitante, motivo e instante; otro merchant no la ve", async () => {
+  it("the decision stays in the ledger with merchant, session, visitor, reason and instant; another merchant does not see it", async () => {
     app = await withClock();
     const r = json(
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
@@ -227,12 +227,5 @@ describe("decisión inline (US3)", () => {
       decidedAt: new Date(NOW),
     });
     expect(await app.ports.decisions.find("m_b" as never, id as never)).toBeUndefined();
-  });
-
-  it("en modo mock la respuesta trae la decisión del ejemplo del contrato", async () => {
-    app = await startTestApp({}, { mode: "mock" });
-    const res = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
-    expect(res.statusCode).toBe(202);
-    expect(json(res)).toMatchObject({ decision: { outcome: "NO_OP" } });
   });
 });

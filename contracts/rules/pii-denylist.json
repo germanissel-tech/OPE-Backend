@@ -1,5 +1,5 @@
 {
-  "_doc": "Nombres de propiedad, parámetro o header que nunca pueden aparecer en el contrato (constitución VII: OPE no almacena información identificatoria). Comparación sin distinguir mayúsculas. Ampliar esta lista es la única forma de agregar una prohibición; la regla ope-no-pii la lee de acá. La excepción para `password` en el login del portal se implementará como override de Spectral acotado a ese esquema cuando exista.",
+  "_doc": "Property, parameter or header names that can never appear in the contract (constitution VII: OPE stores no identifying information). Case-insensitive comparison. Extending this list is the only way to add a prohibition; the ope-no-pii rule reads it from here. The exception for `password` in the portal login will be implemented as a Spectral override scoped to that schema when it exists.",
   "deny": [
     "email",
     "name",

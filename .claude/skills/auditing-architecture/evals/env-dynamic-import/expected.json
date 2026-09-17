@@ -1,0 +1,14 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/env-dynamic-import/src/composition/bootstrap.ts",
+  "line": 12,
+  "rule": { "id": "test-seam-loads-module-from-environment", "source": "constitution#I. Separación de autoridades" },
+  "severity": "high",
+  "evidence": "const mod = (await import(pathToFileURL(path.resolve(config.handlersModule)).href)) as {",
+  "proposal": {
+    "before": "const mod = (await import(pathToFileURL(path.resolve(config.handlersModule)).href)) as { handlers: ... };",
+    "after": "// no dynamic loading in the server: the negative contract test is its own process entry that calls start(config, { handlers })"
+  },
+  "coveringTest": "tests/architecture/shape.test.ts: \"src/ has no dynamic import() with a computed specifier\"",
+  "status": "confirmed"
+}

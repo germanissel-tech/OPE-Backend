@@ -1,0 +1,14 @@
+{
+  "id": "F-001",
+  "file": "tests/audit/fixtures/hardcoded-profile/src/composition/bootstrap.ts",
+  "line": 20,
+  "rule": { "id": "composition-root-branches-on-configuration", "source": "ADR-013" },
+  "severity": "high",
+  "evidence": "config.persistence === \"postgres\" ? { ...postgresPorts(clock), ...overrides } : { ...memoryPorts(clock), ...overrides };",
+  "proposal": {
+    "before": "const ports = config.persistence === \"postgres\" ? { ...postgresPorts(clock), ...overrides } : { ...memoryPorts(clock), ...overrides };",
+    "after": "const { ports, closables } = (overrides.profile ?? memoryProfile)(config, overrides.ports ?? {}); // the profile resolves its own overrides and reports what it created"
+  },
+  "coveringTest": "tests/integration/bootstrap.test.ts: \"a profile passed as override builds the ports; bootstrap never branches on config\"",
+  "status": "confirmed"
+}

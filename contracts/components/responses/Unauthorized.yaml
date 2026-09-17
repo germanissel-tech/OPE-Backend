@@ -1,10 +1,10 @@
-description: La operación requiere una credencial y no se presentó una válida.
+description: The operation requires a credential and no valid one was presented.
 content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
     example:
       type: urn:ope:problem:unauthorized
-      title: Credencial ausente o inválida
+      title: Credential missing or invalid
       status: 401
       instance: /v1/health

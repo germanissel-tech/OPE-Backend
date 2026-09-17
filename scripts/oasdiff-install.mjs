@@ -1,6 +1,6 @@
-// Descarga el binario de oasdiff (Go) fijado por versión y verificado por SHA-256, en
-// node_modules/.cache/oasdiff/. No corre en postinstall: se invoca la primera vez que hace
-// falta (contract:diff). Sin dependencias fuera de Node.
+// Downloads the oasdiff binary (Go), pinned by version and verified by SHA-256, into
+// node_modules/.cache/oasdiff/. Does not run on postinstall: it is invoked the first time it is
+// needed (contract:diff). No dependencies outside Node.
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -31,12 +31,12 @@ export const oasdiffPath = path.join(cacheDir, exeName);
  */
 async function download(url) {
   const res = await fetch(url, { redirect: "follow" });
-  if (!res.ok) throw new Error(`No se pudo descargar ${url}: HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Could not download ${url}: HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
 /**
- * Extrae un único archivo de un tar (ya descomprimido). Formato ustar, sin dependencias.
+ * Extracts a single file from a tar (already decompressed). ustar format, no dependencies.
  * @param {Buffer} tar
  * @param {string} wanted
  * @returns {Buffer}
@@ -55,7 +55,7 @@ function extractFromTar(tar, wanted) {
     }
     offset = dataStart + Math.ceil(size / 512) * 512;
   }
-  throw new Error(`El archivo ${wanted} no está en el tarball de oasdiff`);
+  throw new Error(`File ${wanted} is not in the oasdiff tarball`);
 }
 
 /** @returns {Promise<string>} */
@@ -65,10 +65,10 @@ export async function ensureOasdiff() {
   const asset = ASSETS[key];
   if (!asset)
     throw new Error(
-      `oasdiff: plataforma sin binario oficial: ${key}. Instalá oasdiff a mano y exportá OASDIFF_BIN.`,
+      `oasdiff: platform without an official binary: ${key}. Install oasdiff by hand and export OASDIFF_BIN.`,
     );
   const fileName = `oasdiff_${OASDIFF_VERSION}_${asset}.tar.gz`;
-  console.log(`oasdiff ${OASDIFF_VERSION} no está en caché; descargando ${fileName}…`);
+  console.log(`oasdiff ${OASDIFF_VERSION} is not cached; downloading ${fileName}…`);
   const [archive, checksums] = await Promise.all([
     download(`${RELEASE_BASE}/${fileName}`),
     download(`${RELEASE_BASE}/checksums.txt`),
@@ -78,22 +78,22 @@ export async function ensureOasdiff() {
     .split("\n")
     .map((line) => line.trim().split(/\s+/))
     .find(([, name]) => name === fileName)?.[0];
-  if (!expected) throw new Error(`oasdiff: ${fileName} no figura en checksums.txt`);
+  if (!expected) throw new Error(`oasdiff: ${fileName} is not listed in checksums.txt`);
   const actual = createHash("sha256").update(archive).digest("hex");
   if (actual !== expected)
-    throw new Error(`oasdiff: checksum inválido para ${fileName} (esperado ${expected}, obtenido ${actual})`);
+    throw new Error(`oasdiff: invalid checksum for ${fileName} (expected ${expected}, got ${actual})`);
   const binary = extractFromTar(gunzipSync(archive), exeName);
   mkdirSync(cacheDir, { recursive: true });
   const tmp = `${oasdiffPath}.tmp`;
   writeFileSync(tmp, binary);
   chmodSync(tmp, 0o755);
   renameSync(tmp, oasdiffPath);
-  console.log(`oasdiff instalado en ${oasdiffPath}`);
+  console.log(`oasdiff installed at ${oasdiffPath}`);
   return oasdiffPath;
 }
 
 /**
- * Ruta del binario: OASDIFF_BIN si está definido, si no el de caché (descargándolo si falta).
+ * Binary path: OASDIFF_BIN if defined, otherwise the cached one (downloading it if missing).
  * @returns {Promise<string>}
  */
 export async function resolveOasdiff() {

@@ -1,5 +1,5 @@
-// Caso de uso: ingesta de un lote (FR-012..FR-014, FR-020, FR-021). Invariantes → dedup → decisión
-// NO_OP con motivo → registro en el ledger. Devuelve un resultado, nunca lanza por reglas de negocio.
+// Use case: ingestion of a batch (FR-012..FR-014, FR-020, FR-021). Invariants → dedup → NO_OP
+// decision with a reason → record in the ledger. Returns a result, never throws on business rules.
 import { checkBatch, decide, type BatchInvariant, type EventBatch } from "../../domain/ingestion/index.js";
 import { noOp, type Decision } from "../../domain/ledger/index.js";
 import type { EventId, MerchantId } from "../../domain/shared-kernel/index.js";
@@ -43,7 +43,7 @@ export function makeIngestBatch({ clock, ids, eventDedup, decisions }: IngestBat
     if (!check.ok) return { ok: false, invariant: check.invariant, detail: check.detail };
 
     const first = batch.events[0];
-    if (first === undefined) throw new Error("El contrato garantiza al menos un evento por lote.");
+    if (first === undefined) throw new Error("The contract guarantees at least one event per batch.");
 
     const entered = await eventDedup.claim(
       merchantId,
