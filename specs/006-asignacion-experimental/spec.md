@@ -120,7 +120,8 @@ Cada lote resuelve la asignación del visitante antes de decidir. La decisión r
 y el experimento. Para un visitante de CONTROL el pipeline se ejecuta entero y la decisión es
 siempre `NO_OP` con el motivo "brazo de control"; para TREATMENT la decisión sigue siendo
 `NO_OP` porque todavía no hay plano de decisión, con el motivo que ya existe. El brazo nunca
-viaja en la respuesta al SDK ni en ningún request: el navegador no sabe en qué grupo está.
+viaja como campo en la respuesta al SDK ni en ningún request; lo único que sale es el motivo
+del `NO_OP`, el mismo que registra el ledger.
 
 **Why this priority**: es lo que permite medir sin sesgo y detectar si el pipeline trata
 distinto a los dos brazos (01 §4.1). Que el brazo no salga del backend protege la homogeneidad
