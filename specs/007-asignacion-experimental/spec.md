@@ -1,6 +1,6 @@
 # Feature Specification: Asignación experimental y ledger
 
-**Feature Branch**: `006-asignacion-experimental`
+**Feature Branch**: `007-asignacion-experimental`
 
 **Created**: 2026-09-17
 
@@ -35,7 +35,7 @@ CONTROL atraviesa todo el pipeline y se registra igual; la única diferencia es 
 siempre resuelve `NO_OP`. Eso mide sin sesgo y, además, permite detectar si el pipeline se
 comporta distinto entre brazos, que sería un defecto (§4.1).
 
-Esta feature trae además dos decisiones que la persistencia real (007) va a necesitar ya
+Esta feature trae además dos decisiones que la persistencia real (008) va a necesitar ya
 tomadas: cómo escribe el ledger sin bloquear el camino crítico y qué hace el sistema cuando el
 ledger no está (§4.6, §4.7: preferimos perder una intervención antes que perder la integridad
 de la medición), y una medición honesta de cuánta carga aguanta hoy una instancia (§4.6: el
@@ -167,7 +167,7 @@ disponible" y lo deja visible en la observabilidad. En esta feature la implement
 memoria nunca falla, pero el contrato del puerto y el camino de degradación quedan fijados por
 decisión escrita y probados con un ledger falso que reporta no disponible.
 
-**Why this priority**: la 007 va a poner una base de datos detrás de estos puertos. Si la
+**Why this priority**: la 008 va a poner una base de datos detrás de estos puertos. Si la
 semántica se decide entonces, el código de la 006 nacerá asumiendo escrituras síncronas e
 infalibles y habrá que reescribirlo. 01 §4.6 y §4.7 lo fijan: ninguna escritura bloqueante;
 ledger no disponible ⇒ se suprime la intervención.
@@ -198,7 +198,7 @@ respuesta del registro es visible al orquestador y distinta en cada caso.
 Una prueba de carga informativa levanta el servidor real con el perfil en memoria y lo somete
 a un volumen sostenido de lotes de ingesta durante un tiempo fijo. Reporta throughput
 (lotes/segundo), p50/p95/p99 de latencia y tasa de error. No hay umbral que la haga fallar:
-es una medición que queda registrada y que la 007 va a repetir con persistencia real.
+es una medición que queda registrada y que la 008 va a repetir con persistencia real.
 
 **Why this priority**: el objetivo de latencia es de diseño, no de compromiso, hasta medir bajo
 tráfico (01 §4.6); y la decisión de seguir con una sola instancia (01 §9) necesita un número
@@ -354,7 +354,7 @@ imprime las cifras en un formato estable y termina con éxito aunque las cifras 
   004 (p95 en el perfil de memoria), y no difiere entre brazos.
 - **SC-006**: La prueba de carga corre con un comando, reporta las cinco cifras y termina con
   éxito; las cifras están en el quickstart.
-- **SC-007**: `release-check` en verde; la suite de las features 001–005 pasa sin modificar
+- **SC-007**: `release-check` en verde; la suite de las features 001–006 pasa sin modificar
   aserciones; el glosario resuelve todo sustantivo nuevo.
 
 ## Assumptions
@@ -368,8 +368,8 @@ imprime las cifras en un formato estable y termina con éxito aunque las cifras 
   posible por un cambio indebido de configuración) gana la registrada y se loguea el hecho
   como error operativo: la estabilidad del brazo es más importante que la fórmula.
 - La cadena de evidencia sigue teniendo sólo `ASSIGNED` y `EXPOSED`; `VERIFIED_ORDER` y
-  siguientes llegan con outcomes (008).
+  siguientes llegan con outcomes (009).
 - El kill switch, las banderas y la versión de configuración estampada en cada decisión (01
-  §14.2) son de la 009; esta feature no las adelanta.
+  §14.2) son de la 010; esta feature no las adelanta.
 - La prueba de carga usa una herramienta de carga HTTP estándar sobre el servidor real en un
   puerto libre; los parámetros por defecto son 30 segundos y 20 conexiones concurrentes.
