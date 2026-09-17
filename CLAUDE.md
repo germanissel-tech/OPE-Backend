@@ -36,8 +36,8 @@ Dentro de una feature que toca HTTP, el orden es:
    `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ dominio; lee el merchant con
    `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
    cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
-   instancia sus casos de uso y entrega sus controllers; el perfil en `profiles/memory.ts`
-   provee el puerto nuevo). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
+   su tabla de enlaces por tecnología, instancia sus casos de uso y entrega sus controllers; el
+   perfil en `profiles/memory.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
    `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
    que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
@@ -99,8 +99,12 @@ contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un m�
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
 
 **Composición** (DI manual, sin contenedor): cada `src/composition/modules/<módulo>.ts` declara
-sus puertos, instancia sus casos de uso y devuelve `{ handlers?, security?, cors? }`; `Ports`
-es la intersección de esos slices y un puerto nuevo sin proveer en el perfil no compila.
+los puertos que necesita (`LedgerPorts`), cómo los sirve cada tecnología
+(`memoryLedgerPorts: Bindings<LedgerPorts>`; `postgresLedgerPorts(pool)` cuando llegue) y lo
+que sirve (`{ handlers?, security?, cors? }`). `Ports` es la intersección de esos slices y un
+puerto nuevo sin proveer no compila. Un perfil (`profiles/memory.ts`) es un despliegue: compone
+una tabla de enlaces por módulo con `binder(overrides).bind(...)`; nunca elige gateways por su
+cuenta (`arch`: `profiles-compose-modules`).
 `bootstrap(config, { profile?, ports?, handlers?, logger? })` devuelve `{ app, ports, close }`
 y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
 `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por

@@ -74,6 +74,17 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    producción un controller olvidado se ve al desplegar, no en un 501 bajo carga.
 4. Regla `composition-wires-by-module` en dependency-cruiser: fuera de `composition/modules/`,
    `composition/` no importa controllers, security handlers ni casos de uso (con fixture).
+5. **El enlace de cada puerto vive con su módulo; el perfil es un despliegue, no un entorno**
+   (2026-09-17). `composition/modules/<módulo>.ts` declara lo que el módulo necesita
+   (`LedgerPorts`), cómo lo sirve cada tecnología (`memoryLedgerPorts: Bindings<LedgerPorts>`,
+   `postgresLedgerPorts(pool)` cuando llegue: conviven, no se reemplazan) y lo que el módulo
+   sirve (`ledgerModule`). Un perfil (`profiles/memory.ts`) compone **una tabla de enlaces por
+   módulo** con `binder(overrides).bind(...)`: el override reemplaza el puerto antes de
+   construirlo, lo construido se registra en orden para el cierre, y un despliegue mixto
+   (Postgres para ledgers, Redis para dedup, configuración para merchants) es la forma normal.
+   Cambiar la base de datos de un módulo = un archivo en `gateways/<módulo>/`, una tabla en su
+   módulo y una línea en el perfil. Regla `profiles-compose-modules`: `composition/profiles/`
+   no importa `interface-adapters/gateways/` (con fixture).
 
 El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
 inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, ports?, handlers?, logger? })`.
