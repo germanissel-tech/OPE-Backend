@@ -3,7 +3,6 @@
 // (ADR-023). Deterministic (assignArm) and stable: an assignment already recorded wins over the
 // computed one, and the disagreement — only possible after an improper configuration change —
 // is logged as an operational error without the visitor. Recorded the first time it is resolved.
-import { assignArm, type Assignment } from "../../../domain/experiment/index.js";
 import {
   fail,
   ok,
@@ -11,6 +10,7 @@ import {
   type Result,
   type VisitorId,
 } from "../../../domain/shared-kernel/index.js";
+import type { Assignment } from "../../../domain/experiment/index.js";
 import type { LedgerUnavailable } from "../../../domain/ledger/index.js";
 import type { Clock, Logger } from "../../shared-kernel/index.js";
 import type { AssignmentLedger } from "../ports/assignment-ledger.js";
@@ -41,7 +41,7 @@ export class DefaultAssignmentService implements AssignmentService {
     const { experiments, assignments, clock, logger } = this.#deps;
     const experiment = await experiments.activeFor(merchantId);
     if (!experiment) return ok(undefined);
-    const arm = assignArm(experiment, visitorId);
+    const arm = experiment.assign(visitorId);
     const recorded = await assignments.find(merchantId, experiment.experimentId, visitorId);
     if (recorded) {
       if (recorded.arm !== arm) {

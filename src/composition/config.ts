@@ -1,28 +1,16 @@
-// Application configuration: the only thing main.ts reads from the environment. No business
-// logic and no built-in merchants: a server nobody configured authenticates nobody (fail-closed).
+// Application configuration: the only thing main.ts reads from the environment. It parses the
+// shape of what it reads; the business rules belong to the domain (ADR-024): merchants and
+// experiments are built by their factories and a rejected one stops the start naming the
+// field. No built-in merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
+import { Experiment } from "../domain/experiment/index.js";
+import { Merchant } from "../domain/merchant/index.js";
+import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
 
-/** An experiment as configuration describes it (ADR-022): at most one active per merchant. */
-export interface ExperimentConfig {
-  experimentId: string;
-  /** Share of visitors assigned to TREATMENT, integer 0..100; 50 when absent. */
-  treatmentPercent: number;
-  /** Part of the assignment key; immutable (changing it is a new experiment). */
-  seed: string;
-  status: "active" | "closed";
-  /** RFC 3339. */
-  startedAt: string;
-}
-
-/** A merchant as configuration describes it (local profile; 008 brings the store). */
+/** A merchant as configured: the entity and its experiments (at most one active, ADR-022). */
 export interface MerchantConfig {
-  merchantId: string;
-  /** Active ingest keys (one, or two during a rotation). */
-  ingestKeys: string[];
-  /** Registered origins of the store (`scheme://host[:port]`). */
-  origins: string[];
-  /** Experiments of the merchant; none means nothing is assigned (`no-active-experiment`). */
-  experiments: ExperimentConfig[];
+  merchant: Merchant;
+  experiments: readonly Experiment[];
 }
 
 export interface AppConfig {
@@ -39,7 +27,8 @@ const MAX_PORT = 65535;
 /** One active key, or two during a rotation (ADR-014). */
 const MAX_INGEST_KEYS = 2;
 const DEFAULT_TREATMENT_PERCENT = 50;
-const MAX_PERCENT = 100;
+/** Percentages live only here, at the edge: the domain works with rates 0..1. */
+const PERCENT = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const ACTIVE = "active";
 const EXPERIMENT_STATUSES = [ACTIVE, "closed"];
@@ -93,6 +82,26 @@ function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) => strin
   return raw === undefined ? [] : parseMerchants(raw);
 }
 
+/**
+ * A domain error of a factory becomes a configuration error naming the field: the rule is the
+ * domain's; the location is the configuration's.
+ */
+function rejected(at: `merchants[${number}]${string}`, error: DomainError): ConfigError {
+  const position = error.details[INDEX_DETAIL];
+  const index = typeof position === "number" ? `[${position}]` : "";
+  return new ConfigError(`${at}${FIELD_BY_CODE[error.code] ?? ""}${index}`, `is invalid (${error.message})`);
+}
+
+/** The detail a domain error uses to name the offending element of a list. */
+const INDEX_DETAIL = "index";
+
+/** Which configured field each domain error points at (`[index]` is appended when the error names one). */
+const FIELD_BY_CODE: Readonly<Record<string, string>> = {
+  "invalid-treatment-share": ".treatmentPercent",
+  "invalid-seed": ".seed",
+  "invalid-origin": ".origins",
+};
+
 /** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
 function parseMerchants(raw: string): MerchantConfig[] {
   let parsed: unknown;
@@ -120,25 +129,27 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (!isStringArray(origins) || origins.length === 0) {
       throw new ConfigError(`merchants[${i}].origins`, "must have at least one origin");
     }
-    return { merchantId, ingestKeys, origins, experiments: parseExperiments(m["experiments"], i) };
+    const merchant = Merchant.of({ merchantId: asMerchantId(merchantId), ingestKeys, origins });
+    if (!merchant.ok) throw rejected(`merchants[${i}]`, merchant.error);
+    return { merchant: merchant.value, experiments: parseExperiments(m["experiments"], i, merchant.value) };
   });
 }
 
 /** Experiments of a merchant: optional list; each one validated; at most one active (ADR-022). */
-function parseExperiments(raw: unknown, merchantIndex: number): ExperimentConfig[] {
+function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchant): Experiment[] {
   const at: `merchants[${number}]${string}` = `merchants[${merchantIndex}].experiments`;
   if (raw === undefined) return [];
   if (!Array.isArray(raw)) throw new ConfigError(at, "must be an array of experiments");
   const experiments = raw.map((item: unknown, j) =>
-    parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`),
+    parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`, merchant),
   );
-  if (experiments.filter((e) => e.status === ACTIVE).length > 1) {
+  if (experiments.filter((e) => e.isActive()).length > 1) {
     throw new ConfigError(at, "must have at most one active experiment");
   }
   return experiments;
 }
 
-function parseExperiment(item: unknown, at: `merchants[${number}]${string}`): ExperimentConfig {
+function parseExperiment(item: unknown, at: `merchants[${number}]${string}`, merchant: Merchant): Experiment {
   if (typeof item !== "object" || item === null) throw new ConfigError(at, NOT_AN_OBJECT);
   const e = item as Record<string, unknown>;
   const experimentId = e["experimentId"];
@@ -149,28 +160,27 @@ function parseExperiment(item: unknown, at: `merchants[${number}]${string}`): Ex
   if (typeof experimentId !== "string" || !ID_PATTERN.test(experimentId)) {
     throw new ConfigError(`${at}.experimentId`, "must match ^[A-Za-z0-9_-]{8,64}$");
   }
-  if (
-    !Number.isInteger(treatmentPercent) ||
-    Number(treatmentPercent) < 0 ||
-    Number(treatmentPercent) > MAX_PERCENT
-  ) {
-    throw new ConfigError(`${at}.treatmentPercent`, `must be an integer between 0 and ${MAX_PERCENT}`);
+  // Shape: an integer percentage. Its range is the domain's rule (Experiment.of, as a rate 0..1).
+  if (!Number.isInteger(treatmentPercent)) {
+    throw new ConfigError(`${at}.treatmentPercent`, "must be an integer percentage");
   }
-  if (typeof seed !== "string" || seed === "")
-    throw new ConfigError(`${at}.seed`, "must be a non-empty string");
+  if (typeof seed !== "string") throw new ConfigError(`${at}.seed`, NON_EMPTY_STRING);
   if (typeof status !== "string" || !EXPERIMENT_STATUSES.includes(status)) {
     throw new ConfigError(`${at}.status`, `must be one of ${EXPERIMENT_STATUSES.join(", ")}`);
   }
   if (typeof startedAt !== "string" || Number.isNaN(Date.parse(startedAt))) {
     throw new ConfigError(`${at}.startedAt`, "must be an RFC 3339 date-time");
   }
-  return {
-    experimentId,
-    treatmentPercent: Number(treatmentPercent),
+  const experiment = Experiment.of({
+    experimentId: asExperimentId(experimentId),
+    merchantId: merchant.merchantId,
+    treatmentShare: Number(treatmentPercent) / PERCENT,
     seed,
     status: status === ACTIVE ? "active" : "closed",
-    startedAt,
-  };
+    startedAt: new Date(startedAt),
+  });
+  if (!experiment.ok) throw rejected(at, experiment.error);
+  return experiment.value;
 }
 
 function isStringArray(value: unknown): value is string[] {

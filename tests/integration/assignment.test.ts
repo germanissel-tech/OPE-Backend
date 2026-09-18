@@ -2,7 +2,7 @@
 // assignment is recorded with the first accepted batch, once; CONTROL runs the same pipeline
 // and always resolves NO_OP `control-arm`; the arm never travels as a field.
 import { afterEach, describe, expect, it } from "vitest";
-import { assignArm, type Experiment } from "../../src/domain/experiment/index.js";
+import { Experiment } from "../../src/domain/experiment/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
@@ -13,9 +13,9 @@ import {
   postEvents,
   postExposure,
   startTestApp,
+  type MerchantSpec,
 } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { MerchantConfig } from "../../src/composition/config.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -30,26 +30,26 @@ const experimentConfig = {
   status: "active" as const,
   startedAt: NOW,
 };
-const merchantA: MerchantConfig = {
+const merchantA: MerchantSpec = {
   merchantId: "m_a",
   ingestKeys: [KEY, "key-a-2"],
   origins: ["https://a.example"],
   experiments: [experimentConfig],
 };
-const experiment: Experiment = {
+const experiment = Experiment.rehydrate({
   experimentId: asExperimentId(EXPERIMENT_ID),
   merchantId: asMerchantId("m_a"),
-  treatmentPercent: 50,
+  treatmentShare: 0.5,
   seed: "seed-5050",
   status: "active",
   startedAt: new Date(NOW),
-};
+});
 
 /** The first visitor id of each arm, chosen with the domain function so the test does not guess. */
 function visitorIn(arm: "CONTROL" | "TREATMENT"): string {
   for (let n = 1; n < 10_000; n += 1) {
     const id = `vis_${String(n).padStart(8, "0")}`;
-    if (assignArm(experiment, asVisitorId(id)) === arm) return id;
+    if (experiment.assign(asVisitorId(id)) === arm) return id;
   }
   throw new Error(`no visitor found for ${arm}`);
 }

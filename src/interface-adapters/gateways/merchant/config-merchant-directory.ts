@@ -1,28 +1,15 @@
-// Merchant directory loaded from configuration (local profile).
-import { findByIngestKey, normalizeOrigin, type Merchant } from "../../../domain/merchant/index.js";
-import { asMerchantId } from "../../../domain/shared-kernel/index.js";
+// Merchant directory over the configured merchants (local profile). Only a lookup: the rules
+// (who owns a key, what an origin is) belong to the Merchant and the Origin.
+import { Origin, type Merchant } from "../../../domain/merchant/index.js";
 import type { MerchantDirectory } from "../../../application/merchant/index.js";
 
-export interface MerchantRecord {
-  merchantId: string;
-  ingestKeys: readonly string[];
-  origins: readonly string[];
-}
-
-export function configMerchantDirectory(records: readonly MerchantRecord[]): MerchantDirectory {
-  const merchants: Merchant[] = records.map((r) => ({
-    merchantId: asMerchantId(r.merchantId),
-    ingestKeys: [...r.ingestKeys],
-    origins: [...r.origins],
-  }));
-  const origins = new Set(
-    merchants.flatMap((m) => m.origins.map(normalizeOrigin)).filter((o) => o !== undefined),
-  );
+export function configMerchantDirectory(merchants: readonly Merchant[]): MerchantDirectory {
+  const registered = merchants.flatMap((m) => m.origins);
   return {
-    findByIngestKey: (key) => Promise.resolve(findByIngestKey(merchants, key)),
-    isRegisteredOrigin: (origin) => {
-      const wanted = normalizeOrigin(origin);
-      return Promise.resolve(wanted !== undefined && origins.has(wanted));
+    findByIngestKey: (key) => Promise.resolve(merchants.find((m) => m.owns(key))),
+    isRegisteredOrigin: (text) => {
+      const wanted = Origin.parse(text);
+      return Promise.resolve(wanted !== undefined && registered.some((o) => o.equals(wanted)));
     },
   };
 }

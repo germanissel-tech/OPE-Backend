@@ -7,15 +7,15 @@ import {
   INGEST_KEY_SCHEME,
   makeIngestKeySecurity,
 } from "../../interface-adapters/http/security/ingest-key.js";
-import type { MerchantConfig } from "../config.js";
+import type { Merchant } from "../../domain/merchant/index.js";
 import type { Bindings, Module } from "../wiring.js";
 
 export interface MerchantPorts {
   merchants: MerchantDirectory;
 }
 
-/** Merchants as configuration lists them (the store arrives with feature 006). */
-export const configMerchantPorts = (merchants: readonly MerchantConfig[]): Bindings<MerchantPorts> => ({
+/** Merchants as configuration lists them (the store arrives with persistence). */
+export const configMerchantPorts = (merchants: readonly Merchant[]): Bindings<MerchantPorts> => ({
   merchants: () => configMerchantDirectory(merchants),
 });
 

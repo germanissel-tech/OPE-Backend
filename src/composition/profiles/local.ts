@@ -14,7 +14,7 @@ export const localProfile: Profile = (config, overrides) => {
   const kernel = bind(systemKernelPorts);
   const ports = {
     ...kernel,
-    ...bind(configMerchantPorts(config.merchants)),
+    ...bind(configMerchantPorts(config.merchants.map((m) => m.merchant))),
     ...bind(configExperimentPorts(config.merchants)),
     ...bind(memoryAssignmentPorts),
     ...bind(memoryIngestionPorts(kernel.clock)),

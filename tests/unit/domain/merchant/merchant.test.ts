@@ -1,55 +1,101 @@
-// US5 (FR-017, FR-040; ADR-014): pure merchant rules — origins and ingest keys.
+// US5 (FR-017, FR-040; ADR-014) and ADR-024: merchant rules live in the Merchant — origins are
+// parsed once at construction and compared canonically; credentials are matched exactly.
 import { describe, expect, it } from "vitest";
-import { findByIngestKey, originAllowed, type Merchant } from "../../../../src/domain/merchant/index.js";
+import { InvalidOrigin, Merchant, Origin } from "../../../../src/domain/merchant/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
-const merchant: Merchant = {
-  merchantId: asMerchantId("m_a"),
-  ingestKeys: ["key-a-1", "key-a-2"],
-  origins: ["https://a.example", "https://Shop.A.example:8443"],
-};
+function merchantOf(origins: string[], ingestKeys = ["key-a-1", "key-a-2"]): Merchant {
+  const built = Merchant.of({ merchantId: asMerchantId("m_a"), ingestKeys, origins });
+  if (!built.ok) throw new Error(built.error.message);
+  return built.value;
+}
 
-describe("originAllowed", () => {
-  it("accepts the exact registered origin (scheme + host + port)", () => {
-    expect(originAllowed(merchant, "https://a.example")).toBe(true);
-    expect(originAllowed(merchant, "https://shop.a.example:8443")).toBe(true);
+const merchant = merchantOf(["https://a.example", "https://Shop.A.example:8443"]);
+
+describe("Merchant.of", () => {
+  it("parses every origin once into its canonical form", () => {
+    expect(merchant.origins.map((o) => o.value)).toEqual([
+      "https://a.example",
+      "https://shop.a.example:8443",
+    ]);
   });
 
-  it("the host is compared case-insensitively; scheme and port do count", () => {
-    expect(originAllowed(merchant, "https://A.EXAMPLE")).toBe(true);
-    expect(originAllowed(merchant, "http://a.example")).toBe(false);
-    expect(originAllowed(merchant, "https://a.example:8443")).toBe(false);
+  it("[invariant] an origin that is not scheme://host[:port] rejects the merchant, naming its index", () => {
+    const built = Merchant.of({
+      merchantId: asMerchantId("m_a"),
+      ingestKeys: ["k"],
+      origins: ["https://a.example", "not an origin"],
+    });
+    expect(built).toMatchObject({
+      ok: false,
+      error: { code: "invalid-origin", module: "merchant", details: { index: 1 } },
+    });
+    if (!built.ok) expect(built.error).toBeInstanceOf(InvalidOrigin);
   });
 
-  it("accepts neither subdomains, paths nor origins of another merchant", () => {
-    expect(originAllowed(merchant, "https://evil.a.example")).toBe(false);
-    expect(originAllowed(merchant, "https://a.example/checkout")).toBe(false);
-    expect(originAllowed(merchant, "https://b.example")).toBe(false);
-    expect(originAllowed(merchant, "null")).toBe(false);
-  });
-
-  it("without Origin (server to server, tests) it is allowed: the control is the credential/origin pair", () => {
-    expect(originAllowed(merchant, undefined)).toBe(true);
+  it("rehydrate trusts recorded facts and does not re-judge them", () => {
+    const origin = Origin.parse("https://a.example");
+    if (!origin) throw new Error("origin");
+    const back = Merchant.rehydrate({
+      merchantId: asMerchantId("m_a"),
+      ingestKeys: ["k"],
+      origins: [origin],
+    });
+    expect(back.owns("k")).toBe(true);
+    expect(back.allowsOrigin("https://A.EXAMPLE")).toBe(true);
   });
 });
 
-describe("findByIngestKey", () => {
-  const other: Merchant = {
-    merchantId: asMerchantId("m_b"),
-    ingestKeys: ["key-b-1"],
-    origins: ["https://b.example"],
-  };
-  const all = [merchant, other];
-
-  it("resolves either of the two active keys of the merchant (rotation, FR-017)", () => {
-    expect(findByIngestKey(all, "key-a-1")?.merchantId).toBe("m_a");
-    expect(findByIngestKey(all, "key-a-2")?.merchantId).toBe("m_a");
-    expect(findByIngestKey(all, "key-b-1")?.merchantId).toBe("m_b");
+describe("Merchant.allowsOrigin", () => {
+  it("accepts the exact registered origin (scheme + host + port)", () => {
+    expect(merchant.allowsOrigin("https://a.example")).toBe(true);
+    expect(merchant.allowsOrigin("https://shop.a.example:8443")).toBe(true);
   });
 
-  it("an unknown, empty or differently cased key resolves to nobody", () => {
-    expect(findByIngestKey(all, "key-c-1")).toBeUndefined();
-    expect(findByIngestKey(all, "")).toBeUndefined();
-    expect(findByIngestKey(all, "KEY-A-1")).toBeUndefined();
+  it("the host is compared case-insensitively; scheme and port do count", () => {
+    expect(merchant.allowsOrigin("https://A.EXAMPLE")).toBe(true);
+    expect(merchant.allowsOrigin("http://a.example")).toBe(false);
+    expect(merchant.allowsOrigin("https://a.example:8443")).toBe(false);
+  });
+
+  it("accepts neither subdomains, paths nor origins of another merchant", () => {
+    expect(merchant.allowsOrigin("https://evil.a.example")).toBe(false);
+    expect(merchant.allowsOrigin("https://a.example/checkout")).toBe(false);
+    expect(merchant.allowsOrigin("https://b.example")).toBe(false);
+    expect(merchant.allowsOrigin("null")).toBe(false);
+  });
+
+  it("without Origin (server to server, tests) it is allowed: the control is the credential/origin pair", () => {
+    expect(merchant.allowsOrigin(undefined)).toBe(true);
+  });
+});
+
+describe("Merchant.owns", () => {
+  it("either of the two active keys belongs to the merchant (rotation, FR-017)", () => {
+    expect(merchant.owns("key-a-1")).toBe(true);
+    expect(merchant.owns("key-a-2")).toBe(true);
+  });
+
+  it("an unknown, empty or differently cased key belongs to nobody", () => {
+    expect(merchant.owns("key-c-1")).toBe(false);
+    expect(merchant.owns("")).toBe(false);
+    expect(merchant.owns("KEY-A-1")).toBe(false);
+  });
+});
+
+describe("Origin.parse", () => {
+  it("canonicalises scheme and authority and trims; anything else is undefined", () => {
+    expect(Origin.parse(" HTTPS://Shop.Example:8443 ")?.value).toBe("https://shop.example:8443");
+    expect(Origin.parse("https://a.example/")).toBeUndefined();
+    expect(Origin.parse("a.example")).toBeUndefined();
+    expect(Origin.parse("")).toBeUndefined();
+  });
+
+  it("equals compares by canonical value", () => {
+    const a = Origin.parse("https://A.example");
+    const b = Origin.parse("https://a.EXAMPLE");
+    const c = Origin.parse("http://a.example");
+    expect(a && b && a.equals(b)).toBe(true);
+    expect(a && c && a.equals(c)).toBe(false);
   });
 });

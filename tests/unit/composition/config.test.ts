@@ -47,7 +47,10 @@ describe("readConfig", () => {
 
   it("merchants come inline from OPE_MERCHANTS or from OPE_MERCHANTS_FILE, inline first", () => {
     expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants).toEqual([
-      { ...merchant, experiments: [] },
+      {
+        merchant: { merchantId: "m_a", ingestKeys: ["k1"], origins: [{ value: "https://a.example" }] },
+        experiments: [],
+      },
     ]);
     const read = (file: string): string => {
       expect(file).toBe(path.resolve("config/m.json"));
@@ -68,7 +71,16 @@ describe("readConfig", () => {
     };
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
-    expect(parsed?.experiments).toEqual([{ ...exp, treatmentPercent: 50 }]);
+    expect(parsed?.experiments).toEqual([
+      {
+        experimentId: exp.experimentId,
+        merchantId: "m_a",
+        treatmentShare: 0.5,
+        seed: exp.seed,
+        status: exp.status,
+        startedAt: new Date(exp.startedAt),
+      },
+    ]);
     expect(
       readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments,
     ).toEqual([]);
@@ -101,7 +113,7 @@ describe("readConfig", () => {
           treatmentPercent: 101,
         },
       ],
-      "merchants[0].experiments[0].treatmentPercent must be an integer between 0 and 100.",
+      "merchants[0].experiments[0].treatmentPercent is invalid (The treatment share must be a number between 0 and 1.)",
     ],
     [
       [
@@ -129,7 +141,7 @@ describe("readConfig", () => {
     ],
     [
       [{ experimentId: "exp_00000001", seed: "", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
-      "merchants[0].experiments[0].seed must be a non-empty string.",
+      "merchants[0].experiments[0].seed is invalid (The seed must be a non-empty string.)",
     ],
     [
       [{ experimentId: "exp_00000001", seed: "s", status: "paused", startedAt: "2026-09-17T00:00:00Z" }],

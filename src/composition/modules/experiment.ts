@@ -24,7 +24,10 @@ export interface ExperimentPorts {
 export const configExperimentPorts = (
   merchants: readonly MerchantConfig[],
 ): Bindings<Pick<ExperimentPorts, "experiments">> => ({
-  experiments: () => configExperimentDirectory(merchants),
+  experiments: () =>
+    configExperimentDirectory(
+      merchants.map((m) => ({ merchantId: m.merchant.merchantId, experiments: m.experiments })),
+    ),
 });
 
 export const memoryAssignmentPorts: Bindings<Pick<ExperimentPorts, "assignments">> = {

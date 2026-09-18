@@ -48,3 +48,12 @@ types:
   - slug: ledger-unavailable
     status: 503
     title: The ledger is not available
+  - slug: invalid-treatment-share
+    status: 500
+    title: The treatment share of an experiment is out of range
+  - slug: invalid-seed
+    status: 500
+    title: The seed of an experiment is empty
+  - slug: invalid-origin
+    status: 500
+    title: A registered origin is not scheme://host[:port]

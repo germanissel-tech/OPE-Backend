@@ -9,9 +9,9 @@ import {
   postEvents,
   postExposure,
   startTestApp,
+  type MerchantSpec,
 } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { MerchantConfig } from "../../src/composition/config.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
 import type { Decision } from "../../src/domain/ledger/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
@@ -113,13 +113,13 @@ describe("isolation between merchants", () => {
       status: "active" as const,
       startedAt: NOW,
     });
-    const merchantA: MerchantConfig = {
+    const merchantA: MerchantSpec = {
       merchantId: A.id,
       ingestKeys: [A.key],
       origins: [A.origin],
       experiments: [experiment("seed-a")],
     };
-    const merchantC: MerchantConfig = {
+    const merchantC: MerchantSpec = {
       merchantId: "m_c",
       ingestKeys: ["key-c-1"],
       origins: ["https://c.example"],
@@ -172,7 +172,7 @@ describe("isolation between merchants", () => {
       status: "active" as const,
       startedAt: NOW,
     };
-    const merchantA: MerchantConfig = {
+    const merchantA: MerchantSpec = {
       merchantId: A.id,
       ingestKeys: [A.key],
       origins: [A.origin],
