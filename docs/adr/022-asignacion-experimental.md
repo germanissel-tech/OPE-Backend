@@ -43,6 +43,6 @@ vive el experimento y qué ve el SDK.
 
 - El módulo `experiment` entra al mapa de contextos (`experiment: [shared-kernel]`;
   `ingestion` depende de él).
-- El plano de decisión (012+) recibe el brazo desde la decisión y no vuelve a calcularlo.
+- El plano de decisión (011+) recibe el brazo desde la decisión y no vuelve a calcularlo.
 - Las lecturas del portal (017) y el análisis ITT parten del ledger de asignaciones, no de
   las exposiciones.

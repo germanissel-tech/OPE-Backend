@@ -31,13 +31,15 @@ consumers:
     tags: [admin]
     capabilities: [merchants:write, credentials:rotate, experiments:write, flags:write, messages:publish]
 features:
-  "007": Experimental assignment and ledger
-  "008": Persistence and resilience
-  "009": Outcomes — orders, returns, browser corroboration
-  "010": Configuration, flags, kill switch and administration
-  "011": Catalogue and stock
-  "012": Message catalogue
-  "017": ITT analysis and merchant portal
+  "010": Catalogue and stock
+  "011": Decision plane I — barrier and evidence
+  "012": Decision plane II — quality gate and policy
+  "013": Outcomes — orders, returns, browser corroboration
+  "014": Configuration, flags, kill switch and administration
+  "015": Message catalogue
+  "016": ITT analysis and merchant portal
+  "017": Persistence and resilience
+  "018": Observability and end-to-end
 operations:
   - operationId: getHealth
     method: get
@@ -72,7 +74,7 @@ operations:
     consumer: sdk
     tag: ingest
     capabilities: [config:read]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:02-integracion-ecommerce.md#3
   - operationId: reportAnchorDiagnostics
@@ -81,7 +83,7 @@ operations:
     consumer: sdk
     tag: ingest
     capabilities: [diagnostics:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: corroborateOrder
@@ -90,7 +92,7 @@ operations:
     consumer: sdk
     tag: ingest
     capabilities: [orders:corroborate]
-    feature: "009"
+    feature: "013"
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.1
   - operationId: notifyOrder
@@ -99,7 +101,7 @@ operations:
     consumer: platform
     tag: outcomes
     capabilities: [orders:write]
-    feature: "009"
+    feature: "013"
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.2
   - operationId: notifyReturn
@@ -108,7 +110,7 @@ operations:
     consumer: platform
     tag: outcomes
     capabilities: [returns:write]
-    feature: "009"
+    feature: "013"
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.4
   - operationId: upsertCatalogSnapshot
@@ -117,7 +119,7 @@ operations:
     consumer: platform
     tag: outcomes
     capabilities: [catalog:write]
-    feature: "011"
+    feature: "010"
     status: planned
     source: mvp:02-integracion-ecommerce.md#4
   - operationId: getExperimentResults
@@ -126,7 +128,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "017"
+    feature: "016"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.3
   - operationId: getAccumulationStatus
@@ -135,7 +137,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "017"
+    feature: "016"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listDecisions
@@ -144,7 +146,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "017"
+    feature: "016"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listExposures
@@ -153,7 +155,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "017"
+    feature: "016"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listOrders
@@ -162,7 +164,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "017"
+    feature: "016"
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.2
   - operationId: listMerchants
@@ -171,7 +173,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: createMerchant
@@ -180,7 +182,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: rotateIngestKey
@@ -189,7 +191,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [credentials:rotate]
-    feature: "010"
+    feature: "014"
     status: planned
     source: docs/adr/014-protocolo-del-sdk.md
   - operationId: rotatePlatformKey
@@ -198,7 +200,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [credentials:rotate]
-    feature: "010"
+    feature: "014"
     status: planned
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
   - operationId: createExperiment
@@ -207,7 +209,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [experiments:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#4.1
   - operationId: closeExperiment
@@ -216,7 +218,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [experiments:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: putFlags
@@ -225,7 +227,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [flags:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: setKillSwitch
@@ -234,7 +236,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [flags:write]
-    feature: "010"
+    feature: "014"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: publishMessageCatalog
@@ -243,6 +245,6 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [messages:publish]
-    feature: "012"
+    feature: "015"
     status: planned
     source: mvp:03-alcance-mvp.md#4.4

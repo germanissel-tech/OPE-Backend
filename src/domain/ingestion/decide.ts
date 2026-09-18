@@ -1,4 +1,4 @@
-// Reason of the NO_OP for a batch. Without a decision plane (features 012+), the only things to
+// Reason of the NO_OP for a batch. Without a decision plane (features 011+), the only things to
 // distinguish are the arm and the incomplete context: a CONTROL visitor never gets an
 // intervention (constitution III), a merchant without an active experiment assigns nobody, and a
 // product page without a resolved product allows no decision (01-arquitectura-mvp.md §3.1.1).

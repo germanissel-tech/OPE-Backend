@@ -14,7 +14,7 @@ El camino crítico no admite escrituras bloqueantes ni llamadas de red (01-arqui
 §4.6) y, si el ledger no está disponible, la intervención se suprime antes que contaminar la
 medición (§4.7; constitución II). Hasta la 006 los puertos del ledger (`DecisionLedger`,
 `ExposureLedger`) devolvían `void` o un estado sin contemplar la indisponibilidad, porque la
-única implementación era en memoria. La persistencia real (008) va a poner una base de datos
+única implementación era en memoria. La persistencia real (feature 017 del mapa) va a poner una base de datos
 detrás; si la semántica se decide entonces, el código de la 007 nace asumiendo escrituras
 síncronas e infalibles.
 
@@ -50,7 +50,7 @@ síncronas e infalibles.
 
 ## Consecuencias
 
-- La 008 implementa el buffer, los lotes, la cola muerta y el circuit breaker detrás de estos
+- La persistencia (017) implementa el buffer, los lotes, la cola muerta y el circuit breaker detrás de estos
   puertos sin tocar dominio ni aplicación.
 - `ledger-unavailable` entra al catálogo de motivos de `NO_OP` y al de tipos de problema
   (`503`); `confirmExposure` declara la `503`.
