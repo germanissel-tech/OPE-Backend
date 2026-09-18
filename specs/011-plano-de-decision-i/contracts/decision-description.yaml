@@ -1,0 +1,14 @@
+# Description changes in contracts/components/schemas/Decision.yaml and Intervention.yaml
+# (feature 011). No shape changes: compatible. The PROPUESTO markers close.
+Decision.outcome.description: |
+  `NO_OP`: do not intervene; `reason` is a slug of `contracts/no-op-reasons.yaml`.
+  `INTERVENE`: render `intervention`; `reason` is the inferred barrier (`fit`, `price` or
+  `returns`, 03 §4.2). Neither the confidence nor the signals travel: they live in the ledger.
+Decision.reason.description: |
+  Reason for the outcome: a NO_OP reason of the catalogue `contracts/no-op-reasons.yaml`
+  (for example `barrier-unclear`), or the barrier of an intervention.
+Intervention.description: |
+  The intervention the decision plane emits: where to render (`anchor`) and which curated
+  message version to fetch from the message catalogue. Until that catalogue exists (feature
+  015) `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_v0`; the
+  SDK renders nothing it cannot resolve.

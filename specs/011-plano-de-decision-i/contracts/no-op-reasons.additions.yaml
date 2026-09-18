@@ -1,0 +1,21 @@
+# Additions to contracts/no-op-reasons.yaml (feature 011). `decision-plane-unavailable` stays
+# in the catalogue for compatibility but is no longer emitted.
+reasons:
+  - slug: barrier-unclear
+    emitter: decision
+    description: No barrier reached the confidence threshold of the merchant's decision policy (01 §4.2); the inference is recorded.
+  - slug: evidence-missing
+    emitter: decision
+    description: No product truth for the variant in focus (no catalogue, unknown product or variant, or no variant when the barrier needs one); OPE does not claim what it cannot sustain (01 §4.3).
+  - slug: evidence-stale
+    emitter: decision
+    description: The product truth is older than the budget of the class the barrier needs (catalogue, or stock and price); fail-closed.
+  - slug: variant-unavailable
+    emitter: decision
+    description: The variant in focus is not available and the barrier would recommend it; stock is a guard, never a claim (01 §4.3).
+  - slug: high-intent
+    emitter: decision
+    description: The session shows high purchase intent under the merchant's policy (for example, it entered the checkout); interfering is not the right move (01 §4.5).
+  - slug: session-budget-exhausted
+    emitter: decision
+    description: The session already received the interventions its policy allows.

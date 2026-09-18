@@ -257,8 +257,9 @@ s`, `sequence(a, b)`, `returnedToProduct`, `productAttribute(key) = value`,
   `default-1`; la política por defecto MUST codificar los valores propuestos al stakeholder:
   una señal fuerte más una de apoyo (umbral 0,6 con pesos fuerte 0,4 / apoyo 0,2), 5 s de
   lectura, prioridad `returns → fit → price`, alta intención desde checkout, abandono sin señal
-  ⇒ reaseguro de devoluciones, una intervención por sesión, `stockAndPrice` exigido sólo por
-  `price` y por la recomendación de talle.
+  ⇒ reaseguro de devoluciones, una intervención por sesión, `stockAndPrice` fresco exigido sólo
+  por `price`, y variante disponible exigida por `fit` (no se recomienda un talle agotado,
+  aunque el dato sea viejo: guardia, no claim).
 - **FR-024**: Cambiar la política de un merchant MUST cambiar `version`; cada decisión MUST
   registrar `policyVersion`, barrera candidata, confianza y señales cumplidas.
 - **FR-025**: La política de un merchant MUST NOT afectar las decisiones de otro (aislamiento
