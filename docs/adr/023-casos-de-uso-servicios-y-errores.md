@@ -30,6 +30,11 @@ reconocible y verificada por herramienta (ADR-016), sin conversiones de tipo en 
    `*Service` con implementación `Default*Service` en `application/<módulo>/services/`,
    inyectada por interfaz. Un servicio puede usar otros servicios; no importa casos de uso.
    El primero es `AssignmentService` (ADR-022).
+   - Precisión (2026-09-18): **autenticación y autorización no son casos de uso**. Resolver una
+     credencial (`IngestKeyResolver`, y los que traigan `portalSession`, `adminToken` y las
+     capacidades) es una política que el adaptador de seguridad consulta **antes** de validar el
+     body y antes de cualquier caso de uso; vive en `services/` del módulo que la posee y los
+     casos de uso reciben el merchant ya resuelto, nunca la credencial.
 3. **Errores**: raíz `DomainError` (abstracta, extiende `Error`) en el `shared-kernel` del
    dominio con `code` (slug estable, igual al `type` del catálogo de problemas sin prefijo),
    `module` (módulo emisor) y `details` (datos seguros, sin datos personales). Cada módulo

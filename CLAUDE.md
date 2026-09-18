@@ -139,7 +139,10 @@ contrato con una operación que ningún módulo sirve no arranca.
 - Un caso de uso **nunca** importa ni invoca a otro caso de uso (`use-cases-no-use-cases`). Lo
   compartido que necesita puertos es una interfaz `*Service` con implementación
   `Default*Service` en `services/` (la asignación: `AssignmentService`); un servicio no importa
-  casos de uso (`services-no-use-cases`).
+  casos de uso (`services-no-use-cases`). Autenticación y autorización tampoco son casos de
+  uso: son servicios (`IngestKeyResolver`) que el security handler consulta antes de validar el
+  body y antes de cualquier caso de uso; un caso de uso recibe el merchant resuelto, nunca la
+  credencial.
 - Un error de negocio es una clase en `src/domain/<módulo>/errors.ts` que extiende
   `DomainError` con `readonly code = "<slug>" as const` y `readonly module = MODULE` (la carpeta;
   `ope/domain-error-shape`), y el archivo exporta la unión del módulo. El `code` es el slug del
