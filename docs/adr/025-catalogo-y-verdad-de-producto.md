@@ -19,9 +19,12 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
 
 1. **Snapshot completo con reemplazo idempotente.** El catálogo entra como una foto completa
    (`PUT /v1/catalog`) con `capturedAt` declarado por la plataforma y `receivedAt` registrado
-   por OPE; reemplaza al vigente sin fusión; un snapshot con `capturedAt` anterior al vigente
-   se rechaza (`catalog-out-of-order`). Variantes anidadas en su producto: no hay huérfanas por
-   construcción. Invariantes: ids únicos, captura no futura (5 min de tolerancia).
+   por OPE; reemplaza al vigente sin fusión. `capturedAt` es la clave de idempotencia
+   (ADR-020, `x-idempotency`): un instante nuevo crea (`201`), el mismo instante con el mismo
+   contenido repite (`200`), el mismo instante con otro contenido es `409 idempotency-conflict`
+   (error del `shared-kernel`, reutilizable por órdenes y devoluciones), y un instante anterior
+   al vigente se rechaza (`422 catalog-out-of-order`). Variantes anidadas en su producto: no
+   hay huérfanas por construcción. Invariantes: ids únicos, captura no futura (5 min).
 2. **El stock es guardia** (01 §4.3): `available` booleano por variante; ninguna cantidad
    entra ni sale.
 3. **Frescura por clase de dato, fail-closed.** Catálogo y variantes valen 36 h; disponibilidad
@@ -43,8 +46,9 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
    prueba) y la infraestructura compara `x-required-capabilities` de la operación antes de
    validar el cuerpo; falta alguna ⇒ `403 capability-missing`.
 7. **Headers de credencial desde el cableado**: cada esquema declara su header
-   (`SecurityScheme { handler, header }`); CORS y la redacción del log se derivan de los
-   esquemas registrados. Cierra el PROPUESTO de ADR-020.
+   (`SecurityScheme { handler, header }`); los headers admitidos por CORS se derivan de los
+   esquemas registrados y el log redacta todo header, con lo que la infraestructura no conoce
+   ninguna credencial por nombre. Cierra el PROPUESTO de ADR-020.
 8. **`Money`** pasa al `shared-kernel` del dominio como value object (lo comparten ingesta y
    catálogo).
 

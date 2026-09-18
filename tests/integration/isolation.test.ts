@@ -1,15 +1,20 @@
 // FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
 // A and B are the merchants of tests/helpers/test-app.ts; each case names both.
 import { afterEach, describe, expect, it } from "vitest";
+import { productTruthOf } from "../../src/composition/modules/catalog.js";
+import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,
+  catalogOf,
+  catalogProductOf,
   fixedClock,
   merchantB,
   postEvents,
   postExposure,
+  putCatalog,
   startTestApp,
   type MerchantSpec,
 } from "../helpers/test-app.js";
@@ -199,5 +204,40 @@ describe("isolation between merchants", () => {
       "vis_00000001" as never,
     );
     expect(fresh).toMatchObject({ experimentId: "exp_active_01", assignedAt: new Date(NOW) });
+  });
+
+  it("catalogue: the snapshot of A is invisible to B; the same productId in A and B are two products; B's platform key cannot touch A", async () => {
+    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
+    const a = await putCatalog(
+      app.app,
+      { capturedAt: NOW, products: [catalogProductOf("SKU-1", 1, { title: "A's shirt" })] },
+      { platformKey: "platform-a-1" },
+    );
+    const b = await putCatalog(
+      app.app,
+      { capturedAt: NOW, products: [catalogProductOf("SKU-1", 1, { title: "B's shirt" })] },
+      { platformKey: "platform-b-1" },
+    );
+    expect([a.statusCode, b.statusCode]).toEqual([201, 201]);
+    const truth = productTruthOf(app.ports);
+    const inA = await truth.lookup(asMerchantId(A.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    const inB = await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    expect(inA).toMatchObject({ kind: "known", product: { title: "A's shirt" } });
+    expect(inB).toMatchObject({ kind: "known", product: { title: "B's shirt" } });
+    expect(await truth.lookup(asMerchantId("m_c"), asProductId("SKU-1"), asVariantId("SKU-1-M"))).toEqual({
+      kind: "unknown",
+      reason: "absent",
+    });
+    // B replaces its own catalogue; A's stays.
+    const later = new Date(new Date(NOW).getTime() + 60_000).toISOString();
+    expect((await putCatalog(app.app, catalogOf(0, later), { platformKey: "platform-b-1" })).statusCode).toBe(
+      201,
+    );
+    expect(
+      await truth.lookup(asMerchantId(A.id), asProductId("SKU-1"), asVariantId("SKU-1-M")),
+    ).toMatchObject({ kind: "known" });
+    expect(
+      await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M")),
+    ).toMatchObject({ kind: "unknown" });
   });
 });

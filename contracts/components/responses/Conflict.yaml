@@ -1,0 +1,13 @@
+description: |
+  Same identity, different content (ADR-020): the idempotency key of the request matches a
+  record whose content differs. Nothing changed.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:idempotency-conflict
+      title: Same identity, different content
+      status: 409
+      detail: A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.
+      instance: /v1/catalog

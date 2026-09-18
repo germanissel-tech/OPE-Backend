@@ -3,8 +3,10 @@ export { asExperimentId, asMerchantId, asSessionId, asVisitorId } from "./ids.js
 export type { Branded, ExperimentId, MerchantId, SessionId, VisitorId } from "./ids.js";
 export type { Arm } from "./arm.js";
 export { hours, minutes, MS_PER_SECOND, seconds } from "./time.js";
-export { DomainError } from "./errors.js";
-export type { SafeDetails } from "./errors.js";
+export { DomainError, IdempotencyConflict, InvalidMoney } from "./errors.js";
+export type { SafeDetails, SharedKernelError } from "./errors.js";
+export { Money } from "./money.js";
+export type { MoneyRecord } from "./money.js";
 export { fail, ok } from "./result.js";
 export type { Fail, Ok, Result } from "./result.js";
 export { NO_OP_REASONS } from "./no-op-reasons.js";

@@ -1,6 +1,7 @@
 // Typed container of ports (ADR-013): the intersection of what every module declares it needs.
 // A profile has to provide every field, so a port a module adds to its slice and no profile
 // provides does not compile (FR-003).
+import type { CatalogPorts } from "./modules/catalog.js";
 import type { ExperimentPorts } from "./modules/experiment.js";
 import type { IngestionPorts } from "./modules/ingestion.js";
 import type { LedgerPorts } from "./modules/ledger.js";
@@ -13,7 +14,8 @@ export type Ports = SharedKernelPorts &
   MerchantPorts &
   ExperimentPorts &
   IngestionPorts &
-  LedgerPorts;
+  LedgerPorts &
+  CatalogPorts;
 
 /** A gateway may need to shut down (connections, timers). In memory there is nothing to close. */
 export interface Closable {

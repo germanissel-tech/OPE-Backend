@@ -1,0 +1,24 @@
+type: object
+description: What OPE holds after an upsert; never the snapshot itself.
+additionalProperties: false
+required: [products, variants, receivedAt, observedSyncLevel]
+properties:
+  products:
+    type: integer
+    description: Number of products in the snapshot OPE now holds.
+    minimum: 0
+  variants:
+    type: integer
+    description: Number of variants across every product.
+    minimum: 0
+  receivedAt:
+    type: string
+    format: date-time
+    description: When OPE received the snapshot (its clock); the cadence of receipts feeds the observed level.
+  observedSyncLevel:
+    type: integer
+    minimum: 0
+    maximum: 3
+    description: |
+      Synchronisation level OPE observes from the cadence of snapshots (01 §14.1: measured, not
+      declared): 0 no data, 1 daily dump, 2 minutes, 3 per change (never reached with full snapshots).

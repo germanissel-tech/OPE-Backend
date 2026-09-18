@@ -120,7 +120,7 @@ operations:
     tag: outcomes
     capabilities: [catalog:write]
     feature: "010"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#4
   - operationId: getExperimentResults
     method: get

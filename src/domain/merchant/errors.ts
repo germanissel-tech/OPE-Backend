@@ -28,4 +28,13 @@ export class InvalidOrigin extends DomainError {
   }
 }
 
-export type MerchantError = Unauthorized | OriginNotAllowed | InvalidOrigin;
+/** A platform key that is empty or equal to an ingest key (configuration; fail-closed). */
+export class PlatformKeyCollision extends DomainError {
+  readonly code = "platform-key-collision" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("A platform key must be non-empty and distinct from every ingest key.", { index });
+  }
+}
+
+export type MerchantError = Unauthorized | OriginNotAllowed | InvalidOrigin | PlatformKeyCollision;

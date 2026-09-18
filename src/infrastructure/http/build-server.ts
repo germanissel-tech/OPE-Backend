@@ -21,7 +21,7 @@ import {
   SecurityError,
   type Handlers,
   type OperationsMap,
-  type SecurityHandler,
+  type SecurityScheme,
 } from "../../interface-adapters/http/typed.js";
 import { fastifyLoggerOf } from "../logging/pino-logger.js";
 import { registerCors, type CorsPolicy } from "./cors.js";
@@ -36,8 +36,8 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
   definition: ContractDocument;
   /** NoInfer: the operations map is set explicitly (by default, the generated one). */
   handlers: Handlers<NoInfer<Ops>>;
-  /** Security handlers by contract scheme name (`securitySchemes`). */
-  security?: Record<string, SecurityHandler>;
+  /** Security schemes by contract scheme name (`securitySchemes`): the handler and the credential header. */
+  security?: Record<string, SecurityScheme>;
   /** Origin policy for CORS; without it, the server does not negotiate CORS. */
   cors?: CorsPolicy | undefined;
   /** The process logger; Fastify's request log shares its stream when it is pino-backed. */
@@ -143,11 +143,19 @@ function pathOf(url: string): string {
  * The Fastify instance: transport only, with CORS when a policy is given. Request logging runs
  * on the stream of the process logger; a foreign `Logger` (a test stub) gets no request log.
  */
-async function createApp(options: Pick<BuildServerOptions, "logger" | "cors">): Promise<FastifyInstance> {
+/** A full catalogue snapshot travels in one request (ADR-025): the default 1 MiB does not fit a pilot. */
+const BODY_LIMIT_MIB = 32;
+const BYTES_PER_KIB = 1024;
+const BODY_LIMIT_BYTES = BODY_LIMIT_MIB * BYTES_PER_KIB * BYTES_PER_KIB;
+
+async function createApp(
+  options: Pick<BuildServerOptions, "logger" | "cors" | "security">,
+): Promise<FastifyInstance> {
   const loggerInstance = fastifyLoggerOf(options.logger);
   // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
-  const app = Fastify(loggerInstance ? { loggerInstance } : {});
-  if (options.cors) await registerCors(app, options.cors);
+  const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });
+  const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);
+  if (options.cors) await registerCors(app, options.cors, credentialHeaders);
   return app;
 }
 
@@ -194,12 +202,27 @@ function securityFailure(c: BoundaryContext): HttpResponse {
   return toHttp(problem("unauthorized", { instance: c.request.path }));
 }
 
-/** Security handlers run before validation and the handler; their error decides the status. */
-function registerSecurity(api: OpenAPIBackend, security: Record<string, SecurityHandler>): void {
-  for (const [scheme, handler] of Object.entries(security)) {
-    api.registerSecurityHandler(scheme, (c: BoundaryContext) =>
-      handler({ headers: c.request.headers as Record<string, string | string[] | undefined> }),
-    );
+/** The capabilities an operation declares (`x-required-capabilities`, ADR-020); none when absent. */
+function requiredCapabilities(c: BoundaryContext): string[] {
+  const declared: unknown = (c.operation as Record<string, unknown>)["x-required-capabilities"];
+  return Array.isArray(declared) ? declared.filter((v): v is string => typeof v === "string") : [];
+}
+
+/**
+ * Security handlers run before validation and the handler; their error decides the status.
+ * Whatever the handler grants, the operation's required capabilities must be among them
+ * (ADR-025): a valid credential of the wrong consumer is 403, before the body is read.
+ */
+function registerSecurity(api: OpenAPIBackend, security: Record<string, SecurityScheme>): void {
+  for (const [scheme, { handler }] of Object.entries(security)) {
+    api.registerSecurityHandler(scheme, async (c: BoundaryContext) => {
+      const outcome = await handler({
+        headers: c.request.headers as Record<string, string | string[] | undefined>,
+      });
+      const missing = requiredCapabilities(c).filter((cap) => !outcome.capabilities.includes(cap));
+      if (missing.length > 0) throw new SecurityError("capability-missing");
+      return outcome;
+    });
   }
 }
 

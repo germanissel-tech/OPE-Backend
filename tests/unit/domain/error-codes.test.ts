@@ -29,9 +29,12 @@ async function errorsOf(module: string): Promise<DomainError[]> {
   } catch {
     return [];
   }
-  return Object.values(exported)
-    .filter((v): v is ErrorClass => typeof v === "function" && v.prototype instanceof DomainError)
-    .map((Cls) => new Cls(...(["x", "y"] as never[])));
+  return (
+    Object.values(exported)
+      .filter((v): v is ErrorClass => typeof v === "function" && v.prototype instanceof DomainError)
+      // Placeholder arguments: an id, an index or an instant; every message tolerates them.
+      .map((Cls) => new Cls(...([new Date(0), new Date(0)] as never[])))
+  );
 }
 
 describe("domain error codes replicate the problem type catalogue", () => {

@@ -7,7 +7,7 @@ import type { ContractDocument } from "../../../src/infrastructure/http/build-se
 import type {
   Handlers,
   OperationHandler,
-  SecurityHandler,
+  SecurityScheme,
 } from "../../../src/interface-adapters/http/typed.js";
 
 const handler = (): never => {
@@ -15,7 +15,10 @@ const handler = (): never => {
 };
 const getHealth = handler as unknown as OperationHandler<"getHealth">;
 const ingestEvents = handler as unknown as OperationHandler<"ingestEvents">;
-const security: SecurityHandler = () => ({ principal: null });
+const security: SecurityScheme = {
+  handler: () => ({ principal: null, capabilities: [] }),
+  header: "x-test-key",
+};
 const cors = { isRegisteredOrigin: () => Promise.resolve(true) };
 const contractOf = (version: string) =>
   ({ openapi: "3.1.0", info: { title: "t", version }, paths: {} }) as ContractDocument;

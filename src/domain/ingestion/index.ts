@@ -13,7 +13,6 @@ export type {
   ExitSignal,
   ExitSignaled,
   ListingViewed,
-  Money,
   PageContext,
   PageType,
   PhotoInteracted,

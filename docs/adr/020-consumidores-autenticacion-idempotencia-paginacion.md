@@ -31,7 +31,9 @@ idempotencia de orden con `orderId`) y con la paginación de lecturas.
    | `admin`    | `admin`              | `adminToken` (bearer, PROPUESTO)            | token de operador de OPE, emitido fuera de banda, auditado                  | operador                     |
 
    Ausente o inválida ⇒ `401 unauthorized`. Firma HMAC del cuerpo con ventana temporal para
-   `platformKey`: PROPUESTO, se decide con el primer adaptador de plataforma (02 §6).
+   `platformKey`: DECIDIDO con el primer adaptador de plataforma (feature 010, ADR-025): clave
+   servidor a servidor por merchant en `X-OPE-Platform-Key`, una o dos, distinta de las de
+   ingesta; la firma HMAC del cuerpo sigue PROPUESTA para el primer adaptador real.
 
 2. **Capacidades** (`x-required-capabilities`): vocabulario cerrado por consumidor, declarado
    en `consumers.<x>.capabilities` del mapa (ADR-019); una capacidad fuera del vocabulario de
@@ -54,12 +56,13 @@ idempotency-conflict`, nunca sobrescritura. La igualdad de contenido se define e
 
 ## Consecuencias
 
-- Precisión (2026-09-18): el header de la credencial de ingesta tiene un solo dueño
-  (`INGEST_KEY_HEADER` en el security handler); CORS y la redacción del log lo importan de ahí.
-  PROPUESTO (feature 014, con el segundo esquema de seguridad): cada esquema declara su header
-  en el cableado y la lista de headers admitidos por CORS y las rutas redactadas se derivan de
-  los esquemas registrados, no de imports en infraestructura. `SecurityError` lleva cualquier
-  `ProblemSlug`, no un subconjunto escrito a mano.
+- Precisión (2026-09-18, cerrada con la 010): cada esquema declara su header en el cableado
+  (`SecurityScheme { handler, header }`); los headers admitidos por CORS se derivan de los
+  esquemas registrados y el log redacta **todo** header (no conoce ninguna credencial por
+  nombre). Las capacidades se verifican en runtime de forma genérica: cada handler otorga las
+  de su consumidor (réplica del mapa) y la infraestructura compara `x-required-capabilities`
+  antes de validar el cuerpo (`403 capability-missing`). `SecurityError` lleva cualquier
+  `ProblemSlug`.
 
 - Toda operación futura nace con su esquema, sus capacidades, su idempotencia (si es
   notificación) y su paginación (si es colección) verificados por lint desde el primer commit.

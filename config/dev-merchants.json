@@ -2,6 +2,7 @@
   {
     "merchantId": "dev-merchant",
     "ingestKeys": ["ope_dev_ingest_key"],
+    "platformKeys": ["ope_dev_platform_key"],
     "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
     "experiments": [
       {

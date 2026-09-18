@@ -2,6 +2,36 @@
 // Regenerate with: npm run contract:types
 
 export type paths = {
+    "/v1/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the merchant's catalogue snapshot
+         * @description The merchant's platform (generic adapter, 02 §6.2) sends the complete catalogue: products
+         *     with their attributes and variants, each variant with size, colour, availability and the
+         *     current price, plus the instant the platform took the picture (`capturedAt`). The snapshot
+         *     replaces the current one entirely (no merge). Availability is a guard, never a claim
+         *     (01 §4.3): no quantities travel. OPE measures freshness from `capturedAt` — catalogue and
+         *     variants stay true for 36 h, availability and price for 15 min — and derives the observed
+         *     synchronisation level from the cadence of receipts (01 §14.1).
+         *     Idempotency (ADR-020): `capturedAt` is the key. A new instant creates the snapshot (`201`);
+         *     the same instant with the same content repeats the previous summary (`200`); the same
+         *     instant with different content is a conflict (`409`); an older instant than the current
+         *     snapshot is rejected (`422 catalog-out-of-order`). Body limit: 32 MiB.
+         */
+        put: operations["upsertCatalogSnapshot"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/events": {
         parameters: {
             query?: never;
@@ -129,6 +159,65 @@ export type components = {
              */
             type: "block_dwelled";
             visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description A product of the catalogue as the platform exposes it, with its variants nested. */
+        CatalogProduct: {
+            /** @description Key/value pairs as the platform exposes them (fit, material, care); no normalisation. */
+            attributes?: {
+                /** @description Attribute key as the platform names it. */
+                key: string;
+                /** @description Attribute value as text. */
+                value: string;
+            }[];
+            /** @description The product identifier as the platform exposes it (the one the SDK resolves on the page). */
+            productId: string;
+            /** @description Display title of the product, as the platform shows it. */
+            title: string;
+            /** @description The variants of the product (size and colour); a product without variants carries no availability nor price. */
+            variants: components["schemas"]["CatalogVariant"][];
+        };
+        /**
+         * @description The complete catalogue of the merchant at `capturedAt`. Variants are nested in their product,
+         *     so no variant can be orphan by construction. `capturedAt` is the idempotency key: the same
+         *     instant with the same content repeats the previous result; with different content it conflicts.
+         */
+        CatalogSnapshot: {
+            /**
+             * Format: date-time
+             * @description When the platform took the picture (RFC 3339). Freshness is measured from here; it is the idempotency key.
+             */
+            capturedAt: string;
+            /** @description Every product of the merchant; an empty list says "no catalogue". */
+            products: components["schemas"]["CatalogProduct"][];
+        };
+        /** @description What OPE holds after an upsert; never the snapshot itself. */
+        CatalogSummary: {
+            /**
+             * @description Synchronisation level OPE observes from the cadence of snapshots (01 §14.1: measured, not
+             *     declared): 0 no data, 1 daily dump, 2 minutes, 3 per change (never reached with full snapshots).
+             */
+            observedSyncLevel: number;
+            /** @description Number of products in the snapshot OPE now holds. */
+            products: number;
+            /**
+             * Format: date-time
+             * @description When OPE received the snapshot (its clock); the cadence of receipts feeds the observed level.
+             */
+            receivedAt: string;
+            /** @description Number of variants across every product. */
+            variants: number;
+        };
+        /** @description The exact combination of size and colour: the only level at which truth exists (01 §0.1). */
+        CatalogVariant: {
+            /** @description Availability as a guard (01 §4.3): `false` means 'do not recommend'; no quantity travels. */
+            available: boolean;
+            /** @description Colour label as the platform shows it. */
+            color: string;
+            price: components["schemas"]["Money"];
+            /** @description Size label as the platform shows it (S, M, 42, …). */
+            size: string;
+            /** @description The variant identifier as the platform exposes it; unique across the snapshot. */
+            variantId: string;
         };
         /** @description Checkout progress. OPE observes the transition to infer and measure; it does not intervene there. */
         CheckoutAdvanced: {
@@ -516,6 +605,39 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the snapshot or of the
+         *     operation (ADR-007). The `type` names the invariant.
+         */
+        CatalogUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
+         * @description Same identity, different content (ADR-020): the idempotency key of the request matches a
+         *     record whose content differs. Nothing changed.
+         */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:idempotency-conflict",
+                 *       "title": "Same identity, different content",
+                 *       "status": 409,
+                 *       "detail": "A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.",
+                 *       "instance": "/v1/catalog"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description The batch satisfies the schema but violates an ingestion invariant. */
         EventBatchUnprocessable: {
             headers: {
@@ -616,6 +738,53 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
+    upsertCatalogSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogSnapshot"];
+            };
+        };
+        responses: {
+            /** @description Same `capturedAt` and same content as the current snapshot; nothing changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "products": 1,
+                     *       "variants": 2,
+                     *       "receivedAt": "2026-09-18T12:00:03Z",
+                     *       "observedSyncLevel": 1
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CatalogSummary"];
+                };
+            };
+            /** @description Snapshot replaced: the summary of what OPE now holds. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["CatalogUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     ingestEvents: {
         parameters: {
             query?: never;

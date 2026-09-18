@@ -7,6 +7,7 @@ export function configMerchantDirectory(merchants: readonly Merchant[]): Merchan
   const registered = merchants.flatMap((m) => m.origins);
   return {
     findByIngestKey: (key) => Promise.resolve(merchants.find((m) => m.owns(key))),
+    findByPlatformKey: (key) => Promise.resolve(merchants.find((m) => m.ownsPlatformKey(key))),
     isRegisteredOrigin: (text) => {
       const wanted = Origin.parse(text);
       return Promise.resolve(wanted !== undefined && registered.some((o) => o.equals(wanted)));
