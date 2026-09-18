@@ -103,7 +103,8 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `experiment`, `ingestion`, `catalog` (los demás cuando llegue su feature). Dentro de un módulo
+`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `decision` (los demás cuando llegue
+su feature). Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
@@ -251,7 +252,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   replicado en `src/interface-adapters/http/problem-details.ts` y verificado por prueba.
   Catálogo de motivos de `NO_OP`: `contracts/no-op-reasons.yaml`, replicado en
   `src/domain/shared-kernel/no-op-reasons.ts` (vocabulario compartido por ingesta, ledger y
-  decisión; string con patrón, no enum: ampliar es compatible).
+  decisión; string con patrón, no enum: ampliar es compatible). Barreras (`BARRIERS`) y
+  anclajes (`ANCHORS`) también viven en el kernel, con réplica contra el contrato.
 - Uniones discriminadas (`Event`): `type: object` + `oneOf` + `discriminator` **con `mapping`**
   y `type: { enum: [valor] }` en cada rama (sin `const`). Ajv no acepta `mapping` y sólo aplica
   el discriminador a objetos: el servidor lo quita en runtime
@@ -269,6 +271,25 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `capturedAt`) o `unknown` con motivo, y `syncLevel` observado (`policies/sync-level.ts`, 0–2;
   3 nunca con snapshots completos). El stock es guardia: `available` booleano, sin cantidades.
   `Money` vive en el `shared-kernel` del dominio.
+- **Plano de decisión (ADR-026)**: la ingesta no conoce al plano: `IngestBatchUseCase` invoca el
+  puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa `DecisionService`
+  (`application/decision/services/`) y la composición enlaza (`decisionPlaneOf(ports)` en
+  `modules/decision.ts`). El orquestador recorre asignación → inferencia (`barrier`) → evidencia
+  (`catalog`) → veredicto (`DecisionPolicy.verdict`) → ledger (`DecisionRecorder`, que acuña el
+  id y degrada a `ledger-unavailable`). La inferencia es pura: `Signals` (monoide: el lote se
+  funde con la sesión) y `BarrierRules.infer` devuelven la confianza de las **tres** barreras y
+  las reglas cumplidas; el veredicto elige (umbral, prioridad, alta intención, presupuesto por
+  sesión, evidencia por barrera). La política es un dato del merchant
+  (`OPE_MERCHANTS[i].decisionPolicy`, forma en `composition/decision-policy-config.ts`,
+  invariantes en `BarrierRules.of` / `DecisionPolicy.of`; sin ella, `DEFAULT_DECISION_POLICY`
+  `default-1`), y parte del experimento: cambiarla es un experimento nuevo. El vocabulario de
+  hechos es cerrado (`EVENT_TYPES`, `SUBTYPES`, `BLOCKS` de `ingestion`, con réplica contra el
+  contrato): un hecho nuevo es una feature, nunca configuración. Cada decisión registra
+  `inference` (versión de política, confianzas, reglas cumplidas, barrera, disparador,
+  evidencia); el DTO del SDK sólo lleva `outcome`, `reason` (barrera si `INTERVENE`) e
+  `intervention` (`msg_<barrera>_<anclaje>_v0` hasta la 015). Estado de sesión en memoria
+  (`SessionStateStore`, ventana `SESSION_WINDOW` = la de dedup); una intervención cuenta contra
+  el presupuesto sólo si el ledger la aceptó.
 - **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
   `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
   es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);

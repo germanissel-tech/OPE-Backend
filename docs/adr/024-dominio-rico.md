@@ -61,12 +61,12 @@ un porcentaje contra la convención de tasas; y los puertos admitían respuestas
   el catálogo; la guía de agentes describe la forma.
 - La rehidratación confía en los datos registrados: un endurecimiento posterior de una regla
   no invalida hechos pasados.
-- PROPUESTO (feature 011, plano de decisión I): `EventBatch.noOpReason()` es el stub del plano
-  de decisión (`page-context-incomplete` / `decision-plane-unavailable`) y **se muda al módulo
-  `decision`** cuando exista; hasta entonces es comportamiento del lote. En la misma feature, el
-  **vocabulario de intervención** (`ANCHORS`/`Anchor`, `Intervention`), que hoy vive en
-  `domain/ledger` porque el ledger es quien lo registra, **pasa al `shared-kernel`**: lo produce
-  `decision` y lo registra `ledger`, y ninguno puede depender del otro sin ciclo. `Anchor` es un
-  vocabulario cerrado de la plataforma (réplica del enum del contrato, verificada por prueba):
-  un anclaje nuevo es una feature de producto (contrato, glosario, mapa de anclajes del SDK,
-  mensajes), nunca configuración. Este marcador se cierra en la spec de la 011.
+- Cerrado en la feature 011 (plano de decisión I, ADR-026): el stub `EventBatch.noOpReason()`
+  desapareció con el plano de decisión (`page-context-incomplete` lo emite el orquestador;
+  `decision-plane-unavailable` queda en el catálogo por compatibilidad y ya no se emite), y el
+  **vocabulario de intervención** (`ANCHORS`/`Anchor`, `Intervention`) vive en el
+  `shared-kernel` junto a `BARRIERS`/`Barrier`: lo produce `decision`, lo registra `ledger`, y
+  ninguno puede depender del otro sin ciclo. `Anchor` es un vocabulario cerrado de la
+  plataforma (réplica del enum del contrato, verificada por prueba): un anclaje nuevo es una
+  feature de producto (contrato, glosario, mapa de anclajes del SDK, mensajes), nunca
+  configuración.

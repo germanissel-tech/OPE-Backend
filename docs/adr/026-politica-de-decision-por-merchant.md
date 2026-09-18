@@ -1,7 +1,7 @@
 ---
 numero: 26
 titulo: Política de decisión por merchant como reglas tipadas sobre un vocabulario cerrado
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-18
 fuente: specs/011-plano-de-decision-i/research.md
 ---
