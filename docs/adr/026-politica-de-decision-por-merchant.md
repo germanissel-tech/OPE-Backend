@@ -1,0 +1,73 @@
+---
+numero: 26
+titulo: Política de decisión por merchant como reglas tipadas sobre un vocabulario cerrado
+estado: propuesta
+fecha: 2026-09-18
+fuente: specs/011-plano-de-decision-i/research.md
+---
+
+# ADR-026 — Política de decisión por merchant como reglas tipadas sobre un vocabulario cerrado
+
+## Contexto
+
+El plano de decisión (01 §4) infiere una de tres barreras (03 §4.2) a partir de lo que el
+visitante hizo y decide intervenir o callarse. Cada merchant es un comercio con su propio
+experimento: una tienda deportiva y una de moda femenina no reaccionan a las mismas señales ni
+con los mismos umbrales, y los umbrales concretos son decisiones del stakeholder que se
+recalibran con datos del piloto. Codificarlos en el código obligaría a un despliegue por
+merchant y por ajuste; un motor de reglas genérico (json-rules-engine, rulepilot) abriría el
+vocabulario (cualquier ruta de cualquier objeto), evaluaría con `any` y metería una
+dependencia npm en el dominio (prohibido por `arch`, ADR-013).
+
+La constitución I exige una autoridad por módulo y un orquestador que sólo transporte el
+contexto; la III, que ambos brazos atraviesen la misma inferencia y que cada decisión estampe
+la versión de configuración con la que se tomó; la IX, que el ledger conserve barrera,
+evidencia y veredicto.
+
+## Decisión
+
+1. **La política de decisión es un dato del merchant, no código.** `OPE_MERCHANTS[i].decisionPolicy`
+   (opcional; sin ella, `DEFAULT_DECISION_POLICY`, versión `default-1`) declara reglas
+   `cuando ⟨condición⟩ entonces ⟨barrera, fuerza⟩`, umbral de confianza, segundos de lectura,
+   pesos por fuerza, prioridad ante empate, criterio de alta intención, respuesta al abandono
+   sin señal, intervenciones por sesión y evidencia exigida por barrera. Se construye por
+   fábrica (`BarrierRules.of`, `DecisionPolicy.of`): una política inválida impide el arranque
+   nombrando el campo (ADR-024).
+2. **El vocabulario de hechos es cerrado y lo fija OPE.** Predicados sobre lo que la ingesta ya
+   captura (conteo por tipo y subtipo de evento, permanencia por bloque, secuencia de dos
+   eventos, retorno a un producto, atributo del producto, disponibilidad de la variante, estado
+   de la sesión) combinados con `all`/`any`/`not`. Un merchant combina hechos; no agrega hechos
+   ni barreras por configuración: eso es alcance de producto (contrato, glosario, SDK).
+3. **Motor propio en el dominio, puro.** `Signals` agrega una secuencia de eventos (monoide: el
+   lote se funde con la sesión) y `BarrierRules.infer(signals, product)` devuelve la confianza
+   de **cada** barrera y las reglas cumplidas; sin reloj, sin puertos, sin aleatoriedad. La
+   elección de la dominante, el umbral y la evidencia son del veredicto (`DecisionPolicy.verdict`).
+4. **Dos módulos.** `barrier` es la autoridad de inferencia (vocabulario, álgebra, reglas,
+   puerto `BarrierInference`); `decision` es el orquestador (`DecisionService`: asignación →
+   inferencia → evidencia → veredicto → ledger) y el veredicto. La ingesta no conoce al plano:
+   declara el puerto `DecisionPlane` y la composición lo enlaza (inversión de dependencia, sin
+   ciclo en el mapa de contextos). El veredicto de la 011 es la semilla de la política
+   comercial (01 §4.5); la 012 decide si la política completa (techo, margen, cooldown) se
+   separa en su módulo.
+5. **La política es parte del experimento.** Cambiarla con un experimento activo es un
+   experimento nuevo (misma regla que la semilla y el reparto, ADR-022); `version` cambia y
+   cada decisión del ledger registra `policyVersion`, las confianzas de las tres barreras, las
+   reglas cumplidas, la barrera elegida, el disparador y la evidencia consultada.
+6. **Criterio de revisión.** Se adopta un motor de reglas genérico (o un DSL propio con parser)
+   cuando un merchant necesite un hecho fuera del vocabulario que OPE no quiera incorporar como
+   producto, o cuando la autoría de políticas pase al portal (016) y requiera un editor. Hasta
+   entonces, cada hecho nuevo es una feature.
+
+## Consecuencias
+
+- El stakeholder decide umbrales y reglas sin despliegue: edita la política del merchant y
+  versiona. Los valores iniciales son los propuestos en la 011 (una señal fuerte más una de
+  apoyo; 5 s; devoluciones → talle → precio; alta intención desde checkout; abandono sin señal
+  ⇒ reaseguro de devoluciones; una intervención por sesión).
+- Las intervenciones son comparables sólo dentro de una misma `policyVersion`; el análisis ITT
+  (016) segmenta por ella.
+- El estado de sesión vive en memoria con la ventana de la deduplicación (24 h / 100 000 por
+  merchant) hasta la persistencia (017); una sesión olvidada vuelve a empezar.
+- PROPUESTO (pregunta al stakeholder): al pasar un merchant a 100 % TREATMENT, mantener un
+  holdout mínimo (por ejemplo 5 %) para no perder la medición; sin holdout, OPE deja de poder
+  atribuir. Se decide antes de la 016.
