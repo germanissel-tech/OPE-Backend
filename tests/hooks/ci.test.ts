@@ -22,10 +22,20 @@ const runs = (job: string): string[] =>
   workflow.jobs[job]?.steps.map((s) => s.run ?? "").filter(Boolean) ?? [];
 
 describe(".github/workflows/ci.yml", () => {
-  it("runs quality after lint and test:mutation after the tests", () => {
-    const ci = runs("ci");
-    expect(ci.indexOf("npm run quality")).toBeGreaterThan(ci.indexOf("npm run lint"));
-    expect(ci.indexOf("npm run test:mutation")).toBeGreaterThan(ci.indexOf("npm test"));
+  it("runs quality after lint and the tests in the checks job", () => {
+    const checks = runs("checks");
+    expect(checks.indexOf("npm run quality")).toBeGreaterThan(checks.indexOf("npm run lint"));
+    expect(checks.indexOf("npm test")).toBeGreaterThan(-1);
+    expect(checks).not.toContain("npm run test:mutation");
+  });
+
+  it("runs the mutation gate in its own job, incrementally, on every change", () => {
+    const job = workflow.jobs["mutation"];
+    expect(job?.if).toContain("schedule");
+    expect(runs("mutation")).toContain("npm run test:mutation");
+    const cache = job?.steps.find((s) => s.uses?.startsWith("actions/cache"));
+    expect(cache?.with?.["path"]).toBe("reports/mutation/stryker-incremental.json");
+    expect(cache?.with?.["restore-keys"]).toContain("stryker-incremental-");
   });
 
   it("has a scheduled, manually triggerable full mutation job that never blocks and publishes its report", () => {

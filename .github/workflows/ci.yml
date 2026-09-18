@@ -1,6 +1,8 @@
 # FR-060: on every change, contract verification (lint, bundle, compatibility against main,
-# type drift), build, typecheck, quality gates (ADR-016), unit/integration tests, mutation
-# testing on the changed lines, and contract tests. A weekly job mutates everything, informatively.
+# type drift), build, typecheck, quality gates (ADR-016), unit/integration tests and contract
+# tests in one job, and mutation testing on the changed lines in a parallel job, so the PR waits
+# for the slower of the two rather than for their sum. A weekly job mutates everything,
+# informatively.
 name: ci
 
 on:
@@ -13,12 +15,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci:
+  checks:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    # The mutation gate runs every mutant of the diff; a feature that adds two modules (600+
-    # mutants, ~8 min on the hosted runner) needs more than the 10 minutes the rest takes.
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +47,6 @@ jobs:
       - run: npm run arch
       - run: npm run quality
       - run: npm test
-      - run: npm run test:mutation
       - run: npm run test:contract
       - run: npm run release-check
 
@@ -57,6 +56,49 @@ jobs:
         with:
           name: schemathesis-junit
           path: .schemathesis/
+          if-no-files-found: ignore
+
+  mutation:
+    # The mutation gate on the lines the change introduced (ADR-016): every mutant must die.
+    # Incremental: the verdicts of the previous run of the branch are restored from the cache,
+    # so only the mutants whose code or tests changed are re-tested.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main as the comparison base
+        if: github.ref != 'refs/heads/main'
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Restore the incremental mutation results of this branch
+        uses: actions/cache@v4
+        with:
+          path: reports/mutation/stryker-incremental.json
+          # A new entry per run; the newest of the branch is restored, then the newest of any branch.
+          key: stryker-incremental-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            stryker-incremental-${{ github.ref_name }}-
+            stryker-incremental-
+
+      - run: npm ci
+      - run: npm run contract:bundle
+      - run: npm run test:mutation
+
+      - name: Publish the mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-diff-report
+          path: reports/mutation/
           if-no-files-found: ignore
 
   mutation-full:
