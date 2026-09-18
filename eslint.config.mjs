@@ -42,7 +42,14 @@ export const SHAPE_RULES = {
 export const SRC_ONLY_RULES = {
   "@typescript-eslint/no-magic-numbers": [
     "error",
-    { ignore: [0, 1, -1], ignoreArrayIndexes: true, ignoreTypeIndexes: true, ignoreEnums: true },
+    {
+      ignore: [0, 1, -1],
+      ignoreArrayIndexes: true,
+      ignoreTypeIndexes: true,
+      // A union of numeric literals (`0 | 1 | 2 | 3`) is a type, the compiler's constant, not a magic value.
+      ignoreNumericLiteralTypes: true,
+      ignoreEnums: true,
+    },
   ],
   // The string counterpart (scripts/lint/no-magic-strings.mjs): a literal repeated in a file where
   // some occurrence is not checked by a literal type. Typed catalogues (`ProblemSlug`, `NodeJS.Signals`)

@@ -17,6 +17,7 @@ if (!built.ok) throw new Error("test merchant");
 const merchant = built.value;
 const merchants: MerchantDirectory = {
   findByIngestKey: (key) => Promise.resolve(merchant.owns(key) ? merchant : undefined),
+  findByPlatformKey: (key) => Promise.resolve(merchant.ownsPlatformKey(key) ? merchant : undefined),
   isRegisteredOrigin: (origin) => Promise.resolve(merchant.allowsOrigin(origin)),
 };
 const resolver = new DefaultIngestKeyResolver({ merchants });

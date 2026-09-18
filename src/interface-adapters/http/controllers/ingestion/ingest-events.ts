@@ -1,8 +1,8 @@
 // ingestEvents (FR-010..FR-016, FR-020): contract DTO → domain batch → use case → 202
 // IngestResult, or 422 with the type of the violated invariant. The body already passed the
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
-import { type Event, asEventId } from "../../../../domain/ingestion/index.js";
-import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
+import { asEventId, type Event, type PageContext } from "../../../../domain/ingestion/index.js";
+import { asSessionId, asVisitorId, Money } from "../../../../domain/shared-kernel/index.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import { toProblem } from "../../to-problem.js";
 import type { IngestBatchRequest, IngestBatchResponse } from "../../../../application/ingestion/index.js";
@@ -12,6 +12,13 @@ import type { components } from "../../generated/api.js";
 import type { OperationHandler } from "../../typed.js";
 
 type EventDto = components["schemas"]["Event"];
+type PageContextDto = components["schemas"]["PageContext"];
+
+/** The page context as the domain reads it: the price becomes Money (the contract validated its shape). */
+function toPageContext(dto: PageContextDto): PageContext {
+  const { price, ...rest } = dto;
+  return price === undefined ? rest : { ...rest, price: Money.rehydrate(price) };
+}
 type DecisionDto = components["schemas"]["Decision"];
 
 /** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */
@@ -28,7 +35,7 @@ function toDomainEvent(dto: EventDto): Event {
     sessionId: asSessionId(dto.sessionId),
     visitorId: asVisitorId(dto.visitorId),
     occurredAt: instantOf(dto.occurredAt),
-    page: dto.page,
+    page: toPageContext(dto.page),
     device: dto.device,
   };
   switch (dto.type) {

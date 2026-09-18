@@ -1,0 +1,29 @@
+type: object
+description: |
+  The complete catalogue of the merchant at `capturedAt`. Variants are nested in their product,
+  so no variant can be orphan by construction.
+additionalProperties: false
+required: [capturedAt, products]
+x-invariants:
+  - type: catalog-duplicate-product-id
+    status: 422
+    rule: products[].productId are unique
+    description: Two products with the same identifier.
+  - type: catalog-duplicate-variant-id
+    status: 422
+    rule: products[].variants[].variantId are unique across the snapshot
+    description: Two variants with the same identifier, in the same or in different products.
+  - type: catalog-captured-in-future
+    status: 422
+    rule: capturedAt <= receivedAt + 5 min
+    description: A capture instant in the future would fake freshness; the platform's clock is wrong.
+properties:
+  capturedAt:
+    type: string
+    format: date-time
+    description: When the platform took the picture (RFC 3339). Freshness is measured from here.
+  products:
+    type: array
+    maxItems: 100000
+    items:
+      $ref: ./CatalogProduct.yaml

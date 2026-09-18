@@ -19,3 +19,25 @@ export abstract class DomainError extends Error {
     this.details = details;
   }
 }
+
+const MODULE = "shared-kernel" as const;
+
+/** A monetary amount or currency that does not have the shape the contract publishes (ADR-014). */
+export class InvalidMoney extends DomainError {
+  readonly code = "invalid-money" as const;
+  readonly module = MODULE;
+  constructor(field: "amount" | "currency") {
+    super("Money needs a decimal amount with up to two decimals and an ISO 4217 currency.", { field });
+  }
+}
+
+/** Same identity, different content (ADR-020): a repeated notification whose key matches a record with other content. */
+export class IdempotencyConflict extends DomainError {
+  readonly code = "idempotency-conflict" as const;
+  readonly module = MODULE;
+  constructor(what: string) {
+    super(`${what} already exists with different content.`);
+  }
+}
+
+export type SharedKernelError = InvalidMoney | IdempotencyConflict;

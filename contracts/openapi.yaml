@@ -17,6 +17,8 @@ tags:
     description: Ingestion of signals and confirmations from the merchant's SDK.
   - name: system
     description: Service status and support operations. No authentication.
+  - name: outcomes
+    description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
 paths:
   /v1/health:
     $ref: ./paths/health.yaml
@@ -24,6 +26,8 @@ paths:
     $ref: ./paths/events.yaml
   /v1/exposures:
     $ref: ./paths/exposures.yaml
+  /v1/catalog:
+    $ref: ./paths/catalog.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`
@@ -32,3 +36,5 @@ components:
   securitySchemes:
     ingestKey:
       $ref: ./components/securitySchemes/ingestKey.yaml
+    platformKey:
+      $ref: ./components/securitySchemes/platformKey.yaml

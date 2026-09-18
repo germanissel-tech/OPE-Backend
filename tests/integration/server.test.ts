@@ -15,7 +15,7 @@ import type { components } from "../../src/interface-adapters/http/generated/api
 import type {
   Handlers,
   OperationsMap,
-  SecurityHandler,
+  SecurityScheme,
   operations,
 } from "../../src/interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
@@ -63,7 +63,7 @@ afterEach(async () => {
 async function server<Ops extends OperationsMap<Ops> = operations>(
   definition: ContractDocument,
   handlers: Handlers<NoInfer<Ops>>,
-  security?: Record<string, SecurityHandler>,
+  security?: Record<string, SecurityScheme>,
 ): Promise<FastifyInstance> {
   app = await buildServer<Ops>({
     definition,
@@ -179,7 +179,13 @@ describe("real server over the contract", () => {
   // On the real contract: an authenticated, declared operation without a wired handler is 501.
   it("POST /v1/events and /v1/exposures declared without a handler → 501 (never 404)", async () => {
     const s = await server(realContract, healthHandlers, {
-      ingestKey: () => ({ principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } } }),
+      ingestKey: {
+        handler: () => ({
+          principal: { merchant: { merchantId: "m_x", ingestKeys: ["k"], origins: [] } },
+          capabilities: ["events:write"],
+        }),
+        header: "x-ope-ingest-key",
+      },
     });
     const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
     const bodies: Record<string, Record<string, unknown>> = {
@@ -207,6 +213,26 @@ describe("real server over the contract", () => {
       expect(res.statusCode, url).toBe(501);
       expect(problemOf(res).type).toBe("urn:ope:problem:not-implemented");
     }
+  });
+
+  it("a credential without a required capability → 403 capability-missing before the body is read (ADR-025)", async () => {
+    const s = await server(realContract, healthHandlers, {
+      ingestKey: {
+        handler: () => ({ principal: { merchant: { merchantId: "m_x" } }, capabilities: ["config:read"] }),
+        header: "x-ope-ingest-key",
+      },
+    });
+    const res = await s.inject({
+      method: "POST",
+      url: "/v1/events",
+      payload: {},
+      headers: { "x-ope-ingest-key": "k" },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:capability-missing",
+      instance: "/v1/events",
+    });
   });
 
   it("an operation with declared `security` and no security handler fails closed: 401", async () => {

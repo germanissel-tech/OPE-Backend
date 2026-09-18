@@ -1,7 +1,12 @@
 // US5 (FR-017, FR-040; ADR-014) and ADR-024: merchant rules live in the Merchant — origins are
 // parsed once at construction and compared canonically; credentials are matched exactly.
 import { describe, expect, it } from "vitest";
-import { InvalidOrigin, Merchant, Origin } from "../../../../src/domain/merchant/index.js";
+import {
+  InvalidOrigin,
+  Merchant,
+  Origin,
+  PlatformKeyCollision,
+} from "../../../../src/domain/merchant/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
 function merchantOf(origins: string[], ingestKeys = ["key-a-1", "key-a-2"]): Merchant {
@@ -40,6 +45,7 @@ describe("Merchant.of", () => {
       merchantId: asMerchantId("m_a"),
       ingestKeys: ["k"],
       origins: [origin],
+      platformKeys: [],
     });
     expect(back.owns("k")).toBe(true);
     expect(back.allowsOrigin("https://A.EXAMPLE")).toBe(true);
@@ -89,6 +95,7 @@ describe("Merchant.owns", () => {
       merchantId: asMerchantId("m_odd"),
       ingestKeys: [""],
       origins: [origin],
+      platformKeys: [],
     });
     expect(odd.owns("")).toBe(false);
   });
@@ -109,5 +116,65 @@ describe("Origin.parse", () => {
     const c = Origin.parse("http://a.example");
     expect(a && b && a.equals(b)).toBe(true);
     expect(a && c && a.equals(c)).toBe(false);
+  });
+});
+
+describe("Merchant platform keys (ADR-025)", () => {
+  const build = (platformKeys: string[]) =>
+    Merchant.of({
+      merchantId: asMerchantId("m_a"),
+      ingestKeys: ["key-a-1"],
+      origins: ["https://a.example"],
+      platformKeys,
+    });
+
+  it("a merchant without platform keys owns none; with them, exactly those", () => {
+    const none = build([]);
+    const some = build(["platform-a-1", "platform-a-2"]);
+    if (!none.ok || !some.ok) throw new Error("build");
+    expect(none.value.platformKeys).toEqual([]);
+    const omitted = Merchant.of({
+      merchantId: asMerchantId("m_a"),
+      ingestKeys: ["key-a-1"],
+      origins: ["https://a.example"],
+    });
+    expect(omitted.ok && omitted.value.platformKeys).toEqual([]);
+    expect(none.value.ownsPlatformKey("platform-a-1")).toBe(false);
+    expect(some.value.ownsPlatformKey("platform-a-1")).toBe(true);
+    expect(some.value.ownsPlatformKey("platform-a-2")).toBe(true);
+    expect(some.value.ownsPlatformKey("key-a-1")).toBe(false);
+    expect(some.value.ownsPlatformKey("")).toBe(false);
+  });
+
+  it("[invariant] a platform key equal to an ingest key, or empty, rejects the merchant naming its index", () => {
+    const collision = build(["platform-a-1", "key-a-1"]);
+    expect(collision).toMatchObject({
+      ok: false,
+      error: { code: "platform-key-collision", details: { index: 1 } },
+    });
+    if (!collision.ok) expect(collision.error).toBeInstanceOf(PlatformKeyCollision);
+    expect(build([""])).toMatchObject({
+      ok: false,
+      error: { code: "platform-key-collision", details: { index: 0 } },
+    });
+  });
+
+  it("an empty platform key belongs to nobody even if a recorded merchant lists one", () => {
+    const origin = Origin.parse("https://a.example");
+    if (!origin) throw new Error("origin");
+    const odd = Merchant.rehydrate({
+      merchantId: asMerchantId("m_odd"),
+      ingestKeys: ["k"],
+      origins: [origin],
+      platformKeys: [""],
+    });
+    expect(odd.ownsPlatformKey("")).toBe(false);
+  });
+
+  it("an ingest key never authenticates as a platform key, nor the other way round", () => {
+    const built = build(["platform-a-1"]);
+    if (!built.ok) throw new Error("build");
+    expect(built.value.owns("platform-a-1")).toBe(false);
+    expect(built.value.ownsPlatformKey("key-a-1")).toBe(false);
   });
 });

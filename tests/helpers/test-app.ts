@@ -14,6 +14,7 @@ import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fas
 export interface MerchantSpec {
   merchantId: string;
   ingestKeys: string[];
+  platformKeys?: string[];
   origins: string[];
   experiments: {
     experimentId: string;
@@ -32,6 +33,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
     merchantId: asMerchantId(spec.merchantId),
     ingestKeys: spec.ingestKeys,
     origins: spec.origins,
+    platformKeys: spec.platformKeys ?? [],
   });
   if (!merchant.ok) throw new Error(`test merchant ${spec.merchantId}: ${merchant.error.message}`);
   const experiments = spec.experiments.map((e) => {
@@ -52,6 +54,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
 const merchantA: MerchantSpec = {
   merchantId: "m_a",
   ingestKeys: ["key-a-1", "key-a-2"],
+  platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   // Everyone in TREATMENT: the decision reasons of feature 004 stay observable through A.
   experiments: [
@@ -67,6 +70,7 @@ const merchantA: MerchantSpec = {
 export const merchantB: MerchantSpec = {
   merchantId: "m_b",
   ingestKeys: ["key-b-1"],
+  platformKeys: ["platform-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
   experiments: [],
 };
@@ -122,8 +126,11 @@ export function batchOf(n: number, from = 1, over: Record<string, unknown> = {})
 
 interface PostOptions {
   key?: string;
+  /** The server-to-server credential of the platform (ADR-025). */
+  platformKey?: string;
   origin?: string;
   remoteAddress?: string;
+  method?: "POST" | "PUT";
 }
 
 function post(
@@ -132,10 +139,12 @@ function post(
   payload: unknown,
   o: PostOptions,
 ): Promise<LightMyRequestResponse> {
+  const method = o.method ?? "POST";
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (o.key !== undefined) headers["x-ope-ingest-key"] = o.key;
+  if (o.platformKey !== undefined) headers["x-ope-platform-key"] = o.platformKey;
   if (o.origin !== undefined) headers["origin"] = o.origin;
-  const options: InjectOptions = { method: "POST", url, headers };
+  const options: InjectOptions = { method, url, headers };
   if (payload !== undefined) options.payload = payload as Exclude<InjectOptions["payload"], undefined>;
   if (o.remoteAddress !== undefined) options.remoteAddress = o.remoteAddress;
   return app.inject(options);
@@ -146,3 +155,41 @@ export const postEvents = (app: FastifyInstance, batch: unknown, o: PostOptions 
 
 export const postExposure = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/exposures", body, o);
+
+export const putCatalog = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/catalog", body, { ...o, method: "PUT" });
+
+/** A catalogue product DTO with `variants` variants (M, L, …), unique ids from the product id. */
+export function catalogProductOf(
+  id: string,
+  variants = 1,
+  over: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const sizes = ["M", "L", "S", "XL"];
+  return {
+    productId: id,
+    title: `Product ${id}`,
+    attributes: [{ key: "fit", value: "regular" }],
+    variants: Array.from({ length: variants }, (_, i) => ({
+      variantId: `${id}-${sizes[i % sizes.length] ?? "M"}${i >= sizes.length ? String(i) : ""}`,
+      size: sizes[i % sizes.length] ?? "M",
+      color: "black",
+      available: true,
+      price: { amount: "19990.00", currency: "ARS" },
+    })),
+    ...over,
+  };
+}
+
+/** A snapshot DTO of `n` products with one variant each, captured at `capturedAt`. */
+export function catalogOf(
+  n: number,
+  capturedAt: string,
+  over: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    capturedAt,
+    products: Array.from({ length: n }, (_, i) => catalogProductOf(`P${i + 1}`)),
+    ...over,
+  };
+}

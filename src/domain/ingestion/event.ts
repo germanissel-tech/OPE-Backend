@@ -2,7 +2,7 @@
 // Closed allow-list: exactly these types, these fields. The HTTP contract validates it; here
 // lives the shape the domain understands, without depending on the generated types.
 import type { EventId } from "./ids.js";
-import type { SessionId, VisitorId } from "../shared-kernel/index.js";
+import type { Money, SessionId, VisitorId } from "../shared-kernel/index.js";
 
 export type EventType =
   | "product_viewed"
@@ -21,12 +21,6 @@ export type EventType =
 export type PageType = "product" | "listing" | "cart" | "checkout" | "other";
 export type Availability = "in_stock" | "out_of_stock" | "unknown";
 export type DeviceClass = "desktop" | "mobile" | "tablet";
-
-/** Amount as a decimal string (no binary rounding) and ISO 4217 currency (ADR-014). */
-export interface Money {
-  amount: string;
-  currency: string;
-}
 
 /** What the SDK could resolve about the page. Incomplete ⇒ the backend fails closed (NO_OP). */
 export interface PageContext {

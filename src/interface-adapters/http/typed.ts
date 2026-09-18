@@ -50,9 +50,18 @@ export interface SecurityRequest {
  */
 export interface SecurityOutcome {
   principal: unknown;
+  /** What the credential may do: the capabilities of its consumer (ADR-020); the server checks the operation's. */
+  capabilities: readonly string[];
   log?: Readonly<Record<string, string | number | boolean>>;
 }
 export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome | Promise<SecurityOutcome>;
+
+/** A security scheme as a module wires it: the handler and the header that carries the credential (ADR-025). */
+export interface SecurityScheme {
+  handler: SecurityHandler;
+  /** Lowercase header name; CORS and log redaction derive from it. */
+  header: string;
+}
 
 export class SecurityError extends Error {
   /** The problem type the server answers with: any code of the catalogue, decided by the handler. */

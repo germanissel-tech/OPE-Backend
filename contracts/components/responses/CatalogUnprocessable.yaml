@@ -1,0 +1,40 @@
+description: |
+  Valid request rejected on semantics: one of the `x-invariants` of the snapshot or of the
+  operation (ADR-007). The `type` names the invariant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      duplicate-product:
+        summary: catalog-duplicate-product-id
+        value:
+          type: urn:ope:problem:catalog-duplicate-product-id
+          title: Two products share an identifier
+          status: 422
+          detail: Product SKU-1 appears twice in the snapshot.
+          instance: /v1/catalog
+      duplicate-variant:
+        summary: catalog-duplicate-variant-id
+        value:
+          type: urn:ope:problem:catalog-duplicate-variant-id
+          title: Two variants share an identifier
+          status: 422
+          detail: Variant SKU-1-M-BLACK appears twice in the snapshot.
+          instance: /v1/catalog
+      captured-in-future:
+        summary: catalog-captured-in-future
+        value:
+          type: urn:ope:problem:catalog-captured-in-future
+          title: The capture instant is in the future
+          status: 422
+          detail: capturedAt is more than 5 minutes ahead of the server clock.
+          instance: /v1/catalog
+      out-of-order:
+        summary: catalog-out-of-order
+        value:
+          type: urn:ope:problem:catalog-out-of-order
+          title: The snapshot is older than the current one
+          status: 422
+          detail: The current snapshot was captured at 2026-09-18T12:00:00Z; this one at 2026-09-18T11:00:00Z.
+          instance: /v1/catalog

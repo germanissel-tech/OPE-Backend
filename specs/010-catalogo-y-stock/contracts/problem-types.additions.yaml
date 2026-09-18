@@ -1,0 +1,15 @@
+- slug: capability-missing
+  status: 403
+  title: The credential lacks a capability the operation requires
+- slug: catalog-duplicate-product-id
+  status: 422
+  title: Two products share an identifier
+- slug: catalog-duplicate-variant-id
+  status: 422
+  title: Two variants share an identifier
+- slug: catalog-captured-in-future
+  status: 422
+  title: The capture instant is in the future
+- slug: catalog-out-of-order
+  status: 422
+  title: The snapshot is older than the current one

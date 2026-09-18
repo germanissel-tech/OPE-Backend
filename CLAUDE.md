@@ -102,7 +102,7 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `experiment`, `ingestion` (los demás cuando llegue su feature). Dentro de un módulo
+`ledger`, `experiment`, `ingestion`, `catalog` (los demás cuando llegue su feature). Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
@@ -260,15 +260,29 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
+- **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
+  `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
+  200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
+  existe válido; `ProductTruthService` (aplicación) responde `known` con frescura por clase
+  (`application/catalog/policies/freshness.ts`: catálogo 36 h, stock/precio 15 min desde
+  `capturedAt`) o `unknown` con motivo, y `syncLevel` observado (`policies/sync-level.ts`, 0–2;
+  3 nunca con snapshots completos). El stock es guardia: `available` booleano, sin cantidades.
+  `Money` vive en el `shared-kernel` del dominio.
 - **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
   `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
   es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);
   la asignación se registra con el primer lote aceptado; CONTROL
   resuelve `NO_OP` `control-arm`; sin experimento, `no-active-experiment`. El brazo y el
   experimento **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
-- Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; el
-  security handler resuelve el merchant antes de validar el body (401 / 403
-  `origin-not-allowed`). Los logs nunca llevan IP, headers ni cuerpo (`request-logging.ts`).
+- Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
+  la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
+platformKey: [] }]`. El security handler resuelve el merchant antes de validar el body (401 /
+  403 `origin-not-allowed`) y entrega las capacidades de su consumidor
+  (`http/security/capabilities.ts`, réplica del mapa); la infraestructura compara
+  `x-required-capabilities` y responde `403 capability-missing` si falta alguna. Cada esquema
+  declara su header en el cableado (`SecurityScheme { handler, header }`): CORS los deriva de
+  ahí y el log redacta todo header. Los logs nunca llevan IP, headers ni cuerpo
+  (`request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
 - Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`.
 - Todo schema de un media type es `$ref` a `components/schemas` (nunca inline).
 - `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
@@ -279,8 +293,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 - **Consumidores (ADR-020)**: el tag fija el consumidor (`system` → público; `ingest`,
   `decision` → SDK con `ingestKey`; `outcomes` → plataforma con `platformKey`; `portal` →
   `portalSession`; `admin` → `adminToken`) y `ope-consumer-security` exige exactamente ese
-  esquema. Los esquemas y componentes que ninguna operación construida usa (`platformKey`,
-  `portalSession`, `adminToken`, parámetros de paginación, `Page`) existen como archivos en
+  esquema. Los esquemas y componentes que ninguna operación construida usa (`portalSession`,
+  `adminToken`, parámetros de paginación, `Page`) existen como archivos en
   `components/` **sin referencia desde la raíz** (Redocly rechaza componentes sin uso); entran
   a la raíz con su primera operación.
 - Operación `outcomes` (notificación servidor a servidor) ⇒ `x-idempotency: { key, first,

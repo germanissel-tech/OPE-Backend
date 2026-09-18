@@ -1,0 +1,71 @@
+put:
+  operationId: upsertCatalogSnapshot
+  tags: [outcomes]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - catalog:write
+  summary: Replace the merchant's catalogue snapshot
+  description: |
+    The merchant's platform (generic adapter, 02 §6.2) sends the complete catalogue: products
+    with their attributes and variants, each variant with size, colour, availability and the
+    current price, plus the instant the platform took the picture (`capturedAt`). The snapshot
+    replaces the current one entirely (no merge). Availability is a guard, never a claim
+    (01 §4.3): no quantities travel. OPE measures freshness from `capturedAt` — catalogue and
+    variants stay true for 36 h, availability and price for 15 min — and derives the observed
+    synchronisation level from the cadence of receipts (01 §14.1).
+    Idempotency (ADR-020): `capturedAt` is the key. A new instant creates the snapshot (`201`);
+    the same instant with the same content repeats the previous summary (`200`); the same
+    instant with different content is a conflict (`409`); an older instant than the current
+    snapshot is rejected (`422 catalog-out-of-order`). Body limit: 32 MiB.
+  x-idempotency:
+    key: capturedAt
+    first: "201"
+    repeat: "200"
+  x-invariants:
+    - type: catalog-out-of-order
+      status: 422
+      rule: capturedAt >= capturedAt of the current snapshot of the merchant
+      description: A delayed replica cannot overwrite newer truth.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CatalogSnapshot.yaml
+        examples:
+          snapshot:
+            $ref: ../examples/catalog-snapshot.yaml
+  responses:
+    "201":
+      description: "Snapshot replaced: the summary of what OPE now holds."
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogSummary.yaml
+          examples:
+            replaced:
+              $ref: ../examples/catalog-summary.yaml
+    "200":
+      description: Same `capturedAt` and same content as the current snapshot; nothing changed.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogSummary.yaml
+          example:
+            products: 1
+            variants: 2
+            receivedAt: "2026-09-18T12:00:03Z"
+            observedSyncLevel: 1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../components/responses/Conflict.yaml
+    "422":
+      $ref: ../components/responses/CatalogUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

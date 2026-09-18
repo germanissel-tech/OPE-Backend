@@ -1,0 +1,36 @@
+type: object
+description: A product of the catalogue as the platform exposes it, with its variants nested.
+additionalProperties: false
+required: [productId, title, variants]
+properties:
+  productId:
+    type: string
+    description: The product identifier as the platform exposes it (the one the SDK resolves on the page).
+    pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  title:
+    type: string
+    description: Display title of the product, as the platform shows it.
+    maxLength: 256
+  attributes:
+    type: array
+    description: Key/value pairs as the platform exposes them (fit, material, care); no normalisation.
+    maxItems: 64
+    items:
+      type: object
+      additionalProperties: false
+      required: [key, value]
+      properties:
+        key:
+          type: string
+          description: Attribute key as the platform names it.
+          maxLength: 64
+        value:
+          type: string
+          description: Attribute value as text.
+          maxLength: 512
+  variants:
+    type: array
+    description: The variants of the product (size and colour); a product without variants carries no availability nor price.
+    maxItems: 1000
+    items:
+      $ref: ./CatalogVariant.yaml

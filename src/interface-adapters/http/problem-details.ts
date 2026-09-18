@@ -28,6 +28,13 @@ export const PROBLEM_TYPES = {
   "invalid-treatment-share": { status: 500, title: "The treatment share of an experiment is out of range" },
   "invalid-seed": { status: 500, title: "The seed of an experiment is empty" },
   "invalid-origin": { status: 500, title: "A registered origin is not scheme://host[:port]" },
+  "invalid-money": { status: 500, title: "A monetary amount or currency is malformed" },
+  "platform-key-collision": { status: 500, title: "A platform key is empty or equal to an ingest key" },
+  "capability-missing": { status: 403, title: "The credential lacks a capability the operation requires" },
+  "catalog-duplicate-product-id": { status: 422, title: "Two products share an identifier" },
+  "catalog-duplicate-variant-id": { status: 422, title: "Two variants share an identifier" },
+  "catalog-captured-in-future": { status: 422, title: "The capture instant is in the future" },
+  "catalog-out-of-order": { status: 422, title: "The snapshot is older than the current one" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

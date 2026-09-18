@@ -1,0 +1,22 @@
+type: object
+description: "The exact combination of size and colour: the only level at which truth exists (01 §0.1)."
+additionalProperties: false
+required: [variantId, size, color, available, price]
+properties:
+  variantId:
+    type: string
+    description: The variant identifier as the platform exposes it; unique across the snapshot.
+    pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  size:
+    type: string
+    description: Size label as the platform shows it (S, M, 42, …).
+    maxLength: 32
+  color:
+    type: string
+    description: Colour label as the platform shows it.
+    maxLength: 64
+  available:
+    type: boolean
+    description: "Availability as a guard (01 §4.3): `false` means 'do not recommend'; no quantity travels."
+  price:
+    $ref: ./Money.yaml

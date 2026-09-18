@@ -4,7 +4,7 @@
 // touches the file of its module; a new module is one entry in `MODULES`, like in `CONTEXT_MAP`.
 import type { ContractDocument } from "../infrastructure/http/build-server.js";
 import type { CorsPolicy } from "../infrastructure/http/cors.js";
-import type { Handlers, SecurityHandler } from "../interface-adapters/http/typed.js";
+import type { Handlers, SecurityScheme } from "../interface-adapters/http/typed.js";
 
 export interface ModuleContext<P> {
   ports: P;
@@ -15,7 +15,7 @@ export interface ModuleContext<P> {
 /** What one module contributes to the server. Every field is optional: a module may only serve a policy. */
 export interface ModuleWiring {
   handlers?: Handlers;
-  security?: Readonly<Record<string, SecurityHandler>>;
+  security?: Readonly<Record<string, SecurityScheme>>;
   cors?: CorsPolicy;
 }
 
@@ -27,7 +27,7 @@ export type Module<P> = (context: ModuleContext<P>) => ModuleWiring;
 
 export interface Wired {
   handlers: Handlers;
-  security: Record<string, SecurityHandler>;
+  security: Record<string, SecurityScheme>;
   cors?: CorsPolicy;
 }
 
@@ -42,7 +42,7 @@ function claim<T>(target: Record<string, T>, source: Readonly<Record<string, T>>
 /** Runs every module on the same context and merges what they serve; a key claimed twice throws. */
 export function wireModules<P>(modules: readonly Module<P>[], context: ModuleContext<P>): Wired {
   const handlers: Record<string, Handlers[keyof Handlers]> = {};
-  const security: Record<string, SecurityHandler> = {};
+  const security: Record<string, SecurityScheme> = {};
   let cors: CorsPolicy | undefined;
   for (const module of modules) {
     const wiring = module(context);

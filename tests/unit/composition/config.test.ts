@@ -48,7 +48,12 @@ describe("readConfig", () => {
   it("merchants come inline from OPE_MERCHANTS or from OPE_MERCHANTS_FILE, inline first", () => {
     expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants).toEqual([
       {
-        merchant: { merchantId: "m_a", ingestKeys: ["k1"], origins: [{ value: "https://a.example" }] },
+        merchant: {
+          merchantId: "m_a",
+          ingestKeys: ["k1"],
+          origins: [{ value: "https://a.example" }],
+          platformKeys: [],
+        },
         experiments: [],
       },
     ]);
