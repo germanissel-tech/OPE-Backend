@@ -2,13 +2,16 @@
 // merchant registered is accepted. The real request verifies the pair credential + origin in the
 // security handler (403 origin-not-allowed if they do not match).
 import fastifyCors from "@fastify/cors";
+import { INGEST_KEY_HEADER } from "../../interface-adapters/http/security/ingest-key.js";
 import type { FastifyInstance } from "fastify";
 
 export interface CorsPolicy {
   isRegisteredOrigin(origin: string): Promise<boolean>;
 }
 
-const CORS_ALLOWED_HEADERS = ["content-type", "x-ope-ingest-key"];
+// PROPUESTO (feature 014): when a second security scheme arrives, each scheme declares its
+// credential header in the wiring and this list is derived from it instead of imported here.
+const CORS_ALLOWED_HEADERS = ["content-type", INGEST_KEY_HEADER];
 
 export async function registerCors(app: FastifyInstance, policy: CorsPolicy): Promise<void> {
   await app.register(fastifyCors, {

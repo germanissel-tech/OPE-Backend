@@ -1,8 +1,8 @@
 // Business errors of the ingestion module (ADR-023): the batch invariants the schema cannot
 // express (contract: EventBatch.x-invariants; ADR-007).
-import { DomainError, type ModuleName } from "../shared-kernel/index.js";
+import { DomainError } from "../shared-kernel/index.js";
 
-const MODULE = "ingestion" satisfies ModuleName;
+const MODULE = "ingestion" as const;
 
 export class SessionVisitorMismatch extends DomainError {
   readonly code = "session-visitor-mismatch" as const;

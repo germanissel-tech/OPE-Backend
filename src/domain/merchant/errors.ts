@@ -1,7 +1,7 @@
 // Business errors of the merchant module (ADR-023): the credential and the origin.
-import { DomainError, type ModuleName } from "../shared-kernel/index.js";
+import { DomainError } from "../shared-kernel/index.js";
 
-const MODULE = "merchant" satisfies ModuleName;
+const MODULE = "merchant" as const;
 
 export class Unauthorized extends DomainError {
   readonly code = "unauthorized" as const;

@@ -54,6 +54,13 @@ idempotency-conflict`, nunca sobrescritura. La igualdad de contenido se define e
 
 ## Consecuencias
 
+- Precisión (2026-09-18): el header de la credencial de ingesta tiene un solo dueño
+  (`INGEST_KEY_HEADER` en el security handler); CORS y la redacción del log lo importan de ahí.
+  PROPUESTO (feature 014, con el segundo esquema de seguridad): cada esquema declara su header
+  en el cableado y la lista de headers admitidos por CORS y las rutas redactadas se derivan de
+  los esquemas registrados, no de imports en infraestructura. `SecurityError` lleva cualquier
+  `ProblemSlug`, no un subconjunto escrito a mano.
+
 - Toda operación futura nace con su esquema, sus capacidades, su idempotencia (si es
   notificación) y su paginación (si es colección) verificados por lint desde el primer commit.
 - Los esquemas de portal y admin quedan propuestos hasta sus features; su forma ya está fijada.
