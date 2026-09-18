@@ -3,6 +3,7 @@
 // tests/lint/fixtures/ that violates it and a test that expects the violation.
 import dependenciesAreInterfaces from "./dependencies-are-interfaces.mjs";
 import domainErrorShape from "./domain-error-shape.mjs";
+import domainNoLooseFunctions from "./domain-no-loose-functions.mjs";
 import noGenericCatchInApplication from "./no-generic-catch-in-application.mjs";
 import noMagicStrings from "./no-magic-strings.mjs";
 import noThrowDomainError from "./no-throw-domain-error.mjs";
@@ -14,6 +15,7 @@ export default {
     "use-case-shape": useCaseShape,
     "dependencies-are-interfaces": dependenciesAreInterfaces,
     "domain-error-shape": domainErrorShape,
+    "domain-no-loose-functions": domainNoLooseFunctions,
     "no-throw-domain-error": noThrowDomainError,
     "no-generic-catch-in-application": noGenericCatchInApplication,
   },

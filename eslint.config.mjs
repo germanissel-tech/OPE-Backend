@@ -59,7 +59,14 @@ export const APPLICATION_RULES = {
   "ope/no-generic-catch-in-application": "error",
 };
 export const USE_CASE_RULES = { "ope/use-case-shape": "error" };
-export const DOMAIN_RULES = { "ope/no-throw-domain-error": "error" };
+export const DOMAIN_RULES = {
+  "ope/no-throw-domain-error": "error",
+  // ADR-024: a rule lives with its concept; only the shared-kernel primitives are loose functions.
+  "ope/domain-no-loose-functions": [
+    "error",
+    { allow: ["shared-kernel/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"] },
+  ],
+};
 export const DOMAIN_ERROR_RULES = { "ope/domain-error-shape": "error" };
 
 // Tests: a `describe` callback groups cases, it is not logic; literal values in assertions are
