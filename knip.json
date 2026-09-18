@@ -11,6 +11,7 @@
     "tests/contract/fixtures/health-203.ts",
     "eslint.config.mjs",
     "vitest.config.ts",
+    "vitest.mutation.config.ts",
     ".dependency-cruiser.cjs",
     ".claude/skills/*/scripts/*.mjs"
   ],
