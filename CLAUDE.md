@@ -66,6 +66,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                     |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                       |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                     |
+| `npm run contract:insomnia`                       | `docs/api/insomnia.json`: colección de Insomnia derivada del bundle (un request por operación, header de credencial, instantes vivos)        |
 | `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                              |
 | `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura                             |
 | `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                            |
