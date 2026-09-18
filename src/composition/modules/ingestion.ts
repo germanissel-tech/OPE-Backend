@@ -2,11 +2,16 @@
 // visitor (experiment module) and its own dedup; it owns (binds) only the dedup, which shares
 // the profile's clock.
 import { IngestBatchUseCase, type EventDedup } from "../../application/ingestion/index.js";
+import {
+  LoggedUseCase,
+  type Clock,
+  type IdGenerator,
+  type Logger,
+} from "../../application/shared-kernel/index.js";
 import { memoryEventDedup } from "../../interface-adapters/gateways/ingestion/memory-event-dedup.js";
 import { makeIngestEvents } from "../../interface-adapters/http/controllers/ingestion/ingest-events.js";
 import { assignmentServiceOf, type ExperimentPorts } from "./experiment.js";
 import type { DecisionLedger } from "../../application/ledger/index.js";
-import type { Clock, IdGenerator, Logger } from "../../application/shared-kernel/index.js";
 import type { Bindings, Module } from "../wiring.js";
 
 export interface IngestionPorts extends ExperimentPorts {
@@ -31,5 +36,6 @@ export const ingestionModule: Module<IngestionPorts> = ({ ports }) => {
     decisions,
     assignment: assignmentServiceOf(ports),
   });
-  return { handlers: { ingestEvents: makeIngestEvents(ingestBatch) } };
+  const logged = new LoggedUseCase("ingestBatch", ingestBatch, { clock, logger });
+  return { handlers: { ingestEvents: makeIngestEvents(logged) } };
 };

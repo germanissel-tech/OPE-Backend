@@ -1,11 +1,12 @@
 // system module: service health.
+import { LoggedUseCase, type Clock, type Logger } from "../../application/shared-kernel/index.js";
 import { GetServiceHealthUseCase } from "../../application/system/index.js";
 import { makeGetHealth } from "../../interface-adapters/http/controllers/system/get-health.js";
-import type { Clock } from "../../application/shared-kernel/index.js";
 import type { Module } from "../wiring.js";
 
 export interface SystemPorts {
   clock: Clock;
+  logger: Logger;
 }
 
 export const systemModule: Module<SystemPorts> = ({ ports, contract }) => {
@@ -13,5 +14,6 @@ export const systemModule: Module<SystemPorts> = ({ ports, contract }) => {
     contract: { version: contract.info.version },
     clock: ports.clock,
   });
-  return { handlers: { getHealth: makeGetHealth(getServiceHealth) } };
+  const logged = new LoggedUseCase("getServiceHealth", getServiceHealth, ports);
+  return { handlers: { getHealth: makeGetHealth(logged) } };
 };
