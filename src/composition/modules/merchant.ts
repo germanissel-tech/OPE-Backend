@@ -1,7 +1,7 @@
 // merchant module: who the credential is and which origins are theirs. Serves no operation of
 // its own; it serves the `ingestKey` security scheme (ADR-014) and the CORS policy. Security
 // also runs in mock: the SDK develops against the mock with the real key (SC-006).
-import { ResolveIngestKeyUseCase, type MerchantDirectory } from "../../application/merchant/index.js";
+import { DefaultIngestKeyResolver, type MerchantDirectory } from "../../application/merchant/index.js";
 import { configMerchantDirectory } from "../../interface-adapters/gateways/merchant/config-merchant-directory.js";
 import {
   INGEST_KEY_SCHEME,
@@ -20,7 +20,7 @@ export const configMerchantPorts = (merchants: readonly MerchantConfig[]): Bindi
 });
 
 export const merchantModule: Module<MerchantPorts> = ({ ports }) => {
-  const resolveIngestKey = new ResolveIngestKeyUseCase({ merchants: ports.merchants });
+  const resolveIngestKey = new DefaultIngestKeyResolver({ merchants: ports.merchants });
   return {
     security: { [INGEST_KEY_SCHEME]: makeIngestKeySecurity(resolveIngestKey) },
     cors: ports.merchants,
