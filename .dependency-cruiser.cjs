@@ -144,6 +144,30 @@ module.exports = {
       to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`] },
     },
     ...contextRules,
+    // --- Application ring (ADR-023) -------------------------------------------------------------
+    {
+      name: "use-cases-no-use-cases",
+      comment:
+        "A use case is the entry point of one intention; it never invokes another use case. Shared logic is a service.",
+      severity: "error",
+      from: { path: `${SRC}application/[^/]+/use-cases/` },
+      to: { path: `${SRC}application/[^/]+/use-cases/` },
+    },
+    {
+      name: "services-no-use-cases",
+      comment: "An application service is used by use cases; it does not import them.",
+      severity: "error",
+      from: { path: `${SRC}application/[^/]+/services/` },
+      to: { path: `${SRC}application/[^/]+/use-cases/` },
+    },
+    {
+      name: "problem-translation-only-in-http",
+      comment:
+        "A DomainError becomes Problem Details only in the HTTP adapter (toProblem): controllers and security handlers.",
+      severity: "error",
+      from: { pathNot: `${SRC}interface-adapters/http/` },
+      to: { path: `${SRC}interface-adapters/http/to-problem\\.ts$` },
+    },
     {
       name: "gateways-no-cross",
       comment:

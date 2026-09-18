@@ -61,6 +61,10 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("context-map:shared-kernel", "domain/shared-kernel/bad-context.ts");
     expectRule("gateways-no-cross", "interface-adapters/gateways/a/bad-cross.ts");
     expectRule("controllers-no-gateways", "interface-adapters/http/controllers/x/bad-gateway.ts");
+    // Application ring (ADR-023)
+    expectRule("use-cases-no-use-cases", "application/ledger/use-cases/bad-use-case-chain.ts");
+    expectRule("services-no-use-cases", "application/ledger/services/bad-service.ts");
+    expectRule("problem-translation-only-in-http", "interface-adapters/gateways/c/bad-problem.ts");
   });
 
   it("the legitimate modules of the fixture trigger no rule", async () => {
