@@ -1,7 +1,8 @@
 // Behavioural event from the SDK (03-alcance-mvp.md §4.1; 01-arquitectura-mvp.md §3.1.1 and §10.2).
 // Closed allow-list: exactly these types, these fields. The HTTP contract validates it; here
 // lives the shape the domain understands, without depending on the generated types.
-import type { EventId, SessionId, VisitorId } from "../shared-kernel/index.js";
+import type { EventId } from "./ids.js";
+import type { SessionId, VisitorId } from "../shared-kernel/index.js";
 
 export type EventType =
   | "product_viewed"

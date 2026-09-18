@@ -11,9 +11,9 @@ import {
   LedgerUnavailable,
   type Decision,
   type DecisionRecord,
+  asDecisionId,
 } from "../../../../src/domain/ledger/index.js";
 import {
-  asDecisionId,
   asMerchantId,
   asSessionId,
   asVisitorId,

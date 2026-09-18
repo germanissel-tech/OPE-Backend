@@ -3,13 +3,14 @@
 // (and the overrides it adopted) in creation order for shutdown.
 import { describe, expect, it } from "vitest";
 import { binder } from "../../../src/composition/profile.js";
-import type { Clock, IdGenerator } from "../../../src/application/shared-kernel/index.js";
+import type { DecisionIdGenerator } from "../../../src/application/ledger/index.js";
+import type { Clock } from "../../../src/application/shared-kernel/index.js";
 
 const closableClock = (name: string, closed: string[]): Clock & { close(): void } => ({
   now: () => new Date(0),
   close: () => closed.push(name),
 });
-const ids: IdGenerator = { decisionId: () => "dec_x" as never };
+const ids: DecisionIdGenerator = { next: () => "dec_x" as never };
 
 describe("binder", () => {
   it("builds every port of a table through its factory, once, in key order", () => {
@@ -17,10 +18,10 @@ describe("binder", () => {
     const { bind } = binder({});
     const built = bind({
       clock: () => (calls.push("clock"), closableClock("c", [])),
-      ids: () => (calls.push("ids"), ids),
+      decisionIds: () => (calls.push("ids"), ids),
     });
-    expect(Object.keys(built)).toEqual(["clock", "ids"]);
-    expect(built.ids).toBe(ids);
+    expect(Object.keys(built)).toEqual(["clock", "decisionIds"]);
+    expect(built.decisionIds).toBe(ids);
     expect(calls).toEqual(["clock", "ids"]);
   });
 
@@ -31,15 +32,15 @@ describe("binder", () => {
       clock: () => {
         throw new Error("built despite the override");
       },
-      ids: () => ids,
+      decisionIds: () => ids,
     });
     expect(built.clock).toBe(override);
   });
 
   it("records closable ports, built or overridden, in creation order across tables", () => {
     const closed: string[] = [];
-    const { bind, closables } = binder({ ids: { ...ids, close: () => closed.push("ids") } as never });
-    bind({ clock: () => closableClock("clock", closed), ids: () => ids });
+    const { bind, closables } = binder({ decisionIds: { ...ids, close: () => closed.push("ids") } as never });
+    bind({ clock: () => closableClock("clock", closed), decisionIds: () => ids });
     bind({
       decisions: () =>
         ({ record: () => undefined, find: () => undefined, close: () => closed.push("decisions") }) as never,
@@ -50,7 +51,7 @@ describe("binder", () => {
 
   it("a port without close() is built but not tracked", () => {
     const { bind, closables } = binder({});
-    bind({ ids: () => ids });
+    bind({ decisionIds: () => ids });
     expect(closables).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 // confirmExposure (FR-030, FR-031): DTO → use case → 201 recorded | 200 already-recorded |
 // the Problem Details of the returned error (422 invariant, 503 ledger unavailable).
-import { asDecisionId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
+import { asDecisionId } from "../../../../domain/ledger/index.js";
+import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import { toProblem } from "../../to-problem.js";
 import type {

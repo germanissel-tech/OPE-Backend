@@ -64,7 +64,7 @@ export const DOMAIN_RULES = {
   // ADR-024: a rule lives with its concept; only the shared-kernel primitives are loose functions.
   "ope/domain-no-loose-functions": [
     "error",
-    { allow: ["shared-kernel/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"] },
+    { allow: ["/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"] },
   ],
 };
 export const DOMAIN_ERROR_RULES = { "ope/domain-error-shape": "error" };

@@ -1,12 +1,13 @@
 // ope/domain-no-loose-functions (ADR-024): the domain exports types, classes and constant
 // catalogues; a rule lives with the concept it protects, as a method or a factory, never as a
 // loose exported function that a consumer has to remember to call. The primitives of the shared
-// kernel (identifier constructors, Result constructors, time helpers) are the declared exception.
+// kernel (Result constructors, time helpers) and the identifier constructors of every module
+// (`ids.ts`) are the declared exception.
 
 /** @import { Rule } from "eslint" */
 
 /** Path suffixes (posix) of the files allowed to export functions, by default. */
-const DEFAULT_ALLOW = ["shared-kernel/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"];
+const DEFAULT_ALLOW = ["/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"];
 
 /**
  * @param {string} filename

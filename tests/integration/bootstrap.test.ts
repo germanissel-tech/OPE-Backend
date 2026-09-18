@@ -71,7 +71,7 @@ describe("bootstrap", () => {
     app = await startTestApp({
       ports: {
         clock: { now: () => new Date(), close: () => closed.push("clock") },
-        ids: { decisionId: () => "dec_x" as never, close: () => closed.push("ids") },
+        decisionIds: { next: () => "dec_x" as never, close: () => closed.push("ids") },
       } as never,
     });
     const closing = app;

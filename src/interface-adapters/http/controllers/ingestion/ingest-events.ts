@@ -1,12 +1,12 @@
 // ingestEvents (FR-010..FR-016, FR-020): contract DTO → domain batch → use case → 202
 // IngestResult, or 422 with the type of the violated invariant. The body already passed the
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
-import { asEventId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
+import { type Event, asEventId } from "../../../../domain/ingestion/index.js";
+import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import { toProblem } from "../../to-problem.js";
 import type { IngestBatchRequest, IngestBatchResponse } from "../../../../application/ingestion/index.js";
 import type { UseCase } from "../../../../application/shared-kernel/index.js";
-import type { Event } from "../../../../domain/ingestion/index.js";
 import type { Decision } from "../../../../domain/ledger/index.js";
 import type { components } from "../../generated/api.js";
 import type { OperationHandler } from "../../typed.js";

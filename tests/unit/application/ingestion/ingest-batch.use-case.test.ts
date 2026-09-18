@@ -2,11 +2,9 @@
 // ledger degradation itself, with fake ports.
 import { describe, expect, it } from "vitest";
 import { IngestBatchUseCase, type EventDedup } from "../../../../src/application/ingestion/index.js";
-import { SessionVisitorMismatch, type Event } from "../../../../src/domain/ingestion/index.js";
-import { LedgerUnavailable, type Decision } from "../../../../src/domain/ledger/index.js";
+import { SessionVisitorMismatch, type Event, asEventId } from "../../../../src/domain/ingestion/index.js";
+import { LedgerUnavailable, type Decision, asDecisionId } from "../../../../src/domain/ledger/index.js";
 import {
-  asDecisionId,
-  asEventId,
   asMerchantId,
   asSessionId,
   asVisitorId,
@@ -44,7 +42,7 @@ function subject(over: { decisions?: DecisionLedger; assignment?: AssignmentServ
   const { logger, entries } = recordingLogger();
   const useCase = new IngestBatchUseCase({
     clock: { now: () => NOW },
-    ids: { decisionId: () => asDecisionId("dec_00000001") },
+    decisionIds: { next: () => asDecisionId("dec_00000001") },
     logger,
     eventDedup,
     decisions,

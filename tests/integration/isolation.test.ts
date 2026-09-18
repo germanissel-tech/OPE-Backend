@@ -1,13 +1,8 @@
 // FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
 // A and B are the merchants of tests/helpers/test-app.ts; each case names both.
 import { afterEach, describe, expect, it } from "vitest";
-import { InterveneDecision } from "../../src/domain/ledger/index.js";
-import {
-  asDecisionId,
-  asMerchantId,
-  asSessionId,
-  asVisitorId,
-} from "../../src/domain/shared-kernel/index.js";
+import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,

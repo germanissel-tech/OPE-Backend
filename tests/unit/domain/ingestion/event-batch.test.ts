@@ -8,8 +8,9 @@ import {
   type Event,
   type PageContext,
   type ProductViewed,
+  asEventId,
 } from "../../../../src/domain/ingestion/index.js";
-import { asEventId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;

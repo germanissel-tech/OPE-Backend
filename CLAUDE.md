@@ -133,7 +133,7 @@ contrato con una operación que ningún módulo sirve no arranca.
   `<Nombre>UseCase implements UseCase<Request, Response>` con `execute(request)`. Lo que cambia
   por llamada va en el request; lo que necesita para operar llega por el constructor como un
   único objeto tipado por una interfaz `<Nombre>Dependencies` del mismo archivo, cuyos campos
-  son interfaces (puertos de `ports/`, servicios `*Service`, `Clock`, `IdGenerator`, `Logger`),
+  son interfaces (puertos de `ports/`, servicios `*Service`, `Clock`, `Logger`),
   **seis como máximo** (`ope/dependencies-are-interfaces`). Superarlo se resuelve extrayendo un
   servicio, no relajando el límite.
 - Un caso de uso **nunca** importa ni invoca a otro caso de uso (`use-cases-no-use-cases`). Lo
@@ -176,7 +176,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `merchant.allowsOrigin(origin)`, `decision.isIntervention()`, `batch.noOpReason()`. Un caso de
   uso o servicio no reimplementa una regla del dominio. `src/domain/` no exporta funciones
   sueltas (`ope/domain-no-loose-functions`); la excepción declarada son las primitivas del
-  `shared-kernel` (`as*Id`, `ok`/`fail`, `seconds`/`minutes`/`hours`).
+  `shared-kernel` (`ok`/`fail`, `seconds`/`minutes`/`hours`) y los constructores de identidad
+  de cada módulo (`ids.ts`).
 - **Estados ilegales irrepresentables**: `Decision` es `NoOpDecision | InterveneDecision`
   (discriminada por `outcome`; `NO_OP` lleva un `NoOpReason` del catálogo, `INTERVENE` su
   intervención). Fábricas `NoOpDecision.of` / `InterveneDecision.of`; `DecisionBase.rehydrate`.
@@ -318,8 +319,11 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
 ## Convenciones
 
 - TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en
-  `src/composition/` (ADR-013). Identificadores como tipos marcados (`MerchantId`, `SessionId`,
-  …, `src/domain/shared-kernel/`).
+  `src/composition/` (ADR-013). Identificadores como tipos marcados (`Branded`): una identidad
+  vive en `src/domain/shared-kernel/ids.ts` **sólo** si la comparten módulos que no pueden
+  depender entre sí (`MerchantId`, `SessionId`, `VisitorId`, `ExperimentId`); con un dueño, vive
+  en su módulo (`DecisionId` en `ledger/ids.ts`, `EventId` en `ingestion/ids.ts`). Quien acuña
+  un id lo pide por un puerto del dueño (`DecisionIdGenerator` del ledger), nunca al kernel.
 - Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
 - Literales de la plataforma (señales, métodos, headers, media types, claves reservadas de una
   librería) se declaran una vez, con nombre y tipo (`HTTP_METHODS`, `SHUTDOWN_SIGNALS`); un

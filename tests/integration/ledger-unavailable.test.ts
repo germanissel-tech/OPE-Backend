@@ -2,13 +2,8 @@
 // the ingestion degrades to NO_OP `ledger-unavailable`, the exposure answers 503 with Retry-After —
 // and recovers as soon as the ledger is back.
 import { afterEach, describe, expect, it } from "vitest";
-import { InterveneDecision, type Decision } from "../../src/domain/ledger/index.js";
-import {
-  asDecisionId,
-  asMerchantId,
-  asSessionId,
-  asVisitorId,
-} from "../../src/domain/shared-kernel/index.js";
+import { InterveneDecision, type Decision, asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import { memoryExposureLedger } from "../../src/interface-adapters/gateways/ledger/memory-exposure-ledger.js";
 import { json, problemOf } from "../helpers/json.js";

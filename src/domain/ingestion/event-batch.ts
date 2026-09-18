@@ -6,7 +6,6 @@ import {
   hours,
   minutes,
   ok,
-  type EventId,
   type NoOpReason,
   type Result,
   type SessionId,
@@ -14,6 +13,7 @@ import {
 } from "../shared-kernel/index.js";
 import { EventTimestampOutOfRange, SessionVisitorMismatch, type IngestionError } from "./errors.js";
 import type { Event } from "./event.js";
+import type { EventId } from "./ids.js";
 
 /** Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants). */
 const TOLERANCE_PAST_HOURS = 24;

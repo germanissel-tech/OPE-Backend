@@ -3,20 +3,24 @@
 // with a reason → record in the ledger. Returns a result, never throws on business rules; a
 // ledger that cannot accept a record degrades to NO_OP `ledger-unavailable` (ADR-021), so
 // LedgerUnavailable is handled here and never reaches the response.
-import { EventBatch, type Event, type IngestionError } from "../../../domain/ingestion/index.js";
+import {
+  EventBatch,
+  type Event,
+  type IngestionError,
+  type EventId,
+} from "../../../domain/ingestion/index.js";
 import { NoOpDecision, type Decision, type DecisionFacts } from "../../../domain/ledger/index.js";
 import {
   fail,
   ok,
-  type EventId,
   type MerchantId,
   type NoOpReason,
   type Result,
 } from "../../../domain/shared-kernel/index.js";
 import type { Assignment } from "../../../domain/experiment/index.js";
 import type { AssignmentService } from "../../experiment/index.js";
-import type { DecisionLedger } from "../../ledger/index.js";
-import type { Clock, IdGenerator, Logger, UseCase } from "../../shared-kernel/index.js";
+import type { DecisionIdGenerator, DecisionLedger } from "../../ledger/index.js";
+import type { Clock, Logger, UseCase } from "../../shared-kernel/index.js";
 import type { EventDedup } from "../ports/event-dedup.js";
 
 export interface IngestBatchRequest {
@@ -40,7 +44,7 @@ export type IngestBatchResponse = Result<IngestOutcome, IngestionError>;
 
 export interface IngestBatchDependencies {
   clock: Clock;
-  ids: IdGenerator;
+  decisionIds: DecisionIdGenerator;
   logger: Logger;
   eventDedup: EventDedup;
   decisions: DecisionLedger;
@@ -74,7 +78,7 @@ export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBat
   }
 
   async execute({ merchantId, events }: IngestBatchRequest): Promise<IngestBatchResponse> {
-    const { clock, ids, eventDedup, assignment } = this.#deps;
+    const { clock, decisionIds, eventDedup, assignment } = this.#deps;
     const now = clock.now();
     const batch = EventBatch.of(events, now);
     if (!batch.ok) return fail(batch.error);
@@ -83,7 +87,7 @@ export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBat
     const results = resultsOf(batch.value, await eventDedup.claim(merchantId, batch.value.eventIds()));
     const accepted = results.filter((r) => r.status === "accepted").length;
     const facts: DecisionFacts = {
-      decisionId: ids.decisionId(),
+      decisionId: decisionIds.next(),
       merchantId,
       sessionId: batch.value.sessionId,
       visitorId: batch.value.visitorId,

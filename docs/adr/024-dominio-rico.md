@@ -48,6 +48,13 @@ un porcentaje contra la convención de tasas; y los puertos admitían respuestas
 
 ## Consecuencias
 
+- Precisión (2026-09-18): el `shared-kernel` no enumera a sus consumidores. Una identidad vive
+  en él sólo si la comparten módulos que no pueden depender entre sí (`MerchantId`,
+  `SessionId`, `VisitorId`, `ExperimentId`, que el ledger referencia y cuyo dueño ya depende
+  del ledger); con un dueño, vive con él (`DecisionId` en `ledger`, `EventId` en `ingestion`).
+  El puerto que acuña identidades es del dueño (`DecisionIdGenerator` en `application/ledger`),
+  no del kernel.
+
 - Un consumidor de `EventBatch`, `Experiment`, `Merchant` o `Decision` no valida nada: el tipo
   lo garantiza. Un caso de uso nuevo no reimplementa reglas; las pide al dueño.
 - Una entidad nueva es una clase en su módulo con sus errores en `errors.ts` y sus entradas en
