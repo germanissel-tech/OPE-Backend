@@ -1,8 +1,8 @@
 // Business errors of the ledger module (ADR-023). Codes are the Problem Details slugs of
 // contracts/problem-types.yaml; the replica test keeps both in step.
-import { DomainError, type ModuleName } from "../shared-kernel/index.js";
+import { DomainError } from "../shared-kernel/index.js";
 
-const MODULE = "ledger" satisfies ModuleName;
+const MODULE = "ledger" as const;
 
 /** The ledger could not accept a write (ADR-021): nothing recorded, the caller fails closed. */
 export class LedgerUnavailable extends DomainError {

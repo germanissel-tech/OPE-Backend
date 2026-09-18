@@ -2,6 +2,7 @@
 // A handler receives the typed request of its operation and can only return a declared status
 // with the body declared for that status; anything else does not compile.
 import type { operations } from "./generated/api.js";
+import type { ProblemSlug } from "./problem-details.js";
 
 /** Minimal shape of an operation as openapi-typescript generates it. */
 export interface OperationShape {
@@ -53,11 +54,10 @@ export interface SecurityOutcome {
 }
 export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome | Promise<SecurityOutcome>;
 
-export type SecurityFailure = "unauthorized" | "origin-not-allowed";
-
 export class SecurityError extends Error {
-  readonly slug: SecurityFailure;
-  constructor(slug: SecurityFailure) {
+  /** The problem type the server answers with: any code of the catalogue, decided by the handler. */
+  readonly slug: ProblemSlug;
+  constructor(slug: ProblemSlug) {
     super(slug);
     this.name = "SecurityError";
     this.slug = slug;

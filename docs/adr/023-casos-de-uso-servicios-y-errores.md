@@ -59,6 +59,11 @@ reconocible y verificada por herramienta (ADR-016), sin conversiones de tipo en 
 
 ## Consecuencias
 
+- Precisión (2026-09-18): `DomainError.module` es `string`, no una unión `ModuleName` mantenida
+  en el `shared-kernel`. Esa unión invertía la dependencia (el núcleo enumeraba a sus
+  consumidores) y era redundante: `ope/domain-error-shape` verifica con el type checker que el
+  literal coincide con la carpeta. Cada `errors.ts` declara `const MODULE = "<módulo>" as const`.
+
 - Un caso de uso nuevo se escribe en un archivo de aplicación más, si hace falta, su error en
   el `errors.ts` de su dominio y una entrada en el catálogo de problemas; no toca el adaptador
   HTTP.

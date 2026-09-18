@@ -1,8 +1,8 @@
 // Business errors of the experiment module (ADR-023, ADR-024): the invariants of an experiment.
 // They surface at configuration time (fail-closed start), never over HTTP.
-import { DomainError, type ModuleName } from "../shared-kernel/index.js";
+import { DomainError } from "../shared-kernel/index.js";
 
-const MODULE = "experiment" satisfies ModuleName;
+const MODULE = "experiment" as const;
 
 export class InvalidTreatmentShare extends DomainError {
   readonly code = "invalid-treatment-share" as const;
