@@ -2,6 +2,7 @@
 // of the returned error — per execution. Never the request, never `details`: nothing personal
 // can leak through here. Composition decides which use cases it wraps; the use case itself
 // does not know it exists.
+import { DomainError } from "../../../domain/shared-kernel/index.js";
 import type { Clock } from "../ports/clock.js";
 import type { Logger } from "../ports/logger.js";
 import type { UseCase } from "../use-case.js";
@@ -15,9 +16,9 @@ const OK = "ok";
 
 /** The code of a failed Result, `ok` for anything else (a success or a response that is not a Result). */
 function outcomeOf(response: unknown): string {
-  if (typeof response !== "object" || response === null) return OK;
-  const result = response as { ok?: unknown; error?: { code?: unknown } };
-  return result.ok === false && typeof result.error?.code === "string" ? result.error.code : OK;
+  const result = response as { ok?: unknown; error?: unknown } | null | undefined;
+  if (result?.ok !== false) return OK;
+  return result.error instanceof DomainError ? result.error.code : OK;
 }
 
 export class LoggedUseCase<Request, Response> implements UseCase<Request, Response> {

@@ -54,7 +54,13 @@ git diff main -- tests/integration tests/contract-rules contracts | grep -c "^[-
 npm run test:mutation
 ```
 
-## Estado al cierre (histórico)
+## Estado al cierre (histórico, 2026-09-17)
 
-Se completa al terminar la implementación con la fecha y la salida de `npm test`,
-`npm run quality` y `npm run test:mutation`.
+| Comando                                                                                        | Resultado                                                                                      |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `npm test` al inicio (T001)                                                                    | 57 archivos, 426 pruebas                                                                       |
+| `npm test` al cierre                                                                           | 63 archivos, 453 pruebas (las nuevas: tipos, réplica, reglas, decorador, `IngestBatchUseCase`) |
+| `npm run quality`                                                                              | 5 gates en verde; `Lint exceptions: 0`                                                         |
+| `npm run test:mutation`                                                                        | every mutant died                                                                              |
+| `npm run test:contract` (Schemathesis)                                                         | verde, sin cambios en el contrato                                                              |
+| `git diff main -- tests/integration tests/contract-rules contracts \| grep -c "^[-+] *expect"` | 0                                                                                              |

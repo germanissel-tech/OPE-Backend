@@ -54,10 +54,16 @@ describe("LoggedUseCase", () => {
     expect(JSON.stringify(entries)).not.toContain("details");
   });
 
-  it("a response that is not a Result is `ok`", async () => {
-    const inner: UseCase<void, { status: string }> = { execute: () => Promise.resolve({ status: "fine" }) };
-    const { logger, entries } = recordingLogger();
-    await new LoggedUseCase("health", inner, { clock: tickingClock(), logger }).execute();
-    expect(entries[0]?.fields).toMatchObject({ useCase: "health", outcome: "ok" });
+  it("a response that is not a Result is `ok`: an object, nothing at all, or a false `ok` without a DomainError", async () => {
+    const cases: UseCase<void, unknown>[] = [
+      { execute: () => Promise.resolve({ status: "fine" }) },
+      { execute: () => Promise.resolve(undefined) },
+      { execute: () => Promise.resolve({ ok: false, error: new Error("not a business error") }) },
+    ];
+    for (const inner of cases) {
+      const { logger, entries } = recordingLogger();
+      await new LoggedUseCase("health", inner, { clock: tickingClock(), logger }).execute();
+      expect(entries[0]?.fields).toMatchObject({ useCase: "health", outcome: "ok" });
+    }
   });
 });

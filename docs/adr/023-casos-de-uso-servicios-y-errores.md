@@ -1,7 +1,7 @@
 ---
 numero: 23
 titulo: Casos de uso, servicios de aplicación y errores de negocio
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-17
 fuente: specs/008-casos-de-uso-y-errores/research.md
 ---

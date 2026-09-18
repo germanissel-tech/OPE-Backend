@@ -24,6 +24,10 @@ síncronas e infalibles.
 "unavailable"` (tipo del `shared-kernel` de aplicación). `DecisionLedger.record` y
    `AssignmentLedger.record` lo devuelven; `ExposureLedger.record` devuelve `"recorded" |
 "already-recorded" | "unavailable"`. Ningún puerto lanza por indisponibilidad.
+   - Precisión (ADR-023, 2026-09-17): el resultado pasa a ser `Result<void, LedgerUnavailable>`
+     (y `Result<"recorded" | "already-recorded", LedgerUnavailable>` para exposiciones), con
+     `LedgerUnavailable` como error del módulo `ledger`; `RecordOutcome` se retira. La semántica
+     no cambia.
 2. **"Aceptado" significa aceptado en el buffer de escritura**, no durable todavía: la
    implementación real escribe diferido y por lotes, con un buffer acotado y una cola muerta
    observable (01 §11). El camino crítico no espera la durabilidad. En memoria la aceptación
