@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { NO_OP_REASONS } from "../../src/domain/ingestion/index.js";
+import { NO_OP_REASONS } from "../../src/domain/shared-kernel/index.js";
 
 const catalog = parse(readFileSync("contracts/no-op-reasons.yaml", "utf8")) as {
   reasons: { slug: string; emitter: string; description: string }[];

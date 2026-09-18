@@ -7,3 +7,5 @@ export { DomainError } from "./errors.js";
 export type { ModuleName, SafeDetails } from "./errors.js";
 export { fail, ok } from "./result.js";
 export type { Fail, Ok, Result } from "./result.js";
+export { NO_OP_REASONS } from "./no-op-reasons.js";
+export type { NoOpReason } from "./no-op-reasons.js";

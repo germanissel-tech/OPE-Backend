@@ -14,13 +14,20 @@ import type { OperationHandler } from "../../typed.js";
 type EventDto = components["schemas"]["Event"];
 type DecisionDto = components["schemas"]["Decision"];
 
+/** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */
+function instantOf(text: string): Date {
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);
+  return date;
+}
+
 /** An event DTO → domain event. The `switch` is exhaustive: a new type does not compile without a branch. */
 function toDomainEvent(dto: EventDto): Event {
   const base = {
     eventId: asEventId(dto.eventId),
     sessionId: asSessionId(dto.sessionId),
     visitorId: asVisitorId(dto.visitorId),
-    occurredAt: new Date(dto.occurredAt),
+    occurredAt: instantOf(dto.occurredAt),
     page: dto.page,
     device: dto.device,
   };
@@ -50,7 +57,7 @@ function toDomainEvent(dto: EventDto): Event {
   }
 }
 
-/** A domain decision → DTO. `merchantId` and `decidedAt` do not travel. */
+/** A domain decision → DTO. `merchantId`, `decidedAt` and the arm do not travel. */
 function toDecisionDto(decision: Decision): DecisionDto {
   const dto: DecisionDto = {
     decisionId: decision.decisionId,
@@ -58,7 +65,7 @@ function toDecisionDto(decision: Decision): DecisionDto {
     outcome: decision.outcome,
     reason: decision.reason,
   };
-  if (decision.intervention) dto.intervention = decision.intervention;
+  if (decision.isIntervention()) dto.intervention = decision.intervention;
   return dto;
 }
 
@@ -69,7 +76,7 @@ export function makeIngestEvents(
     const merchant = merchantOf(req);
     const result = await ingestBatch.execute({
       merchantId: merchant.merchantId,
-      batch: { events: req.body.events.map(toDomainEvent) },
+      events: req.body.events.map(toDomainEvent),
     });
     if (!result.ok) return toProblem(result.error, req.instance);
     const { accepted, duplicates, results, decision } = result.value;

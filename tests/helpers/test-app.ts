@@ -2,12 +2,54 @@
 // dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { Experiment } from "../../src/domain/experiment/index.js";
+import { Merchant } from "../../src/domain/merchant/index.js";
+import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
-const merchantA: MerchantConfig = {
+/** A merchant as a test writes it: the shape of OPE_MERCHANTS, built into entities by `configured`. */
+export interface MerchantSpec {
+  merchantId: string;
+  ingestKeys: string[];
+  origins: string[];
+  experiments: {
+    experimentId: string;
+    treatmentPercent: number;
+    seed: string;
+    status: "active" | "closed";
+    startedAt: string;
+  }[];
+}
+
+const PERCENT = 100;
+
+/** Builds the entities of a spec the way config.ts does; a spec that breaks a rule is a test bug. */
+function configured(spec: MerchantSpec): MerchantConfig {
+  const merchant = Merchant.of({
+    merchantId: asMerchantId(spec.merchantId),
+    ingestKeys: spec.ingestKeys,
+    origins: spec.origins,
+  });
+  if (!merchant.ok) throw new Error(`test merchant ${spec.merchantId}: ${merchant.error.message}`);
+  const experiments = spec.experiments.map((e) => {
+    const experiment = Experiment.of({
+      experimentId: asExperimentId(e.experimentId),
+      merchantId: merchant.value.merchantId,
+      treatmentShare: e.treatmentPercent / PERCENT,
+      seed: e.seed,
+      status: e.status,
+      startedAt: new Date(e.startedAt),
+    });
+    if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
+    return experiment.value;
+  });
+  return { merchant: merchant.value, experiments };
+}
+
+const merchantA: MerchantSpec = {
   merchantId: "m_a",
   ingestKeys: ["key-a-1", "key-a-2"],
   origins: ["https://a.example"],
@@ -22,19 +64,24 @@ const merchantA: MerchantConfig = {
     },
   ],
 };
-export const merchantB: MerchantConfig = {
+export const merchantB: MerchantSpec = {
   merchantId: "m_b",
   ingestKeys: ["key-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
   experiments: [],
 };
-const testMerchants: MerchantConfig[] = [merchantA, merchantB];
+const testMerchants: MerchantSpec[] = [merchantA, merchantB];
 
-const testConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
+/** What a test may override of the configuration; merchants as specs, not entities. */
+export interface TestConfig extends Omit<Partial<AppConfig>, "merchants"> {
+  merchants?: MerchantSpec[];
+}
+
+const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig => ({
   port: 0,
   host: "127.0.0.1",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
-  merchants: testMerchants,
+  merchants: (merchants ?? testMerchants).map(configured),
   ...over,
 });
 
@@ -46,7 +93,7 @@ export function fixedClock(at: string | Date): Clock {
 /** Starts the whole app; silent logger unless `ports.logger` says otherwise. */
 export async function startTestApp(
   overrides: BootstrapOverrides = {},
-  config: Partial<AppConfig> = {},
+  config: TestConfig = {},
 ): Promise<App> {
   return bootstrap(testConfig(config), {
     ...overrides,

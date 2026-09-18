@@ -3,20 +3,16 @@
 // with a reason → record in the ledger. Returns a result, never throws on business rules; a
 // ledger that cannot accept a record degrades to NO_OP `ledger-unavailable` (ADR-021), so
 // LedgerUnavailable is handled here and never reaches the response.
+import { EventBatch, type Event, type IngestionError } from "../../../domain/ingestion/index.js";
+import { NoOpDecision, type Decision, type DecisionFacts } from "../../../domain/ledger/index.js";
 import {
-  checkBatch,
-  decideArm,
-  type EventBatch,
-  type IngestionError,
+  fail,
+  ok,
+  type EventId,
+  type MerchantId,
   type NoOpReason,
-} from "../../../domain/ingestion/index.js";
-import {
-  noOp,
-  type Decision,
-  type DecisionExperiment,
-  type NoOpInput,
-} from "../../../domain/ledger/index.js";
-import { fail, ok, type EventId, type MerchantId, type Result } from "../../../domain/shared-kernel/index.js";
+  type Result,
+} from "../../../domain/shared-kernel/index.js";
 import type { Assignment } from "../../../domain/experiment/index.js";
 import type { AssignmentService } from "../../experiment/index.js";
 import type { DecisionLedger } from "../../ledger/index.js";
@@ -25,7 +21,7 @@ import type { EventDedup } from "../ports/event-dedup.js";
 
 export interface IngestBatchRequest {
   merchantId: MerchantId;
-  batch: EventBatch;
+  events: readonly Event[];
 }
 
 export interface EventResult {
@@ -63,16 +59,11 @@ function resultsOf(batch: EventBatch, entered: ReadonlySet<EventId>): EventResul
   });
 }
 
-/** The NO_OP decision of the batch given the visitor's assignment, if any (ADR-022). */
-function decideFor(
-  base: Omit<NoOpInput, "reason">,
-  batch: EventBatch,
-  assignment: Assignment | undefined,
-): Decision {
-  const reason = decideArm(assignment?.arm, batch);
-  if (assignment === undefined) return noOp({ ...base, reason });
-  const experiment: DecisionExperiment = { experimentId: assignment.experimentId, arm: assignment.arm };
-  return noOp({ ...base, experiment, reason });
+/** The reason of the NO_OP: the arm short-circuits before the batch is read (ADR-022). */
+function reasonFor(batch: EventBatch, assignment: Assignment | undefined): NoOpReason {
+  if (assignment === undefined) return "no-active-experiment";
+  if (assignment.arm === "CONTROL") return "control-arm";
+  return batch.noOpReason();
 }
 
 export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBatchResponse> {
@@ -82,47 +73,51 @@ export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBat
     this.#deps = deps;
   }
 
-  async execute({ merchantId, batch }: IngestBatchRequest): Promise<IngestBatchResponse> {
+  async execute({ merchantId, events }: IngestBatchRequest): Promise<IngestBatchResponse> {
     const { clock, ids, eventDedup, assignment } = this.#deps;
     const now = clock.now();
-    const check = checkBatch(batch, now);
-    if (!check.ok) return fail(check.error);
-    const first = batch.events[0];
-    if (first === undefined) throw new Error("The contract guarantees at least one event per batch.");
+    const batch = EventBatch.of(events, now);
+    if (!batch.ok) return fail(batch.error);
 
-    const assigned = await assignment.assign(merchantId, first.visitorId);
-    const results = resultsOf(
-      batch,
-      await eventDedup.claim(
-        merchantId,
-        batch.events.map((e) => e.eventId),
-      ),
-    );
+    const assigned = await assignment.assign(merchantId, batch.value.visitorId);
+    const results = resultsOf(batch.value, await eventDedup.claim(merchantId, batch.value.eventIds()));
     const accepted = results.filter((r) => r.status === "accepted").length;
-    const base: Omit<NoOpInput, "reason"> = {
+    const facts: DecisionFacts = {
       decisionId: ids.decisionId(),
       merchantId,
-      sessionId: first.sessionId,
-      visitorId: first.visitorId,
+      sessionId: batch.value.sessionId,
+      visitorId: batch.value.visitorId,
       decidedAt: now,
     };
-    const decision = assigned.ok
-      ? await this.#recordOrDegrade(base, decideFor(base, batch, assigned.value))
-      : this.#degrade(base, "assignment not recorded");
+
+    let decision: Decision;
+    if (assigned.ok) {
+      const experiment = assigned.value && {
+        experimentId: assigned.value.experimentId,
+        arm: assigned.value.arm,
+      };
+      const noOp = NoOpDecision.of(
+        experiment ? { ...facts, experiment } : facts,
+        reasonFor(batch.value, assigned.value),
+      );
+      decision = await this.#recordOrDegrade(facts, noOp);
+    } else {
+      decision = this.#degrade(facts, "assignment not recorded");
+    }
     return ok({ accepted, duplicates: results.length - accepted, results, decision });
   }
 
   /** Records the decision; when the ledger cannot, the intervention is suppressed (ADR-021). */
-  async #recordOrDegrade(base: Omit<NoOpInput, "reason">, decision: Decision): Promise<Decision> {
+  async #recordOrDegrade(facts: DecisionFacts, decision: Decision): Promise<Decision> {
     const written = await this.#deps.decisions.record(decision);
-    return written.ok ? decision : this.#degrade(base, "decision not recorded");
+    return written.ok ? decision : this.#degrade(facts, "decision not recorded");
   }
 
-  #degrade(base: Omit<NoOpInput, "reason">, what: string): Decision {
+  #degrade(facts: DecisionFacts, what: string): Decision {
     this.#deps.logger.error(
-      { merchantId: base.merchantId, decisionId: base.decisionId },
+      { merchantId: facts.merchantId, decisionId: facts.decisionId },
       `${what}: ${LEDGER_UNAVAILABLE}`,
     );
-    return noOp({ ...base, reason: LEDGER_UNAVAILABLE });
+    return NoOpDecision.of(facts, LEDGER_UNAVAILABLE);
   }
 }

@@ -1,9 +1,15 @@
 // US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
 import { afterEach, describe, expect, it } from "vitest";
+import { InterveneDecision } from "../../src/domain/ledger/index.js";
+import {
+  asDecisionId,
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+} from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { Decision } from "../../src/domain/ledger/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -28,16 +34,17 @@ const exposure = (decisionId: string, over: Record<string, unknown> = {}) => ({
 
 /** No HTTP route produces INTERVENE in this feature: it is injected through the ledger port. */
 async function interveneDecision(a: App, merchantId: string, decisionId: string): Promise<void> {
-  const decision: Decision = {
-    decisionId: decisionId as Decision["decisionId"],
-    merchantId: merchantId as Decision["merchantId"],
-    sessionId: "ses_00000001" as Decision["sessionId"],
-    visitorId: "vis_00000001" as Decision["visitorId"],
-    decidedAt: new Date(NOW),
-    outcome: "INTERVENE",
-    reason: "barrier-size",
-    intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
-  };
+  const decision = InterveneDecision.of(
+    {
+      decisionId: asDecisionId(decisionId),
+      merchantId: asMerchantId(merchantId),
+      sessionId: asSessionId("ses_00000001"),
+      visitorId: asVisitorId("vis_00000001"),
+      decidedAt: new Date(NOW),
+    },
+    "barrier-size",
+    { messageVersionId: "msg-1", anchor: "size_selector" },
+  );
   await a.ports.decisions.record(decision);
 }
 

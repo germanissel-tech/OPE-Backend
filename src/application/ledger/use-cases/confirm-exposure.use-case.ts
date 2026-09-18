@@ -47,9 +47,9 @@ export class ConfirmExposureUseCase implements UseCase<ConfirmExposureRequest, C
   async execute(request: ConfirmExposureRequest): Promise<ConfirmExposureResponse> {
     const { decisions, exposures } = this.#deps;
     const decision = await decisions.find(request.merchantId, request.decisionId);
-    const belongs = decision?.sessionId === request.sessionId && decision.visitorId === request.visitorId;
-    if (!decision || !belongs) return fail(new ExposureDecisionUnknown());
-    if (decision.outcome !== "INTERVENE") return fail(new ExposureOfNoOp(decision.decisionId));
+    if (!decision?.belongsTo(request.sessionId, request.visitorId))
+      return fail(new ExposureDecisionUnknown());
+    if (!decision.isIntervention()) return fail(new ExposureOfNoOp(decision.decisionId));
     const exposure: Exposure = {
       merchantId: request.merchantId,
       decisionId: request.decisionId,

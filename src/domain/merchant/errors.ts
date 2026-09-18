@@ -19,4 +19,13 @@ export class OriginNotAllowed extends DomainError {
   }
 }
 
-export type MerchantError = Unauthorized | OriginNotAllowed;
+/** A registered origin that is not `scheme://host[:port]` (configuration; fail-closed). */
+export class InvalidOrigin extends DomainError {
+  readonly code = "invalid-origin" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("A registered origin must be scheme://host[:port] without a path.", { index });
+  }
+}
+
+export type MerchantError = Unauthorized | OriginNotAllowed | InvalidOrigin;

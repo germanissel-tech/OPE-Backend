@@ -5,7 +5,7 @@ import {
   DefaultAssignmentService,
   type AssignmentLedger,
 } from "../../../../src/application/experiment/index.js";
-import { assignArm, type Assignment, type Experiment } from "../../../../src/domain/experiment/index.js";
+import { Experiment, type Assignment } from "../../../../src/domain/experiment/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
 import {
   asExperimentId,
@@ -19,26 +19,26 @@ import { recordingLogger } from "../../../helpers/unavailable-ledgers.js";
 const NOW = new Date("2026-09-17T12:00:00.000Z");
 const A = asMerchantId("m_a");
 const visitor = asVisitorId("vis_00000001");
-const experiment: Experiment = {
+const experiment = Experiment.rehydrate({
   experimentId: asExperimentId("exp_00000001"),
   merchantId: A,
-  treatmentPercent: 50,
+  treatmentShare: 0.5,
   seed: "seed-alpha",
   status: "active",
   startedAt: NOW,
-};
+});
 
 function fakeLedger(initial: Assignment[] = [], unavailable = false) {
   const store = new Map(initial.map((a) => [`${a.merchantId}/${a.experimentId}/${a.visitorId}`, a]));
   const recorded: Assignment[] = [];
   const ledger: AssignmentLedger = {
     record: (a) => {
-      if (unavailable) return fail(new LedgerUnavailable());
+      if (unavailable) return Promise.resolve(fail(new LedgerUnavailable()));
       recorded.push(a);
       store.set(`${a.merchantId}/${a.experimentId}/${a.visitorId}`, a);
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     },
-    find: (m, e, v) => store.get(`${m}/${e}/${v}`),
+    find: (m, e, v) => Promise.resolve(store.get(`${m}/${e}/${v}`)),
   };
   return { ledger, recorded };
 }
@@ -46,7 +46,7 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
 const deps = (ledger: AssignmentLedger, active: Experiment | null = experiment) => {
   const { logger, entries } = recordingLogger();
   const service = new DefaultAssignmentService({
-    experiments: { activeFor: () => active ?? undefined },
+    experiments: { activeFor: () => Promise.resolve(active ?? undefined) },
     assignments: ledger,
     clock: { now: () => NOW },
     logger,
@@ -75,7 +75,7 @@ describe("AssignmentService", () => {
         merchantId: A,
         experimentId: experiment.experimentId,
         visitorId: visitor,
-        arm: assignArm(experiment, visitor),
+        arm: experiment.assign(visitor),
         assignedAt: NOW,
       },
     });
@@ -103,7 +103,7 @@ describe("AssignmentService", () => {
   });
 
   it("stability: a recorded arm wins over the computed one and the drift is logged without the visitor", async () => {
-    const computed = assignArm(experiment, visitor);
+    const computed = experiment.assign(visitor);
     const other = computed === "CONTROL" ? "TREATMENT" : "CONTROL";
     const stale: Assignment = {
       merchantId: A,

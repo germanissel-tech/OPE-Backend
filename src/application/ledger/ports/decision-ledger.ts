@@ -6,6 +6,6 @@ import type { DecisionId, MerchantId, Result } from "../../../domain/shared-kern
 export type RecordResult = Result<void, LedgerUnavailable>;
 
 export interface DecisionLedger {
-  record(decision: Decision): Promise<RecordResult> | RecordResult;
-  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined> | Decision | undefined;
+  record(decision: Decision): Promise<RecordResult>;
+  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;
 }

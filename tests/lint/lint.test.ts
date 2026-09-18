@@ -43,6 +43,8 @@ const expected: Record<string, string> = {
   "as-src/domain/demo/errors.ts": "ope/domain-error-shape",
   "as-src/application/demo/no-throw-domain-error.ts": "ope/no-throw-domain-error",
   "as-src/application/demo/no-generic-catch-in-application.ts": "ope/no-generic-catch-in-application",
+  // The domain exports no loose functions (ADR-024, spec 009 FR-010).
+  "as-src/domain/demo/loose-function.ts": "ope/domain-no-loose-functions",
 };
 
 let eslint: ESLint;

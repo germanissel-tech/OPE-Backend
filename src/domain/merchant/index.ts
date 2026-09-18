@@ -1,5 +1,6 @@
 // Public API of the merchant module (domain).
-export { findByIngestKey, normalizeOrigin, originAllowed } from "./merchant.js";
-export type { Merchant } from "./merchant.js";
-export { OriginNotAllowed, Unauthorized } from "./errors.js";
+export { InvalidOrigin, OriginNotAllowed, Unauthorized } from "./errors.js";
 export type { MerchantError } from "./errors.js";
+export { Merchant } from "./merchant.js";
+export type { MerchantInput, MerchantRecord } from "./merchant.js";
+export { Origin } from "./origin.js";

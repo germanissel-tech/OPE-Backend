@@ -10,6 +10,13 @@ import type {
 import type { UseCase } from "../../../../application/shared-kernel/index.js";
 import type { OperationHandler } from "../../typed.js";
 
+/** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */
+function instantOf(text: string): Date {
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);
+  return date;
+}
+
 export function makeConfirmExposureHandler(
   confirmExposure: UseCase<ConfirmExposureRequest, ConfirmExposureResponse>,
 ): OperationHandler<"confirmExposure"> {
@@ -20,7 +27,7 @@ export function makeConfirmExposureHandler(
       decisionId: asDecisionId(req.body.decisionId),
       sessionId: asSessionId(req.body.sessionId),
       visitorId: asVisitorId(req.body.visitorId),
-      exposedAt: new Date(req.body.exposedAt),
+      exposedAt: instantOf(req.body.exposedAt),
       anchor: req.body.anchor,
     });
     if (!result.ok) return toProblem(result.error, req.instance);

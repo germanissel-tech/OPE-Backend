@@ -24,6 +24,10 @@ export const PROBLEM_TYPES = {
   "exposure-of-no-op": { status: 422, title: "A NO_OP decision has no intervention to expose" },
   "idempotency-conflict": { status: 409, title: "Same identity, different content" },
   "ledger-unavailable": { status: 503, title: "The ledger is not available" },
+  // Configuration errors (ADR-024): DomainErrors that stop the start; no operation emits them.
+  "invalid-treatment-share": { status: 500, title: "The treatment share of an experiment is out of range" },
+  "invalid-seed": { status: 500, title: "The seed of an experiment is empty" },
+  "invalid-origin": { status: 500, title: "A registered origin is not scheme://host[:port]" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

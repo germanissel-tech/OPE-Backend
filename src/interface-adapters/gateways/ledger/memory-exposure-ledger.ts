@@ -9,12 +9,12 @@ export function memoryExposureLedger(): ExposureLedger {
   return {
     record(exposure) {
       const k = key(exposure.merchantId, exposure.decisionId);
-      if (exposures.has(k)) return ok("already-recorded");
+      if (exposures.has(k)) return Promise.resolve(ok("already-recorded"));
       exposures.set(k, exposure);
-      return ok("recorded");
+      return Promise.resolve(ok("recorded"));
     },
     find(merchantId, decisionId) {
-      return exposures.get(key(merchantId, decisionId));
+      return Promise.resolve(exposures.get(key(merchantId, decisionId)));
     },
   };
 }

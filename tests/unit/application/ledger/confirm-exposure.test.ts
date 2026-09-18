@@ -6,7 +6,12 @@ import {
   type DecisionLedger,
   type ExposureLedger,
 } from "../../../../src/application/ledger/index.js";
-import { LedgerUnavailable, type Decision } from "../../../../src/domain/ledger/index.js";
+import {
+  DecisionBase,
+  LedgerUnavailable,
+  type Decision,
+  type DecisionRecord,
+} from "../../../../src/domain/ledger/index.js";
 import {
   asDecisionId,
   asMerchantId,
@@ -20,33 +25,37 @@ const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
 const now = new Date("2026-09-16T12:00:00.000Z");
 
-const decision = (over: Partial<Decision> = {}): Decision => ({
+const facts = {
   decisionId: asDecisionId("dec_00000001"),
   merchantId: A,
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
   decidedAt: now,
-  outcome: "INTERVENE",
-  reason: "barrier-size",
-  intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
-  ...over,
-});
+};
+const decision = (over: Partial<DecisionRecord> = {}): Decision =>
+  DecisionBase.rehydrate({
+    ...facts,
+    outcome: "INTERVENE",
+    reason: "barrier-size",
+    intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
+    ...over,
+  });
 
 function fakes(decisions: Decision[]) {
   const store = new Map(decisions.map((d) => [`${d.merchantId}/${d.decisionId}`, d]));
   const recorded: string[] = [];
   const decisionLedger: DecisionLedger = {
-    record: () => ok(undefined),
-    find: (m, id) => store.get(`${m}/${id}`),
+    record: () => Promise.resolve(ok(undefined)),
+    find: (m, id) => Promise.resolve(store.get(`${m}/${id}`)),
   };
   const exposureLedger: ExposureLedger = {
     record: (e) => {
       const key = `${e.merchantId}/${e.decisionId}`;
-      if (recorded.includes(key)) return ok("already-recorded");
+      if (recorded.includes(key)) return Promise.resolve(ok("already-recorded"));
       recorded.push(key);
-      return ok("recorded");
+      return Promise.resolve(ok("recorded"));
     },
-    find: () => undefined,
+    find: () => Promise.resolve(undefined),
   };
   return { decisions: decisionLedger, exposures: exposureLedger, recorded };
 }
@@ -91,8 +100,7 @@ describe("ConfirmExposureUseCase", () => {
   });
 
   it("[invariant:exposure-of-no-op] NO_OP decision → rejected", async () => {
-    const noOp = decision({ outcome: "NO_OP", reason: "decision-plane-unavailable" });
-    delete noOp.intervention;
+    const noOp = DecisionBase.rehydrate({ ...facts, outcome: "NO_OP", reason: "decision-plane-unavailable" });
     const confirm = subject(fakes([noOp]));
     expect(await confirm(input())).toMatchObject({ ok: false, error: { code: "exposure-of-no-op" } });
   });
@@ -109,7 +117,10 @@ describe("ConfirmExposureUseCase", () => {
     const f = fakes([decision()]);
     const confirm = subject({
       decisions: f.decisions,
-      exposures: { record: () => fail(new LedgerUnavailable()), find: () => undefined },
+      exposures: {
+        record: () => Promise.resolve(fail(new LedgerUnavailable())),
+        find: () => Promise.resolve(undefined),
+      },
     });
     expect(await confirm(input())).toMatchObject({ ok: false, error: { code: "ledger-unavailable" } });
     expect(f.recorded).toEqual([]);

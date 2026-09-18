@@ -2,6 +2,13 @@
 // the ingestion degrades to NO_OP `ledger-unavailable`, the exposure answers 503 with Retry-After —
 // and recovers as soon as the ledger is back.
 import { afterEach, describe, expect, it } from "vitest";
+import { InterveneDecision, type Decision } from "../../src/domain/ledger/index.js";
+import {
+  asDecisionId,
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+} from "../../src/domain/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import { memoryExposureLedger } from "../../src/interface-adapters/gateways/ledger/memory-exposure-ledger.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -14,7 +21,6 @@ import {
   unavailableExposureLedger,
 } from "../helpers/unavailable-ledgers.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { Decision } from "../../src/domain/ledger/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -28,16 +34,18 @@ afterEach(async () => {
   app = undefined;
 });
 
-const intervene = (): Decision => ({
-  decisionId: "dec_intervene1" as Decision["decisionId"],
-  merchantId: "m_a" as Decision["merchantId"],
-  sessionId: "ses_00000001" as Decision["sessionId"],
-  visitorId: "vis_00000001" as Decision["visitorId"],
-  decidedAt: new Date(NOW),
-  outcome: "INTERVENE",
-  reason: "barrier-size",
-  intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
-});
+const intervene = (): Decision =>
+  InterveneDecision.of(
+    {
+      decisionId: asDecisionId("dec_intervene1"),
+      merchantId: asMerchantId("m_a"),
+      sessionId: asSessionId("ses_00000001"),
+      visitorId: asVisitorId("vis_00000001"),
+      decidedAt: new Date(NOW),
+    },
+    "barrier-size",
+    { messageVersionId: "msg-1", anchor: "size_selector" },
+  );
 
 const exposure = {
   decisionId: "dec_intervene1",

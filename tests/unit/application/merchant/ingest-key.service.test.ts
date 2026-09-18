@@ -5,17 +5,19 @@ import {
   DefaultIngestKeyResolver,
   type MerchantDirectory,
 } from "../../../../src/application/merchant/index.js";
-import { OriginNotAllowed, Unauthorized, type Merchant } from "../../../../src/domain/merchant/index.js";
+import { Merchant, OriginNotAllowed, Unauthorized } from "../../../../src/domain/merchant/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
-const merchant: Merchant = {
+const built = Merchant.of({
   merchantId: asMerchantId("m_a"),
   ingestKeys: ["key-a-1"],
   origins: ["https://shop-a.example"],
-};
+});
+if (!built.ok) throw new Error("test merchant");
+const merchant = built.value;
 const merchants: MerchantDirectory = {
-  findByIngestKey: (key) => (merchant.ingestKeys.includes(key) ? merchant : undefined),
-  isRegisteredOrigin: (origin) => merchant.origins.includes(origin),
+  findByIngestKey: (key) => Promise.resolve(merchant.owns(key) ? merchant : undefined),
+  isRegisteredOrigin: (origin) => Promise.resolve(merchant.allowsOrigin(origin)),
 };
 const resolver = new DefaultIngestKeyResolver({ merchants });
 

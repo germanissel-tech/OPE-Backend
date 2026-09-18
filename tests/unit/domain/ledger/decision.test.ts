@@ -1,66 +1,82 @@
-// US3 (FR-020, FR-021): the decision always exists, with a reason; without a decision plane it is NO_OP.
+// US3 (FR-020, FR-021) and ADR-024: a decision is NO_OP with a reason of the catalogue or
+// INTERVENE with its intervention; nothing in between exists, and a recorded one comes back as
+// what it was.
 import { describe, expect, it } from "vitest";
-import { decide, type Event, type PageContext } from "../../../../src/domain/ingestion/index.js";
-import { noOp } from "../../../../src/domain/ledger/index.js";
+import {
+  DecisionBase,
+  InterveneDecision,
+  NoOpDecision,
+  type DecisionFacts,
+  type DecisionRecord,
+} from "../../../../src/domain/ledger/index.js";
 import {
   asDecisionId,
-  asEventId,
   asMerchantId,
   asSessionId,
   asVisitorId,
 } from "../../../../src/domain/shared-kernel/index.js";
 
 const now = new Date("2026-09-16T12:00:00.000Z");
-const viewed = (page: PageContext): Event => ({
-  type: "product_viewed",
-  eventId: asEventId("evt_00000001"),
+const facts: DecisionFacts = {
+  decisionId: asDecisionId("dec_00000001"),
+  merchantId: asMerchantId("m_a"),
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
-  occurredAt: now,
-  page,
-  device: "desktop",
-});
+  decidedAt: now,
+};
+const intervention = { messageVersionId: "msg-1", anchor: "size_selector" as const };
 
-describe("noOp", () => {
+describe("NoOpDecision.of", () => {
   it("produces a NO_OP decision without intervention, with everything the ledger records", () => {
-    const decision = noOp({
-      decisionId: asDecisionId("dec_00000001"),
-      merchantId: asMerchantId("m_a"),
-      sessionId: asSessionId("ses_00000001"),
-      visitorId: asVisitorId("vis_00000001"),
-      decidedAt: now,
-      reason: "decision-plane-unavailable",
-    });
-    expect(decision).toEqual({
-      decisionId: "dec_00000001",
-      merchantId: "m_a",
-      sessionId: "ses_00000001",
-      visitorId: "vis_00000001",
-      decidedAt: now,
-      outcome: "NO_OP",
-      reason: "decision-plane-unavailable",
-    });
-    expect(decision.intervention).toBeUndefined();
+    const decision = NoOpDecision.of(facts, "decision-plane-unavailable");
+    expect(decision).toEqual({ ...facts, outcome: "NO_OP", reason: "decision-plane-unavailable" });
+    expect(decision.isIntervention()).toBe(false);
+    expect(JSON.parse(JSON.stringify(decision))).not.toHaveProperty("intervention");
+  });
+
+  it("keeps the experiment and arm when the visitor was assigned", () => {
+    const experiment = { experimentId: "exp_00000001" as never, arm: "CONTROL" as const };
+    expect(NoOpDecision.of({ ...facts, experiment }, "control-arm").experiment).toEqual(experiment);
   });
 });
 
-describe("decide (without a decision plane)", () => {
-  it("product page without productId in any event → page-context-incomplete", () => {
-    expect(decide({ events: [viewed({ pageType: "product" })] })).toBe("page-context-incomplete");
+describe("InterveneDecision.of", () => {
+  it("produces an INTERVENE decision that carries its intervention", () => {
+    const decision = InterveneDecision.of(facts, "barrier-size", intervention);
+    expect(decision).toEqual({ ...facts, outcome: "INTERVENE", reason: "barrier-size", intervention });
+    expect(decision.isIntervention()).toBe(true);
+  });
+});
+
+describe("belongsTo", () => {
+  it("is true only for the same session and visitor", () => {
+    const decision = NoOpDecision.of(facts, "control-arm");
+    expect(decision.belongsTo(facts.sessionId, facts.visitorId)).toBe(true);
+    expect(decision.belongsTo(asSessionId("ses_00000002"), facts.visitorId)).toBe(false);
+    expect(decision.belongsTo(facts.sessionId, asVisitorId("vis_00000002"))).toBe(false);
+  });
+});
+
+describe("DecisionBase.rehydrate", () => {
+  it("a NO_OP record comes back as a NoOpDecision; an INTERVENE record as an InterveneDecision", () => {
+    const noOp = DecisionBase.rehydrate({ ...facts, outcome: "NO_OP", reason: "control-arm" });
+    expect(noOp).toBeInstanceOf(NoOpDecision);
+    expect(noOp).toEqual({ ...facts, outcome: "NO_OP", reason: "control-arm" });
+    const intervene = DecisionBase.rehydrate({
+      ...facts,
+      outcome: "INTERVENE",
+      reason: "barrier-size",
+      intervention,
+    });
+    expect(intervene).toBeInstanceOf(InterveneDecision);
+    expect(intervene.isIntervention() && intervene.intervention).toEqual(intervention);
   });
 
-  it("product page with productId → decision-plane-unavailable", () => {
-    expect(decide({ events: [viewed({ pageType: "product", productId: "SKU-1" })] })).toBe(
-      "decision-plane-unavailable",
+  it("a corrupt record is a programming error: INTERVENE without intervention, NO_OP with an unknown reason", () => {
+    const broken: DecisionRecord = { ...facts, outcome: "INTERVENE", reason: "barrier-size" };
+    expect(() => DecisionBase.rehydrate(broken)).toThrow("without an intervention");
+    expect(() => DecisionBase.rehydrate({ ...facts, outcome: "NO_OP", reason: "made-up" })).toThrow(
+      "unknown reason",
     );
-  });
-
-  it("one product-page event with a resolved product is enough", () => {
-    const events = [viewed({ pageType: "product" }), viewed({ pageType: "product", productId: "SKU-1" })];
-    expect(decide({ events })).toBe("decision-plane-unavailable");
-  });
-
-  it("a batch without a product page (listing only) → decision-plane-unavailable", () => {
-    expect(decide({ events: [viewed({ pageType: "listing" })] })).toBe("decision-plane-unavailable");
   });
 });

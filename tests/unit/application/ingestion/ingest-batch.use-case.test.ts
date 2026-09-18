@@ -35,11 +35,11 @@ function subject(over: { decisions?: DecisionLedger; assignment?: AssignmentServ
   const decisions: DecisionLedger = over.decisions ?? {
     record: (d) => {
       recorded.push(d);
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     },
-    find: () => undefined,
+    find: () => Promise.resolve(undefined),
   };
-  const eventDedup: EventDedup = { claim: (_m, ids) => new Set(ids) };
+  const eventDedup: EventDedup = { claim: (_m, ids) => Promise.resolve(new Set(ids)) };
   const assignment: AssignmentService = over.assignment ?? { assign: () => Promise.resolve(ok(undefined)) };
   const { logger, entries } = recordingLogger();
   const useCase = new IngestBatchUseCase({
@@ -56,7 +56,7 @@ function subject(over: { decisions?: DecisionLedger; assignment?: AssignmentServ
 describe("IngestBatchUseCase", () => {
   it("[invariant:session-visitor-mismatch] two visitors → a typed error of the ingestion module", async () => {
     const { useCase, recorded } = subject();
-    const result = await useCase.execute({ merchantId: A, batch: { events: [event(1, 1), event(2, 2)] } });
+    const result = await useCase.execute({ merchantId: A, events: [event(1, 1), event(2, 2)] });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toBeInstanceOf(SessionVisitorMismatch);
@@ -66,7 +66,7 @@ describe("IngestBatchUseCase", () => {
 
   it("without an active experiment the decision is NO_OP no-active-experiment and gets recorded", async () => {
     const { useCase, recorded } = subject();
-    const result = await useCase.execute({ merchantId: A, batch: { events: [event(1)] } });
+    const result = await useCase.execute({ merchantId: A, events: [event(1)] });
     expect(result).toMatchObject({ ok: true, value: { accepted: 1, duplicates: 0 } });
     expect(recorded).toHaveLength(1);
     expect(recorded[0]).toMatchObject({ outcome: "NO_OP", reason: "no-active-experiment" });
@@ -74,9 +74,12 @@ describe("IngestBatchUseCase", () => {
 
   it("decision ledger unavailable → NO_OP ledger-unavailable, handled inside the use case (ADR-021)", async () => {
     const { useCase, entries } = subject({
-      decisions: { record: () => fail(new LedgerUnavailable()), find: () => undefined },
+      decisions: {
+        record: () => Promise.resolve(fail(new LedgerUnavailable())),
+        find: () => Promise.resolve(undefined),
+      },
     });
-    const result = await useCase.execute({ merchantId: A, batch: { events: [event(1)] } });
+    const result = await useCase.execute({ merchantId: A, events: [event(1)] });
     expect(result).toMatchObject({
       ok: true,
       value: { decision: { outcome: "NO_OP", reason: "ledger-unavailable" } },
@@ -88,7 +91,7 @@ describe("IngestBatchUseCase", () => {
     const { useCase, recorded, entries } = subject({
       assignment: { assign: () => Promise.resolve(fail(new LedgerUnavailable())) },
     });
-    const result = await useCase.execute({ merchantId: A, batch: { events: [event(1)] } });
+    const result = await useCase.execute({ merchantId: A, events: [event(1)] });
     expect(result).toMatchObject({
       ok: true,
       value: { decision: { outcome: "NO_OP", reason: "ledger-unavailable" } },

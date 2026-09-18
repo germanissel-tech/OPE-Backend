@@ -3,7 +3,7 @@
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { assignArm, type Experiment } from "../../src/domain/experiment/index.js";
+import { Experiment } from "../../src/domain/experiment/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
@@ -52,14 +52,14 @@ describe("latency of POST /v1/events (local profile)", () => {
 
   it("the latency does not differ between arms (constitution III: the same pipeline for CONTROL and TREATMENT)", async () => {
     // Merchant A of the test app assigns 100 % to TREATMENT; a 50/50 experiment picks one visitor per arm.
-    const experiment: Experiment = {
+    const experiment = Experiment.rehydrate({
       experimentId: asExperimentId("exp_lat_00001"),
       merchantId: asMerchantId("m_a"),
-      treatmentPercent: 50,
+      treatmentShare: 0.5,
       seed: "seed-lat",
       status: "active",
       startedAt: new Date(),
-    };
+    });
     const armApp = await startTestApp(
       {},
       {
@@ -85,7 +85,7 @@ describe("latency of POST /v1/events (local profile)", () => {
       const visitorIn = (arm: "CONTROL" | "TREATMENT"): string => {
         for (let n = 1; ; n += 1) {
           const id = `vis_lat_${String(n).padStart(6, "0")}`;
-          if (assignArm(experiment, asVisitorId(id)) === arm) return id;
+          if (experiment.assign(asVisitorId(id)) === arm) return id;
         }
       };
       const p95ByArm: Record<string, number> = {};

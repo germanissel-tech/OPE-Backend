@@ -2,17 +2,11 @@
 // be theirs. Authentication is not a use case (ADR-023): it is a policy the security adapter
 // consults before validation and before any use case runs, so it lives here as a service the
 // `ingestKey` security handler depends on by interface. Returns a result, never throws.
-import {
-  OriginNotAllowed,
-  originAllowed,
-  Unauthorized,
-  type Merchant,
-  type MerchantError,
-} from "../../../domain/merchant/index.js";
+import { OriginNotAllowed, Unauthorized, type Merchant } from "../../../domain/merchant/index.js";
 import { fail, ok, type Result } from "../../../domain/shared-kernel/index.js";
 import type { MerchantDirectory } from "../ports/merchant-directory.js";
 
-export type IngestKeyResolution = Result<Merchant, MerchantError>;
+export type IngestKeyResolution = Result<Merchant, Unauthorized | OriginNotAllowed>;
 
 export interface IngestKeyResolver {
   resolve(key: string | undefined, origin: string | undefined): Promise<IngestKeyResolution>;
@@ -29,10 +23,10 @@ export class DefaultIngestKeyResolver implements IngestKeyResolver {
     this.#deps = deps;
   }
 
-  resolve(key: string | undefined, origin: string | undefined): Promise<IngestKeyResolution> {
-    const merchant = key === undefined ? undefined : this.#deps.merchants.findByIngestKey(key);
-    if (!merchant) return Promise.resolve(fail(new Unauthorized()));
-    if (!originAllowed(merchant, origin)) return Promise.resolve(fail(new OriginNotAllowed()));
-    return Promise.resolve(ok(merchant));
+  async resolve(key: string | undefined, origin: string | undefined): Promise<IngestKeyResolution> {
+    const merchant = key === undefined ? undefined : await this.#deps.merchants.findByIngestKey(key);
+    if (!merchant) return fail(new Unauthorized());
+    if (!merchant.allowsOrigin(origin)) return fail(new OriginNotAllowed());
+    return ok(merchant);
   }
 }
