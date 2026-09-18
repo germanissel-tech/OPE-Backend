@@ -33,12 +33,12 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
   const recorded: Assignment[] = [];
   const ledger: AssignmentLedger = {
     record: (a) => {
-      if (unavailable) return fail(new LedgerUnavailable());
+      if (unavailable) return Promise.resolve(fail(new LedgerUnavailable()));
       recorded.push(a);
       store.set(`${a.merchantId}/${a.experimentId}/${a.visitorId}`, a);
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     },
-    find: (m, e, v) => store.get(`${m}/${e}/${v}`),
+    find: (m, e, v) => Promise.resolve(store.get(`${m}/${e}/${v}`)),
   };
   return { ledger, recorded };
 }
@@ -46,7 +46,7 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
 const deps = (ledger: AssignmentLedger, active: Experiment | null = experiment) => {
   const { logger, entries } = recordingLogger();
   const service = new DefaultAssignmentService({
-    experiments: { activeFor: () => active ?? undefined },
+    experiments: { activeFor: () => Promise.resolve(active ?? undefined) },
     assignments: ledger,
     clock: { now: () => NOW },
     logger,

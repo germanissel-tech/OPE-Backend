@@ -1,7 +1,7 @@
 // ingestion module: the event batch. It needs the kernel, the decision ledger, the arm of the
 // visitor (experiment module) and its own dedup; it owns (binds) only the dedup, which shares
 // the profile's clock.
-import { IngestBatchUseCase, type EventDedup } from "../../application/ingestion/index.js";
+import { DEDUP_WINDOW, IngestBatchUseCase, type EventDedup } from "../../application/ingestion/index.js";
 import {
   LoggedUseCase,
   type Clock,
@@ -23,7 +23,7 @@ export interface IngestionPorts extends ExperimentPorts {
 }
 
 export const memoryIngestionPorts = (clock: Clock): Bindings<Pick<IngestionPorts, "eventDedup">> => ({
-  eventDedup: () => memoryEventDedup(clock),
+  eventDedup: () => memoryEventDedup(clock, DEDUP_WINDOW),
 });
 
 export const ingestionModule: Module<IngestionPorts> = ({ ports }) => {

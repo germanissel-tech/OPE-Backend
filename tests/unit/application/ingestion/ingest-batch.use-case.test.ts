@@ -35,11 +35,11 @@ function subject(over: { decisions?: DecisionLedger; assignment?: AssignmentServ
   const decisions: DecisionLedger = over.decisions ?? {
     record: (d) => {
       recorded.push(d);
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     },
-    find: () => undefined,
+    find: () => Promise.resolve(undefined),
   };
-  const eventDedup: EventDedup = { claim: (_m, ids) => new Set(ids) };
+  const eventDedup: EventDedup = { claim: (_m, ids) => Promise.resolve(new Set(ids)) };
   const assignment: AssignmentService = over.assignment ?? { assign: () => Promise.resolve(ok(undefined)) };
   const { logger, entries } = recordingLogger();
   const useCase = new IngestBatchUseCase({
@@ -74,7 +74,10 @@ describe("IngestBatchUseCase", () => {
 
   it("decision ledger unavailable → NO_OP ledger-unavailable, handled inside the use case (ADR-021)", async () => {
     const { useCase, entries } = subject({
-      decisions: { record: () => fail(new LedgerUnavailable()), find: () => undefined },
+      decisions: {
+        record: () => Promise.resolve(fail(new LedgerUnavailable())),
+        find: () => Promise.resolve(undefined),
+      },
     });
     const result = await useCase.execute({ merchantId: A, batch: { events: [event(1)] } });
     expect(result).toMatchObject({

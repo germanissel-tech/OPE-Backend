@@ -36,17 +36,17 @@ function fakes(decisions: Decision[]) {
   const store = new Map(decisions.map((d) => [`${d.merchantId}/${d.decisionId}`, d]));
   const recorded: string[] = [];
   const decisionLedger: DecisionLedger = {
-    record: () => ok(undefined),
-    find: (m, id) => store.get(`${m}/${id}`),
+    record: () => Promise.resolve(ok(undefined)),
+    find: (m, id) => Promise.resolve(store.get(`${m}/${id}`)),
   };
   const exposureLedger: ExposureLedger = {
     record: (e) => {
       const key = `${e.merchantId}/${e.decisionId}`;
-      if (recorded.includes(key)) return ok("already-recorded");
+      if (recorded.includes(key)) return Promise.resolve(ok("already-recorded"));
       recorded.push(key);
-      return ok("recorded");
+      return Promise.resolve(ok("recorded"));
     },
-    find: () => undefined,
+    find: () => Promise.resolve(undefined),
   };
   return { decisions: decisionLedger, exposures: exposureLedger, recorded };
 }
@@ -109,7 +109,10 @@ describe("ConfirmExposureUseCase", () => {
     const f = fakes([decision()]);
     const confirm = subject({
       decisions: f.decisions,
-      exposures: { record: () => fail(new LedgerUnavailable()), find: () => undefined },
+      exposures: {
+        record: () => Promise.resolve(fail(new LedgerUnavailable())),
+        find: () => Promise.resolve(undefined),
+      },
     });
     expect(await confirm(input())).toMatchObject({ ok: false, error: { code: "ledger-unavailable" } });
     expect(f.recorded).toEqual([]);

@@ -7,6 +7,6 @@ export type ExposureRecordStatus = "recorded" | "already-recorded";
 export type ExposureRecordResult = Result<ExposureRecordStatus, LedgerUnavailable>;
 
 export interface ExposureLedger {
-  record(exposure: Exposure): Promise<ExposureRecordResult> | ExposureRecordResult;
-  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Exposure | undefined> | Exposure | undefined;
+  record(exposure: Exposure): Promise<ExposureRecordResult>;
+  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Exposure | undefined>;
 }

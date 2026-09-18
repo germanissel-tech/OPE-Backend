@@ -8,10 +8,10 @@ import type { ExperimentId, MerchantId, Result, VisitorId } from "../../../domai
 export type AssignmentRecordResult = Result<void, LedgerUnavailable>;
 
 export interface AssignmentLedger {
-  record(assignment: Assignment): Promise<AssignmentRecordResult> | AssignmentRecordResult;
+  record(assignment: Assignment): Promise<AssignmentRecordResult>;
   find(
     merchantId: MerchantId,
     experimentId: ExperimentId,
     visitorId: VisitorId,
-  ): Promise<Assignment | undefined> | Assignment | undefined;
+  ): Promise<Assignment | undefined>;
 }

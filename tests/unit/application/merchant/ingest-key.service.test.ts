@@ -14,8 +14,8 @@ const merchant: Merchant = {
   origins: ["https://shop-a.example"],
 };
 const merchants: MerchantDirectory = {
-  findByIngestKey: (key) => (merchant.ingestKeys.includes(key) ? merchant : undefined),
-  isRegisteredOrigin: (origin) => merchant.origins.includes(origin),
+  findByIngestKey: (key) => Promise.resolve(merchant.ingestKeys.includes(key) ? merchant : undefined),
+  isRegisteredOrigin: (origin) => Promise.resolve(merchant.origins.includes(origin)),
 };
 const resolver = new DefaultIngestKeyResolver({ merchants });
 

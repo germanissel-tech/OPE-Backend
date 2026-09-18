@@ -5,7 +5,7 @@ import fastifyCors from "@fastify/cors";
 import type { FastifyInstance } from "fastify";
 
 export interface CorsPolicy {
-  isRegisteredOrigin(origin: string): boolean;
+  isRegisteredOrigin(origin: string): Promise<boolean>;
 }
 
 const CORS_ALLOWED_HEADERS = ["content-type", "x-ope-ingest-key"];
@@ -14,7 +14,18 @@ export async function registerCors(app: FastifyInstance, policy: CorsPolicy): Pr
   await app.register(fastifyCors, {
     origin: (origin, cb) => {
       // Without Origin (server to server, curl, tests): there is no CORS to negotiate.
-      cb(null, origin === undefined || policy.isRegisteredOrigin(origin));
+      if (origin === undefined) {
+        cb(null, true);
+        return;
+      }
+      policy.isRegisteredOrigin(origin).then(
+        (allowed) => {
+          cb(null, allowed);
+        },
+        (err: unknown) => {
+          cb(err instanceof Error ? err : new Error(String(err)), false);
+        },
+      );
     },
     methods: ["POST"],
     allowedHeaders: CORS_ALLOWED_HEADERS,

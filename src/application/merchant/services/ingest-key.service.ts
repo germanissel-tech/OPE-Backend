@@ -29,10 +29,10 @@ export class DefaultIngestKeyResolver implements IngestKeyResolver {
     this.#deps = deps;
   }
 
-  resolve(key: string | undefined, origin: string | undefined): Promise<IngestKeyResolution> {
-    const merchant = key === undefined ? undefined : this.#deps.merchants.findByIngestKey(key);
-    if (!merchant) return Promise.resolve(fail(new Unauthorized()));
-    if (!originAllowed(merchant, origin)) return Promise.resolve(fail(new OriginNotAllowed()));
-    return Promise.resolve(ok(merchant));
+  async resolve(key: string | undefined, origin: string | undefined): Promise<IngestKeyResolution> {
+    const merchant = key === undefined ? undefined : await this.#deps.merchants.findByIngestKey(key);
+    if (!merchant) return fail(new Unauthorized());
+    if (!originAllowed(merchant, origin)) return fail(new OriginNotAllowed());
+    return ok(merchant);
   }
 }

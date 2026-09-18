@@ -31,5 +31,5 @@ export function configExperimentDirectory(merchants: readonly MerchantExperiment
       startedAt: new Date(record.startedAt),
     });
   }
-  return { activeFor: (merchantId) => active.get(merchantId) };
+  return { activeFor: (merchantId) => Promise.resolve(active.get(merchantId)) };
 }

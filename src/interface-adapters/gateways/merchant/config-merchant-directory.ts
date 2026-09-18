@@ -19,10 +19,10 @@ export function configMerchantDirectory(records: readonly MerchantRecord[]): Mer
     merchants.flatMap((m) => m.origins.map(normalizeOrigin)).filter((o) => o !== undefined),
   );
   return {
-    findByIngestKey: (key) => findByIngestKey(merchants, key),
+    findByIngestKey: (key) => Promise.resolve(findByIngestKey(merchants, key)),
     isRegisteredOrigin: (origin) => {
       const wanted = normalizeOrigin(origin);
-      return wanted !== undefined && origins.has(wanted);
+      return Promise.resolve(wanted !== undefined && origins.has(wanted));
     },
   };
 }

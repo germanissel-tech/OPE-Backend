@@ -39,7 +39,7 @@ export class DefaultAssignmentService implements AssignmentService {
 
   async assign(merchantId: MerchantId, visitorId: VisitorId): Promise<AssignmentResult> {
     const { experiments, assignments, clock, logger } = this.#deps;
-    const experiment = experiments.activeFor(merchantId);
+    const experiment = await experiments.activeFor(merchantId);
     if (!experiment) return ok(undefined);
     const arm = assignArm(experiment, visitorId);
     const recorded = await assignments.find(merchantId, experiment.experimentId, visitorId);

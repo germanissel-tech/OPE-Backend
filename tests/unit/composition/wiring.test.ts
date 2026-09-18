@@ -16,7 +16,7 @@ const handler = (): never => {
 const getHealth = handler as unknown as OperationHandler<"getHealth">;
 const ingestEvents = handler as unknown as OperationHandler<"ingestEvents">;
 const security: SecurityHandler = () => ({ principal: null });
-const cors = { isRegisteredOrigin: () => true };
+const cors = { isRegisteredOrigin: () => Promise.resolve(true) };
 const contractOf = (version: string) =>
   ({ openapi: "3.1.0", info: { title: "t", version }, paths: {} }) as ContractDocument;
 const context = { ports: {}, contract: contractOf("1.0.0") };
