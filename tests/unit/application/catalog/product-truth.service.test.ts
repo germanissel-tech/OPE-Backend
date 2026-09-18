@@ -108,6 +108,26 @@ describe("DefaultProductTruthService.lookup", () => {
     });
   });
 
+  it("product without a variant in focus: known-product with the same freshness by class", async () => {
+    const fresh = await service(snapshot, at(5 * MIN)).product(A, P1);
+    expect(fresh).toMatchObject({
+      kind: "known-product",
+      freshness: { catalog: "fresh", stockAndPrice: "fresh" },
+    });
+    expect(fresh.kind === "known-product" && fresh.product.productId).toBe(P1);
+    const stale = await service(snapshot, at(2 * HOUR)).product(A, P1);
+    expect(stale).toMatchObject({ kind: "known-product", freshness: { stockAndPrice: "stale" } });
+    expect(await service(snapshot, at(3 * 24 * HOUR)).product(A, P1)).toEqual({
+      kind: "unknown",
+      reason: "stale",
+    });
+    expect(await service(undefined, at(0)).product(A, P1)).toEqual({ kind: "unknown", reason: "absent" });
+    expect(await service(snapshot, at(0)).product(A, asProductId("P9"))).toEqual({
+      kind: "unknown",
+      reason: "unknown-product",
+    });
+  });
+
   it("syncLevel is the observed level of the receipts", async () => {
     expect(await service(snapshot, at(MIN), [at(0)]).syncLevel(A)).toBe(1);
     expect(await service(undefined, at(0)).syncLevel(A)).toBe(0);

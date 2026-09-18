@@ -6,7 +6,9 @@
 import {
   NO_OP_REASONS,
   type Arm,
+  type Barrier,
   type ExperimentId,
+  type Intervention,
   type MerchantId,
   type NoOpReason,
   type SessionId,
@@ -17,21 +19,6 @@ import type { DecisionId } from "./ids.js";
 const isNoOpReason = (reason: string): reason is NoOpReason =>
   (NO_OP_REASONS as readonly string[]).includes(reason);
 
-/**
- * Semantic anchor points of the platform: replica of contracts/components/schemas/Anchor.yaml
- * (the source); a test verifies they match. A new anchor is a product feature (contract, glossary,
- * SDK anchor map, messages), never configuration. PROPUESTO (ADR-024): with the decision plane
- * (feature 011) the intervention vocabulary (anchor, message) moves to the shared kernel.
- */
-export const ANCHORS = ["size_selector", "price", "cta", "policies"] as const;
-export type Anchor = (typeof ANCHORS)[number];
-
-/** Placeholder for the decision plane (PROPUESTO in the contract). */
-export interface Intervention {
-  messageVersionId: string;
-  anchor: Anchor;
-}
-
 export type DecisionOutcome = "NO_OP" | "INTERVENE";
 const NO_OP = "NO_OP" satisfies DecisionOutcome;
 const INTERVENE = "INTERVENE" satisfies DecisionOutcome;
@@ -39,6 +26,29 @@ const INTERVENE = "INTERVENE" satisfies DecisionOutcome;
 export interface DecisionExperiment {
   experimentId: ExperimentId;
   arm: Arm;
+}
+
+/** What the plane knew about the product when it decided (01 §4.3). */
+export interface EvidenceRecord {
+  truth:
+    "known" | "known-product" | "absent" | "stale" | "unknown-product" | "unknown-variant" | "not-consulted";
+  stockAndPrice?: "fresh" | "stale";
+  available?: boolean;
+}
+
+/**
+ * How the plane reasoned (constitution IX): the version of the policy, the confidence of every
+ * barrier, the rules that matched, the barrier it settled on (if any), what triggered the
+ * candidate and the evidence it consulted. Typed with the kernel's vocabulary only: the ledger
+ * records what other modules decide without depending on them.
+ */
+export interface DecisionInference {
+  policyVersion: string;
+  confidences: Readonly<Record<Barrier, number>>;
+  matched: readonly string[];
+  barrier?: Barrier;
+  trigger: "rules" | "abandonment" | "none";
+  evidence: EvidenceRecord;
 }
 
 /** What every decision carries, whatever its outcome. */
@@ -50,6 +60,8 @@ export interface DecisionFacts {
   decidedAt: Date;
   /** The experiment and arm the visitor was assigned to; absent when the merchant has no active experiment. */
   experiment?: DecisionExperiment;
+  /** Absent only when the plane did not get to infer (no product in focus, ledger down before deciding). */
+  inference?: DecisionInference;
 }
 
 /** A decision as the ledger stores it: the facts plus the outcome and what the outcome carries. */
@@ -66,6 +78,7 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly visitorId: VisitorId;
   readonly decidedAt: Date;
   readonly experiment?: DecisionExperiment;
+  readonly inference?: DecisionInference;
   abstract readonly outcome: DecisionOutcome;
   /** Why this outcome: a NO_OP reason of the catalogue, or the reason of the intervention. */
   abstract readonly reason: string;
@@ -77,6 +90,7 @@ export abstract class DecisionBase implements DecisionFacts {
     this.visitorId = facts.visitorId;
     this.decidedAt = facts.decidedAt;
     if (facts.experiment) this.experiment = facts.experiment;
+    if (facts.inference) this.inference = facts.inference;
   }
 
   /** A recorded decision comes back as what it was; a record that fits no shape is corrupt. */

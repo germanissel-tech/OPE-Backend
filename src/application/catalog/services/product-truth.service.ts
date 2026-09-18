@@ -12,18 +12,21 @@ import type { CatalogStore } from "../ports/catalog-store.js";
 
 export type Freshness = "fresh" | "stale";
 
+export interface TruthFreshness {
+  catalog: "fresh";
+  stockAndPrice: Freshness;
+}
+
 export type ProductTruth =
-  | {
-      kind: "known";
-      product: Product;
-      variant: Variant;
-      freshness: { catalog: "fresh"; stockAndPrice: Freshness };
-      ageMs: number;
-    }
+  | { kind: "known"; product: Product; variant: Variant; freshness: TruthFreshness; ageMs: number }
+  /** The product without a variant in focus: attributes yes, availability and price of nothing. */
+  | { kind: "known-product"; product: Product; freshness: TruthFreshness; ageMs: number }
   | { kind: "unknown"; reason: "absent" | "stale" | "unknown-product" | "unknown-variant" };
 
 export interface ProductTruthService {
   lookup(merchantId: MerchantId, productId: ProductId, variantId: VariantId): Promise<ProductTruth>;
+  /** The truth of a product when the SDK resolved no variant (feature 011). */
+  product(merchantId: MerchantId, productId: ProductId): Promise<ProductTruth>;
   syncLevel(merchantId: MerchantId): Promise<SyncLevel>;
 }
 
@@ -42,21 +45,28 @@ export class DefaultProductTruthService implements ProductTruthService {
   }
 
   async lookup(merchantId: MerchantId, productId: ProductId, variantId: VariantId): Promise<ProductTruth> {
+    const known = await this.product(merchantId, productId);
+    if (known.kind !== "known-product") return known;
+    const found = known.product.variants.find((v) => v.variantId === variantId);
+    if (found === undefined) return { kind: "unknown", reason: "unknown-variant" };
+    return {
+      kind: "known",
+      product: known.product,
+      variant: found,
+      freshness: known.freshness,
+      ageMs: known.ageMs,
+    };
+  }
+
+  async product(merchantId: MerchantId, productId: ProductId): Promise<ProductTruth> {
     const snapshot = await this.#deps.store.current(merchantId);
     if (snapshot === undefined) return { kind: "unknown", reason: "absent" };
     const ageMs = snapshot.ageAt(this.#deps.clock.now());
     if (ageMs > this.#budget.catalogMs) return { kind: "unknown", reason: "stale" };
-    if (snapshot.product(productId) === undefined) return { kind: "unknown", reason: "unknown-product" };
-    const found = snapshot.variant(productId, variantId);
-    if (found === undefined) return { kind: "unknown", reason: "unknown-variant" };
+    const product = snapshot.product(productId);
+    if (product === undefined) return { kind: "unknown", reason: "unknown-product" };
     const stockAndPrice: Freshness = ageMs > this.#budget.stockAndPriceMs ? "stale" : "fresh";
-    return {
-      kind: "known",
-      product: found.product,
-      variant: found.variant,
-      freshness: { catalog: "fresh", stockAndPrice },
-      ageMs,
-    };
+    return { kind: "known-product", product, freshness: { catalog: "fresh", stockAndPrice }, ageMs };
   }
 
   async syncLevel(merchantId: MerchantId): Promise<SyncLevel> {

@@ -1,13 +1,13 @@
 // Public API of the ledger module (domain): decisions and exposures.
-export { ANCHORS, DecisionBase, InterveneDecision, NoOpDecision } from "./decision.js";
+export { DecisionBase, InterveneDecision, NoOpDecision } from "./decision.js";
 export type {
-  Anchor,
   Decision,
   DecisionExperiment,
   DecisionFacts,
+  DecisionInference,
+  EvidenceRecord,
   DecisionOutcome,
   DecisionRecord,
-  Intervention,
 } from "./decision.js";
 export type { Exposure } from "./exposure.js";
 export { asDecisionId } from "./ids.js";

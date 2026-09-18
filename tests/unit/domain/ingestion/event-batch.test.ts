@@ -87,6 +87,43 @@ describe("EventBatch.of", () => {
   });
 });
 
+describe("EventBatch.focus", () => {
+  const viewed = (page: PageContext, n = 1): Event => event(n, { page });
+
+  it("no product page (listing only) → undefined", () => {
+    expect(batchOf([viewed({ pageType: "listing" })]).focus()).toBeUndefined();
+  });
+
+  it("product page without a resolved product → undefined", () => {
+    expect(batchOf([viewed({ pageType: "product" })]).focus()).toBeUndefined();
+  });
+
+  it("product page with product and variant → both", () => {
+    expect(
+      batchOf([viewed({ pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" })]).focus(),
+    ).toEqual({
+      productId: "SKU-1",
+      variantId: "SKU-1-M",
+    });
+  });
+
+  it("product without variant → only the product, no undefined key", () => {
+    expect(batchOf([viewed({ pageType: "product", productId: "SKU-1" })]).focus()).toStrictEqual({
+      productId: "SKU-1",
+    });
+  });
+
+  it("the last resolved product page wins; an unresolved one after it does not erase it", () => {
+    const batch = batchOf([
+      viewed({ pageType: "product", productId: "SKU-1" }, 1),
+      viewed({ pageType: "product", productId: "SKU-2", variantId: "SKU-2-L" }, 2),
+      viewed({ pageType: "product" }, 3),
+      viewed({ pageType: "cart", productId: "SKU-9" }, 4),
+    ]);
+    expect(batch.focus()).toEqual({ productId: "SKU-2", variantId: "SKU-2-L" });
+  });
+});
+
 describe("EventBatch.noOpReason (without a decision plane)", () => {
   const viewed = (page: PageContext, n = 1): Event => event(n, { page });
 

@@ -12,7 +12,7 @@ import {
   type VisitorId,
 } from "../shared-kernel/index.js";
 import { EventTimestampOutOfRange, SessionVisitorMismatch, type IngestionError } from "./errors.js";
-import type { Event } from "./event.js";
+import type { Event, PageType } from "./event.js";
 import type { EventId } from "./ids.js";
 
 /** Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants). */
@@ -22,6 +22,14 @@ export const TIMESTAMP_TOLERANCE = {
   pastMs: hours(TOLERANCE_PAST_HOURS),
   futureMs: minutes(TOLERANCE_FUTURE_MINUTES),
 } as const;
+
+const PRODUCT_PAGE = "product" satisfies PageType;
+
+/** The product (and variant, when the SDK resolved one) a batch is about. */
+export interface ProductFocus {
+  productId: string;
+  variantId?: string;
+}
 
 export class EventBatch {
   readonly events: readonly Event[];
@@ -62,13 +70,29 @@ export class EventBatch {
   }
 
   /**
+   * The product page the visitor is on: the last event of a product page whose product the SDK
+   * resolved (01-arquitectura-mvp.md §3.1.1). Undefined when no event of the batch is on a
+   * resolved product page: nothing can be decided about a product (page context incomplete).
+   */
+  focus(): ProductFocus | undefined {
+    const resolved = this.events.filter(
+      (e) => e.page.pageType === PRODUCT_PAGE && e.page.productId !== undefined,
+    );
+    const page = resolved.at(-1)?.page;
+    if (page?.productId === undefined) return undefined;
+    return page.variantId === undefined
+      ? { productId: page.productId }
+      : { productId: page.productId, variantId: page.variantId };
+  }
+
+  /**
    * Why this batch gets no intervention while there is no decision plane: a product page
    * without a resolved product allows no decision (01-arquitectura-mvp.md §3.1.1); anything
    * else waits for the decision plane. PROPUESTO (ADR-024): moves to the `decision` module
    * with feature 011.
    */
   noOpReason(): NoOpReason {
-    const onProductPage = this.events.filter((e) => e.page.pageType === "product");
+    const onProductPage = this.events.filter((e) => e.page.pageType === PRODUCT_PAGE);
     if (onProductPage.length > 0 && onProductPage.every((e) => e.page.productId === undefined)) {
       return "page-context-incomplete";
     }
