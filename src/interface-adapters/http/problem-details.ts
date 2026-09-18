@@ -35,6 +35,36 @@ export const PROBLEM_TYPES = {
   "catalog-duplicate-variant-id": { status: 422, title: "Two variants share an identifier" },
   "catalog-captured-in-future": { status: 422, title: "The capture instant is in the future" },
   "catalog-out-of-order": { status: 422, title: "The snapshot is older than the current one" },
+  // Decision policy configuration errors (ADR-026): they stop the start; no operation emits them.
+  "invalid-rule-weight": { status: 500, title: "A rule weight or the policy weights are outside 0..1" },
+  "invalid-rule-threshold": { status: 500, title: "A rule threshold or the reading seconds are negative" },
+  "duplicate-rule-id": {
+    status: 500,
+    title: "Two rules of a decision policy share an id, or an id is empty",
+  },
+  "unknown-barrier": { status: 500, title: "A rule names a barrier outside the closed vocabulary" },
+  "unknown-fact": {
+    status: 500,
+    title: "A condition references an event type, subtype or block OPE does not capture",
+  },
+  "barrier-without-rules": { status: 500, title: "A decision policy has a barrier with no rule" },
+  "invalid-policy-version": { status: 500, title: "The decision policy version is empty" },
+  "invalid-policy-threshold": {
+    status: 500,
+    title: "The confidence threshold of a decision policy is outside 0..1",
+  },
+  "invalid-policy-priority": {
+    status: 500,
+    title: "The priority of a decision policy is not a permutation of the three barriers",
+  },
+  "invalid-session-budget": {
+    status: 500,
+    title: "The interventions per session of a decision policy are not an integer of at least 1",
+  },
+  "invalid-policy-evidence": {
+    status: 500,
+    title: "The evidence requirements of a decision policy name an unknown barrier",
+  },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

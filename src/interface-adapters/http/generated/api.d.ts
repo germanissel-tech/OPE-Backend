@@ -275,11 +275,16 @@ export type components = {
             decisionId: components["schemas"]["DecisionId"];
             intervention?: components["schemas"]["Intervention"];
             /**
-             * @description `NO_OP`: do not intervene. `INTERVENE` is reserved for the decision plane (PROPUESTO).
+             * @description `NO_OP`: do not intervene; `reason` is a slug of `contracts/no-op-reasons.yaml`.
+             *     `INTERVENE`: render `intervention`; `reason` is the inferred barrier (`fit`, `price` or
+             *     `returns`, 03 §4.2). Neither the confidence nor the signals travel: they live in the ledger.
              * @enum {string}
              */
             outcome: "NO_OP" | "INTERVENE";
-            /** @description Reason for the outcome, from the catalogue `contracts/no-op-reasons.yaml` (for example `decision-plane-unavailable`). */
+            /**
+             * @description Reason for the outcome: a NO_OP reason of the catalogue `contracts/no-op-reasons.yaml`
+             *     (for example `barrier-unclear`), or the barrier of an intervention.
+             */
             reason: string;
             sessionId: components["schemas"]["SessionId"];
         };
@@ -383,9 +388,10 @@ export type components = {
             results: components["schemas"]["EventResult"][];
         };
         /**
-         * @description PROPUESTO — Placeholder for the intervention the decision plane will emit in later features.
-         *     The SDK team validates this shape before 010; until then no decision carries it (`outcome`
-         *     is always `NO_OP`).
+         * @description The intervention the decision plane emits: where to render (`anchor`) and which curated
+         *     message version to fetch from the message catalogue. Until that catalogue exists (feature
+         *     015) `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_v0`; the
+         *     SDK renders nothing it cannot resolve.
          */
         Intervention: {
             anchor: components["schemas"]["Anchor"];

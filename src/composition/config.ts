@@ -6,11 +6,16 @@ import path from "node:path";
 import { Experiment } from "../domain/experiment/index.js";
 import { Merchant } from "../domain/merchant/index.js";
 import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
+import { ConfigError, type MerchantField, type Variable } from "./config-error.js";
+import { parseDecisionPolicy } from "./decision-policy-config.js";
+import type { DecisionPolicy } from "../domain/decision/index.js";
 
 /** A merchant as configured: the entity and its experiments (at most one active, ADR-022). */
 export interface MerchantConfig {
   merchant: Merchant;
   experiments: readonly Experiment[];
+  /** The merchant's decision policy (ADR-026); absent means the default one. */
+  decisionPolicy?: DecisionPolicy;
 }
 
 export interface AppConfig {
@@ -35,16 +40,7 @@ const EXPERIMENT_STATUSES = [ACTIVE, "closed"];
 const NOT_AN_OBJECT = "is not an object";
 const NON_EMPTY_STRING = "must be a non-empty string";
 
-/** The environment variables the server reads; anything else in the environment is ignored. */
-type Variable = "PORT" | "HOST" | "OPE_CONTRACT" | "OPE_MERCHANTS" | "OPE_MERCHANTS_FILE";
-
-/** A configuration value that cannot start the server: named after the variable, never silently defaulted. */
-export class ConfigError extends Error {
-  constructor(variable: Variable | `merchants[${number}]${string}`, problem: string) {
-    super(`${variable} ${problem}.`);
-    this.name = "ConfigError";
-  }
-}
+export { ConfigError } from "./config-error.js";
 
 /** Builds the configuration from the environment, or throws a `ConfigError` naming what is wrong. */
 export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => string): AppConfig {
@@ -86,7 +82,7 @@ function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) => strin
  * A domain error of a factory becomes a configuration error naming the field: the rule is the
  * domain's; the location is the configuration's.
  */
-function rejected(at: `merchants[${number}]${string}`, error: DomainError): ConfigError {
+function rejected(at: MerchantField, error: DomainError): ConfigError {
   const position = error.details[INDEX_DETAIL];
   const index = typeof position === "number" ? `[${position}]` : "";
   return new ConfigError(`${at}${FIELD_BY_CODE[error.code] ?? ""}${index}`, `is invalid (${error.message})`);
@@ -136,13 +132,21 @@ function parseMerchants(raw: string): MerchantConfig[] {
     }
     const merchant = Merchant.of({ merchantId: asMerchantId(merchantId), ingestKeys, origins, platformKeys });
     if (!merchant.ok) throw rejected(`merchants[${i}]`, merchant.error);
-    return { merchant: merchant.value, experiments: parseExperiments(m["experiments"], i, merchant.value) };
+    const experiments = parseExperiments(m["experiments"], i, merchant.value);
+    const rawPolicy = m["decisionPolicy"];
+    return rawPolicy === undefined
+      ? { merchant: merchant.value, experiments }
+      : {
+          merchant: merchant.value,
+          experiments,
+          decisionPolicy: parseDecisionPolicy(rawPolicy, `merchants[${i}].decisionPolicy`),
+        };
   });
 }
 
 /** Experiments of a merchant: optional list; each one validated; at most one active (ADR-022). */
 function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchant): Experiment[] {
-  const at: `merchants[${number}]${string}` = `merchants[${merchantIndex}].experiments`;
+  const at: MerchantField = `merchants[${merchantIndex}].experiments`;
   if (raw === undefined) return [];
   if (!Array.isArray(raw)) throw new ConfigError(at, "must be an array of experiments");
   const experiments = raw.map((item: unknown, j) =>
@@ -154,7 +158,7 @@ function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchan
   return experiments;
 }
 
-function parseExperiment(item: unknown, at: `merchants[${number}]${string}`, merchant: Merchant): Experiment {
+function parseExperiment(item: unknown, at: MerchantField, merchant: Merchant): Experiment {
   if (typeof item !== "object" || item === null) throw new ConfigError(at, NOT_AN_OBJECT);
   const e = item as Record<string, unknown>;
   const experimentId = e["experimentId"];

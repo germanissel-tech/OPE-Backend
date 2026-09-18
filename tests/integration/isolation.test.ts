@@ -10,6 +10,7 @@ import {
   batchOf,
   catalogOf,
   catalogProductOf,
+  eventOf,
   fixedClock,
   merchantB,
   postEvents,
@@ -204,6 +205,97 @@ describe("isolation between merchants", () => {
       "vis_00000001" as never,
     );
     expect(fresh).toMatchObject({ experimentId: "exp_active_01", assignedAt: new Date(NOW) });
+  });
+
+  it("decision policy: A (threshold 0.9) and B (threshold 0.4) decide differently on the same session; each ledger stamps its own version", async () => {
+    const policy = (version: string, threshold: number): Record<string, unknown> => ({
+      version,
+      threshold,
+      priority: ["returns", "fit", "price"],
+      highIntent: "from-checkout",
+      abandonment: "nothing",
+      interventionsPerSession: 1,
+      evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
+      rules: [
+        {
+          id: "fit.size-guide",
+          barrier: "fit",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "size_guide" },
+        },
+        {
+          id: "price.price",
+          barrier: "price",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "price" },
+        },
+        {
+          id: "returns.policies",
+          barrier: "returns",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "policies" },
+        },
+      ],
+    });
+    const experiment = {
+      experimentId: "exp_iso_00001",
+      treatmentPercent: 100,
+      seed: "s",
+      status: "active" as const,
+      startedAt: NOW,
+    };
+    const a: MerchantSpec = {
+      merchantId: A.id,
+      ingestKeys: [A.key],
+      platformKeys: ["platform-a-1"],
+      origins: [A.origin],
+      experiments: [experiment],
+      decisionPolicy: policy("a-1", 0.9),
+    };
+    const b: MerchantSpec = {
+      merchantId: B.id,
+      ingestKeys: [B.key],
+      platformKeys: ["platform-b-1"],
+      origins: [B.origin],
+      experiments: [experiment],
+      decisionPolicy: policy("b-1", 0.4),
+    };
+    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [a, b] });
+    for (const key of ["platform-a-1", "platform-b-1"]) {
+      expect(
+        (
+          await putCatalog(
+            app.app,
+            { capturedAt: NOW, products: [catalogProductOf("SKU-1")] },
+            { platformKey: key },
+          )
+        ).statusCode,
+      ).toBe(201);
+    }
+    const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
+    const batch = (from: number) => ({
+      events: [
+        eventOf(from, { occurredAt: NOW, page, type: "block_dwelled", block: "size_guide", dwellMs: 6000 }),
+      ],
+    });
+    const inA = json(await postEvents(app.app, batch(1), { key: A.key })) as IngestResult;
+    const inB = json(await postEvents(app.app, batch(1), { key: B.key })) as IngestResult;
+    expect(inA.decision).toMatchObject({ outcome: "NO_OP", reason: "barrier-unclear" });
+    expect(inB.decision).toMatchObject({ outcome: "INTERVENE", reason: "fit" });
+    const ledgerA = await app.ports.decisions.find(asMerchantId(A.id), asDecisionId(inA.decision.decisionId));
+    const ledgerB = await app.ports.decisions.find(asMerchantId(B.id), asDecisionId(inB.decision.decisionId));
+    expect(ledgerA?.inference?.policyVersion).toBe("a-1");
+    expect(ledgerB?.inference?.policyVersion).toBe("b-1");
+    // The same sessionId in A and B: B's intervention does not exhaust A's budget nor lend it signals.
+    const again = json(await postEvents(app.app, batch(2), { key: A.key })) as IngestResult;
+    expect(again.decision.reason).toBe("barrier-unclear");
+    expect(await app.ports.sessions.load(asMerchantId(A.id), asSessionId("ses_00000001"))).toMatchObject({
+      interventions: 0,
+    });
+    expect(await app.ports.sessions.load(asMerchantId(B.id), asSessionId("ses_00000001"))).toMatchObject({
+      interventions: 1,
+    });
+    expect(await app.ports.sessions.load(asMerchantId("m_c"), asSessionId("ses_00000001"))).toBeUndefined();
   });
 
   it("catalogue: the snapshot of A is invisible to B; the same productId in A and B are two products; B's platform key cannot touch A", async () => {

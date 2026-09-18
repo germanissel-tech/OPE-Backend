@@ -6,7 +6,6 @@ import {
   hours,
   minutes,
   ok,
-  type NoOpReason,
   type Result,
   type SessionId,
   type VisitorId,
@@ -83,19 +82,5 @@ export class EventBatch {
     return page.variantId === undefined
       ? { productId: page.productId }
       : { productId: page.productId, variantId: page.variantId };
-  }
-
-  /**
-   * Why this batch gets no intervention while there is no decision plane: a product page
-   * without a resolved product allows no decision (01-arquitectura-mvp.md §3.1.1); anything
-   * else waits for the decision plane. PROPUESTO (ADR-024): moves to the `decision` module
-   * with feature 011.
-   */
-  noOpReason(): NoOpReason {
-    const onProductPage = this.events.filter((e) => e.page.pageType === PRODUCT_PAGE);
-    if (onProductPage.length > 0 && onProductPage.every((e) => e.page.productId === undefined)) {
-      return "page-context-incomplete";
-    }
-    return "decision-plane-unavailable";
   }
 }

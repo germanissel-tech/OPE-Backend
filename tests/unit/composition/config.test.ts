@@ -163,6 +163,190 @@ describe("readConfig", () => {
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
   });
 
+  const policy = {
+    version: "sport-2",
+    threshold: 0.6,
+    priority: ["returns", "fit", "price"],
+    highIntent: "from-checkout",
+    abandonment: "reassure-returns",
+    interventionsPerSession: 1,
+    evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
+    rules: [
+      {
+        id: "fit.size-selector-twice",
+        barrier: "fit",
+        strength: "strong",
+        when: {
+          all: [
+            { fact: "eventCount", type: "size_selector_interacted", min: 2 },
+            { not: { fact: "sessionAddedToCart" } },
+          ],
+        },
+      },
+      {
+        id: "price.cta",
+        barrier: "price",
+        strength: "supporting",
+        weight: 0.25,
+        when: { fact: "eventCount", type: "cta_approached", min: 1 },
+      },
+      {
+        id: "returns.cart-then-policies",
+        barrier: "returns",
+        strength: "strong",
+        when: {
+          fact: "sequence",
+          first: { type: "added_to_cart" },
+          then: { type: "block_dwelled", subtype: "policies" },
+        },
+      },
+    ],
+  };
+
+  it("decisionPolicy is optional; a valid one is built with its defaults (weights 0.4/0.2, 5 s)", () => {
+    expect(
+      readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.decisionPolicy,
+    ).toBeUndefined();
+    const parsed = readConfig(
+      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, decisionPolicy: policy }]) },
+      noFile,
+    ).merchants[0]?.decisionPolicy;
+    expect(parsed?.version).toBe("sport-2");
+    expect(parsed?.rules.weights).toEqual({ strong: 0.4, supporting: 0.2 });
+    expect(parsed?.rules.readingSeconds).toBe(5);
+    expect(parsed?.rules.rules.map((r) => r.id)).toEqual([
+      "fit.size-selector-twice",
+      "price.cta",
+      "returns.cart-then-policies",
+    ]);
+    expect(parsed?.rules.rules[1]?.weight).toBe(0.25);
+    expect(parsed?.evidence).toEqual({ freshStockAndPrice: ["price"], availableVariant: ["fit"] });
+    const explicit = { ...policy, weights: { strong: 0.5, supporting: 0.1 }, readingSeconds: 8 };
+    const custom = readConfig(
+      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, decisionPolicy: explicit }]) },
+      noFile,
+    ).merchants[0]?.decisionPolicy;
+    expect(custom?.rules.weights).toEqual({ strong: 0.5, supporting: 0.1 });
+    expect(custom?.rules.readingSeconds).toBe(8);
+  });
+
+  it.each<[string, Record<string, unknown>, string]>([
+    ["not an object", { decisionPolicy: "x" }, "merchants[0].decisionPolicy is not an object."],
+    [
+      "version missing",
+      { decisionPolicy: { ...policy, version: undefined } },
+      "merchants[0].decisionPolicy.version must be a string.",
+    ],
+    [
+      "version blank (domain)",
+      { decisionPolicy: { ...policy, version: " " } },
+      "merchants[0].decisionPolicy.version is invalid (",
+    ],
+    [
+      "threshold out of range (domain)",
+      { decisionPolicy: { ...policy, threshold: 2 } },
+      "merchants[0].decisionPolicy.threshold is invalid (",
+    ],
+    [
+      "priority incomplete (domain)",
+      { decisionPolicy: { ...policy, priority: ["fit"] } },
+      "merchants[0].decisionPolicy.priority is invalid (",
+    ],
+    [
+      "highIntent unknown",
+      { decisionPolicy: { ...policy, highIntent: "sometimes" } },
+      "merchants[0].decisionPolicy.highIntent must be one of from-cart, from-checkout, never.",
+    ],
+    [
+      "interventions zero (domain)",
+      { decisionPolicy: { ...policy, interventionsPerSession: 0 } },
+      "merchants[0].decisionPolicy.interventionsPerSession is invalid (",
+    ],
+    [
+      "evidence with a stranger (domain)",
+      { decisionPolicy: { ...policy, evidence: { freshStockAndPrice: ["size"], availableVariant: [] } } },
+      "merchants[0].decisionPolicy.evidence.freshStockAndPrice is invalid (",
+    ],
+    [
+      "rules not an array",
+      { decisionPolicy: { ...policy, rules: {} } },
+      "merchants[0].decisionPolicy.rules must be an array of rules.",
+    ],
+    [
+      "rule without strength",
+      { decisionPolicy: { ...policy, rules: [{ ...policy.rules[0], strength: "weak" }] } },
+      "merchants[0].decisionPolicy.rules[0].strength must be one of strong, supporting.",
+    ],
+    [
+      "unknown fact",
+      { decisionPolicy: { ...policy, rules: [{ ...policy.rules[0], when: { fact: "mood" } }] } },
+      "merchants[0].decisionPolicy.rules[0].when.fact must be one of eventCount, dwellSeconds, sequence, productAttribute, returnedToProduct, variantAvailable, sessionAddedToCart, sessionEnteredCheckout.",
+    ],
+    [
+      "unknown block inside a nested condition (domain)",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [
+            policy.rules[0],
+            {
+              id: "r",
+              barrier: "returns",
+              strength: "strong",
+              when: { all: [{ fact: "returnedToProduct" }, { fact: "dwellSeconds", block: "footer" }] },
+            },
+            policy.rules[1],
+          ],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[1].when.all[1].block is invalid (",
+    ],
+    [
+      "a barrier without rules (domain)",
+      { decisionPolicy: { ...policy, rules: [policy.rules[0], policy.rules[1]] } },
+      "merchants[0].decisionPolicy.rules is invalid (",
+    ],
+    [
+      "duplicate id (domain)",
+      { decisionPolicy: { ...policy, rules: [...policy.rules, policy.rules[0]] } },
+      "merchants[0].decisionPolicy.rules[3].id is invalid (",
+    ],
+    [
+      "weight above 1 (domain)",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [{ ...policy.rules[0], weight: 3 }, policy.rules[1], policy.rules[2]],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[0].weight is invalid (",
+    ],
+    [
+      "min not a number",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [{ ...policy.rules[0], when: { fact: "eventCount", type: "cta_approached", min: "2" } }],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[0].when.min must be a number.",
+    ],
+    [
+      "sequence without then",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [{ ...policy.rules[0], when: { fact: "sequence", first: { type: "added_to_cart" } } }],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[0].when.then is not an object.",
+    ],
+  ])("decisionPolicy %s is refused naming the field", (_name, over, message) => {
+    const raw = JSON.stringify([{ ...merchant, ...over }]);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
+  });
+
   it.each([
     ["{not json", "OPE_MERCHANTS is not valid JSON ("],
     ['{"merchantId":"m"}', "OPE_MERCHANTS must be a JSON array of merchants."],

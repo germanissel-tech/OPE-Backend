@@ -2,7 +2,9 @@
 // configuration, the system clock and pino to stdout. Tests, `npm run dev` and every feature
 // until real persistence arrives (006). One binding table per module; an override replaces a
 // port before its gateway is built, and the kernel is bound first because dedup shares its clock.
+import { ruleBarrierPorts } from "../modules/barrier.js";
 import { memoryCatalogPorts } from "../modules/catalog.js";
+import { configDecisionPorts, memoryDecisionPorts } from "../modules/decision.js";
 import { configExperimentPorts, memoryAssignmentPorts } from "../modules/experiment.js";
 import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
@@ -21,6 +23,9 @@ export const localProfile: Profile = (config, overrides) => {
     ...bind(memoryIngestionPorts(kernel.clock)),
     ...bind(memoryLedgerPorts),
     ...bind(memoryCatalogPorts),
+    ...bind(ruleBarrierPorts),
+    ...bind(configDecisionPorts(config.merchants)),
+    ...bind(memoryDecisionPorts(kernel.clock)),
   };
   return { ports, closables };
 };

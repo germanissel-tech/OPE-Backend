@@ -2,6 +2,7 @@
 // dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
 import { Experiment } from "../../src/domain/experiment/index.js";
 import { Merchant } from "../../src/domain/merchant/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
@@ -23,6 +24,8 @@ export interface MerchantSpec {
     status: "active" | "closed";
     startedAt: string;
   }[];
+  /** The raw shape of OPE_MERCHANTS[i].decisionPolicy; parsed like config.ts does. */
+  decisionPolicy?: Record<string, unknown>;
 }
 
 const PERCENT = 100;
@@ -48,7 +51,9 @@ function configured(spec: MerchantSpec): MerchantConfig {
     if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
     return experiment.value;
   });
-  return { merchant: merchant.value, experiments };
+  if (spec.decisionPolicy === undefined) return { merchant: merchant.value, experiments };
+  const decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
+  return { merchant: merchant.value, experiments, decisionPolicy };
 }
 
 const merchantA: MerchantSpec = {

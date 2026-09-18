@@ -6,5 +6,11 @@ export const NO_OP_REASONS = [
   "control-arm",
   "no-active-experiment",
   "ledger-unavailable",
+  "barrier-unclear",
+  "evidence-missing",
+  "evidence-stale",
+  "variant-unavailable",
+  "high-intent",
+  "session-budget-exhausted",
 ] as const;
 export type NoOpReason = (typeof NO_OP_REASONS)[number];

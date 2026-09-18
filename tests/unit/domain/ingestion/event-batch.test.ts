@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 import {
   EventBatch,
-  NO_OP_REASONS,
   TIMESTAMP_TOLERANCE,
   type Event,
   type PageContext,
@@ -121,37 +120,5 @@ describe("EventBatch.focus", () => {
       viewed({ pageType: "cart", productId: "SKU-9" }, 4),
     ]);
     expect(batch.focus()).toEqual({ productId: "SKU-2", variantId: "SKU-2-L" });
-  });
-});
-
-describe("EventBatch.noOpReason (without a decision plane)", () => {
-  const viewed = (page: PageContext, n = 1): Event => event(n, { page });
-
-  it("product page without productId in any event → page-context-incomplete", () => {
-    expect(batchOf([viewed({ pageType: "product" })]).noOpReason()).toBe("page-context-incomplete");
-  });
-
-  it("product page with productId → decision-plane-unavailable", () => {
-    expect(batchOf([viewed({ pageType: "product", productId: "SKU-1" })]).noOpReason()).toBe(
-      "decision-plane-unavailable",
-    );
-  });
-
-  it("one product-page event with a resolved product is enough", () => {
-    const batch = batchOf([
-      viewed({ pageType: "product" }, 1),
-      viewed({ pageType: "product", productId: "SKU-1" }, 2),
-    ]);
-    expect(batch.noOpReason()).toBe("decision-plane-unavailable");
-  });
-
-  it("every reason a batch can give is in the catalogue", () => {
-    for (const page of [{ pageType: "product" as const }, { pageType: "listing" as const }]) {
-      expect(NO_OP_REASONS).toContain(batchOf([viewed(page)]).noOpReason());
-    }
-  });
-
-  it("a batch without a product page (listing only) → decision-plane-unavailable", () => {
-    expect(batchOf([viewed({ pageType: "listing" })]).noOpReason()).toBe("decision-plane-unavailable");
   });
 });

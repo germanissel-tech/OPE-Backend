@@ -208,7 +208,7 @@ describe("inline decision (US3)", () => {
     expect(r1.decision.sessionId).toBe("ses_00000001");
   });
 
-  it("product page without productId → reason page-context-incomplete; normal batch → decision-plane-unavailable", async () => {
+  it("product page without productId → reason page-context-incomplete; a batch without signals → barrier-unclear", async () => {
     app = await withClock();
     const incomplete = { events: [eventOf(1, { occurredAt: NOW, page: { pageType: "product" } })] };
     const r1 = json(await postEvents(app.app, incomplete, { key: "key-a-1" })) as IngestResult;
@@ -216,7 +216,7 @@ describe("inline decision (US3)", () => {
     const r2 = json(
       await postEvents(app.app, batchOf(1, 2, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
-    expect(r2.decision.reason).toBe("decision-plane-unavailable");
+    expect(r2.decision.reason).toBe("barrier-unclear");
   });
 
   it("the decision stays in the ledger with merchant, session, visitor, reason and instant; another merchant does not see it", async () => {
@@ -231,7 +231,7 @@ describe("inline decision (US3)", () => {
       sessionId: "ses_00000001",
       visitorId: "vis_00000001",
       outcome: "NO_OP",
-      reason: "decision-plane-unavailable",
+      reason: "barrier-unclear",
       decidedAt: new Date(NOW),
     });
     expect(await app.ports.decisions.find("m_b" as never, id as never)).toBeUndefined();

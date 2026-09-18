@@ -1,8 +1,9 @@
 type: object
 description: |
-  PROPUESTO — Placeholder for the intervention the decision plane will emit in later features.
-  The SDK team validates this shape before 010; until then no decision carries it (`outcome`
-  is always `NO_OP`).
+  The intervention the decision plane emits: where to render (`anchor`) and which curated
+  message version to fetch from the message catalogue. Until that catalogue exists (feature
+  015) `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_v0`; the
+  SDK renders nothing it cannot resolve.
 additionalProperties: false
 required: [messageVersionId, anchor]
 properties:

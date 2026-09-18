@@ -28,6 +28,8 @@ const CONTEXT_MAP = {
   experiment: ["shared-kernel", "ledger"],
   ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
   catalog: ["shared-kernel"],
+  barrier: ["shared-kernel", "ingestion"],
+  decision: ["shared-kernel", "ledger", "experiment", "ingestion", "catalog", "barrier"],
 };
 
 /**

@@ -11,4 +11,4 @@ value:
     decisionId: dec_01JBQ2X8N4K3M7P9R2T5V8W9
     sessionId: ses_01JBQ2X8N4K3M7P9R2T5V8W1
     outcome: NO_OP
-    reason: decision-plane-unavailable
+    reason: barrier-unclear

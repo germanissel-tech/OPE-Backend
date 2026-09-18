@@ -39,7 +39,3 @@ export { EventBatch, TIMESTAMP_TOLERANCE } from "./event-batch.js";
 export type { ProductFocus } from "./event-batch.js";
 export { asEventId } from "./ids.js";
 export type { EventId } from "./ids.js";
-// The NO_OP reason catalogue is shared vocabulary (ledger, ingestion, decision): it lives in the
-// shared kernel and is re-exported here for the consumers of the ingestion module.
-export { NO_OP_REASONS } from "../shared-kernel/index.js";
-export type { NoOpReason } from "../shared-kernel/index.js";
