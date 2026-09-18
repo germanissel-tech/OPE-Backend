@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required: [products, variants, receivedAt, observedSyncLevel]
+properties:
+  products: { type: integer, minimum: 0 }
+  variants: { type: integer, minimum: 0 }
+  receivedAt:
+    type: string
+    format: date-time
+  observedSyncLevel:
+    type: integer
+    minimum: 0
+    maximum: 3
+    description: |
+      Synchronisation level OPE observes from the cadence of snapshots (01 §14.1: measured, not
+      declared): 0 no data, 1 daily dump, 2 minutes, 3 per change (never reached with full snapshots).

@@ -1,0 +1,19 @@
+type: object
+description: "The exact combination of size and colour: the only level at which truth exists (01 §0.1)."
+additionalProperties: false
+required: [variantId, size, color, available, price]
+properties:
+  variantId:
+    type: string
+    pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  size:
+    type: string
+    maxLength: 32
+  color:
+    type: string
+    maxLength: 64
+  available:
+    type: boolean
+    description: "Availability as a guard (01 §4.3): `false` means 'do not recommend'; no quantity travels."
+  price:
+    $ref: ./Money.yaml

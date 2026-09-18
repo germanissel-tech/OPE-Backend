@@ -1,0 +1,45 @@
+put:
+  operationId: upsertCatalogSnapshot
+  tags: [outcomes]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - catalog:write
+  summary: Replace the merchant's catalogue snapshot
+  description: |
+    The merchant's platform (generic adapter, 02 §6.2) sends the complete catalogue: products
+    with their attributes and variants, each variant with size, colour, availability and the
+    current price, plus the instant the platform took the picture (`capturedAt`). The snapshot
+    replaces the current one entirely (no merge) and the operation is idempotent. Availability
+    is a guard, never a claim (01 §4.3): no quantities travel. A snapshot older than the
+    current one (by `capturedAt`) is rejected. OPE measures freshness from `capturedAt`:
+    catalogue and variants stay true for 36 h, availability and price for 15 min; and derives
+    the observed synchronisation level from the cadence of receipts. Body limit: 32 MiB.
+  x-invariants:
+    - type: catalog-out-of-order
+      status: 422
+      rule: capturedAt >= capturedAt of the current snapshot of the merchant
+      description: A delayed replica cannot overwrite newer truth.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CatalogSnapshot.yaml
+  responses:
+    "200":
+      description: "Snapshot replaced (or identical): the summary of what OPE now holds."
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogSummary.yaml
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "422":
+      $ref: ../components/responses/CatalogUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
