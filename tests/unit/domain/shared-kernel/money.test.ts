@@ -34,8 +34,10 @@ describe("Money.of", () => {
     const a = Money.rehydrate({ amount: "10.00", currency: "ARS" });
     const b = Money.rehydrate({ amount: "10.00", currency: "ARS" });
     const c = Money.rehydrate({ amount: "10.00", currency: "USD" });
+    const d = Money.rehydrate({ amount: "11.00", currency: "ARS" });
     expect(a.equals(b)).toBe(true);
     expect(a.equals(c)).toBe(false);
+    expect(a.equals(d)).toBe(false);
     expect(Money.rehydrate({ amount: "not validated", currency: "x" }).amount).toBe("not validated");
   });
 });

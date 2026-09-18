@@ -15,10 +15,11 @@ PROPUESTO de ADR-020 sobre headers de seguridad.
 npm run dev
 curl -s -X PUT http://127.0.0.1:3000/v1/catalog -H "content-type: application/json" \
   -H "X-OPE-Platform-Key: ope_dev_platform_key" \
-  -d '{"capturedAt":"<ahora>","products":[{"productId":"SKU-1","name":"Remera","attributes":[{"name":"fit","value":"regular"}],"variants":[{"variantId":"SKU-1-M-NEGRO","size":"M","color":"negro","available":true,"price":{"amount":"19990.00","currency":"ARS"}}]}]}'
+  -d '{"capturedAt":"<ahora>","products":[{"productId":"SKU-1","title":"Remera","attributes":[{"key":"fit","value":"regular"}],"variants":[{"variantId":"SKU-1-M-NEGRO","size":"M","color":"negro","available":true,"price":{"amount":"19990.00","currency":"ARS"}}]}]}'
 ```
 
-Esperado: `200` con `{ products: 1, variants: 1, receivedAt, observedSyncLevel: 1 }`. Con la
+Esperado: `201` con `{ products: 1, variants: 1, receivedAt, observedSyncLevel: 1 }`; repetir
+el mismo cuerpo → `200`; mismo `capturedAt` con otro contenido → `409 idempotency-conflict`. Con la
 clave de ingesta en ese header → `401`; con la clave de plataforma en `X-OPE-Ingest-Key`
 contra `/v1/events` → `401`. Dos productos con el mismo `productId` → `422`
 `catalog-duplicate-product-id`; `capturedAt` una hora en el futuro → `422`
@@ -53,6 +54,15 @@ npx vitest run tests/integration/isolation.test.ts tests/integration/catalog-siz
 `catalog-size` reporta el tiempo de un snapshot de 5 000 productos / 50 000 variantes
 (informativo; falla > 2 s).
 
-## Estado al cierre (histórico)
+## Estado al cierre (histórico, 2026-09-18)
 
-Se completa al terminar la implementación.
+| Comando                                | Resultado                                                                                                                                                                                                             |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test` al inicio                   | 67 archivos, 485 pruebas                                                                                                                                                                                              |
+| `npm test` al cierre                   | 552 pruebas                                                                                                                                                                                                           |
+| `npm run contract:check`               | verde; mapa `4 built, 19 planned`; glosario 46 términos                                                                                                                                                               |
+| `npm run quality`                      | 5 gates en verde; `Lint exceptions: 0`                                                                                                                                                                                |
+| `npm run test:mutation`                | every mutant died                                                                                                                                                                                                     |
+| `npm run test:contract` (Schemathesis) | verde con `upsertCatalogSnapshot`                                                                                                                                                                                     |
+| `catalog-size` (5 000 × 10, ~10 MiB)   | < 2 s en el perfil local (informativo)                                                                                                                                                                                |
+| Cambios respecto del plan              | idempotencia por `capturedAt` con 201/200/409 (la regla `ope-outcomes-idempotency` del mapa lo exigió); `name` → `title`/`key` (denylist de PII); redacción de **todo** header en lugar de derivar rutas del cableado |

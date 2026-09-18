@@ -38,7 +38,7 @@ No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranc
 infraestructura, valida y autentica igual que en producción y responde con comportamiento real.
 `dev` carga el merchant de desarrollo de `config/dev-merchants.json` (clave `ope_dev_ingest_key`);
 en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
-`[{ "merchantId", "ingestKeys": [..], "origins": [..], "experiments": [..] }]`, o de
+`[{ "merchantId", "ingestKeys": [..], "platformKeys": [..], "origins": [..], "experiments": [..] }]`, o de
 `OPE_MERCHANTS_FILE`, y sin ninguno el servidor no autentica a nadie. Un experimento activo
 (`{ "experimentId", "treatmentPercent", "seed", "status": "active", "startedAt" }`) asigna cada
 visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún

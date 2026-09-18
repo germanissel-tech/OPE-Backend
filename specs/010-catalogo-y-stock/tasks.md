@@ -25,7 +25,7 @@ Proyecto único: `src/`, `tests/`, `contracts/`, `docs/`. Módulo nuevo `catalog
 
 ## Phase 1: Setup
 
-- [ ] T001 Verificar el punto de partida (`npm run contract:check && npm run quality && npm test`
+- [x] T001 Verificar el punto de partida (`npm run contract:check && npm run quality && npm test`
       en verde) y anotar la cantidad de pruebas en la sección histórica de
       `specs/010-catalogo-y-stock/quickstart.md`
 
@@ -33,7 +33,7 @@ Proyecto único: `src/`, `tests/`, `contracts/`, `docs/`. Módulo nuevo `catalog
 
 ## Phase 2: Foundational — Money, credencial de plataforma, capacidades, headers (US4)
 
-- [ ] T002 [P] Crear `src/domain/shared-kernel/money.ts`: `class Money` con `private
+- [x] T002 [P] Crear `src/domain/shared-kernel/money.ts`: `class Money` con `private
 constructor`, `static of(amount, currency): Result<Money, InvalidMoney>` (`^\d+(\.\d{1,2})?$`,
       `^[A-Z]{3}$`), `static rehydrate({ amount, currency })`, `amount`, `currency`,
       `equals`; `src/domain/shared-kernel/errors.ts` gana `InvalidMoney` (`invalid-money`,
@@ -41,44 +41,44 @@ constructor`, `static of(amount, currency): Result<Money, InvalidMoney>` (`^\d+(
       raíz, la regla `ope/domain-error-shape` debe admitir clases concretas allí con
       `module = "shared-kernel"`; exportar desde el índice; añadir `invalid-money` (500) a
       `contracts/problem-types.yaml` y a `PROBLEM_TYPES`
-- [ ] T003 [P] `src/domain/ingestion/event.ts`: `PageContext.price: Money` (clase) y
+- [x] T003 [P] `src/domain/ingestion/event.ts`: `PageContext.price: Money` (clase) y
       `export type { Money }` desde el índice de ingesta; el controller de ingesta construye con
       `Money.rehydrate(dto.price)`; adaptar `tests/unit/domain/**` y `tests/integration/**` sólo
       en la construcción de eventos con precio (si alguno lo usa)
-- [ ] T004 [US4] `src/domain/merchant/merchant.ts`: `platformKeys: readonly string[]` (0..2) en
+- [x] T004 [US4] `src/domain/merchant/merchant.ts`: `platformKeys: readonly string[]` (0..2) en
       `MerchantInput`/`MerchantRecord`, `ownsPlatformKey(key)`; `of` rechaza una clave de
       plataforma vacía o igual a una de ingesta con `PlatformKeyCollision`
       (`platform-key-collision`, 500, `details: { index }`) en `src/domain/merchant/errors.ts`;
       catálogo de problemas + `PROBLEM_TYPES`; `tests/unit/domain/merchant/merchant.test.ts`
-- [ ] T005 [US4] `src/composition/config.ts`: `platformKeys` opcional (array de strings, 0..2)
+- [x] T005 [US4] `src/composition/config.ts`: `platformKeys` opcional (array de strings, 0..2)
       en `OPE_MERCHANTS`; `ConfigError` con campo `merchants[i].platformKeys[k]` ante colisión;
       `config/dev-merchants.json` gana `"platformKeys": ["ope_dev_platform_key"]`;
       `tests/unit/composition/config.test.ts`; `tests/helpers/test-app.ts`: `MerchantSpec.platformKeys?`
       y merchant A con `["platform-a-1"]`, B con `["platform-b-1"]`
-- [ ] T006 [US4] `src/application/merchant/ports/merchant-directory.ts`: `findByPlatformKey(key):
+- [x] T006 [US4] `src/application/merchant/ports/merchant-directory.ts`: `findByPlatformKey(key):
 Promise<Merchant | undefined>`; gateway de configuración; nuevo
       `src/application/merchant/services/platform-key.service.ts` (`PlatformKeyResolver { resolve(key):
 Promise<Result<Merchant, Unauthorized>> }`, `DefaultPlatformKeyResolver`); índice;
       `tests/unit/application/merchant/platform-key.service.test.ts`
-- [ ] T007 [US4] Capacidades: `src/interface-adapters/http/security/capabilities.ts` con
+- [x] T007 [US4] Capacidades: `src/interface-adapters/http/security/capabilities.ts` con
       `CONSUMER_CAPABILITIES = { sdk: [...], platform: [...] } as const` (réplica de
       `consumers.<x>.capabilities` de `contracts/api-map.yaml`) y `tests/unit/http/capabilities.test.ts`
       que la compara con el mapa; `SecurityOutcome` gana `capabilities: readonly string[]`
       (`src/interface-adapters/http/typed.ts`); el handler de ingesta declara
       `CONSUMER_CAPABILITIES.sdk`
-- [ ] T008 [US4] `src/interface-adapters/http/security/platform-key.ts`: `PLATFORM_KEY_HEADER =
+- [x] T008 [US4] `src/interface-adapters/http/security/platform-key.ts`: `PLATFORM_KEY_HEADER =
 "x-ope-platform-key"`, `PLATFORM_KEY_SCHEME = "platformKey"`, `makePlatformKeySecurity(resolver)`
       (401 `unauthorized` sin clave o desconocida; principal `{ merchant }`; `capabilities:
 CONSUMER_CAPABILITIES.platform`; log `merchantId`); `merchantOf(req)` debe leer el principal
       de cualquiera de los dos esquemas (`security[INGEST_KEY_SCHEME] ?? security[PLATFORM_KEY_SCHEME]`)
-- [ ] T009 [US4] Verificación genérica de capacidades en `src/infrastructure/http/build-server.ts`
+- [x] T009 [US4] Verificación genérica de capacidades en `src/infrastructure/http/build-server.ts`
       (`registerSecurity`): leer `c.operation["x-required-capabilities"]` como `unknown` →
       `string[]`, ejecutar el handler y, si alguna falta en `outcome.capabilities`, lanzar
       `SecurityError("capability-missing")`; `capability-missing` (403) en
       `contracts/problem-types.yaml` y `PROBLEM_TYPES`; prueba en
       `tests/integration/server.test.ts` con un contrato de fixture (`tests/integration/fixtures/`)
       cuya operación exige una capacidad que el handler de prueba no otorga → 403 con el tipo
-- [ ] T010 [US4] Headers desde el cableado: `SecurityScheme { handler; header }` en
+- [x] T010 [US4] Headers desde el cableado: `SecurityScheme { handler; header }` en
       `src/interface-adapters/http/typed.ts`; `ModuleWiring.security: Record<string, SecurityScheme>`
       y `Wired.credentialHeaders: readonly string[]` en `src/composition/wiring.ts`;
       `src/composition/modules/merchant.ts` registra `ingestKey` **y** `platformKey` con sus
@@ -90,13 +90,13 @@ credentialHeaders)` aplicado en `createApp` de `build-server.ts` y **quitado** d
       `tests/integration/server.test.ts`, `tests/integration/cors.test.ts` sólo en la
       construcción (aserciones intactas); prueba de que un request con `X-OPE-Platform-Key`
       queda redactado en el log
-- [ ] T011 [US4] `tests/integration/security-capabilities.test.ts`: clave de ingesta de A en
+- [x] T011 [US4] `tests/integration/security-capabilities.test.ts`: clave de ingesta de A en
       `X-OPE-Platform-Key` → 401; clave de plataforma de A en `X-OPE-Ingest-Key` contra
       `/v1/events` → 401; merchant sin `platformKeys` arranca; logs sin la clave. (El 403 por
       capacidad se prueba en T009; en el contrato real las reglas del mapa impiden el desajuste.)
       Hasta T020 no hay operación con `platformKey`: esta prueba se completa en la fase 3 con
       `/v1/catalog`
-- [ ] T012 [US4] ADR-020: precisión "platformKey DECIDIDO (2026-09-18, feature 010)" y cierre
+- [x] T012 [US4] ADR-020: precisión "platformKey DECIDIDO (2026-09-18, feature 010)" y cierre
       del PROPUESTO de headers (borrar el marcador); `npm run quality && npm test` en verde;
       commit `feat(security): credencial de plataforma, capacidades por consumidor y headers de
 credencial desde el cableado (ADR-025)`
@@ -113,12 +113,12 @@ nueva todavía.
 **Independent Test**: `tests/integration/catalog.test.ts` verde; `contract:check` con el mapa
 en 4 built; Schemathesis verde.
 
-- [ ] T013 [P] [US1] Glosario en `docs/dominio/`: `catalogo.md` (snapshot), `disponibilidad.md`,
+- [x] T013 [P] [US1] Glosario en `docs/dominio/`: `catalogo.md` (snapshot), `disponibilidad.md`,
       `precio.md`, `frescura.md`, `perfil-de-datos.md` con fuente (`mvp:01-arquitectura-mvp.md#4.3`,
       `#8`, `#14.1`; `mvp:02-integracion-ecommerce.md#4`), `uso: disponible`; `producto.md` y
       `variante.md` ganan su uso en catálogo; `_tecnicos.json` si `CatalogSummary`/`CatalogSnapshot`
       lo requieren; `npm run check:glossary` en verde
-- [ ] T014 [US1] Contrato: copiar `specs/010-catalogo-y-stock/contracts/paths/catalog.yaml` a
+- [x] T014 [US1] Contrato: copiar `specs/010-catalogo-y-stock/contracts/paths/catalog.yaml` a
       `contracts/paths/catalog.yaml`, los cuatro schemas a `contracts/components/schemas/`,
       crear `contracts/components/responses/CatalogUnprocessable.yaml` (422 con ejemplos que
       nombran las cuatro invariantes) y `contracts/examples/catalog-snapshot.yaml` +
@@ -127,7 +127,7 @@ en 4 built; Schemathesis verde.
       cuatro tipos de invariante; `contracts/api-map.yaml`: `upsertCatalogSnapshot` → `built`;
       `npm run contract:check` en verde (lint, bundle, diff compatible, mapa) y `npm run
 contract:types`
-- [ ] T015 [P] [US1] Dominio `src/domain/catalog/`: `ids.ts` (`ProductId`, `VariantId`,
+- [x] T015 [P] [US1] Dominio `src/domain/catalog/`: `ids.ts` (`ProductId`, `VariantId`,
       `asProductId`, `asVariantId`), `errors.ts` (`CatalogDuplicateProductId`,
       `CatalogDuplicateVariantId`, `CatalogCapturedInFuture`, `CatalogOutOfOrder`; `module =
 "catalog"`; unión `CatalogError`), `catalog-snapshot.ts` (`Product`, `Variant`, `Attribute`,
@@ -137,7 +137,7 @@ ageAt; merchantId; capturedAt; receivedAt }` con `CAPTURE_TOLERANCE_MS = minutes
       `tests/unit/domain/catalog/catalog-snapshot.test.ts` con `[invariant:catalog-duplicate-product-id]`,
       `[invariant:catalog-duplicate-variant-id]`, `[invariant:catalog-captured-in-future]`,
       `rehydrate`, `product`/`variant`/`counts`/`ageAt` (edad 0 si `capturedAt` > `now`)
-- [ ] T016 [P] [US1] Aplicación `src/application/catalog/`: `ports/catalog-store.ts`
+- [x] T016 [P] [US1] Aplicación `src/application/catalog/`: `ports/catalog-store.ts`
       (`CatalogStore { current; replace; receipts }`, todo `Promise`), `policies/freshness.ts`
       (`FRESHNESS_BUDGET`), `policies/sync-level.ts` (`observedSyncLevel(receipts, now)` con
       `RECEIPTS_KEPT = 8`), `use-cases/upsert-catalog-snapshot.use-case.ts`
@@ -146,27 +146,27 @@ capturedAt, products: CatalogProductInput[] }` con precios ya como `Money`; resp
       `Result<CatalogSummary, CatalogError>`; `[invariant:catalog-out-of-order]` cuando
       `capturedAt` < vigente; idempotente si igual), `index.ts`;
       `tests/unit/application/catalog/{sync-level,upsert-catalog-snapshot.use-case}.test.ts`
-- [ ] T017 [P] [US1] Gateway `src/interface-adapters/gateways/catalog/memory-catalog-store.ts`
+- [x] T017 [P] [US1] Gateway `src/interface-adapters/gateways/catalog/memory-catalog-store.ts`
       (`Map<MerchantId, { snapshot; receipts: Date[] }>`, conserva las últimas 8 recepciones);
       `tests/unit/gateways/memory-catalog-store.test.ts` (aislamiento por merchant, recepciones
       acotadas)
-- [ ] T018 [US1] Controller `src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.ts`
+- [x] T018 [US1] Controller `src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.ts`
       tipado `OperationHandler<"upsertCatalogSnapshot">`: `merchantOf(req)`, `instantOf(capturedAt)`,
       DTO → `CatalogProductInput[]` (`Money.rehydrate` por precio, `asProductId`/`asVariantId`),
       `toProblem` en fallo, `200` con `CatalogSummary`
-- [ ] T019 [US1] Composición: `src/composition/modules/catalog.ts` (`CatalogPorts { clock;
+- [x] T019 [US1] Composición: `src/composition/modules/catalog.ts` (`CatalogPorts { clock;
 logger; catalog: CatalogStore }`, `memoryCatalogPorts`, `catalogModule` con el caso de uso
       envuelto en `LoggedUseCase("upsertCatalogSnapshot")` y el handler), `modules/index.ts`
       (`MODULES`), `ports.ts`, `profiles/local.ts`; `bodyLimit: 32 MiB` en `createApp`
       (`build-server.ts`) con constante nombrada; `bootstrap` arranca con las 4 operaciones
       servidas
-- [ ] T020 [US1] `tests/integration/catalog.test.ts`: 200 con resumen exacto; verdad consultable
+- [x] T020 [US1] `tests/integration/catalog.test.ts`: 200 con resumen exacto; verdad consultable
       tras el upsert (vía `app.ports.catalog`); reemplazo completo (segundo snapshot con menos
       productos); idempotencia (mismo snapshot dos veces → mismo estado, resumen igual salvo
       `receivedAt`); snapshot vacío aceptado; 422 por cada invariante con `type` correcto y
       vigente intacto; 401 sin credencial y con clave de ingesta; 403 sólo por fixture (T009);
       completar `tests/integration/security-capabilities.test.ts` con `/v1/catalog`
-- [ ] T021 [US1] `npm run contract:check && npm run quality && npm test && npm run
+- [x] T021 [US1] `npm run contract:check && npm run quality && npm test && npm run
 test:contract` en verde; commit `feat(catalog): snapshot del catálogo por la plataforma con
 invariantes por construcción (ADR-025)`
 
@@ -174,45 +174,45 @@ invariantes por construcción (ADR-025)`
 
 ## Phase 4: US2 — Verdad de producto (Priority: P1)
 
-- [ ] T022 [US2] `src/application/catalog/services/product-truth.service.ts`:
+- [x] T022 [US2] `src/application/catalog/services/product-truth.service.ts`:
       `ProductTruth` (unión `known`/`unknown`), `ProductTruthService { lookup(merchantId,
 productId, variantId); syncLevel(merchantId) }`, `DefaultProductTruthService` (deps `{ clock,
 store }`) con frescura por clase (`FRESHNESS_BUDGET`); exportar por el índice; bind en
       `modules/catalog.ts` como servicio (`productTruthOf(ports)`), aún sin consumidor en `src/`
       (lo consume la 011): `knip` lo verá usado por las pruebas y la composición
-- [ ] T023 [US2] `tests/unit/application/catalog/product-truth.service.test.ts`: `known` fresco
+- [x] T023 [US2] `tests/unit/application/catalog/product-truth.service.test.ts`: `known` fresco
       a los 5 min; stock/precio `stale` a las 2 h con catálogo fresco; `unknown/stale` a los 3
       días; `absent`; `unknown-product`; `unknown-variant`; `available: false` intacto;
       `syncLevel` delegando a `observedSyncLevel`
-- [ ] T024 [US2] `npm run quality && npm test` en verde; commit `feat(catalog): verdad de
+- [x] T024 [US2] `npm run quality && npm test` en verde; commit `feat(catalog): verdad de
 producto con frescura por clase para el plano de decisión (ADR-025)`
 
 ---
 
 ## Phase 5: US3 — Nivel observado (Priority: P2)
 
-- [ ] T025 [US3] `tests/unit/application/catalog/sync-level.test.ts` (si no quedó completo en
+- [x] T025 [US3] `tests/unit/application/catalog/sync-level.test.ts` (si no quedó completo en
       T016): sin recepciones → 0; cada 5 min durante 1 h → 2; diario tres días → 1; nivel 2 y 6
       h sin snapshot → 1; 48 h → 0; nunca 3; mediana con recepciones irregulares
-- [ ] T026 [US3] `tests/integration/catalog.test.ts`: `observedSyncLevel` en el resumen: 1 en el
+- [x] T026 [US3] `tests/integration/catalog.test.ts`: `observedSyncLevel` en el resumen: 1 en el
       primer upsert; 2 tras tres upserts a 5 min con reloj controlado
 
 ---
 
 ## Phase 6: Aislamiento, tamaño y cierre
 
-- [ ] T027 [P] `tests/integration/isolation.test.ts`: snapshot de A invisible para B (`unknown/absent`
+- [x] T027 [P] `tests/integration/isolation.test.ts`: snapshot de A invisible para B (`unknown/absent`
       desde `ProductTruthService` de B y `current` del store); mismo `productId` en A y B
       con precios distintos → cada uno ve el suyo; la clave de plataforma de B no reemplaza el
       catálogo de A
-- [ ] T028 [P] `tests/integration/catalog-size.test.ts`: 5 000 productos × 10 variantes en
+- [x] T028 [P] `tests/integration/catalog-size.test.ts`: 5 000 productos × 10 variantes en
       una operación; reporta el tiempo por `console.info`; falla si > 2 s (SC-004, informativo)
-- [ ] T029 `npm run test:mutation`; matar supervivientes con aserciones
-- [ ] T030 [P] `docs/adr/025-catalogo-y-verdad-de-producto.md` → `aceptada`; CLAUDE.md:
+- [x] T029 `npm run test:mutation`; matar supervivientes con aserciones
+- [x] T030 [P] `docs/adr/025-catalogo-y-verdad-de-producto.md` → `aceptada`; CLAUDE.md:
       módulo `catalog` en la lista de módulos, "Verdad de producto (ADR-025)" en notas
       operativas, esquema `platformKey` y capacidades en runtime en la sección de contrato, el
       `bodyLimit`; README si describe `OPE_MERCHANTS` (añadir `platformKeys`)
-- [ ] T031 `specs/010-catalogo-y-stock/quickstart.md`: "Estado al cierre" con fecha y cifras
+- [x] T031 `specs/010-catalogo-y-stock/quickstart.md`: "Estado al cierre" con fecha y cifras
 - [ ] T032 Commit `chore(010): ADR-025 aceptada, guía de agentes y cierre de la feature`;
       `npm run release-check` en verde; PR a `main`; esperar **los dos** runs de CI (`push` y
       `pull_request`); merge

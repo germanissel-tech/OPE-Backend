@@ -41,6 +41,18 @@ describe("observedSyncLevel", () => {
     expect(observedSyncLevel(sparse, at(2 * HOUR + MIN))).toBe(1);
   });
 
+  it("boundaries: a median of exactly 15 minutes (even count) is still minutes; exactly one hour of age is daily", () => {
+    const receipts = [at(0), at(5 * MIN), at(30 * MIN)];
+    expect(observedSyncLevel(receipts, at(31 * MIN))).toBe(2);
+    expect(observedSyncLevel([at(0), at(5 * MIN), at(10 * MIN)], at(10 * MIN + HOUR - 1))).toBe(2);
+    expect(observedSyncLevel([at(0), at(5 * MIN), at(10 * MIN)], at(10 * MIN + HOUR))).toBe(1);
+    expect(observedSyncLevel([at(0), at(5 * MIN), at(31 * MIN)], at(32 * MIN))).toBe(1);
+  });
+
+  it("the median of an odd count is the middle interval: [10, 16, 20] minutes is 16, daily", () => {
+    expect(observedSyncLevel([at(0), at(10 * MIN), at(26 * MIN), at(46 * MIN)], at(47 * MIN))).toBe(1);
+  });
+
   it("two receipts are not a cadence: 1", () => {
     expect(observedSyncLevel([at(0), at(5 * MIN)], at(6 * MIN))).toBe(1);
   });

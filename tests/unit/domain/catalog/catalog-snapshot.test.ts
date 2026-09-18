@@ -147,9 +147,16 @@ describe("CatalogSnapshot facts", () => {
       receivedAt,
       products: [product("P1", [variant("P1-M", { available: false })])],
     });
+    const attributed = CatalogSnapshot.rehydrate({
+      merchantId: A,
+      capturedAt: receivedAt,
+      receivedAt,
+      products: [{ ...product("P1"), attributes: [{ key: "fit", value: "slim" }] }],
+    });
     expect(snapshot.sameContentAs(later)).toBe(true);
     expect(snapshot.sameContentAs(priced)).toBe(false);
     expect(snapshot.sameContentAs(unavailable)).toBe(false);
+    expect(snapshot.sameContentAs(attributed)).toBe(false);
   });
 
   it("rehydrate does not re-judge: duplicated ids come back as recorded", () => {

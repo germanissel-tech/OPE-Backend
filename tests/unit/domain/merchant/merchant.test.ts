@@ -132,6 +132,13 @@ describe("Merchant platform keys (ADR-025)", () => {
     const none = build([]);
     const some = build(["platform-a-1", "platform-a-2"]);
     if (!none.ok || !some.ok) throw new Error("build");
+    expect(none.value.platformKeys).toEqual([]);
+    const omitted = Merchant.of({
+      merchantId: asMerchantId("m_a"),
+      ingestKeys: ["key-a-1"],
+      origins: ["https://a.example"],
+    });
+    expect(omitted.ok && omitted.value.platformKeys).toEqual([]);
     expect(none.value.ownsPlatformKey("platform-a-1")).toBe(false);
     expect(some.value.ownsPlatformKey("platform-a-1")).toBe(true);
     expect(some.value.ownsPlatformKey("platform-a-2")).toBe(true);
@@ -150,6 +157,18 @@ describe("Merchant platform keys (ADR-025)", () => {
       ok: false,
       error: { code: "platform-key-collision", details: { index: 0 } },
     });
+  });
+
+  it("an empty platform key belongs to nobody even if a recorded merchant lists one", () => {
+    const origin = Origin.parse("https://a.example");
+    if (!origin) throw new Error("origin");
+    const odd = Merchant.rehydrate({
+      merchantId: asMerchantId("m_odd"),
+      ingestKeys: ["k"],
+      origins: [origin],
+      platformKeys: [""],
+    });
+    expect(odd.ownsPlatformKey("")).toBe(false);
   });
 
   it("an ingest key never authenticates as a platform key, nor the other way round", () => {

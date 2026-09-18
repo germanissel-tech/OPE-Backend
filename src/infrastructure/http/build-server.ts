@@ -205,6 +205,7 @@ function securityFailure(c: BoundaryContext): HttpResponse {
 /** The capabilities an operation declares (`x-required-capabilities`, ADR-020); none when absent. */
 function requiredCapabilities(c: BoundaryContext): string[] {
   const declared: unknown = (c.operation as Record<string, unknown>)["x-required-capabilities"];
+  // Stryker disable next-line all: the contract lint guarantees an array of strings; the narrowing has no other input
   return Array.isArray(declared) ? declared.filter((v): v is string => typeof v === "string") : [];
 }
 

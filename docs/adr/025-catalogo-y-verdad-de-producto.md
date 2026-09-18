@@ -1,7 +1,7 @@
 ---
 numero: 25
 titulo: Catálogo como snapshot, verdad de producto con frescura por clase y credencial de plataforma
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-18
 fuente: specs/010-catalogo-y-stock/research.md
 ---

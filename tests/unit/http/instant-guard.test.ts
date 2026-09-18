@@ -2,6 +2,7 @@
 // contract validated the format; the domain never sees NaN). Exercised directly on the
 // controllers because no request passes the contract with such a value.
 import { describe, expect, it } from "vitest";
+import { makeUpsertCatalogSnapshot } from "../../../src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.js";
 import { makeIngestEvents } from "../../../src/interface-adapters/http/controllers/ingestion/ingest-events.js";
 import { makeConfirmExposureHandler } from "../../../src/interface-adapters/http/controllers/ledger/confirm-exposure.js";
 import { INGEST_KEY_SCHEME } from "../../../src/interface-adapters/http/security/ingest-key.js";
@@ -21,6 +22,21 @@ describe("date-time guard at the HTTP edge", () => {
       headers: undefined,
       cookie: undefined,
       body: { events: [eventOf(1, { occurredAt: "not a date" })] } as never,
+      security,
+    };
+    await expect(handler(req)).rejects.toThrow("unparsable date-time");
+  });
+
+  it("upsertCatalogSnapshot refuses an unparsable capturedAt before the use case runs", async () => {
+    const handler = makeUpsertCatalogSnapshot(never);
+    const req = {
+      operationId: "upsertCatalogSnapshot" as const,
+      instance: "/v1/catalog",
+      path: undefined,
+      query: undefined,
+      headers: undefined,
+      cookie: undefined,
+      body: { capturedAt: "not a date", products: [] } as never,
       security,
     };
     await expect(handler(req)).rejects.toThrow("unparsable date-time");
