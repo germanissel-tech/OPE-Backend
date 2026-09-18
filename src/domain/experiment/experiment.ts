@@ -28,7 +28,7 @@ export interface ExperimentRecord {
 }
 
 /** Unit separator: no field can imitate another inside the key. */
-const ASSIGNMENT_KEY_SEPARATOR = "";
+const ASSIGNMENT_KEY_SEPARATOR = "\u001f";
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 const PERCENT_BUCKETS = 100;

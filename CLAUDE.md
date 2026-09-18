@@ -216,7 +216,9 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 - Forma de los anillos (`scripts/shape-rules.mjs`, `tests/architecture/shape.test.ts`): ≤ 300
   líneas por archivo en `domain/` y `application/`; un controller por `operationId`; ningún `new`
   de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
-  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`).
+  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`);
+  ningún carácter de control crudo en el fuente (un separador como U+001F se escribe como su
+  escape, nunca como el carácter).
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
 

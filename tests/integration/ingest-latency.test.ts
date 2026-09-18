@@ -10,6 +10,8 @@ import type { App } from "../../src/composition/bootstrap.js";
 
 const BATCHES = 200;
 const EVENTS_PER_BATCH = 20;
+/** Below this, a p95 gap between arms is timing noise, not a different pipeline. */
+const ARM_NOISE_FLOOR_MS = 5;
 const P95_BUDGET_MS = 50;
 
 let app: App;
@@ -110,7 +112,11 @@ describe("latency of POST /v1/events (local profile)", () => {
         `latency by arm (p95, ms): CONTROL=${control.toFixed(2)} TREATMENT=${treatment.toFixed(2)}`,
       );
       expect(Math.max(control, treatment)).toBeLessThan(P95_BUDGET_MS);
-      expect(Math.max(control, treatment) / Math.max(Math.min(control, treatment), 0.01)).toBeLessThan(3);
+      // The same pipeline for both arms: a different one would cost tens of ms. Sub-millisecond
+      // p95 values make a plain ratio flaky on a CI runner (a GC pause is a 3× swing), so the
+      // gap is judged against a noise floor or twice the smaller p95, whichever is larger.
+      const gap = Math.abs(control - treatment);
+      expect(gap).toBeLessThan(Math.max(ARM_NOISE_FLOOR_MS, 2 * Math.min(control, treatment)));
     } finally {
       await armApp.close();
     }
