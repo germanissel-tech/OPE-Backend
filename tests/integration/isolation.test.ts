@@ -1,6 +1,13 @@
 // FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
 // A and B are the merchants of tests/helpers/test-app.ts; each case names both.
 import { afterEach, describe, expect, it } from "vitest";
+import { InterveneDecision } from "../../src/domain/ledger/index.js";
+import {
+  asDecisionId,
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+} from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,
@@ -13,7 +20,6 @@ import {
 } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
-import type { Decision } from "../../src/domain/ledger/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -39,16 +45,17 @@ const exposureOf = (decisionId: string) => ({
 });
 
 async function intervene(merchantId: string, decisionId: string): Promise<void> {
-  const decision: Decision = {
-    decisionId: decisionId as Decision["decisionId"],
-    merchantId: merchantId as Decision["merchantId"],
-    sessionId: "ses_00000001" as Decision["sessionId"],
-    visitorId: "vis_00000001" as Decision["visitorId"],
-    decidedAt: new Date(NOW),
-    outcome: "INTERVENE",
-    reason: "barrier-size",
-    intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
-  };
+  const decision = InterveneDecision.of(
+    {
+      decisionId: asDecisionId(decisionId),
+      merchantId: asMerchantId(merchantId),
+      sessionId: asSessionId("ses_00000001"),
+      visitorId: asVisitorId("vis_00000001"),
+      decidedAt: new Date(NOW),
+    },
+    "barrier-size",
+    { messageVersionId: "msg-1", anchor: "size_selector" },
+  );
   await app.ports.decisions.record(decision);
 }
 
