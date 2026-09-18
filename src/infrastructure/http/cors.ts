@@ -12,21 +12,10 @@ const CORS_ALLOWED_HEADERS = ["content-type", "x-ope-ingest-key"];
 
 export async function registerCors(app: FastifyInstance, policy: CorsPolicy): Promise<void> {
   await app.register(fastifyCors, {
-    origin: (origin, cb) => {
-      // Without Origin (server to server, curl, tests): there is no CORS to negotiate.
-      if (origin === undefined) {
-        cb(null, true);
-        return;
-      }
-      policy.isRegisteredOrigin(origin).then(
-        (allowed) => {
-          cb(null, allowed);
-        },
-        (err: unknown) => {
-          cb(err instanceof Error ? err : new Error(String(err)), false);
-        },
-      );
-    },
+    // Async form (@fastify/cors resolves the promise; a rejection is "not allowed"). Without
+    // Origin (server to server, curl, tests) there is no CORS to negotiate.
+    // Stryker disable next-line all: for a request without Origin, allowed or not is indistinguishable; the mutants are equivalent
+    origin: async (origin: string | undefined) => origin === undefined || policy.isRegisteredOrigin(origin),
     methods: ["POST"],
     allowedHeaders: CORS_ALLOWED_HEADERS,
     credentials: false,

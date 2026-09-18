@@ -1,7 +1,7 @@
 ---
 numero: 24
 titulo: Dominio rico — invariantes por construcción y reglas con su dueño
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-18
 fuente: specs/009-dominio-rico/research.md
 ---
@@ -38,8 +38,10 @@ un porcentaje contra la convención de tasas; y los puertos admitían respuestas
    reciben entidades, no registros. Los errores de configuración son `DomainError` y figuran en
    el catálogo de problemas aunque ningún endpoint los emita.
 5. **Convención de tasas**: `Experiment.treatmentShare` es 0–1; el porcentaje 0–100 existe sólo
-   en `OPE_MERCHANTS`. La asignación es idéntica a ADR-022 (verificada con un fingerprint de
-   100 000 visitantes).
+   en `OPE_MERCHANTS`. El reparto resuelve a buckets enteros: el umbral es
+   `Math.round(share × 100)`, porque `n / 100 × 100` no es exacto en punto flotante (7 → 7,000…01)
+   y la comparación directa cambiaría el brazo de algunos visitantes. La asignación es idéntica
+   a ADR-022 para los 101 porcentajes (verificada con un fingerprint de 100 000 visitantes).
 6. **Las políticas publicadas en el contrato viven en dominio o aplicación.** La ventana de
    deduplicación se declara en `application/ingestion` y el gateway la recibe.
 7. **Todo puerto devuelve `Promise`.** La persistencia real no cambiará ninguna firma.

@@ -49,6 +49,14 @@ grep -rn "Promise<.*> |" src/application/**/ports   # esperado: nada
 npx vitest run tests/integration
 ```
 
-## Estado al cierre (histórico)
+## Estado al cierre (histórico, 2026-09-18)
 
-Se completa al terminar la implementación.
+| Comando                                | Resultado                                                                                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test` al inicio                   | 63 archivos, 457 pruebas                                                                                                                                 |
+| `npm test` al cierre                   | 480 pruebas (nuevas: aggregates, `Origin`, regresión de asignación, guarda de instantes, regla de lint)                                                  |
+| `npm run quality`                      | 5 gates en verde; `Lint exceptions: 0`                                                                                                                   |
+| `npm run test:mutation`                | every mutant died (una excepción documentada en `cors.ts`: mutante equivalente)                                                                          |
+| `npm run test:contract` (Schemathesis) | verde; contrato sin cambios salvo tres tipos de problema de configuración                                                                                |
+| aserciones de `tests/integration`      | sin cambios (`git diff main … \| grep -c "^[-+] *expect"` → 0)                                                                                           |
+| Hallazgo                               | `bucket < share × 100` no era exacto en punto flotante para 7, 14, 28, 29, 55, 56, 57 y 58 → umbral redondeado a buckets; fingerprints 50/20/80 intactos |

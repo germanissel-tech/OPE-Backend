@@ -163,6 +163,36 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   fixture en `tests/lint/fixtures/as-src/` y las de arquitectura en
   `tests/architecture/fixtures/src/`.
 
+### Cómo se escribe una entidad (ADR-024, verificado por `lint`)
+
+- **Clase si hay reglas, tipo si no.** Un concepto con invariantes o comportamiento
+  (`EventBatch`, `Decision`, `Experiment`, `Merchant`, `Origin`) es una clase en
+  `src/domain/<módulo>/<concepto>.ts` con `private constructor`, `static of(...)` que devuelve
+  `Result<T, E>` con los errores de su `errors.ts` (si tenés la instancia, es válida) y
+  `static rehydrate(record)` que reconstruye desde datos ya registrados **sin** reevaluar las
+  reglas de creación. Un valor sin reglas (`Exposure`, `Assignment`, ids, `Arm`, `ServiceHealth`)
+  sigue siendo un tipo; no se envuelve por uniformidad.
+- **Las reglas viven con su dueño y se invocan por su nombre**: `experiment.assign(visitorId)`,
+  `merchant.allowsOrigin(origin)`, `decision.isIntervention()`, `batch.noOpReason()`. Un caso de
+  uso o servicio no reimplementa una regla del dominio. `src/domain/` no exporta funciones
+  sueltas (`ope/domain-no-loose-functions`); la excepción declarada son las primitivas del
+  `shared-kernel` (`as*Id`, `ok`/`fail`, `seconds`/`minutes`/`hours`).
+- **Estados ilegales irrepresentables**: `Decision` es `NoOpDecision | InterveneDecision`
+  (discriminada por `outcome`; `NO_OP` lleva un `NoOpReason` del catálogo, `INTERVENE` su
+  intervención). Fábricas `NoOpDecision.of` / `InterveneDecision.of`; `DecisionBase.rehydrate`.
+- **Las invariantes se validan en su dueño; nadie las esquiva.** `composition/config.ts` parsea
+  la forma del JSON y construye por fábrica; un `fail` es un `ConfigError` que nombra el campo
+  (`merchants[i].experiments[j].treatmentPercent`, `merchants[i].origins[k]`). Los gateways
+  reciben entidades, nunca registros crudos. Los errores de configuración son `DomainError` y
+  figuran en el catálogo de problemas aunque ningún endpoint los emita.
+- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` es 0–1; el porcentaje
+  0–100 existe sólo en `OPE_MERCHANTS`. El reparto resuelve a buckets enteros (1 %).
+- **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
+  dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
+- **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
+- La guarda de instantes no parseables (`NaN`) vive en la traducción DTO → dominio del
+  controller (error de programación), no en el dominio.
+
 ### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
 
 - Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
@@ -172,7 +202,7 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`); forma de casos de uso,
   dependencias y errores (`ope/use-case-shape`, `ope/dependencies-are-interfaces`,
   `ope/domain-error-shape`, `ope/no-throw-domain-error`, `ope/no-generic-catch-in-application`,
-  ADR-023). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
+  ADR-023); dominio sin funciones sueltas (`ope/domain-no-loose-functions`, ADR-024). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
   por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `APPLICATION_RULES`, `USE_CASE_RULES`,
   `DOMAIN_RULES`, `DOMAIN_ERROR_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
 - Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
@@ -216,7 +246,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 - Catálogo de tipos de error: `contracts/problem-types.yaml` (`urn:ope:problem:<slug>`),
   replicado en `src/interface-adapters/http/problem-details.ts` y verificado por prueba.
   Catálogo de motivos de `NO_OP`: `contracts/no-op-reasons.yaml`, replicado en
-  `src/domain/ingestion/no-op-reasons.ts` (string con patrón, no enum: ampliar es compatible).
+  `src/domain/shared-kernel/no-op-reasons.ts` (vocabulario compartido por ingesta, ledger y
+  decisión; string con patrón, no enum: ampliar es compatible).
 - Uniones discriminadas (`Event`): `type: object` + `oneOf` + `discriminator` **con `mapping`**
   y `type: { enum: [valor] }` en cada rama (sin `const`). Ajv no acepta `mapping` y sólo aplica
   el discriminador a objetos: el servidor lo quita en runtime
@@ -226,9 +257,10 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
-- **Asignación (ADR-022)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
-  `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `assignArm` es pura
-  (FNV-1a en el dominio); la asignación se registra con el primer lote aceptado; CONTROL
+- **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
+  `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
+  es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);
+  la asignación se registra con el primer lote aceptado; CONTROL
   resuelve `NO_OP` `control-arm`; sin experimento, `no-active-experiment`. El brazo y el
   experimento **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; el

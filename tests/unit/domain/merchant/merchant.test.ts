@@ -81,12 +81,24 @@ describe("Merchant.owns", () => {
     expect(merchant.owns("")).toBe(false);
     expect(merchant.owns("KEY-A-1")).toBe(false);
   });
+
+  it("an empty key belongs to nobody even if a recorded merchant lists one", () => {
+    const origin = Origin.parse("https://a.example");
+    if (!origin) throw new Error("origin");
+    const odd = Merchant.rehydrate({
+      merchantId: asMerchantId("m_odd"),
+      ingestKeys: [""],
+      origins: [origin],
+    });
+    expect(odd.owns("")).toBe(false);
+  });
 });
 
 describe("Origin.parse", () => {
   it("canonicalises scheme and authority and trims; anything else is undefined", () => {
     expect(Origin.parse(" HTTPS://Shop.Example:8443 ")?.value).toBe("https://shop.example:8443");
     expect(Origin.parse("https://a.example/")).toBeUndefined();
+    expect(Origin.parse("evil https://a.example")).toBeUndefined();
     expect(Origin.parse("a.example")).toBeUndefined();
     expect(Origin.parse("")).toBeUndefined();
   });
