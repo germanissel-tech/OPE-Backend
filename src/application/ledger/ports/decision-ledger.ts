@@ -1,9 +1,11 @@
 // Decision ledger port. `find` with another merchant returns undefined: nothing is revealed.
-import type { Decision } from "../../../domain/ledger/index.js";
-import type { DecisionId, MerchantId } from "../../../domain/shared-kernel/index.js";
-import type { RecordOutcome } from "../../shared-kernel/index.js";
+// `record` follows ADR-021: accepted into the write buffer, or LedgerUnavailable; never throws.
+import type { Decision, LedgerUnavailable } from "../../../domain/ledger/index.js";
+import type { DecisionId, MerchantId, Result } from "../../../domain/shared-kernel/index.js";
+
+export type RecordResult = Result<void, LedgerUnavailable>;
 
 export interface DecisionLedger {
-  record(decision: Decision): Promise<RecordOutcome> | RecordOutcome;
+  record(decision: Decision): Promise<RecordResult> | RecordResult;
   find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined> | Decision | undefined;
 }

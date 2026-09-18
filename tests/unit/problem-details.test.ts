@@ -5,7 +5,6 @@ import { parse } from "yaml";
 import {
   PROBLEM_NAMESPACE,
   PROBLEM_TYPES,
-  invariantResponse,
   problem,
 } from "../../src/interface-adapters/http/problem-details.js";
 
@@ -49,22 +48,5 @@ describe("problem()", () => {
       for (const key of Object.keys(body)) expect(allowed).toContain(key);
       expect(body.status).toBe(PROBLEM_TYPES[slug].status);
     }
-  });
-});
-
-describe("invariantResponse()", () => {
-  it("translates a violated invariant to the 422 of its catalogue type, with detail and instance", () => {
-    const res = invariantResponse(
-      { instance: "/v1/events" },
-      { invariant: "session-visitor-mismatch", detail: "two visitors" },
-    );
-    expect(res.status).toBe(422);
-    expect(res.body).toEqual({
-      type: "urn:ope:problem:session-visitor-mismatch",
-      title: PROBLEM_TYPES["session-visitor-mismatch"].title,
-      status: 422,
-      detail: "two visitors",
-      instance: "/v1/events",
-    });
   });
 });

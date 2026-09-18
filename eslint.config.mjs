@@ -9,7 +9,7 @@ import importX from "eslint-plugin-import-x";
 import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import ope from "./scripts/lint/no-magic-strings.mjs";
+import ope from "./scripts/lint/plugin.mjs";
 
 const TS_FILES = ["**/*.ts", "**/*.mts", "**/*.cts"];
 const JS_FILES = ["**/*.js", "**/*.mjs", "**/*.cjs"];
@@ -49,6 +49,18 @@ export const SRC_ONLY_RULES = {
   // are the compiler's constants and stay as literals; anything else repeated gets a name.
   "ope/no-magic-strings": "error",
 };
+
+// Shape of the application and domain rings (ADR-023): use cases, dependencies and errors have
+// one form, verified with the type checker. Each block applies where the form is defined; the
+// globs match the lint fixtures that stand in for those folders too.
+export const APPLICATION_RULES = {
+  "ope/dependencies-are-interfaces": ["error", { maxDependencies: 6 }],
+  "ope/no-throw-domain-error": "error",
+  "ope/no-generic-catch-in-application": "error",
+};
+export const USE_CASE_RULES = { "ope/use-case-shape": "error" };
+export const DOMAIN_RULES = { "ope/no-throw-domain-error": "error" };
+export const DOMAIN_ERROR_RULES = { "ope/domain-error-shape": "error" };
 
 // Tests: a `describe` callback groups cases, it is not logic; literal values in assertions are
 // the point of the test, not magic.
@@ -129,6 +141,10 @@ export default tseslint.config(
     },
   },
   { files: ["src/**/*.ts"], rules: SRC_ONLY_RULES },
+  { files: ["**/application/**/*.ts"], rules: APPLICATION_RULES },
+  { files: ["**/application/**/use-cases/*.ts"], rules: USE_CASE_RULES },
+  { files: ["**/domain/**/*.ts"], rules: DOMAIN_RULES },
+  { files: ["**/domain/*/errors.ts"], rules: DOMAIN_ERROR_RULES },
   { files: ["tests/**"], rules: TEST_ONLY_RULES },
   {
     // JavaScript: without type information (checkJs verifies them in tsconfig.scripts.json).

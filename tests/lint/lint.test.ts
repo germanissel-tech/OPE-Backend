@@ -37,6 +37,12 @@ const expected: Record<string, string> = {
   // Only under src/ (FR-012): the fixture is linted as if it lived there.
   "as-src/no-magic-numbers.ts": "@typescript-eslint/no-magic-numbers",
   "as-src/no-magic-strings.ts": "ope/no-magic-strings",
+  // Shape of the application and domain rings (ADR-023, spec 008 FR-002..FR-004, FR-021, FR-023).
+  "as-src/application/demo/use-cases/use-case-shape.ts": "ope/use-case-shape",
+  "as-src/application/demo/dependencies-are-interfaces.ts": "ope/dependencies-are-interfaces",
+  "as-src/domain/demo/errors.ts": "ope/domain-error-shape",
+  "as-src/application/demo/no-throw-domain-error.ts": "ope/no-throw-domain-error",
+  "as-src/application/demo/no-generic-catch-in-application.ts": "ope/no-generic-catch-in-application",
 };
 
 let eslint: ESLint;

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { makeGetServiceHealth } from "../../src/application/system/index.js";
+import { GetServiceHealthUseCase } from "../../src/application/system/index.js";
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 
 describe("getHealth", () => {
   const fixed = new Date("2026-09-16T12:00:00.000Z");
   const handler = makeGetHealth(
-    makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now: () => fixed } }),
+    new GetServiceHealthUseCase({ contract: { version: "1.0.0" }, clock: { now: () => fixed } }),
   );
 
   it("responds 200 with status, contract version and timestamp of the injected clock", async () => {

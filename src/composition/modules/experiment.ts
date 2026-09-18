@@ -3,9 +3,9 @@
 // Experiments come from configuration (the store arrives with feature 008); the assignment
 // ledger is the module's own record (ASSIGNED, 01 §5).
 import {
-  makeAssignVisitor,
+  DefaultAssignmentService,
   type AssignmentLedger,
-  type AssignVisitor,
+  type AssignmentService,
   type ExperimentDirectory,
 } from "../../application/experiment/index.js";
 import { configExperimentDirectory } from "../../interface-adapters/gateways/experiment/config-experiment-directory.js";
@@ -31,7 +31,8 @@ export const memoryAssignmentPorts: Bindings<Pick<ExperimentPorts, "assignments"
   assignments: memoryAssignmentLedger,
 };
 
-/** The use case the ingestion module needs; built here so the wiring of the arm lives with its module. */
-export const assignVisitorOf = (ports: ExperimentPorts): AssignVisitor => makeAssignVisitor(ports);
+/** The service the ingestion module needs; built here so the wiring of the arm lives with its module. */
+export const assignmentServiceOf = (ports: ExperimentPorts): AssignmentService =>
+  new DefaultAssignmentService(ports);
 
 export const experimentModule: Module<ExperimentPorts> = () => ({});

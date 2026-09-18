@@ -134,4 +134,4 @@ const noMagicStrings = {
   },
 };
 
-export default { rules: { "no-magic-strings": noMagicStrings } };
+export default noMagicStrings;

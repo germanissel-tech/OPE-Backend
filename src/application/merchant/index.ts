@@ -1,8 +1,8 @@
 // Public API of the merchant module (application).
-export { makeResolveIngestKey } from "./resolve-ingest-key.js";
-export type {
-  ResolveIngestKey,
-  ResolveIngestKeyInput,
-  ResolveIngestKeyResult,
-} from "./resolve-ingest-key.js";
 export type { MerchantDirectory } from "./ports/merchant-directory.js";
+export { ResolveIngestKeyUseCase } from "./use-cases/resolve-ingest-key.use-case.js";
+export type {
+  ResolveIngestKeyDependencies,
+  ResolveIngestKeyRequest,
+  ResolveIngestKeyResponse,
+} from "./use-cases/resolve-ingest-key.use-case.js";

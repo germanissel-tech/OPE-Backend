@@ -1,31 +1,35 @@
-// Ledgers that report "unavailable" (ADR-021): the memory implementations never do, so the
+// Ledgers that return LedgerUnavailable (ADR-021): the memory implementations never do, so the
 // degradation path is exercised with these fakes injected as port overrides.
+import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
+import { fail } from "../../src/domain/shared-kernel/index.js";
 import type { AssignmentLedger } from "../../src/application/experiment/index.js";
 import type { DecisionLedger, ExposureLedger } from "../../src/application/ledger/index.js";
 
+const unavailable = () => fail(new LedgerUnavailable());
+
 export const unavailableDecisionLedger = (): DecisionLedger => ({
-  record: () => "unavailable",
+  record: unavailable,
   find: () => undefined,
 });
 
 export const unavailableExposureLedger = (): ExposureLedger => ({
-  record: () => "unavailable",
+  record: unavailable,
   find: () => undefined,
 });
 
 export const unavailableAssignmentLedger = (): AssignmentLedger => ({
-  record: () => "unavailable",
+  record: unavailable,
   find: () => undefined,
 });
 
-/** A ledger that delegates to `inner` while `down()` is false and reports unavailable otherwise. */
+/** A ledger that delegates to `inner` while `down()` is false and returns LedgerUnavailable otherwise. */
 export function flakyLedger<L extends { record: (...args: never[]) => unknown }>(
   inner: L,
   down: () => boolean,
 ): L {
   return {
     ...inner,
-    record: (...args: never[]) => (down() ? "unavailable" : inner.record(...args)),
+    record: (...args: never[]) => (down() ? unavailable() : inner.record(...args)),
   };
 }
 

@@ -1,11 +1,10 @@
 // Public API of the ingestion module (application).
-export { makeIngestBatch } from "./ingest-batch.js";
+export type { EventDedup } from "./ports/event-dedup.js";
+export { IngestBatchUseCase } from "./use-cases/ingest-batch.use-case.js";
 export type {
   EventResult,
-  IngestBatch,
-  IngestBatchDeps,
-  IngestBatchInput,
-  IngestBatchResult,
+  IngestBatchDependencies,
+  IngestBatchRequest,
+  IngestBatchResponse,
   IngestOutcome,
-} from "./ingest-batch.js";
-export type { EventDedup } from "./ports/event-dedup.js";
+} from "./use-cases/ingest-batch.use-case.js";

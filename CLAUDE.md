@@ -34,13 +34,16 @@ Dentro de una feature que toca HTTP, el orden es:
    tipos). Si agrega una regla nueva al ruleset, agregar su fixture en
    `tests/contract-rules/fixtures/` (la prueba falla si falta).
 3. Regenerar tipos (`npm run contract:types`). **Nunca editar lo generado a mano.**
-4. Reglas puras en `src/domain/<módulo>/`, caso de uso y puertos en
-   `src/application/<módulo>/`, controller en
+4. Reglas puras y errores en `src/domain/<módulo>/` (`errors.ts`), caso de uso en
+   `src/application/<módulo>/use-cases/`, servicios en `services/` y puertos en `ports/`
+   (ver "Cómo se escribe un caso de uso"), controller en
    `src/interface-adapters/http/controllers/<módulo>/<operacion>.ts` tipado con
-   `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ dominio; lee el merchant con
-   `merchantOf(req)`), gateway del puerto en `src/interface-adapters/gateways/<módulo>/`, y
+   `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ request/response; lee el merchant con
+   `merchantOf(req)`; un fallo se responde con `toProblem(result.error, req.instance)`), gateway
+   del puerto en `src/interface-adapters/gateways/<módulo>/`, y
    cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
-   su tabla de enlaces por tecnología, instancia sus casos de uso y entrega sus controllers; el
+   su tabla de enlaces por tecnología, instancia sus casos de uso con `new` —envueltos en
+   `LoggedUseCase`— y entrega sus controllers; el
    perfil en `profiles/local.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
    `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
    que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
@@ -99,7 +102,8 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `experiment`, `ingestion` (los demás cuando llegue su feature). Cada módulo expone su API pública
+`ledger`, `experiment`, `ingestion` (los demás cuando llegue su feature). Dentro de un módulo
+de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
@@ -123,14 +127,51 @@ y, en modo real, falla si el contrato declara una operación que ningún módulo
 mock ni modo (ADR-018): el composition root no decide sobre configuración (`shape` regla 5); un
 contrato con una operación que ningún módulo sirve no arranca.
 
+### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
+
+- Un archivo `src/application/<módulo>/use-cases/<nombre>.use-case.ts` que exporta **una** clase
+  `<Nombre>UseCase implements UseCase<Request, Response>` con `execute(request)`. Lo que cambia
+  por llamada va en el request; lo que necesita para operar llega por el constructor como un
+  único objeto tipado por una interfaz `<Nombre>Dependencies` del mismo archivo, cuyos campos
+  son interfaces (puertos de `ports/`, servicios `*Service`, `Clock`, `IdGenerator`, `Logger`),
+  **seis como máximo** (`ope/dependencies-are-interfaces`). Superarlo se resuelve extrayendo un
+  servicio, no relajando el límite.
+- Un caso de uso **nunca** importa ni invoca a otro caso de uso (`use-cases-no-use-cases`). Lo
+  compartido que necesita puertos es una interfaz `*Service` con implementación
+  `Default*Service` en `services/` (la asignación: `AssignmentService`); un servicio no importa
+  casos de uso (`services-no-use-cases`).
+- Un error de negocio es una clase en `src/domain/<módulo>/errors.ts` que extiende
+  `DomainError` con `readonly code = "<slug>" as const` y `readonly module = MODULE` (la carpeta;
+  `ope/domain-error-shape`), y el archivo exporta la unión del módulo. El `code` es el slug del
+  catálogo `contracts/problem-types.yaml`: agregar un error = agregar su entrada allí (la prueba
+  de réplica falla si falta). La response del caso de uso es `Result<T, <unión exacta>>`
+  (`ok(value)` / `fail(error)`); un caso de uso que no puede fallar devuelve el valor directo.
+  Un `DomainError` **se devuelve, nunca se lanza** (`ope/no-throw-domain-error`); `throw new
+Error` queda para errores de programación (→ `500`). Sin `try/catch` en `application/`
+  (`ope/no-generic-catch-in-application`): los puertos devuelven `Result`.
+- La traducción a HTTP es una sola: `toProblem(error, instance)` en
+  `interface-adapters/http/to-problem.ts` (`type` desde `code`, status y título del catálogo,
+  headers por código como `Retry-After`); sólo el adaptador HTTP la importa
+  (`problem-translation-only-in-http`). Los controllers no construyen errores.
+- Preocupaciones transversales: un `UseCase<I, O>` que envuelve otro, en
+  `application/shared-kernel/decorators/` (`LoggedUseCase`: nombre, duración y `ok` o `code`,
+  nunca el request), aplicado en `composition/modules/<módulo>.ts`.
+- Cada regla `ope/*` vive en `scripts/lint/<regla>.mjs` (plugin `scripts/lint/plugin.mjs`) con su
+  fixture en `tests/lint/fixtures/as-src/` y las de arquitectura en
+  `tests/architecture/fixtures/src/`.
+
 ### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
 
 - Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
   anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
   ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
   −1 e índices exceptuados); strings repetidos sin tipar sólo con nombre en `src/`
-  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
-  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
+  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`); forma de casos de uso,
+  dependencias y errores (`ope/use-case-shape`, `ope/dependencies-are-interfaces`,
+  `ope/domain-error-shape`, `ope/no-throw-domain-error`, `ope/no-generic-catch-in-application`,
+  ADR-023). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
+  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `APPLICATION_RULES`, `USE_CASE_RULES`,
+  `DOMAIN_RULES`, `DOMAIN_ERROR_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
 - Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
   lista las entradas y las exclusiones; los motivos están en el encabezado de
   `scripts/check-dead-code.mjs` (knip no admite comentarios).
@@ -178,7 +219,7 @@ contrato con una operación que ningún módulo sirve no arranca.
   el discriminador a objetos: el servidor lo quita en runtime
   (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
   Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
-- **Ledger (ADR-021)**: todo `record()` devuelve `accepted | unavailable` (`RecordOutcome`);
+- **Ledger (ADR-021, ADR-023)**: todo `record()` devuelve `Result<…, LedgerUnavailable>`;
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
@@ -250,7 +291,8 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
   literal repetido en `src/` donde alguna ocurrencia no la verifica un tipo literal falla el
   lint (`ope/no-magic-strings`). Donde el tipo es una unión de literales (`ProblemSlug`,
   `NodeJS.Signals`) el literal se queda: el compilador es la constante.
-- `NO_OP` es un resultado válido con motivo, nunca una excepción.
+- `NO_OP` es un resultado válido con motivo, nunca una excepción. Un error de negocio es un
+  `DomainError` devuelto en un `Result`, nunca lanzado (ADR-023).
 - Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
   **BUILT / CONNECTED / ACTIVE / TESTED**. No afirmar que algo funciona sin prueba ejecutable.
 - Commits: conventional commits, en español, un cambio por commit. No commitear sin que las

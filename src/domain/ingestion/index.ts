@@ -24,7 +24,9 @@ export type {
   VariantSelected,
 } from "./event.js";
 export { checkBatch, TIMESTAMP_TOLERANCE } from "./batch.js";
-export type { BatchCheck, BatchInvariant, EventBatch } from "./batch.js";
+export type { EventBatch } from "./batch.js";
+export { EventTimestampOutOfRange, SessionVisitorMismatch } from "./errors.js";
+export type { IngestionError } from "./errors.js";
 export { decide, decideArm } from "./decide.js";
 export { NO_OP_REASONS } from "./no-op-reasons.js";
 export type { NoOpReason } from "./no-op-reasons.js";

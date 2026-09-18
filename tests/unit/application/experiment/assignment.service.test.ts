@@ -1,9 +1,19 @@
 // US2 (FR-010..FR-013; ADR-022): the assignment is resolved once per visitor and experiment,
 // recorded when it happens, stable afterwards, and fails closed when the ledger is unavailable.
 import { describe, expect, it } from "vitest";
-import { makeAssignVisitor, type AssignmentLedger } from "../../../../src/application/experiment/index.js";
+import {
+  DefaultAssignmentService,
+  type AssignmentLedger,
+} from "../../../../src/application/experiment/index.js";
 import { assignArm, type Assignment, type Experiment } from "../../../../src/domain/experiment/index.js";
-import { asExperimentId, asMerchantId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
+import {
+  asExperimentId,
+  asMerchantId,
+  asVisitorId,
+  fail,
+  ok,
+} from "../../../../src/domain/shared-kernel/index.js";
 import { recordingLogger } from "../../../helpers/unavailable-ledgers.js";
 
 const NOW = new Date("2026-09-17T12:00:00.000Z");
@@ -23,10 +33,10 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
   const recorded: Assignment[] = [];
   const ledger: AssignmentLedger = {
     record: (a) => {
-      if (unavailable) return "unavailable";
+      if (unavailable) return fail(new LedgerUnavailable());
       recorded.push(a);
       store.set(`${a.merchantId}/${a.experimentId}/${a.visitorId}`, a);
-      return "accepted";
+      return ok(undefined);
     },
     find: (m, e, v) => store.get(`${m}/${e}/${v}`),
   };
@@ -35,32 +45,33 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
 
 const deps = (ledger: AssignmentLedger, active: Experiment | null = experiment) => {
   const { logger, entries } = recordingLogger();
+  const service = new DefaultAssignmentService({
+    experiments: { activeFor: () => active ?? undefined },
+    assignments: ledger,
+    clock: { now: () => NOW },
+    logger,
+  });
   return {
-    assign: makeAssignVisitor({
-      experiments: { activeFor: () => active ?? undefined },
-      assignments: ledger,
-      clock: { now: () => NOW },
-      logger,
-    }),
+    assign: (merchantId: typeof A, visitorId: typeof visitor) => service.assign(merchantId, visitorId),
     entries,
   };
 };
 
-describe("assignVisitor", () => {
+describe("AssignmentService", () => {
   it("without an active experiment nothing is assigned nor recorded", async () => {
     const { ledger, recorded } = fakeLedger();
     const { assign } = deps(ledger, null);
-    expect(await assign({ merchantId: A, visitorId: visitor })).toEqual({ ok: true, assignment: undefined });
+    expect(await assign(A, visitor)).toEqual({ ok: true, value: undefined });
     expect(recorded).toEqual([]);
   });
 
   it("the first time it records the computed arm with the clock's instant", async () => {
     const { ledger, recorded } = fakeLedger();
     const { assign } = deps(ledger);
-    const result = await assign({ merchantId: A, visitorId: visitor });
+    const result = await assign(A, visitor);
     expect(result).toEqual({
       ok: true,
-      assignment: {
+      value: {
         merchantId: A,
         experimentId: experiment.experimentId,
         visitorId: visitor,
@@ -74,19 +85,19 @@ describe("assignVisitor", () => {
   it("idempotency: the second time it returns the recorded assignment without recording again", async () => {
     const { ledger, recorded } = fakeLedger();
     const { assign, entries } = deps(ledger);
-    const first = await assign({ merchantId: A, visitorId: visitor });
-    const second = await assign({ merchantId: A, visitorId: visitor });
+    const first = await assign(A, visitor);
+    const second = await assign(A, visitor);
     expect(second).toEqual(first);
     expect(recorded).toHaveLength(1);
     expect(entries.filter((e) => e.message.startsWith("assignment-drift"))).toEqual([]);
   });
 
-  it("ledger unavailable → not ok with reason ledger-unavailable", async () => {
+  it("ledger unavailable → not ok with error ledger-unavailable", async () => {
     const { ledger, recorded } = fakeLedger([], true);
     const { assign } = deps(ledger);
-    expect(await assign({ merchantId: A, visitorId: visitor })).toEqual({
+    expect(await assign(A, visitor)).toMatchObject({
       ok: false,
-      reason: "ledger-unavailable",
+      error: { code: "ledger-unavailable", module: "ledger" },
     });
     expect(recorded).toEqual([]);
   });
@@ -103,8 +114,8 @@ describe("assignVisitor", () => {
     };
     const { ledger } = fakeLedger([stale]);
     const { assign, entries } = deps(ledger);
-    const result = await assign({ merchantId: A, visitorId: visitor });
-    expect(result).toEqual({ ok: true, assignment: stale });
+    const result = await assign(A, visitor);
+    expect(result).toEqual({ ok: true, value: stale });
     const drift = entries.find((e) => e.message.startsWith("assignment-drift"));
     expect(drift?.level).toBe("error");
     expect(drift?.fields).toMatchObject({
