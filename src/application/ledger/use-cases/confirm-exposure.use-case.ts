@@ -5,13 +5,13 @@
 import {
   ExposureDecisionUnknown,
   ExposureOfNoOp,
-  type Anchor,
   type Exposure,
   type LedgerError,
   type DecisionId,
 } from "../../../domain/ledger/index.js";
 import {
   fail,
+  type Anchor,
   type MerchantId,
   type Result,
   type SessionId,

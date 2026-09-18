@@ -5,7 +5,14 @@ import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Experiment } from "../../src/domain/experiment/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
-import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
+import {
+  batchOf,
+  catalogProductOf,
+  eventOf,
+  postEvents,
+  putCatalog,
+  startTestApp,
+} from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
 const BATCHES = 200;
@@ -48,6 +55,53 @@ describe("latency of POST /v1/events (local profile)", () => {
     const p95 = percentile(sorted, 95);
     console.info(
       `latencia ingesta (${BATCHES} lotes × ${EVENTS_PER_BATCH} eventos, inject): p50=${p50.toFixed(2)} ms, p95=${p95.toFixed(2)} ms, max=${(sorted.at(-1) ?? 0).toFixed(2)} ms`,
+    );
+    expect(p95).toBeLessThan(P95_BUDGET_MS);
+  });
+
+  it(`with the decision plane active (catalogue, signals, default policy) the p95 stays under ${P95_BUDGET_MS} ms (feature 011, SC-004)`, async () => {
+    const now = new Date().toISOString();
+    const catalog = await putCatalog(
+      app.app,
+      { capturedAt: now, products: [catalogProductOf("SKU-1", 2)] },
+      { platformKey: "platform-a-1" },
+    );
+    expect(catalog.statusCode).toBe(201);
+    const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
+    const signals = (from: number, session: string): { events: unknown[] } => ({
+      events: [
+        eventOf(from, { type: "size_selector_interacted", size: "M", page, sessionId: session }),
+        eventOf(from + 1, { type: "photo_interacted", interaction: "zoom", page, sessionId: session }),
+        eventOf(from + 2, {
+          type: "block_dwelled",
+          block: "size_guide",
+          dwellMs: 6000,
+          page,
+          sessionId: session,
+        }),
+        eventOf(from + 3, { type: "added_to_cart", quantity: 1, page, sessionId: session }),
+        eventOf(from + 4, {
+          type: "block_dwelled",
+          block: "policies",
+          dwellMs: 7000,
+          page,
+          sessionId: session,
+        }),
+      ],
+    });
+    const samples: number[] = [];
+    for (let i = 0; i < BATCHES; i += 1) {
+      const session = `ses_${String(i).padStart(8, "0")}`;
+      const batch = signals(2_000_000 + i * 5, session);
+      const start = performance.now();
+      const res = await postEvents(app.app, batch, { key: "key-a-1" });
+      samples.push(performance.now() - start);
+      expect(res.statusCode).toBe(202);
+    }
+    const sorted = [...samples].sort((a, b) => a - b);
+    const p95 = percentile(sorted, 95);
+    console.info(
+      `ingest latency with the decision plane (${BATCHES} batches): p50=${percentile(sorted, 50).toFixed(2)} ms, p95=${p95.toFixed(2)} ms`,
     );
     expect(p95).toBeLessThan(P95_BUDGET_MS);
   });

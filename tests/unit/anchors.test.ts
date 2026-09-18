@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { ANCHORS } from "../../src/domain/ledger/index.js";
+import { ANCHORS } from "../../src/domain/shared-kernel/index.js";
 
 const schema = parse(readFileSync("contracts/components/schemas/Anchor.yaml", "utf8")) as {
   type: string;

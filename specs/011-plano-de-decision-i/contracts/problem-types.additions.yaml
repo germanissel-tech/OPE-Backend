@@ -1,0 +1,36 @@
+# Additions to contracts/problem-types.yaml (feature 011): configuration errors of a decision
+# policy. Never emitted over HTTP (a rejected policy stops the server, like
+# invalid-treatment-share); listed so every DomainError code exists in the catalogue.
+- slug: invalid-rule-weight
+  status: 500
+  title: A rule weight or the policy weights are outside 0..1.
+- slug: invalid-rule-threshold
+  status: 500
+  title: A rule threshold (minimum count, seconds) or the reading seconds are negative.
+- slug: duplicate-rule-id
+  status: 500
+  title: Two rules of a decision policy share an id, or an id is empty.
+- slug: unknown-barrier
+  status: 500
+  title: A rule names a barrier outside the closed vocabulary (fit, price, returns).
+- slug: unknown-fact
+  status: 500
+  title: A condition references an event type, subtype or block OPE does not capture.
+- slug: barrier-without-rules
+  status: 500
+  title: A decision policy has a barrier with no rule; every barrier needs at least one.
+- slug: invalid-policy-version
+  status: 500
+  title: The decision policy version is empty.
+- slug: invalid-policy-threshold
+  status: 500
+  title: The confidence threshold of a decision policy is outside 0..1.
+- slug: invalid-policy-priority
+  status: 500
+  title: The priority of a decision policy is not an exact permutation of the three barriers.
+- slug: invalid-session-budget
+  status: 500
+  title: The interventions per session of a decision policy are not an integer of at least 1.
+- slug: invalid-policy-evidence
+  status: 500
+  title: The evidence requirements of a decision policy name a barrier outside the vocabulary.

@@ -11,3 +11,7 @@ export { fail, ok } from "./result.js";
 export type { Fail, Ok, Result } from "./result.js";
 export { NO_OP_REASONS } from "./no-op-reasons.js";
 export type { NoOpReason } from "./no-op-reasons.js";
+export { ANCHORS } from "./intervention.js";
+export type { Anchor, Intervention } from "./intervention.js";
+export { BARRIERS } from "./barrier.js";
+export type { Barrier } from "./barrier.js";

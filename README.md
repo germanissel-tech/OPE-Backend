@@ -43,7 +43,12 @@ en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
 `OPE_MERCHANTS_FILE`, y sin ninguno el servidor no autentica a nadie. Un experimento activo
 (`{ "experimentId", "treatmentPercent", "seed", "status": "active", "startedAt" }`) asigna cada
 visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún
-visitante se asigna y toda decisión es `NO_OP` con motivo `no-active-experiment`.
+visitante se asigna y toda decisión es `NO_OP` con motivo `no-active-experiment`. El merchant
+de desarrollo asigna el 100 % a TREATMENT para que el plano de decisión se pueda probar a mano.
+Una `decisionPolicy` opcional por merchant (reglas de barrera, umbral, prioridad, alta
+intención, abandono, intervenciones por sesión, evidencia; forma en
+`specs/011-plano-de-decision-i/contracts/decision-policy.config.md`, ADR-026) reemplaza a la
+política por defecto `default-1`; una política inválida impide el arranque nombrando el campo.
 
 ```bash
 npm run dev

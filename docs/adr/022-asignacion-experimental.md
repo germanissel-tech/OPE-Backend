@@ -28,7 +28,9 @@ vive el experimento y qué ve el SDK.
    `status` active|closed, `startedAt`); como máximo uno activo por merchant, validado
    fail-closed al arrancar. **Semilla y reparto son inmutables**: cambiarlos es un experimento
    nuevo con otro identificador. Si el brazo calculado difiere del registrado, gana el
-   registrado y se loguea `assignment-drift` como error operativo.
+   registrado y se loguea `assignment-drift` como error operativo. La **política de decisión**
+   del merchant es parte del experimento con la misma regla (ADR-026): cambiarla con un
+   experimento activo es un experimento nuevo; cada decisión estampa `policyVersion`.
 3. **Registro `ASSIGNED`**: en el ledger de asignaciones con el primer lote aceptado del
    visitante en el experimento (clave merchant + experimento + visitante; idempotente). Un lote
    rechazado no asigna. Sin experimento activo no se asigna y la decisión es `NO_OP`

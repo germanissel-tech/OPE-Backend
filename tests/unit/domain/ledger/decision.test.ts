@@ -68,6 +68,25 @@ describe("DecisionBase.rehydrate", () => {
     expect(intervene.isIntervention() && intervene.intervention).toEqual(intervention);
   });
 
+  it("keeps the inference of the plane as it was recorded (constitution IX)", () => {
+    const inference = {
+      policyVersion: "default-1",
+      confidences: { fit: 0.4, price: 0.2, returns: 0 },
+      matched: ["fit.size-guide-read"],
+      barrier: "fit" as const,
+      trigger: "rules" as const,
+      evidence: { truth: "absent" as const },
+    };
+    const noOp = DecisionBase.rehydrate({
+      ...facts,
+      inference,
+      outcome: "NO_OP",
+      reason: "control-arm",
+    });
+    expect(noOp.inference).toEqual(inference);
+    expect(JSON.parse(JSON.stringify(NoOpDecision.of(facts, "control-arm")))).not.toHaveProperty("inference");
+  });
+
   it("a corrupt record is a programming error: INTERVENE without intervention, NO_OP with an unknown reason", () => {
     const broken: DecisionRecord = { ...facts, outcome: "INTERVENE", reason: "barrier-size" };
     expect(() => DecisionBase.rehydrate(broken)).toThrow("without an intervention");

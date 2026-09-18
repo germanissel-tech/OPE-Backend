@@ -121,10 +121,10 @@ describe("assignment (ASSIGNED)", () => {
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "CONTROL" });
   });
 
-  it("TREATMENT resolves the reasons of feature 004 and records the arm too", async () => {
+  it("TREATMENT goes through the decision plane (no signal → barrier-unclear) and records the arm too", async () => {
     app = await start();
     const body = json(await postEvents(app.app, batchFor(treatment, 1), { key: KEY })) as IngestResult;
-    expect(body.decision.reason).toBe("decision-plane-unavailable");
+    expect(body.decision.reason).toBe("barrier-unclear");
     const decision = await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never);
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "TREATMENT" });
   });

@@ -10,6 +10,7 @@ export type {
   ProductTruth,
   ProductTruthService,
   ProductTruthServiceDependencies,
+  TruthFreshness,
 } from "./services/product-truth.service.js";
 export { UpsertCatalogSnapshotUseCase } from "./use-cases/upsert-catalog-snapshot.use-case.js";
 export type {
