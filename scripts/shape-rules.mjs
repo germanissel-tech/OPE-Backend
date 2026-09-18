@@ -245,6 +245,49 @@ export function noConfigBranchInRoot(root) {
   return out;
 }
 
+const TAB = 9;
+const CARRIAGE_RETURN = 13;
+const FIRST_PRINTABLE = 0x20;
+const DELETE = 0x7f;
+
+/**
+ * The first ASCII control character of a line other than tab and carriage return (the line was
+ * already split on line feeds), as a code point; undefined when there is none.
+ * @param {string} line
+ * @returns {number | undefined}
+ */
+function rawControlIn(line) {
+  for (const ch of line) {
+    const code = ch.codePointAt(0) ?? FIRST_PRINTABLE;
+    const control = code < FIRST_PRINTABLE && code !== TAB && code !== CARRIAGE_RETURN;
+    if (control || code === DELETE) return code;
+  }
+  return undefined;
+}
+
+/**
+ * Rule 6: no raw control character in a source file. A separator such as U+001F written as the
+ * character itself is invisible to a reader (an editor shows nothing, or a dash) and survives
+ * copy and paste unnoticed; written as its escape it says what it is.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function noRawControlCharacters(root) {
+  /** @type {string[]} */
+  const out = [];
+  for (const file of tsFiles(root, ".")) {
+    const source = readFileSync(path.join(root, file), "utf8");
+    source.split(/\r?\n/).forEach((line, i) => {
+      const code = rawControlIn(line);
+      if (code !== undefined) {
+        const hex = code.toString(16).padStart(4, "0").toUpperCase();
+        out.push(`${file}:${i + 1}: raw control character U+${hex}; write it as an escape`);
+      }
+    });
+  }
+  return out;
+}
+
 /**
  * All five rules on one root, as gate findings.
  * @param {string} root
@@ -268,5 +311,6 @@ export function shapeFindings(root, bundlePath) {
     ...newOnlyInComposition(root).map((t) => toFinding("new-only-in-composition", t)),
     ...noComputedDynamicImport(root).map((t) => toFinding("no-computed-dynamic-import", t)),
     ...noConfigBranchInRoot(root).map((t) => toFinding("no-config-branch-in-root", t)),
+    ...noRawControlCharacters(root).map((t) => toFinding("no-raw-control-characters", t)),
   ];
 }

@@ -13,6 +13,7 @@ interface Rules {
   newOnlyInComposition: (root: string) => string[];
   noComputedDynamicImport: (root: string) => string[];
   noConfigBranchInRoot: (root: string) => string[];
+  noRawControlCharacters: (root: string) => string[];
 }
 
 let MAX_RING_FILE_LINES: number;
@@ -22,6 +23,7 @@ let oneControllerPerOperation: Rules["oneControllerPerOperation"];
 let newOnlyInComposition: Rules["newOnlyInComposition"];
 let noComputedDynamicImport: Rules["noComputedDynamicImport"];
 let noConfigBranchInRoot: Rules["noConfigBranchInRoot"];
+let noRawControlCharacters: Rules["noRawControlCharacters"];
 beforeAll(async () => {
   const mod = (await import(pathToFileURL(path.resolve("scripts/shape-rules.mjs")).href)) as Rules;
   ({
@@ -32,6 +34,7 @@ beforeAll(async () => {
     newOnlyInComposition,
     noComputedDynamicImport,
     noConfigBranchInRoot,
+    noRawControlCharacters,
   } = mod);
 });
 
@@ -87,6 +90,13 @@ describe("shape of the rings", () => {
   it("a module loaded from a runtime value is reported; a literal dynamic import is not", () => {
     expect(noComputedDynamicImport(fixture("dynamic-import"))).toEqual([
       "composition/bad-import.ts:7: dynamic import() of a computed specifier (pathToFileURL(file).href)",
+    ]);
+  });
+
+  it("src/ has no raw control character; a fixture with a raw U+001F is reported", () => {
+    expect(noRawControlCharacters(src)).toEqual([]);
+    expect(noRawControlCharacters(fixture("control-character"))).toEqual([
+      "domain/demo/key.ts:2: raw control character U+001F; write it as an escape",
     ]);
   });
 
