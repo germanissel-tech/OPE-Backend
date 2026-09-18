@@ -2,7 +2,11 @@
 // request carries Origin, it must be a registered origin of that merchant. Runs before body
 // validation and before the controller (openapi-backend).
 import { SecurityError, type SecurityHandler, type SecurityRequest, type SecurityResults } from "../typed.js";
-import type { ResolveIngestKey } from "../../../application/merchant/index.js";
+import type {
+  ResolveIngestKeyRequest,
+  ResolveIngestKeyResponse,
+} from "../../../application/merchant/index.js";
+import type { UseCase } from "../../../application/shared-kernel/index.js";
 import type { Merchant } from "../../../domain/merchant/index.js";
 
 export const INGEST_KEY_SCHEME = "ingestKey";
@@ -20,15 +24,17 @@ function header(headers: SecurityRequest["headers"], name: string): string | und
   return undefined;
 }
 
-export function makeIngestKeySecurity(resolveIngestKey: ResolveIngestKey): SecurityHandler {
-  return ({ headers }) => {
-    const result = resolveIngestKey({
+export function makeIngestKeySecurity(
+  resolveIngestKey: UseCase<ResolveIngestKeyRequest, ResolveIngestKeyResponse>,
+): SecurityHandler {
+  return async ({ headers }) => {
+    const result = await resolveIngestKey.execute({
       key: header(headers, INGEST_KEY_HEADER),
       origin: header(headers, "origin"),
     });
-    if (!result.ok) throw new SecurityError(result.reason);
-    const principal: IngestPrincipal = { merchant: result.merchant };
-    return { principal, log: { merchantId: result.merchant.merchantId } };
+    if (!result.ok) throw new SecurityError(result.error.code);
+    const principal: IngestPrincipal = { merchant: result.value };
+    return { principal, log: { merchantId: result.value.merchantId } };
   };
 }
 

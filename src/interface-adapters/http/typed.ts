@@ -51,7 +51,7 @@ export interface SecurityOutcome {
   principal: unknown;
   log?: Readonly<Record<string, string | number | boolean>>;
 }
-export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome;
+export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome | Promise<SecurityOutcome>;
 
 export type SecurityFailure = "unauthorized" | "origin-not-allowed";
 

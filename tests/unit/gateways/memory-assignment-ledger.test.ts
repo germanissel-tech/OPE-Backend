@@ -24,7 +24,7 @@ const assignment = (over: Partial<Assignment> = {}): Assignment => ({
 describe("memoryAssignmentLedger", () => {
   it("records and finds by merchant, experiment and visitor", async () => {
     const ledger = memoryAssignmentLedger();
-    expect(await ledger.record(assignment())).toBe("accepted");
+    expect(await ledger.record(assignment())).toEqual({ ok: true, value: undefined });
     expect(await ledger.find(A, E1, V)).toEqual(assignment());
   });
 
@@ -33,7 +33,7 @@ describe("memoryAssignmentLedger", () => {
     await ledger.record(assignment());
     expect(
       await ledger.record(assignment({ arm: "TREATMENT", assignedAt: at("2026-09-18T00:00:00.000Z") })),
-    ).toBe("accepted");
+    ).toEqual({ ok: true, value: undefined });
     expect(await ledger.find(A, E1, V)).toEqual(assignment());
   });
 

@@ -2,9 +2,10 @@
 // IngestResult, or 422 with the type of the violated invariant. The body already passed the
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
 import { asEventId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
-import { invariantResponse } from "../../problem-details.js";
 import { merchantOf } from "../../security/ingest-key.js";
-import type { IngestBatch } from "../../../../application/ingestion/index.js";
+import { toProblem } from "../../to-problem.js";
+import type { IngestBatchRequest, IngestBatchResponse } from "../../../../application/ingestion/index.js";
+import type { UseCase } from "../../../../application/shared-kernel/index.js";
 import type { Event } from "../../../../domain/ingestion/index.js";
 import type { Decision } from "../../../../domain/ledger/index.js";
 import type { components } from "../../generated/api.js";
@@ -61,15 +62,17 @@ function toDecisionDto(decision: Decision): DecisionDto {
   return dto;
 }
 
-export function makeIngestEvents(ingestBatch: IngestBatch): OperationHandler<"ingestEvents"> {
+export function makeIngestEvents(
+  ingestBatch: UseCase<IngestBatchRequest, IngestBatchResponse>,
+): OperationHandler<"ingestEvents"> {
   return async (req) => {
     const merchant = merchantOf(req);
-    const result = await ingestBatch({
+    const result = await ingestBatch.execute({
       merchantId: merchant.merchantId,
       batch: { events: req.body.events.map(toDomainEvent) },
     });
-    if (!result.ok) return invariantResponse(req, result);
-    const { accepted, duplicates, results, decision } = result.outcome;
+    if (!result.ok) return toProblem(result.error, req.instance);
+    const { accepted, duplicates, results, decision } = result.value;
     return {
       status: 202,
       body: { accepted, duplicates, results, decision: toDecisionDto(decision) },

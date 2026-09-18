@@ -9,3 +9,5 @@ export type {
   NoOpInput,
 } from "./decision.js";
 export type { Exposure } from "./exposure.js";
+export { ExposureDecisionUnknown, ExposureOfNoOp, LedgerUnavailable } from "./errors.js";
+export type { LedgerError } from "./errors.js";

@@ -1,17 +1,21 @@
 // confirmExposure (FR-030, FR-031): DTO → use case → 201 recorded | 200 already-recorded |
-// 422 with the type of the invariant.
+// the Problem Details of the returned error (422 invariant, 503 ledger unavailable).
 import { asDecisionId, asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
-import { invariantResponse, ledgerUnavailableResponse } from "../../problem-details.js";
 import { merchantOf } from "../../security/ingest-key.js";
-import type { ConfirmExposure } from "../../../../application/ledger/index.js";
+import { toProblem } from "../../to-problem.js";
+import type {
+  ConfirmExposureRequest,
+  ConfirmExposureResponse,
+} from "../../../../application/ledger/index.js";
+import type { UseCase } from "../../../../application/shared-kernel/index.js";
 import type { OperationHandler } from "../../typed.js";
 
 export function makeConfirmExposureHandler(
-  confirmExposure: ConfirmExposure,
+  confirmExposure: UseCase<ConfirmExposureRequest, ConfirmExposureResponse>,
 ): OperationHandler<"confirmExposure"> {
   return async (req) => {
     const merchant = merchantOf(req);
-    const result = await confirmExposure({
+    const result = await confirmExposure.execute({
       merchantId: merchant.merchantId,
       decisionId: asDecisionId(req.body.decisionId),
       sessionId: asSessionId(req.body.sessionId),
@@ -19,9 +23,8 @@ export function makeConfirmExposureHandler(
       exposedAt: new Date(req.body.exposedAt),
       anchor: req.body.anchor,
     });
-    if (!result.ok)
-      return "unavailable" in result ? ledgerUnavailableResponse(req) : invariantResponse(req, result);
-    const body = { decisionId: req.body.decisionId, status: result.status };
-    return result.status === "recorded" ? { status: 201, body } : { status: 200, body };
+    if (!result.ok) return toProblem(result.error, req.instance);
+    const body = { decisionId: req.body.decisionId, status: result.value };
+    return result.value === "recorded" ? { status: 201, body } : { status: 200, body };
   };
 }

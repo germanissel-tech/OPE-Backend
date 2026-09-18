@@ -5,7 +5,7 @@ import { Writable } from "node:stream";
 import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { makeGetServiceHealth } from "../../src/application/system/index.js";
+import { GetServiceHealthUseCase } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
 import { pinoLogger, silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
@@ -47,7 +47,9 @@ const realContract = load("contracts/dist/openapi.yaml");
 const twoOps = load("tests/integration/fixtures/two-ops.yaml");
 
 const now = () => new Date("2026-09-16T12:00:00.000Z");
-const getHealth = makeGetHealth(makeGetServiceHealth({ contractVersion: "1.0.0", clock: { now } }));
+const getHealth = makeGetHealth(
+  new GetServiceHealthUseCase({ contract: { version: "1.0.0" }, clock: { now } }),
+);
 const healthHandlers: Handlers = { getHealth };
 
 const PROBLEM = "application/problem+json";

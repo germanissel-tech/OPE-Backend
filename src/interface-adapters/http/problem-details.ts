@@ -8,9 +8,6 @@ export type ValidationError = NonNullable<ProblemDetails["errors"]>[number];
 
 export const PROBLEM_CONTENT_TYPE = "application/problem+json";
 export const PROBLEM_NAMESPACE = "urn:ope:problem:";
-/** Every violated invariant is a 422 (ADR-001): the request was valid, its semantics were not. */
-const INVARIANT_STATUS = 422;
-
 export const PROBLEM_TYPES = {
   "validation-failed": { status: 400, title: "The request does not satisfy the contract" },
   unauthorized: { status: 401, title: "Credential missing or invalid" },
@@ -42,34 +39,13 @@ export interface ProblemResponse {
   body: ProblemDetails;
 }
 
-/** A use case result that violated a declared invariant (ADR-007): the contract maps it to 422. */
-export interface InvariantViolation {
-  invariant: ProblemSlug;
-  detail: string;
-}
-
-/** The 422 response of a controller for a violated invariant: one translation for every use case. */
-export function invariantResponse(
-  req: { instance: string },
-  violation: InvariantViolation,
-): { status: typeof INVARIANT_STATUS; body: ProblemDetails } {
-  const { status, body } = problem(violation.invariant, { instance: req.instance, detail: violation.detail });
-  return { status: INVARIANT_STATUS, body: { ...body, status } };
-}
-
 /** Seconds the SDK waits before retrying a write the ledger could not accept (ADR-021). */
 const LEDGER_RETRY_AFTER_SECONDS = 5;
-const UNAVAILABLE_STATUS = 503;
 
-/** 503 Problem Details for a ledger that could not accept the record, with Retry-After (ADR-021). */
-export function ledgerUnavailableResponse(req: { instance: string }): {
-  status: typeof UNAVAILABLE_STATUS;
-  body: ProblemDetails;
-  headers: Record<string, string>;
-} {
-  const { body } = problem("ledger-unavailable", { instance: req.instance });
-  return { status: UNAVAILABLE_STATUS, body, headers: { "retry-after": String(LEDGER_RETRY_AFTER_SECONDS) } };
-}
+/** Response headers a problem type carries, by code (ADR-023: `toProblem` adds them). */
+export const HEADERS_BY_CODE: Partial<Record<ProblemSlug, Readonly<Record<string, string>>>> = {
+  "ledger-unavailable": { "retry-after": String(LEDGER_RETRY_AFTER_SECONDS) },
+};
 
 /** Builds the error response for a catalogue type. Never includes internal details. */
 export function problem(slug: ProblemSlug, options: ProblemOptions = {}): ProblemResponse {

@@ -3,7 +3,7 @@
 // what it serves (`ledgerModule`) live together: adding a store touches this file and one line
 // of the deployment profile.
 import {
-  makeConfirmExposure,
+  ConfirmExposureUseCase,
   type DecisionLedger,
   type ExposureLedger,
 } from "../../application/ledger/index.js";
@@ -23,9 +23,9 @@ export const memoryLedgerPorts: Bindings<LedgerPorts> = {
 };
 
 export const ledgerModule: Module<LedgerPorts> = ({ ports }) => {
-  const confirmExposure = makeConfirmExposure({
-    decisionLedger: ports.decisions,
-    exposureLedger: ports.exposures,
+  const confirmExposure = new ConfirmExposureUseCase({
+    decisions: ports.decisions,
+    exposures: ports.exposures,
   });
   return { handlers: { confirmExposure: makeConfirmExposureHandler(confirmExposure) } };
 };
