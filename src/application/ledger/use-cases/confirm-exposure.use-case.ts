@@ -8,10 +8,10 @@ import {
   type Anchor,
   type Exposure,
   type LedgerError,
+  type DecisionId,
 } from "../../../domain/ledger/index.js";
 import {
   fail,
-  type DecisionId,
   type MerchantId,
   type Result,
   type SessionId,

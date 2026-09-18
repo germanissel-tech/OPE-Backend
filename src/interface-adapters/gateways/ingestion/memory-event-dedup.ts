@@ -2,7 +2,8 @@
 // (DEDUP_WINDOW, ADR-024). One Map per merchant: they never cross.
 import type { DedupWindow, EventDedup } from "../../../application/ingestion/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
-import type { EventId, MerchantId } from "../../../domain/shared-kernel/index.js";
+import type { EventId } from "../../../domain/ingestion/index.js";
+import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
 export function memoryEventDedup(clock: Clock, window: DedupWindow): EventDedup {
   // Map preserves insertion order: the first one is the oldest.

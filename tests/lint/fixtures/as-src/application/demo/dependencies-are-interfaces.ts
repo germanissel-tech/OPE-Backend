@@ -1,6 +1,6 @@
 // Lint fixture (as if under src/application/): violates only ope/dependencies-are-interfaces.
 // One field is a class (an implementation, not a port) and the interface exceeds six fields.
-import type { Clock, IdGenerator, Logger, UseCase } from "../../../../../../src/application/shared-kernel/index.js";
+import type { Clock, Logger, UseCase } from "../../../../../../src/application/shared-kernel/index.js";
 
 export class MemoryStore {
   readonly items: string[] = [];
@@ -8,7 +8,7 @@ export class MemoryStore {
 
 export interface TooManyDependencies {
   clock: Clock;
-  ids: IdGenerator;
+  ids: Logger;
   logger: Logger;
   store: MemoryStore;
   a: Clock;

@@ -6,13 +6,13 @@
 import {
   NO_OP_REASONS,
   type Arm,
-  type DecisionId,
   type ExperimentId,
   type MerchantId,
   type NoOpReason,
   type SessionId,
   type VisitorId,
 } from "../shared-kernel/index.js";
+import type { DecisionId } from "./ids.js";
 
 const isNoOpReason = (reason: string): reason is NoOpReason =>
   (NO_OP_REASONS as readonly string[]).includes(reason);

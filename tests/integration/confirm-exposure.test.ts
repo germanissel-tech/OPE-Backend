@@ -1,12 +1,7 @@
 // US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
 import { afterEach, describe, expect, it } from "vitest";
-import { InterveneDecision } from "../../src/domain/ledger/index.js";
-import {
-  asDecisionId,
-  asMerchantId,
-  asSessionId,
-  asVisitorId,
-} from "../../src/domain/shared-kernel/index.js";
+import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";

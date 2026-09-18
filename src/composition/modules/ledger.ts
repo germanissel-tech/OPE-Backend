@@ -4,12 +4,14 @@
 // of the deployment profile.
 import {
   ConfirmExposureUseCase,
+  type DecisionIdGenerator,
   type DecisionLedger,
   type ExposureLedger,
 } from "../../application/ledger/index.js";
 import { LoggedUseCase, type Clock, type Logger } from "../../application/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import { memoryExposureLedger } from "../../interface-adapters/gateways/ledger/memory-exposure-ledger.js";
+import { randomDecisionIds } from "../../interface-adapters/gateways/ledger/random-decision-ids.js";
 import { makeConfirmExposureHandler } from "../../interface-adapters/http/controllers/ledger/confirm-exposure.js";
 import type { Bindings, Module } from "../wiring.js";
 
@@ -18,11 +20,14 @@ export interface LedgerPorts {
   logger: Logger;
   decisions: DecisionLedger;
   exposures: ExposureLedger;
+  /** Who mints decision identifiers: the ledger owns the identity, ingestion asks for one. */
+  decisionIds: DecisionIdGenerator;
 }
 
-export const memoryLedgerPorts: Bindings<Pick<LedgerPorts, "decisions" | "exposures">> = {
+export const memoryLedgerPorts: Bindings<Pick<LedgerPorts, "decisions" | "exposures" | "decisionIds">> = {
   decisions: memoryDecisionLedger,
   exposures: memoryExposureLedger,
+  decisionIds: () => randomDecisionIds,
 };
 
 export const ledgerModule: Module<LedgerPorts> = ({ ports }) => {

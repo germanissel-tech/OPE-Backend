@@ -1,7 +1,7 @@
 // In-memory exposure ledger. Composite key merchant + decision.
-import { ok, type DecisionId, type MerchantId } from "../../../domain/shared-kernel/index.js";
+import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
 import type { ExposureLedger } from "../../../application/ledger/index.js";
-import type { Exposure } from "../../../domain/ledger/index.js";
+import type { Exposure, DecisionId } from "../../../domain/ledger/index.js";
 
 export function memoryExposureLedger(): ExposureLedger {
   const exposures = new Map<string, Exposure>();

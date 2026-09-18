@@ -2,7 +2,8 @@
 // visible, confirmed by the SDK. It is what constitutes the EXPOSED state of the evidence
 // chain; the decision alone does not imply it.
 import type { Anchor } from "./decision.js";
-import type { DecisionId, MerchantId, SessionId, VisitorId } from "../shared-kernel/index.js";
+import type { DecisionId } from "./ids.js";
+import type { MerchantId, SessionId, VisitorId } from "../shared-kernel/index.js";
 
 export interface Exposure {
   merchantId: MerchantId;
