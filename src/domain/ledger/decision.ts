@@ -17,7 +17,14 @@ import type { DecisionId } from "./ids.js";
 const isNoOpReason = (reason: string): reason is NoOpReason =>
   (NO_OP_REASONS as readonly string[]).includes(reason);
 
-export type Anchor = "size_selector" | "price" | "cta" | "policies";
+/**
+ * Semantic anchor points of the platform: replica of contracts/components/schemas/Anchor.yaml
+ * (the source); a test verifies they match. A new anchor is a product feature (contract, glossary,
+ * SDK anchor map, messages), never configuration. PROPUESTO (ADR-024): with the decision plane
+ * (feature 011) the intervention vocabulary (anchor, message) moves to the shared kernel.
+ */
+export const ANCHORS = ["size_selector", "price", "cta", "policies"] as const;
+export type Anchor = (typeof ANCHORS)[number];
 
 /** Placeholder for the decision plane (PROPUESTO in the contract). */
 export interface Intervention {
