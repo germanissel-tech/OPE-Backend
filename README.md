@@ -32,6 +32,7 @@ npm run build && npm run typecheck && npm test
 npm run test:contract    # Schemathesis contra el servidor levantado
 npm run dev              # servidor real en memoria en http://127.0.0.1:3000 con el merchant de config/dev-merchants.json
 npm run contract:docs    # docs/api/index.html, autocontenido
+npm run contract:insomnia # docs/api/insomnia.json: colección de Insomnia con las operaciones, credenciales de dev e instantes vivos
 ```
 
 No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranca sin
