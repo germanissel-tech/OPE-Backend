@@ -44,13 +44,12 @@ inferencia pura (sin reloj ni puertos, FR-013); misma inferencia para ambos braz
 (constitución III); el DTO del SDK no lleva barrera, confianza ni señales (FR-040); contrato
 compatible (descripciones + catálogo de motivos; versión sigue 1.x)
 
-**Scale/Scope**: 2 módulos nuevos (`barrier`, `decision`) en dominio + aplicación + gateways
-
-- composición; 1 puerto nuevo en `ingestion` (`DecisionPlane`); 1 servicio nuevo en `ledger`
-  (`DecisionRecorder`); `DecisionFacts.inference`; 2 vocabularios en el kernel (`Barrier`,
-  `Anchor`/`Intervention` movidos); 6 listas runtime en `ingestion`; 6 motivos NO_OP; 11 tipos de
-  problema de configuración; `MerchantConfig.decisionPolicy`; 6 notas de glosario; ADR-026;
-  cierre de 2 PROPUESTO (ADR-024) y de los del contrato (`Decision`, `Intervention`)
+**Scale/Scope**: 2 módulos nuevos (`barrier`, `decision`) en dominio, aplicación, gateways y
+composición; 1 puerto nuevo en `ingestion` (`DecisionPlane`); 1 servicio nuevo en `ledger`
+(`DecisionRecorder`); `DecisionFacts.inference`; 2 vocabularios en el kernel (`Barrier`,
+`Anchor`/`Intervention` movidos); 6 listas runtime en `ingestion`; 6 motivos NO_OP; 11 tipos de
+problema de configuración; `MerchantConfig.decisionPolicy`; 6 notas de glosario; ADR-026;
+cierre de 2 PROPUESTO (ADR-024) y de los del contrato (`Decision`, `Intervention`)
 
 ## Constitution Check
 
