@@ -16,7 +16,9 @@ jobs:
   ci:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # The mutation gate runs every mutant of the diff; a feature that adds two modules (600+
+    # mutants, ~8 min on the hosted runner) needs more than the 10 minutes the rest takes.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
