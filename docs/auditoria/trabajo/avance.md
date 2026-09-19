@@ -11,12 +11,12 @@
 | 1 Lectura fina                       | cerrada   | —                        | (ver git log)    |
 | 2 Robustez                           | cerrada   | —                        | (ver git log)    |
 | 3 Seguridad, escalabilidad y pruebas | cerrada   | —                        | (ver git log)    |
-| 4 Cumplimiento funcional             | pendiente | T217                     | —                |
-| 5 Cierre                             | pendiente | —                        | —                |
+| 4 Cumplimiento funcional             | cerrada   | —                        | (ver git log)    |
+| 5 Cierre                             | pendiente | T249                     | —                |
 
 ## Próximo paso exacto
 
-T217 en adelante (fase 4, cumplimiento funcional): resolver una por una las 479 afirmaciones de `trabajo/afirmaciones.md` (constitución I–X, 01/02/03, FR/SC de las specs 001–013) con evidencia (prueba o gate con ruta) o hueco; hallazgos a `trabajo/hallazgos/fase-4.json` (numeración sigue en F-062) con fuentes `mvp:`/`spec:`/`constitution#`. Insumos: F-024 (spec 004 US2 esc. 3 sin prueba que lo mire), S-02, S-03, S-04, S-07, S-08 (fase 4 en el handoff), y las réplicas de §3.E.
+T249 en adelante (fase 5, cierre): refutación global sobre las 64 entradas de `hallazgos/fase-{1..4}.json`, `verify-finding` sobre el conjunto, informe §5 (refutados con motivo), §6 final, §7 estado global por regla fija, cuadro por módulo final, SC-001..SC-006 de la spec 014, PR `014-auditoria-integral` → `main` sin merge. Sin hallazgos nuevos salvo los que surjan de la refutación global.
 
 ## Entorno
 
@@ -101,20 +101,20 @@ esos cuatro directorios: vacío (T003, 2026-09-19).
 
 ## Sospechas (handoff §6)
 
-| S    | Fase | Veredicto  | F-NNN / motivo                                                                                              |
-| ---- | ---- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| S-01 | 2    | confirmada | F-047 (baja por fuente: nada escrito; los ledgers en memoria son el sustituto del durable de 01 §9)         |
-| S-02 | 4    | —          |                                                                                                             |
-| S-03 | 4    | —          |                                                                                                             |
-| S-04 | 4    | —          |                                                                                                             |
-| S-05 | 2    | refutada   | F-042 y F-049 refutados (no decide; `evidenceOf`/`selectionOf` no pueden ser dominio); tamaño → §6          |
-| S-06 | 2    | confirmada | F-012 (ocho motivos de cambio, baja por fuente); el mismo archivo ancla F-045 (event loop compartido)       |
-| S-07 | 4    | —          |                                                                                                             |
-| S-08 | 4    | —          |                                                                                                             |
-| S-09 | 3    | refutada   | F-059 refutado (invariantes de ADR-007 + tres operaciones sin credencial de plataforma en el runner, F-054) |
-| S-10 | 3    | confirmada | F-053 (baja por fuente: ADR-029 sólo decide tiempo constante para la firma)                                 |
-| S-11 | 3    | refutada   | sin ventana explotable; el replay lo absorbe la idempotencia y no está escrito: F-058 (baja)                |
-| S-12 | 3    | refutada   | deuda declarada = código (alias TS6, parche Stryker 10.0.0, `oas3-schema` off con motivo)                   |
+| S    | Fase | Veredicto                        | F-NNN / motivo                                                                                                                        |
+| ---- | ---- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| S-01 | 2    | confirmada                       | F-047 (baja por fuente: nada escrito; los ledgers en memoria son el sustituto del durable de 01 §9)                                   |
+| S-02 | 4    | confirmada como diseño           | inalcanzable hasta la 015, con `Stryker disable` y motivo; el motivo debe existir en el contrato (catálogo abierto por patrón)        |
+| S-03 | 4    | confirmada como diseño           | redención contra la última `INTERVENE` con incentivo, no contra `EXPOSED` (ADR-028 §5); sin hallazgo; nota de glosario podría decirlo |
+| S-04 | 4    | refutada                         | 02 §5.1 lo establece la plataforma; `Correlation.of` exige además decisiones de la sesión                                             |
+| S-05 | 2    | refutada                         | F-042 y F-049 refutados (no decide; `evidenceOf`/`selectionOf` no pueden ser dominio); tamaño → §6                                    |
+| S-06 | 2    | confirmada                       | F-012 (ocho motivos de cambio, baja por fuente); el mismo archivo ancla F-045 (event loop compartido)                                 |
+| S-07 | 4    | confirmada como convención local | `· undefined` explícito sólo en `outcomes`; sin regla; propuesta al dueño en §3.F                                                     |
+| S-08 | 4    | refutada                         | `Return` en `order.ts` por el ciclo (documentado); `Corroboration` clase por su regla (ADR-024)                                       |
+| S-09 | 3    | refutada                         | F-059 refutado (invariantes de ADR-007 + tres operaciones sin credencial de plataforma en el runner, F-054)                           |
+| S-10 | 3    | confirmada                       | F-053 (baja por fuente: ADR-029 sólo decide tiempo constante para la firma)                                                           |
+| S-11 | 3    | refutada                         | sin ventana explotable; el replay lo absorbe la idempotencia y no está escrito: F-058 (baja)                                          |
+| S-12 | 3    | refutada                         | deuda declarada = código (alias TS6, parche Stryker 10.0.0, `oas3-schema` off con motivo)                                             |
 
 ## Dudas planteadas al dueño y respuestas
 
@@ -127,6 +127,7 @@ esos cuatro directorios: vacío (T003, 2026-09-19).
 
 ## Notas de sesión
 
+- 2026-09-19 (sesión 3, continuación): fase 4 cerrada (T217–T248). Las 479 afirmaciones resueltas en `afirmaciones.md` (258 probadas + 163 por cabecera, 12 parciales, 1 hueco, 6 planificadas, 23 históricas, 1 superada, 1 fuera de alcance, 14 con hallazgo). Método: pase automático (`match-specs.mjs`: cabeceras de prueba con `FR`/`SC` acotadas por feature o por el quickstart de la spec) + mapa manual `evidence.mjs`/`evidence2.mjs` para 210 filas; `fill-fase4.mjs` escribe la columna y genera §3.F y §4. Hallazgos F-062..F-064 (3 high: `incentive` en la orden vs constitución VII; principio X no construido ni enmendado; `arch` fuera del pre-commit vs spec 002 FR-041), 3/3 verificados. S-02, S-03, S-04, S-07, S-08 con veredicto en §3.F.
 - 2026-09-19 (sesión 3, continuación): fase 3 cerrada (T201–T216). Hallazgos F-051..F-061 en `hallazgos/fase-3.json` (1 high: F-051 CORS anuncia `x-ope-platform-key`, probado con un preflight; 1 medium: F-052 `Stryker restore` tras `return` no restaura — 40 mutantes de `build-server.ts` y los chequeos de vocabulario de `condition.ts` ignorados; 6 low; 3 refutados), 11/11 verificados. Informe §3.C, §3.D, §3.E y dos filas más en §6 por `gen-informe-fase3.mjs` (scratchpad). Mediciones: suite completa con reporter JSON (scratchpad `vitest.json`): 147 s pared / 522 s CPU, `tests/audit` 148 s, `contract-docs` 78 s, `governance/quality` 58 s, integración 162 s por 172 pruebas; preflight CORS con `startTestApp` (scratchpad `cors-probe.mts`).
 - 2026-09-19 (sesión 3, continuación): fase 2 cerrada (T191–T200). Hallazgos F-043..F-050 en `hallazgos/fase-2.json` (2 high: F-043 puertos de lectura sin canal de fallo, F-045 event loop compartido con medición de 140 ms por snapshot de 6 MiB; 1 medium; 3 low; 2 refutados), 8/8 verificados. Informe §3.B y borrador de §6 (9 riesgos) por `gen-informe-fase2.mjs` (scratchpad). Medición propia: `vitest run tests/integration/{catalog-size,ingest-latency}.test.ts --silent=false --disableConsoleIntercept` → snapshot 5 000 × 10 en 140 ms; ingesta p50 0,67 ms / p95 1,28 ms.
 - 2026-09-19 (sesión 3): fase 1 cerrada. Alcances `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`, `ledger`, `outcomes` (T093–T182) y transversales T183–T188; hallazgos F-016..F-042 (F-042 refutado). Total fase 1: 39 confirmados (1 high, 15 medium, 23 low) + 3 refutados, 42/42 verificados. Informe §2.2 (15 filas) y §3.A (hallazgos + cuadro 15 × 7) escritos por `gen-informe-fase1.mjs` (scratchpad) desde `fase-1.json`. Mutación completa terminada (99,15 %, 8 sobrevivientes) → fase 3. Incidente de herramienta: `String.prototype.replace` con `$\`` en el texto de reemplazo duplicó el prefijo del archivo; reparado con `split/join`(usar siempre`split/join` o una función de reemplazo en los scripts de traza).

@@ -364,44 +364,44 @@ description: "Traza de la auditoría integral (014): una tarea por unidad de tra
 
 ### Constitución I–X
 
-- [ ] T217 [P] [US3] Constitución I. Separación de autoridades: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T218 [P] [US3] Constitución II. Fail-closed: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T219 [P] [US3] Constitución III. La medición precede y no se contamina (misma inferencia para ambos brazos: `decision.service.test.ts`): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T220 [P] [US3] Constitución IV. Dos caminos, dos garantías (sin red en el camino crítico): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T221 [P] [US3] Constitución V. Aislamiento por merchant (`isolation.test.ts` y equivalentes): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T222 [P] [US3] Constitución VI. Identidad e idempotencia explícitas: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T223 [P] [US3] Constitución VII. OPE observa comportamiento, no personas: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T224 [P] [US3] Constitución VIII. Cero LLM en runtime: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T225 [P] [US3] Constitución IX. Nada entra al reporte sin trazabilidad (¿toda decisión, exposición, orden y devolución se reconstruye desde el ledger?): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
-- [ ] T226 [P] [US3] Constitución X. Puertos en los dos bordes: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T217 [P] [US3] Constitución I. Separación de autoridades: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T218 [P] [US3] Constitución II. Fail-closed: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T219 [P] [US3] Constitución III. La medición precede y no se contamina (misma inferencia para ambos brazos: `decision.service.test.ts`): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T220 [P] [US3] Constitución IV. Dos caminos, dos garantías (sin red en el camino crítico): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T221 [P] [US3] Constitución V. Aislamiento por merchant (`isolation.test.ts` y equivalentes): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T222 [P] [US3] Constitución VI. Identidad e idempotencia explícitas: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T223 [P] [US3] Constitución VII. OPE observa comportamiento, no personas: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T224 [P] [US3] Constitución VIII. Cero LLM en runtime: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T225 [P] [US3] Constitución IX. Nada entra al reporte sin trazabilidad (¿toda decisión, exposición, orden y devolución se reconstruye desde el ledger?): evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
+- [x] T226 [P] [US3] Constitución X. Puertos en los dos bordes: evidencia (prueba/gate con ruta) o hueco → fila de `afirmaciones.md` e informe §4.1
 
 ### Documentos del MVP
 
-- [ ] T227 [US3] `03` §10 criterios de aceptación, uno por fila → informe §4.2
-- [ ] T228 [P] [US3] `01` §4 (las cinco autoridades) y §4.3 (evidencia) y §4.5 (política comercial) → §4.3
-- [ ] T229 [P] [US3] `01` §5 (cadena de evidencia `ASSIGNED → EXPOSED → VERIFIED_ORDER → ATTRIBUTED_ORDER → RETURNED`) y §6 (identidades) → §4.3; S-03 (redención sin exposición) y S-04 (correlación confía en `sessionId`) reciben veredicto aquí
-- [ ] T230 [P] [US3] `01` §9 (garantías) y §10 (privacidad) → §4.3
-- [ ] T231 [P] [US3] `02` §4 (catálogo) y §5 (correlación A atribuye, B nunca, C no existe) → §4.3
-- [ ] T232 [P] [US3] `03` §4.5 (evidencia que sostiene un mensaje: sin escasez ni prueba social), §4.7 (memoria), §4.8 (escalera del incentivo: orden, D-B, incentivo sólo en precio), §4.11 (privacidad), §6 (D-A/D-B/D-C) → §4.3; S-02 (`commercial-policy-blocked` inalcanzable) recibe veredicto aquí
+- [x] T227 [US3] `03` §10 criterios de aceptación, uno por fila → informe §4.2
+- [x] T228 [P] [US3] `01` §4 (las cinco autoridades) y §4.3 (evidencia) y §4.5 (política comercial) → §4.3
+- [x] T229 [P] [US3] `01` §5 (cadena de evidencia `ASSIGNED → EXPOSED → VERIFIED_ORDER → ATTRIBUTED_ORDER → RETURNED`) y §6 (identidades) → §4.3; S-03 (redención sin exposición) y S-04 (correlación confía en `sessionId`) reciben veredicto aquí
+- [x] T230 [P] [US3] `01` §9 (garantías) y §10 (privacidad) → §4.3
+- [x] T231 [P] [US3] `02` §4 (catálogo) y §5 (correlación A atribuye, B nunca, C no existe) → §4.3
+- [x] T232 [P] [US3] `03` §4.5 (evidencia que sostiene un mensaje: sin escasez ni prueba social), §4.7 (memoria), §4.8 (escalera del incentivo: orden, D-B, incentivo sólo en precio), §4.11 (privacidad), §6 (D-A/D-B/D-C) → §4.3; S-02 (`commercial-policy-blocked` inalcanzable) recibe veredicto aquí
 
 ### Specs 001–013 (`FR`/`SC` → evidencia o hueco; `quickstart.md` § "Cambios respecto del plan" leído entero)
 
-- [ ] T233 [P] [US3] `specs/001-api-contract-toolchain/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T234 [P] [US3] `specs/002-gobernanza-contrato-codigo/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T235 [P] [US3] `specs/003-calidad-de-codigo/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T236 [P] [US3] `specs/004-protocolo-sdk-ingesta/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T237 [P] [US3] `specs/005-auditoria-calidad/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T238 [P] [US3] `specs/006-mapa-del-contrato/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T239 [P] [US3] `specs/007-asignacion-experimental/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T240 [P] [US3] `specs/008-casos-de-uso-y-errores/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T241 [P] [US3] `specs/009-dominio-rico/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T242 [P] [US3] `specs/010-catalogo-y-stock/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T243 [P] [US3] `specs/011-plano-de-decision-i/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T244 [P] [US3] `specs/012-plano-de-decision-ii/`: cada `FR`/`SC` con evidencia o hueco → §4.4
-- [ ] T245 [P] [US3] `specs/013-outcomes-ordenes-y-devoluciones/`: cada `FR`/`SC` con evidencia o hueco → §4.4; S-07 (`| undefined` explícito en outcomes) y S-08 (`Return` en `order.ts`, `Corroboration` clase) reciben veredicto aquí
-- [ ] T246 [US3] Marcadores: ¿hay decisiones tomadas en código que deberían estar marcadas y no lo están? (`check:markers` dice 0 abiertos / 2 propuestos); propuestas al dueño en el informe, sin escribir marcadores
-- [ ] T247 [US1] Refutación y `verify-finding` sobre `fase-4.json`; redactar informe §3.F (con la tabla S-01..S-12) y §4 completo
-- [ ] T248 [US4] Cierre de fase 4: `avance.md`, commit `docs(auditoria): fase 4 — cumplimiento funcional`, resumen al dueño
+- [x] T233 [P] [US3] `specs/001-api-contract-toolchain/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T234 [P] [US3] `specs/002-gobernanza-contrato-codigo/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T235 [P] [US3] `specs/003-calidad-de-codigo/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T236 [P] [US3] `specs/004-protocolo-sdk-ingesta/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T237 [P] [US3] `specs/005-auditoria-calidad/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T238 [P] [US3] `specs/006-mapa-del-contrato/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T239 [P] [US3] `specs/007-asignacion-experimental/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T240 [P] [US3] `specs/008-casos-de-uso-y-errores/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T241 [P] [US3] `specs/009-dominio-rico/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T242 [P] [US3] `specs/010-catalogo-y-stock/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T243 [P] [US3] `specs/011-plano-de-decision-i/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T244 [P] [US3] `specs/012-plano-de-decision-ii/`: cada `FR`/`SC` con evidencia o hueco → §4.4
+- [x] T245 [P] [US3] `specs/013-outcomes-ordenes-y-devoluciones/`: cada `FR`/`SC` con evidencia o hueco → §4.4; S-07 (`| undefined` explícito en outcomes) y S-08 (`Return` en `order.ts`, `Corroboration` clase) reciben veredicto aquí
+- [x] T246 [US3] Marcadores: ¿hay decisiones tomadas en código que deberían estar marcadas y no lo están? (`check:markers` dice 0 abiertos / 2 propuestos); propuestas al dueño en el informe, sin escribir marcadores
+- [x] T247 [US1] Refutación y `verify-finding` sobre `fase-4.json`; redactar informe §3.F (con la tabla S-01..S-12) y §4 completo
+- [x] T248 [US4] Cierre de fase 4: `avance.md`, commit `docs(auditoria): fase 4 — cumplimiento funcional`, resumen al dueño
 
 ---
 
