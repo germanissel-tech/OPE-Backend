@@ -4,11 +4,9 @@ import { describe, expect, it } from "vitest";
 import { Merchant, Unauthorized } from "../../../src/domain/merchant/index.js";
 import { asMerchantId, fail, ok } from "../../../src/domain/shared-kernel/index.js";
 import { CONSUMER_CAPABILITIES } from "../../../src/interface-adapters/http/security/capabilities.js";
-import {
-  makeIngestKeySecurity,
-  merchantOf,
-} from "../../../src/interface-adapters/http/security/ingest-key.js";
+import { makeIngestKeySecurity } from "../../../src/interface-adapters/http/security/ingest-key.js";
 import { makePlatformKeySecurity } from "../../../src/interface-adapters/http/security/platform-key.js";
+import { merchantOf } from "../../../src/interface-adapters/http/security/principal.js";
 import { SecurityError } from "../../../src/interface-adapters/http/typed.js";
 
 const built = Merchant.of({

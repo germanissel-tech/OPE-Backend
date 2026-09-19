@@ -4,7 +4,7 @@
 import { asProductId, asVariantId, type Product } from "../../../../domain/catalog/index.js";
 import { Money } from "../../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { toProblem } from "../../to-problem.js";
 import type {
   CatalogSummary,

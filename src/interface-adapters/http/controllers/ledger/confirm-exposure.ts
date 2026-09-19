@@ -3,7 +3,7 @@
 import { asDecisionId } from "../../../../domain/ledger/index.js";
 import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { toProblem } from "../../to-problem.js";
 import type {
   ConfirmExposureRequest,

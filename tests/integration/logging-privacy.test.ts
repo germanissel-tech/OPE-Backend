@@ -1,4 +1,4 @@
-// US2 (FR-016; 01-arquitectura-mvp.md §10.2): the IP is neither persisted nor logged; neither
+// Feature 004, US2 (FR-016; 01-arquitectura-mvp.md §10.2): the IP is neither persisted nor logged; neither
 // are the ingest key and the request body. The logger stream is captured and inspected.
 import { Writable } from "node:stream";
 import pino from "pino";

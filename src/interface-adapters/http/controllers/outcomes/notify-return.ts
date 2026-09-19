@@ -3,7 +3,7 @@
 // unavailable). The response says the order is RETURNED and whether it was attributed.
 import { asOrderId, type Order } from "../../../../domain/outcomes/index.js";
 import { idempotent, instantOf, linesOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { toProblem } from "../../to-problem.js";
 import type { NotifyReturnRequest, NotifyReturnResponse } from "../../../../application/outcomes/index.js";
 import type { UseCase } from "../../../../application/shared-kernel/index.js";

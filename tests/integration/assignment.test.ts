@@ -1,8 +1,9 @@
-// US2 and US3 (FR-010..FR-013, FR-020..FR-024, SC-002, SC-003; constitution III; ADR-022): the
+// Feature 007, US2 and US3 (FR-010..FR-013, FR-020..FR-024, SC-002, SC-003; constitution III; ADR-022): the
 // assignment is recorded with the first accepted batch, once; CONTROL runs the same pipeline
 // and always resolves NO_OP `control-arm`; the arm never travels as a field.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Experiment } from "../../src/domain/experiment/index.js";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
@@ -69,7 +70,7 @@ afterAll(async () => {
 });
 const batchFor = (visitorId: string, n: number, from = 1) => batchOf(n, from, { occurredAt: NOW, visitorId });
 const find = (visitorId: string) =>
-  app.ports.assignments.find("m_a" as never, EXPERIMENT_ID as never, visitorId as never);
+  app.ports.assignments.find(asMerchantId("m_a"), asExperimentId(EXPERIMENT_ID), asVisitorId(visitorId));
 
 describe("assignment (ASSIGNED)", () => {
   it("the first accepted batch records one assignment with merchant, experiment, visitor, arm and the clock's instant", async () => {
@@ -117,14 +118,20 @@ describe("assignment (ASSIGNED)", () => {
     const res = await postEvents(app.app, batchFor(control, 2), { key: KEY });
     const body = json(res) as IngestResult;
     expect(body).toMatchObject({ accepted: 2, decision: { outcome: "NO_OP", reason: "control-arm" } });
-    const decision = await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_a"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "CONTROL" });
   });
 
   it("TREATMENT goes through the decision plane (no signal → barrier-unclear) and records the arm too", async () => {
     const body = json(await postEvents(app.app, batchFor(treatment, 1), { key: KEY })) as IngestResult;
     expect(body.decision.reason).toBe("barrier-unclear");
-    const decision = await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_a"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "TREATMENT" });
   });
 
@@ -132,9 +139,16 @@ describe("assignment (ASSIGNED)", () => {
     const body = json(await postEvents(app.app, batchFor(control, 1), { key: "key-b-1" })) as IngestResult;
     expect(body.decision.reason).toBe("no-active-experiment");
     expect(
-      await app.ports.assignments.find("m_b" as never, EXPERIMENT_ID as never, control as never),
+      await app.ports.assignments.find(
+        asMerchantId("m_b"),
+        asExperimentId(EXPERIMENT_ID),
+        asVisitorId(control),
+      ),
     ).toBeUndefined();
-    const decision = await app.ports.decisions.find("m_b" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_b"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toBeUndefined();
   });
 

@@ -1,4 +1,4 @@
-// FR-040: the server is governed by the bundled contract; a missing bundle is a clear error that
+// Feature 004 — FR-040: the server is governed by the bundled contract; a missing bundle is a clear error that
 // keeps the original cause, not a YAML parse of nothing.
 import { describe, expect, it } from "vitest";
 import { loadContract } from "../../../src/infrastructure/http/load-contract.js";

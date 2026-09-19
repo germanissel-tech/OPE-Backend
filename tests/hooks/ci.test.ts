@@ -1,4 +1,4 @@
-// US6 (FR-050; ADR-016): CI runs the quality gates and the mutation gate on every change, and a
+// Feature 005, US6 (FR-050; ADR-016): CI runs the quality gates and the mutation gate on every change, and a
 // scheduled job mutates the whole repository informatively. Static verification of the workflow.
 import { readFileSync } from "node:fs";
 import path from "node:path";

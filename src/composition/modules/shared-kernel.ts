@@ -11,7 +11,7 @@ export interface SharedKernelPorts {
 }
 
 /** The system clock and pino to stdout; tests override the clock and the logger. */
-export const systemKernelPorts: Bindings<SharedKernelPorts> = {
+export const localKernelPorts: Bindings<SharedKernelPorts> = {
   clock: () => systemClock,
   logger: () => pinoLogger(),
 };

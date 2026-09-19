@@ -1,4 +1,4 @@
-// US4 (FR-031, FR-052; ADR-007): exposure invariants, with fake ledgers.
+// Feature 004, US4 (FR-031, FR-052; ADR-007): exposure invariants, with fake ledgers.
 import { describe, expect, it } from "vitest";
 import {
   ConfirmExposureUseCase,

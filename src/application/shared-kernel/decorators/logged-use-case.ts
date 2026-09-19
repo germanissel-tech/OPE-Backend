@@ -14,11 +14,14 @@ export interface LoggedUseCaseDependencies {
 
 const OK = "ok";
 
-/** The code of a failed Result, `ok` for anything else (a success or a response that is not a Result). */
+/**
+ * The code of a failed Result, `ok` for anything else (a success, or a response that is not a
+ * Result). Read without a cast: only an object can carry an `error`, and only a DomainError has a code.
+ */
 function outcomeOf(response: unknown): string {
-  const result = response as { ok?: unknown; error?: unknown } | null | undefined;
-  if (result?.ok !== false) return OK;
-  return result.error instanceof DomainError ? result.error.code : OK;
+  const error: unknown =
+    typeof response === "object" && response !== null ? Reflect.get(response, "error") : undefined;
+  return error instanceof DomainError ? error.code : OK;
 }
 
 export class LoggedUseCase<Request, Response> implements UseCase<Request, Response> {

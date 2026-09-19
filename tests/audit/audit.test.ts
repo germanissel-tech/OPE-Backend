@@ -1,4 +1,4 @@
-// US7 (FR-060, FR-064, FR-066): the auditing skill's deterministic half. run-gates reports the
+// Feature 005, US7 (FR-060, FR-064, FR-066): the auditing skill's deterministic half. run-gates reports the
 // known defect of each eval fixture; verify-finding accepts the expected finding and rejects one
 // whose location, source or severity does not hold.
 import { spawnSync } from "node:child_process";

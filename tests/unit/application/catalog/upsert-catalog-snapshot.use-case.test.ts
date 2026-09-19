@@ -1,4 +1,4 @@
-// US1 (FR-003; ADR-020, ADR-025): replace, repeat, conflict and out-of-order, with a fake store.
+// Feature 010, US1 (FR-003; ADR-020, ADR-025): replace, repeat, conflict and out-of-order, with a fake store.
 import { describe, expect, it } from "vitest";
 import {
   UpsertCatalogSnapshotUseCase,
@@ -111,7 +111,7 @@ describe("UpsertCatalogSnapshotUseCase", () => {
       ok: false,
       error: { code: "idempotency-conflict", module: "shared-kernel" },
     });
-    expect(store.held()?.variant(asProductId("P1"), asVariantId("P1-M"))?.variant.price.amount).toBe("10.00");
+    expect(store.held()?.product(asProductId("P1"))?.variants[0]?.price.amount).toBe("10.00");
   });
 
   it("[invariant:catalog-out-of-order] an older capture than the current one is rejected, current intact", async () => {

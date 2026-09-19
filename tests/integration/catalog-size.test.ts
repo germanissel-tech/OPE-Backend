@@ -1,4 +1,4 @@
-// SC-004 (ADR-025): a pilot-sized catalogue (5 000 products × 10 variants) is accepted in one
+// Feature 010 — SC-004 (ADR-025): a pilot-sized catalogue (5 000 products × 10 variants) is accepted in one
 // operation. Reported measurement on the local profile; it fails only past a generous budget.
 import { performance } from "node:perf_hooks";
 import { afterEach, describe, expect, it } from "vitest";

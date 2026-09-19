@@ -1,4 +1,4 @@
-// US3 (FR-020) and US4 (FR-030): types in the JavaScript scripts and hardened compiler.
+// Feature 003, US3 (FR-020) and US4 (FR-030): types in the JavaScript scripts and hardened compiler.
 // Each fixture is compiled with a temporary tsconfig extending the repo one and including only
 // that file; the expected error code is asserted.
 import { execFileSync } from "node:child_process";

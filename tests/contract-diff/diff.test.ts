@@ -1,4 +1,4 @@
-// FR-020 / US1 scenarios 11-12 and edge cases: every class of incompatible change fails the diff
+// Feature 001 — FR-020 / US1 scenarios 11-12 and edge cases: every class of incompatible change fails the diff
 // when the major version did not increase; compatible changes pass; with a major bump it passes;
 // without a base contract it is skipped with a warning.
 import { execFileSync } from "node:child_process";

@@ -179,6 +179,18 @@ describe("Order — the record, the return and the lines", () => {
     expect(bare.returned).toBeUndefined();
   });
 
+  it("correlated attaches what OPE derived and nothing else; without a correlation the order stays pending", () => {
+    const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
+    const attributed = valid().correlated(correlation, undefined);
+    expect(attributed.correlation).toBe(correlation);
+    expect(attributed.redemption).toBeUndefined();
+    expect(attributed.status()).toBe("ATTRIBUTED_ORDER");
+    expect(attributed.sameContentAs(valid())).toBe(true);
+    const pending = valid().correlated(undefined, undefined);
+    expect(pending.correlation).toBeUndefined();
+    expect(pending.status()).toBe("PENDING_CORRELATION");
+  });
+
   it("withReturn keeps everything and adds the return; status stays", () => {
     const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
     const order = Order.rehydrate({ ...valid().record(), correlation });

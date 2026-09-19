@@ -102,7 +102,7 @@ describe("platform signature — user story 6", () => {
       expect(res.statusCode, name).toBe(401);
       expect(json(res), name).toMatchObject({ type: `urn:ope:problem:${type}`, status: 401 });
     }
-    expect(await app.ports.orders.find("m_s" as never, "S-1" as never)).toBeUndefined();
+    expect(await app.ports.orders.find(asMerchantId("m_s"), asOrderId("S-1"))).toBeUndefined();
   });
 
   it("3. a rotation: the second secret is accepted too", async () => {

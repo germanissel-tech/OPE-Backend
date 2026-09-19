@@ -1,4 +1,4 @@
-// US4 (FR-030..FR-033; ADR-016): the mutation gate mutates only the changed src/ lines, skips
+// Feature 005, US4 (FR-030..FR-033; ADR-016): the mutation gate mutates only the changed src/ lines, skips
 // with a reason when there is nothing to mutate, and treats a runner that ran zero tests as broken.
 import path from "node:path";
 import { pathToFileURL } from "node:url";

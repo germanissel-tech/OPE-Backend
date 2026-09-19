@@ -1,4 +1,4 @@
-// US3 (FR-020, FR-022; ADR-023): the root of business errors and the Result constructors.
+// Feature 008, US3 (FR-020, FR-022; ADR-023): the root of business errors and the Result constructors.
 import { describe, expect, it } from "vitest";
 import { SessionVisitorMismatch } from "../../../../src/domain/ingestion/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";

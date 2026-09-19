@@ -1,4 +1,4 @@
-// FR-052 / SC-001: every contract verification rule has a fixture that violates it and a test
+// Feature 001 — FR-052 / SC-001: every contract verification rule has a fixture that violates it and a test
 // confirming that the verification fails naming that rule, with file and position.
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";

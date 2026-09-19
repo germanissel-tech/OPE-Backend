@@ -1,4 +1,4 @@
-// US8 (FR-070, SC-008; ADR-017): the compiler running `build`/`typecheck` is TypeScript 7 and
+// Feature 005, US8 (FR-070, SC-008; ADR-017): the compiler running `build`/`typecheck` is TypeScript 7 and
 // the API the tools import (typescript-eslint, openapi-typescript, dependency-cruiser) is 6.0,
 // installed with the alias Microsoft documents for the side-by-side setup.
 import { execFileSync } from "node:child_process";

@@ -1,4 +1,4 @@
-// US3 scenarios 4 and 5: the drift check fails if the generated types are outdated or were
+// Feature 001, US3 scenarios 4 and 5: the drift check fails if the generated types are outdated or were
 // edited by hand, and passes when they match the regeneration.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

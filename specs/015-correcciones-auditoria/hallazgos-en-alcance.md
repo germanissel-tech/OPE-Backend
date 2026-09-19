@@ -63,3 +63,8 @@ Extraídos de `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json` (`status: conf
 ## Rechazados
 
 - F-041 (`src/composition/modules/ingestion.ts:10`): la propuesta rehace `wiring.ts` y los perfiles por un beneficio de legibilidad; la feature de persistencia toca los perfiles de todos modos (R-13).
+
+## Hechos para el anexo de cierre
+
+- F-024 (`tests/integration/ingest-events.test.ts`): la aserción propuesta (`bySession` con una sola decisión tras el reenvío) **falla**: el sistema decide cada lote y registra su decisión también cuando todos los eventos son duplicados; la deduplicación es de eventos, no de decisiones. La prueba pasa a afirmar lo que el sistema hace (dos decisiones con ids distintos, ningún evento registrado dos veces) y el hecho queda para la feature de persistencia, que decide si una decisión sobre un lote sin eventos nuevos debe registrarse.
+- F-041: rechazado con motivo (arriba); riesgo anotado para la feature de persistencia, que va a tocar `wiring.ts` y los perfiles.

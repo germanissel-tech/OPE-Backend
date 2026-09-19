@@ -1,4 +1,4 @@
-// US5 (FR-040; ADR-023): the use cases served by HTTP are wrapped by the logging decorator in
+// Feature 008, US5 (FR-040; ADR-023): the use cases served by HTTP are wrapped by the logging decorator in
 // composition: one operational entry per execution with name, duration and outcome.
 import { afterEach, describe, expect, it } from "vitest";
 import { batchOf, eventOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";

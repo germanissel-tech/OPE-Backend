@@ -1,4 +1,4 @@
-// US5 (FR-040; ADR-014): only the merchant's store can talk to the backend from the browser.
+// Feature 004, US5 (FR-040; ADR-014): only the merchant's store can talk to the backend from the browser.
 // The preflight accepts any registered origin (it carries no credential); the real request
 // demands the pair credential + origin.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

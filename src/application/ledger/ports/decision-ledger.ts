@@ -7,9 +7,13 @@ import type { MerchantId, Result, SessionId } from "../../../domain/shared-kerne
 
 export type RecordResult = Result<void, LedgerUnavailable>;
 
-export interface DecisionLedger {
-  record(decision: Decision): Promise<RecordResult>;
-  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;
+/** What the ledger knows of a session: the only question the correlation of an order asks (ADR-028). */
+export interface SessionDecisions {
   /** The decisions of a session of the merchant, in the order they were recorded; empty if unknown. */
   bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly Decision[]>;
+}
+
+export interface DecisionLedger extends SessionDecisions {
+  record(decision: Decision): Promise<RecordResult>;
+  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;
 }

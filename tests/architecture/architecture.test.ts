@@ -1,4 +1,4 @@
-// FR-001, FR-002, FR-004 (ADR-013): rings, modules and the context map are enforced.
+// Feature 004 — FR-001, FR-002, FR-004 (ADR-013): rings, modules and the context map are enforced.
 // (a) src/ has no violations; (b) every rule catches the violation of its fixture.
 import { createRequire } from "node:module";
 import path from "node:path";

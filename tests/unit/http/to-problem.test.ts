@@ -1,4 +1,4 @@
-// US4 (FR-030; ADR-023): one translation from any business error to Problem Details — type
+// Feature 008, US4 (FR-030; ADR-023): one translation from any business error to Problem Details — type
 // from the code, status and title from the catalogue, detail from the message, headers by code.
 import { describe, expect, it } from "vitest";
 import { SessionVisitorMismatch, EventTimestampOutOfRange } from "../../../src/domain/ingestion/index.js";

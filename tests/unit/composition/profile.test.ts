@@ -3,6 +3,7 @@
 // (and the overrides it adopted) in creation order for shutdown.
 import { describe, expect, it } from "vitest";
 import { binder } from "../../../src/composition/profile.js";
+import { asDecisionId } from "../../../src/domain/ledger/index.js";
 import type { DecisionIdGenerator } from "../../../src/application/ledger/index.js";
 import type { Clock } from "../../../src/application/shared-kernel/index.js";
 
@@ -10,7 +11,7 @@ const closableClock = (name: string, closed: string[]): Clock & { close(): void 
   now: () => new Date(0),
   close: () => closed.push(name),
 });
-const ids: DecisionIdGenerator = { next: () => "dec_x" as never };
+const ids: DecisionIdGenerator = { next: () => asDecisionId("dec_x") };
 
 describe("binder", () => {
   it("builds every port of a table through its factory, once, in key order", () => {

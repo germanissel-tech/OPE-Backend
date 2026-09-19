@@ -1,4 +1,4 @@
-// US3 (FR-024; ADR-023): every business error code is unique across modules and exists in the
+// Feature 008, US3 (FR-024; ADR-023): every business error code is unique across modules and exists in the
 // problem type catalogue with the status the HTTP adapter will answer. The domain never imports
 // the catalogue; this test is the bridge.
 import { readdirSync, readFileSync } from "node:fs";

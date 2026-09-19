@@ -1,5 +1,6 @@
-// Public API of the shared-kernel module (domain): branded identities, results and errors, time,
-// money, the vocabularies shared by modules (arms, barriers, anchors, NO_OP reasons) and the
+// Public API of the shared-kernel module (domain): what modules that cannot depend on each
+// other share — branded identities, Result/DomainError, Money, time units, the closed
+// vocabularies replicated from the contract (arms, barriers, anchors, NO_OP reasons) and the
 // predicates every module judges numbers and secrets with.
 export { asExperimentId, asMerchantId, asSessionId, asVisitorId } from "./ids.js";
 export type { Branded, ExperimentId, MerchantId, SessionId, VisitorId } from "./ids.js";

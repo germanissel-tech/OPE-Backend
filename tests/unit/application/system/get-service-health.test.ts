@@ -1,6 +1,7 @@
+// Feature 004, US1 (FR-001): the health operation answers with the contract version and the instant of the clock it was given.
 import { describe, expect, it } from "vitest";
-import { GetServiceHealthUseCase } from "../../src/application/system/index.js";
-import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
+import { GetServiceHealthUseCase } from "../../../../src/application/system/index.js";
+import { makeGetHealth } from "../../../../src/interface-adapters/http/controllers/system/get-health.js";
 
 describe("getHealth", () => {
   const fixed = new Date("2026-09-16T12:00:00.000Z");

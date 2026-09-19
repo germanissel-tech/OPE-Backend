@@ -4,7 +4,7 @@
 import { asEventId, type Event, type PageContext } from "../../../../domain/ingestion/index.js";
 import { asSessionId, asVisitorId, Money } from "../../../../domain/shared-kernel/index.js";
 import { instantOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { HTTP_STATUS } from "../../status.js";
 import { toProblem } from "../../to-problem.js";
 import type { IngestBatchRequest, IngestBatchResponse } from "../../../../application/ingestion/index.js";

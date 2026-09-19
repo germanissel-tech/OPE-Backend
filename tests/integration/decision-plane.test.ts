@@ -2,6 +2,8 @@
 // decision plane through HTTP — the first INTERVENE, the reasons of the policy, what the SDK
 // sees and what the ledger keeps, and the evidence chain up to the exposure.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
 import {
   catalogProductOf,
@@ -80,7 +82,8 @@ const ingest = async (events: Record<string, unknown>[], session = "ses_00000001
   return json(res) as IngestResult;
 };
 
-const recorded = (decisionId: string) => app.ports.decisions.find("m_a" as never, decisionId as never);
+const recorded = (decisionId: string) =>
+  app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(decisionId));
 
 describe("decision plane — user story 1", () => {
   it("1. two size-selector interactions and the size guide → INTERVENE at the size selector; the ledger keeps the reasoning", async () => {
@@ -219,14 +222,16 @@ describe("decision plane — user story 4, the evidence chain", () => {
     const again = await postExposure(app.app, exposure, { key: KEY });
     expect(again.statusCode).toBe(200);
     expect(json(again)).toMatchObject({ status: "already-recorded" });
-    expect(await app.ports.exposures.find("m_a" as never, body.decision.decisionId as never)).toMatchObject({
+    expect(
+      await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
+    ).toMatchObject({
       decisionId: body.decision.decisionId,
       anchor: "size_selector",
     });
     const assignment = await app.ports.assignments.find(
-      "m_a" as never,
-      "exp_a_000001" as never,
-      "vis_00000001" as never,
+      asMerchantId("m_a"),
+      asExperimentId("exp_a_000001"),
+      asVisitorId("vis_00000001"),
     );
     expect(assignment?.arm).toBe("TREATMENT");
   });

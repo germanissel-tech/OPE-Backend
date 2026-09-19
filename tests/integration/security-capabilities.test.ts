@@ -1,4 +1,4 @@
-// US4 (FR-021, FR-022, FR-031; ADR-025): the two credentials are not interchangeable, a
+// Feature 010, US4 (FR-021, FR-022, FR-031; ADR-025): the two credentials are not interchangeable, a
 // merchant without platform keys still starts, and the platform key never reaches the log.
 import { afterEach, describe, expect, it } from "vitest";
 import { problemOf } from "../helpers/json.js";

@@ -48,19 +48,13 @@ export interface CatalogSnapshotRecord {
   products: readonly Product[];
 }
 
-/** A variant with the product it belongs to. */
-export interface VariantOfProduct {
-  product: Product;
-  variant: Variant;
-}
-
 export class CatalogSnapshot {
   readonly merchantId: MerchantId;
   readonly capturedAt: Date;
   readonly receivedAt: Date;
   readonly products: readonly Product[];
   readonly #byProduct: ReadonlyMap<ProductId, Product>;
-  readonly #byVariant: ReadonlyMap<VariantId, VariantOfProduct>;
+  readonly #variants: number;
 
   private constructor(record: CatalogSnapshotRecord) {
     this.merchantId = record.merchantId;
@@ -68,13 +62,13 @@ export class CatalogSnapshot {
     this.receivedAt = record.receivedAt;
     this.products = record.products;
     const byProduct = new Map<ProductId, Product>();
-    const byVariant = new Map<VariantId, VariantOfProduct>();
+    let variants = 0;
     for (const product of record.products) {
       byProduct.set(product.productId, product);
-      for (const variant of product.variants) byVariant.set(variant.variantId, { product, variant });
+      variants += product.variants.length;
     }
     this.#byProduct = byProduct;
-    this.#byVariant = byVariant;
+    this.#variants = variants;
   }
 
   /**
@@ -108,14 +102,8 @@ export class CatalogSnapshot {
     return this.#byProduct.get(productId);
   }
 
-  /** The variant, only if it belongs to that product. */
-  variant(productId: ProductId, variantId: VariantId): VariantOfProduct | undefined {
-    const found = this.#byVariant.get(variantId);
-    return found?.product.productId === productId ? found : undefined;
-  }
-
   counts(): { products: number; variants: number } {
-    return { products: this.#byProduct.size, variants: this.#byVariant.size };
+    return { products: this.#byProduct.size, variants: this.#variants };
   }
 
   /** Age of the picture at `now`, in ms; never negative (a capture ahead of the clock is "just now"). */

@@ -23,7 +23,7 @@ import type {
   DecisionSelection,
   EvidenceRecord,
 } from "../../../domain/ledger/index.js";
-import type { Arm, MerchantId, NoOpReason } from "../../../domain/shared-kernel/index.js";
+import type { Arm, Barrier, MerchantId, NoOpReason } from "../../../domain/shared-kernel/index.js";
 import type { BarrierInference } from "../../barrier/index.js";
 import type { ProductTruth, ProductTruthService } from "../../catalog/index.js";
 import type { AssignmentService } from "../../experiment/index.js";
@@ -184,7 +184,7 @@ export class DecisionService implements DecisionPlane {
 }
 
 /** What put the barrier on the table: the rules, the abandonment fallback, or nothing. */
-function triggerOf(inferred: string | undefined, selected: string | undefined): Trigger {
+function triggerOf(inferred: Barrier | undefined, selected: Barrier | undefined): Trigger {
   if (inferred !== undefined) return "rules";
   return selected === undefined ? "none" : "abandonment";
 }
@@ -239,7 +239,7 @@ function evidenceOf(found: ProductTruth): Evidence {
     };
   }
   const attributes = new Map(found.product.attributes.map((a) => [a.key, a.value]));
-  const stockAndPrice = found.freshness.stockAndPrice;
+  const stockAndPrice = found.stockAndPrice;
   const stockAndPriceFresh = stockAndPrice === "fresh";
   if (found.kind === "known-product") {
     return {

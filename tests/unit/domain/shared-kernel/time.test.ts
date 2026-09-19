@@ -1,4 +1,4 @@
-// ADR-016 (FR-012): named units of time replace unit arithmetic in the domain.
+// Feature 005 — ADR-016 (FR-012): named units of time replace unit arithmetic in the domain.
 import { describe, expect, it } from "vitest";
 import {
   CLOCK_SKEW_TOLERANCE_MS,

@@ -236,7 +236,7 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 
 - Sin `any` explícito ni valores `any` (`no-unsafe-*`), sin `!`, promesas siempre manejadas,
   `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
-  se lee como `unknown` y se estrecha (ver `build-server.ts`, `tests/helpers/json.ts`).
+  se lee como `unknown` y se estrecha (ver `infrastructure/http/dispatch.ts`, `tests/helpers/json.ts`).
 - Una excepción va **en la línea**, con motivo: `// eslint-disable-next-line <regla> -- <motivo>`.
   Sin motivo o sin uso, falla. Objetivo permanente: `Lint exceptions: 0`.
 - Scripts JavaScript (`scripts/`, `contracts/rules/functions/`) se verifican con `checkJs`:
@@ -334,7 +334,7 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
   cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
   antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
-  `build-server.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
+  `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
   los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
   compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
   `MessageAuthenticator` (`node:crypto` en `gateways/merchant/`). Toda operación con

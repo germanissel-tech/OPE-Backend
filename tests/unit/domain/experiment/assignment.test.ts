@@ -1,4 +1,4 @@
-// US1 (FR-002..FR-005, SC-001; constitution III; ADR-022): the assignment is deterministic,
+// Feature 007, US1 (FR-002..FR-005, SC-001; constitution III; ADR-022): the assignment is deterministic,
 // stable, splits as configured and is independent between merchants and experiments.
 import { describe, expect, it } from "vitest";
 import { Experiment, type ExperimentRecord } from "../../../../src/domain/experiment/index.js";

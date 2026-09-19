@@ -1,4 +1,4 @@
-// US5 (FR-040, FR-041; ADR-016): the rings have a shape, not only a direction. Each rule runs on
+// Feature 005, US5 (FR-040, FR-041; ADR-016): the rings have a shape, not only a direction. Each rule runs on
 // src/ (must pass) and on a fixture that violates it (must fail naming the file).
 import { existsSync } from "node:fs";
 import path from "node:path";

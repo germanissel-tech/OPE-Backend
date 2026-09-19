@@ -1,4 +1,4 @@
-// FR-022 / FR-023: countable markers and release gate.
+// Feature 002 — FR-022 / FR-023: countable markers and release gate.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

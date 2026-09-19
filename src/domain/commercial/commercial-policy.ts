@@ -260,7 +260,7 @@ function wouldHave(choice: Choice): { chosen?: string; blocked?: Blocked } {
 /**
  * Where the ladder walk starts among the acceptable candidates: at the reassurance when the
  * abandonment itself put the barrier on the table (03 §4.8), one step up when an abandonment
- * confirmed an inferred barrier (D-B), at the lowest otherwise.
+ * confirmed an inferred barrier (03-alcance-mvp.md §6, D-B), at the lowest otherwise.
  */
 function startOf({ trigger, abandoned }: CommercialInput, acceptable: readonly Candidate[]): number {
   if (trigger === "abandonment")

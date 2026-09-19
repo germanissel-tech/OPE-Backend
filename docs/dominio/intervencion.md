@@ -10,4 +10,4 @@ fuente: mvp:03-alcance-mvp.md#4.4
 
 > Mensajes **curados y versionados**, escritos y revisados por humanos, no generados en tiempo real. Embebidos en el punto de fricción.
 
-En el contrato, `Intervention` es el lugar reservado en la decisión (`messageVersionId`, `anchor`); su forma definitiva llega con el plano de decisión.
+En el contrato y en `src/domain/shared-kernel/intervention.ts`, `Intervention` es `{ messageVersionId, anchor, incentive? }` (ADR-026, ADR-027): el anclaje donde se renderiza, la versión del mensaje curado (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el catálogo de mensajes) y, cuando la política comercial lo concede, el incentivo.

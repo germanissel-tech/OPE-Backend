@@ -1,4 +1,4 @@
-// US5 (FR-030): the schema of a media type is always a $ref. Redocly assertion (redocly.yaml),
+// Feature 002, US5 (FR-030): the schema of a media type is always a $ref. Redocly assertion (redocly.yaml),
 // verified on the source files, with file and line.
 import { execFileSync } from "node:child_process";
 import path from "node:path";

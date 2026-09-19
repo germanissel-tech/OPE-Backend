@@ -1,4 +1,4 @@
-// FR-011..FR-013: the ubiquitous language is verified against the contract.
+// Feature 002 — FR-011..FR-013: the ubiquitous language is verified against the contract.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

@@ -1,4 +1,4 @@
-// FR-003: every declared invariant has a test named by its slug.
+// Feature 002 — FR-003: every declared invariant has a test named by its slug.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

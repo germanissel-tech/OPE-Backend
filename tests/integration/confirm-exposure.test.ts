@@ -1,4 +1,4 @@
-// US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
+// Feature 004, US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
@@ -89,12 +89,16 @@ describe("POST /v1/exposures", () => {
     const second = await postExposure(app.app, exposure("dec_intervene1"), { key: "key-a-1" });
     expect(second.statusCode).toBe(200);
     expect(json(second)).toEqual({ decisionId: "dec_intervene1", status: "already-recorded" });
-    expect(await app.ports.exposures.find("m_a" as never, "dec_intervene1" as never)).toMatchObject({
-      decisionId: "dec_intervene1",
-      anchor: "size_selector",
-      exposedAt: new Date(NOW),
-    });
-    expect(await app.ports.exposures.find("m_b" as never, "dec_intervene1" as never)).toBeUndefined();
+    expect(await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId("dec_intervene1"))).toMatchObject(
+      {
+        decisionId: "dec_intervene1",
+        anchor: "size_selector",
+        exposedAt: new Date(NOW),
+      },
+    );
+    expect(
+      await app.ports.exposures.find(asMerchantId("m_b"), asDecisionId("dec_intervene1")),
+    ).toBeUndefined();
   });
 
   it("extra field → 400; no key → 401; Origin of another merchant → 403", async () => {

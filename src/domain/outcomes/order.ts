@@ -117,6 +117,11 @@ export class Order implements OrderRecord {
     return this.correlation === undefined ? "PENDING_CORRELATION" : "ATTRIBUTED_ORDER";
   }
 
+  /** The same order, with what OPE derived when it recorded it (decided once, ADR-028). */
+  correlated(correlation: Correlation | undefined, redemption: IncentiveRedemption | undefined): Order {
+    return new Order({ ...this.record(), correlation, redemption });
+  }
+
   /** The same order, returned. */
   withReturn(returned: Return): Order {
     return new Order({ ...this.record(), returned });

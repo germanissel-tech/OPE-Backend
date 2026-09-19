@@ -1,4 +1,4 @@
-// FR-053, SC-003: ingestion latency measured by percentile on the local profile (memory ledgers).
+// Feature 004 — FR-053, SC-003: ingestion latency measured by percentile on the local profile (memory ledgers).
 // It is a reported measurement, not an SLA: if CI turns out noisy, the plan's policy is to relax
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";

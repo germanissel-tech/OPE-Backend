@@ -22,7 +22,7 @@ import {
   type SessionId,
 } from "../../../domain/shared-kernel/index.js";
 import type { Decision, LedgerUnavailable } from "../../../domain/ledger/index.js";
-import type { DecisionLedger } from "../../ledger/index.js";
+import type { SessionDecisions } from "../../ledger/index.js";
 import type { Clock, Logger, UseCase } from "../../shared-kernel/index.js";
 import type { CorroborationLedger } from "../ports/corroboration-ledger.js";
 import type { OrderLedger } from "../ports/order-ledger.js";
@@ -51,7 +51,8 @@ export type NotifyOrderResponse = Result<
 export interface NotifyOrderDependencies {
   clock: Clock;
   orders: OrderLedger;
-  decisions: DecisionLedger;
+  /** The slice of the decision ledger the correlation reads (ADR-028); the whole ledger satisfies it. */
+  decisions: SessionDecisions;
   corroborations: CorroborationLedger;
   logger: Logger;
 }
@@ -83,7 +84,7 @@ export class NotifyOrderUseCase implements UseCase<NotifyOrderRequest, NotifyOrd
     const correlation =
       request.sessionId === undefined ? undefined : Correlation.of(request.sessionId, known);
     const redemption = IncentiveRedemption.of(request.incentive, correlation !== undefined, known);
-    const order = Order.rehydrate({ ...built.value.record(), correlation, redemption });
+    const order = built.value.correlated(correlation, redemption);
     const recorded = await orders.record(order);
     if (!recorded.ok) return fail(recorded.error);
     const { outcome, order: kept } = recorded.value;

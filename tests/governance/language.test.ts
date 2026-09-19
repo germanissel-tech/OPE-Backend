@@ -1,4 +1,4 @@
-// US1 (FR-002..FR-004; ADR-015): Spanish in comments, strings and contract prose fails the
+// Feature 005, US1 (FR-002..FR-004; ADR-015): Spanish in comments, strings and contract prose fails the
 // build; identifiers are never examined; `lang:es -- reason` allows a line and is counted.
 import { readFileSync } from "node:fs";
 import path from "node:path";

@@ -1,4 +1,4 @@
-// US3 (FR-022, FR-025; ADR-023, ADR-026): the use case returns typed errors, deduplicates and
+// Feature 008, US3 (FR-022, FR-025; ADR-023, ADR-026): the use case returns typed errors, deduplicates and
 // hands the valid batch to the decision plane, with fake ports.
 import { describe, expect, it } from "vitest";
 import {

@@ -1,4 +1,4 @@
-// US2 (FR-011, FR-013, FR-050): the assignment ledger in memory keeps one assignment per
+// Feature 007, US2 (FR-011, FR-013, FR-050): the assignment ledger in memory keeps one assignment per
 // merchant, experiment and visitor; the first record wins; nothing crosses merchants.
 import { describe, expect, it } from "vitest";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../../src/domain/shared-kernel/index.js";

@@ -1,4 +1,4 @@
-// US4: self-contained static documentation from the contract; deterministic; refuses if the
+// Feature 001, US4: self-contained static documentation from the contract; deterministic; refuses if the
 // contract does not pass verification (FR-032, SC-006).
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";

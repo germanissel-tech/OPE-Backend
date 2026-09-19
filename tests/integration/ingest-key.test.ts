@@ -1,4 +1,4 @@
-// US5 (FR-010, FR-017; ADR-014): the ingest credential identifies the merchant before anything else.
+// Feature 004, US5 (FR-010, FR-017; ADR-014): the ingest credential identifies the merchant before anything else.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { problemOf } from "../helpers/json.js";
 import { batchOf, postEvents, sharedTestApp, type SharedApp } from "../helpers/test-app.js";

@@ -1,4 +1,4 @@
-// US1 (FR-002; ADR-007, ADR-025): the invariants of a snapshot, enforced by construction, and
+// Feature 010, US1 (FR-002; ADR-007, ADR-025): the invariants of a snapshot, enforced by construction, and
 // what a snapshot answers about its products and variants.
 import { describe, expect, it } from "vitest";
 import {
@@ -44,8 +44,7 @@ describe("CatalogSnapshot.of", () => {
     if (!built.ok) return;
     expect(built.value.counts()).toEqual({ products: 2, variants: 2 });
     expect(built.value.product(asProductId("P1"))?.title).toBe("Product P1");
-    expect(built.value.variant(asProductId("P1"), asVariantId("P1-M"))?.variant.size).toBe("M");
-    expect(built.value.variant(asProductId("P2"), asVariantId("P1-M"))).toBeUndefined();
+    expect(built.value.product(asProductId("P1"))?.variants.map((v) => v.size)).toEqual(["M"]);
     expect(built.value.product(asProductId("P9"))).toBeUndefined();
   });
 

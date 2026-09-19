@@ -1,13 +1,7 @@
 // Public API of the catalogue module (domain): the snapshot (which answers about its products
 // and variants) and its identities.
 export { CatalogSnapshot } from "./catalog-snapshot.js";
-export type {
-  Attribute,
-  CatalogSnapshotRecord,
-  Product,
-  Variant,
-  VariantOfProduct,
-} from "./catalog-snapshot.js";
+export type { Attribute, CatalogSnapshotRecord, Product, Variant } from "./catalog-snapshot.js";
 export {
   CatalogCapturedInFuture,
   CatalogDuplicateProductId,

@@ -1,4 +1,4 @@
-// US1 and US2 (FR-001..FR-007, FR-020, FR-024; ADR-025): the platform replaces the catalogue
+// Feature 010, US1 and US2 (FR-001..FR-007, FR-020, FR-024; ADR-025): the platform replaces the catalogue
 // with its credential; invariants and idempotency answer with their problem types; the truth
 // is readable right after.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -45,7 +45,7 @@ describe("PUT /v1/catalog", () => {
     expect(truth).toMatchObject({
       kind: "known",
       variant: { size: "M", available: true },
-      freshness: { stockAndPrice: "fresh" },
+      stockAndPrice: "fresh",
     });
   });
 

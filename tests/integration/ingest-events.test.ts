@@ -1,5 +1,7 @@
-// US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
+// Feature 004, US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId, asSessionId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,
@@ -64,13 +66,19 @@ describe("POST /v1/events", () => {
     expect(body.decision.sessionId).toBe("ses_00000001");
   });
 
-  it("duplicate event: resending the same batch → all `duplicate`, nothing is recorded twice (idempotency)", async () => {
+  it("duplicate event: resending the same batch → all `duplicate`; no event is recorded twice, and the resend gets a decision of its own", async () => {
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(res.statusCode).toBe(202);
     const body = json(res) as IngestResult;
     expect(body).toMatchObject({ accepted: 0, duplicates: 3 });
     expect(body.results.map((r) => r.status)).toEqual(["duplicate", "duplicate", "duplicate"]);
+    // What the ledger keeps: the events enter once, but every batch — this resend too — is decided
+    // and its decision recorded (the deduplication is of events, not of decisions; a fact for the
+    // persistence feature, F-024 of the audit 014).
+    const decisions = await app.ports.decisions.bySession(asMerchantId("m_a"), asSessionId("ses_00000001"));
+    expect(decisions).toHaveLength(2);
+    expect(new Set(decisions.map((d) => d.decisionId)).size).toBe(2);
   });
 
   it("a batch with one new and one repeated event reports each with its status", async () => {
@@ -248,7 +256,7 @@ describe("inline decision (US3)", () => {
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
     const id = r.decision.decisionId;
-    const found = await app.ports.decisions.find("m_a" as never, id as never);
+    const found = await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(id));
     expect(found).toMatchObject({
       merchantId: "m_a",
       sessionId: "ses_00000001",
@@ -257,6 +265,6 @@ describe("inline decision (US3)", () => {
       reason: "barrier-unclear",
       decidedAt: new Date(NOW),
     });
-    expect(await app.ports.decisions.find("m_b" as never, id as never)).toBeUndefined();
+    expect(await app.ports.decisions.find(asMerchantId("m_b"), asDecisionId(id))).toBeUndefined();
   });
 });

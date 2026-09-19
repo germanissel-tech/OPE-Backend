@@ -12,12 +12,12 @@ import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
 import { configMerchantPorts } from "../modules/merchant.js";
 import { memoryOutcomesPorts } from "../modules/outcomes.js";
-import { systemKernelPorts } from "../modules/shared-kernel.js";
+import { localKernelPorts } from "../modules/shared-kernel.js";
 import { binder, type Profile } from "../profile.js";
 
 export const localProfile: Profile = (config, overrides) => {
   const { bind, closables } = binder(overrides);
-  const kernel = bind(systemKernelPorts);
+  const kernel = bind(localKernelPorts);
   const ports = {
     ...kernel,
     ...bind(configMerchantPorts(config.merchants.map((m) => m.merchant))),

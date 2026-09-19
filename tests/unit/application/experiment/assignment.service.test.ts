@@ -1,4 +1,4 @@
-// US2 (FR-010..FR-013; ADR-022): the assignment is resolved once per visitor and experiment,
+// Feature 007, US2 (FR-010..FR-013; ADR-022): the assignment is resolved once per visitor and experiment,
 // recorded when it happens, stable afterwards, and fails closed when the ledger is unavailable.
 import { describe, expect, it } from "vitest";
 import {

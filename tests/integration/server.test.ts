@@ -1,4 +1,4 @@
-// US2: the backend can only expose what the contract declares (FR-040..FR-047, SC-005).
+// Feature 001, US2: the backend can only expose what the contract declares (FR-040..FR-047, SC-005).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Writable } from "node:stream";

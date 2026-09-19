@@ -1,4 +1,4 @@
-// US1 (FR-001..FR-003, FR-051): every key lint rule catches its fixture; the valid fixture
+// Feature 003, US1 (FR-001..FR-003, FR-051): every key lint rule catches its fixture; the valid fixture
 // passes clean. Uses the same configuration as `npm run lint`, only removing the fixture
 // exclusion and pointing the parser at the tsconfig that includes them.
 import { readFileSync } from "node:fs";

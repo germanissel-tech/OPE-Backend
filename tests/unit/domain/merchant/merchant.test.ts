@@ -1,4 +1,4 @@
-// US5 (FR-017, FR-040; ADR-014) and ADR-024: merchant rules live in the Merchant — origins are
+// Feature 004, US5 (FR-017, FR-040; ADR-014) and ADR-024: merchant rules live in the Merchant — origins are
 // parsed once at construction and compared canonically; credentials are matched exactly.
 import { describe, expect, it } from "vitest";
 import {

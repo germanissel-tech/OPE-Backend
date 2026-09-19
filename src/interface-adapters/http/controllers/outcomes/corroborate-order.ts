@@ -3,7 +3,7 @@
 import { asOrderId } from "../../../../domain/outcomes/index.js";
 import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { instantOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { HTTP_STATUS } from "../../status.js";
 import { toProblem } from "../../to-problem.js";
 import type {

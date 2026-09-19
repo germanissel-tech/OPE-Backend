@@ -1,10 +1,15 @@
-// FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
+// Feature 004 — FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
 // A and B are the merchants of tests/helpers/test-app.ts; each case names both.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { productTruthOf } from "../../src/composition/modules/catalog.js";
 import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
-import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import {
+  asExperimentId,
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+} from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,
@@ -81,8 +86,12 @@ describe("isolation between merchants", () => {
 
   it("decisions: a decision of A does not exist for B (neither through the port nor through HTTP)", async () => {
     const { decision } = await ingest(A.key);
-    expect(await app.ports.decisions.find(A.id as never, decision.decisionId as never)).toBeDefined();
-    expect(await app.ports.decisions.find(B.id as never, decision.decisionId as never)).toBeUndefined();
+    expect(
+      await app.ports.decisions.find(asMerchantId(A.id), asDecisionId(decision.decisionId)),
+    ).toBeDefined();
+    expect(
+      await app.ports.decisions.find(asMerchantId(B.id), asDecisionId(decision.decisionId)),
+    ).toBeUndefined();
     const res = await postExposure(app.app, exposureOf(decision.decisionId), { key: B.key });
     expect(res.statusCode).toBe(422);
     expect(problemOf(res).type).toBe("urn:ope:problem:exposure-decision-unknown");
@@ -91,7 +100,9 @@ describe("isolation between merchants", () => {
   it("exposures: A exposes its intervention; B neither sees it nor can expose it", async () => {
     await intervene(A.id, "dec_de_a_00001");
     expect((await postExposure(app.app, exposureOf("dec_de_a_00001"), { key: A.key })).statusCode).toBe(201);
-    expect(await app.ports.exposures.find(B.id as never, "dec_de_a_00001" as never)).toBeUndefined();
+    expect(
+      await app.ports.exposures.find(asMerchantId(B.id), asDecisionId("dec_de_a_00001")),
+    ).toBeUndefined();
     const asB = await postExposure(app.app, exposureOf("dec_de_a_00001"), { key: B.key });
     expect(asB.statusCode).toBe(422);
   });
@@ -149,20 +160,24 @@ describe("isolation between merchants", () => {
       await postEvents(app.app, batchOf(1, n, { occurredAt: NOW, visitorId }), { key: A.key });
       await postEvents(app.app, batchOf(1, n, { occurredAt: NOW, visitorId }), { key: "key-c-1" });
       const inA = await app.ports.assignments.find(
-        A.id as never,
-        "exp_iso_00001" as never,
-        visitorId as never,
+        asMerchantId(A.id),
+        asExperimentId("exp_iso_00001"),
+        asVisitorId(visitorId),
       );
       const inC = await app.ports.assignments.find(
-        "m_c" as never,
-        "exp_iso_00001" as never,
-        visitorId as never,
+        asMerchantId("m_c"),
+        asExperimentId("exp_iso_00001"),
+        asVisitorId(visitorId),
       );
       expect(inA?.merchantId).toBe(A.id);
       expect(inC?.merchantId).toBe("m_c");
       if (inA?.arm !== inC?.arm) disagree += 1;
       expect(
-        await app.ports.assignments.find(B.id as never, "exp_iso_00001" as never, visitorId as never),
+        await app.ports.assignments.find(
+          asMerchantId(B.id),
+          asExperimentId("exp_iso_00001"),
+          asVisitorId(visitorId),
+        ),
       ).toBeUndefined();
     }
     expect(disagree).toBeGreaterThan(visitors * 0.2);
@@ -201,12 +216,16 @@ describe("isolation between merchants", () => {
     await app.ports.assignments.record(stale);
     await ingest(A.key);
     expect(
-      await app.ports.assignments.find(A.id as never, "exp_closed_001" as never, "vis_00000001" as never),
+      await app.ports.assignments.find(
+        asMerchantId(A.id),
+        asExperimentId("exp_closed_001"),
+        asVisitorId("vis_00000001"),
+      ),
     ).toEqual(stale);
     const fresh = await app.ports.assignments.find(
-      A.id as never,
-      "exp_active_01" as never,
-      "vis_00000001" as never,
+      asMerchantId(A.id),
+      asExperimentId("exp_active_01"),
+      asVisitorId("vis_00000001"),
     );
     expect(fresh).toMatchObject({ experimentId: "exp_active_01", assignedAt: new Date(NOW) });
   });
