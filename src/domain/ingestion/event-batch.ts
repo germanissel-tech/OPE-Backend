@@ -2,9 +2,9 @@
 // schema already validated shape and ranges; here live the rules the schema cannot express,
 // enforced by construction: an EventBatch only exists valid.
 import {
+  CLOCK_SKEW_TOLERANCE_MS,
   fail,
   hours,
-  minutes,
   ok,
   type Result,
   type SessionId,
@@ -14,12 +14,15 @@ import { EventTimestampOutOfRange, SessionVisitorMismatch, type IngestionError }
 import type { Event, PageType } from "./event.js";
 import type { EventId } from "./ids.js";
 
-/** Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants). */
+/**
+ * Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants):
+ * a day into the past for late uploads; into the future, the clock skew every instant a client
+ * declares is allowed (shared-kernel).
+ */
 const TOLERANCE_PAST_HOURS = 24;
-const TOLERANCE_FUTURE_MINUTES = 5;
 export const TIMESTAMP_TOLERANCE = {
   pastMs: hours(TOLERANCE_PAST_HOURS),
-  futureMs: minutes(TOLERANCE_FUTURE_MINUTES),
+  futureMs: CLOCK_SKEW_TOLERANCE_MS,
 } as const;
 
 const PRODUCT_PAGE = "product" satisfies PageType;
@@ -59,7 +62,9 @@ export class EventBatch {
     const latest = now.getTime() + TIMESTAMP_TOLERANCE.futureMs;
     for (const event of events) {
       const t = event.occurredAt.getTime();
-      if (t < earliest || t > latest) return fail(new EventTimestampOutOfRange(event.eventId));
+      if (t < earliest || t > latest) {
+        return fail(new EventTimestampOutOfRange(event.eventId, TIMESTAMP_TOLERANCE));
+      }
     }
     return ok(new EventBatch([...events], first));
   }

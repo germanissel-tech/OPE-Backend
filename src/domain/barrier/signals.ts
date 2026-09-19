@@ -110,16 +110,15 @@ function subtypeOf(event: Event): string | undefined {
       return event.step;
     case "exit_signaled":
       return event.signal;
-    // Stryker disable ConditionalExpression: without its case the last type falls off the switch and yields undefined all the same
     case "product_viewed":
     case "listing_viewed":
     case "size_selector_interacted":
     case "variant_selected":
     case "product_returned_to":
     case "added_to_cart":
+    // Stryker disable next-line ConditionalExpression: emptied, the last case falls through to the end of the switch and yields undefined all the same
     case "removed_from_cart":
       return undefined;
-    // Stryker restore ConditionalExpression
   }
 }
 

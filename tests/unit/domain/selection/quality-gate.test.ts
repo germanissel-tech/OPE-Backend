@@ -50,71 +50,71 @@ describe("QualityGate.judge — one claim at a time", () => {
   };
 
   it.each<[string, Case]>([
-    row("returns policy declared", "returns-policy", { profile: full, evidence: fresh }, ok),
+    row("returns policy declared", { kind: "returns-policy" }, { profile: full, evidence: fresh }, ok),
     row(
       "returns policy not declared",
-      "returns-policy",
+      { kind: "returns-policy" },
       { profile: EMPTY_PROFILE, evidence: fresh },
       rejected("no-returns-policy"),
     ),
-    row("fit data provided", "fit-data", { profile: full, evidence: fresh }, ok),
+    row("fit data provided", { kind: "fit-data" }, { profile: full, evidence: fresh }, ok),
     row(
       "fit data not provided",
-      "fit-data",
+      { kind: "fit-data" },
       { profile: EMPTY_PROFILE, evidence: fresh },
       rejected("no-fit-data"),
     ),
     row(
       "current price with fresh stock and price",
-      "current-price",
+      { kind: "current-price" },
       { profile: EMPTY_PROFILE, evidence: fresh },
       ok,
     ),
     row(
       "current price with stale stock and price",
-      "current-price",
+      { kind: "current-price" },
       { profile: full, evidence: stale },
       rejected("stale-price"),
     ),
     row(
       "availability with an available variant",
-      "availability",
+      { kind: "availability" },
       { profile: EMPTY_PROFILE, evidence: fresh },
       ok,
     ),
     row(
       "availability with an unavailable variant",
-      "availability",
+      { kind: "availability" },
       { profile: full, evidence: unavailable },
       rejected("variant-unavailable"),
     ),
     row(
       "availability without a variant in focus",
-      "availability",
+      { kind: "availability" },
       { profile: full, evidence: noVariant },
       rejected("variant-unavailable"),
     ),
     row(
       "incentive is always the commercial policy's call",
-      "incentive",
+      { kind: "incentive" },
       { profile: EMPTY_PROFILE, evidence: stale },
       ok,
     ),
     row(
       "attribute present and authorized",
-      "product-attribute:material",
+      { kind: "product-attribute", key: "material" },
       { profile: full, evidence: fresh },
       ok,
     ),
     row(
       "attribute the product does not have",
-      "product-attribute:season",
+      { kind: "product-attribute", key: "season" },
       { profile: full, evidence: fresh },
       rejected("attribute-unknown"),
     ),
     row(
       "attribute present but not authorized",
-      "product-attribute:material",
+      { kind: "product-attribute", key: "material" },
       { profile: EMPTY_PROFILE, evidence: fresh },
       rejected("attribute-not-authorized"),
     ),
@@ -133,15 +133,15 @@ describe("QualityGate.judge — one claim at a time", () => {
 
   it("the first unsupported claim, in declaration order, rejects the candidate entire", () => {
     const evidence = { ...fresh, stockAndPriceFresh: false, available: false };
-    expect(QualityGate.of(full).judge(candidate(["current-price", "availability"]), evidence)).toEqual(
-      rejected("stale-price"),
-    );
-    expect(QualityGate.of(full).judge(candidate(["availability", "current-price"]), evidence)).toEqual(
-      rejected("variant-unavailable"),
-    );
-    expect(QualityGate.of(full).judge(candidate(["returns-policy", "availability"]), evidence)).toEqual(
-      rejected("variant-unavailable"),
-    );
+    expect(
+      QualityGate.of(full).judge(candidate([{ kind: "current-price" }, { kind: "availability" }]), evidence),
+    ).toEqual(rejected("stale-price"));
+    expect(
+      QualityGate.of(full).judge(candidate([{ kind: "availability" }, { kind: "current-price" }]), evidence),
+    ).toEqual(rejected("variant-unavailable"));
+    expect(
+      QualityGate.of(full).judge(candidate([{ kind: "returns-policy" }, { kind: "availability" }]), evidence),
+    ).toEqual(rejected("variant-unavailable"));
   });
 
   it("no profile relaxes a claim without evidence (constitution II)", () => {
@@ -151,13 +151,16 @@ describe("QualityGate.judge — one claim at a time", () => {
       authorizedAttributes: ["material", "season"],
     };
     expect(
-      QualityGate.of(generous).judge(candidate(["current-price"]), { ...fresh, stockAndPriceFresh: false }),
+      QualityGate.of(generous).judge(candidate([{ kind: "current-price" }]), {
+        ...fresh,
+        stockAndPriceFresh: false,
+      }),
     ).toEqual(rejected("stale-price"));
-    expect(QualityGate.of(generous).judge(candidate(["product-attribute:season"]), fresh)).toEqual(
-      rejected("attribute-unknown"),
-    );
     expect(
-      QualityGate.of(generous).judge(candidate(["availability"]), { ...fresh, available: false }),
+      QualityGate.of(generous).judge(candidate([{ kind: "product-attribute", key: "season" }]), fresh),
+    ).toEqual(rejected("attribute-unknown"));
+    expect(
+      QualityGate.of(generous).judge(candidate([{ kind: "availability" }]), { ...fresh, available: false }),
     ).toEqual(rejected("variant-unavailable"));
   });
 });

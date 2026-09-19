@@ -60,6 +60,8 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("context-map:ledger", "domain/ledger/bad-context.ts");
     expectRule("context-map:shared-kernel", "domain/shared-kernel/bad-context.ts");
     expectRule("gateways-no-cross", "interface-adapters/gateways/a/bad-cross.ts");
+    // What the gateways share (015 F-033) is not a cross: gateways/shared-kernel/ implements no port.
+    expect(byRule("gateways-no-cross")).not.toContainEqual(expect.stringContaining("a/ok-shared-kernel.ts"));
     expectRule("controllers-no-gateways", "interface-adapters/http/controllers/x/bad-gateway.ts");
     // Application ring (ADR-023)
     expectRule("use-cases-no-use-cases", "application/ledger/use-cases/bad-use-case-chain.ts");

@@ -10,20 +10,20 @@ import type { Anchor, Barrier } from "../shared-kernel/index.js";
 export const STEPS = ["information", "reassurance", "uncertainty", "evidence", "incentive"] as const;
 export type Step = (typeof STEPS)[number];
 
-/** A claim that names a product attribute: `product-attribute:<key>`. */
-export const ATTRIBUTE_CLAIM_PREFIX = "product-attribute:";
-
 /**
- * The classes of claim a candidate may make, each demanding evidence of its class (03 §4.5).
- * Numeric scarcity and social proof do not exist: they cannot be claimed.
+ * The classes of claim a candidate may make, each demanding evidence of its class (03 §4.5),
+ * closed by `kind`: the gate switches over it without a default, so a class nobody judges does
+ * not compile (015 F-038). A product attribute claim names its key. Numeric scarcity and social
+ * proof do not exist: they cannot be claimed.
  */
 export type Claim =
-  | "returns-policy"
-  | "fit-data"
-  | "current-price"
-  | "availability"
-  | "incentive"
-  | `${typeof ATTRIBUTE_CLAIM_PREFIX}${string}`;
+  | { kind: "returns-policy" }
+  | { kind: "fit-data" }
+  | { kind: "current-price" }
+  | { kind: "availability" }
+  | { kind: "incentive" }
+  | { kind: "product-attribute"; key: string };
+export type ClaimKind = Claim["kind"];
 
 export interface Candidate {
   candidateId: string;
@@ -51,16 +51,16 @@ const candidate = (barrier: Barrier, anchor: Anchor, step: Step, claims: readonl
 export const CANDIDATES: Readonly<Record<Barrier, readonly Candidate[]>> = {
   fit: [
     candidate("fit", "size_selector", "information", []),
-    candidate("fit", "policies", "reassurance", ["returns-policy"]),
-    candidate("fit", "size_selector", "evidence", ["fit-data", "availability"]),
+    candidate("fit", "policies", "reassurance", [{ kind: "returns-policy" }]),
+    candidate("fit", "size_selector", "evidence", [{ kind: "fit-data" }, { kind: "availability" }]),
   ],
   price: [
     candidate("price", "price", "information", []),
-    candidate("price", "price", "evidence", ["current-price"]),
-    candidate("price", "price", "incentive", ["incentive"]),
+    candidate("price", "price", "evidence", [{ kind: "current-price" }]),
+    candidate("price", "price", "incentive", [{ kind: "incentive" }]),
   ],
   returns: [
     candidate("returns", "policies", "information", []),
-    candidate("returns", "policies", "reassurance", ["returns-policy"]),
+    candidate("returns", "policies", "reassurance", [{ kind: "returns-policy" }]),
   ],
 };

@@ -36,6 +36,8 @@ const expected: Record<string, string> = {
   "no-ignored-exceptions.ts": "sonarjs/no-ignored-exceptions",
   // Only under src/ (FR-012): the fixture is linted as if it lived there.
   "as-src/no-magic-numbers.ts": "@typescript-eslint/no-magic-numbers",
+  // Object literals too (audit 014 F-013): `detectObjects`.
+  "as-src/no-magic-numbers-object.ts": "@typescript-eslint/no-magic-numbers",
   "as-src/no-magic-strings.ts": "ope/no-magic-strings",
   // Shape of the application and domain rings (ADR-023, spec 008 FR-002..FR-004, FR-021, FR-023).
   "as-src/application/demo/use-cases/use-case-shape.ts": "ope/use-case-shape",

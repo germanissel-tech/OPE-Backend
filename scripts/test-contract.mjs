@@ -2,6 +2,16 @@
 // (FR-051, US5). Starts the server on a free port, waits for it to respond, runs
 // `uvx schemathesis` on the bundle and stops the server propagating the exit code.
 //
+// Both credentials travel in every request (015 F-054): the ingest key for the SDK operations
+// and the platform key for the server-to-server ones, so no built operation is exercised only
+// through its 401. The contract merchant declares no platform secret: unsigned requests are
+// what the contract describes, and the signature is tested by tests/integration.
+//
+// Schemathesis reports a "schema validation mismatch" warning: the operations with
+// `x-invariants` answer 422 to bodies the schema admits (ADR-007), and the report counts each of
+// those answers, expected by the contract, as a mismatch between schema and behaviour. The
+// warning is informative; the checks are what fail the run.
+//
 // Manual negative test: OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -12,10 +22,11 @@ import { startBuiltServer } from "./server-lib.mjs";
 // Pinned version: the same locally and in CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
 
-/** Test merchant for Schemathesis: the ingest credential travels in every request. */
+/** Test merchant for Schemathesis: both credentials travel in every request; no signature secret. */
 const CONTRACT_MERCHANT = {
   merchantId: "contract-test-merchant",
   ingestKeys: ["ope_contract_test_key"],
+  platformKeys: ["ope_contract_platform_key"],
   origins: ["http://127.0.0.1"],
 };
 
@@ -47,10 +58,12 @@ function runSchemathesis(base) {
       "examples,coverage,fuzzing",
       "--max-examples",
       "50",
-      // Ingest credential: authenticated operations demand it (401 without it, and
+      // Both credentials: each authenticated operation reads its own (401 without it, and
       // Schemathesis also tests that path by removing the header).
       "-H",
       `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
+      "-H",
+      `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? ""}`,
       "--report",
       "junit",
       "--report-dir",

@@ -341,7 +341,7 @@ describe("CommercialPolicy.verdict — the abandonment amplifies (user story 3, 
         barrier: "fit",
         step: "incentive",
         anchor: "size_selector",
-        claims: ["incentive"],
+        claims: [{ kind: "incentive" }],
       },
       verdict: { acceptable: true },
     };

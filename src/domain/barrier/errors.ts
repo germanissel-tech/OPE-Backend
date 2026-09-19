@@ -1,9 +1,11 @@
 // Business errors of the barrier module (ADR-023, ADR-026): a set of rules that does not hold
 // its invariants. They never travel over HTTP: a rejected policy stops the server naming the
 // field (ADR-024), like a rejected experiment. Codes are the Problem Details slugs of the catalogue.
-import { DomainError } from "../shared-kernel/index.js";
+import { BARRIERS, DomainError } from "../shared-kernel/index.js";
 
 const MODULE = "barrier" as const;
+/** The messages list the barriers from the kernel's catalogue, never by hand (015 F-022). */
+const BARRIER_LIST = BARRIERS.join(", ");
 
 export class InvalidRuleWeight extends DomainError {
   readonly code = "invalid-rule-weight" as const;
@@ -33,7 +35,7 @@ export class UnknownBarrier extends DomainError {
   readonly code = "unknown-barrier" as const;
   readonly module = MODULE;
   constructor(barrier: string, index: number) {
-    super(`"${barrier}" is not a barrier of the MVP (fit, price, returns).`, { path: "barrier", index });
+    super(`"${barrier}" is not a barrier of the MVP (${BARRIER_LIST}).`, { path: "barrier", index });
   }
 }
 

@@ -114,11 +114,10 @@ function toHttp(res: ProblemResponse): HttpResponse {
  */
 function securityOutcomes(c: BoundaryContext): [string, Record<string, unknown>][] {
   const results = (c.security as Record<string, unknown> | undefined) ?? {};
-  // Stryker disable ConditionalExpression,LogicalOperator: openapi-backend only stores handler objects and the boolean `authorized` here; the guard is defensive and its mutants are equivalent
   return Object.entries(results).filter(
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: openapi-backend only stores handler objects and the boolean `authorized` here; the guard is defensive and its mutants are equivalent
     (entry): entry is [string, Record<string, unknown>] => typeof entry[1] === "object" && entry[1] !== null,
   );
-  // Stryker restore ConditionalExpression,LogicalOperator
 }
 
 function securityResultsOf(c: BoundaryContext): {
@@ -164,10 +163,11 @@ function bodyLimitOf(
   request: FastifyRequest,
 ): number {
   const operation = api.matchOperation({ method: request.method, path: pathOf(request.url), headers: {} });
-  const schemes = (operation?.security ?? []).flatMap((requirement) => Object.keys(requirement));
-  return schemes.some((name) => security[name]?.consumer === "server")
-    ? BODY_LIMIT_BYTES
-    : BROWSER_BODY_LIMIT_BYTES;
+  const schemes = operation?.security?.flatMap((requirement) => Object.keys(requirement));
+  // The consumer of the first scheme (every built operation declares exactly one); a public
+  // operation, an unknown path or a scheme nobody wired keep the browser's limit.
+  const consumer = security[schemes?.[0] ?? ""]?.consumer;
+  return consumer === "server" ? BODY_LIMIT_BYTES : BROWSER_BODY_LIMIT_BYTES;
 }
 
 /** Refuses, before a byte of the body is read, a request whose declared length exceeds its consumer's limit. */
@@ -371,11 +371,9 @@ function registerHandlers(runtime: Runtime, handlers: Record<string, unknown>): 
         // Single boundary with openapi-backend: its types are any; here they are read as unknown and
         // the handler receives the TypedRequest its signature demands (already validated against the contract).
         const { principals, logFields } = securityResultsOf(c);
-        if (Object.keys(logFields).length > 0) {
-          // The safe fields of the principal (merchantId) accompany the rest of the request log.
-          req.log = req.log.child(logFields);
-          reply.log = req.log;
-        }
+        // The safe fields of the principal (merchantId) accompany the rest of the request log.
+        req.log = req.log.child(logFields);
+        reply.log = req.log;
         const request: TypedRequestBoundary = {
           operationId,
           instance: c.request.path,
@@ -421,7 +419,7 @@ function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
     )) as HttpResponse;
     return send(reply, res);
   };
-  app.route({ method: [...ROUTED_METHODS], url: "/", handler: dispatch });
+  // The wildcard also matches the root path: every declared method of every path lands here.
   app.route({ method: [...ROUTED_METHODS], url: "/*", handler: dispatch });
 
   // Methods Fastify does not route (for example QUERY) land here: 405 if the path exists, 404 if not.

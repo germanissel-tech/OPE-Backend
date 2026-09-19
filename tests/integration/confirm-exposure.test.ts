@@ -1,22 +1,32 @@
 // US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
-import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
+import {
+  batchOf,
+  fixedClock,
+  postEvents,
+  postExposure,
+  sharedTestApp,
+  type SharedApp,
+} from "../helpers/test-app.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 
-let app: App | undefined;
-afterEach(async () => {
-  await app?.close();
-  app = undefined;
-});
-
 const NOW = "2026-09-16T12:00:00.000Z";
-const withClock = () => startTestApp({ ports: { clock: fixedClock(NOW) } });
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
+  await app.close();
+});
 
 const exposure = (decisionId: string, over: Record<string, unknown> = {}) => ({
   decisionId,
@@ -28,7 +38,7 @@ const exposure = (decisionId: string, over: Record<string, unknown> = {}) => ({
 });
 
 /** No HTTP route produces INTERVENE in this feature: it is injected through the ledger port. */
-async function interveneDecision(a: App, merchantId: string, decisionId: string): Promise<void> {
+async function interveneDecision(a: SharedApp, merchantId: string, decisionId: string): Promise<void> {
   const decision = InterveneDecision.of(
     {
       decisionId: asDecisionId(decisionId),
@@ -43,14 +53,13 @@ async function interveneDecision(a: App, merchantId: string, decisionId: string)
   await a.ports.decisions.record(decision);
 }
 
-async function noOpDecisionId(a: App, key: string): Promise<string> {
+async function noOpDecisionId(a: SharedApp, key: string): Promise<string> {
   const res = await postEvents(a.app, batchOf(1, 1, { occurredAt: NOW }), { key });
   return (json(res) as IngestResult).decision.decisionId;
 }
 
 describe("POST /v1/exposures", () => {
   it("[invariant:exposure-decision-unknown] made-up decisionId → 422 with its type", async () => {
-    app = await withClock();
     const res = await postExposure(app.app, exposure("dec_nadie0000"), { key: "key-a-1" });
     expect(res.statusCode).toBe(422);
     expect(res.headers["content-type"]).toMatch("application/problem+json");
@@ -58,7 +67,6 @@ describe("POST /v1/exposures", () => {
   });
 
   it("decision of another merchant → the same response as nonexistent (isolation FR-050, reveals nothing)", async () => {
-    app = await withClock();
     await interveneDecision(app, "m_b", "dec_de_b_00001");
     const res = await postExposure(app.app, exposure("dec_de_b_00001"), { key: "key-a-1" });
     expect(res.statusCode).toBe(422);
@@ -67,7 +75,6 @@ describe("POST /v1/exposures", () => {
   });
 
   it("[invariant:exposure-of-no-op] real NO_OP decision (from a batch) → 422 with its type", async () => {
-    app = await withClock();
     const decisionId = await noOpDecisionId(app, "key-a-1");
     const res = await postExposure(app.app, exposure(decisionId), { key: "key-a-1" });
     expect(res.statusCode).toBe(422);
@@ -75,7 +82,6 @@ describe("POST /v1/exposures", () => {
   });
 
   it("own INTERVENE decision → 201 recorded; repeated → 200 already-recorded; a single exposure", async () => {
-    app = await withClock();
     await interveneDecision(app, "m_a", "dec_intervene1");
     const first = await postExposure(app.app, exposure("dec_intervene1"), { key: "key-a-1" });
     expect(first.statusCode, first.body).toBe(201);
@@ -92,7 +98,6 @@ describe("POST /v1/exposures", () => {
   });
 
   it("extra field → 400; no key → 401; Origin of another merchant → 403", async () => {
-    app = await withClock();
     await interveneDecision(app, "m_a", "dec_intervene1");
     const extra = await postExposure(app.app, exposure("dec_intervene1", { email: "x" }), { key: "key-a-1" });
     expect(extra.statusCode).toBe(400);

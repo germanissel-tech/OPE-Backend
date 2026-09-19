@@ -3,7 +3,15 @@
 // decision path (constitution IV); the budget is the same as ingestion's.
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { batchOf, orderOf, postEvents, postOrder, startTestApp } from "../helpers/test-app.js";
+import {
+  batchOf,
+  fixedClock,
+  NOW,
+  orderOf,
+  postEvents,
+  postOrder,
+  startTestApp,
+} from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
 const ORDERS = 200;
@@ -11,7 +19,7 @@ const P95_BUDGET_MS = 50;
 
 let app: App;
 beforeAll(async () => {
-  app = await startTestApp();
+  app = await startTestApp({ ports: { clock: fixedClock() } });
   // A known session, so every order goes through the correlation.
   await postEvents(app.app, batchOf(5, 1), { key: "key-a-1" });
 });
@@ -33,7 +41,7 @@ describe("latency of POST /v1/orders (local profile)", () => {
     }
     const samples: number[] = [];
     for (let i = 0; i < ORDERS; i += 1) {
-      const body = orderOf(`O-${i}`, { sessionId: "ses_00000001", confirmedAt: new Date().toISOString() });
+      const body = orderOf(`O-${i}`, { sessionId: "ses_00000001", confirmedAt: NOW });
       const start = performance.now();
       const res = await postOrder(app.app, body, { platformKey: "platform-a-1" });
       samples.push(performance.now() - start);

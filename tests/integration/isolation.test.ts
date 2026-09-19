@@ -1,6 +1,6 @@
 // FR-050, SC-005 (constitution V): isolation between merchants, in a single readable suite.
 // A and B are the merchants of tests/helpers/test-app.ts; each case names both.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { productTruthOf } from "../../src/composition/modules/catalog.js";
 import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
@@ -20,10 +20,10 @@ import {
   postOrder,
   postReturn,
   putCatalog,
-  startTestApp,
+  sharedTestApp,
   type MerchantSpec,
+  type SharedApp,
 } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
 import type { OrderId } from "../../src/domain/outcomes/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
@@ -34,8 +34,15 @@ const NOW = "2026-09-16T12:00:00.000Z";
 const A = { key: "key-a-1", origin: "https://a.example", id: "m_a" };
 const B = { key: "key-b-1", origin: "https://b.example", id: "m_b" };
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
@@ -67,14 +74,12 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
 
 describe("isolation between merchants", () => {
   it("deduplication: the same eventId in A and in B comes in for both", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     expect(await ingest(A.key)).toMatchObject({ accepted: 2, duplicates: 0 });
     expect(await ingest(B.key)).toMatchObject({ accepted: 2, duplicates: 0 });
     expect(await ingest(A.key)).toMatchObject({ accepted: 0, duplicates: 2 });
   });
 
   it("decisions: a decision of A does not exist for B (neither through the port nor through HTTP)", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const { decision } = await ingest(A.key);
     expect(await app.ports.decisions.find(A.id as never, decision.decisionId as never)).toBeDefined();
     expect(await app.ports.decisions.find(B.id as never, decision.decisionId as never)).toBeUndefined();
@@ -84,7 +89,6 @@ describe("isolation between merchants", () => {
   });
 
   it("exposures: A exposes its intervention; B neither sees it nor can expose it", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     await intervene(A.id, "dec_de_a_00001");
     expect((await postExposure(app.app, exposureOf("dec_de_a_00001"), { key: A.key })).statusCode).toBe(201);
     expect(await app.ports.exposures.find(B.id as never, "dec_de_a_00001" as never)).toBeUndefined();
@@ -93,7 +97,6 @@ describe("isolation between merchants", () => {
   });
 
   it("origins: the key of A with the Origin of B → 403; each with its own origin → passes", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const crossed = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), {
       key: A.key,
       origin: B.origin,
@@ -112,7 +115,6 @@ describe("isolation between merchants", () => {
   });
 
   it("credentials: the key of B does not resolve to A; no response names the other merchant", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const { decision } = await ingest(A.key);
     const res = await postExposure(app.app, exposureOf(decision.decisionId), { key: B.key });
     expect(res.body).not.toMatch(/m_a|key-a/);
@@ -138,10 +140,7 @@ describe("isolation between merchants", () => {
       origins: ["https://c.example"],
       experiments: [experiment("seed-c")],
     };
-    app = await startTestApp(
-      { ports: { clock: fixedClock(NOW) } },
-      { merchants: [merchantA, merchantB, merchantC] },
-    );
+    app.resetPorts({ config: { merchants: [merchantA, merchantB, merchantC] } });
     // Over many visitors the two merchants must disagree about half of the time (seeds differ).
     let disagree = 0;
     const visitors = 60;
@@ -191,7 +190,7 @@ describe("isolation between merchants", () => {
       origins: [A.origin],
       experiments: [closed, active],
     };
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
+    app.resetPorts({ config: { merchants: [merchantA, merchantB] } });
     const stale: Assignment = {
       merchantId: A.id as Assignment["merchantId"],
       experimentId: "exp_closed_001" as Assignment["experimentId"],
@@ -262,7 +261,7 @@ describe("isolation between merchants", () => {
       experiments: [experiment],
       decisionPolicy: policy("b-1", 0.4),
     };
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [a, b] });
+    app.resetPorts({ config: { merchants: [a, b] } });
     for (const key of ["platform-a-1", "platform-b-1"]) {
       expect(
         (
@@ -327,7 +326,7 @@ describe("isolation between merchants", () => {
       evidenceProfile: profile,
       commercialPolicy: { version: "b-c" },
     };
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [a, b] });
+    app.resetPorts({ config: { merchants: [a, b] } });
     for (const key of ["platform-a-1", "platform-b-1"]) {
       const res = await putCatalog(
         app.app,
@@ -371,7 +370,6 @@ describe("isolation between merchants", () => {
   });
 
   it("catalogue: the snapshot of A is invisible to B; the same productId in A and B are two products; B's platform key cannot touch A", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     const a = await putCatalog(
       app.app,
       { capturedAt: NOW, products: [catalogProductOf("SKU-1", 1, { title: "A's shirt" })] },
@@ -406,7 +404,6 @@ describe("isolation between merchants", () => {
   });
 
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
     // B decides in ses_00000001 (no experiment: a NO_OP, still a known session for B).
     const bBatch = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: B.key });
     expect(bBatch.statusCode).toBe(202);

@@ -46,7 +46,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run arch
       - run: npm run quality
-      - run: npm test
+      - run: npm run test:all
       - run: npm run test:contract
       - run: npm run release-check
 

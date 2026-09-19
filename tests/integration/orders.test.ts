@@ -2,7 +2,8 @@
 // FR-040..FR-041; SC-001..SC-004): the platform confirms an order through HTTP — verified,
 // attributed only by mechanism A or pending, immutable and idempotent by orderId; the
 // incentive it declares is crossed with what the session's decision granted.
-import { afterEach, describe, expect, it } from "vitest";
+import { Readable } from "node:stream";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { json } from "../helpers/json.js";
 import {
   catalogProductOf,
@@ -13,12 +14,13 @@ import {
   postEvents,
   postOrder,
   putCatalog,
+  sharedTestApp,
   startTestApp,
   merchantB,
   type MerchantSpec,
+  type SharedApp,
 } from "../helpers/test-app.js";
 import { recordingLogger, unavailableOrderLedger } from "../helpers/unavailable-ledgers.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { OrderId } from "../../src/domain/outcomes/index.js";
 import type { MerchantId } from "../../src/domain/shared-kernel/index.js";
 
@@ -43,20 +45,25 @@ const merchantWithMargin: MerchantSpec = {
   ],
 };
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
-async function start(options: { merchants?: MerchantSpec[]; ordersDown?: boolean } = {}): Promise<void> {
-  const ports = {
-    clock: fixedClock(NOW),
-    ...(options.ordersDown ? { orders: unavailableOrderLedger() } : {}),
-  };
-  app = await startTestApp(
-    { ports },
-    options.merchants === undefined ? {} : { merchants: options.merchants },
-  );
+/** The ports of the test: an order ledger that is down, other merchants; the server is the file's. */
+function start(options: { merchants?: MerchantSpec[]; ordersDown?: boolean } = {}): Promise<void> {
+  app.resetPorts({
+    ...(options.ordersDown ? { ports: { orders: unavailableOrderLedger() } } : {}),
+    ...(options.merchants === undefined ? {} : { config: { merchants: options.merchants } }),
+  });
+  return Promise.resolve();
 }
 
 let n = 0;
@@ -130,6 +137,25 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     );
     // Past the parser: the contract rejects the undeclared field (400), which proves the body was read.
     expect(res.statusCode).toBe(400);
+  });
+
+  it("1c. a chunked body (no Content-Length) past the server-wide 32 MiB limit → 413 once Fastify stops reading it (F-057)", async () => {
+    await start();
+    const chunk = "x".repeat(1024 * 1024);
+    // 33 chunks of 1 MiB inside a JSON string: nothing declares the length, so the server-wide limit decides.
+    function* body(): Generator<string> {
+      yield '{"filler":"';
+      for (let i = 0; i < 33; i += 1) yield chunk;
+      yield '"}';
+    }
+    const res = await app.app.inject({
+      method: "POST",
+      url: "/v1/orders",
+      headers: { "content-type": "application/json", "x-ope-platform-key": PLATFORM_A },
+      payload: Readable.from(body()),
+    });
+    expect(res.statusCode).toBe(413);
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:payload-too-large", instance: "/v1/orders" });
   });
 
   it("2. without a session → 201 PENDING_CORRELATION; a verified sale without correlation", async () => {
@@ -363,15 +389,20 @@ describe("notifyOrder — user story 5: the incentive applied is crossed with th
 
 describe("notifyOrder — the corroboration is seen when the order arrives", () => {
   it("logs corroborated: true when the SDK corroborated the order first (FR-032)", async () => {
+    // The use-case log is bound to the logger the app was built with: this test builds its own.
     const { logger, entries } = recordingLogger();
-    app = await startTestApp({ ports: { clock: fixedClock(NOW), logger } });
-    const corroborated = await postCorroboration(
-      app.app,
-      { orderId: "A-1", sessionId: SESSION, visitorId: "vis_00000001", confirmedAt: NOW },
-      { key: KEY_A },
-    );
-    expect(corroborated.statusCode).toBe(202);
-    await postOrder(app.app, orderOf("A-1"), { platformKey: PLATFORM_A });
+    const logged = await startTestApp({ ports: { clock: fixedClock(NOW), logger } });
+    try {
+      const corroborated = await postCorroboration(
+        logged.app,
+        { orderId: "A-1", sessionId: SESSION, visitorId: "vis_00000001", confirmedAt: NOW },
+        { key: KEY_A },
+      );
+      expect(corroborated.statusCode).toBe(202);
+      await postOrder(logged.app, orderOf("A-1"), { platformKey: PLATFORM_A });
+    } finally {
+      await logged.close();
+    }
     const recorded = entries.find((e) => e.message === "order recorded");
     expect(recorded?.fields).toMatchObject({
       orderId: "A-1",

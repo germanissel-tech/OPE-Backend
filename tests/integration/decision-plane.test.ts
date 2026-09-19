@@ -1,7 +1,7 @@
 // Feature 011, user stories 1 and 4 (FR-001..FR-003, FR-040, FR-041; SC-001, SC-004): the
 // decision plane through HTTP — the first INTERVENE, the reasons of the policy, what the SDK
 // sees and what the ledger keeps, and the evidence chain up to the exposure.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { json } from "../helpers/json.js";
 import {
   catalogProductOf,
@@ -10,10 +10,10 @@ import {
   postEvents,
   postExposure,
   putCatalog,
-  startTestApp,
+  sharedTestApp,
   type MerchantSpec,
+  type SharedApp,
 } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -34,8 +34,15 @@ const merchant = (treatmentPercent: number): MerchantSpec => ({
 const treatment = merchant(100);
 const control = merchant(0);
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [treatment] });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
@@ -52,8 +59,9 @@ const addedToCart = (s: number) => ev(s, { type: "added_to_cart", quantity: 1 })
 const removedFromCart = (s: number) => ev(s, { type: "removed_from_cart" });
 const checkout = (s: number) => ev(s, { type: "checkout_advanced", step: "checkout_started" });
 
+/** The merchant of the test and its catalogue; the server is the file's. */
 async function start(spec: MerchantSpec = treatment): Promise<void> {
-  app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [spec] });
+  app.resetPorts({ config: { merchants: [spec] } });
   const res = await putCatalog(
     app.app,
     { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },

@@ -4,7 +4,7 @@ import { Writable } from "node:stream";
 import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { pinoLogger } from "../../src/infrastructure/logging/pino-logger.js";
-import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
+import { batchOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
 let app: App | undefined;
@@ -27,7 +27,7 @@ function capturedLogger(): { logger: pino.Logger; lines: () => string[] } {
 describe("privacy in logs", () => {
   it("an ingest request leaves no IP, key, headers or body in the log; it does leave method, url, reqId and merchantId", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
     const batch = batchOf(2, 1, { page: { pageType: "product", productId: "SKU-SECRETO" } });
     const res = await postEvents(app.app, batch, { key: "key-a-1", remoteAddress: "203.0.113.9" });
     expect(res.statusCode).toBe(202);
@@ -51,7 +51,7 @@ describe("privacy in logs", () => {
 
   it("a request rejected by the credential does not log the key or the IP either", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
     await postEvents(app.app, batchOf(1), { key: "clave-robada", remoteAddress: "198.51.100.7" });
     const log = lines().join("\n");
     expect(log).not.toContain("clave-robada");

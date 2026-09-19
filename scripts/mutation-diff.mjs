@@ -20,9 +20,10 @@ import { capture, repoRoot, run } from "./lib.mjs";
 /** @typedef {{ file: string; start: number; end: number }} Range */
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
 /**
- * @typedef {{ mutatorName: string; status: string; replacement?: string; testsCompleted?: number; coveredBy?: string[]; location: { start: { line: number } } }} Mutant
+ * @typedef {{ mutatorName: string; status: string; statusReason?: string; replacement?: string; testsCompleted?: number; coveredBy?: string[]; location: { start: { line: number } } }} Mutant
  */
 /** @typedef {{ files: Record<string, { mutants: Mutant[] }> }} MutationReport */
+/** @typedef {{ start: number; end: number }} LineRange */
 
 const CONFIG_FILE = path.join(repoRoot, "stryker.config.json");
 const REPORT_FILE = path.join(repoRoot, "reports", "mutation", "report.json");
@@ -123,6 +124,72 @@ export function guardZeroTests(report) {
   return broken > 0 ? `mutation runner executed zero tests for ${broken} covered mutant(s)` : null;
 }
 
+const DISABLE_NEXT_LINE = /\/\/\s*Stryker disable next-line\b/;
+const DISABLE_BLOCK = /\/\/\s*Stryker disable\b(?! next-line)/;
+const RESTORE = /\/\/\s*Stryker restore\b/;
+const EXCLUDED_MUTATOR = /excluded mutation/;
+
+/**
+ * The lines a source file's `// Stryker disable` comments cover: `next-line` covers the line after
+ * it; a block covers from its comment to its `restore`, or to the end of the file when nothing
+ * restores it (which is the case this check exists to catch, F-052 of the audit 014).
+ * @param {string} source
+ * @returns {LineRange[]}
+ */
+export function disabledRanges(source) {
+  /** @type {LineRange[]} */
+  const ranges = [];
+  /** @type {number | null} */
+  let open = null;
+  const lines = source.split(/\r?\n/);
+  for (const [i, line] of lines.entries()) {
+    const number = i + 1;
+    if (DISABLE_NEXT_LINE.test(line)) ranges.push({ start: number + 1, end: number + 1 });
+    else if (DISABLE_BLOCK.test(line)) open = number;
+    else if (RESTORE.test(line) && open !== null) {
+      ranges.push({ start: open, end: number });
+      open = null;
+    }
+  }
+  if (open !== null) ranges.push({ start: open, end: lines.length });
+  return ranges;
+}
+
+/**
+ * Mutants Stryker ignored because of a `// Stryker disable` comment whose line is not the one the
+ * comment names (a `next-line` directive) nor inside a `disable`/`restore` block: a restore written
+ * after the last statement of a block does not restore, and the comment silences the rest of the
+ * file. Mutators excluded by configuration (StringLiteral) are not comments and are skipped.
+ * @param {MutationReport} report
+ * @param {(file: string) => string} readSource the source of a file of the report, by its key
+ * @returns {Finding[]}
+ */
+export function ignoredOutsideDisable(report, readSource) {
+  /** @type {Finding[]} */
+  const out = [];
+  for (const [file, { mutants }] of Object.entries(report.files)) {
+    const ignored = mutants.filter(
+      (m) => m.status === "Ignored" && !EXCLUDED_MUTATOR.test(m.statusReason ?? ""),
+    );
+    if (ignored.length === 0) continue;
+    const ranges = disabledRanges(readSource(file)).filter((r) => r.end - r.start <= MAX_BLOCK_LINES);
+    for (const m of ignored) {
+      const line = m.location.start.line;
+      if (ranges.some((r) => line >= r.start && line <= r.end)) continue;
+      out.push({
+        file: file.split(path.sep).join("/"),
+        line,
+        rule: `mutation/${m.mutatorName}`,
+        message: `Ignored outside any Stryker disable range: ${m.statusReason ?? m.mutatorName}`,
+      });
+    }
+  }
+  return out;
+}
+
+/** A disable block longer than this is a leaked one (the switch groups the repo has span a few lines). */
+const MAX_BLOCK_LINES = 20;
+
 /**
  * @param {MutationReport} report
  * @returns {Finding[]}
@@ -182,7 +249,7 @@ function readReport() {
 }
 
 /**
- * @param {{ mode: "blocking" | "informative"; status: "pass" | "fail"; findings: Finding[]; skipped?: string; error?: string }} outcome
+ * @param {{ mode: "blocking" | "informative"; status: "pass" | "fail"; findings: Finding[]; skipped?: string; error?: string; passed?: string }} outcome
  * @param {boolean} json
  */
 function emit(outcome, json) {
@@ -195,30 +262,77 @@ function emit(outcome, json) {
   if (outcome.error) console.error(`test:mutation — ${outcome.error}`);
   else if (outcome.status === "fail")
     console.error(`test:mutation — ${outcome.findings.length} mutant(s) survived.`);
-  else if (!outcome.skipped) console.log("test:mutation — every mutant died.");
+  else if (!outcome.skipped) console.log(`test:mutation — ${outcome.passed ?? "every mutant died."}`);
+}
+
+/**
+ * The source of a file of the report, by the key Stryker used (relative to the repo root).
+ * @param {string} file
+ * @returns {string}
+ */
+function sourceOf(file) {
+  return readFileSync(path.isAbsolute(file) ? file : path.join(repoRoot, file), "utf8");
+}
+
+/**
+ * @param {Finding[]} leaked
+ * @returns {string | null}
+ */
+function leakedError(leaked) {
+  return leaked.length > 0 ? `${leaked.length} mutant(s) ignored outside a Stryker disable range` : null;
+}
+
+/**
+ * `--check-report`: the last full report, without running Stryker — every ignored mutant sits on a
+ * line its comment names (F-052 of the audit 014).
+ * @param {boolean} json
+ * @returns {number}
+ */
+function checkReportMode(json) {
+  const leaked = ignoredOutsideDisable(readReport(), sourceOf);
+  const error = leakedError(leaked);
+  emit(
+    {
+      mode: "blocking",
+      status: error ? "fail" : "pass",
+      findings: leaked,
+      passed: "every ignored mutant sits on the line its comment names.",
+      ...(error ? { error } : {}),
+    },
+    json,
+  );
+  return error ? 1 : 0;
+}
+
+/**
+ * `--all`: everything mutated, survivors informative; a leaked disable comment or a run without
+ * tests still fails.
+ * @param {boolean} json
+ * @returns {number}
+ */
+function allMode(json) {
+  runStryker(["--reporters", "clear-text,progress,html,json"]);
+  const report = readReport();
+  const leaked = ignoredOutsideDisable(report, sourceOf);
+  const error = guardZeroTests(report) ?? leakedError(leaked);
+  emit(
+    {
+      mode: "informative",
+      status: error ? "fail" : "pass",
+      findings: [...survivors(report), ...leaked],
+      ...(error ? { error } : {}),
+    },
+    json,
+  );
+  return error ? 1 : 0;
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const json = args["json"] === true;
-  const all = args["all"] === true;
+  if (args["check-report"] === true) return checkReportMode(json);
+  if (args["all"] === true) return allMode(json);
   const isMutable = mutableFilter();
-
-  if (all) {
-    runStryker(["--reporters", "clear-text,progress,html,json"]);
-    const report = readReport();
-    const error = guardZeroTests(report);
-    emit(
-      {
-        mode: "informative",
-        status: error ? "fail" : "pass",
-        findings: survivors(report),
-        ...(error ? { error } : {}),
-      },
-      json,
-    );
-    return error ? 1 : 0;
-  }
 
   const baseRef = resolveBaseRef();
   const ranges = baseRef === null ? [] : rangesFromDiff(diffAgainst(baseRef), isMutable);

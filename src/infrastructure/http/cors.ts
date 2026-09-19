@@ -9,6 +9,8 @@ export interface CorsPolicy {
 }
 
 const CONTENT_TYPE_HEADER = "content-type";
+/** Seconds a browser may cache a preflight answer: ten minutes, the ceiling Chromium honours. */
+const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
 /**
  * CORS for the browser consumer. The credential headers a preflight may announce come from the
@@ -27,7 +29,7 @@ export async function registerCors(
     methods: ["POST"],
     allowedHeaders: [CONTENT_TYPE_HEADER, ...credentialHeaders],
     credentials: false,
-    maxAge: 600,
+    maxAge: PREFLIGHT_MAX_AGE_SECONDS,
     // The preflight is answered by this plugin; the contract's wildcard route does not route OPTIONS.
     preflight: true,
     strictPreflight: true,

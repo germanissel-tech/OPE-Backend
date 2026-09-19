@@ -96,6 +96,33 @@ describe("real server over the contract", () => {
     expect(problemOf(res).detail).toBe("There is no operation for GET /nope.");
   });
 
+  it("the body limit by consumer (F-057) reads the operation before routing: a public operation, an unknown path and a guarded operation nobody wired all keep the browser's limit", async () => {
+    const srv = await server(realContract, healthHandlers);
+    // A body on a public operation: the limit applies, the body is ignored, the operation answers.
+    const withBody = await srv.inject({ method: "GET", url: "/v1/health", payload: { ignored: true } });
+    expect(withBody.statusCode).toBe(200);
+    // A body on an unknown path: the limit applies, then the contract's 404.
+    const unknown = await srv.inject({ method: "POST", url: "/nope", payload: { ignored: true } });
+    expect(unknown.statusCode).toBe(404);
+    expect(json(unknown)).toMatchObject({ type: "urn:ope:problem:not-found" });
+    // A guarded operation with no security wired: the browser's limit, before any credential check.
+    const oversized = await srv.inject({
+      method: "POST",
+      url: "/v1/events",
+      headers: { "content-type": "application/json" },
+      payload: `{"events":[],"filler":"${"x".repeat(1024 * 1024 + 1)}"}`,
+    });
+    expect(oversized.statusCode).toBe(413);
+    expect(json(oversized)).toMatchObject({ type: "urn:ope:problem:payload-too-large" });
+  });
+
+  it("the root path is not declared either: 404 Problem Details, not Fastify's own not-found", async () => {
+    const res = await (await server(realContract, healthHandlers)).inject({ method: "GET", url: "/" });
+    expect(res.statusCode).toBe(404);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
+    expect(json(res)).toMatchObject({ type: "urn:ope:problem:not-found", status: 404, instance: "/" });
+  });
+
   it("undeclared method → 405 Problem Details with Allow header", async () => {
     const res = await (
       await server(realContract, healthHandlers)

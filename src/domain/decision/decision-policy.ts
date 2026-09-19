@@ -4,7 +4,15 @@
 // What is commercial (high intent, the abandonment answer, budgets) is the commercial policy's
 // (feature 012). A policy only exists valid, is versioned (changing it is a new experiment,
 // ADR-022) and its verdict is pure: the orchestrator brings the facts, the policy answers.
-import { BARRIERS, fail, ok, type Barrier, type NoOpReason, type Result } from "../shared-kernel/index.js";
+import {
+  BARRIERS,
+  fail,
+  isRate,
+  ok,
+  type Barrier,
+  type NoOpReason,
+  type Result,
+} from "../shared-kernel/index.js";
 import {
   InvalidPolicyEvidence,
   InvalidPolicyPriority,
@@ -47,8 +55,6 @@ export interface BarrierVerdict {
   evidenceReason?: NoOpReason;
 }
 
-const isShare = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;
-
 export class DecisionPolicy {
   readonly version: string;
   readonly rules: BarrierRules;
@@ -71,7 +77,7 @@ export class DecisionPolicy {
    */
   static of(record: DecisionPolicyRecord): Result<DecisionPolicy, DecisionError> {
     if (record.version.trim() === "") return fail(new InvalidPolicyVersion());
-    if (!isShare(record.threshold)) return fail(new InvalidPolicyThreshold());
+    if (!isRate(record.threshold)) return fail(new InvalidPolicyThreshold());
     const permutation =
       record.priority.length === BARRIERS.length && BARRIERS.every((b) => record.priority.includes(b));
     if (!permutation) return fail(new InvalidPolicyPriority());

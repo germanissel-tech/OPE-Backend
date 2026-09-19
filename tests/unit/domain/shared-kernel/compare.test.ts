@@ -21,7 +21,13 @@ describe("constantTimeEquals", () => {
   });
 
   it("differs by any code unit, not only ASCII", () => {
-    expect(constantTimeEquals("na00efve", "naive")).toBe(false);
-    expect(constantTimeEquals("na00efve", "na00efve")).toBe(true);
+    expect(constantTimeEquals("naïve", "naive")).toBe(false);
+    expect(constantTimeEquals("naïve", "naïve")).toBe(true);
+  });
+
+  it("same length, different at one position only: unequal wherever the position is", () => {
+    expect(constantTimeEquals("abcdef", "abcdeX")).toBe(false);
+    expect(constantTimeEquals("abcdef", "Xbcdef")).toBe(false);
+    expect(constantTimeEquals("abcdef", "abcXef")).toBe(false);
   });
 });

@@ -12,11 +12,16 @@ export class SessionVisitorMismatch extends DomainError {
   }
 }
 
+/** The tolerance travels in `details`: the message does not repeat what its constant owns (015 F-022). */
 export class EventTimestampOutOfRange extends DomainError {
   readonly code = "event-timestamp-out-of-range" as const;
   readonly module = MODULE;
-  constructor(eventId: string) {
-    super(`The timestamp of event ${eventId} is out of tolerance (24 h in the past, 5 min in the future).`);
+  constructor(eventId: string, tolerance: { pastMs: number; futureMs: number }) {
+    super(`The timestamp of event ${eventId} is out of tolerance.`, {
+      eventId,
+      pastMs: tolerance.pastMs,
+      futureMs: tolerance.futureMs,
+    });
   }
 }
 

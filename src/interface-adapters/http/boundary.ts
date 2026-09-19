@@ -1,6 +1,7 @@
 // What controllers share at the boundary: DTO → Date (ADR-024: an unparsable date-time the
 // contract admitted is a programming error), DTO lines → domain lines, and the idempotent
 // answer of a notification (first receipt 201, repeat 200) with the same body.
+import { HTTP_STATUS } from "./status.js";
 import type { OrderItem } from "../../domain/outcomes/index.js";
 
 export function instantOf(text: string): Date {
@@ -13,8 +14,8 @@ export function linesOf(items: readonly { sku: string; quantity: number }[]): Or
   return items.map((i) => ({ sku: i.sku, quantity: i.quantity }));
 }
 
-const CREATED = 201;
-const REPEATED = 200;
+const CREATED = HTTP_STATUS.CREATED;
+const REPEATED = HTTP_STATUS.OK;
 
 /** The two 2xx of an idempotent notification (ADR-020): created → 201, repeated → 200. */
 export function idempotent<B>(

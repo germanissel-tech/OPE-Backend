@@ -4,7 +4,7 @@
 // the permutations belong to the domain (`Vocabulary.captured`, `BarrierRules.of`,
 // `DecisionPolicy.of`, `CommercialPolicy.of`, ADR-024); here only the shape is judged.
 import { ConfigError, type MerchantField } from "./config-error.js";
-import type { Condition, EventRef } from "../domain/barrier/index.js";
+import type { Condition, EventRef, FactCondition } from "../domain/barrier/index.js";
 import type { Block, EventType } from "../domain/ingestion/index.js";
 import type { DomainError } from "../domain/shared-kernel/index.js";
 
@@ -54,6 +54,11 @@ export type Key =
   | "fitData"
   | "authorizedAttributes";
 
+/**
+ * The facts the configuration admits: the domain's vocabulary, complete by construction (015
+ * F-039) — `satisfies` checks each entry is a fact, and tests/types/condition-config.test-d.ts
+ * checks no fact of the domain is missing.
+ */
 const FACTS = [
   "eventCount",
   "dwellSeconds",
@@ -63,8 +68,10 @@ const FACTS = [
   "variantAvailable",
   "sessionAddedToCart",
   "sessionEnteredCheckout",
-] as const;
+] as const satisfies readonly FactCondition["fact"][];
 type Fact = (typeof FACTS)[number];
+
+export type ConfiguredFact = Fact;
 
 export const at = (parent: MerchantField, key: Key): MerchantField => `${parent}.${key}`;
 export const get = (raw: Raw, key: Key): unknown => raw[key];

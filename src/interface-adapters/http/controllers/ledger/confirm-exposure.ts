@@ -2,6 +2,7 @@
 // the Problem Details of the returned error (422 invariant, 503 ledger unavailable).
 import { asDecisionId } from "../../../../domain/ledger/index.js";
 import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
+import { idempotent, instantOf } from "../../boundary.js";
 import { merchantOf } from "../../security/ingest-key.js";
 import { toProblem } from "../../to-problem.js";
 import type {
@@ -10,13 +11,6 @@ import type {
 } from "../../../../application/ledger/index.js";
 import type { UseCase } from "../../../../application/shared-kernel/index.js";
 import type { OperationHandler } from "../../typed.js";
-
-/** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */
-function instantOf(text: string): Date {
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);
-  return date;
-}
 
 export function makeConfirmExposureHandler(
   confirmExposure: UseCase<ConfirmExposureRequest, ConfirmExposureResponse>,
@@ -33,6 +27,6 @@ export function makeConfirmExposureHandler(
     });
     if (!result.ok) return toProblem(result.error, req.instance);
     const body = { decisionId: req.body.decisionId, status: result.value };
-    return result.value === "recorded" ? { status: 201, body } : { status: 200, body };
+    return idempotent(result.value === "recorded" ? "created" : "repeated", body);
   };
 }

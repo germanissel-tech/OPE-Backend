@@ -12,6 +12,7 @@ interface Range {
 interface Mutant {
   mutatorName: string;
   status: string;
+  statusReason?: string;
   testsCompleted?: number;
   coveredBy?: string[];
   location: { start: { line: number } };
@@ -25,6 +26,11 @@ interface Module {
   decide: (ranges: Range[], baseRef: string | null) => { mutate: string[] } | { skipped: string };
   guardZeroTests: (report: Report) => string | null;
   survivors: (report: Report) => { file: string; line: number; rule: string }[];
+  disabledRanges: (source: string) => { start: number; end: number }[];
+  ignoredOutsideDisable: (
+    report: Report,
+    readSource: (file: string) => string,
+  ) => { file: string; line: number; message: string }[];
 }
 
 let mod: Module;
@@ -76,6 +82,61 @@ describe("decide", () => {
     expect(mod.decide([{ file: "src/x.ts", start: 3, end: 7 }], "origin/main")).toEqual({
       mutate: ["src/x.ts:3-7"],
     });
+  });
+});
+
+describe("ignoredOutsideDisable (F-052 of the audit 014)", () => {
+  const source = [
+    "const a = 1;",
+    "// Stryker disable next-line ConditionalExpression: equivalent",
+    "const b = a ? 1 : 2;",
+    "// Stryker disable BooleanLiteral: unreachable",
+    "const c = true;",
+    "// Stryker restore BooleanLiteral",
+    "const d = false;",
+  ].join("\n");
+  const ignored = (line: number, reason: string): Mutant => ({
+    mutatorName: "ConditionalExpression",
+    status: "Ignored",
+    statusReason: reason,
+    location: { start: { line } },
+  });
+
+  it("reads next-line and block ranges from the source", () => {
+    expect(mod.disabledRanges(source)).toEqual([
+      { start: 3, end: 3 },
+      { start: 4, end: 6 },
+    ]);
+    expect(mod.disabledRanges("// Stryker disable all: leaked\nconst x = 1;\nconst y = 2;")).toEqual([
+      { start: 1, end: 3 },
+    ]);
+  });
+
+  it("flags an ignored mutant outside every range and accepts the ones inside; excluded mutators are not comments", () => {
+    const report: Report = {
+      files: {
+        "src/x.ts": {
+          mutants: [
+            ignored(3, "equivalent"),
+            ignored(5, "unreachable"),
+            ignored(7, "unreachable"),
+            {
+              ...ignored(7, 'Ignored because of excluded mutation "StringLiteral"'),
+              mutatorName: "StringLiteral",
+            },
+          ],
+        },
+      },
+    };
+    const leaked = mod.ignoredOutsideDisable(report, () => source);
+    expect(leaked).toEqual([
+      {
+        file: "src/x.ts",
+        line: 7,
+        rule: "mutation/ConditionalExpression",
+        message: "Ignored outside any Stryker disable range: unreachable",
+      },
+    ]);
   });
 });
 

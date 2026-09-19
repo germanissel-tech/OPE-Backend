@@ -20,11 +20,12 @@ export class CatalogDuplicateVariantId extends DomainError {
   }
 }
 
+/** The tolerance travels in `details`: the message does not repeat what its constant owns (015 F-022). */
 export class CatalogCapturedInFuture extends DomainError {
   readonly code = "catalog-captured-in-future" as const;
   readonly module = MODULE;
-  constructor() {
-    super("capturedAt is more than 5 minutes ahead of the server clock.");
+  constructor(toleranceMs: number) {
+    super("capturedAt is ahead of the server clock beyond the tolerance.", { toleranceMs });
   }
 }
 

@@ -1,9 +1,11 @@
 // Business errors of the decision module (ADR-023, ADR-026): a decision policy that does not
 // hold its invariants. They never travel over HTTP: a rejected policy stops the server naming
 // the field (ADR-024). Codes are the Problem Details slugs of the catalogue.
-import { DomainError } from "../shared-kernel/index.js";
+import { BARRIERS, DomainError } from "../shared-kernel/index.js";
 
 const MODULE = "decision" as const;
+/** The messages list the barriers from the kernel's catalogue, never by hand (015 F-022). */
+const BARRIER_LIST = BARRIERS.join(", ");
 
 export class InvalidPolicyVersion extends DomainError {
   readonly code = "invalid-policy-version" as const;
@@ -25,7 +27,7 @@ export class InvalidPolicyPriority extends DomainError {
   readonly code = "invalid-policy-priority" as const;
   readonly module = MODULE;
   constructor() {
-    super("The priority must list fit, price and returns exactly once each.", { path: "priority" });
+    super(`The priority must list each barrier (${BARRIER_LIST}) exactly once.`, { path: "priority" });
   }
 }
 
@@ -33,7 +35,7 @@ export class InvalidPolicyEvidence extends DomainError {
   readonly code = "invalid-policy-evidence" as const;
   readonly module = MODULE;
   constructor(field: string, barrier: string) {
-    super(`"${barrier}" is not a barrier of the MVP (fit, price, returns).`, { path: `evidence.${field}` });
+    super(`"${barrier}" is not a barrier of the MVP (${BARRIER_LIST}).`, { path: `evidence.${field}` });
   }
 }
 

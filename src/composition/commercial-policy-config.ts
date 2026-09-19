@@ -37,9 +37,15 @@ const FIELD_BY_SHARE: Readonly<Record<string, Key>> = {
 const DEFAULT_INTERVENTIONS_PER_SESSION = 1;
 const DEFAULT_COOLDOWN_SECONDS = 0;
 const DEFAULT_PER_VISITOR_PER_DAY = 3;
+/** Size-selector interactions in the session that, with a read of the policies, signal return risk. */
+const DEFAULT_RETURN_RISK_SELECTOR_INTERACTIONS = 2;
 const DEFAULT_RETURN_RISK = {
   all: [
-    { fact: "eventCount" as const, type: "size_selector_interacted" as const, min: 2 },
+    {
+      fact: "eventCount" as const,
+      type: "size_selector_interacted" as const,
+      min: DEFAULT_RETURN_RISK_SELECTOR_INTERACTIONS,
+    },
     { fact: "dwellSeconds" as const, block: "policies" as const },
   ],
 };

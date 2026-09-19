@@ -14,7 +14,7 @@ import { toProblem, type CataloguedError } from "../../../src/interface-adapters
 
 const every: CataloguedError[] = [
   new SessionVisitorMismatch("evt_1"),
-  new EventTimestampOutOfRange("evt_1"),
+  new EventTimestampOutOfRange("evt_1", { pastMs: 0, futureMs: 0 }),
   new ExposureDecisionUnknown(),
   new ExposureOfNoOp("dec_1"),
   new LedgerUnavailable(),

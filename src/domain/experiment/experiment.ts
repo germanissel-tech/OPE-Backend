@@ -4,6 +4,7 @@
 // Experiment only exists valid: `of` enforces the rules, `rehydrate` trusts recorded facts.
 import {
   fail,
+  isRate,
   ok,
   type Arm,
   type ExperimentId,
@@ -67,9 +68,7 @@ export class Experiment {
   /** A new experiment: the rules of creation apply. */
   static of(input: ExperimentRecord): Result<Experiment, ExperimentError> {
     const { treatmentShare, seed } = input;
-    if (!Number.isFinite(treatmentShare) || treatmentShare < 0 || treatmentShare > 1) {
-      return fail(new InvalidTreatmentShare(treatmentShare));
-    }
+    if (!isRate(treatmentShare)) return fail(new InvalidTreatmentShare(treatmentShare));
     if (seed === "") return fail(new InvalidSeed());
     return ok(new Experiment(input));
   }
