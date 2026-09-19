@@ -32,7 +32,7 @@ en `src/infrastructure/http/build-server.ts`.
 
 ## Phase 1: Setup
 
-- [ ] T001 Verificar el punto de partida (`npm run contract:check && npm run quality && npm test`
+- [x] T001 Verificar el punto de partida (`npm run contract:check && npm run quality && npm test`
       en verde) y anotar la cantidad de pruebas en la sección histórica de
       `specs/013-outcomes-ordenes-y-devoluciones/quickstart.md`
 
@@ -40,14 +40,14 @@ en `src/infrastructure/http/build-server.ts`.
 
 ## Phase 2: Foundational — contrato construido y módulo cableado sin comportamiento
 
-- [ ] T002 [P] Contrato, esquemas: `contracts/components/schemas/{OrderId,OrderItem,Order,
+- [x] T002 [P] Contrato, esquemas: `contracts/components/schemas/{OrderId,OrderItem,Order,
 OrderStatus,OrderResult,OrderCorroboration,CorroborationResult,Return,ReturnResult}.yaml` según
       `contracts/schemas.yaml` del plan (`Order` con `x-invariants` `duplicate-order-item` y
       `order-confirmed-in-future`; `Order.incentive` por `$ref` a `Incentive.yaml`; todo
       `additionalProperties: false`); `contracts/components/responses/{OrderUnprocessable,
 ReturnUnprocessable}.yaml` con un ejemplo por invariante (`duplicate-order-item`,
       `order-confirmed-in-future`; `order-unknown`, `return-items-not-in-order`)
-- [ ] T003 [P] Contrato, operaciones: `contracts/paths/{orders,order-corroborations,returns}.yaml`
+- [x] T003 [P] Contrato, operaciones: `contracts/paths/{orders,order-corroborations,returns}.yaml`
       según los borradores del plan (sin los parámetros de firma todavía: llegan en US6),
       `contracts/examples/{order-attributed,order-pending,order-corroboration,order-return}.yaml`,
       raíz `contracts/openapi.yaml` (`info.version: 1.2.0`, tres paths), `contracts/api-map.yaml`
@@ -57,36 +57,36 @@ ReturnUnprocessable}.yaml` con un ejemplo por invariante (`duplicate-order-item`
       `src/interface-adapters/http/problem-details.ts`; `contracts/components/schemas/Incentive.yaml`:
       cerrar el PROPUESTO (la redención se declara en `Order.incentive`; la emisión del cupón es
       de la 014)
-- [ ] T004 Glosario para `check:glossary`: `docs/dominio/{orden-verificada,orden-atribuida,
+- [x] T004 Glosario para `check:glossary`: `docs/dominio/{orden-verificada,orden-atribuida,
 correlacion-pendiente,corroboracion,devolucion,mecanismo-de-correlacion}.md` con fuente (01
       §5, §5.2, §6; 02 §5.1–5.4); `npm run contract:check && npm run contract:types` en verde
       (tipos regenerados en `src/interface-adapters/http/generated/api.d.ts`); el arranque falla
       hasta T009 porque el contrato declara operaciones sin módulo: aceptable dentro de la fase
-- [ ] T005 [P] `src/application/ledger/ports/decision-ledger.ts`: `bySession(merchantId,
+- [x] T005 [P] `src/application/ledger/ports/decision-ledger.ts`: `bySession(merchantId,
 sessionId): Promise<readonly Decision[]>` (orden de registro);
       `src/interface-adapters/gateways/ledger/memory-decision-ledger.ts`: índice
       `merchant/session`; `tests/helpers/unavailable-ledgers.ts`: `bySession: () => []`;
       `tests/unit/gateways/memory-decision-ledger.test.ts` (nuevo o ampliado: por sesión, orden,
       otra sesión vacía, otro merchant vacío)
-- [ ] T006 [P] Dominio `outcomes`, vacío de reglas de negocio: `src/domain/outcomes/ids.ts`
+- [x] T006 [P] Dominio `outcomes`, vacío de reglas de negocio: `src/domain/outcomes/ids.ts`
       (`OrderId`, `asOrderId`), `corroboration.ts` (tipo `Corroboration`), `errors.ts`
       (`DuplicateOrderItem`, `OrderConfirmedInFuture`, `OrderUnknown`, `ReturnItemsNotInOrder`,
       `OutcomesError`; `MODULE = "outcomes"`), `index.ts`; `.dependency-cruiser.cjs`:
       `outcomes: ["shared-kernel", "ledger"]`; fixture en `tests/architecture/fixtures/` si la
       prueba de mapa lo exige
-- [ ] T007 [P] Puertos: `src/application/outcomes/ports/order-ledger.ts` (`OrderRecording`,
+- [x] T007 [P] Puertos: `src/application/outcomes/ports/order-ledger.ts` (`OrderRecording`,
       `ReturnRecording`, `OrderLedger { record, recordReturn, find }`) y
       `corroboration-ledger.ts` (`CorroborationLedger { record, find }`) según data-model.md;
       `src/application/outcomes/index.ts`; `tests/helpers/unavailable-ledgers.ts`:
       `unavailableOrderLedger`, `unavailableCorroborationLedger`
-- [ ] T008 Composición: `src/composition/modules/outcomes.ts` (`OutcomesPorts { clock, logger,
+- [x] T008 Composición: `src/composition/modules/outcomes.ts` (`OutcomesPorts { clock, logger,
 orders, corroborations, decisions }`, `memoryOutcomesPorts`, `outcomesModule` con los tres
       handlers), `modules/index.ts` (`MODULES`), `ports.ts`, `profiles/local.ts`; controllers
       `src/interface-adapters/http/controllers/outcomes/{notify-order,corroborate-order,
 notify-return}.ts` tipados con `OperationHandler<…>` que aún responden el caso de uso de
       T011/T015/T018 (escribir controllers y casos de uso mínimos que compilen; el
       comportamiento llega por historia)
-- [ ] T009 `npm run typecheck && npm run quality && npm test && npm run contract:check` en verde
+- [x] T009 `npm run typecheck && npm run quality && npm test && npm run contract:check` en verde
       (el servidor arranca: toda operación tiene módulo); `npm run test:mutation`; commit
       `feat(outcomes): contrato de órdenes, corroboraciones y devoluciones construido; módulo
 outcomes y consulta por sesión del ledger`
@@ -102,7 +102,7 @@ outcomes y consulta por sesión del ledger`
 ledger; sin `sessionId` / sesión de otro merchant → `PENDING_CORRELATION`; tres envíos →
 `201`, `200`, `200`; otro monto → `409`; dos merchants, mismo `orderId` → dos órdenes.
 
-- [ ] T010 [P] [US1] `src/domain/outcomes/order.ts`: `OrderItem`, `OrderStatus`, `class Order`
+- [x] T010 [P] [US1] `src/domain/outcomes/order.ts`: `OrderItem`, `OrderStatus`, `class Order`
       (`of` con `duplicate-order-item` y `order-confirmed-in-future` con tolerancia de 5 min
       sobre `receivedAt`; `rehydrate`; `status()`; `sameContentAs` canónico sobre lo enviado
       con ítems ordenados por SKU; `withReturn`; `contains`); `correlation.ts`:
@@ -114,7 +114,7 @@ ledger; sin `sessionId` / sesión de otro merchant → `PENDING_CORRELATION`; tr
       `tests/unit/domain/outcomes/correlation.test.ts` (sin decisiones ⇒ `undefined`; con
       decisiones sin experimento ⇒ sin `experiment`; con experimento ⇒ el de la última que lo
       tiene; `visitorId` de la primera)
-- [ ] T011 [US1] `src/application/outcomes/use-cases/notify-order.use-case.ts`
+- [x] T011 [US1] `src/application/outcomes/use-cases/notify-order.use-case.ts`
       (`NotifyOrderUseCase`, deps `{ clock, orders, decisions, corroborations, logger }`):
       `Order.of` → `bySession` si hay `sessionId` → `Correlation.of` → `IncentiveRedemption.of`
       → `orders.record` → `created | repeated | IdempotencyConflict | LedgerUnavailable`; log
@@ -123,14 +123,14 @@ ledger; sin `sessionId` / sesión de otro merchant → `PENDING_CORRELATION`; tr
       experimento; sin `sessionId`; sesión sin decisiones; `repeated` devuelve el registro
       original aunque la sesión ya sea conocida; `conflict` ⇒ `IdempotencyConflict`; ledger
       caído ⇒ `LedgerUnavailable` sin registrar; `Order.of` falla ⇒ no consulta el ledger)
-- [ ] T012 [P] [US2] `src/interface-adapters/gateways/outcomes/memory-order-ledger.ts`:
+- [x] T012 [P] [US2] `src/interface-adapters/gateways/outcomes/memory-order-ledger.ts`:
       `record` decide en sección síncrona con `sameContentAs` (clave `merchant/orderId`),
       `recordReturn` (`unknown | recorded | repeated | conflict`), `find`;
       `memory-corroboration-ledger.ts` (clave `merchant/orderId/sessionId`; `find` por orden);
       `tests/unit/gateways/memory-order-ledger.test.ts` (dos `record` concurrentes con
       `Promise.all` ⇒ un registro y `recorded` + `repeated`; conflicto no sobrescribe; otro
       merchant no ve la orden) y `memory-corroboration-ledger.test.ts`
-- [ ] T013 [US1] Controller `src/interface-adapters/http/controllers/outcomes/notify-order.ts`:
+- [x] T013 [US1] Controller `src/interface-adapters/http/controllers/outcomes/notify-order.ts`:
       DTO → `Money.rehydrate`, `asOrderId`, `asSessionId`, `instantOf`; `created → 201`,
       `repeated → 200`, errores por `toProblem` (`409`, `422`, `503` con `Retry-After` como la
       exposición: verificar que `to-problem.ts` ya lo hace para `ledger-unavailable`); cuerpo de
@@ -141,7 +141,7 @@ ledger; sin `sessionId` / sesión de otro merchant → `PENDING_CORRELATION`; tr
       `experiment`; campo extra (`email`) ⇒ `400`; `201/200/200`; otro monto ⇒ `409` y registro
       intacto; mismo `orderId` en A y B; reenvío con `sessionId` ⇒ `409`; ledger caído ⇒ `503`
       con `Retry-After` y nada registrado; `JSON.stringify(body)` sin `arm|experiment|visitor`
-- [ ] T014 [US2] `tests/integration/isolation.test.ts` (+): orden de A con `sessionId` de B no se
+- [x] T014 [US2] `tests/integration/isolation.test.ts` (+): orden de A con `sessionId` de B no se
       atribuye; `find` de B no ve la orden de A. `tests/integration/outcomes-latency.test.ts`
       (p95 ≤ 50 ms, informativa; excluida en `vitest.mutation.config.ts`). `npm run quality &&
 npm test && npm run contract:check` en verde; `npm run test:mutation`; commit `feat(outcomes):
@@ -158,7 +158,7 @@ orderId (ADR-028)`
 su estado lo decide A; repetida → un registro; devolución → `201 RETURNED`; repetida `200`;
 distinta `409`; desconocida `422 order-unknown`; ítems fuera de la orden `422`.
 
-- [ ] T015 [P] [US3] `src/application/outcomes/use-cases/corroborate-order.use-case.ts`
+- [x] T015 [P] [US3] `src/application/outcomes/use-cases/corroborate-order.use-case.ts`
       (`CorroborateOrderUseCase`, deps `{ clock, corroborations }`; `record` ⇒ `{ receivedAt }`
       o `LedgerUnavailable`); controller `corroborate-order.ts` (`202`; `503`);
       `tests/unit/application/outcomes/corroborate-order.test.ts`;
@@ -167,10 +167,10 @@ distinta `409`; desconocida `422 order-unknown`; ítems fuera de la orden `422`.
       repetida (`202`, una); `sessionId` de otro merchant se registra bajo el propio; Origin no
       registrado ⇒ `403`; ledger caído ⇒ `503` con `Retry-After`; `NotifyOrder` loguea
       `corroborated: true` cuando ya existía (usar `recordingLogger`)
-- [ ] T016 [P] [US4] `src/domain/outcomes/return.ts`: `class Return { static of({ order,
+- [x] T016 [P] [US4] `src/domain/outcomes/return.ts`: `class Return { static of({ order,
 returnedAt, items?, receivedAt }) }` (`return-items-not-in-order`: SKU ausente o cantidad
       mayor; SKUs repetidos también), `sameContentAs`; `tests/unit/domain/outcomes/return.test.ts`
-- [ ] T017 [US4] `src/application/outcomes/use-cases/notify-return.use-case.ts`
+- [x] T017 [US4] `src/application/outcomes/use-cases/notify-return.use-case.ts`
       (`NotifyReturnUseCase`, deps `{ clock, orders }`): `orders.find` ⇒ `OrderUnknown` |
       `Return.of` ⇒ `orders.recordReturn` ⇒ `created | repeated | IdempotencyConflict |
 OrderUnknown (unknown) | LedgerUnavailable`; controller `notify-return.ts` (`201`/`200`/`409`/
@@ -180,7 +180,7 @@ OrderUnknown (unknown) | LedgerUnavailable`; controller `notify-return.ts` (`201
       `[invariant:return-items-not-in-order]`, atribuida devuelta conserva `correlation`
       (`orders.find`), pendiente devuelta, repetida `200`, distinta `409`, `orderId` de otro
       merchant ⇒ `422`, ledger caído ⇒ `503`
-- [ ] T018 [US3] [US4] `npm run quality && npm test && npm run contract:check` en verde; `npm run
+- [x] T018 [US3] [US4] `npm run quality && npm test && npm run contract:check` en verde; `npm run
 test:mutation`; commit `feat(outcomes): corroboración desde el navegador como evidencia y
 devoluciones sobre órdenes registradas`
 
@@ -194,14 +194,14 @@ devoluciones sobre órdenes registradas`
 10 ⇒ `mismatched`; sin incentivo ⇒ `not-applied`; orden pendiente con incentivo ⇒
 `unverifiable`; sesión sin concesión con incentivo ⇒ `not-granted`.
 
-- [ ] T019 [US5] `tests/unit/domain/outcomes/correlation.test.ts` (+): tabla completa de
+- [x] T019 [US5] `tests/unit/domain/outcomes/correlation.test.ts` (+): tabla completa de
       `IncentiveRedemption.of` (data-model.md), última decisión `INTERVENE` con incentivo,
       `NO_OP` ignorados, sin declarado ni concedido ⇒ `undefined`;
       `tests/unit/application/outcomes/notify-order.test.ts` (+): `redemption` en el registro y
       en el log; `tests/integration/orders.test.ts` (+): los cinco casos con la 012 real
       (merchant con `marginPercent` y señales de `price` para conceder el incentivo), respuesta
       idéntica en todos
-- [ ] T020 [US5] `npm run quality && npm test` en verde; `npm run test:mutation`; commit
+- [x] T020 [US5] `npm run quality && npm test` en verde; `npm run test:mutation`; commit
       `feat(outcomes): redención del incentivo cruzada con la decisión que lo concedió`
 
 ---
@@ -215,7 +215,7 @@ obligatoria por merchant, también para el catálogo (ADR-029).
 cuerpo alterado / fuera de ventana `401` con el `type` exacto; segundo secreto acepta;
 merchant sin secreto: sin firma `201`; catálogo del merchant con secreto sin firma `401`.
 
-- [ ] T021 [P] [US6] Dominio `merchant`: `MerchantInput.platformSecrets?`, `Merchant.platformSecrets`,
+- [x] T021 [P] [US6] Dominio `merchant`: `MerchantInput.platformSecrets?`, `Merchant.platformSecrets`,
       `requiresSignature()`, invariante en `of` (1–2, no vacíos, ≠ `ingestKeys` y ≠
       `platformKeys`) con `InvalidPlatformSecret(index)` en `errors.ts`;
       `src/domain/merchant/platform-signature.ts` (`class PlatformSignature { static parse(header)
@@ -224,7 +224,7 @@ inWindow(timestamp, now, windowMs)`) y errores `SignatureMissing`, `SignatureInv
       `SignatureExpired`; `contracts/problem-types.yaml` + `PROBLEM_TYPES` (+`signature-missing`,
       `signature-invalid`, `signature-expired` 401; `invalid-platform-secret` 500);
       `tests/unit/domain/merchant/platform-signature.test.ts` y `merchant.test.ts` (+)
-- [ ] T022 [P] [US6] Aplicación `merchant`: `ports/message-authenticator.ts`
+- [x] T022 [P] [US6] Aplicación `merchant`: `ports/message-authenticator.ts`
       (`MessageAuthenticator { hmacSha256Hex(secret, message: Uint8Array) }`),
       `policies/signature-window.ts` (`SIGNATURE_WINDOW_MS = 5 min`),
       `services/platform-signature.service.ts` (`PlatformSignatureVerifier`,
@@ -235,7 +235,7 @@ inWindow(timestamp, now, windowMs)`) y errores `SignatureMissing`, `SignatureInv
       (`node:crypto` `createHmac`); `tests/unit/application/merchant/platform-signature.service.test.ts`
       con un autenticador falso y `tests/unit/gateways/node-message-authenticator.test.ts` (vector
       conocido de HMAC-SHA256)
-- [ ] T023 [US6] Infraestructura y security handler: `src/interface-adapters/http/typed.ts`
+- [x] T023 [US6] Infraestructura y security handler: `src/interface-adapters/http/typed.ts`
       `SecurityRequest.rawBody?: Uint8Array`; `src/infrastructure/http/build-server.ts`: parser
       de `application/json` con `parseAs: "buffer"` que guarda los bytes en un
       `WeakMap<FastifyRequest, Buffer>` y delega a `app.getDefaultJsonParser(...)` (mismos
@@ -250,7 +250,7 @@ header("x-ope-signature"), body: rawBody ?? empty, now }` ⇒ `SecurityError(cod
 merchants[i].platformSecrets`); `config/dev-merchants.json` + `platformSecrets`;
       `tests/helpers/test-app.ts`: `MerchantSpec.platformSecrets?`, B con secreto, A sin;
       `tests/helpers/sign.ts` (firma para las pruebas); `tests/unit/composition/config.test.ts` (+)
-- [ ] T024 [US6] Contrato: `contracts/components/parameters/{X-OPE-Timestamp,X-OPE-Signature}.yaml`
+- [x] T024 [US6] Contrato: `contracts/components/parameters/{X-OPE-Timestamp,X-OPE-Signature}.yaml`
       referenciados desde `paths/{catalog,orders,returns}.yaml`;
       `contracts/components/securitySchemes/platformKey.yaml` describe la firma (cierra el
       "PROPOSED"); regla `ope-platform-signature-headers` en `contracts/.spectral.yaml` +
@@ -258,7 +258,7 @@ merchants[i].platformSecrets`); `config/dev-merchants.json` + `platformSecrets`;
       declara ambos parámetros) + fixture `tests/contract-rules/fixtures/
 ope-platform-signature-headers.yaml` (+ `.missing-one.yaml`) y su entrada en `rules.test.ts`;
       `npm run contract:check && npm run contract:types`
-- [ ] T025 [US6] `tests/integration/platform-signature.test.ts`: firmada (`201`), sin headers
+- [x] T025 [US6] `tests/integration/platform-signature.test.ts`: firmada (`201`), sin headers
       (`401 signature-missing`), con otro secreto (`signature-invalid`), cuerpo alterado tras
       firmar (`signature-invalid`), timestamp de hace 10 min y de dentro de 10 min
       (`signature-expired`), timestamp no numérico (`signature-invalid`), segundo secreto
@@ -267,7 +267,7 @@ ope-platform-signature-headers.yaml` (+ `.missing-one.yaml`) y su entrada en `ru
       (`recordingLogger` + headers redactados); `tests/unit/gateways/redaction` si aplica.
       `scripts/sign-platform-request.mjs` (`node scripts/sign-platform-request.mjs <secret>
 <archivo>` imprime los dos headers; `checkJs`) y su mención en `README.md`
-- [ ] T026 [US6] `npm run format:check && npm run quality && npm run typecheck && npm test && npm run
+- [x] T026 [US6] `npm run format:check && npm run quality && npm run typecheck && npm test && npm run
 contract:check && npm run test:contract` en verde; `npm run test:mutation`; commit
       `feat(merchant): firma HMAC del cuerpo para la credencial de plataforma con secreto por
 merchant y ventana (ADR-029)`
@@ -276,19 +276,19 @@ merchant y ventana (ADR-029)`
 
 ## Phase 7: Polish & documentación
 
-- [ ] T027 [P] `docs/adr/028-cadena-de-evidencia-en-el-ledger.md` y `029-firma-de-plataforma.md`
+- [x] T027 [P] `docs/adr/028-cadena-de-evidencia-en-el-ledger.md` y `029-firma-de-plataforma.md`
       → `aceptada`; `docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md`: la
       firma HMAC deja de ser PROPUESTA (cita ADR-029; los PROPUESTO de `portalSession` y
       `adminToken` siguen); `docs/adr/025-catalogo-y-verdad-de-producto.md` §5: nota de que la
       013 la trajo; `docs/dominio/firma-de-plataforma.md`; `npm run check:adrs && npm run
 check:markers`
-- [ ] T028 [P] `CLAUDE.md`: módulo `outcomes` en la lista; nota "Outcomes y cadena de evidencia
+- [x] T028 [P] `CLAUDE.md`: módulo `outcomes` en la lista; nota "Outcomes y cadena de evidencia
       (ADR-028, ADR-029)" con correlación sólo por A, idempotencia en el puerto, corroboración
       como evidencia, redención, firma por merchant y `rawBody`; `README.md`: `platformSecrets`
       en `OPE_MERCHANTS`, cómo firmar (script), las tres operaciones en la lista de la
       superficie; `docs/api` regenerado si el flujo lo hace (`contract:docs`,
       `contract:insomnia`)
-- [ ] T029 `npm run release-check`; `quickstart.md` con la tabla histórica de cierre y los
+- [x] T029 `npm run release-check`; `quickstart.md` con la tabla histórica de cierre y los
       desvíos respecto del plan; commit `chore(013): ADR-028 y ADR-029 aceptadas, guía de agentes
 y cierre de la feature`
 

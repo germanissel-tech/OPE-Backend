@@ -1,7 +1,7 @@
 ---
 numero: 28
 titulo: Cadena de evidencia en el ledger, correlación sólo por la plataforma e idempotencia de outcomes
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-19
 fuente: specs/013-outcomes-ordenes-y-devoluciones/research.md
 ---

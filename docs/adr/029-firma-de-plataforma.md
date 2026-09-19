@@ -1,7 +1,7 @@
 ---
 numero: 29
 titulo: Firma HMAC del cuerpo para la credencial de plataforma
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-19
 fuente: specs/013-outcomes-ordenes-y-devoluciones/research.md
 ---

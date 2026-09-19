@@ -30,10 +30,11 @@ idempotencia de orden con `orderId`) y con la paginación de lecturas.
    | `portal`   | `portal`             | `portalSession` (bearer, PROPUESTO)         | token de sesión de una persona del merchant                                 | persona + merchant           |
    | `admin`    | `admin`              | `adminToken` (bearer, PROPUESTO)            | token de operador de OPE, emitido fuera de banda, auditado                  | operador                     |
 
-   Ausente o inválida ⇒ `401 unauthorized`. Firma HMAC del cuerpo con ventana temporal para
-   `platformKey`: DECIDIDO con el primer adaptador de plataforma (feature 010, ADR-025): clave
-   servidor a servidor por merchant en `X-OPE-Platform-Key`, una o dos, distinta de las de
-   ingesta; la firma HMAC del cuerpo sigue PROPUESTA para el primer adaptador real.
+   Ausente o inválida ⇒ `401 unauthorized`. `platformKey`: DECIDIDO con el primer adaptador de
+   plataforma (feature 010, ADR-025): clave servidor a servidor por merchant en
+   `X-OPE-Platform-Key`, una o dos, distinta de las de ingesta. La firma HMAC del cuerpo con
+   ventana temporal entró con la 013 (ADR-029): obligatoria por merchant cuando tiene secreto
+   configurado, para toda operación de la credencial.
 
 2. **Capacidades** (`x-required-capabilities`): vocabulario cerrado por consumidor, declarado
    en `consumers.<x>.capabilities` del mapa (ADR-019); una capacidad fuera del vocabulario de
