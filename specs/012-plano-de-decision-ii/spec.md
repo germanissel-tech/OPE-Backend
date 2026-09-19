@@ -231,8 +231,9 @@ calló, ni recalibrar techo y escalones con datos.
   `acceptable` | `unacceptable { reason }`, sin reloj ni puertos.
 - **FR-021**: Motivos de rechazo cerrados: `stale-price` (precio vigente sin stock/precio
   fresco), `no-fit-data`, `no-returns-policy`, `attribute-unknown`, `attribute-not-authorized`,
-  `variant-unavailable` (recomendación de variante no disponible), `incentive-not-allowed`
-  (incentivo con techo 0 o sin escalones).
+  `variant-unavailable` (recomendación de variante no disponible). El claim `incentive` es
+  siempre aceptable para el gate: si el incentivo puede salir lo decide la política comercial
+  (techo y escalones son suyos, y el gate no debe conocerlos).
 - **FR-022**: El perfil del merchant MUST declarar `returnsPolicy: boolean`, `fitData: boolean`,
   `authorizedAttributes: string[]`; ausente ⇒ todo falso (fail-closed).
 - **FR-023**: Sin ningún candidato aceptable ⇒ `NO_OP no-acceptable-candidate`; el gate MUST
@@ -253,8 +254,8 @@ calló, ni recalibrar techo y escalones con datos.
   sesión (`session-budget-exhausted`), fatiga por visitante (`visitor-fatigue`), y para un
   candidato de incentivo: margen ausente, techo 0/escalones vacíos, riesgo de devolución alto
   o valor > techo ⇒ el candidato se descarta y se toma el siguiente aceptable no económico; si
-  no hay, `NO_OP commercial-policy-blocked` con motivo (`margin-missing`, `ceiling`,
-  `return-risk`).
+  no hay, `NO_OP commercial-policy-blocked` con motivo (`margin-missing`,
+  `incentive-not-allowed` = techo 0 o escalones vacíos, `return-risk`).
 - **FR-033**: El valor del incentivo MUST ser el primer escalón ≤ techo, y la respuesta MUST
   llevar `intervention.incentive { kind: "percent", value }`; ningún otro candidato lleva
   `incentive`.
