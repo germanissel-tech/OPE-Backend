@@ -208,6 +208,7 @@ const withNotifyOrder = (doc) => {
     ...doc.components.securitySchemes,
     platformKey: { type: "apiKey", in: "header", name: "X-OPE-Platform-Key", description: "Platform key." },
   };
+  withSignatureHeaders(doc);
   doc.components.responses.BadRequest = problemResponse("Invalid request.", 400, "validation-failed");
   doc.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
   doc.components.responses.Conflict = problemResponse("Conflict.", 409, "idempotency-conflict");
@@ -235,6 +236,7 @@ const withNotifyOrder = (doc) => {
       security: [{ platformKey: [] }],
       "x-required-capabilities": ["orders:write"],
       "x-idempotency": { key: "orderId", first: "201", repeat: "200" },
+      parameters: signatureParameters(),
       requestBody: {
         required: true,
         content: {
@@ -260,6 +262,31 @@ const withNotifyOrder = (doc) => {
 };
 /** @param {Doc} doc @returns {Doc} */
 const orders = (doc) => doc.paths["/v1/orders"].post;
+
+/** The signature header parameters every platformKey operation declares (ADR-029). */
+const signatureParameters = () => [
+  { $ref: "#/components/parameters/X-OPE-Timestamp" },
+  { $ref: "#/components/parameters/X-OPE-Signature" },
+];
+/** @param {Doc} doc */
+const withSignatureHeaders = (doc) => {
+  doc.components.parameters = {
+    ...doc.components.parameters,
+    "X-OPE-Timestamp": {
+      name: "X-OPE-Timestamp",
+      in: "header",
+      description: "Signing instant.",
+      schema: { type: "integer", minimum: 0 },
+    },
+    "X-OPE-Signature": {
+      name: "X-OPE-Signature",
+      in: "header",
+      description: "Signature.",
+      schema: { type: "string", pattern: "^v1=[0-9a-f]{64}$" },
+    },
+  };
+  return doc;
+};
 
 /** Adds the planned listDecisions (collection) and getDecision (single) of the portal consumer. */
 /** @param {Doc} doc */
@@ -648,7 +675,9 @@ const fixtures = {
   "ope-consumer-security.yaml": (d) => {
     withAuth(withThings(d), things(d));
     withScheme(d, "platformKey");
+    withSignatureHeaders(d);
     things(d).security = [{ platformKey: [] }];
+    things(d).parameters = signatureParameters();
     return d;
   },
   "ope-consumer-security.public.yaml": (d) => {
@@ -659,7 +688,20 @@ const fixtures = {
   "ope-consumer-security.two-requirements.yaml": (d) => {
     withAuth(withThings(d), things(d));
     withScheme(d, "platformKey");
+    withSignatureHeaders(d);
     things(d).security = [{ ingestKey: [] }, { platformKey: [] }];
+    things(d).parameters = signatureParameters();
+    return d;
+  },
+  // ope-platform-signature-headers (feature 013, ADR-029)
+  "ope-platform-signature-headers.yaml": (d) => {
+    withNotifyOrder(d);
+    delete orders(d).parameters;
+    return d;
+  },
+  "ope-platform-signature-headers.one.yaml": (d) => {
+    withNotifyOrder(d);
+    orders(d).parameters = [{ $ref: "#/components/parameters/X-OPE-Timestamp" }];
     return d;
   },
   "ope-no-merchant-id-in-request.admin-body.yaml": (d) => {

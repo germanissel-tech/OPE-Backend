@@ -57,6 +57,9 @@ types:
   - slug: invalid-origin
     status: 500
     title: A registered origin is not scheme://host[:port]
+  - slug: invalid-platform-secret
+    status: 500
+    title: A platform signing secret is empty or collides with a key
   - slug: invalid-money
     status: 500
     title: A monetary amount or currency is malformed
@@ -75,6 +78,15 @@ types:
   - slug: catalog-captured-in-future
     status: 422
     title: The capture instant is in the future
+  - slug: signature-missing
+    status: 401
+    title: The request is not signed
+  - slug: signature-invalid
+    status: 401
+    title: The signature does not match
+  - slug: signature-expired
+    status: 401
+    title: The signature timestamp is outside the window
   - slug: duplicate-order-item
     status: 422
     title: Two order lines share a SKU

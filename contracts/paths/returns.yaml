@@ -26,6 +26,9 @@ post:
       status: 422
       rule: every returned item has a SKU of the order with quantity <= the quantity bought, and no SKU repeats
       description: A return cannot contain what the order did not.
+  parameters:
+    - $ref: ../components/parameters/X-OPE-Timestamp.yaml
+    - $ref: ../components/parameters/X-OPE-Signature.yaml
   requestBody:
     required: true
     content:

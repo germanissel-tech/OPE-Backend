@@ -53,6 +53,7 @@ describe("readConfig", () => {
           ingestKeys: ["k1"],
           origins: [{ value: "https://a.example" }],
           platformKeys: [],
+          platformSecrets: [],
         },
         experiments: [],
       },
@@ -497,5 +498,23 @@ describe("readConfig", () => {
   ])("OPE_MERCHANTS=%s is refused: %s", (raw, message) => {
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
+  });
+
+  it("platformSecrets (ADR-029): optional, one or two, built into the merchant; invalid ones name the field", () => {
+    const read = (over: Record<string, unknown>) =>
+      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, platformKeys: ["p1"], ...over }]) }, noFile)
+        .merchants[0]?.merchant;
+    expect(read({})?.platformSecrets).toEqual([]);
+    expect(read({})?.requiresSignature()).toBe(false);
+    expect(read({ platformSecrets: ["s1", "s2"] })?.platformSecrets).toEqual(["s1", "s2"]);
+    expect(read({ platformSecrets: ["s1"] })?.requiresSignature()).toBe(true);
+    expect(() => read({ platformSecrets: "s1" })).toThrow(
+      "merchants[0].platformSecrets must have at most two secrets",
+    );
+    expect(() => read({ platformSecrets: ["a", "b", "c"] })).toThrow(
+      "merchants[0].platformSecrets must have at most two secrets",
+    );
+    expect(() => read({ platformSecrets: ["s1", ""] })).toThrow("merchants[0].platformSecrets[1] is invalid");
+    expect(() => read({ platformSecrets: ["p1"] })).toThrow("merchants[0].platformSecrets[0] is invalid");
   });
 });

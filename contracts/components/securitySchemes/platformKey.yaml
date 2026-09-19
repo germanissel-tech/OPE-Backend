@@ -4,6 +4,9 @@ name: X-OPE-Platform-Key
 description: |
   Server-to-server secret of the merchant's platform (ADR-020). It never travels in a browser
   nor in the tag: only the platform's backend holds it, over TLS. Identifies the merchant; up
-  to two active keys during a rotation. No CORS applies (there is no browser). An HMAC
-  signature of the body with a time window is PROPOSED and decided with the first platform
-  adapter (02-integracion-ecommerce.md §6).
+  to two active keys during a rotation. No CORS applies (there is no browser).
+  Signature (ADR-029): a merchant with a signing secret configured must also sign every request
+  of this scheme — `X-OPE-Timestamp` (Unix seconds) and `X-OPE-Signature` (`v1=` + hex
+  HMAC-SHA256 of `<timestamp>.<raw body>`), within a window of 5 minutes; the signature is
+  verified before the body is read and any of the merchant's active secrets is accepted. Without
+  a secret configured, the key alone authenticates.

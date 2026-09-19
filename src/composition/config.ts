@@ -104,6 +104,7 @@ const FIELD_BY_CODE: Readonly<Record<string, string>> = {
   "invalid-seed": ".seed",
   "invalid-origin": ".origins",
   "platform-key-collision": ".platformKeys",
+  "invalid-platform-secret": ".platformSecrets",
 };
 
 /** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
@@ -137,7 +138,17 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (!isStringArray(platformKeys) || platformKeys.length > MAX_INGEST_KEYS) {
       throw new ConfigError(`merchants[${i}].platformKeys`, "must have at most two keys");
     }
-    const merchant = Merchant.of({ merchantId: asMerchantId(merchantId), ingestKeys, origins, platformKeys });
+    const platformSecrets = m["platformSecrets"] ?? [];
+    if (!isStringArray(platformSecrets) || platformSecrets.length > MAX_INGEST_KEYS) {
+      throw new ConfigError(`merchants[${i}].platformSecrets`, "must have at most two secrets");
+    }
+    const merchant = Merchant.of({
+      merchantId: asMerchantId(merchantId),
+      ingestKeys,
+      origins,
+      platformKeys,
+      platformSecrets,
+    });
     if (!merchant.ok) throw rejected(`merchants[${i}]`, merchant.error);
     const experiments = parseExperiments(m["experiments"], i, merchant.value);
     return { merchant: merchant.value, experiments, ...policiesOf(m, i) };

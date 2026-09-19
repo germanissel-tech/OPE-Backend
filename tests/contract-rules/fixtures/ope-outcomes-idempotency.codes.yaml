@@ -48,6 +48,9 @@ paths:
         key: orderId
         first: "201"
         repeat: "201"
+      parameters:
+        - $ref: "#/components/parameters/X-OPE-Timestamp"
+        - $ref: "#/components/parameters/X-OPE-Signature"
       requestBody:
         required: true
         content:
@@ -183,3 +186,18 @@ components:
       in: header
       name: X-OPE-Platform-Key
       description: Platform key.
+  parameters:
+    X-OPE-Timestamp:
+      name: X-OPE-Timestamp
+      in: header
+      description: Signing instant.
+      schema:
+        type: integer
+        minimum: 0
+    X-OPE-Signature:
+      name: X-OPE-Signature
+      in: header
+      description: Signature.
+      schema:
+        type: string
+        pattern: ^v1=[0-9a-f]{64}$

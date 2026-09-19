@@ -25,6 +25,9 @@ post:
     key: orderId
     first: "201"
     repeat: "200"
+  parameters:
+    - $ref: ../components/parameters/X-OPE-Timestamp.yaml
+    - $ref: ../components/parameters/X-OPE-Signature.yaml
   requestBody:
     required: true
     content:

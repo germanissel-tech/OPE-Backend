@@ -5,6 +5,7 @@
 //   own errors (invalid JSON, unknown route) also come out as Problem Details.
 import ajvFormats from "ajv-formats";
 import Fastify, {
+  type ProtoAction,
   type FastifyBaseLogger,
   type FastifyInstance,
   type FastifyReply,
@@ -148,12 +149,37 @@ const BODY_LIMIT_MIB = 32;
 const BYTES_PER_KIB = 1024;
 const BODY_LIMIT_BYTES = BODY_LIMIT_MIB * BYTES_PER_KIB * BYTES_PER_KIB;
 
+/** The body bytes of each request, exactly as received: what a platform signature covers (ADR-029). */
+const rawBodies = new WeakMap<FastifyRequest, Uint8Array>();
+
+/** Callback form of Fastify's default JSON parser: `(request, text, done)`. */
+type JsonParser = (
+  request: FastifyRequest,
+  text: string,
+  done: (err: Error | null, body?: unknown) => void,
+) => void;
+
+/**
+ * JSON keeps parsing exactly as Fastify does (same `FST_ERR_CTP_*` errors), but the bytes are
+ * kept aside for the security handlers before anything reads the parsed body.
+ */
+function keepRawBodies(app: FastifyInstance): void {
+  // Prototype and constructor poisoning are rejected, as Fastify does by default.
+  const poisoning: ProtoAction = "error";
+  const parseJson = app.getDefaultJsonParser(poisoning, poisoning) as JsonParser;
+  app.addContentTypeParser(JSON_CONTENT_TYPE, { parseAs: "buffer" }, (request, body: Buffer, done) => {
+    rawBodies.set(request, new Uint8Array(body));
+    parseJson(request, body.toString("utf8"), done);
+  });
+}
+
 async function createApp(
   options: Pick<BuildServerOptions, "logger" | "cors" | "security">,
 ): Promise<FastifyInstance> {
   const loggerInstance = fastifyLoggerOf(options.logger);
   // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
   const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });
+  keepRawBodies(app);
   const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);
   if (options.cors) await registerCors(app, options.cors, credentialHeaders);
   return app;
@@ -216,9 +242,10 @@ function requiredCapabilities(c: BoundaryContext): string[] {
  */
 function registerSecurity(api: OpenAPIBackend, security: Record<string, SecurityScheme>): void {
   for (const [scheme, { handler }] of Object.entries(security)) {
-    api.registerSecurityHandler(scheme, async (c: BoundaryContext) => {
+    api.registerSecurityHandler(scheme, async (c: BoundaryContext, req: FastifyRequest) => {
       const outcome = await handler({
         headers: c.request.headers as Record<string, string | string[] | undefined>,
+        rawBody: rawBodies.get(req),
       });
       const missing = requiredCapabilities(c).filter((cap) => !outcome.capabilities.includes(cap));
       if (missing.length > 0) throw new SecurityError("capability-missing");

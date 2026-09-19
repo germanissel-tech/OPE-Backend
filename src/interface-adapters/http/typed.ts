@@ -38,9 +38,13 @@ export interface TypedRequest<Op extends OperationShape, Id extends string = str
 /** What each security handler returned, indexed by the contract scheme name. */
 export type SecurityResults = Readonly<Record<string, unknown>>;
 
-/** Request as a security handler sees it: only the headers (the credential and the Origin). */
+/**
+ * Request as a security handler sees it: the headers (the credential, the Origin, the signature)
+ * and the body bytes exactly as received, for the platform signature (ADR-029). Never the parsed body.
+ */
 export interface SecurityRequest {
   headers: Readonly<Record<string, string | string[] | undefined>>;
+  rawBody?: Uint8Array | undefined;
 }
 
 /**

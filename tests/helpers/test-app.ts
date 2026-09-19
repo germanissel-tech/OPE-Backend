@@ -20,6 +20,8 @@ export interface MerchantSpec {
   merchantId: string;
   ingestKeys: string[];
   platformKeys?: string[];
+  /** Signing secrets (ADR-029): with any, every platform request of the merchant must be signed. */
+  platformSecrets?: string[];
   origins: string[];
   experiments: {
     experimentId: string;
@@ -45,6 +47,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
     ingestKeys: spec.ingestKeys,
     origins: spec.origins,
     platformKeys: spec.platformKeys ?? [],
+    platformSecrets: spec.platformSecrets ?? [],
   });
   if (!merchant.ok) throw new Error(`test merchant ${spec.merchantId}: ${merchant.error.message}`);
   const experiments = spec.experiments.map((e) => {
@@ -150,6 +153,8 @@ export function batchOf(n: number, from = 1, over: Record<string, unknown> = {})
 
 interface PostOptions {
   key?: string;
+  /** Extra headers, lowercase (the platform signature, for instance). */
+  headers?: Record<string, string>;
   /** The server-to-server credential of the platform (ADR-025). */
   platformKey?: string;
   origin?: string;
@@ -168,6 +173,7 @@ function post(
   if (o.key !== undefined) headers["x-ope-ingest-key"] = o.key;
   if (o.platformKey !== undefined) headers["x-ope-platform-key"] = o.platformKey;
   if (o.origin !== undefined) headers["origin"] = o.origin;
+  Object.assign(headers, o.headers ?? {});
   const options: InjectOptions = { method, url, headers };
   if (payload !== undefined) options.payload = payload as Exclude<InjectOptions["payload"], undefined>;
   if (o.remoteAddress !== undefined) options.remoteAddress = o.remoteAddress;

@@ -971,7 +971,21 @@ export type components = {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /**
+         * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+         *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+         *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+         *     Verified before the body is read.
+         */
+        "X-OPE-Signature": string;
+        /**
+         * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+         *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+         *     minutes of the server clock either way (`401 signature-expired` otherwise).
+         */
+        "X-OPE-Timestamp": number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -981,7 +995,21 @@ export interface operations {
     upsertCatalogSnapshot: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -1124,7 +1152,21 @@ export interface operations {
     notifyOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -1207,7 +1249,21 @@ export interface operations {
     notifyReturn: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
             path?: never;
             cookie?: never;
         };

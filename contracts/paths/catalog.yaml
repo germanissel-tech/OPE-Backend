@@ -27,6 +27,9 @@ put:
       status: 422
       rule: capturedAt >= capturedAt of the current snapshot of the merchant
       description: A delayed replica cannot overwrite newer truth.
+  parameters:
+    - $ref: ../components/parameters/X-OPE-Timestamp.yaml
+    - $ref: ../components/parameters/X-OPE-Signature.yaml
   requestBody:
     required: true
     content:
