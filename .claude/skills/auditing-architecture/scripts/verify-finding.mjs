@@ -7,6 +7,10 @@
 // exist and its rule.source must resolve:
 //   ADR-NNN                 → docs/adr/NNN-*.md exists
 //   constitution#<section>  → a heading of .specify/memory/constitution.md contains <section>
+//   mvp:<01|02|03>#<section> → a heading of ../0N-*.md (the MVP documents; OPE_MVP_DOCS_DIR overrides
+//                             the directory) contains <section>. Only for DECIDED sections: a
+//                             PROPOSED or OPEN one is a risk, not a high finding.
+//   spec:<NNN>#<FR-nnn|SC-nnn> → specs/NNN-*/spec.md declares that requirement (**FR-nnn** / **SC-nnn**)
 //   guide#<section>         → a heading of CLAUDE.md contains <section>
 //   lint:<rule>             → the rule id appears in eslint.config.mjs
 //   arch:<rule>             → a rule named <rule> exists in .dependency-cruiser.cjs (context-map:* included)
@@ -51,8 +55,42 @@ function resolveAdr(number) {
   return found ? null : `docs/adr/${number}-*.md does not exist`;
 }
 
+/** Directory of the MVP documents: the repo's parent, unless a test points elsewhere. */
+const mvpDocsDir = process.env["OPE_MVP_DOCS_DIR"] ?? path.resolve(repoRoot, "..");
+
+/**
+ * @param {string} rest `01#5.2`
+ * @returns {string | null}
+ */
+function resolveMvp(rest) {
+  const m = /^(0[123])#(.+)$/.exec(rest);
+  if (!m?.[1] || !m[2]) return `mvp source must be mvp:<01|02|03>#<section>, got mvp:${rest}`;
+  const [, number, section] = m;
+  const file = existsSync(mvpDocsDir) ? readdirSync(mvpDocsDir).find((f) => f.startsWith(`${number}-`) && f.endsWith(".md")) : undefined;
+  if (file === undefined) return `MVP document ${number}-*.md is not readable in ${mvpDocsDir} (launch the session with --add-dir ..)`;
+  return headingContains(path.join(mvpDocsDir, file), section) ? null : `no heading of ${file} contains "${section}"`;
+}
+
+/**
+ * @param {string} rest `013#FR-014`
+ * @returns {string | null}
+ */
+function resolveSpec(rest) {
+  const m = /^(\d{3})#((?:FR|SC)-\d{3})$/.exec(rest);
+  if (!m?.[1] || !m[2]) return `spec source must be spec:<NNN>#<FR-nnn|SC-nnn>, got spec:${rest}`;
+  const [, number, requirement] = m;
+  const dir = path.join(repoRoot, "specs");
+  const feature = existsSync(dir) ? readdirSync(dir).find((d) => d.startsWith(`${number}-`)) : undefined;
+  if (feature === undefined) return `specs/${number}-*/ does not exist`;
+  const spec = path.join(dir, feature, "spec.md");
+  if (!existsSync(spec)) return `specs/${feature}/spec.md does not exist`;
+  return readFileSync(spec, "utf8").includes(`**${requirement}**`) ? null : `specs/${feature}/spec.md does not declare ${requirement}`;
+}
+
 /** One resolver per source prefix: returns why the rest of the source does not resolve, or null. */
 const RESOLVERS = /** @type {Record<string, (rest: string) => string | null>} */ ({
+  "mvp:": resolveMvp,
+  "spec:": resolveSpec,
   "constitution#": (section) =>
     headingContains(path.join(repoRoot, ".specify", "memory", "constitution.md"), section)
       ? null
