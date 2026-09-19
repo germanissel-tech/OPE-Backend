@@ -27,11 +27,12 @@ decisión (constitución II), todo sin datos personales (01-arquitectura-mvp.md 
    credencial) acepta cualquier origen registrado por algún merchant; el request real exige que
    el `Origin`, si viene, pertenezca al merchant de la credencial → `403 origin-not-allowed`.
    Requests sin `Origin` (servidor a servidor, pruebas) se procesan con normalidad.
-3. **Decisión inline por lote** (PROPUESTO hasta que el equipo del SDK lo valide): la respuesta
-   de `POST /v1/events` trae `decision` `{ decisionId, sessionId, outcome, reason, intervention? }`.
-   `reason` es un **string** con patrón y catálogo en `contracts/no-op-reasons.yaml`, no un
-   enum: agregar un motivo no es cambio incompatible (ADR-003). `intervention` es el lugar
-   reservado para el plano de decisión.
+3. **Decisión inline por lote** (DECIDIDO por el stakeholder el 2026-09-18, con la primera
+   `INTERVENE` real de la feature 011): la respuesta de `POST /v1/events` trae `decision`
+   `{ decisionId, sessionId, outcome, reason, intervention? }` y el SDK renderiza `intervention`
+   cuando `outcome` es `INTERVENE`; no hay otro canal. `reason` es un **string** con patrón y
+   catálogo en `contracts/no-op-reasons.yaml`, no un enum: agregar un motivo no es cambio
+   incompatible (ADR-003).
 4. **La exposición la confirma el SDK** (`POST /v1/exposures`): sólo entonces hay `EXPOSED`
    en la cadena de evidencia (01 §5). Decisión inexistente y decisión de otro merchant reciben
    la misma respuesta (`exposure-decision-unknown`): no se revela existencia.

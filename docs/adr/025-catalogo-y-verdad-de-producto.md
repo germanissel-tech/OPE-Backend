@@ -40,7 +40,9 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
 5. **`platformKey` decidido**: clave servidor a servidor por merchant (una o dos, rotación),
    header `X-OPE-Platform-Key`, configurada en `OPE_MERCHANTS` junto a las de ingesta y
    distinta de ellas; sin CORS; resuelta por un servicio del módulo `merchant` y un security
-   handler propios. HMAC del cuerpo sigue PROPUESTO para el primer adaptador real.
+   handler propios. HMAC del cuerpo: DECIDIDO (stakeholder, 2026-09-18) que entra con el primer
+   adaptador real (Magento) o con las órdenes de la 013, lo que llegue primero; hasta entonces la
+   clave de plataforma por HTTPS es la única autenticación de la plataforma.
 6. **Capacidades verificadas en runtime, de forma genérica**: cada security handler entrega las
    capacidades del consumidor de su credencial (réplica de `api-map.yaml`, verificada por
    prueba) y la infraestructura compara `x-required-capabilities` de la operación antes de
@@ -48,7 +50,7 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
 7. **Headers de credencial desde el cableado**: cada esquema declara su header
    (`SecurityScheme { handler, header }`); los headers admitidos por CORS se derivan de los
    esquemas registrados y el log redacta todo header, con lo que la infraestructura no conoce
-   ninguna credencial por nombre. Cierra el PROPUESTO de ADR-020.
+   ninguna credencial por nombre. Cierra lo que ADR-020 había dejado propuesto.
 8. **`Money`** pasa al `shared-kernel` del dominio como value object (lo comparten ingesta y
    catálogo).
 
