@@ -66,6 +66,27 @@ types:
   - slug: platform-key-collision
     status: 500
     title: A platform key is empty or equal to an ingest key
+  - slug: invalid-ingest-keys
+    status: 500
+    title: A merchant needs one or two non-empty ingest keys
+  - slug: invalid-origins
+    status: 500
+    title: A merchant needs at least one registered origin
+  - slug: invalid-platform-keys
+    status: 500
+    title: A merchant has more than two platform keys
+  - slug: invalid-platform-secrets
+    status: 500
+    title: A merchant has more than two platform signing secrets
+  - slug: multiple-active-experiments
+    status: 500
+    title: A merchant has more than one active experiment
+  - slug: duplicate-experiment-id
+    status: 500
+    title: Two experiments of a merchant share an identifier
+  - slug: payload-too-large
+    status: 413
+    title: The request body exceeds the limit of its consumer
   - slug: capability-missing
     status: 403
     title: The credential lacks a capability the operation requires

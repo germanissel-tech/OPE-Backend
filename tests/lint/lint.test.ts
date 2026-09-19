@@ -109,6 +109,10 @@ describe("lint: shape of the code by scope (ADR-016)", () => {
     expect(await lint("as-src/magic-numbers-allowed.ts")).toEqual([]);
   });
 
+  it("a shared-kernel primitive (rate, compare, time, result, ids) may be a loose function", async () => {
+    expect(await lint("as-src/domain/shared-kernel/rate.ts")).toEqual([]);
+  });
+
   it("literals the compiler checks, declarations, keys and punctuation are not magic strings", async () => {
     expect(await lint("as-src/magic-strings-allowed.ts")).toEqual([]);
   });

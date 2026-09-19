@@ -27,9 +27,9 @@ Proyecto único: `src/`, `tests/`, `contracts/`, `docs/`, `.specify/`, `scripts/
 
 **Purpose**: rama, lectura del informe y del método de cierre, y el campo `closure`.
 
-- [ ] T001 Confirmar rama `015-correcciones-auditoria` desde `main` con `add07f7` (PR #23) en su historia; `npm ci`; `npm run quality && npm run typecheck && npm test` en verde como línea base; anotar la duración de `npm test` (referencia SC-005) en `specs/015-correcciones-auditoria/quickstart.md` § "Cambios respecto del plan"
-- [ ] T002 Leer `docs/auditoria/2026-09-19-informe-auditoria-integral.md` §3 y §5, y `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json`; extraer la lista de los 52 hallazgos en alcance con `file:line` y `after` a `specs/015-correcciones-auditoria/hallazgos-en-alcance.md` (una fila por F-NNN: historia, archivo, prueba propuesta)
-- [ ] T003 [P] Agregar el campo opcional `closure { status: resolved|absorbed-by|rejected, by, feature }` a `.claude/skills/auditing-architecture/scripts/audit-finding.schema.json` y documentarlo en `.claude/skills/auditing-architecture/references/formato-hallazgo.md`; caso en `tests/audit/audit.test.ts` que acepta un hallazgo con `closure` y rechaza un `status` de cierre fuera del catálogo (R-14)
+- [x] T001 Confirmar rama `015-correcciones-auditoria` desde `main` con `add07f7` (PR #23) en su historia; `npm ci`; `npm run quality && npm run typecheck && npm test` en verde como línea base; anotar la duración de `npm test` (referencia SC-005) en `specs/015-correcciones-auditoria/quickstart.md` § "Cambios respecto del plan"
+- [x] T002 Leer `docs/auditoria/2026-09-19-informe-auditoria-integral.md` §3 y §5, y `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json`; extraer la lista de los 52 hallazgos en alcance con `file:line` y `after` a `specs/015-correcciones-auditoria/hallazgos-en-alcance.md` (una fila por F-NNN: historia, archivo, prueba propuesta)
+- [x] T003 [P] Agregar el campo opcional `closure { status: resolved|absorbed-by|rejected, by, feature }` a `.claude/skills/auditing-architecture/scripts/audit-finding.schema.json` y documentarlo en `.claude/skills/auditing-architecture/references/formato-hallazgo.md`; caso en `tests/audit/audit.test.ts` que acepta un hallazgo con `closure` y rechaza un `status` de cierre fuera del catálogo (R-14)
 
 ---
 
@@ -39,10 +39,10 @@ Proyecto único: `src/`, `tests/`, `contracts/`, `docs/`, `.specify/`, `scripts/
 
 **⚠️ CRITICAL**: US1 (tasas), US2 (Merchant, 413, 503) y US3 (predicados, tolerancia) importan de aquí.
 
-- [ ] T004 [P] Crear `src/domain/shared-kernel/rate.ts` con `isRate` e `isCount` y `src/domain/shared-kernel/compare.ts` con `constantTimeEquals` (sin salida temprana); exportar desde `src/domain/shared-kernel/index.ts`; agregar `shared-kernel/rate.ts` y `shared-kernel/compare.ts` a `DEFAULT_ALLOW` de `scripts/lint/domain-no-loose-functions.mjs` con su fixture en `tests/lint/fixtures/as-src/domain/demo/` (R-06, R-08)
-- [ ] T005 [P] Pruebas `tests/unit/domain/shared-kernel/rate.test.ts` (tabla: NaN, ±Infinity, −0, 1.0000001, 0, 1) y `tests/unit/domain/shared-kernel/compare.test.ts` (iguales, distinta longitud, mismo prefijo largo, cadena vacía)
-- [ ] T006 [P] Agregar `CLOCK_SKEW_TOLERANCE_MS = minutes(5)` a `src/domain/shared-kernel/time.ts` con prueba en `tests/unit/domain/shared-kernel/time.test.ts` (F-048)
-- [ ] T007 [P] Agregar a `contracts/problem-types.yaml` los tipos `invalid-ingest-keys`, `invalid-origins`, `invalid-platform-keys`, `invalid-platform-secrets`, `multiple-active-experiments`, `duplicate-experiment-id` (422) y `payload-too-large` (413) con título; replicar en `src/interface-adapters/http/problem-details.ts`; `npm run contract:check` y `tests/unit/problem-details.test.ts` en verde (contracts/catalog-503.md)
+- [x] T004 [P] Crear `src/domain/shared-kernel/rate.ts` con `isRate` e `isCount` y `src/domain/shared-kernel/compare.ts` con `constantTimeEquals` (sin salida temprana); exportar desde `src/domain/shared-kernel/index.ts`; agregar `shared-kernel/rate.ts` y `shared-kernel/compare.ts` a `DEFAULT_ALLOW` de `scripts/lint/domain-no-loose-functions.mjs` con su fixture en `tests/lint/fixtures/as-src/domain/demo/` (R-06, R-08)
+- [x] T005 [P] Pruebas `tests/unit/domain/shared-kernel/rate.test.ts` (tabla: NaN, ±Infinity, −0, 1.0000001, 0, 1) y `tests/unit/domain/shared-kernel/compare.test.ts` (iguales, distinta longitud, mismo prefijo largo, cadena vacía)
+- [x] T006 [P] Agregar `CLOCK_SKEW_TOLERANCE_MS = minutes(5)` a `src/domain/shared-kernel/time.ts` con prueba en `tests/unit/domain/shared-kernel/time.test.ts` (F-048)
+- [x] T007 [P] Agregar a `contracts/problem-types.yaml` los tipos `invalid-ingest-keys`, `invalid-origins`, `invalid-platform-keys`, `invalid-platform-secrets`, `multiple-active-experiments`, `duplicate-experiment-id` (422) y `payload-too-large` (413) con título; replicar en `src/interface-adapters/http/problem-details.ts`; `npm run contract:check` y `tests/unit/problem-details.test.ts` en verde (contracts/catalog-503.md)
 
 **Checkpoint**: `npm run quality && npm run typecheck && npm test` en verde; nada de comportamiento cambió todavía.
 

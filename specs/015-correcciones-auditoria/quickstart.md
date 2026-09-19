@@ -38,4 +38,4 @@ PR #23 (auditoría 014) mergeado.
 
 ## Cambios respecto del plan
 
-(se completa al cierre)
+- 2026-09-19 T001: línea base en la rama, `npm test` 1004/1004 en **151 s** (referencia SC-005: objetivo ≤ 91 s).

@@ -7,7 +7,13 @@
 /** @import { Rule } from "eslint" */
 
 /** Path suffixes (posix) of the files allowed to export functions, by default. */
-const DEFAULT_ALLOW = ["/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"];
+const DEFAULT_ALLOW = [
+  "/ids.ts",
+  "shared-kernel/result.ts",
+  "shared-kernel/time.ts",
+  "shared-kernel/rate.ts",
+  "shared-kernel/compare.ts",
+];
 
 /**
  * @param {string} filename

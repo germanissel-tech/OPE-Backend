@@ -28,6 +28,7 @@ interface Finding {
   rule: { id: string; source: string };
   severity: string;
   status: string;
+  closure?: { status: string; by: string; feature: string };
   verified?: boolean;
   reason?: string;
 }
@@ -121,6 +122,23 @@ describe("verify-finding.mjs", () => {
     expect(results[0]?.reason).toContain("no-such-rule");
     expect(results[1]?.verified).toBe(false);
     expect(results[1]?.reason).toContain("schema");
+  });
+
+  it("accepts an optional closure and rejects a closure status outside the catalogue", () => {
+    const base = expectedOf("empty-catch");
+    const results = verify([
+      { ...base, id: "F-001", closure: { status: "resolved", by: "abc1234", feature: "015" } },
+      {
+        ...base,
+        id: "F-002",
+        closure: { status: "rejected", by: "the owner keeps the wiring as it is", feature: "015" },
+      },
+      { ...base, id: "F-003", closure: { status: "done", by: "abc1234", feature: "015" } },
+    ]);
+    expect(results[0]?.verified).toBe(true);
+    expect(results[1]?.verified).toBe(true);
+    expect(results[2]?.verified).toBe(false);
+    expect(results[2]?.reason).toContain("schema");
   });
 
   it("resolves constitution, guide and arch sources, and always accepts clarity", () => {
