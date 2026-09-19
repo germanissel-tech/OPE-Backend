@@ -1,0 +1,96 @@
+{
+  "scope": "module:merchant",
+  "files": [
+    "src/application/merchant/index.ts",
+    "src/application/merchant/policies/signature-window.ts",
+    "src/application/merchant/ports/merchant-directory.ts",
+    "src/application/merchant/ports/message-authenticator.ts",
+    "src/application/merchant/services/ingest-key.service.ts",
+    "src/application/merchant/services/platform-key.service.ts",
+    "src/application/merchant/services/platform-signature.service.ts",
+    "src/domain/merchant/errors.ts",
+    "src/domain/merchant/index.ts",
+    "src/domain/merchant/merchant.ts",
+    "src/domain/merchant/origin.ts",
+    "src/domain/merchant/platform-signature.ts",
+    "src/interface-adapters/gateways/merchant/config-merchant-directory.ts",
+    "src/interface-adapters/gateways/merchant/node-message-authenticator.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/merchant/index.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: MerchantError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/merchant/index.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: MerchantInput",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/merchant/index.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: MerchantRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PlatformSignatureVerifierDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SignatureVerification",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PlatformKeyResolution",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 17,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PlatformKeyResolverDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 20,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestKeyResolution",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/merchant/index.ts",
+          "line": 22,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestKeyResolverDependencies",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

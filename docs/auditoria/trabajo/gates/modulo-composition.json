@@ -1,0 +1,57 @@
+{
+  "scope": "dir:src/composition",
+  "files": [
+    "src/composition/bootstrap.ts",
+    "src/composition/commercial-policy-config.ts",
+    "src/composition/condition-config.ts",
+    "src/composition/config-error.ts",
+    "src/composition/config.ts",
+    "src/composition/coverage.ts",
+    "src/composition/decision-policy-config.ts",
+    "src/composition/lifecycle.ts",
+    "src/composition/modules/barrier.ts",
+    "src/composition/modules/catalog.ts",
+    "src/composition/modules/decision.ts",
+    "src/composition/modules/experiment.ts",
+    "src/composition/modules/index.ts",
+    "src/composition/modules/ingestion.ts",
+    "src/composition/modules/ledger.ts",
+    "src/composition/modules/merchant.ts",
+    "src/composition/modules/outcomes.ts",
+    "src/composition/modules/shared-kernel.ts",
+    "src/composition/modules/system.ts",
+    "src/composition/ports.ts",
+    "src/composition/profile.ts",
+    "src/composition/profiles/local.ts",
+    "src/composition/start.ts",
+    "src/composition/wiring.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/composition/wiring.ts",
+          "line": 16,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ModuleWiring",
+          "mode": "informative"
+        },
+        {
+          "file": "src/composition/profile.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Wiring",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

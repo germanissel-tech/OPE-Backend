@@ -1,0 +1,98 @@
+{
+  "scope": "module:shared-kernel",
+  "files": [
+    "src/application/shared-kernel/decorators/logged-use-case.ts",
+    "src/application/shared-kernel/index.ts",
+    "src/application/shared-kernel/ports/clock.ts",
+    "src/application/shared-kernel/ports/logger.ts",
+    "src/application/shared-kernel/use-case.ts",
+    "src/domain/shared-kernel/arm.ts",
+    "src/domain/shared-kernel/barrier.ts",
+    "src/domain/shared-kernel/errors.ts",
+    "src/domain/shared-kernel/ids.ts",
+    "src/domain/shared-kernel/index.ts",
+    "src/domain/shared-kernel/intervention.ts",
+    "src/domain/shared-kernel/money.ts",
+    "src/domain/shared-kernel/no-op-reasons.ts",
+    "src/domain/shared-kernel/result.ts",
+    "src/domain/shared-kernel/time.ts",
+    "src/interface-adapters/gateways/shared-kernel/system-clock.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SafeDetails",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SharedKernelError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: MoneyRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Fail",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Ok",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/index.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IncentiveKind",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/shared-kernel/index.ts",
+          "line": 6,
+          "rule": "dead-code/types",
+          "message": "unused exported type: LoggedUseCaseDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/errors.ts",
+          "line": 43,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SharedKernelError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/shared-kernel/intervention.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IncentiveKind",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

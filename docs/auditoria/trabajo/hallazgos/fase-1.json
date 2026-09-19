@@ -1,0 +1,259 @@
+[
+  {
+    "id": "F-001",
+    "file": "src/domain/shared-kernel/index.ts",
+    "line": 1,
+    "rule": {
+      "id": "axis-2-header-understates-module",
+      "source": "clarity:stale-header"
+    },
+    "severity": "low",
+    "evidence": "// Public API of the shared-kernel module (domain): branded identities.",
+    "proposal": {
+      "before": "// Public API of the shared-kernel module (domain): branded identities.",
+      "after": "// Public API of the shared-kernel module (domain): what modules that cannot depend on each other\n// share — branded identities, Result/DomainError, Money, time units and the closed vocabularies\n// replicated from the contract (NO_OP reasons, anchors, barriers)."
+    },
+    "coveringTest": "none: a header comment; the fix is the comment (scope: shared-kernel, axis 2)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-002",
+    "file": "src/application/shared-kernel/decorators/logged-use-case.ts",
+    "line": 19,
+    "rule": {
+      "id": "axis-6-decorator-logs-ok-for-non-domain-failure",
+      "source": "clarity:log-outcome-misleading"
+    },
+    "severity": "low",
+    "evidence": "const result = response as { ok?: unknown; error?: unknown } | null | undefined;\n  if (result?.ok !== false) return OK;\n  return result.error instanceof DomainError ? result.error.code : OK;",
+    "proposal": {
+      "before": "return result.error instanceof DomainError ? result.error.code : OK;",
+      "after": "return result.error instanceof DomainError ? result.error.code : \"failed\";"
+    },
+    "coveringTest": "tests/unit/application/shared-kernel/logged-use-case.test.ts: \"a false ok without a DomainError\" (today asserts outcome ok)",
+    "status": "refuted",
+    "refutation": "By type a use case returns Result<T, E extends DomainError> (ADR-023), so a false `ok` without a DomainError cannot come from a compliant use case; the test documents the chosen behaviour for non-Result responses. Not observable in this codebase."
+  },
+  {
+    "id": "F-003",
+    "file": "src/application/shared-kernel/decorators/logged-use-case.ts",
+    "line": 19,
+    "rule": {
+      "id": "axis-4-cast-instead-of-narrowing",
+      "source": "clarity:cast-instead-of-guard"
+    },
+    "severity": "low",
+    "evidence": "const result = response as { ok?: unknown; error?: unknown } | null | undefined;\n// same pattern at src/infrastructure/http/build-server.ts:131:\nconst { principal, log } = outcome as { principal?: unknown; log?: Record<string, unknown> };",
+    "proposal": {
+      "before": "const result = response as { ok?: unknown; error?: unknown } | null | undefined;\n  if (result?.ok !== false) return OK;",
+      "after": "if (typeof response !== \"object\" || response === null || !(\"ok\" in response) || response.ok !== false) return OK;\n  const error: unknown = \"error\" in response ? response.error : undefined;"
+    },
+    "coveringTest": "tests/unit/application/shared-kernel/logged-use-case.test.ts (existing cases keep passing; the change is the narrowing, not the behaviour)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-004",
+    "file": "src/composition/modules/shared-kernel.ts",
+    "line": 14,
+    "rule": {
+      "id": "axis-1-binding-name-collides-with-module-name",
+      "source": "clarity:misleading-name"
+    },
+    "severity": "low",
+    "evidence": "export const systemKernelPorts: Bindings<SharedKernelPorts> = {\n  clock: () => systemClock,\n  logger: () => pinoLogger(),\n};",
+    "proposal": {
+      "before": "export const systemKernelPorts: Bindings<SharedKernelPorts> = {",
+      "after": "// The local binding of the kernel: the system clock and pino to stdout (`system` is also a module name; this is not it).\nexport const localKernelPorts: Bindings<SharedKernelPorts> = {"
+    },
+    "coveringTest": "none: a rename; `tsc` and the profile test (tests/unit/composition/profile.test.ts) cover the wiring",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-005",
+    "file": "docs/dominio/intervencion.md",
+    "line": 13,
+    "rule": {
+      "id": "axis-7-glossary-note-predates-the-decision-plane",
+      "source": "clarity:stale-glossary-note"
+    },
+    "severity": "low",
+    "evidence": "En el contrato, `Intervention` es el lugar reservado en la decisión (`messageVersionId`, `anchor`); su forma definitiva llega con el plano de decisión.",
+    "proposal": {
+      "before": "En el contrato, `Intervention` es el lugar reservado en la decisión (`messageVersionId`, `anchor`); su forma definitiva llega con el plano de decisión.",
+      "after": "En el contrato y en `src/domain/shared-kernel/intervention.ts`, `Intervention` es `{ messageVersionId, anchor, incentive? }` (ADR-026, ADR-027): el anclaje donde se renderiza, la versión del mensaje curado (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta la 015) y, cuando la política comercial lo concede, el incentivo."
+    },
+    "coveringTest": "none: a glossary note; `check:glossary` verifies existence and source, not currency",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-006",
+    "file": "tests/unit/health.test.ts",
+    "line": 5,
+    "rule": {
+      "id": "axis-6-module-test-outside-module-layout",
+      "source": "clarity:test-location"
+    },
+    "severity": "low",
+    "evidence": "describe(\"getHealth\", () => {",
+    "proposal": {
+      "before": "tests/unit/health.test.ts",
+      "after": "tests/unit/application/system/get-service-health.use-case.test.ts (same content; the folder is the module, as every other module's tests)"
+    },
+    "coveringTest": "none: a move; `npm test` keeps running it",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-007",
+    "file": "src/domain/merchant/merchant.ts",
+    "line": 51,
+    "rule": {
+      "id": "axis-5-merchant-and-experiment-set-invariants-live-in-config-not-in-the-owner",
+      "source": "ADR-024"
+    },
+    "severity": "high",
+    "evidence": "static of(input: MerchantInput): Result<Merchant, MerchantError> {\n    const origins: Origin[] = [];\n    for (const [index, text] of input.origins.entries()) {\n      const origin = Origin.parse(text);\n      if (origin === undefined) return fail(new InvalidOrigin(index));\n      origins.push(origin);\n    }\n    const platformKeys = input.platformKeys ?? [];\n    for (const [index, key] of platformKeys.entries()) {\n      if (key === \"\" || input.ingestKeys.includes(key)) return fail(new PlatformKeyCollision(index));\n    }\n// same class at src/composition/config.ts:182-184 (ADR-022 \"at most one active experiment\" judged by the parser, no domain owner):\nif (experiments.filter((e) => e.isActive()).length > 1) {\n  throw new ConfigError(at, \"must have at most one active experiment\");\n}\n// and config.ts:196 (experimentId pattern, a rule of the experiment, not a JSON shape)",
+    "proposal": {
+      "before": "// src/composition/config.ts:131-143 decides the rules:\nif (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > MAX_INGEST_KEYS) {\n  throw new ConfigError(`merchants[${i}].ingestKeys`, \"must have one or two keys\");\n}\n// … origins.length === 0, platformKeys.length > 2, platformSecrets.length > 2 likewise\n// while Merchant.of accepts { ingestKeys: [], origins: [] } and [\"\", \"\"]",
+      "after": "// src/domain/merchant/merchant.ts: the owner judges its credential set (ADR-014: up to two active keys; ADR-025/029: up to two)\nstatic of(input: MerchantInput): Result<Merchant, MerchantError> {\n  if (!hasOneOrTwoNonEmpty(input.ingestKeys)) return fail(new InvalidIngestKeys());\n  if (input.origins.length === 0) return fail(new InvalidOrigin(0));\n  if (platformKeys.length > MAX_ACTIVE_CREDENTIALS) return fail(new PlatformKeyCollision(platformKeys.length));\n  …\n}\n// src/composition/config.ts: parse shape only (arrays of strings) and translate the domain error to ConfigError naming the field\n// experiments: a domain owner for the merchant's experiment set (e.g. `Experiments.of(list)` in domain/experiment, or Merchant holding them) rejects two active ones with a DomainError; config translates it"
+    },
+    "coveringTest": "tests/unit/domain/merchant/merchant.test.ts: \"[invariant] zero, more than two, or empty ingest keys reject the merchant; no origins reject it; more than two platform keys or secrets reject it\" (fails today: Merchant.of({ ingestKeys: [], origins: [] }) is ok)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-008",
+    "file": "src/composition/modules/merchant.ts",
+    "line": 3,
+    "rule": {
+      "id": "axis-2-comment-describes-the-retired-mock",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "// ADR-029) and the CORS policy. Security also runs in mock: the SDK develops against the mock\n// with the real key (SC-006).",
+    "proposal": {
+      "before": "// ADR-029) and the CORS policy. Security also runs in mock: the SDK develops against the mock\n// with the real key (SC-006).",
+      "after": "// ADR-029) and the CORS policy."
+    },
+    "coveringTest": "none: a comment; ADR-018 retired the mock and the module list has no mock entry (tests/unit/main.test.ts: \"nothing names a server mode, a mock switch or a built-in merchant\" covers src/ but not comments)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-009",
+    "file": "src/interface-adapters/http/security/ingest-key.ts",
+    "line": 36,
+    "rule": {
+      "id": "axis-3-scheme-agnostic-helper-lives-in-one-scheme-file",
+      "source": "clarity:misplaced-helper"
+    },
+    "severity": "low",
+    "evidence": "export function merchantOf(req: { security: SecurityResults }): Merchant {\n  const principal = Object.values(req.security).find((p) => typeof p === \"object\" && p !== null);\n  if (principal !== undefined && \"merchant\" in principal) return (principal as IngestPrincipal).merchant;\n  throw new Error(\"The operation did not go through a merchant security handler.\");\n}",
+    "proposal": {
+      "before": "// security/ingest-key.ts exports merchantOf, which every controller of every scheme imports",
+      "after": "// security/principal.ts: `MerchantPrincipal { merchant }` shared by both handlers, and merchantOf(req) narrowing with a type guard instead of `as IngestPrincipal`\nexport function merchantOf(req: { security: SecurityResults }): Merchant {\n  const principal = Object.values(req.security).find(isMerchantPrincipal);\n  if (principal) return principal.merchant;\n  throw new Error(\"The operation did not go through a merchant security handler.\");\n}"
+    },
+    "coveringTest": "tests/unit/http/security-handlers.test.ts: \"finds the merchant whichever scheme resolved it\" (moves with the function)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-010",
+    "file": "src/interface-adapters/http/boundary.ts",
+    "line": 12,
+    "rule": {
+      "id": "axis-3-shared-boundary-holds-an-outcomes-only-helper",
+      "source": "clarity:misplaced-helper"
+    },
+    "severity": "low",
+    "evidence": "export function linesOf(items: readonly { sku: string; quantity: number }[]): OrderItem[] {",
+    "proposal": {
+      "before": "// boundary.ts imports OrderItem from domain/outcomes",
+      "after": "// linesOf next to the outcomes controllers that use it"
+    },
+    "coveringTest": "none",
+    "status": "refuted",
+    "refutation": "CLAUDE.md § Notas operativas (Outcomes) decides it: what controllers share at the boundary (`instantOf`, `linesOf`, `idempotent`) lives in `http/boundary.ts` because a file under `controllers/` is one operation (shape rule). A documented placement, not a defect."
+  },
+  {
+    "id": "F-011",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 110,
+    "rule": {
+      "id": "axis-2-comments-stale-or-attached-to-the-wrong-declaration",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "/** Principals by scheme (without the `authorized` flag) and safe fields for the request log. */\n/**\n * What each security handler left in `context.security`, by scheme name. …\n */\nfunction securityOutcomes(…)\n// build-server.ts:143-150: the JSDoc \"The Fastify instance: transport only…\" sits above `BODY_LIMIT_MIB`, not above createApp\n// build-server.ts:257: /** What every registration step needs: the API, the server log and the mode. */ — there is no mode (ADR-018)",
+    "proposal": {
+      "before": "/** Principals by scheme (without the `authorized` flag) and safe fields for the request log. */\n/**\n * What each security handler left in `context.security`…\n */",
+      "after": "/**\n * What each security handler left in `context.security`, by scheme name. openapi-backend leaves\n * `security` undefined when the operation is public and adds its own boolean `authorized`.\n */\n// and: move \"The Fastify instance…\" above createApp; \"…the API and the server log.\" for Runtime"
+    },
+    "coveringTest": "none: comments; `npm run lint` does not see a JSDoc attached to the wrong declaration",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-012",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 415,
+    "rule": {
+      "id": "axis-3-one-file-eight-concerns",
+      "source": "clarity:many-reasons-to-change"
+    },
+    "severity": "low",
+    "evidence": "export async function buildServer<Ops extends OperationsMap<Ops> = operations>(\n  options: BuildServerOptions<Ops>,\n): Promise<FastifyInstance> {\n  const app = await createApp(options);\n  const api = createApi(options.definition);\n  const runtime: Runtime = { api, log: app.log };\n  registerSecurity(api, options.security ?? {});\n  registerSpecialHandlers(runtime);\n  registerHandlers(runtime, options.handlers);",
+    "proposal": {
+      "before": "// build-server.ts (428 lines): raw-body parser, Ajv error translation, security + capabilities, special handlers, handler wrapping + response validation, routes + Fastify error handler",
+      "after": "// infrastructure/http/: server.ts (buildServer, createApp, createApi) · raw-body.ts (keepRawBodies, rawBodies) · validation-errors.ts (toValidationErrors) · security.ts (registerSecurity, securityOutcomes, securityFailure, requiredCapabilities) · handlers.ts (registerHandlers, validateResult, notImplemented, special handlers) · routes.ts (mountRoutes, send, unroutable). Same exports; each file one reason to change (transport, contract runtime, security, Problem Details)"
+    },
+    "coveringTest": "tests/integration/server.test.ts and logging-privacy.test.ts (unchanged behaviour); handoff S-06",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-013",
+    "file": "src/infrastructure/http/cors.ts",
+    "line": 30,
+    "rule": {
+      "id": "axis-3-unnamed-number-in-object-literal",
+      "source": "guide#Gates de calidad"
+    },
+    "severity": "medium",
+    "evidence": "    maxAge: 600,",
+    "proposal": {
+      "before": "    maxAge: 600,",
+      "after": "/** Seconds a browser may cache the preflight (10 min): long enough for a session, short enough to see a rotated header list. */\nconst PREFLIGHT_MAX_AGE_SECONDS = minutes(10) / MS_PER_SECOND; // or a plain named constant\n…\n    maxAge: PREFLIGHT_MAX_AGE_SECONDS,"
+    },
+    "coveringTest": "tests/integration/cors.test.ts (Access-Control-Max-Age asserted); note: `no-magic-numbers` runs with `detectObjects: false`, so numbers in object literals are invisible to the gate — the only one in src/ is this",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-014",
+    "file": "CLAUDE.md",
+    "line": 126,
+    "rule": {
+      "id": "axis-7-guide-and-comments-describe-retired-modes-and-replaced-adrs",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()`\n// CLAUDE.md:130 repeats the same statement (\"un contrato con una operación que ningún módulo sirve no arranca\")\n// CLAUDE.md:73: `npm run arch` … (ADR-006) — ADR-006 was replaced by ADR-013\n// src/composition/profiles/local.ts:3: \"until real persistence arrives (006)\" — persistence is feature 017 (api-map)",
+    "proposal": {
+      "before": "`readConfig` rechaza con `ConfigError` (variable + problema) lo que no puede arrancar el servidor\ny, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()`…",
+      "after": "`readConfig` rechaza con `ConfigError` (variable + problema) lo que no puede arrancar el servidor; las pruebas usan `startTestApp()`… (the \"no arranca\" sentence stays once, at the end of the paragraph)\n// CLAUDE.md:73 → (ADR-013) · local.ts:3 → (017)"
+    },
+    "coveringTest": "none: prose; `check:adrs` verifies citations exist, not that they are current",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-015",
+    "file": "docs/adr/013-anillos-modulos-y-composicion.md",
+    "line": 71,
+    "rule": {
+      "id": "axis-7-adr-amendment-mentions-the-retired-mode-and-lost-its-list-shape",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "3. **Fail-closed en el arranque** (constitución II): en modo real, `bootstrap` comprueba que\n// and docs/adr/013:90: \"…la firma es `bootstrap(config, { profile?, modules?, ports?, handlers? })`. 6. **El logger es un puerto…\" — point 6 of the amendment is glued to the closing paragraph of point 5",
+    "proposal": {
+      "before": "3. **Fail-closed en el arranque** (constitución II): en modo real, `bootstrap` comprueba que",
+      "after": "3. **Fail-closed en el arranque** (constitución II): `bootstrap` comprueba que\n// and: a blank line before \"6. **El logger es un puerto…\" so it renders as the sixth point"
+    },
+    "coveringTest": "none: prose (ADR-018 retired the modes)",
+    "status": "confirmed"
+  }
+]
