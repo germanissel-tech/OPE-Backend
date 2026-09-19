@@ -105,9 +105,6 @@ types:
   - slug: invalid-policy-priority
     status: 500
     title: The priority of a decision policy is not a permutation of the three barriers
-  - slug: invalid-session-budget
-    status: 500
-    title: The interventions per session of a decision policy are not an integer of at least 1
   - slug: invalid-policy-evidence
     status: 500
     title: The evidence requirements of a decision policy name an unknown barrier

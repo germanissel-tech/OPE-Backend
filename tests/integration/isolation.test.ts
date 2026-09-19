@@ -212,9 +212,6 @@ describe("isolation between merchants", () => {
       version,
       threshold,
       priority: ["returns", "fit", "price"],
-      highIntent: "from-checkout",
-      abandonment: "nothing",
-      interventionsPerSession: 1,
       evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
       rules: [
         {
@@ -296,6 +293,76 @@ describe("isolation between merchants", () => {
       interventions: 1,
     });
     expect(await app.ports.sessions.load(asMerchantId("m_c"), asSessionId("ses_00000001"))).toBeUndefined();
+  });
+
+  it("commercial policy and visitor state: A with margin grants the incentive, B without margin does not; A's fatigue does not touch B", async () => {
+    const experiment = {
+      experimentId: "exp_iso_00002",
+      treatmentPercent: 100,
+      seed: "s",
+      status: "active" as const,
+      startedAt: NOW,
+    };
+    const profile = { returnsPolicy: true, fitData: true };
+    const a: MerchantSpec = {
+      merchantId: A.id,
+      ingestKeys: [A.key],
+      platformKeys: ["platform-a-1"],
+      origins: [A.origin],
+      experiments: [experiment],
+      evidenceProfile: profile,
+      commercialPolicy: { version: "a-c", marginPercent: 40, interventionsPerVisitorPerDay: 1 },
+    };
+    const b: MerchantSpec = {
+      merchantId: B.id,
+      ingestKeys: [B.key],
+      platformKeys: ["platform-b-1"],
+      origins: [B.origin],
+      experiments: [experiment],
+      evidenceProfile: profile,
+      commercialPolicy: { version: "b-c" },
+    };
+    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [a, b] });
+    for (const key of ["platform-a-1", "platform-b-1"]) {
+      const res = await putCatalog(
+        app.app,
+        { capturedAt: NOW, products: [catalogProductOf("SKU-1")] },
+        { platformKey: key },
+      );
+      expect(res.statusCode).toBe(201);
+    }
+    const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
+    const price = (from: number, sessionId: string) => ({
+      events: [
+        eventOf(from, {
+          occurredAt: NOW,
+          page,
+          sessionId,
+          type: "block_dwelled",
+          block: "price",
+          dwellMs: 6000,
+        }),
+        eventOf(from + 1, { occurredAt: NOW, page, sessionId, type: "cta_approached", approach: "hover" }),
+      ],
+    });
+    const inA = json(await postEvents(app.app, price(1, "ses_00000001"), { key: A.key })) as IngestResult;
+    const inB = json(await postEvents(app.app, price(1, "ses_00000001"), { key: B.key })) as IngestResult;
+    expect(inA.decision.intervention).toMatchObject({ incentive: { kind: "percent", value: 5 } });
+    expect(inB.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
+    expect(inB.decision.intervention).not.toHaveProperty("incentive");
+    const ledgerA = await app.ports.decisions.find(asMerchantId(A.id), asDecisionId(inA.decision.decisionId));
+    const ledgerB = await app.ports.decisions.find(asMerchantId(B.id), asDecisionId(inB.decision.decisionId));
+    expect(ledgerA?.selection?.commercialPolicyVersion).toBe("a-c");
+    expect(ledgerB?.selection?.commercialPolicyVersion).toBe("b-c");
+    // The same visitor is fatigued in A (one per day) but not in B, and B's visitor state is its own.
+    const againA = json(await postEvents(app.app, price(10, "ses_00000002"), { key: A.key })) as IngestResult;
+    expect(againA.decision).toMatchObject({ outcome: "NO_OP", reason: "visitor-fatigue" });
+    const againB = json(await postEvents(app.app, price(10, "ses_00000002"), { key: B.key })) as IngestResult;
+    expect(againB.decision.outcome).toBe("INTERVENE");
+    expect(await app.ports.visitors.load(asMerchantId(A.id), asVisitorId("vis_00000001"))).toMatchObject({
+      interventions: [new Date(NOW)],
+    });
+    expect(await app.ports.visitors.load(asMerchantId("m_c"), asVisitorId("vis_00000001"))).toBeUndefined();
   });
 
   it("catalogue: the snapshot of A is invisible to B; the same productId in A and B are two products; B's platform key cannot touch A", async () => {

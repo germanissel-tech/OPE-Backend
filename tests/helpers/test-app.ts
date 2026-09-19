@@ -2,6 +2,10 @@
 // dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import {
+  parseCommercialPolicy,
+  parseEvidenceProfile,
+} from "../../src/composition/commercial-policy-config.js";
 import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
 import { Experiment } from "../../src/domain/experiment/index.js";
 import { Merchant } from "../../src/domain/merchant/index.js";
@@ -26,6 +30,10 @@ export interface MerchantSpec {
   }[];
   /** The raw shape of OPE_MERCHANTS[i].decisionPolicy; parsed like config.ts does. */
   decisionPolicy?: Record<string, unknown>;
+  /** The raw shape of OPE_MERCHANTS[i].commercialPolicy; parsed like config.ts does. */
+  commercialPolicy?: Record<string, unknown>;
+  /** The raw shape of OPE_MERCHANTS[i].evidenceProfile; parsed like config.ts does. */
+  evidenceProfile?: Record<string, unknown>;
 }
 
 const PERCENT = 100;
@@ -51,9 +59,17 @@ function configured(spec: MerchantSpec): MerchantConfig {
     if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
     return experiment.value;
   });
-  if (spec.decisionPolicy === undefined) return { merchant: merchant.value, experiments };
-  const decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
-  return { merchant: merchant.value, experiments, decisionPolicy };
+  const config: MerchantConfig = { merchant: merchant.value, experiments };
+  if (spec.decisionPolicy !== undefined) {
+    config.decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
+  }
+  if (spec.commercialPolicy !== undefined) {
+    config.commercialPolicy = parseCommercialPolicy(spec.commercialPolicy, "merchants[0].commercialPolicy");
+  }
+  if (spec.evidenceProfile !== undefined) {
+    config.evidenceProfile = parseEvidenceProfile(spec.evidenceProfile, "merchants[0].evidenceProfile");
+  }
+  return config;
 }
 
 const merchantA: MerchantSpec = {
@@ -61,6 +77,8 @@ const merchantA: MerchantSpec = {
   ingestKeys: ["key-a-1", "key-a-2"],
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
+  // A declares what it can sustain, so the quality gate lets the reassurance and the size recommendation through.
+  evidenceProfile: { returnsPolicy: true, fitData: true },
   // Everyone in TREATMENT: the decision reasons of feature 004 stay observable through A.
   experiments: [
     {
@@ -77,6 +95,7 @@ export const merchantB: MerchantSpec = {
   ingestKeys: ["key-b-1"],
   platformKeys: ["platform-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
+  evidenceProfile: { returnsPolicy: true, fitData: true },
   experiments: [],
 };
 const testMerchants: MerchantSpec[] = [merchantA, merchantB];

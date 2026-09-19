@@ -10,8 +10,7 @@ import type { MerchantProfile } from "./profile.js";
 export interface GateEvidence {
   attributes: ReadonlyMap<string, string>;
   stockAndPriceFresh: boolean;
-  /** A variant is in focus (the size recommendation needs one). */
-  hasVariant: boolean;
+  /** Absent when no variant is in focus (the size recommendation needs one). */
   available?: boolean;
 }
 
@@ -67,7 +66,7 @@ export class QualityGate {
       case "current-price":
         return evidence.stockAndPriceFresh ? undefined : "stale-price";
       case "availability":
-        return evidence.hasVariant && evidence.available === true ? undefined : "variant-unavailable";
+        return evidence.available === true ? undefined : "variant-unavailable";
       case "incentive":
         // Whether an incentive may be granted is the commercial policy's, not the gate's.
         return undefined;

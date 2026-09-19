@@ -17,7 +17,6 @@ const full: MerchantProfile = { returnsPolicy: true, fitData: true, authorizedAt
 const fresh: GateEvidence = {
   attributes: new Map([["material", "cotton"]]),
   stockAndPriceFresh: true,
-  hasVariant: true,
   available: true,
 };
 const candidate = (claims: Claim[]): Candidate => ({
@@ -48,7 +47,6 @@ describe("QualityGate.judge — one claim at a time", () => {
   const noVariant: GateEvidence = {
     attributes: fresh.attributes,
     stockAndPriceFresh: true,
-    hasVariant: false,
   };
 
   it.each<[string, Case]>([
@@ -129,7 +127,7 @@ describe("QualityGate.judge — one claim at a time", () => {
   });
 
   it("a candidate without claims is always acceptable, whatever the evidence", () => {
-    const nothing: GateEvidence = { attributes: new Map(), stockAndPriceFresh: false, hasVariant: false };
+    const nothing: GateEvidence = { attributes: new Map(), stockAndPriceFresh: false };
     expect(QualityGate.of(EMPTY_PROFILE).judge(candidate([]), nothing)).toEqual({ acceptable: true });
   });
 

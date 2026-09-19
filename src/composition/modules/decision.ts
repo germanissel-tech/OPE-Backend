@@ -1,19 +1,20 @@
-// decision module (01-arquitectura-mvp.md §4; ADR-026): the decision plane. What it needs
-// (`DecisionPorts`: the arm from the experiment module, the truth from the catalogue, the
-// inference from the barrier module, the ledger, and its own policies and session state), how
-// configuration and memory serve its own ports, and what it serves: the plane the ingestion
-// module asks for a decision (`decisionPlaneOf`). No operation of its own.
+// decision module (01-arquitectura-mvp.md §4; ADR-026, ADR-027): the decision plane. What it
+// needs (`DecisionPorts`: the arm from the experiment module, the truth from the catalogue, the
+// inference from the barrier module, the ledger, and its own policies, session and visitor
+// state), how configuration and memory serve its own ports, and what it serves: the plane the
+// ingestion module asks for a decision (`decisionPlaneOf`). Selection, the quality gate and the
+// commercial policy are pure domain the plane invokes; they bind nothing. No operation of its own.
 import {
   DecisionService,
   DefaultStateService,
   SESSION_WINDOW,
   VISITOR_WINDOW,
-  type DecisionPolicyDirectory,
+  type PolicyDirectory,
   type SessionStateStore,
   type VisitorStateStore,
 } from "../../application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../application/ledger/index.js";
-import { configDecisionPolicyDirectory } from "../../interface-adapters/gateways/decision/config-decision-policy-directory.js";
+import { configPolicyDirectory } from "../../interface-adapters/gateways/decision/config-policy-directory.js";
 import { memorySessionStateStore } from "../../interface-adapters/gateways/decision/memory-session-state-store.js";
 import { memoryVisitorStateStore } from "../../interface-adapters/gateways/decision/memory-visitor-state-store.js";
 import { productTruthOf, type CatalogPorts } from "./catalog.js";
@@ -27,7 +28,7 @@ import type { LedgerPorts } from "./ledger.js";
 
 export interface DecisionPorts
   extends ExperimentPorts, CatalogPorts, BarrierPorts, Pick<LedgerPorts, "decisions" | "decisionIds"> {
-  policies: DecisionPolicyDirectory;
+  policies: PolicyDirectory;
   sessions: SessionStateStore;
   visitors: VisitorStateStore;
 }
@@ -36,12 +37,13 @@ export const configDecisionPorts = (
   merchants: readonly MerchantConfig[],
 ): Bindings<Pick<DecisionPorts, "policies">> => ({
   policies: () =>
-    configDecisionPolicyDirectory(
-      merchants.map((m) =>
-        m.decisionPolicy === undefined
-          ? { merchantId: m.merchant.merchantId }
-          : { merchantId: m.merchant.merchantId, policy: m.decisionPolicy },
-      ),
+    configPolicyDirectory(
+      merchants.map((m) => ({
+        merchantId: m.merchant.merchantId,
+        ...(m.decisionPolicy === undefined ? {} : { decision: m.decisionPolicy }),
+        ...(m.commercialPolicy === undefined ? {} : { commercial: m.commercialPolicy }),
+        ...(m.evidenceProfile === undefined ? {} : { profile: m.evidenceProfile }),
+      })),
     ),
 });
 

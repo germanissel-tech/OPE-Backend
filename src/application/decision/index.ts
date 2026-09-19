@@ -1,6 +1,6 @@
 // Public API of the decision module (application): the orchestrator of the decision plane, its
 // ports and policies (ADR-026).
-export type { DecisionPolicyDirectory } from "./ports/decision-policy-directory.js";
+export type { MerchantPolicies, PolicyDirectory } from "./ports/policy-directory.js";
 export type { SessionStateStore } from "./ports/session-state-store.js";
 export type { VisitorStateStore } from "./ports/visitor-state-store.js";
 export { VISITOR_WINDOW } from "./policies/visitor-window.js";

@@ -1,11 +1,10 @@
-// Feature 011 (FR-020, FR-022, FR-040): a decision policy only exists valid; anchors and
-// message placeholders follow the barrier.
-import { describe, expect, it } from "vitest";
+// Feature 011 (FR-020, FR-022), reduced by feature 012: a decision policy only exists valid,
+// and it keeps what is inference — rules, threshold, priority, evidence per barrier.
 // Imported from the files, not the module index: the index loads the default policy at import
 // time, and a mutant that breaks `DecisionPolicy.of` would then break the file instead of a test.
+import { describe, expect, it } from "vitest";
 import { BarrierRules } from "../../../../src/domain/barrier/index.js";
 import {
-  ANCHOR_BY_BARRIER,
   DecisionPolicy,
   type DecisionPolicyRecord,
 } from "../../../../src/domain/decision/decision-policy.js";
@@ -14,7 +13,6 @@ import {
   InvalidPolicyPriority,
   InvalidPolicyThreshold,
   InvalidPolicyVersion,
-  InvalidSessionBudget,
 } from "../../../../src/domain/decision/errors.js";
 
 const rules = BarrierRules.rehydrate({
@@ -32,9 +30,6 @@ const base: DecisionPolicyRecord = {
   rules,
   threshold: 0.6,
   priority: ["returns", "fit", "price"],
-  highIntent: "from-checkout",
-  abandonment: "reassure-returns",
-  interventionsPerSession: 1,
   evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
 };
 
@@ -42,7 +37,6 @@ const ERROR_BY_CODE = {
   "invalid-policy-version": InvalidPolicyVersion,
   "invalid-policy-threshold": InvalidPolicyThreshold,
   "invalid-policy-priority": InvalidPolicyPriority,
-  "invalid-session-budget": InvalidSessionBudget,
   "invalid-policy-evidence": InvalidPolicyEvidence,
 } as const;
 
@@ -60,6 +54,7 @@ describe("DecisionPolicy.of", () => {
     expect(built.ok && built.value.version).toBe("sport-1");
     expect(built.ok && built.value.priority).toEqual(["returns", "fit", "price"]);
     expect(built.ok && built.value.evidence).toEqual(base.evidence);
+    expect(built.ok && built.value.rules).toBe(rules);
   });
 
   it.each<[string, Partial<DecisionPolicyRecord>, string, Record<string, unknown>]>([
@@ -91,18 +86,6 @@ describe("DecisionPolicy.of", () => {
       { path: "priority" },
     ],
     [
-      "zero interventions",
-      { interventionsPerSession: 0 },
-      "invalid-session-budget",
-      { path: "interventionsPerSession" },
-    ],
-    [
-      "fractional interventions",
-      { interventionsPerSession: 1.5 },
-      "invalid-session-budget",
-      { path: "interventionsPerSession" },
-    ],
-    [
       "evidence naming a stranger",
       { evidence: { freshStockAndPrice: ["price"], availableVariant: ["size" as never] } },
       "invalid-policy-evidence",
@@ -124,19 +107,5 @@ describe("DecisionPolicy.of", () => {
 
   it("rehydrate does not re-judge", () => {
     expect(DecisionPolicy.rehydrate({ ...base, threshold: 7 }).threshold).toBe(7);
-  });
-});
-
-describe("anchor and message placeholder by barrier (FR-040)", () => {
-  const policy = DecisionPolicy.rehydrate(base);
-
-  it.each([
-    ["fit", "size_selector", "msg_fit_size_selector_v0"],
-    ["price", "price", "msg_price_price_v0"],
-    ["returns", "policies", "msg_returns_policies_v0"],
-  ] as const)("%s → %s, %s", (barrier, anchor, message) => {
-    expect(policy.anchorFor(barrier)).toBe(anchor);
-    expect(ANCHOR_BY_BARRIER[barrier]).toBe(anchor);
-    expect(policy.messageFor(barrier)).toBe(message);
   });
 });

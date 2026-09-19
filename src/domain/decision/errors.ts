@@ -29,16 +29,6 @@ export class InvalidPolicyPriority extends DomainError {
   }
 }
 
-export class InvalidSessionBudget extends DomainError {
-  readonly code = "invalid-session-budget" as const;
-  readonly module = MODULE;
-  constructor() {
-    super("The interventions per session must be an integer of at least 1.", {
-      path: "interventionsPerSession",
-    });
-  }
-}
-
 export class InvalidPolicyEvidence extends DomainError {
   readonly code = "invalid-policy-evidence" as const;
   readonly module = MODULE;
@@ -48,8 +38,4 @@ export class InvalidPolicyEvidence extends DomainError {
 }
 
 export type DecisionError =
-  | InvalidPolicyVersion
-  | InvalidPolicyThreshold
-  | InvalidPolicyPriority
-  | InvalidSessionBudget
-  | InvalidPolicyEvidence;
+  InvalidPolicyVersion | InvalidPolicyThreshold | InvalidPolicyPriority | InvalidPolicyEvidence;

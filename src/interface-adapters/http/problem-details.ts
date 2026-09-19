@@ -57,10 +57,6 @@ export const PROBLEM_TYPES = {
     status: 500,
     title: "The priority of a decision policy is not a permutation of the three barriers",
   },
-  "invalid-session-budget": {
-    status: 500,
-    title: "The interventions per session of a decision policy are not an integer of at least 1",
-  },
   "invalid-policy-evidence": {
     status: 500,
     title: "The evidence requirements of a decision policy name an unknown barrier",
