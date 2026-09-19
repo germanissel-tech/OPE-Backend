@@ -68,6 +68,9 @@ evidencia y veredicto.
   (016) segmenta por ella.
 - El estado de sesión vive en memoria con la ventana de la deduplicación (24 h / 100 000 por
   merchant) hasta la persistencia (017); una sesión olvidada vuelve a empezar.
-- PROPUESTO (pregunta al stakeholder): al pasar un merchant a 100 % TREATMENT, mantener un
-  holdout mínimo (por ejemplo 5 %) para no perder la medición; sin holdout, OPE deja de poder
-  atribuir. Se decide antes de la 016.
+- **Holdout — DECIDIDO (stakeholder, 2026-09-18)**: un merchant conserva siempre un grupo de
+  control mínimo, el _holdout_, como parámetro de su configuración (`holdoutPercent`, 5 % por
+  defecto); el reparto a TREATMENT no puede superar `100 − holdout`, y pedir el 100 % da 95 con
+  una advertencia. Sin holdout OPE dejaría de poder atribuir (01 §5). Se implementa con la
+  configuración por API de la feature 014; hasta entonces, `treatmentPercent` sigue sin tope
+  (los merchants de desarrollo y prueba usan 100 para observar el plano).

@@ -48,3 +48,6 @@ vive el experimento y qué ve el SDK.
 - El plano de decisión (011+) recibe el brazo desde la decisión y no vuelve a calcularlo.
 - Las lecturas del portal (017) y el análisis ITT parten del ledger de asignaciones, no de
   las exposiciones.
+- Holdout (DECIDIDO, ADR-026): todo merchant conserva un grupo de control mínimo,
+  `holdoutPercent` con 5 % por defecto; `treatmentPercent ≤ 100 − holdout`. El tope se aplica
+  con la configuración por API (014).
