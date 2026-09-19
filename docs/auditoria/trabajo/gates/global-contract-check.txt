@@ -1,0 +1,84 @@
+
+> ope-backend@0.1.0 contract:check
+> npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:adrs && npm run check:markers && npm run check:language && npm run check:api-map
+
+
+> ope-backend@0.1.0 contract:lint
+> node scripts/contract-lint.mjs
+
+
+    [33m╔═══════════════════════════════════════════════════════╗[39m
+    [33m║                                                       ║[39m
+    [33m║[39m  A new version of [36mRedocly CLI[39m ([32m2.53.3[39m) is available.  [33m║[39m
+    [33m║[39m  Update now: `[36mnpm i -g @redocly/cli@latest[39m`.          [33m║[39m
+    [33m║[39m  Changelog: https://redocly.com/docs/cli/changelog/   [33m║[39m
+    [33m║                                                       ║[39m
+    [33m╚═══════════════════════════════════════════════════════╝[39m
+
+[90mvalidating contracts\openapi.yaml using lint rules for api 'main'...
+[39m[90mcontracts\openapi.yaml: validated in 201ms
+
+[39m[32mWoohoo! Your API description is valid. 🎉
+[39m
+No results with a severity of 'warn' or higher found!
+
+> ope-backend@0.1.0 contract:bundle
+> node scripts/contract-bundle.mjs
+
+
+    [33m╔═══════════════════════════════════════════════════════╗[39m
+    [33m║                                                       ║[39m
+    [33m║[39m  A new version of [36mRedocly CLI[39m ([32m2.53.3[39m) is available.  [33m║[39m
+    [33m║[39m  Update now: `[36mnpm i -g @redocly/cli@latest[39m`.          [33m║[39m
+    [33m║[39m  Changelog: https://redocly.com/docs/cli/changelog/   [33m║[39m
+    [33m║                                                       ║[39m
+    [33m╚═══════════════════════════════════════════════════════╝[39m
+
+[90mbundling contracts\openapi.yaml using configuration for api 'main'...
+[39m📦 Created a bundle for [34mcontracts\openapi.yaml[39m at [34mC:\Users\Jose Luis\Documents\trabajos\German\ope\mvp\backend\contracts\dist\openapi.yaml[39m [32m63ms[39m.
+
+> ope-backend@0.1.0 contract:diff
+> node scripts/contract-diff.mjs
+
+contract:diff — base origin/main (1.2.0) → head (1.2.0)
+No changes detected
+No incompatible changes
+
+> ope-backend@0.1.0 contract:types:check
+> node scripts/contract-types-check.mjs
+
+Generated types are up to date
+
+> ope-backend@0.1.0 check:invariant-tests
+> node scripts/check-invariant-tests.mjs
+
+Invariants: 14 declared, 14 with a test
+
+> ope-backend@0.1.0 check:glossary
+> node scripts/check-glossary.mjs
+
+Glossary: 70 terms, all with a source; 31 used in the contract
+
+> ope-backend@0.1.0 check:adrs
+> node scripts/check-adrs.mjs
+
+ADRs: 29, 531 citations, none broken
+
+> ope-backend@0.1.0 check:markers
+> node scripts/check-markers.mjs
+
+docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md:30: PROPUESTO — | `portal`   | `portal`             | `portalSession` (bearer, PROPUESTO)         | token de sesión de una persona del merchant                                 | persona + merchant           |
+docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md:31: PROPUESTO — | `admin`    | `admin`              | `adminToken` (bearer, PROPUESTO)            | token de operador de OPE, emitido fuera de banda, auditado                  | operador                     |
+Markers: 0 open, 2 proposed, 0 placeholders
+
+> ope-backend@0.1.0 check:language
+> node scripts/check-language.mjs
+
+check:language — everything in scope is in English.
+Language exceptions: 0
+
+> ope-backend@0.1.0 check:api-map
+> node scripts/check-api-map.mjs
+
+Map: 7 built, 16 planned, 0 deprecated, 0 retired
+exit 0

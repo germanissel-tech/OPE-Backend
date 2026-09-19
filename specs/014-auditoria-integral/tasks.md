@@ -35,50 +35,50 @@ description: "Traza de la auditoría integral (014): una tarea por unidad de tra
 
 ### Estructura de trabajo
 
-- [ ] T001 [US4] Crear `docs/auditoria/trabajo/{gates,hallazgos}/` y `trabajo/avance.md` desde `specs/014-auditoria-integral/contracts/avance-plantilla.md` (anclaje `8d12aa2`, fase 0 en curso)
-- [ ] T002 [US4] Crear el informe `docs/auditoria/2026-09-19-informe-auditoria-integral.md` con las siete secciones de `contracts/informe-plantilla.md` marcadas `(pendiente: fase N)`; añadir el handoff existente al índice de git
-- [ ] T003 [US4] Verificar el aislamiento del alcance (SC-006): `git diff --stat main -- . ':!specs/014-auditoria-integral' ':!docs/auditoria' ':!.claude/skills/auditing-architecture' ':!tests/audit'` vacío; anotar en `avance.md` que el único cambio fuera de los dos directorios es el commit `ee6ac73` (R-03)
+- [x] T001 [US4] Crear `docs/auditoria/trabajo/{gates,hallazgos}/` y `trabajo/avance.md` desde `specs/014-auditoria-integral/contracts/avance-plantilla.md` (anclaje `8d12aa2`, fase 0 en curso)
+- [x] T002 [US4] Crear el informe `docs/auditoria/2026-09-19-informe-auditoria-integral.md` con las siete secciones de `contracts/informe-plantilla.md` marcadas `(pendiente: fase N)`; añadir el handoff existente al índice de git
+- [x] T003 [US4] Verificar el aislamiento del alcance (SC-006): `git diff --stat main -- . ':!specs/014-auditoria-integral' ':!docs/auditoria' ':!.claude/skills/auditing-architecture' ':!tests/audit'` vacío; anotar en `avance.md` que el único cambio fuera de los dos directorios es el commit `ee6ac73` (R-03)
 
 ### Lecturas base (anotar cada una en `avance.md` § "Lecturas hechas")
 
-- [ ] T004 [P] [US3] Leer `.specify/memory/constitution.md` completa (I–X, contrato de datos, stack, flujo, governance) y anotar las secciones citables
-- [ ] T005 [P] [US2] Leer `CLAUDE.md` completo y anotar las secciones `guide#` citables (Anillos y módulos, Cómo se escribe un caso de uso, Cómo se escribe una entidad, Gates de calidad, Tipado, Documentación viva, Convenciones)
-- [ ] T006 [P] [US2] Leer `docs/adr/001..012` (contrato, gobernanza, lint, tipos) y anotar por ADR qué módulo o archivo lo cita
-- [ ] T007 [P] [US2] Leer `docs/adr/013..020` (anillos, SDK, idioma, gates, TS7, sin mock, mapa del contrato, consumidores) idem
-- [ ] T008 [P] [US2] Leer `docs/adr/021..029` (ledger, asignación, casos de uso, dominio rico, catálogo, políticas, selección, cadena de evidencia, firma) idem
-- [ ] T009 [P] [US3] Leer `../01-arquitectura-mvp.md` completo; anotar §4, §5, §6, §9, §10 y el estado (DECIDIDO/PROPUESTO/ABIERTO) de cada afirmación
-- [ ] T010 [P] [US3] Leer `../02-integracion-ecommerce.md` completo; anotar §4 y §5 idem
-- [ ] T011 [P] [US3] Leer `../03-alcance-mvp.md` completo; anotar §4.5, §4.7, §4.8, §4.11, §6, §10 idem
-- [ ] T012 [P] [US2] Leer `contracts/api-map.yaml` (consumidores, capacidades, operaciones built/planned) y `.dependency-cruiser.cjs` (`CONTEXT_MAP`) para fijar la lista de 12 módulos y sus dependencias permitidas
+- [x] T004 [P] [US3] Leer `.specify/memory/constitution.md` completa (I–X, contrato de datos, stack, flujo, governance) y anotar las secciones citables
+- [x] T005 [P] [US2] Leer `CLAUDE.md` completo y anotar las secciones `guide#` citables (Anillos y módulos, Cómo se escribe un caso de uso, Cómo se escribe una entidad, Gates de calidad, Tipado, Documentación viva, Convenciones)
+- [x] T006 [P] [US2] Leer `docs/adr/001..012` (contrato, gobernanza, lint, tipos) y anotar por ADR qué módulo o archivo lo cita
+- [x] T007 [P] [US2] Leer `docs/adr/013..020` (anillos, SDK, idioma, gates, TS7, sin mock, mapa del contrato, consumidores) idem
+- [x] T008 [P] [US2] Leer `docs/adr/021..029` (ledger, asignación, casos de uso, dominio rico, catálogo, políticas, selección, cadena de evidencia, firma) idem
+- [x] T009 [P] [US3] Leer `../01-arquitectura-mvp.md` completo; anotar §4, §5, §6, §9, §10 y el estado (DECIDIDO/PROPUESTO/ABIERTO) de cada afirmación
+- [x] T010 [P] [US3] Leer `../02-integracion-ecommerce.md` completo; anotar §4 y §5 idem
+- [x] T011 [P] [US3] Leer `../03-alcance-mvp.md` completo; anotar §4.5, §4.7, §4.8, §4.11, §6, §10 idem
+- [x] T012 [P] [US2] Leer `contracts/api-map.yaml` (consumidores, capacidades, operaciones built/planned) y `.dependency-cruiser.cjs` (`CONTEXT_MAP`) para fijar la lista de 12 módulos y sus dependencias permitidas
 
 ### Comandos globales (salida cruda a `trabajo/gates/global-<comando>.txt`; fila en `avance.md` § "Comandos corridos")
 
-- [ ] T013 [US1] `npm ci` (registrar versión de Node y npm en `avance.md`)
-- [ ] T014 [US1] `npm run contract:check` → `trabajo/gates/global-contract-check.txt`
-- [ ] T015 [P] [US1] `npm run quality` → `trabajo/gates/global-quality.txt`
-- [ ] T016 [P] [US1] `npm run typecheck` → `trabajo/gates/global-typecheck.txt`
-- [ ] T017 [P] [US1] `npm test` → `trabajo/gates/global-test.txt` (registrar el total de pruebas)
-- [ ] T018 [US1] `npm run build` y luego `npm run test:contract` → `trabajo/gates/global-test-contract.txt` (registrar casos generados y las operaciones con 'schema validation mismatch', S-09)
-- [ ] T019 [P] [US1] `npm run check:markers` → `trabajo/gates/global-markers.txt`
-- [ ] T020 [US1] Lanzar `npm run test:mutation -- --all` en segundo plano (borrar `reports/mutation/stryker-incremental.json` antes, gotcha del handoff); al terminar copiar `reports/mutation/report.json` a `trabajo/gates/mutation-full.json` y anotar duración y resultado (R-06)
-- [ ] T021 [US1] Contar y registrar en `avance.md`: archivos `.ts` en `src/` por anillo y por módulo, archivos de prueba en `tests/`, ADRs, notas de glosario — las cifras del handoff §2 se confirman o corrigen
+- [x] T013 [US1] `npm ci` (registrar versión de Node y npm en `avance.md`)
+- [x] T014 [US1] `npm run contract:check` → `trabajo/gates/global-contract-check.txt`
+- [x] T015 [P] [US1] `npm run quality` → `trabajo/gates/global-quality.txt`
+- [x] T016 [P] [US1] `npm run typecheck` → `trabajo/gates/global-typecheck.txt`
+- [x] T017 [P] [US1] `npm test` → `trabajo/gates/global-test.txt` (registrar el total de pruebas)
+- [x] T018 [US1] `npm run build` y luego `npm run test:contract` → `trabajo/gates/global-test-contract.txt` (registrar casos generados y las operaciones con 'schema validation mismatch', S-09)
+- [x] T019 [P] [US1] `npm run check:markers` → `trabajo/gates/global-markers.txt`
+- [x] T020 [US1] Lanzar `npm run test:mutation -- --all` en segundo plano (borrar `reports/mutation/stryker-incremental.json` antes, gotcha del handoff); al terminar copiar `reports/mutation/report.json` a `trabajo/gates/mutation-full.json` y anotar duración y resultado (R-06)
+- [x] T021 [US1] Contar y registrar en `avance.md`: archivos `.ts` en `src/` por anillo y por módulo, archivos de prueba en `tests/`, ADRs, notas de glosario — las cifras del handoff §2 se confirman o corrigen
 
 ### Afirmaciones DECIDIDAS (`trabajo/afirmaciones.md` desde `contracts/afirmaciones-plantilla.md`; R-07)
 
-- [ ] T022 [P] [US3] Extraer las afirmaciones de la constitución: principios I–X (cada MUST) y "Flujo de desarrollo" (pruebas por autoridad, end-to-end, contaminación cruzada) → `A-0xx`
-- [ ] T023 [P] [US3] Extraer las de `01` §4 (cinco autoridades), §4.3 (evidencia), §4.5 (política comercial), §5 (cadena de evidencia), §6 (identidades), §9 (garantías), §10 (privacidad), con estado
-- [ ] T024 [P] [US3] Extraer las de `02` §4 (catálogo) y §5 (correlación A/B/C), con estado
-- [ ] T025 [P] [US3] Extraer las de `03` §4.5, §4.7, §4.8, §4.11, §6 (D-A/D-B/D-C) y §10 (criterios de aceptación, uno por fila), con estado
-- [ ] T026 [P] [US3] Extraer `FR-`/`SC-` de `specs/001..005/spec.md` (una subtabla por feature; el `quickstart.md` de cada una como primera evidencia candidata)
-- [ ] T027 [P] [US3] Extraer `FR-`/`SC-` de `specs/006..009/spec.md` idem
-- [ ] T028 [P] [US3] Extraer `FR-`/`SC-` de `specs/010..013/spec.md` idem
-- [ ] T029 [US3] Listar aparte los enunciados `PROPUESTO`/`ABIERTO` encontrados (no generan `high`) y las doce sospechas del handoff §6 como `S-01..S-12` en `avance.md`
+- [x] T022 [P] [US3] Extraer las afirmaciones de la constitución: principios I–X (cada MUST) y "Flujo de desarrollo" (pruebas por autoridad, end-to-end, contaminación cruzada) → `A-0xx`
+- [x] T023 [P] [US3] Extraer las de `01` §4 (cinco autoridades), §4.3 (evidencia), §4.5 (política comercial), §5 (cadena de evidencia), §6 (identidades), §9 (garantías), §10 (privacidad), con estado
+- [x] T024 [P] [US3] Extraer las de `02` §4 (catálogo) y §5 (correlación A/B/C), con estado
+- [x] T025 [P] [US3] Extraer las de `03` §4.5, §4.7, §4.8, §4.11, §6 (D-A/D-B/D-C) y §10 (criterios de aceptación, uno por fila), con estado
+- [x] T026 [P] [US3] Extraer `FR-`/`SC-` de `specs/001..005/spec.md` (una subtabla por feature; el `quickstart.md` de cada una como primera evidencia candidata)
+- [x] T027 [P] [US3] Extraer `FR-`/`SC-` de `specs/006..009/spec.md` idem
+- [x] T028 [P] [US3] Extraer `FR-`/`SC-` de `specs/010..013/spec.md` idem
+- [x] T029 [US3] Listar aparte los enunciados `PROPUESTO`/`ABIERTO` encontrados (no generan `high`) y las doce sospechas del handoff §6 como `S-01..S-12` en `avance.md`
 
 ### Rúbrica e informe
 
-- [ ] T030 [US2] Confirmar `contracts/rubrica.md` contra lo leído: cada fuente citada existe en `8d12aa2` (secciones de `CLAUDE.md`, ADRs, reglas de lint/arch/shape); corregir la rúbrica si una fuente no existe — antes de leer el primer módulo
-- [ ] T031 [US1] Redactar informe §1 (alcance y método: qué se leyó, qué se corrió, qué no se pudo verificar, cómo leer un hallazgo) y §2.1 (gates globales: comando → resultado → archivo)
-- [ ] T032 [US4] Cierre de fase 0: `avance.md` (fase 0 cerrada, fase 1 en curso con su primera tarea), `quickstart.md` § cierre, commit `docs(auditoria): fase 0 — base`; resumen al dueño
+- [x] T030 [US2] Confirmar `contracts/rubrica.md` contra lo leído: cada fuente citada existe en `8d12aa2` (secciones de `CLAUDE.md`, ADRs, reglas de lint/arch/shape); corregir la rúbrica si una fuente no existe — antes de leer el primer módulo
+- [x] T031 [US1] Redactar informe §1 (alcance y método: qué se leyó, qué se corrió, qué no se pudo verificar, cómo leer un hallazgo) y §2.1 (gates globales: comando → resultado → archivo)
+- [x] T032 [US4] Cierre de fase 0: `avance.md` (fase 0 cerrada, fase 1 en curso con su primera tarea), `quickstart.md` § cierre, commit `docs(auditoria): fase 0 — base`; resumen al dueño
 
 **Checkpoint**: contexto completo, hechos globales guardados, vara fijada. Sin esto no se lee ningún módulo.
 

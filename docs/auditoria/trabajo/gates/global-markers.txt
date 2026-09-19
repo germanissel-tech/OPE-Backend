@@ -1,0 +1,8 @@
+
+> ope-backend@0.1.0 check:markers
+> node scripts/check-markers.mjs
+
+docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md:30: PROPUESTO — | `portal`   | `portal`             | `portalSession` (bearer, PROPUESTO)         | token de sesión de una persona del merchant                                 | persona + merchant           |
+docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md:31: PROPUESTO — | `admin`    | `admin`              | `adminToken` (bearer, PROPUESTO)            | token de operador de OPE, emitido fuera de banda, auditado                  | operador                     |
+Markers: 0 open, 2 proposed, 0 placeholders
+exit 0

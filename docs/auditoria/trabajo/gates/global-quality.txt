@@ -1,0 +1,210 @@
+
+> ope-backend@0.1.0 quality
+> node scripts/quality.mjs
+
+quality: lint
+quality: arch
+
+✔ no dependency violations found (187 modules, 631 dependencies cruised)
+
+quality: check:duplication
+check:duplication — src (blocking): 0 clone(s)
+check:duplication — tests+scripts (informative): 30 clone(s)
+  scripts/check-api-map.mjs:30: 8 lines duplicated at scripts/check-glossary.mjs:29-37
+  scripts/contract-docs.mjs:50: 6 lines duplicated at scripts/release-check.mjs:6-11
+  scripts/shape-rules.mjs:205: 6 lines duplicated at scripts/shape-rules.mjs:275-280
+  tests/contract-diff/diff.test.ts:22: 6 lines duplicated at tests/typecheck/typecheck.test.ts:37-42
+  tests/contract-diff/diff.test.ts:22: 6 lines duplicated at tests/unit/contract-types-check.test.ts:25-30
+  tests/contract-rules/gen-fixtures.mjs:417: 8 lines duplicated at tests/contract-rules/gen-fixtures.mjs:707-714
+  tests/integration/commercial-policy.test.ts:37: 14 lines duplicated at tests/integration/decision-plane.test.ts:35-48
+  tests/integration/commercial-policy.test.ts:62: 8 lines duplicated at tests/integration/decision-plane.test.ts:59-65
+  tests/integration/commercial-policy.test.ts:76: 9 lines duplicated at tests/integration/decision-plane.test.ts:68-75
+  tests/integration/commercial-policy.test.ts:117: 14 lines duplicated at tests/integration/commercial-policy.test.ts:135-148
+  tests/integration/commercial-policy.test.ts:150: 7 lines duplicated at tests/integration/commercial-policy.test.ts:241-247
+  tests/integration/commercial-policy.test.ts:222: 7 lines duplicated at tests/integration/decision-plane.test.ts:133-139
+  tests/integration/confirm-exposure.test.ts:6: 16 lines duplicated at tests/integration/ingest-events.test.ts:4-18
+  tests/integration/confirm-exposure.test.ts:31: 13 lines duplicated at tests/integration/isolation.test.ts:53-65
+  tests/integration/cors.test.ts:4: 10 lines duplicated at tests/integration/ingest-key.test.ts:2-11
+  tests/integration/ingest-events.test.ts:102: 7 lines duplicated at tests/integration/ingest-events.test.ts:185-190
+  tests/integration/ingest-latency.test.ts:26: 12 lines duplicated at tests/integration/outcomes-latency.test.ts:16-27
+  tests/integration/ingest-latency.test.ts:47: 8 lines duplicated at tests/integration/ingest-latency.test.ts:95-102
+  tests/integration/ledger-unavailable.test.ts:59: 6 lines duplicated at tests/integration/ledger-unavailable.test.ts:75-80
+  tests/integration/logging-privacy.test.ts:16: 9 lines duplicated at tests/unit/infrastructure/pino-logger.test.ts:15-23
+  tests/integration/server.test.ts:253: 8 lines duplicated at tests/integration/server.test.ts:274-281
+  tests/typecheck/typecheck.test.ts:38: 7 lines duplicated at tests/unit/contract-types-check.test.ts:26-32
+  tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts:59: 6 lines duplicated at tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts:124-129
+  tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts:100: 6 lines duplicated at tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts:115-118
+  tests/unit/application/decision/decision.service.test.ts:255: 9 lines duplicated at tests/unit/application/decision/decision.service.test.ts:289-297
+  tests/unit/application/decision/decision.service.test.ts:297: 9 lines duplicated at tests/unit/application/decision/decision.service.test.ts:366-374
+  tests/unit/application/merchant/ingest-key.service.test.ts:14: 10 lines duplicated at tests/unit/application/merchant/platform-key.service.test.ts:14-23
+  tests/unit/composition/config.test.ts:162: 6 lines duplicated at tests/unit/composition/config.test.ts:348-353
+  tests/unit/composition/config.test.ts:353: 13 lines duplicated at tests/unit/composition/config.test.ts:375-387
+  tests/unit/domain/commercial/commercial-policy.test.ts:22: 17 lines duplicated at tests/unit/domain/commercial/verdict.test.ts:41-56
+check:duplication — no duplication in src/.
+quality: check:dead-code
+check:dead-code — 159 exported type(s) nobody imports (informative):
+  src/domain/experiment/index.ts:4: unused exported type: ExperimentError
+  src/domain/experiment/index.ts:6: unused exported type: ExperimentStatus
+  src/domain/shared-kernel/index.ts:7: unused exported type: SafeDetails
+  src/domain/shared-kernel/index.ts:7: unused exported type: SharedKernelError
+  src/domain/shared-kernel/index.ts:9: unused exported type: MoneyRecord
+  src/domain/shared-kernel/index.ts:11: unused exported type: Fail
+  src/domain/shared-kernel/index.ts:11: unused exported type: Ok
+  src/domain/shared-kernel/index.ts:15: unused exported type: IncentiveKind
+  src/composition/wiring.ts:16: unused exported type: ModuleWiring
+  src/interface-adapters/http/typed.ts:8: unused exported type: OperationShape
+  src/interface-adapters/http/typed.ts:25: unused exported type: TypedRequest
+  src/interface-adapters/http/typed.ts:55: unused exported type: SecurityOutcome
+  src/interface-adapters/http/typed.ts:81: unused exported type: TypedResponse
+  src/interface-adapters/http/typed.ts:90: unused exported type: Handler
+  src/domain/catalog/index.ts:5: unused exported type: Attribute
+  src/domain/catalog/index.ts:6: unused exported type: CatalogSnapshotRecord
+  src/domain/catalog/index.ts:9: unused exported type: VariantOfProduct
+  src/domain/ledger/index.ts:9: unused exported type: CandidateRecord
+  src/domain/ledger/index.ts:11: unused exported type: DecisionOutcome
+  src/domain/outcomes/index.ts:6: unused exported type: OrderFacts
+  src/domain/outcomes/index.ts:6: unused exported type: OrderStatus
+  src/domain/outcomes/index.ts:6: unused exported type: ReturnRecord
+  src/domain/outcomes/index.ts:9: unused exported type: CorrelationRecord
+  src/domain/outcomes/index.ts:10: unused exported type: Granted
+  src/domain/outcomes/index.ts:11: unused exported type: IncentiveRedemptionRecord
+  src/domain/outcomes/index.ts:12: unused exported type: RedemptionVerdict
+  src/domain/outcomes/index.ts:15: unused exported type: CorroborationRecord
+  src/application/outcomes/index.ts:3: unused exported type: CorroborationRecordStatus
+  src/application/outcomes/index.ts:4: unused exported type: OrderRecording
+  src/application/outcomes/index.ts:4: unused exported type: ReturnRecording
+  src/application/outcomes/index.ts:7: unused exported type: NotifyOrderDependencies
+  src/application/outcomes/index.ts:10: unused exported type: OrderNotified
+  src/application/outcomes/index.ts:14: unused exported type: CorroborateOrderDependencies
+  src/application/outcomes/index.ts:17: unused exported type: OrderCorroborated
+  src/application/outcomes/index.ts:21: unused exported type: NotifyReturnDependencies
+  src/application/outcomes/index.ts:24: unused exported type: ReturnNotified
+  src/application/system/index.ts:2: unused exported type: ContractInfo
+  src/application/system/index.ts:4: unused exported type: GetServiceHealthDependencies
+  src/domain/ingestion/index.ts:3: unused exported type: AddedToCart
+  src/domain/ingestion/index.ts:4: unused exported type: Availability
+  src/domain/ingestion/index.ts:6: unused exported type: BlockDwelled
+  src/domain/ingestion/index.ts:7: unused exported type: CheckoutAdvanced
+  src/domain/ingestion/index.ts:8: unused exported type: CheckoutStep
+  src/domain/ingestion/index.ts:9: unused exported type: CtaApproach
+  src/domain/ingestion/index.ts:10: unused exported type: CtaApproached
+  src/domain/ingestion/index.ts:11: unused exported type: DeviceClass
+  src/domain/ingestion/index.ts:14: unused exported type: ExitSignal
+  src/domain/ingestion/index.ts:15: unused exported type: ExitSignaled
+  src/domain/ingestion/index.ts:16: unused exported type: ListingViewed
+  src/domain/ingestion/index.ts:18: unused exported type: PageType
+  src/domain/ingestion/index.ts:19: unused exported type: PhotoInteracted
+  src/domain/ingestion/index.ts:20: unused exported type: PhotoInteraction
+  src/domain/ingestion/index.ts:21: unused exported type: ProductReturnedTo
+  src/domain/ingestion/index.ts:23: unused exported type: RemovedFromCart
+  src/domain/ingestion/index.ts:24: unused exported type: SizeSelectorInteracted
+  src/domain/ingestion/index.ts:25: unused exported type: VariantSelected
+  src/domain/commercial/index.ts:6: unused exported type: Blocked
+  src/domain/commercial/index.ts:7: unused exported type: BlockReason
+  src/domain/commercial/index.ts:8: unused exported type: CommercialInput
+  src/domain/commercial/index.ts:9: unused exported type: CommercialPolicyRecord
+  src/domain/commercial/index.ts:16: unused exported type: CommercialError
+  src/domain/decision/index.ts:7: unused exported type: VisitorStateRecord
+  src/domain/decision/index.ts:8: unused exported type: SessionStateRecord
+  src/domain/decision/index.ts:11: unused exported type: BarrierVerdictInput
+  src/domain/decision/index.ts:12: unused exported type: DecisionPolicyRecord
+  src/domain/decision/index.ts:13: unused exported type: EvidenceRequirements
+  src/domain/decision/index.ts:18: unused exported type: DecisionError
+  src/domain/selection/index.ts:8: unused exported type: GateRejection
+  src/application/catalog/index.ts:3: unused exported type: FreshnessBudget
+  src/application/catalog/index.ts:5: unused exported type: SyncLevel
+  src/application/catalog/index.ts:9: unused exported type: Freshness
+  src/application/catalog/index.ts:12: unused exported type: ProductTruthServiceDependencies
+  src/application/catalog/index.ts:13: unused exported type: TruthFreshness
+  src/application/catalog/index.ts:18: unused exported type: UpsertCatalogSnapshotDependencies
+  src/application/ingestion/index.ts:8: unused exported type: EventResult
+  src/application/ingestion/index.ts:9: unused exported type: IngestBatchDependencies
+  src/application/ingestion/index.ts:12: unused exported type: IngestOutcome
+  src/domain/barrier/index.ts:4: unused exported type: EventKey
+  src/domain/barrier/index.ts:8: unused exported type: ConditionError
+  src/domain/barrier/index.ts:9: unused exported type: DwellSecondsCondition
+  src/domain/barrier/index.ts:10: unused exported type: EventCountCondition
+  src/domain/barrier/index.ts:11: unused exported type: FactCondition
+  src/domain/barrier/index.ts:12: unused exported type: FactContextInput
+  src/domain/barrier/index.ts:13: unused exported type: FlagCondition
+  src/domain/barrier/index.ts:14: unused exported type: ProductAttributeCondition
+  src/domain/barrier/index.ts:16: unused exported type: SequenceCondition
+  src/domain/barrier/index.ts:19: unused exported type: RuleWeights
+  src/domain/barrier/index.ts:28: unused exported type: BarrierError
+  src/application/shared-kernel/index.ts:6: unused exported type: LoggedUseCaseDependencies
+  src/composition/profile.ts:12: unused exported type: Wiring
+  src/application/ledger/index.ts:3: unused exported type: RecordResult
+  src/application/ledger/index.ts:4: unused exported type: ExposureRecordResult
+  src/application/ledger/index.ts:4: unused exported type: ExposureRecordStatus
+  src/application/ledger/index.ts:10: unused exported type: DecisionRecorderDependencies
+  src/application/ledger/index.ts:14: unused exported type: ConfirmExposureDependencies
+  src/interface-adapters/http/security/capabilities.ts:10: unused exported type: Consumer
+  src/interface-adapters/http/security/ingest-key.ts:15: unused exported type: IngestPrincipal
+  src/domain/merchant/index.ts:12: unused exported type: MerchantError
+  src/domain/merchant/index.ts:15: unused exported type: MerchantInput
+  src/domain/merchant/index.ts:15: unused exported type: MerchantRecord
+  src/interface-adapters/http/security/platform-key.ts:20: unused exported type: PlatformPrincipal
+  src/application/barrier/index.ts:3: unused exported type: InferenceContext
+  src/application/decision/index.ts:10: unused exported type: Remembered
+  src/application/decision/index.ts:11: unused exported type: StateService
+  src/application/decision/index.ts:12: unused exported type: StateServiceDependencies
+  src/application/decision/index.ts:13: unused exported type: ToRemember
+  src/application/decision/index.ts:14: unused exported type: Whose
+  src/application/decision/index.ts:19: unused exported type: DecisionServiceDependencies
+  src/application/experiment/index.ts:2: unused exported type: AssignmentRecordResult
+  src/application/experiment/index.ts:6: unused exported type: AssignmentResult
+  src/application/experiment/index.ts:8: unused exported type: AssignmentServiceDependencies
+  src/application/merchant/index.ts:8: unused exported type: PlatformSignatureVerifierDependencies
+  src/application/merchant/index.ts:9: unused exported type: SignatureVerification
+  src/application/merchant/index.ts:15: unused exported type: PlatformKeyResolution
+  src/application/merchant/index.ts:17: unused exported type: PlatformKeyResolverDependencies
+  src/application/merchant/index.ts:20: unused exported type: IngestKeyResolution
+  src/application/merchant/index.ts:22: unused exported type: IngestKeyResolverDependencies
+  src/domain/commercial/commercial-policy.ts:74: unused exported type: Blocked
+  src/domain/shared-kernel/errors.ts:43: unused exported type: SharedKernelError
+  src/domain/shared-kernel/intervention.ts:11: unused exported type: IncentiveKind
+  src/domain/catalog/catalog-snapshot.ts:15: unused exported type: Attribute
+  src/domain/ledger/decision.ts:55: unused exported type: CandidateRecord
+  src/domain/outcomes/order.ts:34: unused exported type: OrderFacts
+  src/application/outcomes/ports/order-ledger.ts:10: unused exported type: OrderRecording
+  src/application/outcomes/ports/order-ledger.ts:15: unused exported type: ReturnRecording
+  src/application/outcomes/use-cases/notify-order.use-case.ts:40: unused exported type: OrderNotified
+  src/application/outcomes/use-cases/corroborate-order.use-case.ts:30: unused exported type: OrderCorroborated
+  src/application/outcomes/use-cases/notify-return.use-case.ts:31: unused exported type: ReturnNotified
+  src/domain/system/index.ts:2: unused exported type: ServiceStatus
+  src/domain/ingestion/event.ts:25: unused exported type: Availability
+  src/domain/ingestion/event.ts:26: unused exported type: DeviceClass
+  src/domain/ingestion/event.ts:48: unused exported type: ListingViewed
+  src/domain/ingestion/event.ts:49: unused exported type: SizeSelectorInteracted
+  src/domain/ingestion/event.ts:52: unused exported type: VariantSelected
+  src/domain/ingestion/event.ts:56: unused exported type: PhotoInteraction
+  src/domain/ingestion/event.ts:57: unused exported type: PhotoInteracted
+  src/domain/ingestion/event.ts:70: unused exported type: BlockDwelled
+  src/domain/ingestion/event.ts:75: unused exported type: CtaApproach
+  src/domain/ingestion/event.ts:76: unused exported type: CtaApproached
+  src/domain/ingestion/event.ts:79: unused exported type: ProductReturnedTo
+  src/domain/ingestion/event.ts:82: unused exported type: AddedToCart
+  src/domain/ingestion/event.ts:85: unused exported type: RemovedFromCart
+  src/domain/ingestion/event.ts:87: unused exported type: CheckoutStep
+  src/domain/ingestion/event.ts:88: unused exported type: CheckoutAdvanced
+  src/domain/ingestion/event.ts:93: unused exported type: ExitSignal
+  src/domain/ingestion/event.ts:94: unused exported type: ExitSignaled
+  src/application/catalog/services/product-truth.service.ts:13: unused exported type: Freshness
+  src/application/catalog/services/product-truth.service.ts:15: unused exported type: TruthFreshness
+  src/application/ingestion/use-cases/ingest-batch.use-case.ts:23: unused exported type: EventResult
+  src/application/ingestion/use-cases/ingest-batch.use-case.ts:28: unused exported type: IngestOutcome
+  src/domain/barrier/condition.ts:9: unused exported type: EventCountCondition
+  src/domain/barrier/condition.ts:15: unused exported type: DwellSecondsCondition
+  src/domain/barrier/condition.ts:21: unused exported type: SequenceCondition
+  src/domain/barrier/condition.ts:26: unused exported type: ProductAttributeCondition
+  src/domain/barrier/condition.ts:31: unused exported type: FlagCondition
+  src/application/ledger/ports/decision-ledger.ts:8: unused exported type: RecordResult
+  src/application/ledger/ports/exposure-ledger.ts:7: unused exported type: ExposureRecordResult
+  src/application/experiment/ports/assignment-ledger.ts:8: unused exported type: AssignmentRecordResult
+  src/domain/system/health.ts:5: unused exported type: ServiceStatus
+check:dead-code — no unused files, exports or dependencies.
+quality: check:language
+check:language — everything in scope is in English.
+Language exceptions: 0
+quality: 5 gates green.
+exit 0

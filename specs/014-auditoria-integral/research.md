@@ -104,8 +104,11 @@ fase, dudas una a una); acá se registran las que quedaban al método.
 
 ## R-08 — Marcadores en el informe
 
-- **Decisión (DECIDIDO)**: `check:markers` recorre `docs/`; el informe **no** usa las palabras
-  `ABIERTO` ni `PLACEHOLDER` (bloqueantes de `release-check`). Un hueco se dice "hueco"; una
+- **Decisión (DECIDIDO)**: `check:markers` recorre `docs/`; el informe y los archivos de
+  trabajo **no** usan las palabras `ABIERTO` ni `PLACEHOLDER` sueltas (bloqueantes de
+  `release-check`), y `PROPUESTO` tampoco (sumaría avisos ajenos al contrato). Cuando hay que
+  nombrar el estado de un enunciado del MVP se escribe entre backticks (ADR-009 sólo cuenta el
+  token suelto), que es lo que hace `afirmaciones.md`. Un hueco se dice "hueco"; una
   recomendación de marcar algo en el código o en un ADR se propone en el informe y la decide el
   dueño.
 
