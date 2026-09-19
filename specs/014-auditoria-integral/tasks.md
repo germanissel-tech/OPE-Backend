@@ -329,28 +329,28 @@ description: "Traza de la auditoría integral (014): una tarea por unidad de tra
 
 ### C — Escalabilidad y camino a la 017
 
-- [ ] T201 [US5] Puertos aptos para Postgres sin cambiar casos de uso: `Promise` en todo puerto (ADR-024), `Result<…, LedgerUnavailable>` en todo `record`, aliasing de `Order` en `memoryOrderLedger` (el caso de uso recibe el objeto guardado)
-- [ ] T202 [US5] Costo del camino crítico: `Signals` por lote, `BarrierRules.infer`, `QualityGate` sobre todos los candidatos, `FactContext` por decisión; `bySession` devuelve toda la sesión y `Correlation`/`Redemption` la recorren — ¿O(n²) escondido?
-- [ ] T203 [US5] Tiempo de desarrollo: mutación ~10 min por PR y suite ~2 min; pruebas redundantes o lentas (`tests/integration/*` levantan la app entera por caso)
+- [x] T201 [US5] Puertos aptos para Postgres sin cambiar casos de uso: `Promise` en todo puerto (ADR-024), `Result<…, LedgerUnavailable>` en todo `record`, aliasing de `Order` en `memoryOrderLedger` (el caso de uso recibe el objeto guardado)
+- [x] T202 [US5] Costo del camino crítico: `Signals` por lote, `BarrierRules.infer`, `QualityGate` sobre todos los candidatos, `FactContext` por decisión; `bySession` devuelve toda la sesión y `Correlation`/`Redemption` la recorren — ¿O(n²) escondido?
+- [x] T203 [US5] Tiempo de desarrollo: mutación ~10 min por PR y suite ~2 min; pruebas redundantes o lentas (`tests/integration/*` levantan la app entera por caso)
 
 ### D — Seguridad
 
-- [ ] T204 [P] [US3] `Merchant.owns`/`ownsPlatformKey` con `includes` (no tiempo constante) vs. `PlatformSignature.matches` (constante): ¿importa para `platformKey`? → S-10
-- [ ] T205 [P] [US3] Redacción en logs: `request-logging.ts` y todo log de casos de uso / `LoggedUseCase` — ¿filtra request, claves, secretos, firma, brazo o `visitorId` donde no corresponde? (constitución VII, ADR-022)
-- [ ] T206 [P] [US3] CORS derivado de los headers de credencial por módulo; `platformKey` sin CORS; ¿alguna operación de plataforma alcanzable desde un navegador con `ingestKey`?
-- [ ] T207 [P] [US3] PII fuera de los esquemas: logs, ejemplos del contrato, `detail` que interpola valores del request (`orderId`, SKU)
-- [ ] T208 [US3] Firma: replay dentro de la ventana de 5 min absorbido por idempotencia (órdenes, devoluciones, `PUT /v1/catalog` con mismo `capturedAt`); rotación de secretos sin ventana de gracia → S-11
+- [x] T204 [P] [US3] `Merchant.owns`/`ownsPlatformKey` con `includes` (no tiempo constante) vs. `PlatformSignature.matches` (constante): ¿importa para `platformKey`? → S-10
+- [x] T205 [P] [US3] Redacción en logs: `request-logging.ts` y todo log de casos de uso / `LoggedUseCase` — ¿filtra request, claves, secretos, firma, brazo o `visitorId` donde no corresponde? (constitución VII, ADR-022)
+- [x] T206 [P] [US3] CORS derivado de los headers de credencial por módulo; `platformKey` sin CORS; ¿alguna operación de plataforma alcanzable desde un navegador con `ingestKey`?
+- [x] T207 [P] [US3] PII fuera de los esquemas: logs, ejemplos del contrato, `detail` que interpola valores del request (`orderId`, SKU)
+- [x] T208 [US3] Firma: replay dentro de la ventana de 5 min absorbido por idempotencia (órdenes, devoluciones, `PUT /v1/catalog` con mismo `capturedAt`); rotación de secretos sin ventana de gracia → S-11
 
 ### E — Calidad de las pruebas
 
-- [ ] T209 [US1] Cada `// Stryker disable` verificado contra `trabajo/gates/mutation-full.json` (o el incremental, R-06): `decision.service.ts` ×4, `build-server.ts` ×4, `notify-order.ts`, `condition.ts`, `signals.ts`, `cors.ts` — ¿mutante equivalente o inalcanzable, o comodidad?
-- [ ] T210 [P] [US1] Pruebas informativas que nunca fallan por cifras (latencia, carga): ¿alguna debería ser gate?
-- [ ] T211 [P] [US1] `tests/helpers/test-app.ts`: dos merchants fijos, A con `treatmentPercent: 100` — ¿comportamiento de CONTROL probado sólo con `merchant(0)` ad hoc?
-- [ ] T212 [P] [US1] Determinismo: pruebas que dependen del orden de un `Map` o de `Date.now()` (`eventOf` usa `new Date()` por defecto)
-- [ ] T213 [P] [US1] Réplicas contrato ↔ código con prueba (problem types, capacidades, motivos NO_OP, barreras, anclajes, vocabulario de eventos, `OrderStatus`); ¿faltan `REDEMPTION_VERDICTS`, `STEPS`?
-- [ ] T214 [US3] S-09 'schema validation mismatch' de Schemathesis en 5 operaciones (`trabajo/gates/global-test-contract.txt`): inherente a `pattern`/`additionalProperties: false` o contrato más estricto que el servidor; S-12 deuda declarada en CLAUDE.md (ADR-017, parche de Stryker, `oas3-schema` apagada) contrastada con el código
-- [ ] T215 [US1] Refutación y `verify-finding` sobre `fase-3.json`; redactar informe §3.C, §3.D, §3.E
-- [ ] T216 [US4] Cierre de fase 3: `avance.md`, commit `docs(auditoria): fase 3 — seguridad, escalabilidad y pruebas`, resumen al dueño
+- [x] T209 [US1] Cada `// Stryker disable` verificado contra `trabajo/gates/mutation-full.json` (o el incremental, R-06): `decision.service.ts` ×4, `build-server.ts` ×4, `notify-order.ts`, `condition.ts`, `signals.ts`, `cors.ts` — ¿mutante equivalente o inalcanzable, o comodidad?
+- [x] T210 [P] [US1] Pruebas informativas que nunca fallan por cifras (latencia, carga): ¿alguna debería ser gate?
+- [x] T211 [P] [US1] `tests/helpers/test-app.ts`: dos merchants fijos, A con `treatmentPercent: 100` — ¿comportamiento de CONTROL probado sólo con `merchant(0)` ad hoc?
+- [x] T212 [P] [US1] Determinismo: pruebas que dependen del orden de un `Map` o de `Date.now()` (`eventOf` usa `new Date()` por defecto)
+- [x] T213 [P] [US1] Réplicas contrato ↔ código con prueba (problem types, capacidades, motivos NO_OP, barreras, anclajes, vocabulario de eventos, `OrderStatus`); ¿faltan `REDEMPTION_VERDICTS`, `STEPS`?
+- [x] T214 [US3] S-09 'schema validation mismatch' de Schemathesis en 5 operaciones (`trabajo/gates/global-test-contract.txt`): inherente a `pattern`/`additionalProperties: false` o contrato más estricto que el servidor; S-12 deuda declarada en CLAUDE.md (ADR-017, parche de Stryker, `oas3-schema` apagada) contrastada con el código
+- [x] T215 [US1] Refutación y `verify-finding` sobre `fase-3.json`; redactar informe §3.C, §3.D, §3.E
+- [x] T216 [US4] Cierre de fase 3: `avance.md`, commit `docs(auditoria): fase 3 — seguridad, escalabilidad y pruebas`, resumen al dueño
 
 ---
 

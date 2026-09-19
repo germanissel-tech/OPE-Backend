@@ -10,13 +10,13 @@
 | 0 Base                               | cerrada   | —                        | (ver git log)    |
 | 1 Lectura fina                       | cerrada   | —                        | (ver git log)    |
 | 2 Robustez                           | cerrada   | —                        | (ver git log)    |
-| 3 Seguridad, escalabilidad y pruebas | pendiente | T201                     | —                |
-| 4 Cumplimiento funcional             | pendiente | —                        | —                |
+| 3 Seguridad, escalabilidad y pruebas | cerrada   | —                        | (ver git log)    |
+| 4 Cumplimiento funcional             | pendiente | T217                     | —                |
 | 5 Cierre                             | pendiente | —                        | —                |
 
 ## Próximo paso exacto
 
-T201 en adelante (fase 3: seguridad, escalabilidad y calidad de pruebas, sin ampliar el handoff). Hallazgos a `trabajo/hallazgos/fase-3.json` (numeración sigue en F-051). Insumos: S-09 (mismatch de Schemathesis, `gates/global-test-contract.txt`), S-10 (`Merchant.owns` con `includes`), S-11/S-12, `bodyLimit` global de 32 MiB sobre `POST /v1/events` con credencial pública (F-045), 8 sobrevivientes y 1 sin cobertura de la mutación completa (`gates/mutation-full-summary.json`), 30 clones informativos en `tests/`+`scripts/` y 159 tipos exportados sin importador (`global-quality.txt`).
+T217 en adelante (fase 4, cumplimiento funcional): resolver una por una las 479 afirmaciones de `trabajo/afirmaciones.md` (constitución I–X, 01/02/03, FR/SC de las specs 001–013) con evidencia (prueba o gate con ruta) o hueco; hallazgos a `trabajo/hallazgos/fase-4.json` (numeración sigue en F-062) con fuentes `mvp:`/`spec:`/`constitution#`. Insumos: F-024 (spec 004 US2 esc. 3 sin prueba que lo mire), S-02, S-03, S-04, S-07, S-08 (fase 4 en el handoff), y las réplicas de §3.E.
 
 ## Entorno
 
@@ -101,20 +101,20 @@ esos cuatro directorios: vacío (T003, 2026-09-19).
 
 ## Sospechas (handoff §6)
 
-| S    | Fase | Veredicto  | F-NNN / motivo                                                                                        |
-| ---- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| S-01 | 2    | confirmada | F-047 (baja por fuente: nada escrito; los ledgers en memoria son el sustituto del durable de 01 §9)   |
-| S-02 | 4    | —          |                                                                                                       |
-| S-03 | 4    | —          |                                                                                                       |
-| S-04 | 4    | —          |                                                                                                       |
-| S-05 | 2    | refutada   | F-042 y F-049 refutados (no decide; `evidenceOf`/`selectionOf` no pueden ser dominio); tamaño → §6    |
-| S-06 | 2    | confirmada | F-012 (ocho motivos de cambio, baja por fuente); el mismo archivo ancla F-045 (event loop compartido) |
-| S-07 | 4    | —          |                                                                                                       |
-| S-08 | 4    | —          |                                                                                                       |
-| S-09 | 3    | —          |                                                                                                       |
-| S-10 | 3    | —          |                                                                                                       |
-| S-11 | 3    | —          |                                                                                                       |
-| S-12 | 3    | —          |                                                                                                       |
+| S    | Fase | Veredicto  | F-NNN / motivo                                                                                              |
+| ---- | ---- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| S-01 | 2    | confirmada | F-047 (baja por fuente: nada escrito; los ledgers en memoria son el sustituto del durable de 01 §9)         |
+| S-02 | 4    | —          |                                                                                                             |
+| S-03 | 4    | —          |                                                                                                             |
+| S-04 | 4    | —          |                                                                                                             |
+| S-05 | 2    | refutada   | F-042 y F-049 refutados (no decide; `evidenceOf`/`selectionOf` no pueden ser dominio); tamaño → §6          |
+| S-06 | 2    | confirmada | F-012 (ocho motivos de cambio, baja por fuente); el mismo archivo ancla F-045 (event loop compartido)       |
+| S-07 | 4    | —          |                                                                                                             |
+| S-08 | 4    | —          |                                                                                                             |
+| S-09 | 3    | refutada   | F-059 refutado (invariantes de ADR-007 + tres operaciones sin credencial de plataforma en el runner, F-054) |
+| S-10 | 3    | confirmada | F-053 (baja por fuente: ADR-029 sólo decide tiempo constante para la firma)                                 |
+| S-11 | 3    | refutada   | sin ventana explotable; el replay lo absorbe la idempotencia y no está escrito: F-058 (baja)                |
+| S-12 | 3    | refutada   | deuda declarada = código (alias TS6, parche Stryker 10.0.0, `oas3-schema` off con motivo)                   |
 
 ## Dudas planteadas al dueño y respuestas
 
@@ -127,6 +127,7 @@ esos cuatro directorios: vacío (T003, 2026-09-19).
 
 ## Notas de sesión
 
+- 2026-09-19 (sesión 3, continuación): fase 3 cerrada (T201–T216). Hallazgos F-051..F-061 en `hallazgos/fase-3.json` (1 high: F-051 CORS anuncia `x-ope-platform-key`, probado con un preflight; 1 medium: F-052 `Stryker restore` tras `return` no restaura — 40 mutantes de `build-server.ts` y los chequeos de vocabulario de `condition.ts` ignorados; 6 low; 3 refutados), 11/11 verificados. Informe §3.C, §3.D, §3.E y dos filas más en §6 por `gen-informe-fase3.mjs` (scratchpad). Mediciones: suite completa con reporter JSON (scratchpad `vitest.json`): 147 s pared / 522 s CPU, `tests/audit` 148 s, `contract-docs` 78 s, `governance/quality` 58 s, integración 162 s por 172 pruebas; preflight CORS con `startTestApp` (scratchpad `cors-probe.mts`).
 - 2026-09-19 (sesión 3, continuación): fase 2 cerrada (T191–T200). Hallazgos F-043..F-050 en `hallazgos/fase-2.json` (2 high: F-043 puertos de lectura sin canal de fallo, F-045 event loop compartido con medición de 140 ms por snapshot de 6 MiB; 1 medium; 3 low; 2 refutados), 8/8 verificados. Informe §3.B y borrador de §6 (9 riesgos) por `gen-informe-fase2.mjs` (scratchpad). Medición propia: `vitest run tests/integration/{catalog-size,ingest-latency}.test.ts --silent=false --disableConsoleIntercept` → snapshot 5 000 × 10 en 140 ms; ingesta p50 0,67 ms / p95 1,28 ms.
 - 2026-09-19 (sesión 3): fase 1 cerrada. Alcances `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`, `ledger`, `outcomes` (T093–T182) y transversales T183–T188; hallazgos F-016..F-042 (F-042 refutado). Total fase 1: 39 confirmados (1 high, 15 medium, 23 low) + 3 refutados, 42/42 verificados. Informe §2.2 (15 filas) y §3.A (hallazgos + cuadro 15 × 7) escritos por `gen-informe-fase1.mjs` (scratchpad) desde `fase-1.json`. Mutación completa terminada (99,15 %, 8 sobrevivientes) → fase 3. Incidente de herramienta: `String.prototype.replace` con `$\`` en el texto de reemplazo duplicó el prefijo del archivo; reparado con `split/join`(usar siempre`split/join` o una función de reemplazo en los scripts de traza).
 - 2026-09-19 (sesión 2): fase 1, alcances `shared-kernel`, `system`, `merchant`, `http-compartido`, `infrastructure`, `composition` (T033–T092). Hallazgos F-001..F-015 (1 high, 5 medium, 7 low, 2 refutados) en `hallazgos/fase-1.json`, verificados. Mutación completa aún corriendo (76 % a las ~14:60).

@@ -1597,15 +1597,260 @@ Prueba que lo cubriría: tests/unit/domain/ingestion/event-batch.test.ts:71 ("th
 
 ### 3.C Escalabilidad y camino a la 017
 
-(pendiente: fase 3)
+Fase 3, dimensión C (handoff §5.C, sin ampliar). Sin hallazgos propios: lo que la 017 necesita saber está en §3.B (F-043, F-044, F-045, F-046, F-047) y en §6. Lo verificado:
+
+- **Puertos aptos para Postgres sin tocar casos de uso**: todo puerto devuelve `Promise`; todo `record` devuelve `Result<…, LedgerUnavailable>` salvo `CatalogStore.replace` (F-044); ningún caso de uso depende de recibir la misma instancia que guardó — `NotifyOrderUseCase` responde con la orden que el puerto devuelve (`kept`), `Order`, `CatalogSnapshot`, `SessionState` y `VisitorState` son inmutables (`readonly`, arreglos copiados). Lo que sí falta es el canal de fallo de las lecturas (F-043).
+- **Costo del camino crítico**: `Signals.of` es O(eventos) y `merge` O(claves del vocabulario); `BarrierRules.infer` O(reglas × profundidad); `QualityGate.judgeAll` O(candidatos × claims), tres o menos por barrera; `FactContext` se construye una vez por decisión. `bySession` devuelve la sesión entera y `Correlation.of` / `lastGranted` la recorren una vez (O(n), n = lotes de la sesión); el único O(n²) es del perfil en memoria (`memoryDecisionLedger.record` copia el arreglo de la sesión, F-047). Medido hoy: ingesta p50 0,67 ms, p95 1,28 ms con `inject`; brazos CONTROL 0,66 / TREATMENT 0,83 ms.
+- **Tiempo de desarrollo**: F-055 (§3.E) — 147 s de pared, 522 s de CPU repartidos; la mutación completa tomó 57 min (99,15 %).
 
 ### 3.D Seguridad
 
-(pendiente: fase 3)
+Fase 3, dimensión D (handoff §5.D, sin ampliar). Lo verificado y bien: los logs llevan `merchantId`, `orderId`, `decisionId`, `experimentId`, brazos sólo en `assignment-drift` (sin visitante), nombre y duración del caso de uso; nunca request, cuerpo, headers ni IP (`request-logging.ts` reemplaza el serializador de Fastify y redacta todo header; `tests/integration/logging-privacy.test.ts` lo prueba en cinco casos). Los `detail` de Problem Details interpolan `eventId`, `productId`, `variantId`, `orderId` y SKU — identificadores que 01 §10.2 registra — y nunca `details`. Los ejemplos del contrato no contienen datos personales. La rotación de secretos tiene su ventana de gracia ("uno o dos" activos, ADR-029 §1). La deuda declarada (S-12) coincide con el código: alias `typescript` → `@typescript/typescript6@6.0.2` con `overrides` para openapi-typescript, `patches/@stryker-mutator+vitest-runner+10.0.0.patch` presente y `oas3-schema: "off"` con motivo en `contracts/.spectral.yaml`.
+
+Lo que no: la credencial de plataforma es alcanzable desde un navegador porque CORS deriva sus headers de todos los esquemas (F-051, alta), y tres observaciones de menor fuente (F-053, F-057, F-058).
+
+#### F-051 (alta) — CORS anuncia a los navegadores el header de la credencial de plataforma ("sin CORS", ADR-025 §5)
+
+`src/infrastructure/http/build-server.ts:183` · regla `seguridad-cors-announces-the-platform-credential-header-to-browsers` · fuente `ADR-025`
+
+Cita:
+
+```ts
+const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);
+if (options.cors) await registerCors(app, options.cors, credentialHeaders);
+```
+
+Antes:
+
+```ts
+// every wired scheme, browser or not, becomes an allowed preflight header:
+const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);
+// probe (startTestApp, OPTIONS from a registered origin announcing x-ope-platform-key):
+// POST /v1/orders  204  allow-origin https://a.example | allow-headers content-type, x-ope-ingest-key, x-ope-platform-key | methods POST
+// POST /v1/returns 204  (same)
+// PUT  /v1/catalog 204  (same; the browser then blocks PUT because methods is ["POST"] — orders and returns are POST)
+```
+
+Después:
+
+```ts
+// the scheme says who it is for; CORS derives from the browser ones only
+export interface SecurityScheme {
+  handler: SecurityHandler;
+  header: string;
+  consumer: "browser" | "server";
+}
+// build-server.ts
+const credentialHeaders = Object.values(options.security ?? {})
+  .filter((scheme) => scheme.consumer === "browser")
+  .map((scheme) => scheme.header);
+// modules/merchant.ts: ingestKey → "browser", platformKey → "server"
+```
+
+Prueba que lo cubriría: tests/integration/cors.test.ts: a preflight from a registered origin announcing `x-ope-platform-key` (and `x-ope-timestamp`/`x-ope-signature`) must not list it in `access-control-allow-headers`; today the file asserts the ingest header is present (line 33) and nothing about the platform one. ADR-025 §5 decides `platformKey` "sólo servidor a servidor (sin CORS)" and spec 010 FR-021 repeats it; ADR-025 §7 makes CORS derive its headers from "los esquemas registrados" and the implementation took every scheme, so a page on any registered origin can send `POST /v1/orders` and `POST /v1/returns` with the platform key from the browser (the key is secret, so this is a defence the ADR decided and the code does not provide; with `platformSecrets` configured the signature headers are not allowed and the request fails, without them it succeeds)
+
+#### F-053 (baja) — `ownsPlatformKey` compara la credencial secreta con `includes` (S-10)
+
+`src/domain/merchant/merchant.ts:91` · regla `seguridad-s10-secret-credential-compared-with-includes` · fuente `clarity:non-constant-time-secret-compare`
+
+Cita:
+
+```ts
+  ownsPlatformKey(key: string): boolean {
+    return key !== "" && this.platformKeys.includes(key);
+  }
+```
+
+Antes:
+
+```ts
+return key !== "" && this.platformKeys.includes(key);
+```
+
+Después:
+
+```ts
+return key !== "" && this.platformKeys.some((own) => constantTimeEquals(own, key));
+// `constantTimeEquals` in the domain shared-kernel (pure: length check, then XOR over every code unit, no early exit),
+// the same primitive `PlatformSignature.matches` already needs; `owns` (ingest key, public) may keep `includes`
+```
+
+Prueba que lo cubriría: tests/unit/domain/merchant/merchant.test.ts: `ownsPlatformKey` with a key that shares a long prefix with a real one must take the same path as a key that differs in the first character (a property test on the primitive, not a timing test). ADR-029:13 calls `platformKey` "una clave secreta servidor a servidor" and its §3 decides constant-time comparison for the signature; the key that authenticates the same requests — alone, when the merchant has no `platformSecrets` — is compared with `includes` (V8 string equality: length, then bytes with early exit), and the directory scans merchants with it (config-merchant-directory.ts:10). Over HTTP the leak is not measurable in practice; the inconsistency is with the ADR's own standard
+
+#### F-057 (baja) — La credencial pública llega al `bodyLimit` global de 32 MiB
+
+`src/infrastructure/http/build-server.ts:150` · regla `seguridad-the-public-credential-reaches-the-global-body-limit` · fuente `clarity:public-credential-reaches-the-global-body-limit`
+
+Cita:
+
+```ts
+const BODY_LIMIT_BYTES = BODY_LIMIT_MIB * BYTES_PER_KIB * BYTES_PER_KIB;
+```
+
+Antes:
+
+```ts
+  const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, … });   // 32 MiB for every route, ADR-025: "no hay límite por operación"
+```
+
+Después:
+
+```ts
+// the content-type parser already sees the request before buffering (keepRawBodies): cap by path there
+  app.addContentTypeParser(JSON_CONTENT_TYPE, { parseAs: "buffer", bodyLimit: limitFor(request.url) }, …)
+// or two Fastify instances (F-045): the SDK's with a batch-sized limit (50 events ≈ tens of KiB), the platform's with 32 MiB
+```
+
+Prueba que lo cubriría: tests/integration/ingest-events.test.ts: a `POST /v1/events` body of, say, 1 MiB must be refused with 413 before it is parsed (today it is buffered, `JSON.parse`d and only then rejected by Ajv for `maxItems: 50`). ADR-025 decided the global limit on the premise that openapi-backend routes with one handler and "no hay límite por operación"; the premise holds for routes, not for the parser, which receives the request. The ingest credential is public by design (ADR-014: "todo lo que lleva es público"), so anyone can spend the decision plane's event loop on 32 MiB of JSON per request; the cost is the one F-045 measured (fase 2) and the mitigation is the same
+
+#### F-058 (baja) — El replay dentro de la ventana lo absorbe la idempotencia y ADR-029 no lo dice (S-11)
+
+`docs/adr/029-firma-de-plataforma.md:26` · regla `seguridad-s11-replay-inside-the-window-is-absorbed-by-idempotency-and-unstated` · fuente `clarity:unstated-replay-defense`
+
+Cita:
+
+```ts
+3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se
+   acepta cualquiera de los secretos activos.
+```
+
+Antes:
+
+```ts
+3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se
+   acepta cualquiera de los secretos activos.
+```
+
+Después:
+
+```ts
+3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se
+   acepta cualquiera de los secretos activos. Un replay dentro de la ventana es posible por
+   diseño y lo absorbe la idempotencia: orden y devolución repetidas responden `200` sin
+   segundo efecto; un snapshot repetido con el mismo `capturedAt` responde `200` y uno más
+   viejo `422 catalog-out-of-order`. Sin nonce: el efecto de un replay es siempre nulo.
+```
+
+Prueba que lo cubriría: tests/integration/platform-signature.test.ts: replaying the exact signed request (same timestamp, same body) inside the window must answer 200 for orders/returns and 200 or 422 for the catalogue, never a second record — provable today, unwritten in the ADR (S-11 of the handoff: verified, no exploitable window; the one effect of a replay is the same idempotent answer). Rotation: "uno o dos" secrets active at once is the grace window, and it is written (ADR-029 §1)
 
 ### 3.E Calidad de las pruebas
 
-(pendiente: fase 3)
+Fase 3, dimensión E (handoff §5.E). Lo verificado y bien: las excepciones de mutación de `decision.service.ts` (4, no 5) y de `notify-order.ts` y `cors.ts` son mutantes equivalentes o inalcanzables y quedan acotadas a su línea en el reporte completo; las réplicas contrato ↔ código con prueba son problem types, capacidades, motivos `NO_OP`, barreras, anclajes, vocabulario de eventos, `STEPS` (candidatos) e `INCENTIVE_KINDS`; `OrderStatus` no tiene prueba de réplica pero el compilador la hace en un sentido (`order.status()` se asigna al enum generado); `REDEMPTION_VERDICTS` no está en el contrato. Determinismo: las 15 pruebas de integración con reloj fijo pasan `occurredAt` explícito; los ids aleatorios sólo se comparan por patrón. Las pruebas de latencia son gates (p95 < 50 ms); sólo `test:load` es informativa, como pide la constitución IV (F-060 refutado). CONTROL se prueba de punta a punta con un experimento 50/50 propio (F-061 refutado).
+
+Lo que no: los `Stryker restore` que no restauran (F-052, media) y tres proposiciones de menor fuente (F-054, F-055, F-056). Sobrevivientes de la mutación completa (8, `trabajo/gates/mutation-full-summary.json`): `decision.service.ts:137` (spread de clave opcional, equivalente), `build-server.ts:140` (recorte de la query en `instance`, sin prueba con `?`), `build-server.ts:337` (log vacío), `cors.ts:33` (`strictPreflight: true` → `false`: ninguna prueba manda un preflight malformado), `build-server.ts:387` (la ruta raíz `/` sin el comodín: nada la pide), `memory-event-dedup.ts:23/26/44` (bordes de la ventana y la segunda llamada a `expire`, F-025); sin cobertura: `build-server.ts:411` (catch-all defensivo). Ninguno es un defecto del producto; los de `cors.ts:33` y `memory-event-dedup.ts:23/26` son pruebas que faltan en el borde.
+
+#### F-052 (media) — Un `Stryker restore` después del `return` no restaura: tres archivos silencian mutantes hasta el final
+
+`src/infrastructure/http/build-server.ts:121` · regla `pruebas-stryker-restore-after-return-does-not-restore` · fuente `guide#Gates de calidad`
+
+Cita:
+
+```ts
+  // Stryker disable ConditionalExpression,LogicalOperator: openapi-backend only stores handler objects and the boolean `authorized` here; the guard is defensive and its mutants are equivalent
+  return Object.entries(results).filter(
+    (entry): entry is [string, Record<string, unknown>] => typeof entry[1] === "object" && entry[1] !== null,
+  );
+  // Stryker restore ConditionalExpression,LogicalOperator
+}
+```
+
+Antes:
+
+```ts
+  // Stryker disable ConditionalExpression,LogicalOperator: …
+  return Object.entries(results).filter(…);
+  // Stryker restore ConditionalExpression,LogicalOperator   ← after the last statement of the block: attached to nothing
+```
+
+Después:
+
+```ts
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: … (one statement, one line form)
+  return Object.entries(results).filter(…);
+// same in src/domain/barrier/condition.ts:172-179 and src/domain/barrier/signals.ts:113-122: the `// Stryker restore` sits after the
+// `return undefined` of the last `case`; move it before the closing brace of the switch's parent, or use `next-line` on each case group
+```
+
+Prueba que lo cubriría: the full mutation report (reports/mutation/report.json; `trabajo/gates/mutation-full-summary.json`) is the proof: every `Ignored` mutant carries the reason of the disable that silenced it, and the reason of line 117 appears on 40 mutants of `build-server.ts` from line 119 to 421 — `registerSecurity` (226: `if (error instanceof SecurityError)`), the declared-status check (302-303), the content type of errors (319-320), the log of a handler that throws (337), `send` headers (364), the Fastify error hook (396-398), the wiring of security (421). In `condition.ts` the reason of line 172 reaches `#ref` at 184 and 187 — the vocabulary check itself (`this.#types.includes(ref.type)`, `subtypes?.includes(ref.subtype)`) — and in `signals.ts` the reason of 113 reaches `combine` at 134. A `disable`/`restore` pair whose restore is the last thing in a block silences the rest of the file; `test:mutation` on a PR that touches those lines reports nothing. CLAUDE.md § Gates de calidad admits only the `next-line` form with a reason
+
+#### F-054 (baja) — `test:contract` nunca autentica a la plataforma: tres operaciones sólo se prueban hasta el 401 (S-09)
+
+`scripts/test-contract.mjs:53` · regla `pruebas-s09-the-contract-test-never-authenticates-the-platform` · fuente `clarity:contract-test-never-authenticates-the-platform`
+
+Cita:
+
+```ts
+      "-H",
+      `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
+```
+
+Antes:
+
+```ts
+      "-H",
+      `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
+```
+
+Después:
+
+```ts
+      "-H", `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
+      "-H", `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? ""}`,
+// (a merchant without `platformSecrets`, so no signature is needed; or a Schemathesis hook that signs)
+```
+
+Prueba que lo cubriría: `npm run test:contract` itself: today its output says "401 Unauthorized (3 operations): POST /v1/orders, POST /v1/returns, PUT /v1/catalog" (trabajo/gates/global-test-contract.txt:58-61), so three of the seven built operations are fuzzed only up to the credential. The "schema validation mismatch" of S-09 has two causes and neither is a contract stricter than the server: those three operations answer 401 to everything, and `POST /v1/events` / `POST /v1/exposures` reject most generated bodies through `x-invariants` the schema cannot express (random `visitorId` per event ⇒ 422 `session-visitor-mismatch`; random `decisionId` ⇒ 422 `exposure-decision-unknown`; random `occurredAt` outside 24 h/5 min ⇒ 422), by design (ADR-007)
+
+#### F-055 (baja) — Tres archivos de prueba que ejecutan herramientas son el 54 % del tiempo de la suite
+
+`tests/audit/audit.test.ts:1` · regla `pruebas-tool-driving-tests-dominate-the-default-suite` · fuente `clarity:slow-tests-in-the-default-suite`
+
+Cita:
+
+```ts
+// US7 (FR-060, FR-064, FR-066): the auditing skill's deterministic half. run-gates reports the
+```
+
+Antes:
+
+```ts
+// vitest.config: one project; `npm test` runs everything, including the tests that shell out to eslint, knip, jscpd,
+// dependency-cruiser and redocly over fixtures (tests/audit, tests/governance/quality, tests/unit/contract-docs)
+```
+
+Después:
+
+```ts
+// vitest.config: projects `fast` (unit, integration, contract rules) and `tools` (audit, quality, contract-docs);
+// `npm test` runs `fast`, CI runs both; and tests/integration/* start the app once per file (`beforeAll`) with
+// fresh in-memory ports per test instead of `startTestApp()` inside every `it`
+```
+
+Prueba que lo cubriría: measurement of 2026-09-19 (vitest JSON reporter over the whole suite, 1004 tests, 147 s wall, 522 s of file time on the workers): tests/audit/audit.test.ts 148 s (14 tests), tests/unit/contract-docs.test.ts 78 s (2), tests/governance/quality.test.ts 58 s (4) — three files are 54 % of the CPU time; the 22 integration files take 162 s for 172 tests (0.94 s per test, one `bootstrap` each); the 75 unit files take 90 s for 599 tests. The handoff asks whether the suite scales as a project cost; nothing written fixes a budget, so this is a proposal, not a defect
+
+#### F-056 (baja) — `eventOf` toma el reloj real por defecto bajo un reloj fijo
+
+`tests/helpers/test-app.ts:142` · regla `pruebas-event-helper-defaults-to-the-real-clock-under-a-fixed-one` · fuente `clarity:helper-default-is-a-trap`
+
+Cita:
+
+```ts
+    occurredAt: new Date().toISOString(),
+```
+
+Antes:
+
+```ts
+    occurredAt: new Date().toISOString(),
+```
+
+Después:
+
+```ts
+    occurredAt: NOW, // the same instant `fixedClock` defaults to, exported by the helper; a test that fixes another clock passes its own
+```
+
+Prueba que lo cubriría: none today. Every one of the 15 integration files that fixes the clock passes `occurredAt` explicitly (checked file by file), which is how the trap is avoided after it bit twice in 013 (handoff §5.E); the helper still defaults to the process clock, so the next test with `fixedClock(NOW)` and a bare `eventOf(n)` gets 422 `event-timestamp-out-of-range` when NOW is more than 5 min behind or 24 h ahead of the real date. `tests/unit/composition/wiring.test.ts:48` and `tests/integration/bootstrap.test.ts:73` use the real clock on purpose (start-up), which is fine
 
 ### 3.F Cumplimiento funcional
 
@@ -1637,17 +1882,19 @@ Prueba que lo cubriría: tests/unit/domain/ingestion/event-batch.test.ts:71 ("th
 
 Borrador de la fase 2 (se completa en las fases 3 y 5). Riesgo · dónde vive el supuesto · feature que lo absorbe.
 
-| Riesgo                                                                                                                                                                                                           | `file:line` del supuesto                                                                                                                                       | Feature                                 |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Un store de lectura caído (dedup, estado de sesión/visitante, políticas, experimentos, catálogo, ledger) produce 500 y no `NO_OP`/503; los puertos no pueden decir "no disponible" (F-043)                       | `src/application/ingestion/ports/event-dedup.ts:7` y los siete puertos listados en F-043                                                                       | 017                                     |
-| El plano de medición (catálogo, órdenes, devoluciones) y el de decisión comparten el event loop: un snapshot detiene la ingesta el tiempo de su parseo, validación y HMAC (F-045)                                | `src/infrastructure/http/build-server.ts:181` (una instancia de Fastify, `bodyLimit` global)                                                                   | 017 (despliegue)                        |
-| Dos lotes de una sesión en vuelo con I/O real duplican una intervención o saltan el cooldown: el presupuesto se lee y escribe entre `await`s (F-046)                                                             | `src/application/decision/services/decision.service.ts:89-118`; `memory-session-state-store.ts:4` ("the plane always loads a session before it saves it")      | 017                                     |
-| Los ledgers en memoria no podan (F-047): el perfil local no aguanta un día de tráfico y nada lo dice                                                                                                             | `memory-decision-ledger.ts:9`, `memory-order-ledger.ts:9`, `memory-corroboration-ledger.ts:8`, `memory-assignment-ledger.ts:13`, `memory-exposure-ledger.ts:7` | 017                                     |
-| Un registro corrupto del ledger hace que `rehydrate` lance dentro de un caso de uso (500 en órdenes de esa sesión o en la exposición de esa decisión) (F-050, refutado como defecto)                             | `src/domain/ledger/decision.ts:125,129`                                                                                                                        | 017                                     |
-| Configuración resuelta una vez al arrancar: experimentos, políticas y merchants cambian con reinicio; un cambio de semilla o reparto con un experimento activo se detecta sólo como `assignment-drift` en el log | `config-experiment-directory.ts:2`, `config-policy-directory.ts:3`, `config-merchant-directory.ts`                                                             | 014 (configuración por API, hot reload) |
-| El nivel de sincronización observado se deriva de recibos por proceso: tras un reinicio vuelve a 0 hasta que lleguen snapshots                                                                                   | `memory-catalog-store.ts:17`                                                                                                                                   | 017                                     |
-| Supuesto de instancia única (constitución IV, 01 §9) escrito en ningún archivo de `src/`: dedup por proceso, secciones síncronas como atomicidad, estado de sesión sin CAS                                       | `memory-event-dedup.ts:8`, `memory-order-ledger.ts:2-3`, `decision.service.ts:89`, `profiles/local.ts:1-4`                                                     | 017                                     |
-| `DecisionService` a 259/300 líneas con 4 `Stryker disable`: flags (014) y catálogo de mensajes (015) agregan contexto al orquestador                                                                             | `src/application/decision/services/decision.service.ts`                                                                                                        | 014, 015                                |
+| Riesgo                                                                                                                                                                                                            | `file:line` del supuesto                                                                                                                                       | Feature                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Un store de lectura caído (dedup, estado de sesión/visitante, políticas, experimentos, catálogo, ledger) produce 500 y no `NO_OP`/503; los puertos no pueden decir "no disponible" (F-043)                        | `src/application/ingestion/ports/event-dedup.ts:7` y los siete puertos listados en F-043                                                                       | 017                                     |
+| El plano de medición (catálogo, órdenes, devoluciones) y el de decisión comparten el event loop: un snapshot detiene la ingesta el tiempo de su parseo, validación y HMAC (F-045)                                 | `src/infrastructure/http/build-server.ts:181` (una instancia de Fastify, `bodyLimit` global)                                                                   | 017 (despliegue)                        |
+| Dos lotes de una sesión en vuelo con I/O real duplican una intervención o saltan el cooldown: el presupuesto se lee y escribe entre `await`s (F-046)                                                              | `src/application/decision/services/decision.service.ts:89-118`; `memory-session-state-store.ts:4` ("the plane always loads a session before it saves it")      | 017                                     |
+| Los ledgers en memoria no podan (F-047): el perfil local no aguanta un día de tráfico y nada lo dice                                                                                                              | `memory-decision-ledger.ts:9`, `memory-order-ledger.ts:9`, `memory-corroboration-ledger.ts:8`, `memory-assignment-ledger.ts:13`, `memory-exposure-ledger.ts:7` | 017                                     |
+| Un registro corrupto del ledger hace que `rehydrate` lance dentro de un caso de uso (500 en órdenes de esa sesión o en la exposición de esa decisión) (F-050, refutado como defecto)                              | `src/domain/ledger/decision.ts:125,129`                                                                                                                        | 017                                     |
+| Configuración resuelta una vez al arrancar: experimentos, políticas y merchants cambian con reinicio; un cambio de semilla o reparto con un experimento activo se detecta sólo como `assignment-drift` en el log  | `config-experiment-directory.ts:2`, `config-policy-directory.ts:3`, `config-merchant-directory.ts`                                                             | 014 (configuración por API, hot reload) |
+| El nivel de sincronización observado se deriva de recibos por proceso: tras un reinicio vuelve a 0 hasta que lleguen snapshots                                                                                    | `memory-catalog-store.ts:17`                                                                                                                                   | 017                                     |
+| Supuesto de instancia única (constitución IV, 01 §9) escrito en ningún archivo de `src/`: dedup por proceso, secciones síncronas como atomicidad, estado de sesión sin CAS                                        | `memory-event-dedup.ts:8`, `memory-order-ledger.ts:2-3`, `decision.service.ts:89`, `profiles/local.ts:1-4`                                                     | 017                                     |
+| `DecisionService` a 259/300 líneas con 4 `Stryker disable`: flags (014) y catálogo de mensajes (015) agregan contexto al orquestador                                                                              | `src/application/decision/services/decision.service.ts`                                                                                                        | 014, 015                                |
+| CORS deriva sus headers de todos los esquemas: cada credencial nueva de un consumidor no navegador (`portalSession`, `adminToken`) queda anunciada a los navegadores hasta que se distinga por consumidor (F-051) | `src/infrastructure/http/build-server.ts:183`                                                                                                                  | 014, 016                                |
+| `Stryker restore` que no restaura: los cambios en `build-server.ts`, `condition.ts` y `signals.ts` entran sin que la mutación mire sus condicionales (F-052)                                                      | `build-server.ts:121`, `condition.ts:179`, `signals.ts:122`                                                                                                    | toda feature                            |
 
 ## 7. Estado global
 

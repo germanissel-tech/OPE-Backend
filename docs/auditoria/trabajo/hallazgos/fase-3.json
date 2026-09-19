@@ -1,0 +1,192 @@
+[
+  {
+    "id": "F-051",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 183,
+    "rule": {
+      "id": "seguridad-cors-announces-the-platform-credential-header-to-browsers",
+      "source": "ADR-025"
+    },
+    "severity": "high",
+    "evidence": "  const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);\n  if (options.cors) await registerCors(app, options.cors, credentialHeaders);",
+    "proposal": {
+      "before": "// every wired scheme, browser or not, becomes an allowed preflight header:\n  const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);\n// probe (startTestApp, OPTIONS from a registered origin announcing x-ope-platform-key):\n// POST /v1/orders  204  allow-origin https://a.example | allow-headers content-type, x-ope-ingest-key, x-ope-platform-key | methods POST\n// POST /v1/returns 204  (same)\n// PUT  /v1/catalog 204  (same; the browser then blocks PUT because methods is [\"POST\"] — orders and returns are POST)",
+      "after": "// the scheme says who it is for; CORS derives from the browser ones only\nexport interface SecurityScheme { handler: SecurityHandler; header: string; consumer: \"browser\" | \"server\" }\n// build-server.ts\n  const credentialHeaders = Object.values(options.security ?? {})\n    .filter((scheme) => scheme.consumer === \"browser\")\n    .map((scheme) => scheme.header);\n// modules/merchant.ts: ingestKey → \"browser\", platformKey → \"server\""
+    },
+    "coveringTest": "tests/integration/cors.test.ts: a preflight from a registered origin announcing `x-ope-platform-key` (and `x-ope-timestamp`/`x-ope-signature`) must not list it in `access-control-allow-headers`; today the file asserts the ingest header is present (line 33) and nothing about the platform one. ADR-025 §5 decides `platformKey` \"sólo servidor a servidor (sin CORS)\" and spec 010 FR-021 repeats it; ADR-025 §7 makes CORS derive its headers from \"los esquemas registrados\" and the implementation took every scheme, so a page on any registered origin can send `POST /v1/orders` and `POST /v1/returns` with the platform key from the browser (the key is secret, so this is a defence the ADR decided and the code does not provide; with `platformSecrets` configured the signature headers are not allowed and the request fails, without them it succeeds)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-052",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 121,
+    "rule": {
+      "id": "pruebas-stryker-restore-after-return-does-not-restore",
+      "source": "guide#Gates de calidad"
+    },
+    "severity": "medium",
+    "evidence": "  // Stryker disable ConditionalExpression,LogicalOperator: openapi-backend only stores handler objects and the boolean `authorized` here; the guard is defensive and its mutants are equivalent\n  return Object.entries(results).filter(\n    (entry): entry is [string, Record<string, unknown>] => typeof entry[1] === \"object\" && entry[1] !== null,\n  );\n  // Stryker restore ConditionalExpression,LogicalOperator\n}",
+    "proposal": {
+      "before": "  // Stryker disable ConditionalExpression,LogicalOperator: …\n  return Object.entries(results).filter(…);\n  // Stryker restore ConditionalExpression,LogicalOperator   ← after the last statement of the block: attached to nothing",
+      "after": "  // Stryker disable next-line ConditionalExpression,LogicalOperator: … (one statement, one line form)\n  return Object.entries(results).filter(…);\n// same in src/domain/barrier/condition.ts:172-179 and src/domain/barrier/signals.ts:113-122: the `// Stryker restore` sits after the\n// `return undefined` of the last `case`; move it before the closing brace of the switch's parent, or use `next-line` on each case group"
+    },
+    "coveringTest": "the full mutation report (reports/mutation/report.json; `trabajo/gates/mutation-full-summary.json`) is the proof: every `Ignored` mutant carries the reason of the disable that silenced it, and the reason of line 117 appears on 40 mutants of `build-server.ts` from line 119 to 421 — `registerSecurity` (226: `if (error instanceof SecurityError)`), the declared-status check (302-303), the content type of errors (319-320), the log of a handler that throws (337), `send` headers (364), the Fastify error hook (396-398), the wiring of security (421). In `condition.ts` the reason of line 172 reaches `#ref` at 184 and 187 — the vocabulary check itself (`this.#types.includes(ref.type)`, `subtypes?.includes(ref.subtype)`) — and in `signals.ts` the reason of 113 reaches `combine` at 134. A `disable`/`restore` pair whose restore is the last thing in a block silences the rest of the file; `test:mutation` on a PR that touches those lines reports nothing. CLAUDE.md § Gates de calidad admits only the `next-line` form with a reason",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-053",
+    "file": "src/domain/merchant/merchant.ts",
+    "line": 91,
+    "rule": {
+      "id": "seguridad-s10-secret-credential-compared-with-includes",
+      "source": "clarity:non-constant-time-secret-compare"
+    },
+    "severity": "low",
+    "evidence": "  ownsPlatformKey(key: string): boolean {\n    return key !== \"\" && this.platformKeys.includes(key);\n  }",
+    "proposal": {
+      "before": "    return key !== \"\" && this.platformKeys.includes(key);",
+      "after": "    return key !== \"\" && this.platformKeys.some((own) => constantTimeEquals(own, key));\n// `constantTimeEquals` in the domain shared-kernel (pure: length check, then XOR over every code unit, no early exit),\n// the same primitive `PlatformSignature.matches` already needs; `owns` (ingest key, public) may keep `includes`"
+    },
+    "coveringTest": "tests/unit/domain/merchant/merchant.test.ts: `ownsPlatformKey` with a key that shares a long prefix with a real one must take the same path as a key that differs in the first character (a property test on the primitive, not a timing test). ADR-029:13 calls `platformKey` \"una clave secreta servidor a servidor\" and its §3 decides constant-time comparison for the signature; the key that authenticates the same requests — alone, when the merchant has no `platformSecrets` — is compared with `includes` (V8 string equality: length, then bytes with early exit), and the directory scans merchants with it (config-merchant-directory.ts:10). Over HTTP the leak is not measurable in practice; the inconsistency is with the ADR's own standard",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-054",
+    "file": "scripts/test-contract.mjs",
+    "line": 53,
+    "rule": {
+      "id": "pruebas-s09-the-contract-test-never-authenticates-the-platform",
+      "source": "clarity:contract-test-never-authenticates-the-platform"
+    },
+    "severity": "low",
+    "evidence": "      \"-H\",\n      `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? \"\"}`,",
+    "proposal": {
+      "before": "      \"-H\",\n      `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? \"\"}`,",
+      "after": "      \"-H\", `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? \"\"}`,\n      \"-H\", `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? \"\"}`,\n// (a merchant without `platformSecrets`, so no signature is needed; or a Schemathesis hook that signs)"
+    },
+    "coveringTest": "`npm run test:contract` itself: today its output says \"401 Unauthorized (3 operations): POST /v1/orders, POST /v1/returns, PUT /v1/catalog\" (trabajo/gates/global-test-contract.txt:58-61), so three of the seven built operations are fuzzed only up to the credential. The \"schema validation mismatch\" of S-09 has two causes and neither is a contract stricter than the server: those three operations answer 401 to everything, and `POST /v1/events` / `POST /v1/exposures` reject most generated bodies through `x-invariants` the schema cannot express (random `visitorId` per event ⇒ 422 `session-visitor-mismatch`; random `decisionId` ⇒ 422 `exposure-decision-unknown`; random `occurredAt` outside 24 h/5 min ⇒ 422), by design (ADR-007)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-055",
+    "file": "tests/audit/audit.test.ts",
+    "line": 1,
+    "rule": {
+      "id": "pruebas-tool-driving-tests-dominate-the-default-suite",
+      "source": "clarity:slow-tests-in-the-default-suite"
+    },
+    "severity": "low",
+    "evidence": "// US7 (FR-060, FR-064, FR-066): the auditing skill's deterministic half. run-gates reports the",
+    "proposal": {
+      "before": "// vitest.config: one project; `npm test` runs everything, including the tests that shell out to eslint, knip, jscpd,\n// dependency-cruiser and redocly over fixtures (tests/audit, tests/governance/quality, tests/unit/contract-docs)",
+      "after": "// vitest.config: projects `fast` (unit, integration, contract rules) and `tools` (audit, quality, contract-docs);\n// `npm test` runs `fast`, CI runs both; and tests/integration/* start the app once per file (`beforeAll`) with\n// fresh in-memory ports per test instead of `startTestApp()` inside every `it`"
+    },
+    "coveringTest": "measurement of 2026-09-19 (vitest JSON reporter over the whole suite, 1004 tests, 147 s wall, 522 s of file time on the workers): tests/audit/audit.test.ts 148 s (14 tests), tests/unit/contract-docs.test.ts 78 s (2), tests/governance/quality.test.ts 58 s (4) — three files are 54 % of the CPU time; the 22 integration files take 162 s for 172 tests (0.94 s per test, one `bootstrap` each); the 75 unit files take 90 s for 599 tests. The handoff asks whether the suite scales as a project cost; nothing written fixes a budget, so this is a proposal, not a defect",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-056",
+    "file": "tests/helpers/test-app.ts",
+    "line": 142,
+    "rule": {
+      "id": "pruebas-event-helper-defaults-to-the-real-clock-under-a-fixed-one",
+      "source": "clarity:helper-default-is-a-trap"
+    },
+    "severity": "low",
+    "evidence": "    occurredAt: new Date().toISOString(),",
+    "proposal": {
+      "before": "    occurredAt: new Date().toISOString(),",
+      "after": "    occurredAt: NOW, // the same instant `fixedClock` defaults to, exported by the helper; a test that fixes another clock passes its own"
+    },
+    "coveringTest": "none today. Every one of the 15 integration files that fixes the clock passes `occurredAt` explicitly (checked file by file), which is how the trap is avoided after it bit twice in 013 (handoff §5.E); the helper still defaults to the process clock, so the next test with `fixedClock(NOW)` and a bare `eventOf(n)` gets 422 `event-timestamp-out-of-range` when NOW is more than 5 min behind or 24 h ahead of the real date. `tests/unit/composition/wiring.test.ts:48` and `tests/integration/bootstrap.test.ts:73` use the real clock on purpose (start-up), which is fine",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-057",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 150,
+    "rule": {
+      "id": "seguridad-the-public-credential-reaches-the-global-body-limit",
+      "source": "clarity:public-credential-reaches-the-global-body-limit"
+    },
+    "severity": "low",
+    "evidence": "const BODY_LIMIT_BYTES = BODY_LIMIT_MIB * BYTES_PER_KIB * BYTES_PER_KIB;",
+    "proposal": {
+      "before": "  const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, … });   // 32 MiB for every route, ADR-025: \"no hay límite por operación\"",
+      "after": "// the content-type parser already sees the request before buffering (keepRawBodies): cap by path there\n  app.addContentTypeParser(JSON_CONTENT_TYPE, { parseAs: \"buffer\", bodyLimit: limitFor(request.url) }, …)\n// or two Fastify instances (F-045): the SDK's with a batch-sized limit (50 events ≈ tens of KiB), the platform's with 32 MiB"
+    },
+    "coveringTest": "tests/integration/ingest-events.test.ts: a `POST /v1/events` body of, say, 1 MiB must be refused with 413 before it is parsed (today it is buffered, `JSON.parse`d and only then rejected by Ajv for `maxItems: 50`). ADR-025 decided the global limit on the premise that openapi-backend routes with one handler and \"no hay límite por operación\"; the premise holds for routes, not for the parser, which receives the request. The ingest credential is public by design (ADR-014: \"todo lo que lleva es público\"), so anyone can spend the decision plane's event loop on 32 MiB of JSON per request; the cost is the one F-045 measured (fase 2) and the mitigation is the same",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-058",
+    "file": "docs/adr/029-firma-de-plataforma.md",
+    "line": 26,
+    "rule": {
+      "id": "seguridad-s11-replay-inside-the-window-is-absorbed-by-idempotency-and-unstated",
+      "source": "clarity:unstated-replay-defense"
+    },
+    "severity": "low",
+    "evidence": "3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se\n   acepta cualquiera de los secretos activos.",
+    "proposal": {
+      "before": "3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se\n   acepta cualquiera de los secretos activos.",
+      "after": "3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se\n   acepta cualquiera de los secretos activos. Un replay dentro de la ventana es posible por\n   diseño y lo absorbe la idempotencia: orden y devolución repetidas responden `200` sin\n   segundo efecto; un snapshot repetido con el mismo `capturedAt` responde `200` y uno más\n   viejo `422 catalog-out-of-order`. Sin nonce: el efecto de un replay es siempre nulo."
+    },
+    "coveringTest": "tests/integration/platform-signature.test.ts: replaying the exact signed request (same timestamp, same body) inside the window must answer 200 for orders/returns and 200 or 422 for the catalogue, never a second record — provable today, unwritten in the ADR (S-11 of the handoff: verified, no exploitable window; the one effect of a replay is the same idempotent answer). Rotation: \"uno o dos\" secrets active at once is the grace window, and it is written (ADR-029 §1)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-059",
+    "file": "contracts/paths/events.yaml",
+    "line": 12,
+    "rule": {
+      "id": "pruebas-s09-the-contract-is-stricter-than-the-server",
+      "source": "ADR-007"
+    },
+    "severity": "high",
+    "evidence": "    whole batch with `400`), deduplicates by `eventId` within the merchant (window: 24 hours or",
+    "proposal": {
+      "before": "n/a",
+      "after": "n/a"
+    },
+    "coveringTest": "n/a",
+    "status": "refuted",
+    "refutation": "Schemathesis' \"schema validation mismatch\" on five operations is not a contract stricter than the server: three operations (`POST /v1/orders`, `POST /v1/returns`, `PUT /v1/catalog`) answer 401 to every generated request because the runner sends only the ingest key (F-054), and the other two reject most generated bodies through invariants the schema cannot express and ADR-007 places in `x-invariants` on purpose (session/visitor mismatch, instants outside the tolerance, unknown decision). 2433/2433 cases pass; the warning is informative and its cause is now written here"
+  },
+  {
+    "id": "F-060",
+    "file": "tests/integration/ingest-latency.test.ts",
+    "line": 22,
+    "rule": {
+      "id": "pruebas-informative-latency-tests-should-be-gates",
+      "source": "constitution#IV. Dos caminos, dos garantías"
+    },
+    "severity": "high",
+    "evidence": "const P95_BUDGET_MS = 50;",
+    "proposal": {
+      "before": "n/a",
+      "after": "n/a"
+    },
+    "coveringTest": "n/a",
+    "status": "refuted",
+    "refutation": "The latency tests are gates already: ingest-latency and outcomes-latency assert `p95 < 50 ms` (a third of the 150 ms design objective) and catalog-size asserts `< 2 000 ms` for the pilot size; only `npm run test:load` never fails by its figures, and constitution IV says the objective \"no es SLA hasta medirlo bajo tráfico real\", so an informative load run is what the constitution asks for. Measured today: ingest p50 0.67 ms, p95 1.28 ms; catalogue 140 ms"
+  },
+  {
+    "id": "F-061",
+    "file": "tests/helpers/test-app.ts",
+    "line": 1,
+    "rule": {
+      "id": "pruebas-control-arm-only-tested-ad-hoc",
+      "source": "constitution#III. La medición precede"
+    },
+    "severity": "high",
+    "evidence": "// Test application: the whole graph through the composition root with the local profile,",
+    "proposal": {
+      "before": "n/a",
+      "after": "n/a"
+    },
+    "coveringTest": "n/a",
+    "status": "refuted",
+    "refutation": "Merchant A of the helper is `treatmentPercent: 100`, so most integration tests never see CONTROL; but tests/integration/assignment.test.ts configures its own 50/50 experiment, picks the first CONTROL and TREATMENT visitors with the domain function (`visitorIn`) and proves end to end that CONTROL runs the whole pipeline, resolves `NO_OP` `control-arm`, records arm and experiment in the ledger and never leaks them in a response; tests/unit/application/decision/decision.service.test.ts covers CONTROL through the same inference and the selection it would have chosen. Not ad hoc: the 50/50 fixture is the point of that file"
+  }
+]
