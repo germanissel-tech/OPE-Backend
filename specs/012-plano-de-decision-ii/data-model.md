@@ -30,8 +30,8 @@ readonly Claim[] }`.
 
 ### `GateEvidence` (`quality-gate.ts`, tipo)
 
-`{ attributes: ReadonlyMap<string, string>; stockAndPriceFresh: boolean; hasVariant: boolean;
-available?: boolean }`.
+`{ attributes: ReadonlyMap<string, string>; stockAndPriceFresh: boolean; available?: boolean }`
+(`available` ausente = sin variante en foco).
 
 ### `QualityGate` (`quality-gate.ts`, clase con `static judge`)
 

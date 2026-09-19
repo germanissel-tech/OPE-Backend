@@ -103,8 +103,8 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `decision` (los demás cuando llegue
-su feature). Dentro de un módulo
+`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`
+(los demás cuando llegue su feature). Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
@@ -271,25 +271,34 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `capturedAt`) o `unknown` con motivo, y `syncLevel` observado (`policies/sync-level.ts`, 0–2;
   3 nunca con snapshots completos). El stock es guardia: `available` booleano, sin cantidades.
   `Money` vive en el `shared-kernel` del dominio.
-- **Plano de decisión (ADR-026)**: la ingesta no conoce al plano: `IngestBatchUseCase` invoca el
-  puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa `DecisionService`
-  (`application/decision/services/`) y la composición enlaza (`decisionPlaneOf(ports)` en
-  `modules/decision.ts`). El orquestador recorre asignación → inferencia (`barrier`) → evidencia
-  (`catalog`) → veredicto (`DecisionPolicy.verdict`) → ledger (`DecisionRecorder`, que acuña el
-  id y degrada a `ledger-unavailable`). La inferencia es pura: `Signals` (monoide: el lote se
-  funde con la sesión) y `BarrierRules.infer` devuelven la confianza de las **tres** barreras y
-  las reglas cumplidas; el veredicto elige (umbral, prioridad, alta intención, presupuesto por
-  sesión, evidencia por barrera). La política es un dato del merchant
-  (`OPE_MERCHANTS[i].decisionPolicy`, forma en `composition/decision-policy-config.ts`,
-  invariantes en `BarrierRules.of` / `DecisionPolicy.of`; sin ella, `DEFAULT_DECISION_POLICY`
-  `default-1`), y parte del experimento: cambiarla es un experimento nuevo. El vocabulario de
-  hechos es cerrado (`EVENT_TYPES`, `SUBTYPES`, `BLOCKS` de `ingestion`, con réplica contra el
-  contrato): un hecho nuevo es una feature, nunca configuración. Cada decisión registra
-  `inference` (versión de política, confianzas, reglas cumplidas, barrera, disparador,
-  evidencia); el DTO del SDK sólo lleva `outcome`, `reason` (barrera si `INTERVENE`) e
-  `intervention` (`msg_<barrera>_<anclaje>_v0` hasta la 015). Estado de sesión en memoria
-  (`SessionStateStore`, ventana `SESSION_WINDOW` = la de dedup); una intervención cuenta contra
-  el presupuesto sólo si el ledger la aceptó.
+- **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
+  invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
+  `DecisionService` (`application/decision/services/`) y la composición enlaza
+  (`decisionPlaneOf(ports)` en `modules/decision.ts`). El orquestador recorre las cinco
+  autoridades: asignación → inferencia (`barrier`) → evidencia (`catalog`) → selección + quality
+  gate (`selection`) → política comercial (`commercial`, la única que emite el veredicto) →
+  ledger (`DecisionRecorder`, que acuña el id y degrada a `ledger-unavailable`). La inferencia es
+  pura: `Signals` (monoide: el lote se funde con la sesión) y `BarrierRules.infer` devuelven la
+  confianza de las **tres** barreras; `DecisionPolicy.barrierVerdict` elige la dominante (umbral,
+  prioridad) y juzga su evidencia por barrera. `CANDIDATES` (vocabulario cerrado por barrera en
+  orden de escalera, con claims) pasa por `QualityGate.of(profile).judgeAll`: el primer claim sin
+  evidencia de su clase rechaza el candidato entero; `CommercialPolicy.verdict` elige el escalón
+  más bajo (uno más con abandono que confirma la barrera, D-B; el reaseguro cuando el abandono
+  la puso en la mesa; incentivo directo en `price`), bloquea (`margin-missing`,
+  `incentive-not-allowed`, `return-risk`), aplica alta intención, presupuesto por sesión,
+  cooldown y fatiga por visitante. Tres datos del merchant en `OPE_MERCHANTS[i]`:
+  `decisionPolicy` (inferencia), `commercialPolicy` (techo, escalones, margen, riesgo de
+  devolución, alta intención, abandono, presupuestos) y `evidenceProfile` (qué declara poder
+  sostener); forma en `composition/{condition,decision-policy,commercial-policy}-config.ts`,
+  invariantes en el dominio; defaults `default-1`, `commercial-default-1` (sin margen ⇒ sin
+  incentivos) y perfil vacío. Ambas políticas son parte del experimento. El vocabulario de hechos
+  y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
+  decisión registra `inference` y `selection` (candidatos con veredicto del gate, elegido,
+  veredicto comercial, `commercialPolicyVersion`); el DTO del SDK sólo lleva `outcome`, `reason`
+  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta la
+  015, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
+  y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
+  intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
 - **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
   `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
   es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);

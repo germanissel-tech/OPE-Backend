@@ -1,7 +1,7 @@
 ---
 numero: 27
 titulo: Selección con quality gate y política comercial como autoridades propias
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-19
 fuente: specs/012-plano-de-decision-ii/research.md
 ---

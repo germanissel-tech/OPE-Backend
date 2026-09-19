@@ -45,10 +45,14 @@ en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
 visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún
 visitante se asigna y toda decisión es `NO_OP` con motivo `no-active-experiment`. El merchant
 de desarrollo asigna el 100 % a TREATMENT para que el plano de decisión se pueda probar a mano.
-Una `decisionPolicy` opcional por merchant (reglas de barrera, umbral, prioridad, alta
-intención, abandono, intervenciones por sesión, evidencia; forma en
-`specs/011-plano-de-decision-i/contracts/decision-policy.config.md`, ADR-026) reemplaza a la
-política por defecto `default-1`; una política inválida impide el arranque nombrando el campo.
+Tres datos opcionales por merchant: `decisionPolicy` (reglas de barrera, umbral, prioridad,
+evidencia por barrera; forma en `specs/011-plano-de-decision-i/contracts/decision-policy.config.md`,
+ADR-026), `commercialPolicy` (techo y escalones del incentivo, margen, riesgo de devolución,
+alta intención, abandono, presupuestos por sesión y visitante, cooldown) y `evidenceProfile`
+(política de devoluciones, dato de calce, atributos autorizados), estos dos con forma en
+`specs/012-plano-de-decision-ii/contracts/commercial-policy.config.md` (ADR-027). Sin ellos,
+`default-1`, `commercial-default-1` (sin margen ⇒ sin incentivos) y perfil vacío; uno inválido
+impide el arranque nombrando el campo.
 
 ```bash
 npm run dev
