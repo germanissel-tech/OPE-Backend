@@ -8,6 +8,8 @@ export type ValidationError = NonNullable<ProblemDetails["errors"]>[number];
 
 export const PROBLEM_CONTENT_TYPE = "application/problem+json";
 export const PROBLEM_NAMESPACE = "urn:ope:problem:";
+const CONFIRMED_IN_FUTURE = "The confirmation instant is in the future";
+
 export const PROBLEM_TYPES = {
   "validation-failed": { status: 400, title: "The request does not satisfy the contract" },
   unauthorized: { status: 401, title: "Credential missing or invalid" },
@@ -28,6 +30,10 @@ export const PROBLEM_TYPES = {
   "invalid-treatment-share": { status: 500, title: "The treatment share of an experiment is out of range" },
   "invalid-seed": { status: 500, title: "The seed of an experiment is empty" },
   "invalid-origin": { status: 500, title: "A registered origin is not scheme://host[:port]" },
+  "invalid-platform-secret": {
+    status: 500,
+    title: "A platform signing secret is empty or collides with a key",
+  },
   "invalid-money": { status: 500, title: "A monetary amount or currency is malformed" },
   "platform-key-collision": { status: 500, title: "A platform key is empty or equal to an ingest key" },
   "capability-missing": { status: 403, title: "The credential lacks a capability the operation requires" },
@@ -35,6 +41,16 @@ export const PROBLEM_TYPES = {
   "catalog-duplicate-variant-id": { status: 422, title: "Two variants share an identifier" },
   "catalog-captured-in-future": { status: 422, title: "The capture instant is in the future" },
   "catalog-out-of-order": { status: 422, title: "The snapshot is older than the current one" },
+  // Platform signature (ADR-029): the security handler answers them before the body is read.
+  "signature-missing": { status: 401, title: "The request is not signed" },
+  "signature-invalid": { status: 401, title: "The signature does not match" },
+  "signature-expired": { status: 401, title: "The signature timestamp is outside the window" },
+  // Outcomes (ADR-028): orders and returns.
+  "duplicate-order-item": { status: 422, title: "Two order lines share a SKU" },
+  "order-confirmed-in-future": { status: 422, title: CONFIRMED_IN_FUTURE },
+  "corroboration-confirmed-in-future": { status: 422, title: CONFIRMED_IN_FUTURE },
+  "order-unknown": { status: 422, title: "The order does not exist for this merchant" },
+  "return-items-not-in-order": { status: 422, title: "A returned item is not in the order" },
   // Decision policy configuration errors (ADR-026): they stop the start; no operation emits them.
   "invalid-rule-weight": { status: 500, title: "A rule weight or the policy weights are outside 0..1" },
   "invalid-rule-threshold": { status: 500, title: "A rule threshold or the reading seconds are negative" },

@@ -47,6 +47,7 @@ function fakes(decisions: Decision[]) {
   const decisionLedger: DecisionLedger = {
     record: () => Promise.resolve(ok(undefined)),
     find: (m, id) => Promise.resolve(store.get(`${m}/${id}`)),
+    bySession: () => Promise.resolve([]),
   };
   const exposureLedger: ExposureLedger = {
     record: (e) => {

@@ -1,0 +1,39 @@
+# Draft of contracts/paths/order-corroborations.yaml (POST /v1/orders/corroborations).
+post:
+  operationId: corroborateOrder
+  tags: [ingest]
+  security:
+    - ingestKey: []
+  x-required-capabilities:
+    - orders:corroborate
+  summary: Corroborate a purchase from the confirmation page
+  description: |
+    The SDK reports the `orderId` it sees on the purchase confirmation page together with its
+    session and visitor (mechanism B, 02 §5.1). Corroborating evidence only: it never creates
+    an order nor attributes one; the platform's notification (mechanism A) decides. OPE keeps
+    it to cross-check mechanism A and to measure that confirmations are lost equally in
+    CONTROL and TREATMENT (02 §5.2). Repeating it is harmless: `202` every time, one record
+    per order and session. `503` with `Retry-After` if the ledger cannot record.
+  x-invariants:
+    - type: origin-not-allowed
+      status: 403
+      rule: if the request carries Origin, Origin belongs to the registered origins of the credential's merchant
+      description: Same as for ingestion.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/OrderCorroboration.yaml
+  responses:
+    "202":
+      description: Corroboration accepted (first time or repeated).
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CorroborationResult.yaml
+    "400": { $ref: ../components/responses/BadRequest.yaml }
+    "401": { $ref: ../components/responses/Unauthorized.yaml }
+    "403": { $ref: ../components/responses/Forbidden.yaml }
+    "500": { $ref: ../components/responses/InternalServerError.yaml }
+    "503": { $ref: ../components/responses/ServiceUnavailable.yaml }

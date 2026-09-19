@@ -1,0 +1,20 @@
+type: object
+description: What the SDK saw on the purchase confirmation page (mechanism B, 02 §5.1). Corroborating evidence, never authority.
+additionalProperties: false
+required: [orderId, sessionId, visitorId, confirmedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  sessionId:
+    $ref: ./SessionId.yaml
+  visitorId:
+    $ref: ./VisitorId.yaml
+  confirmedAt:
+    type: string
+    format: date-time
+    description: Instant the confirmation page was seen, according to the browser.
+x-invariants:
+  - type: corroboration-confirmed-in-future
+    status: 422
+    rule: confirmedAt <= server clock + 5 minutes
+    description: A browser clock ahead of the server is a clock error; the same tolerance as events.

@@ -1,0 +1,11 @@
+name: X-OPE-Signature
+in: header
+required: false
+description: |
+  `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+  of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+  signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+  Verified before the body is read.
+schema:
+  type: string
+  pattern: "^v1=[0-9a-f]{64}$"

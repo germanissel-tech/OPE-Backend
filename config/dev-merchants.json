@@ -21,6 +21,7 @@
     "commercialPolicy": {
       "version": "dev-commercial-1",
       "marginPercent": 40
-    }
+    },
+    "platformSecrets": ["ope_dev_platform_secret"]
   }
 ]

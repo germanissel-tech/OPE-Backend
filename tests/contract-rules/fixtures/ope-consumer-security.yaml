@@ -71,6 +71,9 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       x-required-capabilities:
         - events:write
+      parameters:
+        - $ref: "#/components/parameters/X-OPE-Timestamp"
+        - $ref: "#/components/parameters/X-OPE-Signature"
 components:
   schemas:
     Health:
@@ -178,3 +181,18 @@ components:
       type: http
       scheme: bearer
       description: platformKey token.
+  parameters:
+    X-OPE-Timestamp:
+      name: X-OPE-Timestamp
+      in: header
+      description: Signing instant.
+      schema:
+        type: integer
+        minimum: 0
+    X-OPE-Signature:
+      name: X-OPE-Signature
+      in: header
+      description: Signature.
+      schema:
+        type: string
+        pattern: ^v1=[0-9a-f]{64}$

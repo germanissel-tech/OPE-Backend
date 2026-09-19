@@ -1,0 +1,11 @@
+type: object
+description: The corroboration was accepted (first time or repeated).
+additionalProperties: false
+required: [orderId, receivedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  receivedAt:
+    type: string
+    format: date-time
+    description: Instant OPE recorded the corroboration (the first receipt, when repeated).

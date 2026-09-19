@@ -39,7 +39,7 @@ No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranc
 infraestructura, valida y autentica igual que en producción y responde con comportamiento real.
 `dev` carga el merchant de desarrollo de `config/dev-merchants.json` (clave `ope_dev_ingest_key`);
 en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
-`[{ "merchantId", "ingestKeys": [..], "platformKeys": [..], "origins": [..], "experiments": [..] }]`, o de
+`[{ "merchantId", "ingestKeys": [..], "platformKeys": [..], "platformSecrets": [..], "origins": [..], "experiments": [..] }]`, o de
 `OPE_MERCHANTS_FILE`, y sin ninguno el servidor no autentica a nadie. Un experimento activo
 (`{ "experimentId", "treatmentPercent", "seed", "status": "active", "startedAt" }`) asigna cada
 visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún
@@ -52,7 +52,12 @@ alta intención, abandono, presupuestos por sesión y visitante, cooldown) y `ev
 (política de devoluciones, dato de calce, atributos autorizados), estos dos con forma en
 `specs/012-plano-de-decision-ii/contracts/commercial-policy.config.md` (ADR-027). Sin ellos,
 `default-1`, `commercial-default-1` (sin margen ⇒ sin incentivos) y perfil vacío; uno inválido
-impide el arranque nombrando el campo.
+impide el arranque nombrando el campo. Con `platformSecrets` (uno o dos, ADR-029) la plataforma
+del merchant debe firmar cada request de su credencial (`PUT /v1/catalog`, `POST /v1/orders`,
+`POST /v1/returns`) con `X-OPE-Timestamp` y `X-OPE-Signature`; `node scripts/sign-platform-request.mjs
+<secreto> <archivo.json>` imprime los dos headers para curl o Insomnia (forma exacta en
+`specs/013-outcomes-ordenes-y-devoluciones/contracts/platform-signature.md`). El merchant de
+desarrollo lleva `ope_dev_platform_secret`.
 
 ```bash
 npm run dev

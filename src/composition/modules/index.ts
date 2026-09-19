@@ -7,6 +7,7 @@ import { experimentModule } from "./experiment.js";
 import { ingestionModule } from "./ingestion.js";
 import { ledgerModule } from "./ledger.js";
 import { merchantModule } from "./merchant.js";
+import { outcomesModule } from "./outcomes.js";
 import { systemModule } from "./system.js";
 import type { Ports } from "../ports.js";
 import type { Module } from "../wiring.js";
@@ -20,4 +21,5 @@ export const MODULES: readonly Module<Ports>[] = [
   decisionModule,
   ingestionModule,
   ledgerModule,
+  outcomesModule,
 ];

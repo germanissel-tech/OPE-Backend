@@ -1,0 +1,24 @@
+description: |
+  Valid request rejected on semantics: one of the `x-invariants` of the operation (ADR-007).
+  The `type` names the invariant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      order-unknown:
+        summary: order-unknown
+        value:
+          type: urn:ope:problem:order-unknown
+          title: The order does not exist for this merchant
+          status: 422
+          detail: No order A-1 has been notified for this merchant; notify the order first.
+          instance: /v1/returns
+      items-not-in-order:
+        summary: return-items-not-in-order
+        value:
+          type: urn:ope:problem:return-items-not-in-order
+          title: A returned item is not in the order
+          status: 422
+          detail: SKU-9 is not in order A-1, or more units than bought.
+          instance: /v1/returns

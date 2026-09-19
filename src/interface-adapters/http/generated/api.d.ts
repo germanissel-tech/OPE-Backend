@@ -106,6 +106,89 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify a confirmed order
+         * @description The merchant's platform confirms a purchase server to server (mechanism A, 02 §5.1: the
+         *     only authoritative source). The order enters the ledger as a verified sale. When the body
+         *     carries the OPE `sessionId` the storefront attached to the order at creation and that
+         *     session is known to the ledger of this merchant, the order is attributed
+         *     (`ATTRIBUTED_ORDER`) and inherits the assignment of the session; otherwise it stays
+         *     `PENDING_CORRELATION`, visible as such and never completed by inference (01 §5.2).
+         *     The body is bounded by design (01 §10.3): identifier, total, items with SKU and quantity,
+         *     confirmation instant, optionally the OPE session and the incentive applied. Nothing about
+         *     the buyer is accepted; any other property is rejected.
+         *     Idempotency (ADR-020): `orderId` is the key, per merchant. The first receipt creates
+         *     (`201`); the same order with the same content repeats the record (`200`); the same
+         *     `orderId` with different content is a conflict (`409`), never an overwrite. An order is
+         *     immutable once recorded: a resend "corrected" with a `sessionId` is a conflict.
+         *     If the ledger cannot record, `503` with `Retry-After`; nothing was recorded.
+         */
+        post: operations["notifyOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/corroborations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Corroborate a purchase from the confirmation page
+         * @description The SDK reports the `orderId` it sees on the purchase confirmation page together with its
+         *     session and visitor (mechanism B, 02 §5.1). Corroborating evidence only: it never creates
+         *     an order nor attributes one; the platform's notification (mechanism A) decides. OPE keeps
+         *     it to cross-check mechanism A and to measure that confirmations are lost equally in
+         *     CONTROL and TREATMENT (02 §5.2). Repeating it is harmless: `202` every time, one record
+         *     per order and session. `503` with `Retry-After` if the ledger cannot record.
+         */
+        post: operations["corroborateOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify the return of an order
+         * @description The platform reports that a recorded order came back (02 §5.4). The order moves to
+         *     `RETURNED` and keeps its correlation and assignment; returned items are informative (the
+         *     MVP measures purchase quality per order, 03 §4.7). One return per order: `orderId` is the
+         *     idempotency key (ADR-020); a different second notification is a conflict (`409`).
+         *     A return of an order OPE does not know is rejected (`422 order-unknown`) so the platform
+         *     retries after notifying the order. If the ledger cannot record, `503` with `Retry-After`.
+         */
+        post: operations["notifyReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -241,6 +324,15 @@ export type components = {
              */
             type: "checkout_advanced";
             visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description The corroboration was accepted (first time or repeated). */
+        CorroborationResult: {
+            orderId: components["schemas"]["OrderId"];
+            /**
+             * Format: date-time
+             * @description Instant OPE recorded the corroboration (the first receipt, when repeated).
+             */
+            receivedAt: string;
         };
         /** @description Hover or approach to the purchase call to action. */
         CtaApproached: {
@@ -380,9 +472,9 @@ export type components = {
         /**
          * @description The incentive the chosen intervention carries, when the commercial policy of the merchant
          *     allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
-         *     PROPUESTO — how the incentive is redeemed (a coupon code, its application at the checkout)
-         *     belongs to the merchant's platform and arrives with the outcomes and configuration features
-         *     (013, 014); until then the SDK only shows it.
+         *     The SDK shows it; the merchant's platform redeems it at the checkout and declares what it
+         *     applied in the order notification (`Order.incentive`), which OPE crosses with this grant.
+         *     Issuing the coupon and configuring it on the platform side arrive with feature 014.
          */
         Incentive: {
             /**
@@ -442,6 +534,64 @@ export type components = {
             /** @description Currency in ISO 4217. */
             currency: string;
         };
+        /**
+         * @description A confirmed order, bounded by design (01 §10.3): what OPE needs to verify a sale and to
+         *     correlate it with a session, nothing about the buyer. `sessionId` is the OPE session the
+         *     storefront attached to the order when it was created (mechanism A, 02 §5.1). `incentive`
+         *     is the incentive actually applied at the checkout, when any; OPE crosses it with the
+         *     decision that granted it and records the outcome, whatever it is.
+         */
+        Order: {
+            /**
+             * Format: date-time
+             * @description Instant the platform confirmed the order.
+             */
+            confirmedAt: string;
+            incentive?: components["schemas"]["Incentive"];
+            /** @description The lines of the order, SKU and quantity; at least one. */
+            items: components["schemas"]["OrderItem"][];
+            orderId: components["schemas"]["OrderId"];
+            sessionId?: components["schemas"]["SessionId"];
+            total: components["schemas"]["Money"];
+        };
+        /** @description What the SDK saw on the purchase confirmation page (mechanism B, 02 §5.1). Corroborating evidence, never authority. */
+        OrderCorroboration: {
+            /**
+             * Format: date-time
+             * @description Instant the confirmation page was seen, according to the browser.
+             */
+            confirmedAt: string;
+            orderId: components["schemas"]["OrderId"];
+            sessionId: components["schemas"]["SessionId"];
+            visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description Identifier of the order as the platform issues it. Unique per merchant; the idempotency key of orders and returns (01 §6). */
+        OrderId: string;
+        /** @description A line of the order or of a return. SKU and quantity only (01 §10.3). */
+        OrderItem: {
+            /** @description Units of that SKU in the line. */
+            quantity: number;
+            /** @description The SKU of the platform, as the catalogue names it. */
+            sku: string;
+        };
+        /** @description What OPE holds for the order after the notification. */
+        OrderResult: {
+            orderId: components["schemas"]["OrderId"];
+            /**
+             * Format: date-time
+             * @description Instant OPE recorded the order (the first receipt, when repeated).
+             */
+            receivedAt: string;
+            status: components["schemas"]["OrderStatus"];
+        };
+        /**
+         * @description Where the order stands in the evidence chain (01 §5). Every recorded order is a verified
+         *     sale; the status says whether a verifiable correlation with an OPE session exists
+         *     (`ATTRIBUTED_ORDER`) or not yet (`PENDING_CORRELATION`, an explicit state of not knowing,
+         *     01 §5.2). Never an arm nor an experiment.
+         * @enum {string}
+         */
+        OrderStatus: "ATTRIBUTED_ORDER" | "PENDING_CORRELATION";
         /**
          * @description What the SDK could resolve about the page where the event happened (01-arquitectura-mvp.md
          *     §3.1.1, `PageContext`). Everything but `pageType` is optional: the SDK reports what it resolved
@@ -567,6 +717,35 @@ export type components = {
             type: "removed_from_cart";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /**
+         * @description The return of a recorded order (02 §5.4). Items are optional and informative: the MVP
+         *     measures purchase quality per order (03 §4.7). No reason, nothing about the buyer.
+         */
+        Return: {
+            /** @description The lines returned, when the platform knows them; a subset of the order's lines. */
+            items?: components["schemas"]["OrderItem"][];
+            orderId: components["schemas"]["OrderId"];
+            /**
+             * Format: date-time
+             * @description Instant the platform registered the return.
+             */
+            returnedAt: string;
+        };
+        /** @description The order is returned; `orderStatus` says whether it was attributed. */
+        ReturnResult: {
+            orderId: components["schemas"]["OrderId"];
+            orderStatus: components["schemas"]["OrderStatus"];
+            /**
+             * Format: date-time
+             * @description Instant OPE recorded the return (the first receipt, when repeated).
+             */
+            receivedAt: string;
+            /**
+             * @description The order came back (`RETURNED` state of the evidence chain, 01 §5).
+             * @enum {string}
+             */
+            status: "RETURNED";
+        };
         /** @description Identifier of the visit, generated by the SDK. Groups the behavioural sequence; it expires. */
         SessionId: string;
         /** @description Interaction with the size selector. */
@@ -663,6 +842,18 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /**
+         * @description Valid request rejected on semantics: the `x-invariants` of the corroboration (ADR-007). The
+         *     `type` names the invariant.
+         */
+        CorroborationUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description The batch satisfies the schema but violates an ingestion invariant. */
         EventBatchUnprocessable: {
             headers: {
@@ -716,6 +907,30 @@ export type components = {
             };
         };
         /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the order (ADR-007). The
+         *     `type` names the invariant.
+         */
+        OrderUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the operation (ADR-007).
+         *     The `type` names the invariant.
+         */
+        ReturnUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
          * @description The ledger cannot accept the record right now (ADR-021). Nothing was recorded: retry after the
          *     indicated seconds. The ingestion never answers this — it degrades to a NO_OP decision with the
          *     reason `ledger-unavailable` — because a batch is not retried once deduplicated.
@@ -756,7 +971,21 @@ export type components = {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /**
+         * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+         *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+         *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+         *     Verified before the body is read.
+         */
+        "X-OPE-Signature": string;
+        /**
+         * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+         *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+         *     minutes of the server clock either way (`401 signature-expired` otherwise).
+         */
+        "X-OPE-Timestamp": number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -766,7 +995,21 @@ export interface operations {
     upsertCatalogSnapshot: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -904,6 +1147,173 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             500: components["responses"]["InternalServerError"];
+        };
+    };
+    notifyOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Order"];
+            };
+        };
+        responses: {
+            /** @description Same `orderId` and same content as the recorded order; nothing changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "orderId": "A-1",
+                     *       "status": "PENDING_CORRELATION",
+                     *       "receivedAt": "2026-09-19T12:00:03Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["OrderResult"];
+                };
+            };
+            /** @description Order recorded as a verified sale; `status` says whether it is attributed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["OrderUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    corroborateOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderCorroboration"];
+            };
+        };
+        responses: {
+            /** @description Corroboration accepted (first time or repeated). */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "orderId": "A-1",
+                     *       "receivedAt": "2026-09-19T12:00:01Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CorroborationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["CorroborationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    notifyReturn: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Return"];
+            };
+        };
+        responses: {
+            /** @description Same return as recorded; nothing changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "orderId": "A-1",
+                     *       "status": "RETURNED",
+                     *       "orderStatus": "ATTRIBUTED_ORDER",
+                     *       "receivedAt": "2026-09-24T09:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ReturnResult"];
+                };
+            };
+            /** @description Return recorded; the order is `RETURNED`. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "orderId": "A-1",
+                     *       "status": "RETURNED",
+                     *       "orderStatus": "ATTRIBUTED_ORDER",
+                     *       "receivedAt": "2026-09-24T09:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ReturnResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ReturnUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

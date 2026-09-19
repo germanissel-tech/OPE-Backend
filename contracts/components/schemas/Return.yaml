@@ -1,0 +1,20 @@
+type: object
+description: |
+  The return of a recorded order (02 §5.4). Items are optional and informative: the MVP
+  measures purchase quality per order (03 §4.7). No reason, nothing about the buyer.
+additionalProperties: false
+required: [orderId, returnedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  returnedAt:
+    type: string
+    format: date-time
+    description: Instant the platform registered the return.
+  items:
+    type: array
+    description: The lines returned, when the platform knows them; a subset of the order's lines.
+    minItems: 1
+    maxItems: 500
+    items:
+      $ref: ./OrderItem.yaml

@@ -1,0 +1,77 @@
+post:
+  operationId: notifyReturn
+  tags: [outcomes]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - returns:write
+  summary: Notify the return of an order
+  description: |
+    The platform reports that a recorded order came back (02 §5.4). The order moves to
+    `RETURNED` and keeps its correlation and assignment; returned items are informative (the
+    MVP measures purchase quality per order, 03 §4.7). One return per order: `orderId` is the
+    idempotency key (ADR-020); a different second notification is a conflict (`409`).
+    A return of an order OPE does not know is rejected (`422 order-unknown`) so the platform
+    retries after notifying the order. If the ledger cannot record, `503` with `Retry-After`.
+  x-idempotency:
+    key: orderId
+    first: "201"
+    repeat: "200"
+  x-invariants:
+    - type: order-unknown
+      status: 422
+      rule: an order with orderId exists for the credential's merchant
+      description: Returns link to orders already in the ledger; an order of another merchant is treated as nonexistent.
+    - type: return-items-not-in-order
+      status: 422
+      rule: every returned item has a SKU of the order with quantity <= the quantity bought, and no SKU repeats
+      description: A return cannot contain what the order did not.
+  parameters:
+    - $ref: ../components/parameters/X-OPE-Timestamp.yaml
+    - $ref: ../components/parameters/X-OPE-Signature.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/Return.yaml
+        examples:
+          return:
+            $ref: ../examples/order-return.yaml
+  responses:
+    "201":
+      description: Return recorded; the order is `RETURNED`.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ReturnResult.yaml
+          example:
+            orderId: A-1
+            status: RETURNED
+            orderStatus: ATTRIBUTED_ORDER
+            receivedAt: "2026-09-24T09:00:00Z"
+    "200":
+      description: Same return as recorded; nothing changed.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ReturnResult.yaml
+          example:
+            orderId: A-1
+            status: RETURNED
+            orderStatus: ATTRIBUTED_ORDER
+            receivedAt: "2026-09-24T09:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../components/responses/Conflict.yaml
+    "422":
+      $ref: ../components/responses/ReturnUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

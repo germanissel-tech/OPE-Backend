@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.1.0
+  version: 1.2.0
   description: |
     HTTP API of the OPE backend. This document is the single source of truth for every HTTP
     surface: the server routes by `operationId` and validates request and response against
@@ -28,6 +28,12 @@ paths:
     $ref: ./paths/exposures.yaml
   /v1/catalog:
     $ref: ./paths/catalog.yaml
+  /v1/orders:
+    $ref: ./paths/orders.yaml
+  /v1/orders/corroborations:
+    $ref: ./paths/order-corroborations.yaml
+  /v1/returns:
+    $ref: ./paths/returns.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`

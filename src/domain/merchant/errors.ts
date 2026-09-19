@@ -37,4 +37,48 @@ export class PlatformKeyCollision extends DomainError {
   }
 }
 
-export type MerchantError = Unauthorized | OriginNotAllowed | InvalidOrigin | PlatformKeyCollision;
+/** A signing secret that is empty or equal to a key (configuration; fail-closed). */
+export class InvalidPlatformSecret extends DomainError {
+  readonly code = "invalid-platform-secret" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("A platform signing secret must be non-empty and distinct from every key.", { index });
+  }
+}
+
+/** The platform request must be signed and carries no signature or no timestamp (ADR-029). */
+export class SignatureMissing extends DomainError {
+  readonly code = "signature-missing" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The request must carry X-OPE-Timestamp and X-OPE-Signature.");
+  }
+}
+
+/** The signature is malformed or matches none of the merchant's secrets (ADR-029). */
+export class SignatureInvalid extends DomainError {
+  readonly code = "signature-invalid" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The signature does not match the body and timestamp for this merchant.");
+  }
+}
+
+/** The timestamp is outside the accepted window around the server clock (ADR-029). */
+export class SignatureExpired extends DomainError {
+  readonly code = "signature-expired" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The signature timestamp is outside the accepted window.");
+  }
+}
+
+export type SignatureError = SignatureMissing | SignatureInvalid | SignatureExpired;
+
+export type MerchantError =
+  | Unauthorized
+  | OriginNotAllowed
+  | InvalidOrigin
+  | PlatformKeyCollision
+  | InvalidPlatformSecret
+  | SignatureError;

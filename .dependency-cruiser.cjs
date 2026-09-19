@@ -41,6 +41,7 @@ const CONTEXT_MAP = {
     "selection",
     "commercial",
   ],
+  outcomes: ["shared-kernel", "ledger"],
 };
 
 /**

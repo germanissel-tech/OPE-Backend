@@ -1,0 +1,17 @@
+type: object
+description: The order is returned; `orderStatus` says whether it was attributed.
+additionalProperties: false
+required: [orderId, status, orderStatus, receivedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  status:
+    type: string
+    description: The order came back (`RETURNED` state of the evidence chain, 01 §5).
+    enum: [RETURNED]
+  orderStatus:
+    $ref: ./OrderStatus.yaml
+  receivedAt:
+    type: string
+    format: date-time
+    description: Instant OPE recorded the return (the first receipt, when repeated).

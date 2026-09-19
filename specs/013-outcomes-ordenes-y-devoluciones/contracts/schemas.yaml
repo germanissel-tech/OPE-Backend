@@ -1,0 +1,144 @@
+# Drafts of the new files under contracts/components/schemas/ (one file each) and
+# contracts/components/parameters/. The bundle promotes each to #/components/<type>/<Name>.
+
+OrderId:
+  type: string
+  description: Identifier of the order as the platform issues it. Unique per merchant; the idempotency key of orders and returns (01 §6).
+  pattern: "^[A-Za-z0-9_.-]{1,64}$"
+
+OrderItem:
+  type: object
+  description: A line of the order. SKU and quantity only (01 §10.3).
+  additionalProperties: false
+  required: [sku, quantity]
+  properties:
+    sku:
+      type: string
+      minLength: 1
+      maxLength: 128
+    quantity:
+      type: integer
+      minimum: 1
+
+Order:
+  type: object
+  description: |
+    A confirmed order, bounded by design (01 §10.3): what OPE needs to verify a sale and to
+    correlate it with a session, nothing about the buyer. `sessionId` is the OPE session the
+    storefront attached to the order at creation (mechanism A). `incentive` is the incentive
+    actually applied at the checkout, when any; OPE crosses it with the decision that granted it.
+  additionalProperties: false
+  required: [orderId, total, items, confirmedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    total: { $ref: ./Money.yaml }
+    items:
+      type: array
+      minItems: 1
+      maxItems: 500
+      items: { $ref: ./OrderItem.yaml }
+    confirmedAt:
+      type: string
+      format: date-time
+      description: Instant the platform confirmed the order.
+    sessionId: { $ref: ./SessionId.yaml }
+    incentive: { $ref: ./Incentive.yaml }
+  x-invariants:
+    - type: duplicate-order-item
+      status: 422
+      rule: items[].sku are unique
+      description: Two lines with the same SKU are one line with the sum, or an error of the platform; OPE does not guess.
+    - type: order-confirmed-in-future
+      status: 422
+      rule: confirmedAt <= server clock + 5 minutes
+      description: A confirmation ahead of the clock is a clock error, not a sale.
+
+OrderStatus:
+  type: string
+  description: Where the order stands in the evidence chain (01 §5). Every recorded order is a verified sale; the status says whether a verifiable correlation with an OPE session exists. Never an arm nor an experiment.
+  enum: [ATTRIBUTED_ORDER, PENDING_CORRELATION]
+
+OrderResult:
+  type: object
+  additionalProperties: false
+  required: [orderId, status, receivedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    status: { $ref: ./OrderStatus.yaml }
+    receivedAt:
+      type: string
+      format: date-time
+
+OrderCorroboration:
+  type: object
+  description: What the SDK saw on the confirmation page (mechanism B). Evidence, not authority.
+  additionalProperties: false
+  required: [orderId, sessionId, visitorId, confirmedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    sessionId: { $ref: ./SessionId.yaml }
+    visitorId: { $ref: ./VisitorId.yaml }
+    confirmedAt:
+      type: string
+      format: date-time
+      description: Instant the confirmation page was seen, according to the browser.
+
+CorroborationResult:
+  type: object
+  additionalProperties: false
+  required: [orderId, receivedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    receivedAt:
+      type: string
+      format: date-time
+
+Return:
+  type: object
+  description: The return of a recorded order (02 §5.4). Items are optional and informative; no reason, nothing about the buyer.
+  additionalProperties: false
+  required: [orderId, returnedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    returnedAt:
+      type: string
+      format: date-time
+    items:
+      type: array
+      minItems: 1
+      maxItems: 500
+      items: { $ref: ./OrderItem.yaml }
+
+ReturnResult:
+  type: object
+  additionalProperties: false
+  required: [orderId, status, orderStatus, receivedAt]
+  properties:
+    orderId: { $ref: ./OrderId.yaml }
+    status:
+      type: string
+      enum: [RETURNED]
+    orderStatus: { $ref: ./OrderStatus.yaml }
+    receivedAt:
+      type: string
+      format: date-time
+
+# --- contracts/components/parameters/ -------------------------------------------------------
+
+X-OPE-Timestamp:
+  name: X-OPE-Timestamp
+  in: header
+  required: false
+  description: Unix time in seconds at which the platform signed the request (ADR-029). Required, together with X-OPE-Signature, for merchants with a signing secret; within 5 minutes of the server clock.
+  schema:
+    type: integer
+    minimum: 0
+
+X-OPE-Signature:
+  name: X-OPE-Signature
+  in: header
+  required: false
+  description: "`v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant, of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029)."
+  schema:
+    type: string
+    pattern: "^v1=[0-9a-f]{64}$"

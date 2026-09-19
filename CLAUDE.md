@@ -103,8 +103,8 @@ adentro:
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
-`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`
-(los demás cuando llegue su feature). Dentro de un módulo
+`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
+`outcomes` (los demás cuando llegue su feature). Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
@@ -299,6 +299,38 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   015, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
   y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
   intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
+- **Outcomes y cadena de evidencia (ADR-028)**: el módulo `outcomes` (`[shared-kernel, ledger]`)
+  recibe lo que la plataforma y el SDK dicen de las compras. `POST /v1/orders` (`platformKey`,
+  mecanismo A de 02 §5.1) registra la orden como venta verificada con lo que 01 §10.3 admite
+  (`Order.of`: SKUs sin repetir, confirmación no futura); la **correlación es sólo por A**:
+  `Correlation.of(sessionId, decisions)` con `DecisionLedger.bySession` — una sesión es conocida
+  si el merchant decidió en ella; hereda `experiment { experimentId, arm }` de sus decisiones —
+  y sin ella queda `PENDING_CORRELATION`, nunca completada por inferencia; la orden es inmutable
+  (reenviarla "corregida" es `409`). **Idempotencia atómica en el puerto**: `OrderLedger.record`
+  y `recordReturn` deciden `recorded | repeated | conflict` dentro del gateway (01 §6: sin
+  `await` entre chequeo y escritura) con `sameContentAs` sobre lo que la plataforma envió
+  (ítems por SKU, instantes de recepción y lo derivado ignorados). `POST /v1/orders/corroborations`
+  (`ingestKey`, mecanismo B) es evidencia unida a la orden por `merchantId/orderId`: nunca crea ni
+  atribuye. `POST /v1/returns` marca `RETURNED` conservando la correlación (`order-unknown`,
+  `return-items-not-in-order`; una devolución por orden). La orden puede declarar `incentive` y
+  `IncentiveRedemption.of` lo cruza con la última intervención con incentivo de la sesión
+  (`matched | mismatched | not-applied | not-granted | unverifiable`), sin rechazar nunca. Todo
+  `record()` devuelve `Result<…, LedgerUnavailable>` ⇒ `503` con `Retry-After`. Las respuestas
+  llevan `status` (`ATTRIBUTED_ORDER | PENDING_CORRELATION`, `RETURNED`) y nunca brazo, experimento
+  ni visitante. Lo que comparten los controllers al borde (`instantOf`, `linesOf`, `idempotent`)
+  vive en `http/boundary.ts`, no en `controllers/` (un archivo allí es una operación).
+- **Firma de plataforma (ADR-029)**: `OPE_MERCHANTS[i].platformSecrets` (uno o dos, ≠ claves;
+  `Merchant.requiresSignature()`). Con secreto, toda operación con `platformKey` (catálogo,
+  órdenes, devoluciones) exige `X-OPE-Timestamp` y `X-OPE-Signature` (`v1=` + hex HMAC-SHA256 de
+  `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
+  cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
+  antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
+  `build-server.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
+  los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
+  compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
+  `MessageAuthenticator` (`node:crypto` en `gateways/merchant/`). Toda operación con
+  `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
+  `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
 - **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
   `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
   es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);

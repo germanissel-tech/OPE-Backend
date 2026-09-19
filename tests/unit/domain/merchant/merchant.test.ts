@@ -46,6 +46,7 @@ describe("Merchant.of", () => {
       ingestKeys: ["k"],
       origins: [origin],
       platformKeys: [],
+      platformSecrets: [],
     });
     expect(back.owns("k")).toBe(true);
     expect(back.allowsOrigin("https://A.EXAMPLE")).toBe(true);
@@ -96,6 +97,7 @@ describe("Merchant.owns", () => {
       ingestKeys: [""],
       origins: [origin],
       platformKeys: [],
+      platformSecrets: [],
     });
     expect(odd.owns("")).toBe(false);
   });
@@ -167,6 +169,7 @@ describe("Merchant platform keys (ADR-025)", () => {
       ingestKeys: ["k"],
       origins: [origin],
       platformKeys: [""],
+      platformSecrets: [],
     });
     expect(odd.ownsPlatformKey("")).toBe(false);
   });

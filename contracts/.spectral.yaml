@@ -20,6 +20,7 @@ functions:
   - requiredCapabilities
   - consumerSecurity
   - outcomesIdempotency
+  - platformSignatureHeaders
   - collectionPagination
 rules:
   oas3-schema: "off"
@@ -220,6 +221,13 @@ rules:
         map: ./api-map.yaml
 
   # FR-021 of feature 006 (ADR-020): server-to-server notifications are idempotent by contract.
+  ope-platform-signature-headers:
+    description: Every operation secured with platformKey declares the X-OPE-Timestamp and X-OPE-Signature header parameters (ADR-029).
+    message: "{{error}}"
+    severity: error
+    given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+    then:
+      function: platformSignatureHeaders
   ope-outcomes-idempotency:
     description: Every outcomes operation declares x-idempotency (key, first, repeat) and a 409.
     message: "{{error}}"

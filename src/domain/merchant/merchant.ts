@@ -3,7 +3,7 @@
 // secret) and registered origins. A Merchant only exists valid: `of` parses every origin once
 // and keeps the two kinds of credential apart, `rehydrate` trusts recorded facts.
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
-import { InvalidOrigin, PlatformKeyCollision, type MerchantError } from "./errors.js";
+import { InvalidOrigin, InvalidPlatformSecret, PlatformKeyCollision, type MerchantError } from "./errors.js";
 import { Origin } from "./origin.js";
 
 /** What configuration or a store says about a merchant; origins as written. */
@@ -15,6 +15,8 @@ export interface MerchantInput {
   origins: readonly string[];
   /** Server-to-server keys of the platform (ADR-025): none, one, or two during a rotation. */
   platformKeys?: readonly string[];
+  /** Signing secrets of the platform (ADR-029): none, one, or two during a rotation. With any, every platform request must be signed. */
+  platformSecrets?: readonly string[];
 }
 
 /** The recorded facts of a merchant; origins already canonical. */
@@ -23,6 +25,7 @@ export interface MerchantRecord {
   ingestKeys: readonly string[];
   origins: readonly Origin[];
   platformKeys: readonly string[];
+  platformSecrets: readonly string[];
 }
 
 export class Merchant {
@@ -30,17 +33,20 @@ export class Merchant {
   readonly ingestKeys: readonly string[];
   readonly origins: readonly Origin[];
   readonly platformKeys: readonly string[];
+  readonly platformSecrets: readonly string[];
 
   private constructor(record: MerchantRecord) {
     this.merchantId = record.merchantId;
     this.ingestKeys = [...record.ingestKeys];
     this.origins = [...record.origins];
     this.platformKeys = [...record.platformKeys];
+    this.platformSecrets = [...record.platformSecrets];
   }
 
   /**
-   * A merchant as configured: every origin must parse and every platform key must be non-empty
-   * and distinct from the ingest keys (the first that fails names its index).
+   * A merchant as configured: every origin must parse, every platform key must be non-empty
+   * and distinct from the ingest keys, and every signing secret must be non-empty and distinct
+   * from every key (the first that fails names its index).
    */
   static of(input: MerchantInput): Result<Merchant, MerchantError> {
     const origins: Origin[] = [];
@@ -53,8 +59,20 @@ export class Merchant {
     for (const [index, key] of platformKeys.entries()) {
       if (key === "" || input.ingestKeys.includes(key)) return fail(new PlatformKeyCollision(index));
     }
+    const platformSecrets = input.platformSecrets ?? [];
+    for (const [index, secret] of platformSecrets.entries()) {
+      if (secret === "" || input.ingestKeys.includes(secret) || platformKeys.includes(secret)) {
+        return fail(new InvalidPlatformSecret(index));
+      }
+    }
     return ok(
-      new Merchant({ merchantId: input.merchantId, ingestKeys: input.ingestKeys, origins, platformKeys }),
+      new Merchant({
+        merchantId: input.merchantId,
+        ingestKeys: input.ingestKeys,
+        origins,
+        platformKeys,
+        platformSecrets,
+      }),
     );
   }
 
@@ -71,6 +89,11 @@ export class Merchant {
   /** Does this platform credential belong to the merchant? Same rules as `owns`. */
   ownsPlatformKey(key: string): boolean {
     return key !== "" && this.platformKeys.includes(key);
+  }
+
+  /** With a signing secret configured, every platform request must be signed (ADR-029). */
+  requiresSignature(): boolean {
+    return this.platformSecrets.length > 0;
   }
 
   /**

@@ -1,0 +1,16 @@
+description: |
+  Valid request rejected on semantics: the `x-invariants` of the corroboration (ADR-007). The
+  `type` names the invariant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      confirmed-in-future:
+        summary: corroboration-confirmed-in-future
+        value:
+          type: urn:ope:problem:corroboration-confirmed-in-future
+          title: The confirmation instant is in the future
+          status: 422
+          detail: confirmedAt is more than 5 minutes ahead of the server clock.
+          instance: /v1/orders/corroborations

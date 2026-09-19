@@ -1,0 +1,24 @@
+description: |
+  Valid request rejected on semantics: one of the `x-invariants` of the order (ADR-007). The
+  `type` names the invariant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      duplicate-item:
+        summary: duplicate-order-item
+        value:
+          type: urn:ope:problem:duplicate-order-item
+          title: Two order lines share a SKU
+          status: 422
+          detail: SKU-1 appears twice in the order.
+          instance: /v1/orders
+      confirmed-in-future:
+        summary: order-confirmed-in-future
+        value:
+          type: urn:ope:problem:order-confirmed-in-future
+          title: The confirmation instant is in the future
+          status: 422
+          detail: confirmedAt is more than 5 minutes ahead of the server clock.
+          instance: /v1/orders

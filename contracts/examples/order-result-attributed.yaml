@@ -1,0 +1,5 @@
+summary: The order was attributed to the session it carried
+value:
+  orderId: A-1
+  status: ATTRIBUTED_ORDER
+  receivedAt: "2026-09-19T12:00:03Z"

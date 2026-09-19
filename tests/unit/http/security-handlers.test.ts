@@ -22,7 +22,9 @@ const merchant = built.value;
 
 describe("platformKey security handler", () => {
   const handler = makePlatformKeySecurity({
-    resolve: (key) => Promise.resolve(key === "p" ? ok(merchant) : fail(new Unauthorized())),
+    keys: { resolve: (key) => Promise.resolve(key === "p" ? ok(merchant) : fail(new Unauthorized())) },
+    signatures: { verify: () => Promise.resolve(ok(undefined)) },
+    clock: { now: () => new Date("2026-09-19T12:00:00.000Z") },
   });
 
   it("grants the platform capabilities and leaves the merchant for the controller and its id for the log", async () => {

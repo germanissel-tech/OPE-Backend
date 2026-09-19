@@ -1,0 +1,38 @@
+type: object
+description: |
+  A confirmed order, bounded by design (01 §10.3): what OPE needs to verify a sale and to
+  correlate it with a session, nothing about the buyer. `sessionId` is the OPE session the
+  storefront attached to the order when it was created (mechanism A, 02 §5.1). `incentive`
+  is the incentive actually applied at the checkout, when any; OPE crosses it with the
+  decision that granted it and records the outcome, whatever it is.
+additionalProperties: false
+required: [orderId, total, items, confirmedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  total:
+    $ref: ./Money.yaml
+  items:
+    type: array
+    description: The lines of the order, SKU and quantity; at least one.
+    minItems: 1
+    maxItems: 500
+    items:
+      $ref: ./OrderItem.yaml
+  confirmedAt:
+    type: string
+    format: date-time
+    description: Instant the platform confirmed the order.
+  sessionId:
+    $ref: ./SessionId.yaml
+  incentive:
+    $ref: ./Incentive.yaml
+x-invariants:
+  - type: duplicate-order-item
+    status: 422
+    rule: items[].sku are unique
+    description: Two lines with the same SKU are one line with the sum, or an error of the platform; OPE does not guess.
+  - type: order-confirmed-in-future
+    status: 422
+    rule: confirmedAt <= server clock + 5 minutes
+    description: A confirmation ahead of the clock is a clock error, not a sale.
