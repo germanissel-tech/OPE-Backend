@@ -5,6 +5,8 @@ export type {
   DecisionExperiment,
   DecisionFacts,
   DecisionInference,
+  DecisionSelection,
+  CandidateRecord,
   EvidenceRecord,
   DecisionOutcome,
   DecisionRecord,

@@ -3,6 +3,8 @@
 export { DecisionPolicy } from "./decision-policy.js";
 export { DEFAULT_DECISION_POLICY, DEFAULT_POLICY_VERSION } from "./default-policy.js";
 export { SessionState } from "./session-state.js";
+export { VisitorState } from "./visitor-state.js";
+export type { VisitorStateRecord } from "./visitor-state.js";
 export type { SessionStateRecord } from "./session-state.js";
 export type {
   Abandonment,

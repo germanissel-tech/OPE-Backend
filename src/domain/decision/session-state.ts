@@ -13,17 +13,21 @@ export interface SessionStateRecord {
   signals: Signals;
   interventions: number;
   updatedAt: Date;
+  /** When the ledger last accepted an intervention of this session; the cooldown counts from here. */
+  lastInterventionAt?: Date;
 }
 
 export class SessionState {
   readonly signals: Signals;
   readonly interventions: number;
   readonly updatedAt: Date;
+  readonly lastInterventionAt?: Date;
 
   private constructor(record: SessionStateRecord) {
     this.signals = record.signals;
     this.interventions = record.interventions;
     this.updatedAt = record.updatedAt;
+    if (record.lastInterventionAt) this.lastInterventionAt = record.lastInterventionAt;
   }
 
   /** A session nothing was seen of yet. */
@@ -38,16 +42,22 @@ export class SessionState {
 
   /** The state after this batch: its signals merged into the session's. */
   absorb(batch: Signals, now: Date): SessionState {
+    return new SessionState({ ...this.#record(), signals: this.signals.merge(batch), updatedAt: now });
+  }
+
+  /** The state after an intervention the ledger accepted: one more, and the cooldown starts now. */
+  withIntervention(now: Date): SessionState {
     return new SessionState({
-      signals: this.signals.merge(batch),
-      interventions: this.interventions,
+      ...this.#record(),
+      interventions: this.interventions + 1,
       updatedAt: now,
+      lastInterventionAt: now,
     });
   }
 
-  /** The state after an intervention the ledger accepted. */
-  withIntervention(now: Date): SessionState {
-    return new SessionState({ signals: this.signals, interventions: this.interventions + 1, updatedAt: now });
+  #record(): SessionStateRecord {
+    const base = { signals: this.signals, interventions: this.interventions, updatedAt: this.updatedAt };
+    return this.lastInterventionAt ? { ...base, lastInterventionAt: this.lastInterventionAt } : base;
   }
 
   addedToCart(): boolean {

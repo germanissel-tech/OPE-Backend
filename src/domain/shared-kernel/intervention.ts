@@ -6,8 +6,19 @@
 export const ANCHORS = ["size_selector", "price", "cta", "policies"] as const;
 export type Anchor = (typeof ANCHORS)[number];
 
-/** Where to render and which curated message version to fetch (feature 015 serves the text). */
+/** The kinds of incentive the commercial policy may grant: a percentage in the MVP (03 §4.8). */
+export const INCENTIVE_KINDS = ["percent"] as const;
+export type IncentiveKind = (typeof INCENTIVE_KINDS)[number];
+
+/** An incentive the chosen intervention carries; how it is redeemed is the platform's (013/014). */
+export interface Incentive {
+  kind: IncentiveKind;
+  value: number;
+}
+
+/** Where to render, which curated message version to fetch (feature 015 serves the text) and, when granted, the incentive. */
 export interface Intervention {
   messageVersionId: string;
   anchor: Anchor;
+  incentive?: Incentive;
 }

@@ -87,6 +87,36 @@ describe("DecisionBase.rehydrate", () => {
     expect(JSON.parse(JSON.stringify(NoOpDecision.of(facts, "control-arm")))).not.toHaveProperty("inference");
   });
 
+  it("keeps the selection of the plane as it was recorded (feature 012)", () => {
+    const selection = {
+      candidates: [
+        {
+          candidateId: "msg_fit_size_selector_information_v0",
+          step: "information",
+          verdict: "acceptable" as const,
+        },
+        {
+          candidateId: "msg_fit_policies_reassurance_v0",
+          step: "reassurance",
+          verdict: "unacceptable" as const,
+          reason: "no-returns-policy",
+        },
+      ],
+      chosen: "msg_fit_size_selector_information_v0",
+      commercialVerdict: { blocked: false },
+      commercialPolicyVersion: "commercial-default-1",
+    };
+    const decision = DecisionBase.rehydrate({
+      ...facts,
+      selection,
+      outcome: "INTERVENE",
+      reason: "fit",
+      intervention,
+    });
+    expect(decision.selection).toEqual(selection);
+    expect(JSON.parse(JSON.stringify(NoOpDecision.of(facts, "control-arm")))).not.toHaveProperty("selection");
+  });
+
   it("a corrupt record is a programming error: INTERVENE without intervention, NO_OP with an unknown reason", () => {
     const broken: DecisionRecord = { ...facts, outcome: "INTERVENE", reason: "barrier-size" };
     expect(() => DecisionBase.rehydrate(broken)).toThrow("without an intervention");

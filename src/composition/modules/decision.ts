@@ -5,13 +5,17 @@
 // module asks for a decision (`decisionPlaneOf`). No operation of its own.
 import {
   DecisionService,
+  DefaultStateService,
   SESSION_WINDOW,
+  VISITOR_WINDOW,
   type DecisionPolicyDirectory,
   type SessionStateStore,
+  type VisitorStateStore,
 } from "../../application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../application/ledger/index.js";
 import { configDecisionPolicyDirectory } from "../../interface-adapters/gateways/decision/config-decision-policy-directory.js";
 import { memorySessionStateStore } from "../../interface-adapters/gateways/decision/memory-session-state-store.js";
+import { memoryVisitorStateStore } from "../../interface-adapters/gateways/decision/memory-visitor-state-store.js";
 import { productTruthOf, type CatalogPorts } from "./catalog.js";
 import { assignmentServiceOf, type ExperimentPorts } from "./experiment.js";
 import type { DecisionPlane } from "../../application/ingestion/index.js";
@@ -25,6 +29,7 @@ export interface DecisionPorts
   extends ExperimentPorts, CatalogPorts, BarrierPorts, Pick<LedgerPorts, "decisions" | "decisionIds"> {
   policies: DecisionPolicyDirectory;
   sessions: SessionStateStore;
+  visitors: VisitorStateStore;
 }
 
 export const configDecisionPorts = (
@@ -40,8 +45,11 @@ export const configDecisionPorts = (
     ),
 });
 
-export const memoryDecisionPorts = (clock: Clock): Bindings<Pick<DecisionPorts, "sessions">> => ({
+export const memoryDecisionPorts = (
+  clock: Clock,
+): Bindings<Pick<DecisionPorts, "sessions" | "visitors">> => ({
   sessions: () => memorySessionStateStore(clock, SESSION_WINDOW),
+  visitors: () => memoryVisitorStateStore(clock, VISITOR_WINDOW),
 });
 
 /** The plane the ingestion module needs; built here so the wiring of the authorities lives with its module. */
@@ -49,7 +57,7 @@ export const decisionPlaneOf = (ports: DecisionPorts): DecisionPlane =>
   new DecisionService({
     assignment: assignmentServiceOf(ports),
     policies: ports.policies,
-    sessions: ports.sessions,
+    state: new DefaultStateService({ sessions: ports.sessions, visitors: ports.visitors }),
     inference: ports.inference,
     truth: productTruthOf(ports),
     recorder: new DefaultDecisionRecorder({

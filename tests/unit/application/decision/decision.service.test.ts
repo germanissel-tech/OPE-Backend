@@ -7,10 +7,19 @@ import {
   type BarrierInference,
 } from "../../../../src/application/barrier/index.js";
 import { DefaultProductTruthService, type CatalogStore } from "../../../../src/application/catalog/index.js";
-import { DecisionService, type SessionStateStore } from "../../../../src/application/decision/index.js";
+import {
+  DecisionService,
+  DefaultStateService,
+  type SessionStateStore,
+  type VisitorStateStore,
+} from "../../../../src/application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../../../src/application/ledger/index.js";
 import { CatalogSnapshot, asProductId, asVariantId } from "../../../../src/domain/catalog/index.js";
-import { DEFAULT_DECISION_POLICY, type SessionState } from "../../../../src/domain/decision/index.js";
+import {
+  DEFAULT_DECISION_POLICY,
+  type SessionState,
+  type VisitorState,
+} from "../../../../src/domain/decision/index.js";
 import { EventBatch, type Event } from "../../../../src/domain/ingestion/index.js";
 import { LedgerUnavailable, asDecisionId, type Decision } from "../../../../src/domain/ledger/index.js";
 import {
@@ -22,6 +31,7 @@ import {
   type Arm,
   type MerchantId,
   type SessionId,
+  type VisitorId,
 } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import {
@@ -89,6 +99,14 @@ function subject(options: Options = {}) {
     },
   };
   const sessions = new Map<string, SessionState>();
+  const visitors = new Map<string, VisitorState>();
+  const visitorStore: VisitorStateStore = {
+    load: (m: MerchantId, v: VisitorId) => Promise.resolve(visitors.get(`${m}/${v}`)),
+    save: (m: MerchantId, v: VisitorId, state) => {
+      visitors.set(`${m}/${v}`, state);
+      return Promise.resolve();
+    },
+  };
   const sessionStore: SessionStateStore = {
     load: (m: MerchantId, s: SessionId) => {
       calls.push("sessions.load");
@@ -132,7 +150,7 @@ function subject(options: Options = {}) {
   const service = new DecisionService({
     assignment,
     policies: { policyFor: () => Promise.resolve(DEFAULT_DECISION_POLICY) },
-    sessions: sessionStore,
+    state: new DefaultStateService({ sessions: sessionStore, visitors: visitorStore }),
     inference,
     truth: new DefaultProductTruthService({ clock: { now: () => NOW }, store }),
     recorder,
@@ -142,12 +160,12 @@ function subject(options: Options = {}) {
     if (!batch.ok) throw new Error(batch.error.message);
     return service.decide({ merchantId: A, batch: batch.value, now: NOW });
   };
-  return { decide, calls, sessions, decisions, entries };
+  return { decide, calls, sessions, visitors, decisions, entries };
 }
 
 describe("DecisionService.decide — order of the authorities (constitution I)", () => {
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
-    const { decide, calls, decisions, sessions } = subject({ catalog: snapshot });
+    const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(calls).toEqual(["assign", "sessions.load", "truth", "infer", "record", "sessions.save"]);
     expect(decision.isIntervention()).toBe(true);
@@ -167,6 +185,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     });
     expect(await decisions.find(A, decision.decisionId)).toBe(decision);
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(1);
+    expect(visitors.get("m_a/vis_00000001")?.interventions).toEqual([NOW]);
   });
 
   it("a NO_OP without a candidate records the inference without a barrier key at all", async () => {

@@ -39,6 +39,8 @@ post:
           examples:
             accepted:
               $ref: ../examples/ingest-result.yaml
+            intervene:
+              $ref: ../examples/ingest-result-intervene.yaml
     "400":
       $ref: ../components/responses/BadRequest.yaml
     "401":

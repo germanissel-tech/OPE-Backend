@@ -2,9 +2,10 @@
 // algebra and the rule set that infers a barrier from them (ADR-026).
 export { Signals } from "./signals.js";
 export type { EventKey, EventRef } from "./signals.js";
-export { FactContext } from "./condition.js";
+export { FactContext, Vocabulary } from "./condition.js";
 export type {
   Condition,
+  ConditionError,
   DwellSecondsCondition,
   EventCountCondition,
   FactCondition,

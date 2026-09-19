@@ -1,8 +1,10 @@
 type: object
 description: |
-  The intervention the decision plane emits: where to render (`anchor`) and which curated
-  message version to fetch from the message catalogue. Until that catalogue exists (feature
-  015) `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_v0`; the
+  The intervention the decision plane emits: where to render (`anchor`), which curated
+  message version to fetch from the message catalogue and, when the commercial policy
+  allowed one, the incentive to show. Until the catalogue exists (feature 015)
+  `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_<step>_v0`
+  (the step of the incentive ladder: information, reassurance, evidence, incentive); the
   SDK renders nothing it cannot resolve.
 additionalProperties: false
 required: [messageVersionId, anchor]
@@ -13,3 +15,5 @@ properties:
     maxLength: 128
   anchor:
     $ref: ./Anchor.yaml
+  incentive:
+    $ref: ./Incentive.yaml

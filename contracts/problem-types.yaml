@@ -111,3 +111,24 @@ types:
   - slug: invalid-policy-evidence
     status: 500
     title: The evidence requirements of a decision policy name an unknown barrier
+  - slug: invalid-commercial-version
+    status: 500
+    title: The commercial policy version is empty
+  - slug: invalid-incentive-ceiling
+    status: 500
+    title: The incentive ceiling is not an integer percentage between 0 and 100
+  - slug: invalid-incentive-ladder
+    status: 500
+    title: The incentive ladder is not strictly increasing within 1 and the ceiling
+  - slug: invalid-margin
+    status: 500
+    title: The margin is not a percentage between 0 and 100
+  - slug: invalid-return-risk
+    status: 500
+    title: The return-risk condition references a fact OPE does not capture
+  - slug: invalid-intervention-budget
+    status: 500
+    title: An interventions budget of the commercial policy is not an integer of at least 1
+  - slug: invalid-cooldown
+    status: 500
+    title: The cooldown of the commercial policy is negative
