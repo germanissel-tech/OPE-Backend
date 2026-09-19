@@ -1,8 +1,8 @@
 // The decision policy a merchant gets when it declares none (ADR-026): the values proposed to
 // the stakeholder in feature 011 — one strong signal plus one supporting one (0.4 + 0.2 over a
-// 0.6 threshold), five seconds of reading, returns before fit before price on a tie, high intent
-// from the checkout, a returns reassurance on a cart abandonment without a signal, one
-// intervention per session, fresh stock and price only for price, an available variant for fit.
+// 0.6 threshold), five seconds of reading, returns before fit before price on a tie, fresh stock
+// and price only for price, an available variant for fit. What is commercial (high intent,
+// abandonment, budgets) lives in the default commercial policy (feature 012).
 // Built by the factories at load time: an invalid default is a programming error.
 import { BarrierRules, type Rule } from "../barrier/index.js";
 import { DecisionPolicy } from "./decision-policy.js";
@@ -160,9 +160,6 @@ function build(): DecisionPolicy {
     rules: rules.value,
     threshold: THRESHOLD,
     priority: ["returns", "fit", "price"],
-    highIntent: "from-checkout",
-    abandonment: "reassure-returns",
-    interventionsPerSession: 1,
     evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
   });
   if (!policy.ok) throw new Error(`The default decision policy is invalid: ${policy.error.message}`);

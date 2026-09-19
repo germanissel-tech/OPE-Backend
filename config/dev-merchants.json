@@ -12,6 +12,15 @@
         "status": "active",
         "startedAt": "2026-09-17T00:00:00Z"
       }
-    ]
+    ],
+    "evidenceProfile": {
+      "returnsPolicy": true,
+      "fitData": true,
+      "authorizedAttributes": ["material"]
+    },
+    "commercialPolicy": {
+      "version": "dev-commercial-1",
+      "marginPercent": 40
+    }
   }
 ]

@@ -7,10 +7,21 @@ import {
   type BarrierInference,
 } from "../../../../src/application/barrier/index.js";
 import { DefaultProductTruthService, type CatalogStore } from "../../../../src/application/catalog/index.js";
-import { DecisionService, type SessionStateStore } from "../../../../src/application/decision/index.js";
+import {
+  DecisionService,
+  DefaultStateService,
+  type SessionStateStore,
+  type VisitorStateStore,
+} from "../../../../src/application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../../../src/application/ledger/index.js";
 import { CatalogSnapshot, asProductId, asVariantId } from "../../../../src/domain/catalog/index.js";
-import { DEFAULT_DECISION_POLICY, type SessionState } from "../../../../src/domain/decision/index.js";
+import { DEFAULT_COMMERCIAL_POLICY, type CommercialPolicy } from "../../../../src/domain/commercial/index.js";
+import {
+  DecisionPolicy,
+  DEFAULT_DECISION_POLICY,
+  type SessionState,
+  type VisitorState,
+} from "../../../../src/domain/decision/index.js";
 import { EventBatch, type Event } from "../../../../src/domain/ingestion/index.js";
 import { LedgerUnavailable, asDecisionId, type Decision } from "../../../../src/domain/ledger/index.js";
 import {
@@ -22,12 +33,14 @@ import {
   type Arm,
   type MerchantId,
   type SessionId,
+  type VisitorId,
 } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import {
   BASE,
   addedToCart,
   checkout,
+  cta,
   dwell,
   removedFromCart,
   sizeSelector,
@@ -35,6 +48,7 @@ import {
 } from "../../../helpers/events.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 import type { AssignmentService } from "../../../../src/application/experiment/index.js";
+import type { MerchantProfile } from "../../../../src/domain/selection/index.js";
 
 const A = asMerchantId("m_a");
 const NOW = new Date(BASE.getTime() + 60_000);
@@ -73,6 +87,9 @@ interface Options {
   catalog?: CatalogSnapshot;
   ledgerDown?: boolean;
   inference?: BarrierInference;
+  decision?: DecisionPolicy;
+  commercial?: CommercialPolicy;
+  profile?: MerchantProfile;
 }
 
 function subject(options: Options = {}) {
@@ -89,6 +106,14 @@ function subject(options: Options = {}) {
     },
   };
   const sessions = new Map<string, SessionState>();
+  const visitors = new Map<string, VisitorState>();
+  const visitorStore: VisitorStateStore = {
+    load: (m: MerchantId, v: VisitorId) => Promise.resolve(visitors.get(`${m}/${v}`)),
+    save: (m: MerchantId, v: VisitorId, state) => {
+      visitors.set(`${m}/${v}`, state);
+      return Promise.resolve();
+    },
+  };
   const sessionStore: SessionStateStore = {
     load: (m: MerchantId, s: SessionId) => {
       calls.push("sessions.load");
@@ -131,8 +156,15 @@ function subject(options: Options = {}) {
   });
   const service = new DecisionService({
     assignment,
-    policies: { policyFor: () => Promise.resolve(DEFAULT_DECISION_POLICY) },
-    sessions: sessionStore,
+    policies: {
+      policiesFor: () =>
+        Promise.resolve({
+          decision: options.decision ?? DEFAULT_DECISION_POLICY,
+          commercial: options.commercial ?? DEFAULT_COMMERCIAL_POLICY,
+          profile: options.profile ?? { returnsPolicy: true, fitData: true, authorizedAttributes: [] },
+        }),
+    },
+    state: new DefaultStateService({ sessions: sessionStore, visitors: visitorStore }),
     inference,
     truth: new DefaultProductTruthService({ clock: { now: () => NOW }, store }),
     recorder,
@@ -142,18 +174,18 @@ function subject(options: Options = {}) {
     if (!batch.ok) throw new Error(batch.error.message);
     return service.decide({ merchantId: A, batch: batch.value, now: NOW });
   };
-  return { decide, calls, sessions, decisions, entries };
+  return { decide, calls, sessions, visitors, decisions, entries };
 }
 
 describe("DecisionService.decide — order of the authorities (constitution I)", () => {
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
-    const { decide, calls, decisions, sessions } = subject({ catalog: snapshot });
+    const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(calls).toEqual(["assign", "sessions.load", "truth", "infer", "record", "sessions.save"]);
     expect(decision.isIntervention()).toBe(true);
     expect(decision.isIntervention() && decision.intervention).toEqual({
       anchor: "size_selector",
-      messageVersionId: "msg_fit_size_selector_v0",
+      messageVersionId: "msg_fit_size_selector_information_v0",
     });
     expect(decision.reason).toBe("fit");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
@@ -167,6 +199,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     });
     expect(await decisions.find(A, decision.decisionId)).toBe(decision);
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(1);
+    expect(visitors.get("m_a/vis_00000001")?.interventions).toEqual([NOW]);
   });
 
   it("a NO_OP without a candidate records the inference without a barrier key at all", async () => {
@@ -177,11 +210,111 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(decision.inference?.trigger).toBe("none");
   });
 
+  it("the ledger keeps the selection: every candidate judged, the chosen one and the commercial version (constitution IX)", async () => {
+    const { decide } = subject({ catalog: snapshot });
+    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    expect(decision.selection).toEqual({
+      candidates: [
+        { candidateId: "msg_fit_size_selector_information_v0", step: "information", verdict: "acceptable" },
+        { candidateId: "msg_fit_policies_reassurance_v0", step: "reassurance", verdict: "acceptable" },
+        { candidateId: "msg_fit_size_selector_evidence_v0", step: "evidence", verdict: "acceptable" },
+      ],
+      chosen: "msg_fit_size_selector_information_v0",
+      commercialVerdict: { blocked: false },
+      commercialPolicyVersion: "commercial-default-1",
+    });
+  });
+
+  it("CONTROL records the selection too, with what would have been chosen", async () => {
+    const { decide } = subject({ catalog: snapshot, arm: "CONTROL" });
+    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    expect(decision.reason).toBe("control-arm");
+    expect(decision.selection).toMatchObject({
+      chosen: "msg_fit_size_selector_information_v0",
+      commercialVerdict: { blocked: false },
+    });
+  });
+
+  it("with an empty profile the gate rejects every claim and the ledger names each reason", async () => {
+    const { decide } = subject({
+      catalog: snapshot,
+      profile: { returnsPolicy: false, fitData: false, authorizedAttributes: [] },
+    });
+    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
+      "msg_fit_size_selector_information_v0",
+    );
+    expect(decision.selection?.candidates.map((c) => c.reason)).toEqual([
+      undefined,
+      "no-returns-policy",
+      "no-fit-data",
+    ]);
+  });
+
+  it("the gate has its own guard on stale stock and price: with a policy that does not pre-check it, the current-price candidate is rejected", async () => {
+    const lenient = DecisionPolicy.rehydrate({
+      version: "lenient",
+      rules: DEFAULT_DECISION_POLICY.rules,
+      threshold: DEFAULT_DECISION_POLICY.threshold,
+      priority: DEFAULT_DECISION_POLICY.priority,
+      evidence: { freshStockAndPrice: [], availableVariant: [] },
+    });
+    const stale = CatalogSnapshot.rehydrate({
+      merchantId: A,
+      capturedAt: new Date(BASE.getTime() - 2 * 3_600_000),
+      receivedAt: BASE,
+      products: snapshot.products,
+    });
+    const { decide } = subject({ catalog: stale, decision: lenient });
+    const decision = await decide([dwell(1, "price", 6000), cta(2)]);
+    // The default commercial policy has no margin: the incentive is blocked, the value message goes out.
+    expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
+      "msg_price_price_information_v0",
+    );
+    expect(decision.selection?.commercialVerdict).toEqual({ blocked: false });
+    expect(decision.selection?.candidates).toEqual([
+      { candidateId: "msg_price_price_information_v0", step: "information", verdict: "acceptable" },
+      {
+        candidateId: "msg_price_price_evidence_v0",
+        step: "evidence",
+        verdict: "unacceptable",
+        reason: "stale-price",
+      },
+      { candidateId: "msg_price_price_incentive_v0", step: "incentive", verdict: "acceptable" },
+    ]);
+    expect(decision.inference?.evidence).toEqual({ truth: "known", stockAndPrice: "stale", available: true });
+  });
+
+  it("without a variant in focus the gate sees no variant: the size recommendation is unacceptable", async () => {
+    const lenient = DecisionPolicy.rehydrate({
+      version: "lenient",
+      rules: DEFAULT_DECISION_POLICY.rules,
+      threshold: DEFAULT_DECISION_POLICY.threshold,
+      priority: DEFAULT_DECISION_POLICY.priority,
+      evidence: { freshStockAndPrice: [], availableVariant: [] },
+    });
+    const { decide } = subject({ catalog: snapshot, decision: lenient });
+    const page = { pageType: "product" as const, productId: "SKU-1" };
+    const decision = await decide([
+      sizeSelector(1),
+      sizeSelector(2),
+      dwell(3, "size_guide", 6000),
+      viewed(4, page),
+    ]);
+    expect(decision.selection?.candidates.at(-1)).toEqual({
+      candidateId: "msg_fit_size_selector_evidence_v0",
+      step: "evidence",
+      verdict: "unacceptable",
+      reason: "variant-unavailable",
+    });
+  });
+
   it("a page without a resolved product → page-context-incomplete without consulting the truth nor inferring", async () => {
     const { decide, calls } = subject({ catalog: snapshot });
     const decision = await decide([viewed(1, { pageType: "listing" })]);
     expect(decision.reason).toBe("page-context-incomplete");
     expect(decision.inference).toBeUndefined();
+    expect(decision.selection).toBeUndefined();
     expect(calls).toEqual(["assign", "sessions.load", "record", "sessions.save"]);
   });
 
@@ -207,6 +340,8 @@ describe("DecisionService.decide — evidence and session", () => {
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision.reason).toBe("evidence-missing");
     expect(decision.inference?.evidence).toEqual({ truth: "absent" });
+    expect(decision.selection?.candidates).toEqual([]);
+    expect(Object.keys(decision.selection ?? {})).not.toContain("chosen");
   });
 
   it("the unavailable variant in focus with fit → variant-unavailable", async () => {

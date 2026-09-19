@@ -4,19 +4,17 @@
 // only exists valid: `of` checks every reference against the closed vocabulary, so a policy that
 // names a fact OPE does not capture never runs. `infer` is pure: same signals and facts, same
 // inference, on any instance.
-import { BLOCKS, EVENT_TYPES, SUBTYPES } from "../ingestion/index.js";
 import { BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
-import { FactContext, type Condition, type FactCondition, type ProductFacts } from "./condition.js";
+import { FactContext, Vocabulary, type Condition, type ProductFacts } from "./condition.js";
 import {
   BarrierWithoutRules,
   DuplicateRuleId,
   InvalidRuleThreshold,
   InvalidRuleWeight,
   UnknownBarrier,
-  UnknownFact,
   type BarrierError,
 } from "./errors.js";
-import type { EventRef, Signals } from "./signals.js";
+import type { Signals } from "./signals.js";
 
 export type RuleStrength = "strong" | "supporting";
 
@@ -118,58 +116,5 @@ function cap(sum: number): number {
 function checkRule(rule: Rule, index: number): BarrierError | undefined {
   if (!(BARRIERS as readonly string[]).includes(rule.barrier)) return new UnknownBarrier(rule.barrier, index);
   if (rule.weight !== undefined && !isShare(rule.weight)) return new InvalidRuleWeight("weight", index);
-  return checkCondition(rule.when, "when", index);
-}
-
-/** The first reference outside the vocabulary or threshold out of range inside a condition, with its path. */
-function checkCondition(condition: Condition, path: string, index: number): BarrierError | undefined {
-  if ("all" in condition) return checkList(condition.all, `${path}.all`, index);
-  if ("any" in condition) return checkList(condition.any, `${path}.any`, index);
-  if ("not" in condition) return checkCondition(condition.not, `${path}.not`, index);
-  return checkFact(condition, path, index);
-}
-
-function checkList(conditions: readonly Condition[], path: string, index: number): BarrierError | undefined {
-  for (const [i, condition] of conditions.entries()) {
-    const invalid = checkCondition(condition, `${path}[${i}]`, index);
-    if (invalid) return invalid;
-  }
-  return undefined;
-}
-
-function checkFact(condition: FactCondition, path: string, index: number): BarrierError | undefined {
-  switch (condition.fact) {
-    case "eventCount":
-      return (
-        checkRef(condition, path, index) ??
-        (isCount(condition.min) ? undefined : new InvalidRuleThreshold(`${path}.min`, index))
-      );
-    case "dwellSeconds":
-      if (!(BLOCKS as readonly string[]).includes(condition.block)) {
-        return new UnknownFact(`${path}.block`, condition.block, index);
-      }
-      return condition.min === undefined || isCount(condition.min)
-        ? undefined
-        : new InvalidRuleThreshold(`${path}.min`, index);
-    case "sequence":
-      return (
-        checkRef(condition.first, `${path}.first`, index) ?? checkRef(condition.then, `${path}.then`, index)
-      );
-    // Stryker disable ConditionalExpression: without its case the last fact falls off the switch and yields undefined all the same
-    case "productAttribute":
-    case "returnedToProduct":
-    case "variantAvailable":
-    case "sessionAddedToCart":
-    case "sessionEnteredCheckout":
-      return undefined;
-    // Stryker restore ConditionalExpression
-  }
-}
-
-function checkRef(ref: EventRef, path: string, index: number): BarrierError | undefined {
-  if (!(EVENT_TYPES as readonly string[]).includes(ref.type))
-    return new UnknownFact(`${path}.type`, ref.type, index);
-  if (ref.subtype === undefined) return undefined;
-  const subtypes = SUBTYPES[ref.type];
-  return subtypes?.includes(ref.subtype) ? undefined : new UnknownFact(`${path}.subtype`, ref.subtype, index);
+  return Vocabulary.captured.check(rule.when, "when", index);
 }

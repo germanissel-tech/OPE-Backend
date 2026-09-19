@@ -1,0 +1,20 @@
+summary: Batch accepted, the price barrier inferred, an incentive granted by the commercial policy
+value:
+  accepted: 2
+  duplicates: 0
+  results:
+    - eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W3
+      status: accepted
+    - eventId: evt_01JBQ2X8N4K3M7P9R2T5V8W4
+      status: accepted
+  decision:
+    decisionId: dec_01JBQ2X8N4K3M7P9R2T5V8X0
+    sessionId: ses_01JBQ2X8N4K3M7P9R2T5V8W1
+    outcome: INTERVENE
+    reason: price
+    intervention:
+      messageVersionId: msg_price_price_incentive_v0
+      anchor: price
+      incentive:
+        kind: percent
+        value: 5

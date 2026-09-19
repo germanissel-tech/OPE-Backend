@@ -1,5 +1,5 @@
-// Feature 011 (FR-023): the default policy encodes the values proposed to the stakeholder and
-// every rule of the spec's Assumptions, by id.
+// Feature 011 (FR-023), reduced by feature 012: the default decision policy encodes the
+// inference values proposed to the stakeholder and every rule of the spec's Assumptions, by id.
 import { describe, expect, it } from "vitest";
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { DEFAULT_DECISION_POLICY, DEFAULT_POLICY_VERSION } from "../../../../src/domain/decision/index.js";
@@ -8,17 +8,15 @@ import { addedToCart, dwell, removedFromCart, sizeSelector } from "../../../help
 const policy = DEFAULT_DECISION_POLICY;
 
 describe("DEFAULT_DECISION_POLICY", () => {
-  it("carries the stakeholder's values", () => {
+  it("carries the stakeholder's inference values; the commercial ones live in the commercial policy", () => {
     expect(policy.version).toBe(DEFAULT_POLICY_VERSION);
     expect(policy.version).toBe("default-1");
     expect(policy.threshold).toBe(0.6);
     expect(policy.rules.weights).toEqual({ strong: 0.4, supporting: 0.2 });
     expect(policy.rules.readingSeconds).toBe(5);
     expect(policy.priority).toEqual(["returns", "fit", "price"]);
-    expect(policy.highIntent).toBe("from-checkout");
-    expect(policy.abandonment).toBe("reassure-returns");
-    expect(policy.interventionsPerSession).toBe(1);
     expect(policy.evidence).toEqual({ freshStockAndPrice: ["price"], availableVariant: ["fit"] });
+    expect(Object.keys(policy).sort()).toEqual(["evidence", "priority", "rules", "threshold", "version"]);
   });
 
   it("declares every rule of the spec with its barrier and strength", () => {

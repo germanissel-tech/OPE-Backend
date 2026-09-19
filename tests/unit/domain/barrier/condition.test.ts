@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   FactContext,
   Signals,
+  Vocabulary,
   type Condition,
   type ProductFacts,
 } from "../../../../src/domain/barrier/index.js";
@@ -120,5 +121,40 @@ describe("FactContext.holds — combinators", () => {
     ["three levels false: all(any(F, not(T)), T)", { all: [{ any: [F, { not: T }] }, T] }, false],
   ])("%s", (_name, condition, expected) => {
     expect(context.holds(condition)).toBe(expected);
+  });
+});
+
+describe("Vocabulary.captured.check (feature 012: shared by the barrier rules and the commercial policy)", () => {
+  const check = (condition: Condition, index?: number) => {
+    const invalid = Vocabulary.captured.check(condition, "when", index);
+    return invalid === undefined ? undefined : { code: invalid.code, details: invalid.details };
+  };
+
+  it("a condition inside the vocabulary is valid", () => {
+    expect(check({ all: [T, { fact: "dwellSeconds", block: "policies" }, { not: F }] })).toBeUndefined();
+    expect(
+      check({
+        fact: "sequence",
+        first: { type: "added_to_cart" },
+        then: { type: "block_dwelled", subtype: "policies" },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("names the offending path, with the rule index only when one is given", () => {
+    expect(check({ any: [T, { fact: "dwellSeconds", block: "footer" as never }] })).toEqual({
+      code: "unknown-fact",
+      details: { path: "when.any[1].block" },
+    });
+    expect(
+      check({ not: { fact: "eventCount", type: "photo_interacted", subtype: "pinch", min: 1 } }, 3),
+    ).toEqual({
+      code: "unknown-fact",
+      details: { path: "when.not.subtype", index: 3 },
+    });
+    expect(check({ fact: "eventCount", type: "cta_approached", min: -1 })).toEqual({
+      code: "invalid-rule-threshold",
+      details: { path: "when.min" },
+    });
   });
 });

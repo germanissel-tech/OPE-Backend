@@ -377,6 +377,22 @@ export type components = {
              */
             timestamp: string;
         };
+        /**
+         * @description The incentive the chosen intervention carries, when the commercial policy of the merchant
+         *     allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
+         *     PROPUESTO — how the incentive is redeemed (a coupon code, its application at the checkout)
+         *     belongs to the merchant's platform and arrives with the outcomes and configuration features
+         *     (013, 014); until then the SDK only shows it.
+         */
+        Incentive: {
+            /**
+             * @description The kind of incentive; only a percentage in the MVP.
+             * @enum {string}
+             */
+            kind: "percent";
+            /** @description The percentage, as the merchant's commercial policy allows it (never above its ceiling). */
+            value: number;
+        };
         /** @description Response to an accepted batch. Carries the result per event and the decision for the session. */
         IngestResult: {
             /** @description Number of events that came in. */
@@ -388,13 +404,16 @@ export type components = {
             results: components["schemas"]["EventResult"][];
         };
         /**
-         * @description The intervention the decision plane emits: where to render (`anchor`) and which curated
-         *     message version to fetch from the message catalogue. Until that catalogue exists (feature
-         *     015) `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_v0`; the
+         * @description The intervention the decision plane emits: where to render (`anchor`), which curated
+         *     message version to fetch from the message catalogue and, when the commercial policy
+         *     allowed one, the incentive to show. Until the catalogue exists (feature 015)
+         *     `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_<step>_v0`
+         *     (the step of the incentive ladder: information, reassurance, evidence, incentive); the
          *     SDK renders nothing it cannot resolve.
          */
         Intervention: {
             anchor: components["schemas"]["Anchor"];
+            incentive?: components["schemas"]["Incentive"];
             /** @description Version of the curated message to render. The text is served by the message catalogue, not by this contract. */
             messageVersionId: string;
         };

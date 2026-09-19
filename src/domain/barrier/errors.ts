@@ -41,8 +41,11 @@ export class UnknownBarrier extends DomainError {
 export class UnknownFact extends DomainError {
   readonly code = "unknown-fact" as const;
   readonly module = MODULE;
-  constructor(path: string, what: string, index: number) {
-    super(`${path}: "${what}" is not in the vocabulary OPE captures.`, { path, index });
+  constructor(path: string, what: string, index?: number) {
+    super(
+      `${path}: "${what}" is not in the vocabulary OPE captures.`,
+      index === undefined ? { path } : { path, index },
+    );
   }
 }
 

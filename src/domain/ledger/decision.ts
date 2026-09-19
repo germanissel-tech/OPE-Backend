@@ -51,6 +51,26 @@ export interface DecisionInference {
   evidence: EvidenceRecord;
 }
 
+/** One candidate intervention as the quality gate judged it (feature 012, constitution IX). */
+export interface CandidateRecord {
+  candidateId: string;
+  step: string;
+  verdict: "acceptable" | "unacceptable";
+  reason?: string;
+}
+
+/**
+ * How the plane selected (feature 012): every candidate with its gate verdict, the one chosen
+ * (or the one the commercial policy blocked), the commercial verdict and the version of the
+ * commercial policy. Strings only: the ledger records what other modules decide.
+ */
+export interface DecisionSelection {
+  candidates: readonly CandidateRecord[];
+  chosen?: string;
+  commercialVerdict: { blocked: boolean; reason?: string };
+  commercialPolicyVersion: string;
+}
+
 /** What every decision carries, whatever its outcome. */
 export interface DecisionFacts {
   decisionId: DecisionId;
@@ -62,6 +82,8 @@ export interface DecisionFacts {
   experiment?: DecisionExperiment;
   /** Absent only when the plane did not get to infer (no product in focus, ledger down before deciding). */
   inference?: DecisionInference;
+  /** Absent when the plane did not get to select (no inference, or no barrier to select for). */
+  selection?: DecisionSelection;
 }
 
 /** A decision as the ledger stores it: the facts plus the outcome and what the outcome carries. */
@@ -79,6 +101,7 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly decidedAt: Date;
   readonly experiment?: DecisionExperiment;
   readonly inference?: DecisionInference;
+  readonly selection?: DecisionSelection;
   abstract readonly outcome: DecisionOutcome;
   /** Why this outcome: a NO_OP reason of the catalogue, or the reason of the intervention. */
   abstract readonly reason: string;
@@ -91,6 +114,7 @@ export abstract class DecisionBase implements DecisionFacts {
     this.decidedAt = facts.decidedAt;
     if (facts.experiment) this.experiment = facts.experiment;
     if (facts.inference) this.inference = facts.inference;
+    if (facts.selection) this.selection = facts.selection;
   }
 
   /** A recorded decision comes back as what it was; a record that fits no shape is corrupt. */

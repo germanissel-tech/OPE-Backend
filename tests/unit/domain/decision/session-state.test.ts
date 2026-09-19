@@ -30,13 +30,18 @@ describe("SessionState", () => {
     expect(second.addedToCart()).toBe(true);
   });
 
-  it("withIntervention counts one more, keeps the signals", () => {
+  it("withIntervention counts one more, keeps the signals and starts the cooldown; absorb keeps it", () => {
     const state = SessionState.empty(t0)
       .absorb(Signals.of([checkout(1)]), t0)
       .withIntervention(t1);
     expect(state.interventions).toBe(1);
     expect(state.enteredCheckout()).toBe(true);
+    expect(state.lastInterventionAt).toBe(t1);
     expect(state.withIntervention(t1).interventions).toBe(2);
+    const later = state.absorb(Signals.of([addedToCart(2)]), new Date(t1.getTime() + 1000));
+    expect(later.lastInterventionAt).toBe(t1);
+    expect(later.interventions).toBe(1);
+    expect(SessionState.empty(t0).lastInterventionAt).toBeUndefined();
   });
 
   it("rehydrate keeps a recorded state as is", () => {

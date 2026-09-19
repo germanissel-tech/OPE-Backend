@@ -46,9 +46,9 @@ evidencia y veredicto.
    puerto `BarrierInference`); `decision` es el orquestador (`DecisionService`: asignación →
    inferencia → evidencia → veredicto → ledger) y el veredicto. La ingesta no conoce al plano:
    declara el puerto `DecisionPlane` y la composición lo enlaza (inversión de dependencia, sin
-   ciclo en el mapa de contextos). El veredicto de la 011 es la semilla de la política
-   comercial (01 §4.5); la 012 decide si la política completa (techo, margen, cooldown) se
-   separa en su módulo.
+   ciclo en el mapa de contextos). El veredicto de la 011 fue la semilla de la política
+   comercial (01 §4.5); la 012 la separó en su módulo (`commercial`, ADR-027), junto con la
+   selección y el quality gate (`selection`): `DecisionPolicy` conserva sólo la inferencia.
 5. **La política es parte del experimento.** Cambiarla con un experimento activo es un
    experimento nuevo (misma regla que la semilla y el reparto, ADR-022); `version` cambia y
    cada decisión del ledger registra `policyVersion`, las confianzas de las tres barreras, las

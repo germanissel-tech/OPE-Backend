@@ -6,9 +6,12 @@ import path from "node:path";
 import { Experiment } from "../domain/experiment/index.js";
 import { Merchant } from "../domain/merchant/index.js";
 import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
+import { parseCommercialPolicy, parseEvidenceProfile } from "./commercial-policy-config.js";
 import { ConfigError, type MerchantField, type Variable } from "./config-error.js";
 import { parseDecisionPolicy } from "./decision-policy-config.js";
+import type { CommercialPolicy } from "../domain/commercial/index.js";
 import type { DecisionPolicy } from "../domain/decision/index.js";
+import type { MerchantProfile } from "../domain/selection/index.js";
 
 /** A merchant as configured: the entity and its experiments (at most one active, ADR-022). */
 export interface MerchantConfig {
@@ -16,6 +19,10 @@ export interface MerchantConfig {
   experiments: readonly Experiment[];
   /** The merchant's decision policy (ADR-026); absent means the default one. */
   decisionPolicy?: DecisionPolicy;
+  /** The merchant's commercial policy (ADR-027); absent means the default one. */
+  commercialPolicy?: CommercialPolicy;
+  /** What the merchant declares it can sustain (ADR-027); absent means nothing. */
+  evidenceProfile?: MerchantProfile;
 }
 
 export interface AppConfig {
@@ -133,15 +140,24 @@ function parseMerchants(raw: string): MerchantConfig[] {
     const merchant = Merchant.of({ merchantId: asMerchantId(merchantId), ingestKeys, origins, platformKeys });
     if (!merchant.ok) throw rejected(`merchants[${i}]`, merchant.error);
     const experiments = parseExperiments(m["experiments"], i, merchant.value);
-    const rawPolicy = m["decisionPolicy"];
-    return rawPolicy === undefined
-      ? { merchant: merchant.value, experiments }
-      : {
-          merchant: merchant.value,
-          experiments,
-          decisionPolicy: parseDecisionPolicy(rawPolicy, `merchants[${i}].decisionPolicy`),
-        };
+    return { merchant: merchant.value, experiments, ...policiesOf(m, i) };
   });
+}
+
+/** The optional policies of a merchant, each parsed only when present (absent means its default). */
+function policiesOf(m: Record<string, unknown>, i: number): Partial<MerchantConfig> {
+  const policies: Partial<MerchantConfig> = {};
+  const decision = m["decisionPolicy"];
+  if (decision !== undefined)
+    policies.decisionPolicy = parseDecisionPolicy(decision, `merchants[${i}].decisionPolicy`);
+  const commercial = m["commercialPolicy"];
+  if (commercial !== undefined) {
+    policies.commercialPolicy = parseCommercialPolicy(commercial, `merchants[${i}].commercialPolicy`);
+  }
+  const profile = m["evidenceProfile"];
+  if (profile !== undefined)
+    policies.evidenceProfile = parseEvidenceProfile(profile, `merchants[${i}].evidenceProfile`);
+  return policies;
 }
 
 /** Experiments of a merchant: optional list; each one validated; at most one active (ADR-022). */

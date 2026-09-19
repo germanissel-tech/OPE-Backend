@@ -1,0 +1,11 @@
+# Additions to contracts/no-op-reasons.yaml (feature 012).
+reasons:
+  - slug: no-acceptable-candidate
+    emitter: selection
+    description: Every candidate intervention of the inferred barrier made a claim the evidence or the merchant's profile cannot sustain (01 §4.4); the quality gate rejected them all.
+  - slug: commercial-policy-blocked
+    emitter: commercial
+    description: The commercial policy of the merchant blocked the candidate that would have been shown (margin not configured, incentives not allowed, or a high return risk) and no other candidate was acceptable (01 §4.5).
+  - slug: visitor-fatigue
+    emitter: commercial
+    description: The visitor already received the interventions per day the merchant's commercial policy allows, across sessions.

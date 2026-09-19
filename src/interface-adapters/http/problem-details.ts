@@ -57,14 +57,30 @@ export const PROBLEM_TYPES = {
     status: 500,
     title: "The priority of a decision policy is not a permutation of the three barriers",
   },
-  "invalid-session-budget": {
-    status: 500,
-    title: "The interventions per session of a decision policy are not an integer of at least 1",
-  },
   "invalid-policy-evidence": {
     status: 500,
     title: "The evidence requirements of a decision policy name an unknown barrier",
   },
+  // Commercial policy configuration errors (ADR-027): they stop the start; no operation emits them.
+  "invalid-commercial-version": { status: 500, title: "The commercial policy version is empty" },
+  "invalid-incentive-ceiling": {
+    status: 500,
+    title: "The incentive ceiling is not an integer percentage between 0 and 100",
+  },
+  "invalid-incentive-ladder": {
+    status: 500,
+    title: "The incentive ladder is not strictly increasing within 1 and the ceiling",
+  },
+  "invalid-margin": { status: 500, title: "The margin is not a percentage between 0 and 100" },
+  "invalid-return-risk": {
+    status: 500,
+    title: "The return-risk condition references a fact OPE does not capture",
+  },
+  "invalid-intervention-budget": {
+    status: 500,
+    title: "An interventions budget of the commercial policy is not an integer of at least 1",
+  },
+  "invalid-cooldown": { status: 500, title: "The cooldown of the commercial policy is negative" },
 } as const satisfies Record<string, { status: number; title: string }>;
 
 export type ProblemSlug = keyof typeof PROBLEM_TYPES;

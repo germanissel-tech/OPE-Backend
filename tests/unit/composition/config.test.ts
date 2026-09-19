@@ -167,9 +167,6 @@ describe("readConfig", () => {
     version: "sport-2",
     threshold: 0.6,
     priority: ["returns", "fit", "price"],
-    highIntent: "from-checkout",
-    abandonment: "reassure-returns",
-    interventionsPerSession: 1,
     evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
     rules: [
       {
@@ -253,14 +250,19 @@ describe("readConfig", () => {
       "merchants[0].decisionPolicy.priority is invalid (",
     ],
     [
-      "highIntent unknown",
-      { decisionPolicy: { ...policy, highIntent: "sometimes" } },
-      "merchants[0].decisionPolicy.highIntent must be one of from-cart, from-checkout, never.",
+      "highIntent, moved to the commercial policy",
+      { decisionPolicy: { ...policy, highIntent: "from-checkout" } },
+      "merchants[0].decisionPolicy.highIntent moved to commercialPolicy.",
     ],
     [
-      "interventions zero (domain)",
-      { decisionPolicy: { ...policy, interventionsPerSession: 0 } },
-      "merchants[0].decisionPolicy.interventionsPerSession is invalid (",
+      "interventionsPerSession, moved to the commercial policy",
+      { decisionPolicy: { ...policy, interventionsPerSession: 1 } },
+      "merchants[0].decisionPolicy.interventionsPerSession moved to commercialPolicy.",
+    ],
+    [
+      "abandonment, moved to the commercial policy",
+      { decisionPolicy: { ...policy, abandonment: "nothing" } },
+      "merchants[0].decisionPolicy.abandonment moved to commercialPolicy.",
     ],
     [
       "evidence with a stranger (domain)",
@@ -342,6 +344,131 @@ describe("readConfig", () => {
       "merchants[0].decisionPolicy.rules[0].when.then is not an object.",
     ],
   ])("decisionPolicy %s is refused naming the field", (_name, over, message) => {
+    const raw = JSON.stringify([{ ...merchant, ...over }]);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
+    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
+  });
+
+  const commercial = {
+    version: "sport-commercial-1",
+    maxIncentivePercent: 15,
+    incentiveLadderPercent: [5, 10, 15],
+    marginPercent: 40,
+    directIncentiveOnPrice: false,
+    returnRisk: { fact: "sessionAddedToCart" },
+    highIntent: "from-cart",
+    abandonment: "nothing",
+    interventionsPerSession: 2,
+    cooldownSeconds: 30,
+    interventionsPerVisitorPerDay: 5,
+  };
+
+  it("commercialPolicy is optional; a valid one is built, and one with only a version takes the defaults", () => {
+    const merchants = readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants;
+    expect(merchants[0]?.commercialPolicy).toBeUndefined();
+    expect(merchants[0]?.evidenceProfile).toBeUndefined();
+    const full = readConfig(
+      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, commercialPolicy: commercial }]) },
+      noFile,
+    ).merchants[0]?.commercialPolicy;
+    expect(full).toMatchObject({
+      version: "sport-commercial-1",
+      maxIncentivePercent: 15,
+      incentiveLadderPercent: [5, 10, 15],
+      marginPercent: 40,
+      directIncentiveOnPrice: false,
+      returnRisk: { fact: "sessionAddedToCart" },
+      highIntent: "from-cart",
+      abandonment: "nothing",
+      interventionsPerSession: 2,
+      cooldownSeconds: 30,
+      interventionsPerVisitorPerDay: 5,
+    });
+    const minimal = readConfig(
+      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, commercialPolicy: { version: "c-1" } }]) },
+      noFile,
+    ).merchants[0]?.commercialPolicy;
+    expect(minimal).toMatchObject({
+      version: "c-1",
+      maxIncentivePercent: 10,
+      incentiveLadderPercent: [5, 10],
+      directIncentiveOnPrice: true,
+      highIntent: "from-checkout",
+      abandonment: "reassure-returns",
+      interventionsPerSession: 1,
+      cooldownSeconds: 0,
+      interventionsPerVisitorPerDay: 3,
+    });
+    expect(minimal?.marginPercent).toBeUndefined();
+  });
+
+  it("evidenceProfile: anything absent is false or empty", () => {
+    const read = (evidenceProfile: unknown) =>
+      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, evidenceProfile }]) }, noFile).merchants[0]
+        ?.evidenceProfile;
+    expect(read({})).toEqual({ returnsPolicy: false, fitData: false, authorizedAttributes: [] });
+    expect(read({ returnsPolicy: true, authorizedAttributes: ["material"] })).toEqual({
+      returnsPolicy: true,
+      fitData: false,
+      authorizedAttributes: ["material"],
+    });
+  });
+
+  it.each<[string, Record<string, unknown>, string]>([
+    ["commercial not an object", { commercialPolicy: 3 }, "merchants[0].commercialPolicy is not an object."],
+    [
+      "commercial without version",
+      { commercialPolicy: {} },
+      "merchants[0].commercialPolicy.version must be a string.",
+    ],
+    [
+      "ladder not numbers",
+      { commercialPolicy: { ...commercial, incentiveLadderPercent: ["5"] } },
+      "merchants[0].commercialPolicy.incentiveLadderPercent must be an array of numbers.",
+    ],
+    [
+      "a step above the ceiling (domain)",
+      { commercialPolicy: { ...commercial, incentiveLadderPercent: [5, 20] } },
+      "merchants[0].commercialPolicy.incentiveLadderPercent[1] is invalid (",
+    ],
+    [
+      "margin out of range (domain)",
+      { commercialPolicy: { ...commercial, marginPercent: 150 } },
+      "merchants[0].commercialPolicy.marginPercent is invalid (",
+    ],
+    [
+      "return risk with an unknown block (domain)",
+      {
+        commercialPolicy: { ...commercial, returnRisk: { all: [{ fact: "dwellSeconds", block: "footer" }] } },
+      },
+      "merchants[0].commercialPolicy.returnRisk.all[0].block is invalid (",
+    ],
+    [
+      "highIntent unknown",
+      { commercialPolicy: { ...commercial, highIntent: "sometimes" } },
+      "merchants[0].commercialPolicy.highIntent must be one of from-cart, from-checkout, never.",
+    ],
+    [
+      "cooldown negative (domain)",
+      { commercialPolicy: { ...commercial, cooldownSeconds: -5 } },
+      "merchants[0].commercialPolicy.cooldownSeconds is invalid (",
+    ],
+    [
+      "visitor budget zero (domain)",
+      { commercialPolicy: { ...commercial, interventionsPerVisitorPerDay: 0 } },
+      "merchants[0].commercialPolicy.interventionsPerVisitorPerDay is invalid (",
+    ],
+    [
+      "profile with a non-boolean",
+      { evidenceProfile: { returnsPolicy: "yes" } },
+      "merchants[0].evidenceProfile.returnsPolicy must be a boolean.",
+    ],
+    [
+      "profile attributes not strings",
+      { evidenceProfile: { authorizedAttributes: [1] } },
+      "merchants[0].evidenceProfile.authorizedAttributes must be an array of strings.",
+    ],
+  ])("commercialPolicy / evidenceProfile %s is refused naming the field", (_name, over, message) => {
     const raw = JSON.stringify([{ ...merchant, ...over }]);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);

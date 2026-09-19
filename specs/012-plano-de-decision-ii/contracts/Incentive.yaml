@@ -1,0 +1,21 @@
+# New schema contracts/components/schemas/Incentive.yaml (feature 012), referenced from
+# Intervention.incentive (optional): a compatible addition to a response.
+type: object
+description: |
+  The incentive the chosen intervention carries, when the commercial policy of the merchant
+  allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
+  PROPUESTO — how the incentive is redeemed (a coupon code, its application at the checkout)
+  belongs to the merchant's platform and arrives with the outcomes and configuration features
+  (013, 014); until then the SDK only shows it.
+additionalProperties: false
+required: [kind, value]
+properties:
+  kind:
+    type: string
+    description: The kind of incentive; only a percentage in the MVP.
+    enum: [percent]
+  value:
+    type: integer
+    description: The percentage, as the merchant's commercial policy allows it (never above its ceiling).
+    minimum: 1
+    maximum: 100
