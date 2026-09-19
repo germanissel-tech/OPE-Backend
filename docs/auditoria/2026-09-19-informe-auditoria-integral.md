@@ -1391,7 +1391,209 @@ Refutados en esta fase: F-002 (`src/application/shared-kernel/decorators/logged-
 
 ### 3.B Robustez
 
-(pendiente: fase 2)
+Fase 2 (handoff §5.B: fail-closed en cada borde, concurrencia y crecimiento en memoria, relojes, `throw` que deberían ser resultados, S-01/S-05/S-06, supuestos de instancia única). 6 hallazgos confirmados (`trabajo/hallazgos/fase-2.json`, verificados): 2 de severidad alta, 1 media, 3 baja; 2 refutados (F-049, F-050; motivo en §5).
+
+**Lo que se verificó y está bien** (se cita para que el estado global no lo olvide):
+
+- Bordes tipados: todo error de negocio llega a HTTP por `toProblem` (`type` del código, status y título del catálogo, `Retry-After` por código); un `date-time` mal formado lo rechaza Ajv con `ajv-formats` antes del handler (400), y la guarda `instantOf` sólo cubre el error de programación; un `throw` dentro de un handler es `internal-error` 500 (`build-server.ts:354`, `:411`). Todas las escrituras a ledgers devuelven `Result<…, LedgerUnavailable>` (asignación, decisión, exposición, orden, corroboración) y los tres caminos de degradación están probados (`tests/helpers/unavailable-ledgers.ts`): ingesta → `NO_OP` `ledger-unavailable` 202; exposición y outcomes → 503 con `Retry-After`.
+- Relojes: cinco tolerancias de +5 min (eventos, catálogo, órdenes, corroboraciones, firma ±5) y 24 h hacia atrás en eventos, consistentes entre sí y con el contrato; `02` no fija cifras. Un `capturedAt` o `confirmedAt` muy viejo se acepta y falla cerrado por frescura (`unknown`/`stale`).
+- Concurrencia en memoria: `memoryOrderLedger` decide primero/repetido/conflicto en una sección síncrona y lo prueba con dos notificaciones simultáneas; `NotifyReturnUseCase` lee, construye y escribe, pero el puerto decide atómicamente y la orden no cambia entre lecturas.
+- Cuerpos grandes: `keepRawBodies` guarda los bytes en un `WeakMap` por request (se liberan con él) y el HMAC va sobre esos bytes en el security handler, antes de validar el body.
+- `throw` en `domain/` y `application/`: seis, todos errores de programación según CLAUDE.md (defaults que no construyen, lote vacío que el contrato prohíbe, registro corrupto del ledger); ninguno en `application/`. F-050 lo refuta con un riesgo para §6.
+- S-05 y S-06: F-042 (fase 1) y F-049 refutan que `DecisionService` decida o transporte lo que sería del dominio; queda como riesgo de tamaño para 014/015. S-06 es F-012 (fase 1, baja): ocho motivos de cambio en `build-server.ts`, y en esta fase el mismo archivo ancla F-045.
+
+**Lo que no está bien** se concentra en dos hechos que hoy no se ven en el perfil local y aparecen con la primera dependencia real (017): los puertos de lectura no tienen canal de fallo (F-043) y los dos planos corren en el mismo event loop (F-045).
+
+#### F-043 (alta) — Los puertos de lectura sólo pueden fallar lanzando: un store caído termina en 500, no en `NO_OP`
+
+`src/application/ingestion/ports/event-dedup.ts:7` · regla `robustez-read-ports-can-only-fail-by-throwing` · fuente `constitution#II. Fail-closed`
+
+Cita:
+
+```ts
+  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<ReadonlySet<EventId>>;
+```
+
+Antes:
+
+```ts
+// every read the pipeline makes has no failure channel; a store that is down can only throw, and the
+// application may not catch (ope/no-generic-catch-in-application), so the request ends in 500 `internal-error`:
+  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<ReadonlySet<EventId>>;            // ingestion
+  load(merchantId: MerchantId, sessionId: SessionId): Promise<SessionState | undefined>;                  // decision (session, visitor)
+  policiesFor(merchantId: MerchantId): Promise<MerchantPolicies>;                                          // decision
+  activeFor(merchantId: MerchantId): Promise<Experiment | undefined>;                                     // experiment
+  find(merchantId: MerchantId, experimentId: ExperimentId, visitorId: VisitorId): Promise<Assignment | undefined>; // experiment
+  current(merchantId: MerchantId): Promise<CatalogSnapshot | undefined>;                                  // catalog
+  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;                    // ledger (exposure)
+  bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly Decision[]>;                  // ledger (orders)
+```
+
+Después:
+
+```ts
+// the same channel the writes have (ADR-021): the store answers or says it cannot, and the caller fails closed
+  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<Result<ReadonlySet<EventId>, LedgerUnavailable>>;
+// IngestBatchUseCase / DecisionService: a `fail` on a read degrades to NO_OP `ledger-unavailable` (202) as a failed write does today;
+// ConfirmExposureUseCase / NotifyOrderUseCase: 503 with Retry-After, as their writes do today.
+// (`LedgerUnavailable` or a kernel `StoreUnavailable`; the NO_OP reason catalogue is a string with a pattern, so a new reason is compatible)
+```
+
+Prueba que lo cubriría: tests/helpers/unavailable-ledgers.ts already fakes writes that answer `unavailable` (ADR-021 §6); the same helper with reads that answer `unavailable` — `claim`, `load`, `policiesFor`, `activeFor`, `current`, `find`, `bySession` — would prove that ingest answers 202 NO_OP `ledger-unavailable`, exposure 503 and orders 503. Today no such test exists because no such answer exists: on the local profile the memory gateways never fail, so the gap is latent; it becomes real with the store the 017 puts behind these ports, and ADR-021 promises that store "sin tocar dominio ni aplicación", which these signatures do not allow
+
+#### F-045 (alta) — Los dos planos comparten un solo event loop: un snapshot de 6 MiB detiene la ingesta 140 ms
+
+`src/infrastructure/http/build-server.ts:181` · regla `robustez-both-planes-share-one-event-loop` · fuente `constitution#IV. Dos caminos, dos garantías`
+
+Cita:
+
+```ts
+const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });
+keepRawBodies(app);
+```
+
+Antes:
+
+```ts
+// one Fastify instance serves every consumer: the SDK's ingest and exposure (decision plane) next to the
+// platform's catalogue, orders, returns (measurement plane). Their work is synchronous on the same thread:
+// the raw-body parser (parseAs: "buffer") + JSON.parse + Ajv over up to BODY_LIMIT_MIB = 32 MiB, the HMAC over
+// the raw bytes (createHmac, gateways/merchant/node-message-authenticator.ts:8) and CatalogSnapshot.of over
+// every variant. Measured on the local profile (tests/integration/catalog-size.test.ts): a pilot-sized
+// snapshot of 5 000 × 10 variants, 6.0 MiB, takes 140 ms in one synchronous stretch; an ingest request
+// that arrives meanwhile waits the whole stretch (its own p95 is 1.3 ms, tests/integration/ingest-latency.test.ts).
+```
+
+Después:
+
+```ts
+// the planes are two deployments of the same code: MODULES is a parameter of bootstrap (it already is:
+// `bootstrap(config, { modules? })`), and the local profile keeps them together while a `decision` profile
+// serves the `ingest`/`decision` tags and a `measurement` profile the `outcomes` tag, each with its own
+// bodyLimit (50 events vs a snapshot). Until then, the stall is a written limit: 01 §9 style, with the
+// measured figure, and `bodyLimit` per route (Fastify `routeOptions.bodyLimit`) so the SDK route never
+// accepts more than a batch of 50 events needs.
+```
+
+Prueba que lo cubriría: none today. A test that starts the server (tests/helpers/test-app.ts with a listening socket) and fires one `PUT /v1/catalog` of the pilot size while a client measures `POST /v1/events` latency would show the ingest p99 jumping from ~1 ms to ≥ the snapshot's synchronous time; `npm run test:load` (autocannon, informative) could take a catalogue writer as a second scenario. Constitution IV: the decision plane is "síncrono, acotado" and the measurement plane "MUST NOT compartir el presupuesto de latencia del plano de decisión"; today they share the event loop and nothing — ADR, profile header, quickstart — says so. The global `bodyLimit` of 32 MiB reaches `POST /v1/events` too, whose credential lives in the merchant's page (revisited in fase 3, seguridad)
+
+#### F-044 (media) — `CatalogStore.replace` no puede decir "no disponible" y `PUT /v1/catalog` no declara 503
+
+`src/application/catalog/ports/catalog-store.ts:9` · regla `robustez-catalog-write-has-no-unavailable-answer-and-the-contract-no-503` · fuente `guide#Notas operativas del contrato`
+
+Cita:
+
+```ts
+  /** Replaces the current snapshot and records its `receivedAt` among the receipts. */
+  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<void>;
+```
+
+Antes:
+
+```ts
+  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<void>;
+// contracts/paths/catalog.yaml: responses 200, 201, 400, 401, 403, 409, 422, 500 — no 503
+```
+
+Después:
+
+```ts
+  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<Result<void, LedgerUnavailable>>;
+// UpsertCatalogSnapshotUseCase: `if (!written.ok) return fail(written.error)` → 503 `ledger-unavailable` with Retry-After,
+// as orders, returns and corroborations answer the same platform consumer (contracts/paths/orders.yaml:74)
+```
+
+Prueba que lo cubriría: tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts with a store whose `replace` answers `unavailable` (tests/helpers/unavailable-ledgers.ts pattern) expecting `{ ok: false, error: { code: "ledger-unavailable" } }`, and tests/integration/catalog.test.ts expecting 503 + `Retry-After`. CLAUDE.md § Notas operativas fixes for the platform consumer that "Todo record() devuelve Result<…, LedgerUnavailable> ⇒ 503 con Retry-After"; the catalog is the fourth operation of that consumer and the only one whose write cannot say so — the platform cannot tell a snapshot that was not kept from a bug
+
+#### F-046 (baja) — El presupuesto por sesión es un leer-modificar-escribir entre `await`s; atómico hoy por accidente
+
+`src/application/decision/services/decision.service.ts:89` · regla `robustez-session-budget-is-a-read-modify-write-across-awaits` · fuente `clarity:unwritten-atomicity-assumption`
+
+Cita:
+
+```ts
+const remembered = await memory.recall(whose, now);
+const session = remembered.session.absorb(Signals.of(batch.events), now);
+```
+
+Antes:
+
+```ts
+    const remembered = await memory.recall(whose, now);
+    // … five awaits later (assignment, policies, truth, inference, recorder) …
+    await memory.remember(whose, decision.isIntervention() ? { session: session.withIntervention(now), … } : { session });
+```
+
+Después:
+
+```ts
+// either the budget check moves next to the write, as OrderLedger does for orders (01 §6: no await between
+// the check and the write): `SessionStateStore.saveIfUnchanged(…, expected)` or a per-session lock the
+// store owns; or the assumption is written where it holds: memory-session-state-store.ts:4 already says
+// "the plane always loads a session before it saves it" — add "and one batch of a session at a time:
+// the local profile gives that for free (Promise.resolve resolves before the next request is read)".
+```
+
+Prueba que lo cubriría: tests/integration/decision-plane.test.ts has "one intervention per session" with sequential batches; the interleaved case (two batches of the same session in flight, budgets of 1, cooldown > 0) cannot be written today because with memory ports the whole `decide()` runs in one microtask chain and the second request is not even parsed until the first answered — which is exactly the unwritten assumption. Constitution IV declares single-instance guarantees and leaves exactly-once out, so this is not a violation; it is a lost update waiting for the first port with real I/O (017): two batches of one session then read `interventions: 0` both, both intervene, both write `1`
+
+#### F-047 (baja) — Los ledgers en memoria crecen sin límite y nada lo dice (S-01)
+
+`src/interface-adapters/gateways/ledger/memory-decision-ledger.ts:9` · regla `robustez-s01-memory-ledgers-grow-without-bound-and-nothing-says-it` · fuente `clarity:unstated-profile-limit`
+
+Cita:
+
+```ts
+const decisions = new Map<string, Decision>();
+const sessions = new Map<string, Decision[]>();
+```
+
+Antes:
+
+```ts
+// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant
+// does not exist for whoever asks. A secondary index merchant + session serves `bySession`.
+```
+
+Después:
+
+```ts
+// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant
+// does not exist for whoever asks. A secondary index merchant + session serves `bySession`.
+// Unbounded by design: it stands in for the durable ledger (01 §9) on the local profile, so nothing
+// is pruned and `record` copies the session's array; not a profile for traffic (ADR-018, 017).
+```
+
+Prueba que lo cubriría: none: a comment (or one paragraph in ADR-018 / profiles/local.ts). S-01 of the handoff, confirmed as stated: the five memory ledgers (`memoryDecisionLedger`, `memoryOrderLedger`, `memoryCorroborationLedger`, `memoryAssignmentLedger`, `memoryExposureLedger`) never prune while the three hot-state gateways do (SESSION_WINDOW, VISITOR_WINDOW, DEDUP_WINDOW); 01 §9 guarantees durability, so the memory ledgers stand in for a database and growing is what a database does — but neither ADR-018 (the profile), ADR-021 ("En memoria la aceptación es inmediata") nor the file says that the local profile is not meant to hold a day of traffic
+
+#### F-048 (baja) — La tolerancia de reloj de 5 minutos está declarada cuatro veces
+
+`src/application/merchant/policies/signature-window.ts:4` · regla `robustez-five-minute-clock-skew-declared-four-times` · fuente `clarity:duplicate-policy-value`
+
+Cita:
+
+```ts
+const SIGNATURE_WINDOW_MINUTES = 5;
+export const SIGNATURE_WINDOW_MS = minutes(SIGNATURE_WINDOW_MINUTES);
+```
+
+Antes:
+
+```ts
+// merchant/policies/signature-window.ts:4   SIGNATURE_WINDOW_MINUTES = 5
+// domain/ingestion/event-batch.ts:19          TOLERANCE_FUTURE_MINUTES = 5
+// domain/catalog/catalog-snapshot.ts:51       CAPTURE_TOLERANCE_MINUTES = 5
+// domain/outcomes/order.ts:53                 CONFIRMATION_TOLERANCE_MINUTES = 5
+```
+
+Después:
+
+```ts
+// src/domain/shared-kernel/time.ts — one fact: how far ahead of OPE's clock a client's clock may be
+export const CLOCK_SKEW_TOLERANCE_MS = minutes(5);
+// the four sites read it; the signature window keeps its own name if its symmetry (± 5 min) is a separate decision
+```
+
+Prueba que lo cubriría: tests/unit/domain/ingestion/event-batch.test.ts:71 ("the tolerance is the one the contract publishes") and its siblings pin each value separately; one test on the kernel constant plus the contract text (`x-invariants` of EventBatch, CatalogSnapshot, Order, ADR-029) would keep the four in step. Consistent with each other and with 02 today (02 fixes no figure); they can only drift apart because they are four numbers
 
 ### 3.C Escalabilidad y camino a la 017
 
@@ -1433,7 +1635,19 @@ Refutados en esta fase: F-002 (`src/application/shared-kernel/decorators/logged-
 
 ## 6. Riesgos para la 014–017
 
-(pendiente: fases 2–3; cierre en fase 5)
+Borrador de la fase 2 (se completa en las fases 3 y 5). Riesgo · dónde vive el supuesto · feature que lo absorbe.
+
+| Riesgo                                                                                                                                                                                                           | `file:line` del supuesto                                                                                                                                       | Feature                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Un store de lectura caído (dedup, estado de sesión/visitante, políticas, experimentos, catálogo, ledger) produce 500 y no `NO_OP`/503; los puertos no pueden decir "no disponible" (F-043)                       | `src/application/ingestion/ports/event-dedup.ts:7` y los siete puertos listados en F-043                                                                       | 017                                     |
+| El plano de medición (catálogo, órdenes, devoluciones) y el de decisión comparten el event loop: un snapshot detiene la ingesta el tiempo de su parseo, validación y HMAC (F-045)                                | `src/infrastructure/http/build-server.ts:181` (una instancia de Fastify, `bodyLimit` global)                                                                   | 017 (despliegue)                        |
+| Dos lotes de una sesión en vuelo con I/O real duplican una intervención o saltan el cooldown: el presupuesto se lee y escribe entre `await`s (F-046)                                                             | `src/application/decision/services/decision.service.ts:89-118`; `memory-session-state-store.ts:4` ("the plane always loads a session before it saves it")      | 017                                     |
+| Los ledgers en memoria no podan (F-047): el perfil local no aguanta un día de tráfico y nada lo dice                                                                                                             | `memory-decision-ledger.ts:9`, `memory-order-ledger.ts:9`, `memory-corroboration-ledger.ts:8`, `memory-assignment-ledger.ts:13`, `memory-exposure-ledger.ts:7` | 017                                     |
+| Un registro corrupto del ledger hace que `rehydrate` lance dentro de un caso de uso (500 en órdenes de esa sesión o en la exposición de esa decisión) (F-050, refutado como defecto)                             | `src/domain/ledger/decision.ts:125,129`                                                                                                                        | 017                                     |
+| Configuración resuelta una vez al arrancar: experimentos, políticas y merchants cambian con reinicio; un cambio de semilla o reparto con un experimento activo se detecta sólo como `assignment-drift` en el log | `config-experiment-directory.ts:2`, `config-policy-directory.ts:3`, `config-merchant-directory.ts`                                                             | 014 (configuración por API, hot reload) |
+| El nivel de sincronización observado se deriva de recibos por proceso: tras un reinicio vuelve a 0 hasta que lleguen snapshots                                                                                   | `memory-catalog-store.ts:17`                                                                                                                                   | 017                                     |
+| Supuesto de instancia única (constitución IV, 01 §9) escrito en ningún archivo de `src/`: dedup por proceso, secciones síncronas como atomicidad, estado de sesión sin CAS                                       | `memory-event-dedup.ts:8`, `memory-order-ledger.ts:2-3`, `decision.service.ts:89`, `profiles/local.ts:1-4`                                                     | 017                                     |
+| `DecisionService` a 259/300 líneas con 4 `Stryker disable`: flags (014) y catálogo de mensajes (015) agregan contexto al orquestador                                                                             | `src/application/decision/services/decision.service.ts`                                                                                                        | 014, 015                                |
 
 ## 7. Estado global
 

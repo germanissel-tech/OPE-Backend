@@ -308,16 +308,16 @@ description: "Traza de la auditoría integral (014): una tarea por unidad de tra
 
 **Cierra**: informe §3.B y §6 (borrador de riesgos); `trabajo/hallazgos/fase-2.json`. Commit `docs(auditoria): fase 2 — robustez`.
 
-- [ ] T191 [US3] Fail-closed en cada borde: `src/interface-adapters/http/to-problem.ts`, `HEADERS_BY_CODE`, `unrecorded`/`ledger-unavailable` en `DecisionRecorder` e `IngestBatchUseCase`, los `503` de `outcomes` — dónde un `undefined`, `NaN`, reloj desfasado o ledger caído produce algo distinto de `NO_OP`/`503`/`4xx` tipado
-- [ ] T192 [US3] Concurrencia en memoria: `memoryOrderLedger.record` (sección síncrona), `NotifyReturnUseCase` (`find` → `recordReturn` con `await`), `DecisionService` lee/escribe `SessionState`/`VisitorState` con `await`s — ¿dos lotes simultáneos de la misma sesión duplican una intervención o saltan el cooldown? (hay prueba de una intervención por sesión, no de interleaving)
-- [ ] T193 [US3] Ventanas y podas: `SESSION_WINDOW`, `VISITOR_WINDOW`, `DEDUP_WINDOW` (TTL y máximo) vs. `memoryDecisionLedger` (índice por sesión), `memoryOrderLedger`, `memoryCorroborationLedger`, `memoryAssignmentLedger`, `memoryExposureLedger` que no podan; ¿está escrito en un ADR o es deuda silenciosa? → S-01
-- [ ] T194 [US3] Relojes: tolerancias de 5 min (eventos, catálogo, órdenes, corroboraciones, firma) y 24 h hacia atrás en eventos — consistencia entre sí y con `02`
-- [ ] T195 [US3] Cuerpos grandes: `bodyLimit` 32 MiB del catálogo; firma HMAC sobre los bytes crudos en el security handler (`keepRawBodies` en `build-server.ts`); costo por request y liberación del `WeakMap`
-- [ ] T196 [US3] `throw` en `src/application/**` y `src/domain/**` que deberían ser `Result` (grep `throw new` + lectura); cada uno con `constitution#II` o ADR-023
-- [ ] T197 [US3] S-05 `DecisionService` cerca del límite y con cinco `Stryker disable`; S-06 `build-server.ts` (428 líneas) con más de una razón de cambio — veredicto con hallazgo o refutación
-- [ ] T198 [US5] Supuestos de "una instancia" escritos sin nombrarse (dedup en memoria, idempotencia en el gateway, estado de sesión): lista con `file:line` para la 017 → informe §6 borrador
-- [ ] T199 [US1] Refutación y `verify-finding` sobre `fase-2.json`; redactar informe §3.B
-- [ ] T200 [US4] Cierre de fase 2: `avance.md`, commit `docs(auditoria): fase 2 — robustez`, resumen al dueño
+- [x] T191 [US3] Fail-closed en cada borde: `src/interface-adapters/http/to-problem.ts`, `HEADERS_BY_CODE`, `unrecorded`/`ledger-unavailable` en `DecisionRecorder` e `IngestBatchUseCase`, los `503` de `outcomes` — dónde un `undefined`, `NaN`, reloj desfasado o ledger caído produce algo distinto de `NO_OP`/`503`/`4xx` tipado
+- [x] T192 [US3] Concurrencia en memoria: `memoryOrderLedger.record` (sección síncrona), `NotifyReturnUseCase` (`find` → `recordReturn` con `await`), `DecisionService` lee/escribe `SessionState`/`VisitorState` con `await`s — ¿dos lotes simultáneos de la misma sesión duplican una intervención o saltan el cooldown? (hay prueba de una intervención por sesión, no de interleaving)
+- [x] T193 [US3] Ventanas y podas: `SESSION_WINDOW`, `VISITOR_WINDOW`, `DEDUP_WINDOW` (TTL y máximo) vs. `memoryDecisionLedger` (índice por sesión), `memoryOrderLedger`, `memoryCorroborationLedger`, `memoryAssignmentLedger`, `memoryExposureLedger` que no podan; ¿está escrito en un ADR o es deuda silenciosa? → S-01
+- [x] T194 [US3] Relojes: tolerancias de 5 min (eventos, catálogo, órdenes, corroboraciones, firma) y 24 h hacia atrás en eventos — consistencia entre sí y con `02`
+- [x] T195 [US3] Cuerpos grandes: `bodyLimit` 32 MiB del catálogo; firma HMAC sobre los bytes crudos en el security handler (`keepRawBodies` en `build-server.ts`); costo por request y liberación del `WeakMap`
+- [x] T196 [US3] `throw` en `src/application/**` y `src/domain/**` que deberían ser `Result` (grep `throw new` + lectura); cada uno con `constitution#II` o ADR-023
+- [x] T197 [US3] S-05 `DecisionService` cerca del límite y con cinco `Stryker disable`; S-06 `build-server.ts` (428 líneas) con más de una razón de cambio — veredicto con hallazgo o refutación
+- [x] T198 [US5] Supuestos de "una instancia" escritos sin nombrarse (dedup en memoria, idempotencia en el gateway, estado de sesión): lista con `file:line` para la 017 → informe §6 borrador
+- [x] T199 [US1] Refutación y `verify-finding` sobre `fase-2.json`; redactar informe §3.B
+- [x] T200 [US4] Cierre de fase 2: `avance.md`, commit `docs(auditoria): fase 2 — robustez`, resumen al dueño
 
 ---
 
