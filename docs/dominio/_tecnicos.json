@@ -27,6 +27,7 @@
     "confirmation",
     "to",
     "from",
-    "summary"
+    "summary",
+    "item"
   ]
 }

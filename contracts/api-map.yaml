@@ -93,7 +93,7 @@ operations:
     tag: ingest
     capabilities: [orders:corroborate]
     feature: "013"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#5.1
   - operationId: notifyOrder
     method: post
@@ -102,7 +102,7 @@ operations:
     tag: outcomes
     capabilities: [orders:write]
     feature: "013"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#5.2
   - operationId: notifyReturn
     method: post
@@ -111,7 +111,7 @@ operations:
     tag: outcomes
     capabilities: [returns:write]
     feature: "013"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#5.4
   - operationId: upsertCatalogSnapshot
     method: put

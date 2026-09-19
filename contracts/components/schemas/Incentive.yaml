@@ -2,9 +2,9 @@ type: object
 description: |
   The incentive the chosen intervention carries, when the commercial policy of the merchant
   allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
-  PROPUESTO — how the incentive is redeemed (a coupon code, its application at the checkout)
-  belongs to the merchant's platform and arrives with the outcomes and configuration features
-  (013, 014); until then the SDK only shows it.
+  The SDK shows it; the merchant's platform redeems it at the checkout and declares what it
+  applied in the order notification (`Order.incentive`), which OPE crosses with this grant.
+  Issuing the coupon and configuring it on the platform side arrive with feature 014.
 additionalProperties: false
 required: [kind, value]
 properties:

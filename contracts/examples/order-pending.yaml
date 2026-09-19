@@ -1,0 +1,10 @@
+summary: An order without the OPE session (stays pending correlation)
+value:
+  orderId: A-2
+  total:
+    amount: "19990.00"
+    currency: ARS
+  items:
+    - sku: SKU-1-L-BLACK
+      quantity: 2
+  confirmedAt: "2026-09-19T12:05:00Z"

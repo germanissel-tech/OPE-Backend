@@ -150,6 +150,7 @@ function subject(options: Options = {}) {
         return decisions.record(d);
       },
       find: (m, id) => decisions.find(m, id),
+      bySession: (m, sid) => decisions.bySession(m, sid),
     },
     decisionIds: { next: () => asDecisionId(`dec_${String(++minted).padStart(8, "0")}`) },
     logger,

@@ -1,0 +1,14 @@
+summary: An order carrying the OPE session the storefront attached at creation
+value:
+  orderId: A-1
+  total:
+    amount: "18990.50"
+    currency: ARS
+  items:
+    - sku: SKU-1-M-BLACK
+      quantity: 1
+  confirmedAt: "2026-09-19T12:00:00Z"
+  sessionId: s_8f3a1c2d9e
+  incentive:
+    kind: percent
+    value: 5

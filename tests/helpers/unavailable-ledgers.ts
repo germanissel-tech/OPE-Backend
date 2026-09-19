@@ -4,16 +4,34 @@ import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
 import { fail } from "../../src/domain/shared-kernel/index.js";
 import type { AssignmentLedger } from "../../src/application/experiment/index.js";
 import type { DecisionLedger, ExposureLedger } from "../../src/application/ledger/index.js";
+import type { CorroborationLedger, OrderLedger } from "../../src/application/outcomes/index.js";
 
 const unavailable = () => Promise.resolve(fail(new LedgerUnavailable()));
 
 const nothing = () => Promise.resolve(undefined);
 
-export const unavailableDecisionLedger = (): DecisionLedger => ({ record: unavailable, find: nothing });
+const none = () => Promise.resolve([]);
+
+export const unavailableDecisionLedger = (): DecisionLedger => ({
+  record: unavailable,
+  find: nothing,
+  bySession: none,
+});
 
 export const unavailableExposureLedger = (): ExposureLedger => ({ record: unavailable, find: nothing });
 
 export const unavailableAssignmentLedger = (): AssignmentLedger => ({ record: unavailable, find: nothing });
+
+export const unavailableOrderLedger = (): OrderLedger => ({
+  record: unavailable,
+  recordReturn: unavailable,
+  find: nothing,
+});
+
+export const unavailableCorroborationLedger = (): CorroborationLedger => ({
+  record: unavailable,
+  find: none,
+});
 
 /** A ledger that delegates to `inner` while `down()` is false and returns LedgerUnavailable otherwise. */
 export function flakyLedger<L extends { record: (...args: never[]) => unknown }>(

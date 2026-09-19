@@ -14,6 +14,7 @@ export default mergeConfig(
         "**/fixtures/**",
         "tests/integration/ingest-latency.test.ts",
         "tests/integration/catalog-size.test.ts",
+        "tests/integration/outcomes-latency.test.ts",
       ],
     },
   }),

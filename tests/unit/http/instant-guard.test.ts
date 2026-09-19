@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 import { makeUpsertCatalogSnapshot } from "../../../src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.js";
 import { makeIngestEvents } from "../../../src/interface-adapters/http/controllers/ingestion/ingest-events.js";
 import { makeConfirmExposureHandler } from "../../../src/interface-adapters/http/controllers/ledger/confirm-exposure.js";
+import { makeCorroborateOrder } from "../../../src/interface-adapters/http/controllers/outcomes/corroborate-order.js";
+import { makeNotifyOrder } from "../../../src/interface-adapters/http/controllers/outcomes/notify-order.js";
+import { makeNotifyReturn } from "../../../src/interface-adapters/http/controllers/outcomes/notify-return.js";
 import { INGEST_KEY_SCHEME } from "../../../src/interface-adapters/http/security/ingest-key.js";
 import { eventOf } from "../../helpers/test-app.js";
 
@@ -61,5 +64,43 @@ describe("date-time guard at the HTTP edge", () => {
       security,
     };
     await expect(handler(req)).rejects.toThrow("unparsable date-time");
+  });
+
+  it("notifyOrder, corroborateOrder and notifyReturn refuse an unparsable instant before the use case runs", async () => {
+    const at = (operationId: string, instance: string, body: Record<string, unknown>) => ({
+      operationId,
+      instance,
+      path: undefined,
+      query: undefined,
+      headers: undefined,
+      cookie: undefined,
+      body: body as never,
+      security,
+    });
+    const order = {
+      orderId: "A-1",
+      total: { amount: "1.00", currency: "ARS" },
+      items: [{ sku: "s", quantity: 1 }],
+    };
+    await expect(
+      makeNotifyOrder(never)(
+        at("notifyOrder", "/v1/orders", { ...order, confirmedAt: "not a date" }) as never,
+      ),
+    ).rejects.toThrow("unparsable date-time");
+    await expect(
+      makeCorroborateOrder(never)(
+        at("corroborateOrder", "/v1/orders/corroborations", {
+          orderId: "A-1",
+          sessionId: "ses_00000001",
+          visitorId: "vis_00000001",
+          confirmedAt: "not a date",
+        }) as never,
+      ),
+    ).rejects.toThrow("unparsable date-time");
+    await expect(
+      makeNotifyReturn(never)(
+        at("notifyReturn", "/v1/returns", { orderId: "A-1", returnedAt: "not a date" }) as never,
+      ),
+    ).rejects.toThrow("unparsable date-time");
   });
 });

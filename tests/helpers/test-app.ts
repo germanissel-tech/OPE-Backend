@@ -183,6 +183,26 @@ export const postExposure = (app: FastifyInstance, body: unknown, o: PostOptions
 export const putCatalog = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/catalog", body, { ...o, method: "PUT" });
 
+export const postOrder = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/orders", body, o);
+
+export const postCorroboration = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/orders/corroborations", body, o);
+
+export const postReturn = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/returns", body, o);
+
+/** An order DTO for merchant tests: one line, ARS, confirmed at `confirmedAt`. */
+export function orderOf(orderId: string, over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    orderId,
+    total: { amount: "18990.50", currency: "ARS" },
+    items: [{ sku: "SKU-1-M", quantity: 1 }],
+    confirmedAt: "2026-09-18T12:00:00.000Z",
+    ...over,
+  };
+}
+
 /** A catalogue product DTO with `variants` variants (M, L, …), unique ids from the product id. */
 export function catalogProductOf(
   id: string,

@@ -13,14 +13,19 @@ import {
   eventOf,
   fixedClock,
   merchantB,
+  orderOf,
+  postCorroboration,
   postEvents,
   postExposure,
+  postOrder,
+  postReturn,
   putCatalog,
   startTestApp,
   type MerchantSpec,
 } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
+import type { OrderId } from "../../src/domain/outcomes/index.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -398,5 +403,45 @@ describe("isolation between merchants", () => {
     expect(
       await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M")),
     ).toMatchObject({ kind: "unknown" });
+  });
+
+  it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {
+    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
+    // B decides in ses_00000001 (no experiment: a NO_OP, still a known session for B).
+    const bBatch = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: B.key });
+    expect(bBatch.statusCode).toBe(202);
+    const inA = await postOrder(app.app, orderOf("X-1", { sessionId: "ses_00000001", confirmedAt: NOW }), {
+      platformKey: "platform-a-1",
+    });
+    expect(json(inA)).toMatchObject({ status: "PENDING_CORRELATION" });
+    const inB = await postOrder(app.app, orderOf("X-1", { sessionId: "ses_00000001", confirmedAt: NOW }), {
+      platformKey: "platform-b-1",
+    });
+    expect(json(inB)).toMatchObject({ status: "ATTRIBUTED_ORDER" });
+    const orderId = "X-1" as OrderId;
+    expect((await app.ports.orders.find(asMerchantId(A.id), orderId))?.status()).toBe("PENDING_CORRELATION");
+    expect((await app.ports.orders.find(asMerchantId(B.id), orderId))?.status()).toBe("ATTRIBUTED_ORDER");
+    // A's corroboration of X-1 lives under A only.
+    await postCorroboration(
+      app.app,
+      { orderId: "X-1", sessionId: "ses_00000001", visitorId: "vis_00000001", confirmedAt: NOW },
+      { key: A.key },
+    );
+    expect(await app.ports.corroborations.find(asMerchantId(A.id), orderId)).toHaveLength(1);
+    expect(await app.ports.corroborations.find(asMerchantId(B.id), orderId)).toHaveLength(0);
+    // B returns its X-1; A's X-1 is untouched. A returning "Y-1" that only B has → unknown.
+    expect(
+      (await postReturn(app.app, { orderId: "X-1", returnedAt: NOW }, { platformKey: "platform-b-1" }))
+        .statusCode,
+    ).toBe(201);
+    expect((await app.ports.orders.find(asMerchantId(A.id), orderId))?.returned).toBeUndefined();
+    await postOrder(app.app, orderOf("Y-1", { confirmedAt: NOW }), { platformKey: "platform-b-1" });
+    const foreign = await postReturn(
+      app.app,
+      { orderId: "Y-1", returnedAt: NOW },
+      { platformKey: "platform-a-1" },
+    );
+    expect(foreign.statusCode).toBe(422);
+    expect(json(foreign)).toMatchObject({ type: "urn:ope:problem:order-unknown" });
   });
 });

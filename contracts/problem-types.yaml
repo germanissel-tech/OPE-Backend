@@ -75,6 +75,21 @@ types:
   - slug: catalog-captured-in-future
     status: 422
     title: The capture instant is in the future
+  - slug: duplicate-order-item
+    status: 422
+    title: Two order lines share a SKU
+  - slug: order-confirmed-in-future
+    status: 422
+    title: The confirmation instant is in the future
+  - slug: corroboration-confirmed-in-future
+    status: 422
+    title: The confirmation instant is in the future
+  - slug: order-unknown
+    status: 422
+    title: The order does not exist for this merchant
+  - slug: return-items-not-in-order
+    status: 422
+    title: A returned item is not in the order
   - slug: catalog-out-of-order
     status: 422
     title: The snapshot is older than the current one

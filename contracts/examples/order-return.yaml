@@ -1,0 +1,7 @@
+summary: Order A-1 came back
+value:
+  orderId: A-1
+  returnedAt: "2026-09-24T08:30:00Z"
+  items:
+    - sku: SKU-1-M-BLACK
+      quantity: 1

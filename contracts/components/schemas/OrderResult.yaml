@@ -1,0 +1,13 @@
+type: object
+description: What OPE holds for the order after the notification.
+additionalProperties: false
+required: [orderId, status, receivedAt]
+properties:
+  orderId:
+    $ref: ./OrderId.yaml
+  status:
+    $ref: ./OrderStatus.yaml
+  receivedAt:
+    type: string
+    format: date-time
+    description: Instant OPE recorded the order (the first receipt, when repeated).

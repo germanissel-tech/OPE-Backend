@@ -9,6 +9,7 @@ import { configExperimentPorts, memoryAssignmentPorts } from "../modules/experim
 import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
 import { configMerchantPorts } from "../modules/merchant.js";
+import { memoryOutcomesPorts } from "../modules/outcomes.js";
 import { systemKernelPorts } from "../modules/shared-kernel.js";
 import { binder, type Profile } from "../profile.js";
 
@@ -26,6 +27,7 @@ export const localProfile: Profile = (config, overrides) => {
     ...bind(ruleBarrierPorts),
     ...bind(configDecisionPorts(config.merchants)),
     ...bind(memoryDecisionPorts(kernel.clock)),
+    ...bind(memoryOutcomesPorts),
   };
   return { ports, closables };
 };

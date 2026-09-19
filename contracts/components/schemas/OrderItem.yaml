@@ -1,0 +1,14 @@
+type: object
+description: A line of the order or of a return. SKU and quantity only (01 §10.3).
+additionalProperties: false
+required: [sku, quantity]
+properties:
+  sku:
+    type: string
+    description: The SKU of the platform, as the catalogue names it.
+    minLength: 1
+    maxLength: 128
+  quantity:
+    type: integer
+    description: Units of that SKU in the line.
+    minimum: 1

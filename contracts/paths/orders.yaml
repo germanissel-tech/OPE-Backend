@@ -1,0 +1,72 @@
+post:
+  operationId: notifyOrder
+  tags: [outcomes]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - orders:write
+  summary: Notify a confirmed order
+  description: |
+    The merchant's platform confirms a purchase server to server (mechanism A, 02 §5.1: the
+    only authoritative source). The order enters the ledger as a verified sale. When the body
+    carries the OPE `sessionId` the storefront attached to the order at creation and that
+    session is known to the ledger of this merchant, the order is attributed
+    (`ATTRIBUTED_ORDER`) and inherits the assignment of the session; otherwise it stays
+    `PENDING_CORRELATION`, visible as such and never completed by inference (01 §5.2).
+    The body is bounded by design (01 §10.3): identifier, total, items with SKU and quantity,
+    confirmation instant, optionally the OPE session and the incentive applied. Nothing about
+    the buyer is accepted; any other property is rejected.
+    Idempotency (ADR-020): `orderId` is the key, per merchant. The first receipt creates
+    (`201`); the same order with the same content repeats the record (`200`); the same
+    `orderId` with different content is a conflict (`409`), never an overwrite. An order is
+    immutable once recorded: a resend "corrected" with a `sessionId` is a conflict.
+    If the ledger cannot record, `503` with `Retry-After`; nothing was recorded.
+  x-idempotency:
+    key: orderId
+    first: "201"
+    repeat: "200"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/Order.yaml
+        examples:
+          attributed:
+            $ref: ../examples/order-attributed.yaml
+          pending:
+            $ref: ../examples/order-pending.yaml
+  responses:
+    "201":
+      description: Order recorded as a verified sale; `status` says whether it is attributed.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/OrderResult.yaml
+          examples:
+            attributed:
+              $ref: ../examples/order-result-attributed.yaml
+    "200":
+      description: Same `orderId` and same content as the recorded order; nothing changed.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/OrderResult.yaml
+          example:
+            orderId: A-1
+            status: PENDING_CORRELATION
+            receivedAt: "2026-09-19T12:00:03Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../components/responses/Conflict.yaml
+    "422":
+      $ref: ../components/responses/OrderUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

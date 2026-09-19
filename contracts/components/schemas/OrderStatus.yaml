@@ -1,0 +1,7 @@
+type: string
+description: |
+  Where the order stands in the evidence chain (01 §5). Every recorded order is a verified
+  sale; the status says whether a verifiable correlation with an OPE session exists
+  (`ATTRIBUTED_ORDER`) or not yet (`PENDING_CORRELATION`, an explicit state of not knowing,
+  01 §5.2). Never an arm nor an experiment.
+enum: [ATTRIBUTED_ORDER, PENDING_CORRELATION]

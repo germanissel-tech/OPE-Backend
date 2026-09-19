@@ -1,0 +1,3 @@
+type: string
+description: Identifier of the order as the platform issues it. Unique per merchant; the idempotency key of orders and returns (01 §6).
+pattern: "^[A-Za-z0-9_.-]{1,64}$"
