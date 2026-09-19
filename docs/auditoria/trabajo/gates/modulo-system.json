@@ -1,0 +1,53 @@
+{
+  "scope": "module:system",
+  "files": [
+    "src/application/system/index.ts",
+    "src/application/system/ports/contract-info.ts",
+    "src/application/system/use-cases/get-service-health.use-case.ts",
+    "src/domain/system/health.ts",
+    "src/domain/system/index.ts",
+    "src/interface-adapters/http/controllers/system/get-health.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/application/system/index.ts",
+          "line": 2,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ContractInfo",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/system/index.ts",
+          "line": 4,
+          "rule": "dead-code/types",
+          "message": "unused exported type: GetServiceHealthDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/system/index.ts",
+          "line": 2,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ServiceStatus",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/system/health.ts",
+          "line": 5,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ServiceStatus",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

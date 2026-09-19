@@ -1,0 +1,764 @@
+{
+  "scope": "dir:src/interface-adapters/http",
+  "files": [
+    "src/interface-adapters/http/boundary.ts",
+    "src/interface-adapters/http/client.ts",
+    "src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.ts",
+    "src/interface-adapters/http/controllers/ingestion/ingest-events.ts",
+    "src/interface-adapters/http/controllers/ledger/confirm-exposure.ts",
+    "src/interface-adapters/http/controllers/outcomes/corroborate-order.ts",
+    "src/interface-adapters/http/controllers/outcomes/notify-order.ts",
+    "src/interface-adapters/http/controllers/outcomes/notify-return.ts",
+    "src/interface-adapters/http/controllers/system/get-health.ts",
+    "src/interface-adapters/http/generated/api.d.ts",
+    "src/interface-adapters/http/problem-details.ts",
+    "src/interface-adapters/http/security/capabilities.ts",
+    "src/interface-adapters/http/security/headers.ts",
+    "src/interface-adapters/http/security/ingest-key.ts",
+    "src/interface-adapters/http/security/platform-key.ts",
+    "src/interface-adapters/http/to-problem.ts",
+    "src/interface-adapters/http/typed.ts"
+  ],
+  "gates": [
+    {
+      "gate": "lint",
+      "mode": "blocking",
+      "status": "fail",
+      "findings": [
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 4,
+          "rule": "lint/@typescript-eslint/consistent-type-definitions",
+          "message": "Use an `interface` instead of a `type`."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 194,
+          "rule": "lint/@typescript-eslint/consistent-type-definitions",
+          "message": "Use an `interface` instead of a `type`."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 797,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 809,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 817,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 821,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 829,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 842,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 850,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 854,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 859,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 863,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 868,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 872,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 877,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 889,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 894,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 906,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 914,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 918,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 926,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 930,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 953,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 958,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 970,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/problem+json\" is written 12 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 981,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Signature\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 987,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Timestamp\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1005,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Signature\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1011,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Timestamp\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1018,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1023,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 200."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1024,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1036,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1040,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 201."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1041,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1045,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1048,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1049,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1050,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1051,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 409."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1052,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1053,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1065,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1070,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 202."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1071,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1075,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1078,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1079,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1080,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1081,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1082,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1094,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1099,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 200."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1100,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1110,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1114,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 201."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1115,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1119,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1122,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1123,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1124,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1125,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1126,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1127,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 503."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1140,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 200."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1141,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1145,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1148,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1149,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1162,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Signature\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1168,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Timestamp\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1175,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1180,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 200."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1181,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1192,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1196,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 201."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1197,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1201,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1204,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1205,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1206,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1207,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 409."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1208,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1209,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1210,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 503."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1222,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1227,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 202."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1228,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1238,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1241,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1242,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1243,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1244,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1245,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1246,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 503."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1259,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Signature\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1265,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"X-OPE-Timestamp\" is written 4 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1272,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1277,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 200."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1278,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1290,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1294,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 201."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1295,
+          "rule": "lint/@typescript-eslint/consistent-indexed-object-style",
+          "message": "A record is preferred over an index signature."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1307,
+          "rule": "lint/ope/no-magic-strings",
+          "message": "The string \"application/json\" is written 17 times in this file and here nothing checks it against a literal type: name it once (as `process.once` or `problem()` already check theirs)."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1310,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 400."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1311,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 401."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1312,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 403."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1313,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 409."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1314,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 422."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1315,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 500."
+        },
+        {
+          "file": "src/interface-adapters/http/generated/api.d.ts",
+          "line": 1316,
+          "rule": "lint/@typescript-eslint/no-magic-numbers",
+          "message": "No magic number: 503."
+        }
+      ]
+    },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/interface-adapters/http/typed.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: OperationShape",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/typed.ts",
+          "line": 25,
+          "rule": "dead-code/types",
+          "message": "unused exported type: TypedRequest",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/typed.ts",
+          "line": 55,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SecurityOutcome",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/typed.ts",
+          "line": 81,
+          "rule": "dead-code/types",
+          "message": "unused exported type: TypedResponse",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/typed.ts",
+          "line": 90,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Handler",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/security/capabilities.ts",
+          "line": 10,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Consumer",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/security/ingest-key.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestPrincipal",
+          "mode": "informative"
+        },
+        {
+          "file": "src/interface-adapters/http/security/platform-key.ts",
+          "line": 20,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PlatformPrincipal",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

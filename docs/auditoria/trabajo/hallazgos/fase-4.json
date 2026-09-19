@@ -1,0 +1,54 @@
+[
+  {
+    "id": "F-062",
+    "file": "contracts/components/schemas/Order.yaml",
+    "line": 28,
+    "rule": {
+      "id": "funcional-order-notification-carries-a-field-constitution-vii-closes-out",
+      "source": "constitution#VII. OPE observa comportamiento, no personas"
+    },
+    "severity": "high",
+    "evidence": "  incentive:\n    $ref: ./Incentive.yaml",
+    "proposal": {
+      "before": "# constitution VII: \"El contrato del conector de órdenes MUST acotarse a: identificador de orden, monto, moneda,\n# ítems con SKU y cantidad, fecha y el identificador de OPE. Campos adicionales se rechazan.\"\n# 01 §10.3 lists the same six; Order.yaml declares a seventh:\n  incentive:\n    $ref: ./Incentive.yaml",
+      "after": "# either the constitution (v1.3.0) and 01 §10.3 admit \"y el incentivo aplicado (kind, value), que no es un dato del comprador\",\n# citing ADR-028 §5–6 — or the field leaves the order and the redemption is measured another way (016).\n# The Constitution Check of specs/013-outcomes-ordenes-y-devoluciones/plan.md:65 passed VII listing `incentive?` \"(01 §10.3)\",\n# which does not list it: that row is where the gap should have surfaced."
+    },
+    "coveringTest": "none: a documentation decision. The field carries no buyer data (`{ kind: percent, value }`) and ADR-028 §5 decides the redemption is \"un dato, no una validación\" — a reasonable extension, but the constitution's list is closed (\"Campos adicionales se rechazan\") and prevails over ADRs (CLAUDE.md § Fuentes de verdad). The refutation \"VII is about personal data and this is not\" is the amendment that has to be written, not assumed",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-063",
+    "file": ".specify/memory/constitution.md",
+    "line": 179,
+    "rule": {
+      "id": "funcional-the-platform-port-of-principle-x-is-not-what-was-built",
+      "source": "constitution#X. Puertos en los dos bordes"
+    },
+    "severity": "high",
+    "evidence": "- El **puerto de plataforma** tiene exactamente cuatro operaciones: `obtenerCatalogo`,\n  `obtenerStockYPrecio`, `alConfirmarOrden`, `alRegistrarDevolucion`. El núcleo depende del\n  puerto y MUST NOT saber si del otro lado hay Magento, VTEX o un adaptador de prueba.\n- El **adaptador genérico** (catálogo por REST/archivo + notificación HTTP de orden) y el\n  **adaptador de prueba** existen desde el día uno;",
+    "proposal": {
+      "before": "# built (ADR-025, ADR-028): the platform pushes — PUT /v1/catalog, POST /v1/orders, POST /v1/returns — into the\n# consumer `platform`; the core depends on CatalogStore / OrderLedger, not on a PlatformPort; no adapter (generic\n# or test) exists as code; pull adapters are \"operaciones posteriores del mapa (V3)\" (ADR-025:60).\n# specs/010-catalogo-y-stock/plan.md § Constitution Check has no row for X; specs/013 neither.",
+      "after": "# either principle X is amended (v1.3.0): \"el caso base es que la plataforma empuja (ADR-025); el puerto de cuatro\n# operaciones y los adaptadores genérico y de prueba son la V3 del mapa\" — or the port and the adapters are\n# scheduled as a feature. Either way, every Constitution Check evaluates the ten principles, not a subset."
+    },
+    "coveringTest": "none: a decision. What exists: three inbound operations with the platform credential (`contracts/api-map.yaml` consumer `platform`), no `PlatformPort` interface in `src/application/**/ports/`, no adapter module; `tests/` has no end-to-end run through an adapter (constitution § Flujo de desarrollo asks for \"una prueba end-to-end … con el adaptador de prueba\", see A-049). The push design is sound and 02 §6.2 half-supports it (\"notificación HTTP de orden\"), but the constitution's wording is pull (`obtener…`) and \"desde el día uno\", and nothing amended it",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-064",
+    "file": "lefthook.yml",
+    "line": 1,
+    "rule": {
+      "id": "funcional-spec-002-fr-041-arch-must-run-in-the-pre-commit-check",
+      "source": "spec:002#FR-041"
+    },
+    "severity": "high",
+    "evidence": "# Pre-commit hook (ADR-011): format and lint on staged files, full typecheck.",
+    "proposal": {
+      "before": "# lefthook.yml runs format, lint, typecheck (tests/hooks/lefthook.test.ts \"does not run contract:check or the tests\");\n# spec 002 FR-041: the architecture check \"MUST correr en el chequeo previo a commit y en integración continua\";\n# spec 003 FR-040 later fixed the hook to format + lint + typecheck without naming arch, and nothing amended 002.",
+      "after": "# either `npm run arch` joins the hook (it takes seconds; dependency-cruiser over src/) — or spec 002 FR-041 and\n# specs/002/quickstart.md record that 003 FR-040 narrowed the hook and arch runs in CI and in `quality` only."
+    },
+    "coveringTest": "tests/hooks/lefthook.test.ts would assert the `arch` command in the hook (today it asserts the three commands). Low consequence — `npm run arch` runs in CI (`ci.yml:47`) and inside `npm run quality` — but a MUST of an approved spec that the code stopped meeting without a written amendment",
+    "status": "refuted",
+    "refutation": "ADR-011 (feature 003, posterior a la 002) decide por escrito el contenido del hook: \"`pre-commit` corre formato y lint sobre lo staged y `typecheck`. No corre `contract:check` ni pruebas: eso es de CI\"; `git log lefthook.yml` muestra que `arch` nunca estuvo en el hook (711f15a) y CLAUDE.md § Flujo lo repite. Una decisión escrita posterior sustituye la redacción de la 002 FR-041, que no fue enmendada: queda como nota de prosa (la spec 002 y su quickstart siguen diciendo \"previo a commit\"), no como defecto. `npm run arch` corre en `quality` y en CI"
+  }
+]

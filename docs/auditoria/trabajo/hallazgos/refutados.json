@@ -1,0 +1,110 @@
+[
+  {
+    "id": "F-002",
+    "phase": 1,
+    "file": "src/application/shared-kernel/decorators/logged-use-case.ts",
+    "line": 19,
+    "rule": {
+      "id": "axis-6-decorator-logs-ok-for-non-domain-failure",
+      "source": "clarity:log-outcome-misleading"
+    },
+    "severity": "low",
+    "refutation": "By type a use case returns Result<T, E extends DomainError> (ADR-023), so a false `ok` without a DomainError cannot come from a compliant use case; the test documents the chosen behaviour for non-Result responses. Not observable in this codebase."
+  },
+  {
+    "id": "F-010",
+    "phase": 1,
+    "file": "src/interface-adapters/http/boundary.ts",
+    "line": 12,
+    "rule": {
+      "id": "axis-3-shared-boundary-holds-an-outcomes-only-helper",
+      "source": "clarity:misplaced-helper"
+    },
+    "severity": "low",
+    "refutation": "CLAUDE.md § Notas operativas (Outcomes) decides it: what controllers share at the boundary (`instantOf`, `linesOf`, `idempotent`) lives in `http/boundary.ts` because a file under `controllers/` is one operation (shape rule). A documented placement, not a defect."
+  },
+  {
+    "id": "F-042",
+    "phase": 1,
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 134,
+    "rule": {
+      "id": "transversal-s05-the-orchestrator-decides-whether-the-gate-runs",
+      "source": "ADR-027"
+    },
+    "severity": "high",
+    "refutation": "ADR-027 forbids the orchestrator to infer or to choose; skipping the gate when the decision policy already said the evidence cannot sustain the barrier is neither: the commercial policy refuses on `evidenceReason` regardless (src/domain/commercial/commercial-policy.ts:198), so the verdict is identical with or without the gate, and what changes is only whether the ledger records candidates judged against evidence the policy already declared missing. The condition is a short-circuit on the policy's own output, not a rule of its own. S-05 stays on the file's size and Stryker disables (fase 2, T197), not on this line"
+  },
+  {
+    "id": "F-049",
+    "phase": 2,
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 230,
+    "rule": {
+      "id": "robustez-s05-evidenceOf-and-selectionOf-belong-to-the-domain",
+      "source": "ADR-027"
+    },
+    "severity": "high",
+    "refutation": "`evidenceOf` translates `ProductTruth` — a type of the catalog *application* module — into the input types of three authorities and the ledger's record; `selectionOf` translates the gate's and the commercial policy's outputs into the ledger's `DecisionSelection` (strings only, by ADR design). A domain module cannot import an application type (rings, ADR-013), so the translation can only live in the application, and ADR-027 gives the orchestrator exactly this job (\"builds the context\"). The file is at 259 of 300 lines with four `Stryker disable` (the handoff counts five), each justified in place; S-05 stays as a size risk for the 014/015 additions (§6), not as a defect. The full mutation run leaves one survivor here (`decision.service.ts:137: Survived: false`, an optional-key spread) that fase 3 lists"
+  },
+  {
+    "id": "F-050",
+    "phase": 2,
+    "file": "src/domain/ledger/decision.ts",
+    "line": 125,
+    "rule": {
+      "id": "robustez-throws-in-domain-and-application-should-be-results",
+      "source": "ADR-023"
+    },
+    "severity": "high",
+    "refutation": "The six `throw new Error` in `src/domain/**` are the ones CLAUDE.md § Cómo se escribe un caso de uso reserves for programming errors (→ 500): a default policy that does not build (load time), a batch without events after the contract guaranteed one, and a ledger record that fits no shape. None is a business condition a client can cause; `src/application/**` has none. One of them is worth a line in §6: `DecisionBase.rehydrate` throwing on a corrupt row means that, with the 017 store, one bad row makes `NotifyOrderUseCase` (via `bySession`) and `ConfirmExposureUseCase` (via `find`) answer 500 for that session or decision — a data-quality alarm, not a fail-closed path"
+  },
+  {
+    "id": "F-059",
+    "phase": 3,
+    "file": "contracts/paths/events.yaml",
+    "line": 12,
+    "rule": {
+      "id": "pruebas-s09-the-contract-is-stricter-than-the-server",
+      "source": "ADR-007"
+    },
+    "severity": "high",
+    "refutation": "Schemathesis' \"schema validation mismatch\" on five operations is not a contract stricter than the server: three operations (`POST /v1/orders`, `POST /v1/returns`, `PUT /v1/catalog`) answer 401 to every generated request because the runner sends only the ingest key (F-054), and the other two reject most generated bodies through invariants the schema cannot express and ADR-007 places in `x-invariants` on purpose (session/visitor mismatch, instants outside the tolerance, unknown decision). 2433/2433 cases pass; the warning is informative and its cause is now written here"
+  },
+  {
+    "id": "F-060",
+    "phase": 3,
+    "file": "tests/integration/ingest-latency.test.ts",
+    "line": 22,
+    "rule": {
+      "id": "pruebas-informative-latency-tests-should-be-gates",
+      "source": "constitution#IV. Dos caminos, dos garantías"
+    },
+    "severity": "high",
+    "refutation": "The latency tests are gates already: ingest-latency and outcomes-latency assert `p95 < 50 ms` (a third of the 150 ms design objective) and catalog-size asserts `< 2 000 ms` for the pilot size; only `npm run test:load` never fails by its figures, and constitution IV says the objective \"no es SLA hasta medirlo bajo tráfico real\", so an informative load run is what the constitution asks for. Measured today: ingest p50 0.67 ms, p95 1.28 ms; catalogue 140 ms"
+  },
+  {
+    "id": "F-061",
+    "phase": 3,
+    "file": "tests/helpers/test-app.ts",
+    "line": 1,
+    "rule": {
+      "id": "pruebas-control-arm-only-tested-ad-hoc",
+      "source": "constitution#III. La medición precede"
+    },
+    "severity": "high",
+    "refutation": "Merchant A of the helper is `treatmentPercent: 100`, so most integration tests never see CONTROL; but tests/integration/assignment.test.ts configures its own 50/50 experiment, picks the first CONTROL and TREATMENT visitors with the domain function (`visitorIn`) and proves end to end that CONTROL runs the whole pipeline, resolves `NO_OP` `control-arm`, records arm and experiment in the ledger and never leaks them in a response; tests/unit/application/decision/decision.service.test.ts covers CONTROL through the same inference and the selection it would have chosen. Not ad hoc: the 50/50 fixture is the point of that file"
+  },
+  {
+    "id": "F-064",
+    "phase": 4,
+    "file": "lefthook.yml",
+    "line": 1,
+    "rule": {
+      "id": "funcional-spec-002-fr-041-arch-must-run-in-the-pre-commit-check",
+      "source": "spec:002#FR-041"
+    },
+    "severity": "high",
+    "refutation": "ADR-011 (feature 003, posterior a la 002) decide por escrito el contenido del hook: \"`pre-commit` corre formato y lint sobre lo staged y `typecheck`. No corre `contract:check` ni pruebas: eso es de CI\"; `git log lefthook.yml` muestra que `arch` nunca estuvo en el hook (711f15a) y CLAUDE.md § Flujo lo repite. Una decisión escrita posterior sustituye la redacción de la 002 FR-041, que no fue enmendada: queda como nota de prosa (la spec 002 y su quickstart siguen diciendo \"previo a commit\"), no como defecto. `npm run arch` corre en `quality` y en CI"
+  }
+]

@@ -1,0 +1,14 @@
+
+> ope-backend@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.1 C:/Users/Jose Luis/Documents/trabajos/German/ope/mvp/backend
+
+
+ Test Files  120 passed (120)
+      Tests  1004 passed (1004)
+   Start at  14:26:33
+   Duration  146.88s (tests 89%, import 9%, transform 2%)
+
+exit 0

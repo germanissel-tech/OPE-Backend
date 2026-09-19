@@ -1,0 +1,30 @@
+{
+  "scope": "module:selection",
+  "files": [
+    "src/domain/selection/candidate.ts",
+    "src/domain/selection/index.ts",
+    "src/domain/selection/profile.ts",
+    "src/domain/selection/quality-gate.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/selection/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: GateRejection",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

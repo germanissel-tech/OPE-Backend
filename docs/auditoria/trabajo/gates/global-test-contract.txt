@@ -1,0 +1,100 @@
+
+> ope-backend@0.1.0 test:contract
+> npm run contract:bundle && node scripts/test-contract.mjs
+
+
+> ope-backend@0.1.0 contract:bundle
+> node scripts/contract-bundle.mjs
+
+
+    [33m╔═══════════════════════════════════════════════════════╗[39m
+    [33m║                                                       ║[39m
+    [33m║[39m  A new version of [36mRedocly CLI[39m ([32m2.53.3[39m) is available.  [33m║[39m
+    [33m║[39m  Update now: `[36mnpm i -g @redocly/cli@latest[39m`.          [33m║[39m
+    [33m║[39m  Changelog: https://redocly.com/docs/cli/changelog/   [33m║[39m
+    [33m║                                                       ║[39m
+    [33m╚═══════════════════════════════════════════════════════╝[39m
+
+[90mbundling contracts\openapi.yaml using configuration for api 'main'...
+[39m📦 Created a bundle for [34mcontracts\openapi.yaml[39m at [34mC:\Users\Jose Luis\Documents\trabajos\German\ope\mvp\backend\contracts\dist\openapi.yaml[39m [32m61ms[39m.
+test:contract — server at http://127.0.0.1:54360; running Schemathesis…
+Schemathesis v4.27.2
+━━━━━━━━━━━━━━━━━━━━
+
+
+ ✅  Loaded specification from C:\Users\Jose                                   
+ Luis\Documents\trabajos\German\ope\mvp\backend\contracts\dist\openapi.yaml    
+ (in 0.19s)                                                                    
+
+     Base URL:         http://127.0.0.1:54360                                  
+     Specification:    Open API 3.1.0                                          
+     Operations:       7 selected / 7 total                                    
+     Configuration:    C:\Users\Jose                                           
+                       Luis\Documents\trabajos\German\ope\mvp\backend\sche     
+                       mathesis.toml                                           
+
+
+ ✅  API capabilities:                                                         
+
+     Supports NULL byte in headers:                            ✘               
+     Accepts backslash and control characters in URL paths:    ✓               
+
+ ✅  Examples (in 0.14s)                                                       
+                                                                               
+     ✅ 6 passed  ⏭  1 skipped                                                 
+
+ ✅  Coverage (in 4.85s)                                                       
+                                                                               
+     ✅ 7 passed                                                               
+
+ ✅  Fuzzing (in 6.20s)                                                        
+                                                                               
+     ✅ 7 passed                                                               
+
+=================================== WARNINGS ===================================
+
+Authentication failed: 3 operations returned authentication errors
+
+401 Unauthorized (3 operations):
+  - POST /v1/orders
+  - POST /v1/returns
+  - PUT /v1/catalog
+
+💡 Ensure valid authentication credentials are set via --auth or -H
+
+Schema validation mismatch: 5 operations mostly rejected generated data due to validation errors, indicating schema constraints don't match API validation
+
+  - POST /v1/events
+  - POST /v1/exposures
+  - POST /v1/orders
+  - POST /v1/returns
+  - PUT /v1/catalog
+
+💡 Check your schema constraints - API validation may be stricter than documented
+
+=================================== SUMMARY ====================================
+
+API Operations:
+  Selected: 7/7
+  Tested: 7
+
+Test Phases:
+  ✅ Examples
+  ✅ Coverage
+  ✅ Fuzzing
+  ⏭  Stateful (disabled)
+
+Warnings:
+  ⚠️ Missing authentication: 3 operations returned only 401/403 responses
+  ⚠️ Schema validation mismatch: 5 operations mostly rejected generated data
+
+Test cases:
+  2433 generated, 2433 passed, 72 skipped
+
+Reports:
+  - JUNIT: C:\Users\Jose Luis\Documents\trabajos\German\ope\mvp\backend\.schemathesis\junit-20260919T142907Z.xml
+
+Seed: 248580739451349781186075127990424133971
+
+============================= 2 warnings in 11.27s =============================
+exit 0

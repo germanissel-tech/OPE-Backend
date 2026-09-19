@@ -42,18 +42,25 @@ afterAll(() => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
-function node(script: string, args: string[]): { status: number; stdout: string; stderr: string } {
-  const r = spawnSync(process.execPath, [path.join(skill, "scripts", script), ...args], { encoding: "utf8" });
+function node(
+  script: string,
+  args: string[],
+  env: Record<string, string> = {},
+): { status: number; stdout: string; stderr: string } {
+  const r = spawnSync(process.execPath, [path.join(skill, "scripts", script), ...args], {
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
   return { status: r.status ?? 1, stdout: r.stdout, stderr: r.stderr };
 }
 
 const expectedOf = (name: string): Finding =>
   JSON.parse(readFileSync(path.join(skill, "evals", name, "expected.json"), "utf8")) as Finding;
 
-function verify(findings: Finding[]): Finding[] {
+function verify(findings: Finding[], env: Record<string, string> = {}): Finding[] {
   const file = path.join(tmp, `${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
   writeFileSync(file, JSON.stringify(findings));
-  const r = node("verify-finding.mjs", [file]);
+  const r = node("verify-finding.mjs", [file], env);
   return JSON.parse(r.stdout) as Finding[];
 }
 
@@ -132,5 +139,42 @@ describe("verify-finding.mjs", () => {
       { ...base, id: "F-006", rule: { id: "x", source: "shape:no-such-rule" }, severity: "medium" },
     ]);
     expect(results.map((r) => r.verified)).toEqual([true, true, true, true, true, false]);
+  });
+
+  // Feature 014: functional findings cite a DECIDED section of an MVP document or an FR/SC of a spec.
+  it("resolves mvp: sources against the MVP documents' headings and spec: sources against FR/SC; both are high", () => {
+    const base = expectedOf("empty-catch");
+    const docs = { OPE_MVP_DOCS_DIR: path.resolve("tests/audit/fixtures/mvp-docs") };
+    const results = verify(
+      [
+        { ...base, id: "F-001", rule: { id: "x", source: "mvp:01#5. " }, severity: "high" },
+        { ...base, id: "F-002", rule: { id: "x", source: "mvp:01#5.2" }, severity: "high" },
+        { ...base, id: "F-003", rule: { id: "x", source: "mvp:01#9." }, severity: "high" },
+        { ...base, id: "F-004", rule: { id: "x", source: "mvp:02#5" }, severity: "high" },
+        { ...base, id: "F-005", rule: { id: "x", source: "mvp:01#5" }, severity: "medium" },
+        { ...base, id: "F-006", rule: { id: "x", source: "spec:013#FR-001" }, severity: "high" },
+        { ...base, id: "F-007", rule: { id: "x", source: "spec:013#SC-999" }, severity: "high" },
+        { ...base, id: "F-008", rule: { id: "x", source: "spec:999#FR-001" }, severity: "high" },
+        { ...base, id: "F-009", rule: { id: "x", source: "spec:013#FR-1" }, severity: "high" },
+      ],
+      docs,
+    );
+    expect(results.map((r) => r.verified)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(results[2]?.reason).toContain("no heading of 01-arquitectura-mvp.md");
+    expect(results[3]?.reason).toContain("02-*.md is not readable");
+    expect(results[4]?.reason).toContain("schema");
+    expect(results[6]?.reason).toContain("does not declare SC-999");
+    expect(results[7]?.reason).toContain("specs/999-*/ does not exist");
+    expect(results[8]?.reason).toContain("schema");
   });
 });

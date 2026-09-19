@@ -1,0 +1,140 @@
+[
+  {
+    "id": "F-043",
+    "file": "src/application/ingestion/ports/event-dedup.ts",
+    "line": 7,
+    "rule": {
+      "id": "robustez-read-ports-can-only-fail-by-throwing",
+      "source": "constitution#II. Fail-closed"
+    },
+    "severity": "high",
+    "evidence": "  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<ReadonlySet<EventId>>;",
+    "proposal": {
+      "before": "// every read the pipeline makes has no failure channel; a store that is down can only throw, and the\n// application may not catch (ope/no-generic-catch-in-application), so the request ends in 500 `internal-error`:\n  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<ReadonlySet<EventId>>;            // ingestion\n  load(merchantId: MerchantId, sessionId: SessionId): Promise<SessionState | undefined>;                  // decision (session, visitor)\n  policiesFor(merchantId: MerchantId): Promise<MerchantPolicies>;                                          // decision\n  activeFor(merchantId: MerchantId): Promise<Experiment | undefined>;                                     // experiment\n  find(merchantId: MerchantId, experimentId: ExperimentId, visitorId: VisitorId): Promise<Assignment | undefined>; // experiment\n  current(merchantId: MerchantId): Promise<CatalogSnapshot | undefined>;                                  // catalog\n  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;                    // ledger (exposure)\n  bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly Decision[]>;                  // ledger (orders)",
+      "after": "// the same channel the writes have (ADR-021): the store answers or says it cannot, and the caller fails closed\n  claim(merchantId: MerchantId, eventIds: readonly EventId[]): Promise<Result<ReadonlySet<EventId>, LedgerUnavailable>>;\n// IngestBatchUseCase / DecisionService: a `fail` on a read degrades to NO_OP `ledger-unavailable` (202) as a failed write does today;\n// ConfirmExposureUseCase / NotifyOrderUseCase: 503 with Retry-After, as their writes do today.\n// (`LedgerUnavailable` or a kernel `StoreUnavailable`; the NO_OP reason catalogue is a string with a pattern, so a new reason is compatible)"
+    },
+    "coveringTest": "tests/helpers/unavailable-ledgers.ts already fakes writes that answer `unavailable` (ADR-021 §6); the same helper with reads that answer `unavailable` — `claim`, `load`, `policiesFor`, `activeFor`, `current`, `find`, `bySession` — would prove that ingest answers 202 NO_OP `ledger-unavailable`, exposure 503 and orders 503. Today no such test exists because no such answer exists: on the local profile the memory gateways never fail, so the gap is latent; it becomes real with the store the 017 puts behind these ports, and ADR-021 promises that store \"sin tocar dominio ni aplicación\", which these signatures do not allow",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-044",
+    "file": "src/application/catalog/ports/catalog-store.ts",
+    "line": 9,
+    "rule": {
+      "id": "robustez-catalog-write-has-no-unavailable-answer-and-the-contract-no-503",
+      "source": "guide#Notas operativas del contrato"
+    },
+    "severity": "medium",
+    "evidence": "  /** Replaces the current snapshot and records its `receivedAt` among the receipts. */\n  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<void>;",
+    "proposal": {
+      "before": "  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<void>;\n// contracts/paths/catalog.yaml: responses 200, 201, 400, 401, 403, 409, 422, 500 — no 503",
+      "after": "  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<Result<void, LedgerUnavailable>>;\n// UpsertCatalogSnapshotUseCase: `if (!written.ok) return fail(written.error)` → 503 `ledger-unavailable` with Retry-After,\n// as orders, returns and corroborations answer the same platform consumer (contracts/paths/orders.yaml:74)"
+    },
+    "coveringTest": "tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts with a store whose `replace` answers `unavailable` (tests/helpers/unavailable-ledgers.ts pattern) expecting `{ ok: false, error: { code: \"ledger-unavailable\" } }`, and tests/integration/catalog.test.ts expecting 503 + `Retry-After`. CLAUDE.md § Notas operativas fixes for the platform consumer that \"Todo record() devuelve Result<…, LedgerUnavailable> ⇒ 503 con Retry-After\"; the catalog is the fourth operation of that consumer and the only one whose write cannot say so — the platform cannot tell a snapshot that was not kept from a bug",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-045",
+    "file": "src/infrastructure/http/build-server.ts",
+    "line": 181,
+    "rule": {
+      "id": "robustez-both-planes-share-one-event-loop",
+      "source": "constitution#IV. Dos caminos, dos garantías"
+    },
+    "severity": "high",
+    "evidence": "  const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });\n  keepRawBodies(app);",
+    "proposal": {
+      "before": "// one Fastify instance serves every consumer: the SDK's ingest and exposure (decision plane) next to the\n// platform's catalogue, orders, returns (measurement plane). Their work is synchronous on the same thread:\n// the raw-body parser (parseAs: \"buffer\") + JSON.parse + Ajv over up to BODY_LIMIT_MIB = 32 MiB, the HMAC over\n// the raw bytes (createHmac, gateways/merchant/node-message-authenticator.ts:8) and CatalogSnapshot.of over\n// every variant. Measured on the local profile (tests/integration/catalog-size.test.ts): a pilot-sized\n// snapshot of 5 000 × 10 variants, 6.0 MiB, takes 140 ms in one synchronous stretch; an ingest request\n// that arrives meanwhile waits the whole stretch (its own p95 is 1.3 ms, tests/integration/ingest-latency.test.ts).",
+      "after": "// the planes are two deployments of the same code: MODULES is a parameter of bootstrap (it already is:\n// `bootstrap(config, { modules? })`), and the local profile keeps them together while a `decision` profile\n// serves the `ingest`/`decision` tags and a `measurement` profile the `outcomes` tag, each with its own\n// bodyLimit (50 events vs a snapshot). Until then, the stall is a written limit: 01 §9 style, with the\n// measured figure, and `bodyLimit` per route (Fastify `routeOptions.bodyLimit`) so the SDK route never\n// accepts more than a batch of 50 events needs."
+    },
+    "coveringTest": "none today. A test that starts the server (tests/helpers/test-app.ts with a listening socket) and fires one `PUT /v1/catalog` of the pilot size while a client measures `POST /v1/events` latency would show the ingest p99 jumping from ~1 ms to ≥ the snapshot's synchronous time; `npm run test:load` (autocannon, informative) could take a catalogue writer as a second scenario. Constitution IV: the decision plane is \"síncrono, acotado\" and the measurement plane \"MUST NOT compartir el presupuesto de latencia del plano de decisión\"; today they share the event loop and nothing — ADR, profile header, quickstart — says so. The global `bodyLimit` of 32 MiB reaches `POST /v1/events` too, whose credential lives in the merchant's page (revisited in fase 3, seguridad)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-046",
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 89,
+    "rule": {
+      "id": "robustez-session-budget-is-a-read-modify-write-across-awaits",
+      "source": "clarity:unwritten-atomicity-assumption"
+    },
+    "severity": "low",
+    "evidence": "    const remembered = await memory.recall(whose, now);\n    const session = remembered.session.absorb(Signals.of(batch.events), now);",
+    "proposal": {
+      "before": "    const remembered = await memory.recall(whose, now);\n    // … five awaits later (assignment, policies, truth, inference, recorder) …\n    await memory.remember(whose, decision.isIntervention() ? { session: session.withIntervention(now), … } : { session });",
+      "after": "// either the budget check moves next to the write, as OrderLedger does for orders (01 §6: no await between\n// the check and the write): `SessionStateStore.saveIfUnchanged(…, expected)` or a per-session lock the\n// store owns; or the assumption is written where it holds: memory-session-state-store.ts:4 already says\n// \"the plane always loads a session before it saves it\" — add \"and one batch of a session at a time:\n// the local profile gives that for free (Promise.resolve resolves before the next request is read)\"."
+    },
+    "coveringTest": "tests/integration/decision-plane.test.ts has \"one intervention per session\" with sequential batches; the interleaved case (two batches of the same session in flight, budgets of 1, cooldown > 0) cannot be written today because with memory ports the whole `decide()` runs in one microtask chain and the second request is not even parsed until the first answered — which is exactly the unwritten assumption. Constitution IV declares single-instance guarantees and leaves exactly-once out, so this is not a violation; it is a lost update waiting for the first port with real I/O (017): two batches of one session then read `interventions: 0` both, both intervene, both write `1`",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-047",
+    "file": "src/interface-adapters/gateways/ledger/memory-decision-ledger.ts",
+    "line": 9,
+    "rule": {
+      "id": "robustez-s01-memory-ledgers-grow-without-bound-and-nothing-says-it",
+      "source": "clarity:unstated-profile-limit"
+    },
+    "severity": "low",
+    "evidence": "  const decisions = new Map<string, Decision>();\n  const sessions = new Map<string, Decision[]>();",
+    "proposal": {
+      "before": "// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant\n// does not exist for whoever asks. A secondary index merchant + session serves `bySession`.",
+      "after": "// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant\n// does not exist for whoever asks. A secondary index merchant + session serves `bySession`.\n// Unbounded by design: it stands in for the durable ledger (01 §9) on the local profile, so nothing\n// is pruned and `record` copies the session's array; not a profile for traffic (ADR-018, 017)."
+    },
+    "coveringTest": "none: a comment (or one paragraph in ADR-018 / profiles/local.ts). S-01 of the handoff, confirmed as stated: the five memory ledgers (`memoryDecisionLedger`, `memoryOrderLedger`, `memoryCorroborationLedger`, `memoryAssignmentLedger`, `memoryExposureLedger`) never prune while the three hot-state gateways do (SESSION_WINDOW, VISITOR_WINDOW, DEDUP_WINDOW); 01 §9 guarantees durability, so the memory ledgers stand in for a database and growing is what a database does — but neither ADR-018 (the profile), ADR-021 (\"En memoria la aceptación es inmediata\") nor the file says that the local profile is not meant to hold a day of traffic",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-048",
+    "file": "src/application/merchant/policies/signature-window.ts",
+    "line": 4,
+    "rule": {
+      "id": "robustez-five-minute-clock-skew-declared-four-times",
+      "source": "clarity:duplicate-policy-value"
+    },
+    "severity": "low",
+    "evidence": "const SIGNATURE_WINDOW_MINUTES = 5;\nexport const SIGNATURE_WINDOW_MS = minutes(SIGNATURE_WINDOW_MINUTES);",
+    "proposal": {
+      "before": "// merchant/policies/signature-window.ts:4   SIGNATURE_WINDOW_MINUTES = 5\n// domain/ingestion/event-batch.ts:19          TOLERANCE_FUTURE_MINUTES = 5\n// domain/catalog/catalog-snapshot.ts:51       CAPTURE_TOLERANCE_MINUTES = 5\n// domain/outcomes/order.ts:53                 CONFIRMATION_TOLERANCE_MINUTES = 5",
+      "after": "// src/domain/shared-kernel/time.ts — one fact: how far ahead of OPE's clock a client's clock may be\nexport const CLOCK_SKEW_TOLERANCE_MS = minutes(5);\n// the four sites read it; the signature window keeps its own name if its symmetry (± 5 min) is a separate decision"
+    },
+    "coveringTest": "tests/unit/domain/ingestion/event-batch.test.ts:71 (\"the tolerance is the one the contract publishes\") and its siblings pin each value separately; one test on the kernel constant plus the contract text (`x-invariants` of EventBatch, CatalogSnapshot, Order, ADR-029) would keep the four in step. Consistent with each other and with 02 today (02 fixes no figure); they can only drift apart because they are four numbers",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-049",
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 230,
+    "rule": {
+      "id": "robustez-s05-evidenceOf-and-selectionOf-belong-to-the-domain",
+      "source": "ADR-027"
+    },
+    "severity": "high",
+    "evidence": "function evidenceOf(found: ProductTruth): Evidence {\n  if (found.kind === \"unknown\") {",
+    "proposal": {
+      "before": "function evidenceOf(found: ProductTruth): Evidence { … }\nfunction selectionOf(judged: readonly Judged[], verdict: CommercialVerdict, version: string): DecisionSelection { … }",
+      "after": "// the same functions as methods of a domain value (e.g. `ProductEvidence.of(truth)` in domain/decision)"
+    },
+    "coveringTest": "n/a",
+    "status": "refuted",
+    "refutation": "`evidenceOf` translates `ProductTruth` — a type of the catalog *application* module — into the input types of three authorities and the ledger's record; `selectionOf` translates the gate's and the commercial policy's outputs into the ledger's `DecisionSelection` (strings only, by ADR design). A domain module cannot import an application type (rings, ADR-013), so the translation can only live in the application, and ADR-027 gives the orchestrator exactly this job (\"builds the context\"). The file is at 259 of 300 lines with four `Stryker disable` (the handoff counts five), each justified in place; S-05 stays as a size risk for the 014/015 additions (§6), not as a defect. The full mutation run leaves one survivor here (`decision.service.ts:137: Survived: false`, an optional-key spread) that fase 3 lists"
+  },
+  {
+    "id": "F-050",
+    "file": "src/domain/ledger/decision.ts",
+    "line": 125,
+    "rule": {
+      "id": "robustez-throws-in-domain-and-application-should-be-results",
+      "source": "ADR-023"
+    },
+    "severity": "high",
+    "evidence": "        throw new Error(`Decision ${record.decisionId} is NO_OP with an unknown reason.`);",
+    "proposal": {
+      "before": "throw new Error(…) at domain/ledger/decision.ts:125,129; domain/ingestion/event-batch.ts:52; domain/decision/default-policy.ts:157,165; domain/commercial/default-commercial-policy.ts:36",
+      "after": "Result<…, DomainError> at each site"
+    },
+    "coveringTest": "n/a",
+    "status": "refuted",
+    "refutation": "The six `throw new Error` in `src/domain/**` are the ones CLAUDE.md § Cómo se escribe un caso de uso reserves for programming errors (→ 500): a default policy that does not build (load time), a batch without events after the contract guaranteed one, and a ledger record that fits no shape. None is a business condition a client can cause; `src/application/**` has none. One of them is worth a line in §6: `DecisionBase.rehydrate` throwing on a corrupt row means that, with the 017 store, one bad row makes `NotifyOrderUseCase` (via `bySession`) and `ConfirmExposureUseCase` (via `find`) answer 500 for that session or decision — a data-quality alarm, not a fail-closed path"
+  }
+]

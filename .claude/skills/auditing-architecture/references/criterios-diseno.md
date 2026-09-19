@@ -3,7 +3,9 @@
 Cada principio está definido **en términos de este repo** y cita la fuente interna que lo
 respalda. Un hallazgo que no pueda citar una de estas fuentes es `clarity:<slug>` (severidad
 baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<sección>`,
-`ADR-NNN`, `guide#<sección>` (CLAUDE.md), `lint:<regla>`, `arch:<regla>`, `clarity:<slug>`.
+`ADR-NNN`, `mvp:<01|02|03>#<sección>` (sección DECIDIDA de un documento del MVP),
+`spec:<NNN>#<FR-nnn|SC-nnn>`, `guide#<sección>` (CLAUDE.md), `lint:<regla>`, `arch:<regla>`,
+`shape:<regla>`, `clarity:<slug>`.
 
 ## Contenido
 
