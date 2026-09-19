@@ -374,9 +374,9 @@ describe("readConfig", () => {
     ).merchants[0]?.commercialPolicy;
     expect(full).toMatchObject({
       version: "sport-commercial-1",
-      maxIncentivePercent: 15,
-      incentiveLadderPercent: [5, 10, 15],
-      marginPercent: 40,
+      maxIncentiveShare: 0.15,
+      incentiveLadderShare: [0.05, 0.1, 0.15],
+      marginShare: 0.4,
       directIncentiveOnPrice: false,
       returnRisk: { fact: "sessionAddedToCart" },
       highIntent: "from-cart",
@@ -391,8 +391,8 @@ describe("readConfig", () => {
     ).merchants[0]?.commercialPolicy;
     expect(minimal).toMatchObject({
       version: "c-1",
-      maxIncentivePercent: 10,
-      incentiveLadderPercent: [5, 10],
+      maxIncentiveShare: 0.1,
+      incentiveLadderShare: [0.05, 0.1],
       directIncentiveOnPrice: true,
       highIntent: "from-checkout",
       abandonment: "reassure-returns",
@@ -400,7 +400,7 @@ describe("readConfig", () => {
       cooldownSeconds: 0,
       interventionsPerVisitorPerDay: 3,
     });
-    expect(minimal?.marginPercent).toBeUndefined();
+    expect(minimal?.marginShare).toBeUndefined();
   });
 
   it("evidenceProfile: anything absent is false or empty", () => {
@@ -425,17 +425,32 @@ describe("readConfig", () => {
     [
       "ladder not numbers",
       { commercialPolicy: { ...commercial, incentiveLadderPercent: ["5"] } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent must be an array of numbers.",
+      "merchants[0].commercialPolicy.incentiveLadderPercent[0] must be an integer percentage between 0 and 100.",
     ],
     [
-      "a step above the ceiling (domain)",
+      "ladder not an array",
+      { commercialPolicy: { ...commercial, incentiveLadderPercent: 5 } },
+      "merchants[0].commercialPolicy.incentiveLadderPercent must be an array of integer percentages.",
+    ],
+    [
+      "a fractional ceiling (shape: the configuration speaks integer percentages)",
+      { commercialPolicy: { ...commercial, maxIncentivePercent: 7.5 } },
+      "merchants[0].commercialPolicy.maxIncentivePercent must be an integer percentage between 0 and 100.",
+    ],
+    [
+      "a fractional step (shape)",
+      { commercialPolicy: { ...commercial, incentiveLadderPercent: [2.5] } },
+      "merchants[0].commercialPolicy.incentiveLadderPercent[0] must be an integer percentage between 0 and 100.",
+    ],
+    [
+      "a step above the ceiling (domain, named by the configuration field)",
       { commercialPolicy: { ...commercial, incentiveLadderPercent: [5, 20] } },
       "merchants[0].commercialPolicy.incentiveLadderPercent[1] is invalid (",
     ],
     [
-      "margin out of range (domain)",
+      "margin out of range (shape)",
       { commercialPolicy: { ...commercial, marginPercent: 150 } },
-      "merchants[0].commercialPolicy.marginPercent is invalid (",
+      "merchants[0].commercialPolicy.marginPercent must be an integer percentage between 0 and 100.",
     ],
     [
       "return risk with an unknown block (domain)",

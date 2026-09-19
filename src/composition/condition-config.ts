@@ -105,11 +105,21 @@ export function strings(value: unknown, where: MerchantField): string[] {
   return value;
 }
 
-export function numbers(value: unknown, where: MerchantField): number[] {
-  if (!Array.isArray(value) || !value.every((v) => typeof v === "number")) {
-    throw new ConfigError(where, "must be an array of numbers");
-  }
-  return value;
+const PERCENT_MAX = 100;
+const PERCENT_PER_UNIT = 100;
+const isPercent = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= PERCENT_MAX;
+
+/** An integer percentage 0..100 (the shape the configuration speaks), as the rate 0..1 the domain speaks. */
+export function percentAsRate(value: unknown, where: MerchantField): number {
+  if (!isPercent(value)) throw new ConfigError(where, "must be an integer percentage between 0 and 100");
+  return value / PERCENT_PER_UNIT;
+}
+
+/** A list of integer percentages 0..100, as rates. */
+export function percentsAsRates(value: unknown, where: MerchantField): number[] {
+  if (!Array.isArray(value)) throw new ConfigError(where, "must be an array of integer percentages");
+  return value.map((item: unknown, i) => percentAsRate(item, `${where}[${i}]`));
 }
 
 /** The value of a key and its location, so a key is written once per read. */
@@ -176,11 +186,18 @@ function fact(raw: Raw, kind: Fact, parent: MerchantField): Condition {
 /**
  * A domain rejection located at its field: `details.path` names the field and `details.index`
  * the element — of the list `indexed` when the path is inside its elements (`rules[2].when…`),
- * of the field itself otherwise (`incentiveLadderPercent[1]`).
+ * of the field itself otherwise (`incentiveLadderPercent[1]`). `aliases` maps a domain field to
+ * the configuration field that fed it when the two differ (a rate read from a percentage).
  */
-export function rejected(parent: MerchantField, error: DomainError, indexed?: Key): ConfigError {
+export function rejected(
+  parent: MerchantField,
+  error: DomainError,
+  indexed?: Key,
+  aliases: Readonly<Record<string, Key>> = {},
+): ConfigError {
   const { path, index } = error.details;
-  const inside = typeof path === "string" ? path : "";
+  const domainPath = typeof path === "string" ? path : "";
+  const inside = aliases[domainPath] ?? domainPath;
   let field: MerchantField = `${parent}.${inside}`;
   if (typeof index === "number") {
     field = indexed === undefined ? `${field}[${index}]` : `${at(parent, indexed)}[${index}].${inside}`;

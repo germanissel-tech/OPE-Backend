@@ -68,8 +68,9 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    la de operaciones: una operación nueva toca sólo el archivo de su módulo; un módulo nuevo es
    una línea ahí y otra en `CONTEXT_MAP`. `wireModules` falla si dos módulos sirven el mismo
    `operationId`, el mismo esquema de seguridad o ambos declaran la política CORS.
-3. **Fail-closed en el arranque** (constitución II): en modo real, `bootstrap` comprueba que
-   toda operación declarada en el contrato tiene handler y **no arranca** si falta alguna. El
+3. **Fail-closed en el arranque** (constitución II): `bootstrap` comprueba que toda operación
+   declarada en el contrato tiene handler y **no arranca** si falta alguna (sin modo ni mock,
+   ADR-018). El
    servidor conserva el 501 para mapas de handlers arbitrarios (FR-044 de la 001), pero en
    producción un controller olvidado se ve al desplegar, no en un 501 bajo carga.
 4. Regla `composition-wires-by-module` en dependency-cruiser: fuera de `composition/modules/`,
@@ -87,12 +88,14 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    no importa `interface-adapters/gateways/` (con fixture).
 
 El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
-inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, modules?, ports?, handlers? })`. 6. **El logger es un puerto y el proceso falla cerrado** (2026-09-17). `Logger` vive en
-`application/shared-kernel/ports/`; `infrastructure/logging/pino-logger.ts` lo implementa
-sobre pino con los serializadores privados y Fastify comparte esa instancia; el root no
-conoce ningún tipo del framework. `composition/lifecycle.ts` adjunta al proceso el apagado
-ordenado (SIGINT/SIGTERM → `close()` → salida 0; fallo o timeout de gracia → salida 1) y el
-corte ante `uncaughtException`/`unhandledRejection` (log + salida 1, sin intentar recuperar
-un estado que no se puede confiar); el proceso es un parámetro, así que se prueba sin señales.
-`readConfig` valida (`PORT` decimal 0–65535, blanco = no definido, merchants con forma) y
-rechaza con `ConfigError` nombrando la variable.
+inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, modules?, ports?, handlers? })`.
+
+6. **El logger es un puerto y el proceso falla cerrado** (2026-09-17). `Logger` vive en
+   `application/shared-kernel/ports/`; `infrastructure/logging/pino-logger.ts` lo implementa
+   sobre pino con los serializadores privados y Fastify comparte esa instancia; el root no
+   conoce ningún tipo del framework. `composition/lifecycle.ts` adjunta al proceso el apagado
+   ordenado (SIGINT/SIGTERM → `close()` → salida 0; fallo o timeout de gracia → salida 1) y el
+   corte ante `uncaughtException`/`unhandledRejection` (log + salida 1, sin intentar recuperar
+   un estado que no se puede confiar); el proceso es un parámetro, así que se prueba sin señales.
+   `readConfig` valida (`PORT` decimal 0–65535, blanco = no definido, merchants con forma) y
+   rechaza con `ConfigError` nombrando la variable.

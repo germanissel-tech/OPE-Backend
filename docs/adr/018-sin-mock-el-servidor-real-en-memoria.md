@@ -47,6 +47,11 @@ una operación declarada y no implementada— ya no existe en `main`: el arranqu
 ## Consecuencias
 
 - Reemplaza a ADR-005. ADR-001 sigue valiendo para el servidor real (el mock ya no existe).
+- El perfil en memoria (`profiles/local.ts`) no es un perfil para tráfico: sus ledgers
+  (decisiones, asignaciones, exposiciones, órdenes, corroboraciones) no podan porque
+  sustituyen al ledger durable de 01 §9; sólo el estado caliente (dedup, sesión, visitante)
+  tiene ventana. La feature de persistencia del mapa trae el perfil real (2026-09-19,
+  auditoría 014 F-047).
 - Desaparecen `tests/integration/mock.test.ts` y las pruebas "en modo mock"; la fidelidad que
   probaban (mismo 400, mismo 404) es trivial: es el mismo código.
 - `bootstrap(config, { profile?, modules?, ports?, handlers? })`: los cuatro seams de

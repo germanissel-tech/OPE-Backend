@@ -1,4 +1,5 @@
-// Feature 012 (FR-030; SC-003): a commercial policy only exists valid, naming the field.
+// Feature 012 (FR-030; SC-003) and feature 015 (F-031): a commercial policy only exists valid, naming
+// the field; inside the domain it speaks rates 0..1 (the percentages stay at the configuration edge).
 // Imported from the files, not the module index: the index loads the default policy at import
 // time, and a mutant that breaks `CommercialPolicy.of` would then break the file instead of a test.
 import { describe, expect, it } from "vitest";
@@ -16,11 +17,14 @@ import {
   InvalidReturnRisk,
 } from "../../../../src/domain/commercial/errors.js";
 
+/** A percentage as the rate the domain stores: keeps the stakeholder's figures readable in the cases. */
+const pct = (n: number): number => n / 100;
+
 const base: CommercialPolicyRecord = {
   version: "sport-commercial-1",
-  maxIncentivePercent: 15,
-  incentiveLadderPercent: [5, 10, 15],
-  marginPercent: 40,
+  maxIncentiveShare: pct(15),
+  incentiveLadderShare: [pct(5), pct(10), pct(15)],
+  marginShare: pct(40),
   directIncentiveOnPrice: true,
   returnRisk: {
     all: [
@@ -58,65 +62,65 @@ describe("CommercialPolicy.of", () => {
     const built = CommercialPolicy.of(base);
     if (!built.ok) throw new Error(built.error.message);
     expect(built.value.version).toBe("sport-commercial-1");
-    expect(built.value.incentiveLadderPercent).toEqual([5, 10, 15]);
-    expect(built.value.marginPercent).toBe(40);
+    expect(built.value.incentiveLadderShare).toEqual([pct(5), pct(10), pct(15)]);
+    expect(built.value.marginShare).toBe(pct(40));
     expect(built.value.cooldownSeconds).toBe(0);
   });
 
   it("a policy without margin is valid: the margin is what the merchant did not configure", () => {
-    const { marginPercent, ...without } = base;
-    expect(marginPercent).toBe(40);
+    const { marginShare, ...without } = base;
+    expect(marginShare).toBe(pct(40));
     const built = CommercialPolicy.of(without);
     expect(built.ok).toBe(true);
-    expect(built.ok && built.value.marginPercent).toBeUndefined();
+    expect(built.ok && built.value.marginShare).toBeUndefined();
   });
 
   it.each<[string, Partial<CommercialPolicyRecord>, string, Record<string, unknown>]>([
     ["blank version", { version: " " }, "invalid-commercial-version", { path: "version" }],
     [
-      "ceiling above 100",
-      { maxIncentivePercent: 101 },
+      "ceiling above 1",
+      { maxIncentiveShare: 1.01 },
       "invalid-incentive-ceiling",
-      { path: "maxIncentivePercent" },
+      { path: "maxIncentiveShare" },
     ],
     [
-      "ceiling fractional",
-      { maxIncentivePercent: 7.5 },
+      "ceiling NaN",
+      { maxIncentiveShare: Number.NaN },
       "invalid-incentive-ceiling",
-      { path: "maxIncentivePercent" },
+      { path: "maxIncentiveShare" },
     ],
     [
       "ceiling negative",
-      { maxIncentivePercent: -1 },
+      { maxIncentiveShare: -0.01 },
       "invalid-incentive-ceiling",
-      { path: "maxIncentivePercent" },
+      { path: "maxIncentiveShare" },
     ],
     [
       "a step above the ceiling",
-      { incentiveLadderPercent: [5, 20] },
+      { incentiveLadderShare: [pct(5), pct(20)] },
       "invalid-incentive-ladder",
-      { path: "incentiveLadderPercent", index: 1 },
+      { path: "incentiveLadderShare", index: 1 },
     ],
     [
       "a step not increasing",
-      { incentiveLadderPercent: [10, 10] },
+      { incentiveLadderShare: [pct(10), pct(10)] },
       "invalid-incentive-ladder",
-      { path: "incentiveLadderPercent", index: 1 },
+      { path: "incentiveLadderShare", index: 1 },
     ],
     [
       "a step of zero",
-      { incentiveLadderPercent: [0, 5] },
+      { incentiveLadderShare: [0, pct(5)] },
       "invalid-incentive-ladder",
-      { path: "incentiveLadderPercent", index: 0 },
+      { path: "incentiveLadderShare", index: 0 },
     ],
     [
-      "a fractional step",
-      { incentiveLadderPercent: [2.5] },
+      "a step that is not a rate",
+      { incentiveLadderShare: [Number.POSITIVE_INFINITY] },
       "invalid-incentive-ladder",
-      { path: "incentiveLadderPercent", index: 0 },
+      { path: "incentiveLadderShare", index: 0 },
     ],
-    ["margin above 100", { marginPercent: 120 }, "invalid-margin", { path: "marginPercent" }],
-    ["margin NaN", { marginPercent: Number.NaN }, "invalid-margin", { path: "marginPercent" }],
+    ["margin above 1", { marginShare: 1.2 }, "invalid-margin", { path: "marginShare" }],
+    ["margin NaN", { marginShare: Number.NaN }, "invalid-margin", { path: "marginShare" }],
     [
       "return risk naming an unknown block",
       { returnRisk: { all: [{ fact: "dwellSeconds", block: "footer" as never }] } },
@@ -140,20 +144,24 @@ describe("CommercialPolicy.of", () => {
     expect(rejected({ ...base, ...over })).toEqual({ code, details });
   });
 
-  it("the boundaries are inside: ceiling 0 with an empty ladder, ceiling 100 with a step of 100, margin 0 and 100", () => {
-    expect(CommercialPolicy.of({ ...base, maxIncentivePercent: 0, incentiveLadderPercent: [] }).ok).toBe(
+  it("the boundaries are inside: ceiling 0 with an empty ladder, ceiling 1 with a step of 1, margin 0 and 1", () => {
+    expect(CommercialPolicy.of({ ...base, maxIncentiveShare: 0, incentiveLadderShare: [] }).ok).toBe(true);
+    expect(CommercialPolicy.of({ ...base, maxIncentiveShare: 1, incentiveLadderShare: [pct(1), 1] }).ok).toBe(
       true,
     );
-    expect(
-      CommercialPolicy.of({ ...base, maxIncentivePercent: 100, incentiveLadderPercent: [1, 100] }).ok,
-    ).toBe(true);
-    expect(CommercialPolicy.of({ ...base, marginPercent: 0 }).ok).toBe(true);
-    expect(CommercialPolicy.of({ ...base, marginPercent: 100 }).ok).toBe(true);
+    expect(CommercialPolicy.of({ ...base, marginShare: 0 }).ok).toBe(true);
+    expect(CommercialPolicy.of({ ...base, marginShare: 1 }).ok).toBe(true);
     expect(CommercialPolicy.of({ ...base, cooldownSeconds: 0.5 }).ok).toBe(true);
   });
 
+  it("every integer percentage survives the trip percentage → rate → percentage (the edge converts, the domain rounds)", () => {
+    for (let percent = 0; percent <= 100; percent += 1) {
+      expect(Math.round(pct(percent) * 100)).toBe(percent);
+    }
+  });
+
   it("rehydrate does not re-judge", () => {
-    expect(CommercialPolicy.rehydrate({ ...base, maxIncentivePercent: 500 }).maxIncentivePercent).toBe(500);
+    expect(CommercialPolicy.rehydrate({ ...base, maxIncentiveShare: 5 }).maxIncentiveShare).toBe(5);
   });
 
   it("fallbackBarrier: the inferred barrier wins; otherwise returns on an abandonment, only when the policy reassures", () => {

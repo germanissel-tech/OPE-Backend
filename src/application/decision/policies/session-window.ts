@@ -1,7 +1,8 @@
 // Session window (ADR-026): how long, and how many, sessions the plane remembers per merchant.
-// The same figures as the deduplication window (ADR-024): a session older than a day, or beyond
-// the budget, starts over. Declared here so any store applies the same window.
-import { hours } from "../../../domain/shared-kernel/index.js";
+// The figures are the deduplication window's (ADR-024), derived from it rather than repeated: a
+// session older than a day, or beyond the budget, starts over. Declared here so any store
+// applies the same window.
+import { DEDUP_WINDOW } from "../../ingestion/index.js";
 
 export interface SessionWindow {
   /** States untouched for longer than this are forgotten. */
@@ -10,8 +11,5 @@ export interface SessionWindow {
   maxSessions: number;
 }
 
-const SESSION_TTL_HOURS = 24;
-const SESSION_MAX = 100_000;
-
-/** 24 h since the last batch, or 100,000 sessions per merchant, whichever comes first. */
-export const SESSION_WINDOW: SessionWindow = { ttlMs: hours(SESSION_TTL_HOURS), maxSessions: SESSION_MAX };
+/** The deduplication window, applied to sessions: 24 h since the last batch, or 100,000 per merchant. */
+export const SESSION_WINDOW: SessionWindow = { ttlMs: DEDUP_WINDOW.ttlMs, maxSessions: DEDUP_WINDOW.maxIds };

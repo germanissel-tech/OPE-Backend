@@ -1,7 +1,6 @@
 // merchant module: who the credential is and which origins are theirs. Serves no operation of
 // its own; it serves the `ingestKey` and `platformKey` security schemes (ADR-014, ADR-025,
-// ADR-029) and the CORS policy. Security also runs in mock: the SDK develops against the mock
-// with the real key (SC-006).
+// ADR-029) and the CORS policy.
 import {
   DefaultIngestKeyResolver,
   DefaultPlatformKeyResolver,

@@ -24,7 +24,11 @@ falsificarse o repetirse: una clave filtrada o un cuerpo capturado bastarían.
    hex de `HMAC-SHA256(secret, "<timestamp>.<cuerpo crudo en bytes>")`). El cuerpo se firma
    byte a byte como se envía; ninguna canonicalización.
 3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se
-   acepta cualquiera de los secretos activos.
+   acepta cualquiera de los secretos activos. Un replay de la misma request dentro de la
+   ventana es posible por diseño (sin nonce) y lo absorbe la idempotencia: una orden o una
+   devolución repetidas responden `200` sin segundo efecto; un snapshot repetido con el mismo
+   `capturedAt` responde `200` y uno más viejo que el vigente `422 catalog-out-of-order`. El
+   efecto de un replay es siempre nulo (2026-09-19, auditoría 014 F-058).
 4. **Obligatoria por merchant, para toda la credencial**: con secreto configurado, toda
    operación con `platformKey` (catálogo, órdenes, devoluciones) exige firma; sin secreto,
    sólo la clave (compatibilidad con la 010). Errores `401`: `signature-missing`,

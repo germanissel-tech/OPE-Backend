@@ -2,7 +2,7 @@
 // each barrier, the interventions OPE may make, ordered by the incentive ladder — information,
 // reassurance, uncertainty, evidence, incentive — each declaring the claims it makes. A closed
 // vocabulary of OPE: a merchant declares what evidence it provides, never new candidates
-// (those arrive with the message catalogue, feature 015). Until then the candidate id is the
+// (those arrive with the message catalogue feature of the map). Until then the candidate id is the
 // placeholder message version `msg_<barrier>_<anchor>_<step>_v0`.
 import type { Anchor, Barrier } from "../shared-kernel/index.js";
 
@@ -35,7 +35,7 @@ export interface Candidate {
 
 const MESSAGE_PLACEHOLDER_VERSION = "v0";
 
-/** The placeholder id of a candidate until the message catalogue names real versions (015). */
+/** The placeholder id of a candidate until the message catalogue names real versions. */
 const candidateId = (barrier: Barrier, anchor: Anchor, step: Step): string =>
   `msg_${barrier}_${anchor}_${step}_${MESSAGE_PLACEHOLDER_VERSION}`;
 

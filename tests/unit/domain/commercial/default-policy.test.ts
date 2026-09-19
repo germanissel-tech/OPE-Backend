@@ -10,9 +10,9 @@ describe("DEFAULT_COMMERCIAL_POLICY", () => {
     const policy = DEFAULT_COMMERCIAL_POLICY;
     expect(policy.version).toBe(DEFAULT_COMMERCIAL_POLICY_VERSION);
     expect(policy.version).toBe("commercial-default-1");
-    expect(policy.maxIncentivePercent).toBe(10);
-    expect(policy.incentiveLadderPercent).toEqual([5, 10]);
-    expect(policy.marginPercent).toBeUndefined();
+    expect(policy.maxIncentiveShare).toBe(0.1);
+    expect(policy.incentiveLadderShare).toEqual([0.05, 0.1]);
+    expect(policy.marginShare).toBeUndefined();
     expect(policy.directIncentiveOnPrice).toBe(true);
     expect(policy.highIntent).toBe("from-checkout");
     expect(policy.abandonment).toBe("reassure-returns");

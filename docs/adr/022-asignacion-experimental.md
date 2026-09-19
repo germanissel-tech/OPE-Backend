@@ -46,8 +46,8 @@ vive el experimento y qué ve el SDK.
 - El módulo `experiment` entra al mapa de contextos (`experiment: [shared-kernel]`;
   `ingestion` depende de él).
 - El plano de decisión (011+) recibe el brazo desde la decisión y no vuelve a calcularlo.
-- Las lecturas del portal (017) y el análisis ITT parten del ledger de asignaciones, no de
+- Las lecturas del portal y el análisis ITT (feature "ITT analysis and merchant portal") parten del ledger de asignaciones, no de
   las exposiciones.
 - Holdout (DECIDIDO, ADR-026): todo merchant conserva un grupo de control mínimo,
   `holdoutPercent` con 5 % por defecto; `treatmentPercent ≤ 100 − holdout`. El tope se aplica
-  con la configuración por API (014).
+  con la configuración por API (feature "Configuration, flags, kill switch and administration").

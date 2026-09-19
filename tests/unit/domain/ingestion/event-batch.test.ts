@@ -1,5 +1,5 @@
-// US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by construction; the
-// provisional NO_OP reason of a batch while there is no decision plane.
+// Feature 004 US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by
+// construction, and the product focus of a batch.
 import { describe, expect, it } from "vitest";
 import {
   EventBatch,

@@ -1,6 +1,7 @@
 // Freshness budgets by class of datum (01 §8; ADR-025), measured from `capturedAt`: catalogue
 // and variants stay true for the order of a day; availability and price for the order of
-// minutes. Published in the description of upsertCatalogSnapshot; per merchant with feature 014.
+// minutes. Published in the description of upsertCatalogSnapshot; per merchant once the
+// configuration API exists (`putFlags`, contracts/api-map.yaml).
 import { hours, minutes } from "../../../domain/shared-kernel/index.js";
 
 export interface FreshnessBudget {

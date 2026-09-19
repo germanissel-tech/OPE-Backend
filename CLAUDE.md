@@ -70,7 +70,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                              |
 | `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura                             |
 | `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                            |
-| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                                             |
+| `npm run arch`                                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                                                    |
 | `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                        |
 | `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                     |
@@ -122,12 +122,12 @@ logger es un puerto (`Logger` en `shared-kernel`, pino en `infrastructure/loggin
 pruebas lo reemplazan por `ports.logger`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
 SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
 no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
-`ConfigError` (variable + problema) lo que no puede arrancar el servidor
-y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
-`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por
-`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No hay servidor
-mock ni modo (ADR-018): el composition root no decide sobre configuración (`shape` regla 5); un
-contrato con una operación que ningún módulo sirve no arranca.
+`ConfigError` (variable + problema) lo que no puede arrancar el servidor; `bootstrap` se niega
+a arrancar si el contrato declara una operación que ningún módulo sirve. Las pruebas usan
+`startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable).
+Merchants por `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No
+hay servidor mock ni modo (ADR-018): el composition root no decide sobre configuración
+(`shape` regla 5).
 
 ### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
 
@@ -188,8 +188,12 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   (`merchants[i].experiments[j].treatmentPercent`, `merchants[i].origins[k]`). Los gateways
   reciben entidades, nunca registros crudos. Los errores de configuración son `DomainError` y
   figuran en el catálogo de problemas aunque ningún endpoint los emita.
-- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` es 0–1; el porcentaje
-  0–100 existe sólo en `OPE_MERCHANTS`. El reparto resuelve a buckets enteros (1 %).
+- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` y
+  `CommercialPolicy.{maxIncentiveShare, incentiveLadderShare, marginShare}` son 0–1; el
+  porcentaje entero 0–100 existe sólo en `OPE_MERCHANTS` (`treatmentPercent`,
+  `maxIncentivePercent`, …) y en el DTO (`Incentive.value`, lo que el comprador ve). El reparto
+  resuelve a buckets enteros (1 %) y el incentivo a un porcentaje entero (`Math.round`), una vez
+  en el dominio; `isRate`/`isCount` del `shared-kernel` juzgan los números.
 - **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
   dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
@@ -263,6 +267,11 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
+- **Puerto de plataforma (constitución X)**: deuda declarada. El caso base construido es
+  push (la plataforma empuja catálogo, órdenes y devoluciones; ADR-025, ADR-028); el puerto
+  de cuatro operaciones con sus adaptadores genérico y de prueba es la feature "Platform port
+  and adapters" del mapa (`contracts/api-map.yaml`). Todo Constitution Check evalúa los diez
+  principios y cita la versión de la constitución.
 - **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
   `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
   200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
@@ -295,8 +304,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
   decisión registra `inference` y `selection` (candidatos con veredicto del gate, elegido,
   veredicto comercial, `commercialPolicyVersion`); el DTO del SDK sólo lleva `outcome`, `reason`
-  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta la
-  015, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
+  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el
+  catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
   y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
   intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
 - **Outcomes y cadena de evidencia (ADR-028)**: el módulo `outcomes` (`[shared-kernel, ledger]`)

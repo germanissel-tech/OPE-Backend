@@ -2,6 +2,8 @@
 // with a signing secret is served only when the platform signed the bytes it sent within the
 // window; a merchant without one keeps working with the key alone; the catalogue is signed too.
 import { afterEach, describe, expect, it } from "vitest";
+import { asOrderId } from "../../src/domain/outcomes/index.js";
+import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
 import { signed } from "../helpers/sign.js";
 import { catalogOf, fixedClock, orderOf, startTestApp, type MerchantSpec } from "../helpers/test-app.js";
@@ -86,6 +88,18 @@ describe("platform signature — user story 6", () => {
   it("3. a rotation: the second secret is accepted too", async () => {
     app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [signing, plain] });
     expect((await post("/v1/orders", body, signed(body, SECRET_2, at(NOW)))).statusCode).toBe(201);
+  });
+
+  it("3b. a replay of the exact signed request inside the window is absorbed by idempotency: no second record (ADR-029 §3)", async () => {
+    app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [signing, plain] });
+    const headers = signed(body, SECRET, at(NOW));
+    expect((await post("/v1/orders", body, headers)).statusCode).toBe(201);
+    const replay = await post("/v1/orders", body, headers);
+    expect(replay.statusCode).toBe(200);
+    expect(json(replay)).toMatchObject({ orderId: "S-1" });
+    expect(await app.ports.orders.find(asMerchantId("m_s"), asOrderId("S-1"))).toMatchObject({
+      orderId: "S-1",
+    });
   });
 
   it("4. a merchant without a secret is served with the key alone, with or without signature headers", async () => {

@@ -16,9 +16,9 @@ describe("configPolicyDirectory", () => {
   });
   const commercial = CommercialPolicy.rehydrate({
     version: "a-commercial-1",
-    maxIncentivePercent: 20,
-    incentiveLadderPercent: [10, 20],
-    marginPercent: 50,
+    maxIncentiveShare: 0.2,
+    incentiveLadderShare: [0.1, 0.2],
+    marginShare: 0.5,
     directIncentiveOnPrice: false,
     returnRisk: { fact: "sessionAddedToCart" },
     highIntent: "never",
