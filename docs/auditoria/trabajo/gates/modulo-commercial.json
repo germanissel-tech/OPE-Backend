@@ -1,0 +1,65 @@
+{
+  "scope": "module:commercial",
+  "files": [
+    "src/domain/commercial/commercial-policy.ts",
+    "src/domain/commercial/default-commercial-policy.ts",
+    "src/domain/commercial/errors.ts",
+    "src/domain/commercial/index.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/commercial/index.ts",
+          "line": 6,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Blocked",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/commercial/index.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: BlockReason",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/commercial/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CommercialInput",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/commercial/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CommercialPolicyRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/commercial/index.ts",
+          "line": 16,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CommercialError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/commercial/commercial-policy.ts",
+          "line": 74,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Blocked",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

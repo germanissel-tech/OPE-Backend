@@ -1,0 +1,104 @@
+{
+  "scope": "module:ledger",
+  "files": [
+    "src/application/ledger/index.ts",
+    "src/application/ledger/ports/decision-id-generator.ts",
+    "src/application/ledger/ports/decision-ledger.ts",
+    "src/application/ledger/ports/exposure-ledger.ts",
+    "src/application/ledger/services/decision-recorder.service.ts",
+    "src/application/ledger/use-cases/confirm-exposure.use-case.ts",
+    "src/domain/ledger/decision.ts",
+    "src/domain/ledger/errors.ts",
+    "src/domain/ledger/exposure.ts",
+    "src/domain/ledger/ids.ts",
+    "src/domain/ledger/index.ts",
+    "src/interface-adapters/gateways/ledger/memory-decision-ledger.ts",
+    "src/interface-adapters/gateways/ledger/memory-exposure-ledger.ts",
+    "src/interface-adapters/gateways/ledger/random-decision-ids.ts",
+    "src/interface-adapters/http/controllers/ledger/confirm-exposure.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/ledger/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CandidateRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ledger/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DecisionOutcome",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/index.ts",
+          "line": 3,
+          "rule": "dead-code/types",
+          "message": "unused exported type: RecordResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/index.ts",
+          "line": 4,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExposureRecordResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/index.ts",
+          "line": 4,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExposureRecordStatus",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/index.ts",
+          "line": 10,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DecisionRecorderDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/index.ts",
+          "line": 14,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ConfirmExposureDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ledger/decision.ts",
+          "line": 55,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CandidateRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/ports/decision-ledger.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: RecordResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ledger/ports/exposure-ledger.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExposureRecordResult",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

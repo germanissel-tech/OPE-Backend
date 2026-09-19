@@ -255,5 +255,465 @@
     },
     "coveringTest": "none: prose (ADR-018 retired the modes)",
     "status": "confirmed"
+  },
+  {
+    "id": "F-016",
+    "file": "src/application/experiment/services/assignment.service.ts",
+    "line": 3,
+    "rule": {
+      "id": "axis-2-comment-names-a-function-retired-by-009",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "// (ADR-023). Deterministic (assignArm) and stable: an assignment already recorded wins over the",
+    "proposal": {
+      "before": "// (ADR-023). Deterministic (assignArm) and stable: an assignment already recorded wins over the",
+      "after": "// (ADR-023). Deterministic (`Experiment.assign`) and stable: an assignment already recorded wins over the"
+    },
+    "coveringTest": "none: a comment. `assignArm` was removed by feature 009 (specs/009-dominio-rico/tasks.md:80 \"sin `assignArm`, `assignmentKey`, `fnv1a32`, `activeExperiment`\"; docs/adr/024-dominio-rico.md:14 names it as the anemic past); no symbol with that name exists in src/",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-017",
+    "file": "src/composition/modules/experiment.ts",
+    "line": 3,
+    "rule": {
+      "id": "axis-7-comment-points-the-experiment-store-to-the-wrong-feature",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "// Experiments come from configuration (the store arrives with feature 008); the assignment",
+    "proposal": {
+      "before": "// Experiments come from configuration (the store arrives with feature 008); the assignment",
+      "after": "// Experiments come from configuration (the store arrives with `createExperiment` /\n// `closeExperiment`, contracts/api-map.yaml); the assignment"
+    },
+    "coveringTest": "none: a comment. Feature 008 is `specs/008-casos-de-uso-y-errores/` and brings no store; contracts/api-map.yaml:206-222 assigns `createExperiment` and `closeExperiment` to feature \"014\" (planned), a number that moves again now that 014 is the audit — naming the operation instead of the number keeps the comment true",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-018",
+    "file": "tests/integration/assignment.test.ts",
+    "line": 68,
+    "rule": {
+      "id": "axis-4-as-never-instead-of-the-imported-branded-constructor",
+      "source": "clarity:cast-instead-of-constructor"
+    },
+    "severity": "low",
+    "evidence": "  app.ports.assignments.find(\"m_a\" as never, EXPERIMENT_ID as never, visitorId as never);",
+    "proposal": {
+      "before": "const find = (visitorId: string) =>\n  app.ports.assignments.find(\"m_a\" as never, EXPERIMENT_ID as never, visitorId as never);",
+      "after": "const find = (visitorId: string) =>\n  app.ports.assignments.find(asMerchantId(\"m_a\"), asExperimentId(EXPERIMENT_ID), asVisitorId(visitorId));"
+    },
+    "coveringTest": "none today. The file imports `asExperimentId, asMerchantId, asVisitorId` at line 6 and still casts at 68, 120, 128, 137 and 139; `as never` appears 59 times in 19 test files (some on purpose, to pass invalid input). `@typescript-eslint/no-unsafe-type-assertion` scoped to tests/ would list them for review",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-019",
+    "file": "tests/unit/domain/experiment/assignment-regression.test.ts",
+    "line": 15,
+    "rule": {
+      "id": "axis-2-copied-hash-without-saying-why-it-is-a-copy",
+      "source": "clarity:undocumented-intentional-copy"
+    },
+    "severity": "low",
+    "evidence": "function fnv1a32(text: string): number {\n  let hash = FNV_OFFSET_BASIS;\n  for (let i = 0; i < text.length; i += 1) {\n    hash ^= text.charCodeAt(i);\n    hash = Math.imul(hash, FNV_PRIME) >>> 0;\n  }\n  return hash >>> 0;\n}",
+    "proposal": {
+      "before": "const FNV_OFFSET_BASIS = 0x811c9dc5;\nconst FNV_PRIME = 0x01000193;\nfunction fnv1a32(text: string): number {",
+      "after": "// Local copy of the domain's FNV-1a (src/domain/experiment/experiment.ts): the domain does not\n// export it (009) and the fingerprint must not move with the code it checks.\nconst FNV_OFFSET_BASIS = 0x811c9dc5;\nconst FNV_PRIME = 0x01000193;\nfunction fnv1a32(text: string): number {"
+    },
+    "coveringTest": "none: a comment. The header (lines 1-4) explains the fingerprints, not why the hash is duplicated instead of imported; a reader who \"deduplicates\" it by exporting the domain's hash would make the regression test blind to a change in that hash",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-020",
+    "file": "tests/unit/domain/experiment/assignment-regression.test.ts",
+    "line": 1,
+    "rule": {
+      "id": "axis-6-test-header-cites-an-fr-number-without-its-spec",
+      "source": "clarity:ambiguous-spec-reference"
+    },
+    "severity": "low",
+    "evidence": "// FR-041 (ADR-024): the assignment is bit for bit the one of feature 007. The fingerprints were",
+    "proposal": {
+      "before": "// FR-041 (ADR-024): the assignment is bit for bit the one of feature 007. The fingerprints were",
+      "after": "// 009 FR-041 (ADR-024): the assignment is bit for bit the one of feature 007. The fingerprints were"
+    },
+    "coveringTest": "none today. `FR-041` exists in specs 001, 002, 003, 005 and 009 with different meanings; the sibling tests/unit/domain/experiment/assignment.test.ts:1 cites `FR-002..FR-005` of spec 007 with the same scheme. Of the 90 test files whose header cites `FR-`/`SC-`, 4 name the feature; a governance test could require the spec number next to every `FR-`/`SC-` citation",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-021",
+    "file": "src/interface-adapters/http/controllers/ingestion/ingest-events.ts",
+    "line": 25,
+    "rule": {
+      "id": "axis-3-instantOf-copied-in-three-controllers-after-boundary-exported-it",
+      "source": "lint:sonarjs/no-identical-functions"
+    },
+    "severity": "medium",
+    "evidence": "function instantOf(text: string): Date {\n  const date = new Date(text);\n  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);\n  return date;\n}",
+    "proposal": {
+      "before": "import { toProblem } from \"../../to-problem.js\";\n// …\n/** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */\nfunction instantOf(text: string): Date {\n  const date = new Date(text);\n  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);\n  return date;\n}",
+      "after": "import { instantOf } from \"../../boundary.js\";\nimport { toProblem } from \"../../to-problem.js\";\n// (local copy removed; same in controllers/catalog/upsert-catalog-snapshot.ts:21 and controllers/ledger/confirm-exposure.ts:15)"
+    },
+    "coveringTest": "none today: `sonarjs/no-identical-functions` compares functions inside one file and `check:duplication` needs 50 tokens (this one has fewer). `src/interface-adapters/http/boundary.ts:6` exports the identical function since 013 (`8d6cb07`) and only the outcomes controllers import it; a jscpd run with `minTokens` lowered for `controllers/` would list the three copies",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-022",
+    "file": "src/domain/ingestion/errors.ts",
+    "line": 19,
+    "rule": {
+      "id": "axis-5-error-message-hardcodes-the-tolerance-the-constant-owns",
+      "source": "clarity:message-duplicates-constant"
+    },
+    "severity": "low",
+    "evidence": "    super(`The timestamp of event ${eventId} is out of tolerance (24 h in the past, 5 min in the future).`);",
+    "proposal": {
+      "before": "export class EventTimestampOutOfRange extends DomainError {\n  readonly code = \"event-timestamp-out-of-range\" as const;\n  readonly module = MODULE;\n  constructor(eventId: string) {\n    super(`The timestamp of event ${eventId} is out of tolerance (24 h in the past, 5 min in the future).`);\n  }\n}",
+      "after": "export class EventTimestampOutOfRange extends DomainError {\n  readonly code = \"event-timestamp-out-of-range\" as const;\n  readonly module = MODULE;\n  constructor(eventId: EventId, tolerance: { pastMs: number; futureMs: number }) {\n    super(`The timestamp of event ${eventId} is out of tolerance.`, { eventId, pastMs: tolerance.pastMs, futureMs: tolerance.futureMs });\n  }\n}\n// event-batch.ts:62 → fail(new EventTimestampOutOfRange(event.eventId, TIMESTAMP_TOLERANCE))"
+    },
+    "coveringTest": "tests/unit/domain/ingestion/event-batch.test.ts: after \"[invariant:event-timestamp-out-of-range] timestamp out of tolerance → rejected\", assert `error.details` carries `pastMs`/`futureMs` equal to `TIMESTAMP_TOLERANCE`; today the numbers live in `TIMESTAMP_TOLERANCE` (event-batch.ts:18-19), in this message and in contracts/components/schemas/EventBatch.yaml:12, and only the first two are in the same module",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-023",
+    "file": "tests/unit/domain/ingestion/event-batch.test.ts",
+    "line": 2,
+    "rule": {
+      "id": "axis-6-test-header-promises-a-provisional-no-op-that-no-longer-exists",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "// US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by construction; the\n// provisional NO_OP reason of a batch while there is no decision plane.",
+    "proposal": {
+      "before": "// US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by construction; the\n// provisional NO_OP reason of a batch while there is no decision plane.",
+      "after": "// 004 US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by construction,\n// and the product focus of a batch."
+    },
+    "coveringTest": "none: a comment. The file has two `describe` blocks (`EventBatch.of`, `EventBatch.focus`) and no test about a NO_OP reason; the decision plane exists since 011 (src/application/ingestion/ports/decision-plane.ts) and the batch no longer carries a reason",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-024",
+    "file": "tests/integration/ingest-events.test.ts",
+    "line": 58,
+    "rule": {
+      "id": "axis-6-test-title-claims-nothing-recorded-twice-but-asserts-only-counters",
+      "source": "clarity:test-title-overclaims"
+    },
+    "severity": "low",
+    "evidence": "  it(\"duplicate event: resending the same batch → all `duplicate`, nothing is recorded twice (idempotency)\", async () => {\n    app = await withClock();\n    await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: \"key-a-1\" });\n    const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: \"key-a-1\" });\n    expect(res.statusCode).toBe(202);\n    const body = json(res) as IngestResult;\n    expect(body).toMatchObject({ accepted: 0, duplicates: 3 });\n    expect(body.results.map((r) => r.status)).toEqual([\"duplicate\", \"duplicate\", \"duplicate\"]);\n  });",
+    "proposal": {
+      "before": "    expect(body.results.map((r) => r.status)).toEqual([\"duplicate\", \"duplicate\", \"duplicate\"]);\n  });",
+      "after": "    expect(body.results.map((r) => r.status)).toEqual([\"duplicate\", \"duplicate\", \"duplicate\"]);\n    // what \"recorded\" means since 011: the resend must not add a second decision for the session\n    expect(await app.ports.decisions.bySession(asMerchantId(\"m_a\"), asSessionId(\"ses_00000001\"))).toHaveLength(1);\n  });"
+    },
+    "coveringTest": "the proposed assertion itself. spec 004 US2 scenario 3 (specs/004-protocolo-sdk-ingesta/spec.md:105) says \"todos los eventos se reportan como duplicados y nada se registra dos veces\"; the title repeats the claim, the body checks the counters only. `IngestBatchUseCase.execute` (src/application/ingestion/use-cases/ingest-batch.use-case.ts:65-67) claims the dedup and then asks the plane for a decision even when `accepted` is 0, so the assertion may fail — which is the point: the test today cannot tell (noted for fases 2 and 4)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-025",
+    "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+    "line": 37,
+    "rule": {
+      "id": "axis-2-expire-called-twice-without-saying-why",
+      "source": "clarity:unexplained-double-call"
+    },
+    "severity": "low",
+    "evidence": "      const seen = bucket(merchantId);\n      expire(seen, now);\n      const entered = new Set<EventId>();\n      for (const id of eventIds) {\n        if (seen.has(id)) continue;\n        seen.set(id, now);\n        entered.add(id);\n      }\n      expire(seen, now);",
+    "proposal": {
+      "before": "      expire(seen, now);\n      const entered = new Set<EventId>();\n      for (const id of eventIds) {\n        if (seen.has(id)) continue;\n        seen.set(id, now);\n        entered.add(id);\n      }\n      expire(seen, now);",
+      "after": "      expire(seen, now); // before: an id past its TTL must count as new\n      const entered = new Set<EventId>();\n      for (const id of eventIds) {\n        if (seen.has(id)) continue;\n        seen.set(id, now);\n        entered.add(id);\n      }\n      expire(seen, now); // after: the batch may have pushed the bucket past maxIds"
+    },
+    "coveringTest": "tests/unit/gateways/memory-event-dedup.test.ts pins the TTL and the cap (\"time window: after 24 h the id comes in again\", \"size window: past N ids per merchant, the oldest are forgotten\") but not the second call: the full mutation run (trabajo/gates/mutation-full-summary.json) reports `memory-event-dedup.ts:44: Survived: ;` — removing it changes nothing a test observes, because the next `claim` expires first anyway. A test that claims `maxIds + 1` ids in one batch and inspects the bucket size (or a `size()` on the port for tests) would kill it and document why the call exists",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-026",
+    "file": "src/domain/catalog/catalog-snapshot.ts",
+    "line": 109,
+    "rule": {
+      "id": "axis-3-variant-index-built-per-snapshot-that-production-never-reads",
+      "source": "guide#Gates de calidad"
+    },
+    "severity": "medium",
+    "evidence": "  variant(productId: ProductId, variantId: VariantId): VariantOfProduct | undefined {\n    const found = this.#byVariant.get(variantId);\n    return found?.product.productId === productId ? found : undefined;\n  }",
+    "proposal": {
+      "before": "// src/application/catalog/services/product-truth.service.ts:50\n    const found = known.product.variants.find((v) => v.variantId === variantId);\n// while every snapshot builds `#byVariant` (catalog-snapshot.ts:68-71) and only two tests call `variant()`",
+      "after": "// either the service asks the owner (the index pays for itself):\n    const found = snapshot.variant(productId, variantId);\n// or the domain drops `#byVariant`, `variant()` and `VariantOfProduct`, keeping the uniqueness Set in `of`"
+    },
+    "coveringTest": "none today: `check:dead-code` (knip) sees unused exports, not class methods, so `variant()` and the `#byVariant` map (built for the pilot size of 5 000 × 10 variants on every replace, tests/integration/catalog-size.test.ts) stay although `src/` never calls them; `grep -rn \"\\.variant(\" src` is empty. Whichever way is chosen, tests/unit/application/catalog/product-truth.service.test.ts \"lookup\" cases keep covering the behaviour",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-027",
+    "file": "src/application/catalog/services/product-truth.service.ts",
+    "line": 16,
+    "rule": {
+      "id": "axis-4-freshness-field-typed-as-a-single-literal",
+      "source": "clarity:constant-field"
+    },
+    "severity": "low",
+    "evidence": "export interface TruthFreshness {\n  catalog: \"fresh\";\n  stockAndPrice: Freshness;\n}",
+    "proposal": {
+      "before": "export interface TruthFreshness {\n  catalog: \"fresh\";\n  stockAndPrice: Freshness;\n}\n// …\n    return { kind: \"known-product\", product, freshness: { catalog: \"fresh\", stockAndPrice }, ageMs };",
+      "after": "// a known truth is fresh by definition (beyond the catalogue budget the kind is `unknown`/`stale`)\n// …\n    return { kind: \"known-product\", product, stockAndPrice, ageMs };"
+    },
+    "coveringTest": "none: a type. The only reader is src/application/decision/services/decision.service.ts:242 (`found.freshness.stockAndPrice`); nothing reads `catalog`, which can only ever be \"fresh\" — a stale catalogue returns `{ kind: \"unknown\", reason: \"stale\" }` (line 65). `TruthFreshness` and `Freshness` are among the exported types nobody imports (gates/modulo-catalog.json, dead-code)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-028",
+    "file": "src/domain/catalog/errors.ts",
+    "line": 35,
+    "rule": {
+      "id": "axis-1-parameter-named-received-holds-the-incoming-capturedAt",
+      "source": "clarity:misleading-name"
+    },
+    "severity": "low",
+    "evidence": "  constructor(current: Date, received: Date) {\n    super(\n      `The current snapshot was captured at ${current.toISOString()}; this one at ${received.toISOString()}.`,\n    );",
+    "proposal": {
+      "before": "  constructor(current: Date, received: Date) {",
+      "after": "  constructor(currentCapturedAt: Date, incomingCapturedAt: Date) {"
+    },
+    "coveringTest": "none: a name. The caller passes `snapshot.capturedAt` (src/application/catalog/use-cases/upsert-catalog-snapshot.use-case.ts:69) and the snapshot has a distinct `receivedAt`; `received` reads as that other instant",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-029",
+    "file": "src/application/catalog/policies/freshness.ts",
+    "line": 3,
+    "rule": {
+      "id": "axis-7-comments-name-planned-features-by-a-number-that-moves",
+      "source": "clarity:planned-feature-number-in-comment"
+    },
+    "severity": "low",
+    "evidence": "// minutes. Published in the description of upsertCatalogSnapshot; per merchant with feature 014.",
+    "proposal": {
+      "before": "// minutes. Published in the description of upsertCatalogSnapshot; per merchant with feature 014.",
+      "after": "// minutes. Published in the description of upsertCatalogSnapshot; per merchant once the\n// configuration API exists (contracts/api-map.yaml, `putFlags`/`createExperiment`)."
+    },
+    "coveringTest": "none: comments. Four comments in src/ cite a feature that is not built yet by its number — here and src/application/decision/ports/policy-directory.ts:3 (\"feature 014\"), src/domain/shared-kernel/intervention.ts:19 and src/domain/selection/candidate.ts:5 (\"feature 015\"). The audit took number 014 (decision of the owner, specs/014-auditoria-integral/), so the roadmap numbers move and these four go stale the way F-017 already did; naming the operation or the ADR does not move",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-030",
+    "file": "src/domain/barrier/barrier-rules.ts",
+    "line": 52,
+    "rule": {
+      "id": "axis-3-rate-and-count-predicates-copied-across-modules",
+      "source": "lint:sonarjs/no-identical-functions"
+    },
+    "severity": "medium",
+    "evidence": "const isShare = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;\nconst isCount = (value: number): boolean => Number.isFinite(value) && value >= 0;",
+    "proposal": {
+      "before": "// barrier-rules.ts:52-53, condition.ts:112 (isCount again), decision/decision-policy.ts:50 (isShare again),\n// experiment/experiment.ts:70 inline:\nif (!Number.isFinite(treatmentShare) || treatmentShare < 0 || treatmentShare > 1) {",
+      "after": "// src/domain/shared-kernel/rate.ts — the convention \"inside, rates 0..1\" written once\nexport const isRate = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;\nexport const isCount = (value: number): boolean => Number.isFinite(value) && value >= 0;\n// experiment.ts:70 → if (!isRate(treatmentShare)) …; barrier-rules.ts, condition.ts, decision-policy.ts import them"
+    },
+    "coveringTest": "none today: `sonarjs/no-identical-functions` compares within one file and `check:duplication` needs 50 tokens; one-line predicates never reach it. tests/unit/domain/shared-kernel/ would take the table of edge values (NaN, Infinity, -0, 1.0000001) once instead of each module re-proving it (tests/unit/domain/experiment/experiment.test.ts:30, tests/unit/domain/barrier/barrier-rules.test.ts, tests/unit/domain/decision/decision-policy.test.ts)",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-031",
+    "file": "src/domain/commercial/commercial-policy.ts",
+    "line": 38,
+    "rule": {
+      "id": "axis-4-percentages-inside-the-domain-against-the-rates-convention",
+      "source": "guide#Convenciones"
+    },
+    "severity": "medium",
+    "evidence": "  maxIncentivePercent: number;\n  incentiveLadderPercent: readonly number[];\n  /** Absent: the merchant configured no margin, so nothing with an economic component goes out (01 §4.7). */\n  marginPercent?: number;",
+    "proposal": {
+      "before": "const PERCENT_MAX = 100;\n// …\nconst isPercent = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= PERCENT_MAX;\n// …\n    if (!Number.isInteger(record.maxIncentivePercent) || !isPercent(record.maxIncentivePercent)) {",
+      "after": "// either the edge converts, as the experiment does (src/composition/config.ts:199 \"Shape: an integer percentage. Its range is the domain's rule (Experiment.of, as a rate 0..1)\"):\n  maxIncentiveShare: number;        // 0..1\n  incentiveLadderShare: readonly number[];\n  marginShare?: number;\n// or an ADR carves the exception: \"an incentive is an integer percent the shopper reads (10 %), never a factor\", and CLAUDE.md § Convenciones cites it"
+    },
+    "coveringTest": "none today: a convention without a gate. CLAUDE.md:406 says \"Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1\"; `src/domain/experiment/experiment.ts:23` follows it (`treatmentShare`, \"percentages stay at the edge\") while `CommercialPolicyRecord` (this file), `DEFAULT_COMMERCIAL_POLICY` (default-commercial-policy.ts:12-14) and `Incentive.value` (src/domain/shared-kernel/intervention.ts:14) carry 0..100 inside the domain, as specs/012-plano-de-decision-ii/research.md:86-87 designed them. Refutation considered: the values are only compared, never multiplied, and the shopper sees the integer — a real reason, but one that lives nowhere the reader of the convention can find",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-032",
+    "file": "src/domain/commercial/commercial-policy.ts",
+    "line": 264,
+    "rule": {
+      "id": "axis-2-comment-cites-a-product-decision-by-a-label-without-its-source",
+      "source": "clarity:cryptic-reference"
+    },
+    "severity": "low",
+    "evidence": " * confirmed an inferred barrier (D-B), at the lowest otherwise.",
+    "proposal": {
+      "before": " * confirmed an inferred barrier (D-B), at the lowest otherwise.",
+      "after": " * confirmed an inferred barrier (03-alcance-mvp.md §6, D-B), at the lowest otherwise."
+    },
+    "coveringTest": "none: a comment. `D-B` is a product decision of 03 §6 (specs/012-plano-de-decision-ii/spec.md:143 \"cierra la decisión de producto D-B (03 §6)\"); the file header cites 01 §4.5 and 03 §4.8 only, so the label cannot be resolved from the code",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-033",
+    "file": "src/interface-adapters/gateways/decision/memory-session-state-store.ts",
+    "line": 22,
+    "rule": {
+      "id": "axis-3-bounded-window-per-merchant-written-three-times-in-memory-gateways",
+      "source": "guide#Gates de calidad"
+    },
+    "severity": "medium",
+    "evidence": "  const expire = (sessions: Map<SessionId, SessionState>, now: number): void => {\n    for (const [id, state] of sessions) {\n      if (now - state.updatedAt.getTime() < window.ttlMs) break;\n      sessions.delete(id);\n    }\n    while (sessions.size > window.maxSessions) {\n      const oldest = sessions.keys().next();\n      if (oldest.done) break;\n      sessions.delete(oldest.value);\n    }\n  };",
+    "proposal": {
+      "before": "// memory-session-state-store.ts:13-32, memory-visitor-state-store.ts:13-33 and memory-event-dedup.ts:12-31 each own a `bucket` (Map per merchant) and an `expire` (TTL by insertion order, then a cap), identical but for the names",
+      "after": "// src/interface-adapters/gateways/shared-kernel/windowed-map.ts — the knowledge once: per merchant, ordered by last touch, TTL then cap\nexport function windowedByMerchant<K, V>(window: { ttlMs: number; max: number }, touchedAt: (v: V) => number) {\n  const byMerchant = new Map<MerchantId, Map<K, V>>();\n  const bucket = (merchantId: MerchantId): Map<K, V> => { /* as today */ };\n  const expire = (entries: Map<K, V>, now: number): void => { /* as today, with touchedAt(v) */ };\n  return { bucket, expire };\n}\n// the three gateways keep only what differs: the key, the value and when it was touched.\n// `.dependency-cruiser.cjs` rule `gateways-no-cross` exempts `gateways/shared-kernel/` (as CONTEXT_MAP does for the module)"
+    },
+    "coveringTest": "none today: `check:duplication` (jscpd) compares token sequences and the identifiers differ (`sessions`/`visitors`/`seen`, `maxSessions`/`maxVisitors`/`maxIds`), so three copies of the same 20 lines pass the gate; `sonarjs/no-identical-functions` looks inside one file. tests/unit/gateways/memory-{event-dedup,session-state-store,visitor-state-store}.test.ts prove the TTL and the cap three times (\"time window\", \"size window\", \"expiring with the window\"); one table on the helper would prove it once",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-034",
+    "file": "src/application/decision/policies/session-window.ts",
+    "line": 2,
+    "rule": {
+      "id": "axis-7-comment-ties-two-windows-that-no-code-or-test-ties",
+      "source": "clarity:coupled-constants-not-linked"
+    },
+    "severity": "low",
+    "evidence": "// The same figures as the deduplication window (ADR-024): a session older than a day, or beyond\n// the budget, starts over. Declared here so any store applies the same window.",
+    "proposal": {
+      "before": "const SESSION_TTL_HOURS = 24;\nconst SESSION_MAX = 100_000;\n\n/** 24 h since the last batch, or 100,000 sessions per merchant, whichever comes first. */\nexport const SESSION_WINDOW: SessionWindow = { ttlMs: hours(SESSION_TTL_HOURS), maxSessions: SESSION_MAX };",
+      "after": "// either derive it (the decision module may import the ingestion module by its index, CONTEXT_MAP):\nexport const SESSION_WINDOW: SessionWindow = { ttlMs: DEDUP_WINDOW.ttlMs, maxSessions: DEDUP_WINDOW.maxIds };\n// or drop the claim from the comment and let each window be its own decision"
+    },
+    "coveringTest": "tests/unit/domain/decision/session-state.test.ts or a governance test: `expect(SESSION_WINDOW).toEqual({ ttlMs: DEDUP_WINDOW.ttlMs, maxSessions: DEDUP_WINDOW.maxIds })` — today nothing fails when one of the two changes, although this comment and src/domain/decision/session-state.ts:3-4 (\"with the window of the deduplication\") promise they move together",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-035",
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 187,
+    "rule": {
+      "id": "axis-4-barrier-parameters-widened-to-string",
+      "source": "clarity:widened-parameter-type"
+    },
+    "severity": "low",
+    "evidence": "function triggerOf(inferred: string | undefined, selected: string | undefined): Trigger {",
+    "proposal": {
+      "before": "function triggerOf(inferred: string | undefined, selected: string | undefined): Trigger {",
+      "after": "function triggerOf(inferred: Barrier | undefined, selected: Barrier | undefined): Trigger {"
+    },
+    "coveringTest": "none: a type. Both call-site arguments are `Barrier | undefined` (`settled.barrier`, `barrier` at line 133); `string` accepts any text and hides that the function reasons about barriers",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-036",
+    "file": "src/application/ledger/ports/decision-id-generator.ts",
+    "line": 2,
+    "rule": {
+      "id": "axis-2-comment-says-ingestion-mints-decision-ids-since-011-the-recorder-does",
+      "source": "guide#Documentación viva"
+    },
+    "severity": "medium",
+    "evidence": "// Decision identifier port: the ledger owns the identity of a decision; whoever mints one\n// (ingestion today, the decision plane tomorrow) receives a generator, never calls crypto.",
+    "proposal": {
+      "before": "// Decision identifier port: the ledger owns the identity of a decision; whoever mints one\n// (ingestion today, the decision plane tomorrow) receives a generator, never calls crypto.\n// — and src/composition/modules/ledger.ts:23:\n  /** Who mints decision identifiers: the ledger owns the identity, ingestion asks for one. */",
+      "after": "// Decision identifier port: the ledger owns the identity of a decision; its recorder\n// (DefaultDecisionRecorder) mints one per decision through this generator, never calling crypto.\n// — and src/composition/modules/ledger.ts:23:\n  /** Who mints decision identifiers: the ledger's recorder, which the decision module receives (`decisionPlaneOf`). */"
+    },
+    "coveringTest": "none: comments. Since 011 the only caller of `next()` is src/application/ledger/services/decision-recorder.service.ts:45,55 (`DefaultDecisionRecorder`), built in src/composition/modules/decision.ts:65 for the plane; nothing in src/application/ingestion/ or src/composition/modules/ingestion.ts names `decisionIds` — both comments describe the 004–010 flow",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-037",
+    "file": "src/application/outcomes/use-cases/notify-order.use-case.ts",
+    "line": 86,
+    "rule": {
+      "id": "axis-4-rehydrate-used-as-a-builder-to-attach-derived-facts",
+      "source": "clarity:rehydrate-as-builder"
+    },
+    "severity": "low",
+    "evidence": "    const order = Order.rehydrate({ ...built.value.record(), correlation, redemption });",
+    "proposal": {
+      "before": "    const built = Order.of(facts);\n    if (!built.ok) return fail(built.error);\n    // …\n    const order = Order.rehydrate({ ...built.value.record(), correlation, redemption });",
+      "after": "    const built = Order.of(facts);\n    if (!built.ok) return fail(built.error);\n    // …\n    const order = built.value.correlated(correlation, redemption);\n// src/domain/outcomes/order.ts, next to `withReturn`:\n  /** The same order, with what OPE derived when it recorded it (decided once, ADR-028). */\n  correlated(correlation: Correlation | undefined, redemption: IncentiveRedemption | undefined): Order {\n    return new Order({ ...this.record(), correlation, redemption });\n  }"
+    },
+    "coveringTest": "tests/unit/domain/outcomes/order.test.ts would take the new method next to `withReturn`; tests/unit/application/outcomes/notify-order.test.ts keeps covering the flow. `rehydrate` is documented as \"An order a ledger recorded: its facts are not re-judged\" (order.ts:115); here it is the only way the use case has to add `correlation` and `redemption` to a freshly built order, while `withReturn` (order.ts:125) shows the domain's own idiom for \"the same order, plus\"",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-038",
+    "file": "src/domain/selection/quality-gate.ts",
+    "line": 73,
+    "rule": {
+      "id": "transversal-ocp-a-new-claim-class-falls-into-the-attribute-default",
+      "source": "lint:@typescript-eslint/switch-exhaustiveness-check"
+    },
+    "severity": "medium",
+    "evidence": "      case \"incentive\":\n        // Whether an incentive may be granted is the commercial policy's, not the gate's.\n        return undefined;\n      default:\n        return this.#attribute(claim.slice(ATTRIBUTE_CLAIM_PREFIX.length), evidence);",
+    "proposal": {
+      "before": "export type Claim =\n  | \"returns-policy\"\n  | \"fit-data\"\n  | \"current-price\"\n  | \"availability\"\n  | \"incentive\"\n  | `${typeof ATTRIBUTE_CLAIM_PREFIX}${string}`;\n// …\n      default:\n        return this.#attribute(claim.slice(ATTRIBUTE_CLAIM_PREFIX.length), evidence);",
+      "after": "export type Claim =\n  | { kind: \"returns-policy\" }\n  | { kind: \"fit-data\" }\n  | { kind: \"current-price\" }\n  | { kind: \"availability\" }\n  | { kind: \"incentive\" }\n  | { kind: \"product-attribute\"; key: string };\n// …\n    switch (claim.kind) {\n      // … the five cases as today …\n      case \"product-attribute\":\n        return this.#attribute(claim.key, evidence);\n    } // no default: a sixth class does not compile until the gate says what evidence it needs"
+    },
+    "coveringTest": "none today: with a `default` branch `switch-exhaustiveness-check` is satisfied, and the template-literal member makes the union open, so the switch cannot be exhaustive as written. When the message catalogue (015, candidate.ts:5) brings a claim class the gate does not know, it is sliced as an attribute key and rejected as `attribute-unknown` — fail-closed, but for the wrong reason and without a compile error. tests/unit/domain/selection/quality-gate.test.ts \"every claim with and without evidence\" would gain the case by type",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-039",
+    "file": "src/composition/condition-config.ts",
+    "line": 57,
+    "rule": {
+      "id": "transversal-ocp-fact-list-of-the-parser-replicates-the-domain-union-unchecked",
+      "source": "clarity:replica-without-completeness-check"
+    },
+    "severity": "low",
+    "evidence": "const FACTS = [\n  \"eventCount\",\n  \"dwellSeconds\",\n  \"sequence\",\n  \"productAttribute\",\n  \"returnedToProduct\",\n  \"variantAvailable\",\n  \"sessionAddedToCart\",\n  \"sessionEnteredCheckout\",\n] as const;\ntype Fact = (typeof FACTS)[number];",
+    "proposal": {
+      "before": "] as const;\ntype Fact = (typeof FACTS)[number];",
+      "after": "] as const satisfies readonly FactCondition[\"fact\"][];\ntype Fact = (typeof FACTS)[number];\n// a fact the domain knows and the parser does not is a compile error, not a silent \"must be one of\"\ntype MissingFact = Exclude<FactCondition[\"fact\"], Fact>;\nconst missing: MissingFact[] = []; // stays `never[]` while the two lists agree"
+    },
+    "coveringTest": "none today. A fact added to `FactCondition` (src/domain/barrier/condition.ts:35) is caught by the two exhaustive switches of the domain, but the parser keeps rejecting it at line 141 (`oneOf(…, FACTS, …)`) with \"must be one of …\" and nothing tells the author; tests/types/*.test-d.ts is where the completeness assertion belongs",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-040",
+    "file": "src/application/outcomes/use-cases/notify-order.use-case.ts",
+    "line": 54,
+    "rule": {
+      "id": "transversal-isp-use-case-receives-the-whole-decision-ledger-for-one-query",
+      "source": "clarity:wider-port-than-needed"
+    },
+    "severity": "low",
+    "evidence": "export interface NotifyOrderDependencies {\n  clock: Clock;\n  orders: OrderLedger;\n  decisions: DecisionLedger;\n  corroborations: CorroborationLedger;\n  logger: Logger;\n}",
+    "proposal": {
+      "before": "  decisions: DecisionLedger;",
+      "after": "  /** What the ledger knows of a session (ADR-028): the only question the correlation asks. */\n  decisions: Pick<DecisionLedger, \"bySession\">;"
+    },
+    "coveringTest": "none: a type. The use case calls `decisions.bySession` (line 82) and nothing else; `record` and `find` travel with it. ADR-028 decided the query lives in the ledger's port (src/application/ledger/ports/decision-ledger.ts:2-3), so the module boundary is right; the dependency just says more than it uses, and a fake in tests/unit/application/outcomes/notify-order.test.ts must implement three methods to feed one",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-041",
+    "file": "src/composition/modules/ingestion.ts",
+    "line": 10,
+    "rule": {
+      "id": "transversal-isp-a-module-slice-inherits-the-infrastructure-ports-of-the-modules-it-calls",
+      "source": "clarity:transitive-port-slice"
+    },
+    "severity": "low",
+    "evidence": "export interface IngestionPorts extends DecisionPorts {\n  clock: Clock;\n  logger: Logger;\n  eventDedup: EventDedup;\n}",
+    "proposal": {
+      "before": "// ingestion needs the plane, so its slice is the plane's slice, which is the experiment's, the catalogue's, the barrier's and part of the ledger's:\nexport interface IngestionPorts extends DecisionPorts { … }\n// src/composition/modules/decision.ts:29-34\nexport interface DecisionPorts\n  extends ExperimentPorts, CatalogPorts, BarrierPorts, Pick<LedgerPorts, \"decisions\" | \"decisionIds\"> { … }\n// and the services cross modules through helpers: assignmentServiceOf(ports), productTruthOf(ports), decisionPlaneOf(ports)",
+      "after": "// a module may also provide what other modules need, and a consumer names only that:\nexport interface IngestionPorts {\n  clock: Clock;\n  logger: Logger;\n  eventDedup: EventDedup;\n  decisionPlane: DecisionPlane; // provided by the decision module, bound in the profile like any port\n}\n// src/composition/wiring.ts: `Module` returns `{ handlers?, security?, cors?, provides? }`, and `wireModules` binds `provides` before the consumers run (order = MODULES)"
+    },
+    "coveringTest": "none: a design. Today `ingestionModule` compiles only against a `Ports` that has `sessions`, `visitors`, `policies`, `inference`, `catalog`, `experiments`, `assignments`, `decisions` and `decisionIds`, none of which it reads itself (it passes `ports` to `decisionPlaneOf`). CLAUDE.md § Anillos y módulos promises \"el módulo declara su slice de puertos\" and the slice is honest, only transitive; the cost shows in tests (tests/unit/composition/profile.test.ts) and in what a profile must provide to exercise ingestion alone",
+    "status": "confirmed"
+  },
+  {
+    "id": "F-042",
+    "file": "src/application/decision/services/decision.service.ts",
+    "line": 134,
+    "rule": {
+      "id": "transversal-s05-the-orchestrator-decides-whether-the-gate-runs",
+      "source": "ADR-027"
+    },
+    "severity": "high",
+    "evidence": "    const sustained = barrier !== undefined && settled.evidenceReason === undefined;\n    const judged = sustained ? QualityGate.of(profile).judgeAll(CANDIDATES[barrier], evidence.gate) : [];",
+    "proposal": {
+      "before": "    const sustained = barrier !== undefined && settled.evidenceReason === undefined;\n    const judged = sustained ? QualityGate.of(profile).judgeAll(CANDIDATES[barrier], evidence.gate) : [];",
+      "after": "    const judged = barrier === undefined ? [] : QualityGate.of(profile).judgeAll(CANDIDATES[barrier], evidence.gate);"
+    },
+    "coveringTest": "tests/unit/application/decision/decision.service.test.ts \"no catalogue → evidence-missing with the evidence recorded\" would additionally expect `selection.candidates` to be non-empty",
+    "status": "refuted",
+    "refutation": "ADR-027 forbids the orchestrator to infer or to choose; skipping the gate when the decision policy already said the evidence cannot sustain the barrier is neither: the commercial policy refuses on `evidenceReason` regardless (src/domain/commercial/commercial-policy.ts:198), so the verdict is identical with or without the gate, and what changes is only whether the ledger records candidates judged against evidence the policy already declared missing. The condition is a short-circuit on the policy's own output, not a rule of its own. S-05 stays on the file's size and Stryker disables (fase 2, T197), not on this line"
   }
 ]

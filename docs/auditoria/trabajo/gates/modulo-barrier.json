@@ -1,0 +1,146 @@
+{
+  "scope": "module:barrier",
+  "files": [
+    "src/application/barrier/index.ts",
+    "src/application/barrier/ports/barrier-inference.ts",
+    "src/application/barrier/services/rule-based-inference.service.ts",
+    "src/domain/barrier/barrier-rules.ts",
+    "src/domain/barrier/condition.ts",
+    "src/domain/barrier/errors.ts",
+    "src/domain/barrier/index.ts",
+    "src/domain/barrier/signals.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 4,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EventKey",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ConditionError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DwellSecondsCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 10,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EventCountCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: FactCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: FactContextInput",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 13,
+          "rule": "dead-code/types",
+          "message": "unused exported type: FlagCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 14,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ProductAttributeCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 16,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SequenceCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 19,
+          "rule": "dead-code/types",
+          "message": "unused exported type: RuleWeights",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/index.ts",
+          "line": 28,
+          "rule": "dead-code/types",
+          "message": "unused exported type: BarrierError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/barrier/index.ts",
+          "line": 3,
+          "rule": "dead-code/types",
+          "message": "unused exported type: InferenceContext",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/condition.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EventCountCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/condition.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DwellSecondsCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/condition.ts",
+          "line": 21,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SequenceCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/condition.ts",
+          "line": 26,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ProductAttributeCondition",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/barrier/condition.ts",
+          "line": 31,
+          "rule": "dead-code/types",
+          "message": "unused exported type: FlagCondition",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

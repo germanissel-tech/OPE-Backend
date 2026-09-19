@@ -1,0 +1,570 @@
+{
+  "source": "reports/mutation/report.json de npm run test:mutation -- --all (2026-09-19 14:31-15:28)",
+  "schemaVersion": "1.0",
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  },
+  "totals": {
+    "Ignored": 585,
+    "CompileError": 1243,
+    "Killed": 1040,
+    "Survived": 8,
+    "Timeout": 8,
+    "NoCoverage": 1
+  },
+  "openMutants": [
+    {
+      "file": "src/application/decision/services/decision.service.ts",
+      "line": 137,
+      "mutator": "ConditionalExpression",
+      "status": "Survived",
+      "replacement": "false"
+    },
+    {
+      "file": "src/domain/experiment/experiment.ts",
+      "line": 43,
+      "mutator": "AssignmentOperator",
+      "status": "Timeout",
+      "replacement": "i -= 1"
+    },
+    {
+      "file": "src/infrastructure/http/build-server.ts",
+      "line": 411,
+      "mutator": "ObjectLiteral",
+      "status": "NoCoverage",
+      "replacement": "{}"
+    },
+    {
+      "file": "src/infrastructure/http/build-server.ts",
+      "line": 140,
+      "mutator": "MethodExpression",
+      "status": "Survived",
+      "replacement": "url"
+    },
+    {
+      "file": "src/infrastructure/http/build-server.ts",
+      "line": 196,
+      "mutator": "BooleanLiteral",
+      "status": "Timeout",
+      "replacement": "false"
+    },
+    {
+      "file": "src/infrastructure/http/build-server.ts",
+      "line": 337,
+      "mutator": "EqualityOperator",
+      "status": "Survived",
+      "replacement": "Object.keys(logFields).length >= 0"
+    },
+    {
+      "file": "src/infrastructure/http/build-server.ts",
+      "line": 387,
+      "mutator": "ArrayDeclaration",
+      "status": "Survived",
+      "replacement": "[]"
+    },
+    {
+      "file": "src/infrastructure/http/cors.ts",
+      "line": 33,
+      "mutator": "BooleanLiteral",
+      "status": "Survived",
+      "replacement": "false"
+    },
+    {
+      "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+      "line": 23,
+      "mutator": "EqualityOperator",
+      "status": "Survived",
+      "replacement": "now - at <= window.ttlMs"
+    },
+    {
+      "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+      "line": 26,
+      "mutator": "BlockStatement",
+      "status": "Timeout",
+      "replacement": "{}"
+    },
+    {
+      "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+      "line": 26,
+      "mutator": "EqualityOperator",
+      "status": "Survived",
+      "replacement": "seen.size >= window.maxIds"
+    },
+    {
+      "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+      "line": 29,
+      "mutator": "CallExpression",
+      "status": "Timeout",
+      "replacement": ";"
+    },
+    {
+      "file": "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+      "line": 44,
+      "mutator": "CallExpression",
+      "status": "Survived",
+      "replacement": ";"
+    },
+    {
+      "file": "src/interface-adapters/gateways/decision/memory-session-state-store.ts",
+      "line": 27,
+      "mutator": "BlockStatement",
+      "status": "Timeout",
+      "replacement": "{}"
+    },
+    {
+      "file": "src/interface-adapters/gateways/decision/memory-session-state-store.ts",
+      "line": 30,
+      "mutator": "CallExpression",
+      "status": "Timeout",
+      "replacement": ";"
+    },
+    {
+      "file": "src/interface-adapters/gateways/decision/memory-visitor-state-store.ts",
+      "line": 28,
+      "mutator": "BlockStatement",
+      "status": "Timeout",
+      "replacement": "{}"
+    },
+    {
+      "file": "src/interface-adapters/gateways/decision/memory-visitor-state-store.ts",
+      "line": 31,
+      "mutator": "CallExpression",
+      "status": "Timeout",
+      "replacement": ";"
+    }
+  ],
+  "files": {
+    "src/application/catalog/services/product-truth.service.ts": {
+      "Ignored": 14,
+      "CompileError": 24,
+      "Killed": 11
+    },
+    "src/application/catalog/use-cases/upsert-catalog-snapshot.use-case.ts": {
+      "Ignored": 4,
+      "CompileError": 16,
+      "Killed": 10
+    },
+    "src/application/decision/services/decision.service.ts": {
+      "Ignored": 20,
+      "CompileError": 94,
+      "Killed": 29,
+      "Survived": 1
+    },
+    "src/application/experiment/services/assignment.service.ts": {
+      "Ignored": 1,
+      "CompileError": 9,
+      "Killed": 5
+    },
+    "src/application/ingestion/use-cases/ingest-batch.use-case.ts": {
+      "Ignored": 3,
+      "CompileError": 10,
+      "Killed": 11
+    },
+    "src/application/ledger/services/decision-recorder.service.ts": {
+      "Ignored": 4,
+      "CompileError": 9,
+      "Killed": 1
+    },
+    "src/application/outcomes/use-cases/notify-order.use-case.ts": {
+      "Ignored": 7,
+      "CompileError": 24,
+      "Killed": 16
+    },
+    "src/application/outcomes/use-cases/notify-return.use-case.ts": {
+      "Ignored": 6,
+      "CompileError": 18,
+      "Killed": 4
+    },
+    "src/application/shared-kernel/decorators/logged-use-case.ts": {
+      "Ignored": 2,
+      "CompileError": 7,
+      "Killed": 3
+    },
+    "src/application/system/use-cases/get-service-health.use-case.ts": {
+      "Ignored": 1,
+      "CompileError": 3
+    },
+    "src/domain/barrier/barrier-rules.ts": {
+      "Ignored": 6,
+      "CompileError": 28,
+      "Killed": 52
+    },
+    "src/domain/barrier/condition.ts": {
+      "Ignored": 35,
+      "CompileError": 39,
+      "Killed": 54
+    },
+    "src/domain/barrier/errors.ts": {
+      "Ignored": 11,
+      "CompileError": 9,
+      "Killed": 12
+    },
+    "src/domain/barrier/signals.ts": {
+      "Ignored": 17,
+      "CompileError": 39,
+      "Killed": 19
+    },
+    "src/domain/catalog/errors.ts": {
+      "Ignored": 4
+    },
+    "src/domain/commercial/commercial-policy.ts": {
+      "Ignored": 38,
+      "CompileError": 88,
+      "Killed": 134
+    },
+    "src/domain/commercial/default-commercial-policy.ts": {
+      "Ignored": 8,
+      "CompileError": 10,
+      "Killed": 2
+    },
+    "src/domain/commercial/errors.ts": {
+      "Ignored": 11,
+      "Killed": 7
+    },
+    "src/domain/decision/decision-policy.ts": {
+      "Ignored": 14,
+      "CompileError": 23,
+      "Killed": 63
+    },
+    "src/domain/decision/default-policy.ts": {
+      "Ignored": 99,
+      "CompileError": 65,
+      "Killed": 10
+    },
+    "src/domain/decision/errors.ts": {
+      "Ignored": 8,
+      "Killed": 4
+    },
+    "src/domain/decision/session-state.ts": {
+      "Ignored": 3,
+      "CompileError": 19,
+      "Killed": 9
+    },
+    "src/domain/experiment/errors.ts": {
+      "Ignored": 2,
+      "Killed": 1
+    },
+    "src/domain/experiment/experiment.ts": {
+      "Ignored": 5,
+      "CompileError": 6,
+      "Killed": 30,
+      "Timeout": 1
+    },
+    "src/domain/ingestion/errors.ts": {
+      "Ignored": 2
+    },
+    "src/domain/ingestion/event-batch.ts": {
+      "Ignored": 2,
+      "CompileError": 19,
+      "Killed": 32
+    },
+    "src/domain/ledger/decision.ts": {
+      "Ignored": 4,
+      "CompileError": 23,
+      "Killed": 12
+    },
+    "src/domain/ledger/errors.ts": {
+      "Ignored": 3
+    },
+    "src/domain/merchant/errors.ts": {
+      "Ignored": 8,
+      "Killed": 3
+    },
+    "src/domain/merchant/merchant.ts": {
+      "Ignored": 4,
+      "CompileError": 20,
+      "Killed": 41
+    },
+    "src/domain/merchant/origin.ts": {
+      "Ignored": 3,
+      "CompileError": 6,
+      "Killed": 14
+    },
+    "src/domain/merchant/platform-signature.ts": {
+      "Ignored": 2,
+      "CompileError": 7,
+      "Killed": 30
+    },
+    "src/domain/outcomes/correlation.ts": {
+      "Ignored": 5,
+      "CompileError": 45,
+      "Killed": 12
+    },
+    "src/domain/outcomes/errors.ts": {
+      "Ignored": 4
+    },
+    "src/domain/outcomes/order.ts": {
+      "Ignored": 2,
+      "CompileError": 57,
+      "Killed": 38
+    },
+    "src/domain/selection/candidate.ts": {
+      "Ignored": 33,
+      "CompileError": 7,
+      "Killed": 8
+    },
+    "src/domain/selection/quality-gate.ts": {
+      "Ignored": 11,
+      "CompileError": 15,
+      "Killed": 15
+    },
+    "src/domain/shared-kernel/errors.ts": {
+      "Ignored": 2,
+      "CompileError": 1,
+      "Killed": 1
+    },
+    "src/domain/shared-kernel/money.ts": {
+      "Ignored": 2,
+      "CompileError": 5,
+      "Killed": 24
+    },
+    "src/infrastructure/http/build-server.ts": {
+      "Ignored": 98,
+      "CompileError": 49,
+      "Killed": 95,
+      "NoCoverage": 1,
+      "Survived": 3,
+      "Timeout": 1
+    },
+    "src/infrastructure/http/cors.ts": {
+      "Ignored": 8,
+      "Killed": 6,
+      "Survived": 1
+    },
+    "src/infrastructure/http/load-contract.ts": {
+      "Ignored": 2,
+      "CompileError": 3,
+      "Killed": 1
+    },
+    "src/infrastructure/http/request-logging.ts": {
+      "Ignored": 4,
+      "CompileError": 7,
+      "Killed": 2
+    },
+    "src/infrastructure/http/strip-discriminator-mappings.ts": {
+      "Ignored": 3,
+      "CompileError": 19,
+      "Killed": 2
+    },
+    "src/infrastructure/logging/pino-logger.ts": {
+      "Ignored": 1,
+      "CompileError": 4,
+      "Killed": 8
+    },
+    "src/interface-adapters/gateways/experiment/memory-assignment-ledger.ts": {
+      "Ignored": 1,
+      "CompileError": 6,
+      "Killed": 3
+    },
+    "src/interface-adapters/gateways/ledger/memory-decision-ledger.ts": {
+      "Ignored": 2,
+      "CompileError": 11,
+      "Killed": 6
+    },
+    "src/interface-adapters/gateways/ledger/memory-exposure-ledger.ts": {
+      "Ignored": 3,
+      "CompileError": 5,
+      "Killed": 3
+    },
+    "src/interface-adapters/gateways/ledger/random-decision-ids.ts": {
+      "Ignored": 3,
+      "CompileError": 2
+    },
+    "src/interface-adapters/gateways/merchant/node-message-authenticator.ts": {
+      "Ignored": 2,
+      "CompileError": 2
+    },
+    "src/interface-adapters/gateways/outcomes/memory-corroboration-ledger.ts": {
+      "Ignored": 3,
+      "CompileError": 10,
+      "Killed": 8
+    },
+    "src/interface-adapters/gateways/outcomes/memory-order-ledger.ts": {
+      "Ignored": 8,
+      "CompileError": 22,
+      "Killed": 2
+    },
+    "src/interface-adapters/http/boundary.ts": {
+      "Ignored": 2,
+      "CompileError": 8,
+      "Killed": 5
+    },
+    "src/interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.ts": {
+      "Ignored": 2,
+      "CompileError": 20,
+      "Killed": 5
+    },
+    "src/interface-adapters/http/controllers/ingestion/ingest-events.ts": {
+      "Ignored": 13,
+      "CompileError": 41,
+      "Killed": 2
+    },
+    "src/interface-adapters/http/controllers/ledger/confirm-exposure.ts": {
+      "Ignored": 2,
+      "CompileError": 11,
+      "Killed": 5
+    },
+    "src/interface-adapters/http/controllers/outcomes/notify-order.ts": {
+      "Ignored": 2,
+      "CompileError": 9
+    },
+    "src/interface-adapters/http/controllers/outcomes/notify-return.ts": {
+      "Ignored": 1,
+      "CompileError": 13
+    },
+    "src/interface-adapters/http/problem-details.ts": {
+      "Ignored": 4,
+      "CompileError": 12,
+      "Killed": 2
+    },
+    "src/interface-adapters/http/security/ingest-key.ts": {
+      "Ignored": 6,
+      "CompileError": 21,
+      "Killed": 3
+    },
+    "src/interface-adapters/http/security/platform-key.ts": {
+      "Ignored": 4,
+      "CompileError": 14,
+      "Killed": 1
+    },
+    "src/interface-adapters/http/typed.ts": {
+      "Ignored": 1,
+      "CompileError": 1
+    },
+    "src/application/decision/services/state.service.ts": {
+      "CompileError": 6,
+      "Killed": 2
+    },
+    "src/application/ledger/use-cases/confirm-exposure.use-case.ts": {
+      "CompileError": 8,
+      "Killed": 2
+    },
+    "src/application/merchant/services/ingest-key.service.ts": {
+      "CompileError": 9,
+      "Killed": 2
+    },
+    "src/application/merchant/services/platform-key.service.ts": {
+      "CompileError": 5
+    },
+    "src/application/merchant/services/platform-signature.service.ts": {
+      "CompileError": 18,
+      "Killed": 7
+    },
+    "src/application/outcomes/use-cases/corroborate-order.use-case.ts": {
+      "CompileError": 10
+    },
+    "src/interface-adapters/gateways/shared-kernel/system-clock.ts": {
+      "CompileError": 2
+    },
+    "src/interface-adapters/http/controllers/system/get-health.ts": {
+      "CompileError": 4
+    },
+    "src/application/barrier/services/rule-based-inference.service.ts": {
+      "CompileError": 1
+    },
+    "src/application/catalog/policies/freshness.ts": {
+      "CompileError": 1
+    },
+    "src/application/catalog/policies/sync-level.ts": {
+      "CompileError": 11,
+      "Killed": 32
+    },
+    "src/application/decision/policies/session-window.ts": {
+      "CompileError": 1
+    },
+    "src/application/decision/policies/visitor-window.ts": {
+      "CompileError": 1
+    },
+    "src/application/ingestion/policies/dedup-window.ts": {
+      "CompileError": 1
+    },
+    "src/domain/catalog/catalog-snapshot.ts": {
+      "CompileError": 12,
+      "Killed": 30
+    },
+    "src/interface-adapters/http/client.ts": {
+      "CompileError": 1
+    },
+    "src/interface-adapters/http/security/headers.ts": {
+      "CompileError": 1
+    },
+    "src/interface-adapters/http/to-problem.ts": {
+      "CompileError": 6,
+      "Killed": 1
+    },
+    "src/domain/decision/visitor-state.ts": {
+      "CompileError": 9,
+      "Killed": 16
+    },
+    "src/domain/selection/profile.ts": {
+      "CompileError": 1,
+      "Killed": 3
+    },
+    "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts": {
+      "CompileError": 10,
+      "Killed": 16,
+      "Survived": 3,
+      "Timeout": 2
+    },
+    "src/domain/catalog/ids.ts": {
+      "CompileError": 2
+    },
+    "src/domain/outcomes/ids.ts": {
+      "CompileError": 1
+    },
+    "src/interface-adapters/gateways/catalog/memory-catalog-store.ts": {
+      "CompileError": 13,
+      "Killed": 4
+    },
+    "src/interface-adapters/gateways/experiment/config-experiment-directory.ts": {
+      "CompileError": 6,
+      "Killed": 2
+    },
+    "src/interface-adapters/gateways/merchant/config-merchant-directory.ts": {
+      "CompileError": 9,
+      "Killed": 6
+    },
+    "src/domain/outcomes/corroboration.ts": {
+      "CompileError": 3,
+      "Killed": 6
+    },
+    "src/domain/ledger/ids.ts": {
+      "CompileError": 1
+    },
+    "src/interface-adapters/http/controllers/outcomes/corroborate-order.ts": {
+      "CompileError": 8
+    },
+    "src/domain/ingestion/ids.ts": {
+      "CompileError": 1
+    },
+    "src/domain/shared-kernel/ids.ts": {
+      "CompileError": 4
+    },
+    "src/domain/shared-kernel/time.ts": {
+      "CompileError": 3,
+      "Killed": 3
+    },
+    "src/domain/shared-kernel/result.ts": {
+      "CompileError": 6
+    },
+    "src/interface-adapters/gateways/decision/config-policy-directory.ts": {
+      "CompileError": 9,
+      "Killed": 1
+    },
+    "src/interface-adapters/gateways/decision/memory-session-state-store.ts": {
+      "CompileError": 11,
+      "Killed": 15,
+      "Timeout": 2
+    },
+    "src/interface-adapters/gateways/decision/memory-visitor-state-store.ts": {
+      "CompileError": 13,
+      "Killed": 15,
+      "Timeout": 2
+    },
+    "src/domain/ingestion/event.ts": {
+      "Killed": 1
+    }
+  }
+}
