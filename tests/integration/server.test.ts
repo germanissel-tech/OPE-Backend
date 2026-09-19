@@ -185,6 +185,7 @@ describe("real server over the contract", () => {
           capabilities: ["events:write"],
         }),
         header: "x-ope-ingest-key",
+        consumer: "browser",
       },
     });
     const ids = { sessionId: "ses_00000001", visitorId: "vis_00000001" };
@@ -220,6 +221,7 @@ describe("real server over the contract", () => {
       ingestKey: {
         handler: () => ({ principal: { merchant: { merchantId: "m_x" } }, capabilities: ["config:read"] }),
         header: "x-ope-ingest-key",
+        consumer: "browser",
       },
     });
     const res = await s.inject({

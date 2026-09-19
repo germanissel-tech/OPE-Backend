@@ -38,4 +38,5 @@ PR #23 (auditoría 014) mergeado.
 
 ## Cambios respecto del plan
 
+- 2026-09-19 US2 (T034): `CatalogStore.replace` devuelve `Result<void, LedgerUnavailable>` y `LedgerUnavailable` vive en el módulo `ledger`, así que `catalog` pasa a depender de `ledger` en `CONTEXT_MAP` (`catalog: [shared-kernel, ledger]`), como ya lo hacen `experiment` y `outcomes`; el plan decía "ningún cambio en CONTEXT_MAP". Alternativa descartada: mover `LedgerUnavailable` al shared-kernel (toca ADR-023).
 - 2026-09-19 T001: línea base en la rama, `npm test` 1004/1004 en **151 s** (referencia SC-005: objetivo ≤ 91 s).

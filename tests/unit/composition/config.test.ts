@@ -46,18 +46,16 @@ describe("readConfig", () => {
   });
 
   it("merchants come inline from OPE_MERCHANTS or from OPE_MERCHANTS_FILE, inline first", () => {
-    expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants).toEqual([
-      {
-        merchant: {
-          merchantId: "m_a",
-          ingestKeys: ["k1"],
-          origins: [{ value: "https://a.example" }],
-          platformKeys: [],
-          platformSecrets: [],
-        },
-        experiments: [],
-      },
-    ]);
+    const inline = readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants;
+    expect(inline).toHaveLength(1);
+    expect(inline[0]?.merchant).toMatchObject({
+      merchantId: "m_a",
+      ingestKeys: ["k1"],
+      origins: [{ value: "https://a.example" }],
+      platformKeys: [],
+      platformSecrets: [],
+    });
+    expect(inline[0]?.experiments.all()).toEqual([]);
     const read = (file: string): string => {
       expect(file).toBe(path.resolve("config/m.json"));
       return JSON.stringify([merchant, { ...merchant, merchantId: "m_b" }]);
@@ -77,7 +75,7 @@ describe("readConfig", () => {
     };
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
-    expect(parsed?.experiments).toEqual([
+    expect(parsed?.experiments.all()).toEqual([
       {
         experimentId: exp.experimentId,
         merchantId: "m_a",
@@ -88,13 +86,13 @@ describe("readConfig", () => {
       },
     ]);
     expect(
-      readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments,
+      readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments.all(),
     ).toEqual([]);
     const closed = { ...exp, experimentId: "exp_00000002", status: "closed", treatmentPercent: 20 };
     const two = { ...merchant, experiments: [closed, exp] };
-    expect(
-      readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments,
-    ).toHaveLength(2);
+    const set = readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments;
+    expect(set?.all()).toHaveLength(2);
+    expect(set?.active()?.experimentId).toBe(exp.experimentId);
   });
 
   it.each([
@@ -103,7 +101,7 @@ describe("readConfig", () => {
         { experimentId: "exp_00000001", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
         { experimentId: "exp_00000002", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
       ],
-      "merchants[0].experiments must have at most one active experiment.",
+      "merchants[0].experiments[1] is invalid (A merchant may have at most one active experiment.)",
     ],
     [
       [{ experimentId: "bad id", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
@@ -499,16 +497,28 @@ describe("readConfig", () => {
       "merchants[0].merchantId must be a non-empty string.",
     ],
     [
+      '[{"merchantId":"m","ingestKeys":"k","origins":["o"]}]',
+      "merchants[0].ingestKeys must be an array of strings.",
+    ],
+    [
       '[{"merchantId":"m","ingestKeys":[],"origins":["o"]}]',
-      "merchants[0].ingestKeys must have one or two keys.",
+      "merchants[0].ingestKeys is invalid (A merchant needs one or two non-empty ingest keys.)",
     ],
     [
       '[{"merchantId":"m","ingestKeys":["a","b","c"],"origins":["o"]}]',
-      "merchants[0].ingestKeys must have one or two keys.",
+      "merchants[0].ingestKeys is invalid (A merchant needs one or two non-empty ingest keys.)",
+    ],
+    [
+      '[{"merchantId":"m","ingestKeys":["a",""],"origins":["o"]}]',
+      "merchants[0].ingestKeys[1] is invalid (A merchant needs one or two non-empty ingest keys.)",
     ],
     [
       '[{"merchantId":"m","ingestKeys":["k"],"origins":[]}]',
-      "merchants[0].origins must have at least one origin.",
+      "merchants[0].origins is invalid (A merchant needs at least one registered origin.)",
+    ],
+    [
+      '[{"merchantId":"m","ingestKeys":["k"],"origins":["https://o.example"],"platformKeys":["a","b","c"]}]',
+      "merchants[0].platformKeys is invalid (A merchant has at most two platform keys.)",
     ],
   ])("OPE_MERCHANTS=%s is refused: %s", (raw, message) => {
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
@@ -524,10 +534,10 @@ describe("readConfig", () => {
     expect(read({ platformSecrets: ["s1", "s2"] })?.platformSecrets).toEqual(["s1", "s2"]);
     expect(read({ platformSecrets: ["s1"] })?.requiresSignature()).toBe(true);
     expect(() => read({ platformSecrets: "s1" })).toThrow(
-      "merchants[0].platformSecrets must have at most two secrets",
+      "merchants[0].platformSecrets must be an array of strings",
     );
     expect(() => read({ platformSecrets: ["a", "b", "c"] })).toThrow(
-      "merchants[0].platformSecrets must have at most two secrets",
+      "merchants[0].platformSecrets is invalid (A merchant has at most two platform signing secrets.)",
     );
     expect(() => read({ platformSecrets: ["s1", ""] })).toThrow("merchants[0].platformSecrets[1] is invalid");
     expect(() => read({ platformSecrets: ["p1"] })).toThrow("merchants[0].platformSecrets[0] is invalid");

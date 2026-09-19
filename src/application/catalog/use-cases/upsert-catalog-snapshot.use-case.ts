@@ -1,7 +1,8 @@
 // Use case: the platform replaces the merchant's catalogue (ADR-025). The snapshot is built by
 // its factory (invariants), compared with the current one by `capturedAt` (older: out of order;
 // same instant: idempotent if the content is the same, a conflict if not; newer: replaces) and
-// the summary carries the observed synchronisation level.
+// the summary carries the observed synchronisation level. A store that cannot accept the
+// snapshot answers LedgerUnavailable and the platform retries (ADR-021): nothing is replaced.
 import {
   CatalogOutOfOrder,
   CatalogSnapshot,
@@ -16,6 +17,7 @@ import {
   type Result,
 } from "../../../domain/shared-kernel/index.js";
 import { observedSyncLevel, type SyncLevel } from "../policies/sync-level.js";
+import type { LedgerUnavailable } from "../../../domain/ledger/index.js";
 import type { Clock, Logger, UseCase } from "../../shared-kernel/index.js";
 import type { CatalogStore } from "../ports/catalog-store.js";
 
@@ -34,7 +36,10 @@ export interface CatalogSummary {
   outcome: "created" | "repeated";
 }
 
-export type UpsertCatalogSnapshotResponse = Result<CatalogSummary, CatalogError | IdempotencyConflict>;
+export type UpsertCatalogSnapshotResponse = Result<
+  CatalogSummary,
+  CatalogError | IdempotencyConflict | LedgerUnavailable
+>;
 
 export interface UpsertCatalogSnapshotDependencies {
   clock: Clock;
@@ -74,7 +79,8 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
         return ok(await this.#summary(request.merchantId, current, "repeated"));
       }
     }
-    await store.replace(request.merchantId, snapshot);
+    const written = await store.replace(request.merchantId, snapshot);
+    if (!written.ok) return fail(written.error);
     const summary = await this.#summary(request.merchantId, snapshot, "created");
     logger.info(
       {

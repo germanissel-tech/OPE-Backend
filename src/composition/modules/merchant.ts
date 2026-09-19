@@ -45,10 +45,15 @@ export const merchantModule: Module<MerchantPorts> = ({ ports }) => {
   const signatures = new DefaultPlatformSignatureVerifier({ authenticator: ports.authenticator });
   return {
     security: {
-      [INGEST_KEY_SCHEME]: { handler: makeIngestKeySecurity(resolveIngestKey), header: INGEST_KEY_HEADER },
+      [INGEST_KEY_SCHEME]: {
+        handler: makeIngestKeySecurity(resolveIngestKey),
+        header: INGEST_KEY_HEADER,
+        consumer: "browser",
+      },
       [PLATFORM_KEY_SCHEME]: {
         handler: makePlatformKeySecurity({ keys, signatures, clock: ports.clock }),
         header: PLATFORM_KEY_HEADER,
+        consumer: "server",
       },
     },
     cors: ports.merchants,

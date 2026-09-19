@@ -18,6 +18,7 @@ const ingestEvents = handler as unknown as OperationHandler<"ingestEvents">;
 const security: SecurityScheme = {
   handler: () => ({ principal: null, capabilities: [] }),
   header: "x-test-key",
+  consumer: "browser",
 };
 const cors = { isRegisteredOrigin: () => Promise.resolve(true) };
 const contractOf = (version: string) =>

@@ -1,7 +1,7 @@
 // Platform signature (ADR-029): `v1=<hex HMAC-SHA256>` over `<timestamp>.<raw body>`, keyed
 // with a signing secret of the merchant. The domain parses the header, compares digests in
 // constant time and judges the timestamp window; the HMAC itself is computed behind a port.
-import { MS_PER_SECOND } from "../shared-kernel/index.js";
+import { constantTimeEquals, MS_PER_SECOND } from "../shared-kernel/index.js";
 
 const SCHEME = "v1=";
 const HEX_DIGEST = /^[0-9a-f]{64}$/;
@@ -40,14 +40,8 @@ export class PlatformSignature {
     return Math.abs(now.getTime() - timestamp * MS_PER_SECOND) <= windowMs;
   }
 
-  /** Constant-time comparison with an expected digest: the time taken does not depend on where they differ. */
+  /** Constant-time comparison with an expected digest (the kernel's primitive, shared with the platform key). */
   matches(expectedDigest: string): boolean {
-    if (expectedDigest.length !== this.digest.length) return false;
-    // Hex digits only: char codes compare one to one, and every position is visited.
-    const difference = Array.from(
-      this.digest,
-      (char, i) => char.charCodeAt(0) ^ expectedDigest.charCodeAt(i),
-    ).reduce((acc, bits) => acc | bits, 0);
-    return difference === 0;
+    return constantTimeEquals(expectedDigest, this.digest);
   }
 }

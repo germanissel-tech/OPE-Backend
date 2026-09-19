@@ -12,14 +12,19 @@ afterEach(async () => {
   app = undefined;
 });
 
-const preflight = (a: App, origin: string) =>
+const preflight = (
+  a: App,
+  origin: string,
+  requested = "content-type, x-ope-ingest-key",
+  url = "/v1/events",
+) =>
   a.app.inject({
     method: "OPTIONS",
-    url: "/v1/events",
+    url,
     headers: {
       origin,
       "access-control-request-method": "POST",
-      "access-control-request-headers": "content-type, x-ope-ingest-key",
+      "access-control-request-headers": requested,
     },
   });
 
@@ -31,6 +36,19 @@ describe("origins per merchant", () => {
     expect(res.headers["access-control-allow-origin"]).toBe("https://a.example");
     expect(String(res.headers["access-control-allow-methods"])).toContain("POST");
     expect(String(res.headers["access-control-allow-headers"]).toLowerCase()).toContain("x-ope-ingest-key");
+  });
+
+  it("the platform credential is never announced to a browser: a preflight asking for it gets only the ingest header (ADR-025 §5, F-051)", async () => {
+    app = await startTestApp();
+    const asked = "content-type, x-ope-platform-key, x-ope-timestamp, x-ope-signature";
+    for (const url of ["/v1/orders", "/v1/returns", "/v1/catalog"]) {
+      const res = await preflight(app, "https://a.example", asked, url);
+      const allowed = (res.headers["access-control-allow-headers"] ?? "").toLowerCase();
+      expect(allowed).not.toContain("x-ope-platform-key");
+      expect(allowed).not.toContain("x-ope-timestamp");
+      expect(allowed).not.toContain("x-ope-signature");
+      expect(allowed).toContain("x-ope-ingest-key");
+    }
   });
 
   it("preflight from an origin no merchant registered → no Allow-Origin", async () => {

@@ -144,10 +144,44 @@ function pathOf(url: string): string {
  * The Fastify instance: transport only, with CORS when a policy is given. Request logging runs
  * on the stream of the process logger; a foreign `Logger` (a test stub) gets no request log.
  */
-/** A full catalogue snapshot travels in one request (ADR-025): the default 1 MiB does not fit a pilot. */
-const BODY_LIMIT_MIB = 32;
+/**
+ * Body limits by consumer (ADR-025; audit 014 F-057): a full catalogue snapshot travels in one
+ * request from the platform, so its credential admits 32 MiB; a browser with the public ingest
+ * credential sends at most a batch of 50 events, so its operations admit 1 MiB. The server-wide
+ * `bodyLimit` is the platform's: a body without `Content-Length` (chunked) falls back to it.
+ */
 const BYTES_PER_KIB = 1024;
-const BODY_LIMIT_BYTES = BODY_LIMIT_MIB * BYTES_PER_KIB * BYTES_PER_KIB;
+const BYTES_PER_MIB = BYTES_PER_KIB * BYTES_PER_KIB;
+const SERVER_BODY_LIMIT_MIB = 32;
+const BROWSER_BODY_LIMIT_MIB = 1;
+const BODY_LIMIT_BYTES = SERVER_BODY_LIMIT_MIB * BYTES_PER_MIB;
+const BROWSER_BODY_LIMIT_BYTES = BROWSER_BODY_LIMIT_MIB * BYTES_PER_MIB;
+
+/** The body limit of the operation a request targets: the platform's when a server credential guards it. */
+function bodyLimitOf(
+  api: OpenAPIBackend,
+  security: Readonly<Record<string, SecurityScheme>>,
+  request: FastifyRequest,
+): number {
+  const operation = api.matchOperation({ method: request.method, path: pathOf(request.url), headers: {} });
+  const schemes = (operation?.security ?? []).flatMap((requirement) => Object.keys(requirement));
+  return schemes.some((name) => security[name]?.consumer === "server")
+    ? BODY_LIMIT_BYTES
+    : BROWSER_BODY_LIMIT_BYTES;
+}
+
+/** Refuses, before a byte of the body is read, a request whose declared length exceeds its consumer's limit. */
+function refuseOversizedBodies(
+  app: FastifyInstance,
+  api: OpenAPIBackend,
+  security: Readonly<Record<string, SecurityScheme>>,
+): void {
+  app.addHook("onRequest", async (request, reply) => {
+    const declared = Number(request.headers["content-length"]);
+    if (!Number.isFinite(declared) || declared <= bodyLimitOf(api, security, request)) return;
+    return send(reply, toHttp(problem("payload-too-large", { instance: pathOf(request.url) })));
+  });
+}
 
 /** The body bytes of each request, exactly as received: what a platform signature covers (ADR-029). */
 const rawBodies = new WeakMap<FastifyRequest, Uint8Array>();
@@ -180,7 +214,10 @@ async function createApp(
   // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
   const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });
   keepRawBodies(app);
-  const credentialHeaders = Object.values(options.security ?? {}).map((scheme) => scheme.header);
+  // Only the credentials a browser sends are announced to a preflight (ADR-025 §5: platformKey without CORS).
+  const credentialHeaders = Object.values(options.security ?? {})
+    .filter((scheme) => scheme.consumer === "browser")
+    .map((scheme) => scheme.header);
   if (options.cors) await registerCors(app, options.cors, credentialHeaders);
   return app;
 }
@@ -394,6 +431,10 @@ function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
     const instance = pathOf(request.url);
     // Unrouted method with a body and no content-type: Fastify rejects it before routing.
     if (error.code === "FST_ERR_ROUTE_MISSING_CONTENT_TYPE") return send(reply, unroutable(api, instance));
+    // A chunked body past the server-wide limit: Fastify stops reading it; the same answer as the declared case.
+    if (error.code === "FST_ERR_CTP_BODY_TOO_LARGE") {
+      return send(reply, toHttp(problem("payload-too-large", { instance })));
+    }
     // Fastify parser errors: invalid JSON, empty body, unsupported media type.
     if (typeof error.code === "string" && error.code.startsWith("FST_ERR_CTP_")) {
       return send(
@@ -419,6 +460,7 @@ export async function buildServer<Ops extends OperationsMap<Ops> = operations>(
   const api = createApi(options.definition);
   const runtime: Runtime = { api, log: app.log };
   registerSecurity(api, options.security ?? {});
+  refuseOversizedBodies(app, api, options.security ?? {});
   registerSpecialHandlers(runtime);
   registerHandlers(runtime, options.handlers);
   // Startup fails if the contract is invalid (FR-040).

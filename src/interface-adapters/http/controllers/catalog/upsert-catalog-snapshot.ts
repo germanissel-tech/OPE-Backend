@@ -1,6 +1,6 @@
 // upsertCatalogSnapshot (ADR-025): DTO → domain products (ids branded, prices as Money) → use
 // case → 201 created | 200 repeated | the Problem Details of the returned error (422 invariant,
-// 409 idempotency conflict).
+// 409 idempotency conflict, 503 store unavailable with Retry-After).
 import { asProductId, asVariantId, type Product } from "../../../../domain/catalog/index.js";
 import { Money } from "../../../../domain/shared-kernel/index.js";
 import { merchantOf } from "../../security/ingest-key.js";

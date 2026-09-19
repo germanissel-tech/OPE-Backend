@@ -7,6 +7,7 @@ import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { catalogOf, catalogProductOf, fixedClock, putCatalog, startTestApp } from "../helpers/test-app.js";
+import { unavailableCatalogStore } from "../helpers/unavailable-ledgers.js";
 import type { App } from "../../src/composition/bootstrap.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
@@ -34,6 +35,15 @@ describe("PUT /v1/catalog", () => {
       variant: { size: "M", available: true },
       freshness: { stockAndPrice: "fresh" },
     });
+  });
+
+  it("a store that cannot keep the snapshot → 503 ledger-unavailable with Retry-After, nothing replaced (F-044, ADR-021)", async () => {
+    app = await startTestApp({ ports: { clock: fixedClock(NOW), catalog: unavailableCatalogStore() } });
+    const res = await putCatalog(app.app, catalogOf(3, CAPTURED), { platformKey: PLATFORM_A });
+    expect(res.statusCode).toBe(503);
+    expect(res.headers["retry-after"]).toBe("5");
+    expect(problemOf(res).type).toBe("urn:ope:problem:ledger-unavailable");
+    expect(await app.ports.catalog.current(A)).toBeUndefined();
   });
 
   it("a newer snapshot replaces the whole catalogue: products that no longer come disappear", async () => {

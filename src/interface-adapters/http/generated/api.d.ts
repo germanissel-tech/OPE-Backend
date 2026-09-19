@@ -1052,6 +1052,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["CatalogUnprocessable"];
             500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     ingestEvents: {

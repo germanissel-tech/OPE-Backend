@@ -10,7 +10,8 @@ import {
   type CatalogSnapshot,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
-import { asMerchantId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
+import { asMerchantId, fail, Money, ok } from "../../../../src/domain/shared-kernel/index.js";
 import { recordingLogger } from "../../../helpers/unavailable-ledgers.js";
 
 const MIN = 60_000;
@@ -33,23 +34,24 @@ const product = (id: string, amount = "10.00"): Product => ({
   ],
 });
 
-function fakeStore(): CatalogStore & { held: () => CatalogSnapshot | undefined } {
+function fakeStore(down = false): CatalogStore & { held: () => CatalogSnapshot | undefined } {
   let current: CatalogSnapshot | undefined;
   const receipts: Date[] = [];
   return {
     current: () => Promise.resolve(current),
     replace: (_m, snapshot) => {
+      if (down) return Promise.resolve(fail(new LedgerUnavailable()));
       current = snapshot;
       receipts.push(snapshot.receivedAt);
-      return Promise.resolve();
+      return Promise.resolve(ok(undefined));
     },
     receipts: () => Promise.resolve([...receipts]),
     held: () => current,
   };
 }
 
-function subject(nowAt: () => Date) {
-  const store = fakeStore();
+function subject(nowAt: () => Date, down = false) {
+  const store = fakeStore(down);
   const { logger, entries } = recordingLogger();
   const useCase = new UpsertCatalogSnapshotUseCase({ clock: { now: nowAt }, store, logger });
   return { useCase, store, entries };
@@ -145,5 +147,13 @@ describe("UpsertCatalogSnapshotUseCase", () => {
       });
     }
     expect(last).toMatchObject({ ok: true, value: { observedSyncLevel: 2 } });
+  });
+
+  it("a store that cannot accept the snapshot → ledger-unavailable, and nothing is replaced (F-044, ADR-021)", async () => {
+    const { useCase, store } = subject(() => at(0), true);
+    const result = await useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [product("P1")] });
+    expect(result).toMatchObject({ ok: false, error: { code: "ledger-unavailable", module: "ledger" } });
+    if (!result.ok) expect(result.error).toBeInstanceOf(LedgerUnavailable);
+    expect(store.held()).toBeUndefined();
   });
 });

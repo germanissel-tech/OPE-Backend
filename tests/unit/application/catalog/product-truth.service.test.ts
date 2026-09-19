@@ -11,7 +11,7 @@ import {
   CatalogSnapshot,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
-import { asMerchantId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, Money, ok } from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -39,7 +39,7 @@ const product: Product = {
 function service(snapshot: CatalogSnapshot | undefined, now: Date, receipts: Date[] = []) {
   const store: CatalogStore = {
     current: () => Promise.resolve(snapshot),
-    replace: () => Promise.resolve(),
+    replace: () => Promise.resolve(ok(undefined)),
     receipts: () => Promise.resolve(receipts),
   };
   return new DefaultProductTruthService({ clock: { now: () => now }, store });

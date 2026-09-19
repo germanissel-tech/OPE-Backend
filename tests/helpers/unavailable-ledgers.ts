@@ -2,6 +2,7 @@
 // degradation path is exercised with these fakes injected as port overrides.
 import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
 import { fail } from "../../src/domain/shared-kernel/index.js";
+import type { CatalogStore } from "../../src/application/catalog/index.js";
 import type { AssignmentLedger } from "../../src/application/experiment/index.js";
 import type { DecisionLedger, ExposureLedger } from "../../src/application/ledger/index.js";
 import type { CorroborationLedger, OrderLedger } from "../../src/application/outcomes/index.js";
@@ -31,6 +32,13 @@ export const unavailableOrderLedger = (): OrderLedger => ({
 export const unavailableCorroborationLedger = (): CorroborationLedger => ({
   record: unavailable,
   find: none,
+});
+
+/** A catalogue store that cannot keep a snapshot (F-044): the platform gets 503 and retries. */
+export const unavailableCatalogStore = (): CatalogStore => ({
+  current: nothing,
+  replace: unavailable,
+  receipts: none,
 });
 
 /** A ledger that delegates to `inner` while `down()` is false and returns LedgerUnavailable otherwise. */

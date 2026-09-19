@@ -120,6 +120,18 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     expect(order?.items).toEqual([{ sku: "SKU-1-M", quantity: 1 }]);
   });
 
+  it("1b. the platform credential keeps the catalogue-sized limit: a 2 MiB order body is parsed, not refused by size (F-057)", async () => {
+    await start();
+    const twoMiB = 2 * 1024 * 1024;
+    const res = await postOrder(
+      app.app,
+      { ...orderOf("A-big"), filler: "x".repeat(twoMiB) },
+      { platformKey: PLATFORM_A },
+    );
+    // Past the parser: the contract rejects the undeclared field (400), which proves the body was read.
+    expect(res.statusCode).toBe(400);
+  });
+
   it("2. without a session → 201 PENDING_CORRELATION; a verified sale without correlation", async () => {
     await start();
     const res = await postOrder(app.app, orderOf("A-2"), { platformKey: PLATFORM_A });

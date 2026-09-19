@@ -153,6 +153,20 @@ describe("POST /v1/events", () => {
     ).toBe(400);
   });
 
+  it("a body past the browser limit (1 MiB) → 413 payload-too-large before it is parsed, for the public credential (F-057)", async () => {
+    app = await withClock();
+    const oneMiB = 1024 * 1024;
+    const filler = "x".repeat(oneMiB + 1);
+    const res = await postEvents(app.app, `{"events":[],"filler":"${filler}"}`, { key: "key-a-1" });
+    expect(res.statusCode).toBe(413);
+    expect(problemOf(res).type).toBe("urn:ope:problem:payload-too-large");
+    const declaredButShort = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), {
+      key: "key-a-1",
+      headers: { "content-length": String(oneMiB + 1) },
+    });
+    expect(declaredButShort.statusCode).toBe(413);
+  });
+
   it("[invariant:session-visitor-mismatch] two visitors in the batch → 422 with its type", async () => {
     app = await withClock();
     const mixed = {

@@ -28,6 +28,42 @@ export class InvalidOrigin extends DomainError {
   }
 }
 
+/** The ingest keys of a merchant: one or two, none empty (`details.index` names an empty one). */
+export class InvalidIngestKeys extends DomainError {
+  readonly code = "invalid-ingest-keys" as const;
+  readonly module = MODULE;
+  constructor(index?: number) {
+    super("A merchant needs one or two non-empty ingest keys.", index === undefined ? {} : { index });
+  }
+}
+
+/** A merchant without any registered origin: nobody could ever speak for it (fail-closed). */
+export class InvalidOrigins extends DomainError {
+  readonly code = "invalid-origins" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A merchant needs at least one registered origin.");
+  }
+}
+
+/** More platform keys than a rotation needs (ADR-025: one, or two while rotating). */
+export class InvalidPlatformKeys extends DomainError {
+  readonly code = "invalid-platform-keys" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A merchant has at most two platform keys.");
+  }
+}
+
+/** More signing secrets than a rotation needs (ADR-029: one, or two while rotating). */
+export class InvalidPlatformSecrets extends DomainError {
+  readonly code = "invalid-platform-secrets" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A merchant has at most two platform signing secrets.");
+  }
+}
+
 /** A platform key that is empty or equal to an ingest key (configuration; fail-closed). */
 export class PlatformKeyCollision extends DomainError {
   readonly code = "platform-key-collision" as const;
@@ -78,7 +114,11 @@ export type SignatureError = SignatureMissing | SignatureInvalid | SignatureExpi
 export type MerchantError =
   | Unauthorized
   | OriginNotAllowed
+  | InvalidIngestKeys
+  | InvalidOrigins
   | InvalidOrigin
+  | InvalidPlatformKeys
   | PlatformKeyCollision
+  | InvalidPlatformSecrets
   | InvalidPlatformSecret
   | SignatureError;

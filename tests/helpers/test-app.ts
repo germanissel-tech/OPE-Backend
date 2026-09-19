@@ -7,7 +7,7 @@ import {
   parseEvidenceProfile,
 } from "../../src/composition/commercial-policy-config.js";
 import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
-import { Experiment } from "../../src/domain/experiment/index.js";
+import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
 import { Merchant } from "../../src/domain/merchant/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
@@ -62,7 +62,9 @@ function configured(spec: MerchantSpec): MerchantConfig {
     if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
     return experiment.value;
   });
-  const config: MerchantConfig = { merchant: merchant.value, experiments };
+  const set = Experiments.of(experiments);
+  if (!set.ok) throw new Error(`test experiments of ${spec.merchantId}: ${set.error.message}`);
+  const config: MerchantConfig = { merchant: merchant.value, experiments: set.value };
   if (spec.decisionPolicy !== undefined) {
     config.decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
   }
