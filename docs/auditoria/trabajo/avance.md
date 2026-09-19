@@ -5,18 +5,18 @@
 
 ## Estado por fase
 
-| Fase                                 | Estado    | Próxima tarea (tasks.md) | Commit de cierre |
-| ------------------------------------ | --------- | ------------------------ | ---------------- |
-| 0 Base                               | cerrada   | —                        | (ver git log)    |
-| 1 Lectura fina                       | cerrada   | —                        | (ver git log)    |
-| 2 Robustez                           | cerrada   | —                        | (ver git log)    |
-| 3 Seguridad, escalabilidad y pruebas | cerrada   | —                        | (ver git log)    |
-| 4 Cumplimiento funcional             | cerrada   | —                        | (ver git log)    |
-| 5 Cierre                             | pendiente | T249                     | —                |
+| Fase                                 | Estado  | Próxima tarea (tasks.md) | Commit de cierre    |
+| ------------------------------------ | ------- | ------------------------ | ------------------- |
+| 0 Base                               | cerrada | —                        | bc10604             |
+| 1 Lectura fina                       | cerrada | —                        | 1443f84 (y f136c7a) |
+| 2 Robustez                           | cerrada | —                        | 8f002bc             |
+| 3 Seguridad, escalabilidad y pruebas | cerrada | —                        | e3955f1             |
+| 4 Cumplimiento funcional             | cerrada | —                        | edd11d0             |
+| 5 Cierre                             | cerrada | —                        | (este commit)       |
 
 ## Próximo paso exacto
 
-T249 en adelante (fase 5, cierre): refutación global sobre las 64 entradas de `hallazgos/fase-{1..4}.json`, `verify-finding` sobre el conjunto, informe §5 (refutados con motivo), §6 final, §7 estado global por regla fija, cuadro por módulo final, SC-001..SC-006 de la spec 014, PR `014-auditoria-integral` → `main` sin merge. Sin hallazgos nuevos salvo los que surjan de la refutación global.
+Ninguno: las seis fases están cerradas y el informe tiene estado global (`rejected`, §7). Queda el PR `014-auditoria-integral` → `main` abierto sin merge; lo que sigue es del dueño (qué hallazgos corregir, en qué orden; enmiendas de constitución/ADR que §7 nombra).
 
 ## Entorno
 
@@ -127,6 +127,7 @@ esos cuatro directorios: vacío (T003, 2026-09-19).
 
 ## Notas de sesión
 
+- 2026-09-19 (sesión 3, continuación): fase 5 cerrada (T249–T258). Segunda refutación sobre los 56 confirmados: cae F-064 (ADR-011 decide el contenido del hook). `refutados.json` consolidado (9). `verify-finding` sobre las cuatro fases: 64/64. Estado global por regla fija: `rejected` (6 high: F-007, F-043, F-045, F-051, F-062, F-063; 17 medium; 32 low). Informe §1 completado, §5, §6 final (12 riesgos), §7, cabecera. SC-001..SC-006 comprobados (§7, cuadro 15 × 7, `afirmaciones.md` sin filas vacías, diff limitado a `specs/014-auditoria-integral/`, `docs/auditoria/` y `ee6ac73`).
 - 2026-09-19 (sesión 3, continuación): fase 4 cerrada (T217–T248). Las 479 afirmaciones resueltas en `afirmaciones.md` (258 probadas + 163 por cabecera, 12 parciales, 1 hueco, 6 planificadas, 23 históricas, 1 superada, 1 fuera de alcance, 14 con hallazgo). Método: pase automático (`match-specs.mjs`: cabeceras de prueba con `FR`/`SC` acotadas por feature o por el quickstart de la spec) + mapa manual `evidence.mjs`/`evidence2.mjs` para 210 filas; `fill-fase4.mjs` escribe la columna y genera §3.F y §4. Hallazgos F-062..F-064 (3 high: `incentive` en la orden vs constitución VII; principio X no construido ni enmendado; `arch` fuera del pre-commit vs spec 002 FR-041), 3/3 verificados. S-02, S-03, S-04, S-07, S-08 con veredicto en §3.F.
 - 2026-09-19 (sesión 3, continuación): fase 3 cerrada (T201–T216). Hallazgos F-051..F-061 en `hallazgos/fase-3.json` (1 high: F-051 CORS anuncia `x-ope-platform-key`, probado con un preflight; 1 medium: F-052 `Stryker restore` tras `return` no restaura — 40 mutantes de `build-server.ts` y los chequeos de vocabulario de `condition.ts` ignorados; 6 low; 3 refutados), 11/11 verificados. Informe §3.C, §3.D, §3.E y dos filas más en §6 por `gen-informe-fase3.mjs` (scratchpad). Mediciones: suite completa con reporter JSON (scratchpad `vitest.json`): 147 s pared / 522 s CPU, `tests/audit` 148 s, `contract-docs` 78 s, `governance/quality` 58 s, integración 162 s por 172 pruebas; preflight CORS con `startTestApp` (scratchpad `cors-probe.mts`).
 - 2026-09-19 (sesión 3, continuación): fase 2 cerrada (T191–T200). Hallazgos F-043..F-050 en `hallazgos/fase-2.json` (2 high: F-043 puertos de lectura sin canal de fallo, F-045 event loop compartido con medición de 140 ms por snapshot de 6 MiB; 1 medium; 3 low; 2 refutados), 8/8 verificados. Informe §3.B y borrador de §6 (9 riesgos) por `gen-informe-fase2.mjs` (scratchpad). Medición propia: `vitest run tests/integration/{catalog-size,ingest-latency}.test.ts --silent=false --disableConsoleIntercept` → snapshot 5 000 × 10 en 140 ms; ingesta p50 0,67 ms / p95 1,28 ms.

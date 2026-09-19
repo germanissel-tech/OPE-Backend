@@ -411,16 +411,16 @@ description: "Traza de la auditoría integral (014): una tarea por unidad de tra
 
 **Cierra**: informe §5, §6, §7 y §1 completado; PR. Commit `docs(auditoria): fase 5 — cierre`.
 
-- [ ] T249 [US1] Segunda pasada de refutación sobre **todos** los hallazgos `confirmed` de `fase-1..4.json` (`refutacion.md`); los que caen pasan a `refuted` con motivo
-- [ ] T250 [US1] Deduplicar entre fases (mismo defecto = un `F-NNN`, el menor; el otro se cita); consolidar `trabajo/hallazgos/refutados.json`
-- [ ] T251 [US1] `verify-finding.mjs` sobre cada `fase-N.json` y sobre el conjunto: ninguno rechazado (SC-001)
-- [ ] T252 [US5] Redactar informe §5 (refutados, con dónde nació cada uno) y §6 (riesgos para 014–017: riesgo · `file:line` · feature que lo absorbe)
-- [ ] T253 [US5] Calcular el estado global desde los JSON y los gates (`rejected` / `changes-required` / `approved`) y escribir §7 con las cuentas; poner el estado en la cabecera del informe
-- [ ] T254 [US2] Cuadro por módulo final en §3.A: 15 filas × 7 ejes, lista de `F-NNN` o "sin hallazgos" (SC-002)
-- [ ] T255 [US3] Comprobar SC-003: `afirmaciones.md` sin filas vacías; una fila por principio y por criterio de 03 §10; S-01..S-12 con veredicto
-- [ ] T256 [US1] Completar §1 (todo lo leído y corrido, sesiones, lo no verificable) y relectura completa del informe: cada hallazgo con sus siete campos, citas literales, sin puntuaciones, sin palabras marcador (`npm run check:markers`), `npx prettier --check docs/auditoria specs/014-auditoria-integral`
-- [ ] T257 [US4] SC-006: `git diff --stat main` limitado a `specs/014-auditoria-integral/`, `docs/auditoria/` y el commit `ee6ac73`; `avance.md` con las seis fases cerradas y sus hashes
-- [ ] T258 [US4] Commit `docs(auditoria): fase 5 — cierre`; PR `014-auditoria-integral` → `main` con la descripción del Constitution Check (ningún gate de código aplica; diff limitado); sin merge hasta que el dueño lo pida
+- [x] T249 [US1] Segunda pasada de refutación sobre **todos** los hallazgos `confirmed` de `fase-1..4.json` (`refutacion.md`); los que caen pasan a `refuted` con motivo
+- [x] T250 [US1] Deduplicar entre fases (mismo defecto = un `F-NNN`, el menor; el otro se cita); consolidar `trabajo/hallazgos/refutados.json`
+- [x] T251 [US1] `verify-finding.mjs` sobre cada `fase-N.json` y sobre el conjunto: ninguno rechazado (SC-001)
+- [x] T252 [US5] Redactar informe §5 (refutados, con dónde nació cada uno) y §6 (riesgos para 014–017: riesgo · `file:line` · feature que lo absorbe)
+- [x] T253 [US5] Calcular el estado global desde los JSON y los gates (`rejected` / `changes-required` / `approved`) y escribir §7 con las cuentas; poner el estado en la cabecera del informe
+- [x] T254 [US2] Cuadro por módulo final en §3.A: 15 filas × 7 ejes, lista de `F-NNN` o "sin hallazgos" (SC-002)
+- [x] T255 [US3] Comprobar SC-003: `afirmaciones.md` sin filas vacías; una fila por principio y por criterio de 03 §10; S-01..S-12 con veredicto
+- [x] T256 [US1] Completar §1 (todo lo leído y corrido, sesiones, lo no verificable) y relectura completa del informe: cada hallazgo con sus siete campos, citas literales, sin puntuaciones, sin palabras marcador (`npm run check:markers`), `npx prettier --check docs/auditoria specs/014-auditoria-integral`
+- [x] T257 [US4] SC-006: `git diff --stat main` limitado a `specs/014-auditoria-integral/`, `docs/auditoria/` y el commit `ee6ac73`; `avance.md` con las seis fases cerradas y sus hashes
+- [x] T258 [US4] Commit `docs(auditoria): fase 5 — cierre`; PR `014-auditoria-integral` → `main` con la descripción del Constitution Check (ningún gate de código aplica; diff limitado); sin merge hasta que el dueño lo pida
 
 ---
 

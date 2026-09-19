@@ -48,6 +48,7 @@
       "after": "# either `npm run arch` joins the hook (it takes seconds; dependency-cruiser over src/) — or spec 002 FR-041 and\n# specs/002/quickstart.md record that 003 FR-040 narrowed the hook and arch runs in CI and in `quality` only."
     },
     "coveringTest": "tests/hooks/lefthook.test.ts would assert the `arch` command in the hook (today it asserts the three commands). Low consequence — `npm run arch` runs in CI (`ci.yml:47`) and inside `npm run quality` — but a MUST of an approved spec that the code stopped meeting without a written amendment",
-    "status": "confirmed"
+    "status": "refuted",
+    "refutation": "ADR-011 (feature 003, posterior a la 002) decide por escrito el contenido del hook: \"`pre-commit` corre formato y lint sobre lo staged y `typecheck`. No corre `contract:check` ni pruebas: eso es de CI\"; `git log lefthook.yml` muestra que `arch` nunca estuvo en el hook (711f15a) y CLAUDE.md § Flujo lo repite. Una decisión escrita posterior sustituye la redacción de la 002 FR-041, que no fue enmendada: queda como nota de prosa (la spec 002 y su quickstart siguen diciendo \"previo a commit\"), no como defecto. `npm run arch` corre en `quality` y en CI"
   }
 ]
