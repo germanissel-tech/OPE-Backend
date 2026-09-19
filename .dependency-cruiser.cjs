@@ -29,7 +29,18 @@ const CONTEXT_MAP = {
   ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
   catalog: ["shared-kernel"],
   barrier: ["shared-kernel", "ingestion"],
-  decision: ["shared-kernel", "ledger", "experiment", "ingestion", "catalog", "barrier"],
+  selection: ["shared-kernel"],
+  commercial: ["shared-kernel", "barrier", "selection"],
+  decision: [
+    "shared-kernel",
+    "ledger",
+    "experiment",
+    "ingestion",
+    "catalog",
+    "barrier",
+    "selection",
+    "commercial",
+  ],
 };
 
 /**
