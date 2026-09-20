@@ -7,10 +7,21 @@ import type { DecisionPolicy } from "../../../domain/decision/index.js";
 import type { MerchantProfile } from "../../../domain/selection/index.js";
 import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
-export interface MerchantPolicies {
+/** What governs the decisions of a merchant: its three policies. */
+export interface PolicySet {
   decision: DecisionPolicy;
   commercial: CommercialPolicy;
   profile: MerchantProfile;
+}
+
+export interface MerchantPolicies extends PolicySet {
+  /** The kill switch (01 §14.2): off, OPE decides nothing for the merchant and still measures. */
+  enabled: boolean;
+}
+
+/** Where the policies come from (configuration today, the configuration module later). */
+export interface PolicySource {
+  policySetFor(merchantId: MerchantId): Promise<PolicySet>;
 }
 
 export interface PolicyDirectory {

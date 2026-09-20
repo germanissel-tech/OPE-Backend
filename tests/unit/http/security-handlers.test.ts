@@ -1,24 +1,23 @@
 // ADR-025: what each security handler leaves for the controllers and the log, and how the
 // controllers find the merchant whichever scheme resolved it.
 import { describe, expect, it } from "vitest";
-import { asOperatorId, EVERY_MERCHANT, Operator, OperatorUnknown } from "../../../src/domain/admin/index.js";
-import { Merchant, Unauthorized } from "../../../src/domain/merchant/index.js";
-import { asMerchantId, fail, ok } from "../../../src/domain/shared-kernel/index.js";
+import { Unauthorized } from "../../../src/domain/merchant/index.js";
+import {
+  asOperatorId,
+  EVERY_MERCHANT,
+  Operator,
+  OperatorUnknown,
+} from "../../../src/domain/operator/index.js";
+import { fail, ok } from "../../../src/domain/shared-kernel/index.js";
 import { makeAdminTokenSecurity } from "../../../src/interface-adapters/http/security/admin-token.js";
 import { CONSUMER_CAPABILITIES } from "../../../src/interface-adapters/http/security/capabilities.js";
 import { makeIngestKeySecurity } from "../../../src/interface-adapters/http/security/ingest-key.js";
 import { makePlatformKeySecurity } from "../../../src/interface-adapters/http/security/platform-key.js";
 import { merchantOf, operatorOf } from "../../../src/interface-adapters/http/security/principal.js";
 import { SecurityError } from "../../../src/interface-adapters/http/typed.js";
+import { testMerchant } from "../../helpers/merchants.js";
 
-const built = Merchant.of({
-  merchantId: asMerchantId("m_a"),
-  ingestKeys: ["k"],
-  origins: ["https://a.example"],
-  platformKeys: ["p"],
-});
-if (!built.ok) throw new Error("merchant");
-const merchant = built.value;
+const merchant = testMerchant({ ingestKeys: ["k"], platformKeys: ["p"] });
 
 describe("platformKey security handler", () => {
   const handler = makePlatformKeySecurity({

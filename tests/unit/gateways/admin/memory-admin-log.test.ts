@@ -1,11 +1,10 @@
 // Feature 017 — the in-memory admin log and its paging.
 import { describe, expect, it } from "vitest";
-import { asOperatorId, type AdminEntry } from "../../../../src/domain/admin/index.js";
+import { asOperatorId } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
-import {
-  memoryAdminLog,
-  pageOf,
-} from "../../../../src/interface-adapters/gateways/admin/memory-admin-log.js";
+import { memoryAdminLog } from "../../../../src/interface-adapters/gateways/admin/memory-admin-log.js";
+import { pageOf } from "../../../../src/interface-adapters/gateways/shared-kernel/paging.js";
+import type { AdminEntry } from "../../../../src/domain/admin/index.js";
 
 const A = asMerchantId("mrc_a");
 const B = asMerchantId("mrc_b");

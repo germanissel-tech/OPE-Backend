@@ -41,6 +41,22 @@ paths:
     $ref: ./paths/returns.yaml
   /v1/admin/log:
     $ref: ./paths/admin-log.yaml
+  /v1/admin/merchants:
+    $ref: ./paths/admin-merchants.yaml
+  /v1/admin/merchants/{merchantId}:
+    $ref: ./paths/admin-merchant.yaml
+  /v1/admin/merchants/{merchantId}/deactivate:
+    $ref: ./paths/admin-merchant-deactivate.yaml
+  /v1/admin/merchants/{merchantId}/ingest-keys:
+    $ref: ./paths/admin-ingest-keys.yaml
+  /v1/admin/merchants/{merchantId}/platform-keys:
+    $ref: ./paths/admin-platform-keys.yaml
+  /v1/admin/merchants/{merchantId}/platform-secrets:
+    $ref: ./paths/admin-platform-secrets.yaml
+  /v1/admin/merchants/{merchantId}/kill-switch:
+    $ref: ./paths/admin-kill-switch.yaml
+  /v1/admin/merchants/{merchantId}/log:
+    $ref: ./paths/admin-merchant-log.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`

@@ -21,8 +21,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();

@@ -1,0 +1,8 @@
+type: object
+description: "The kill switch of the merchant (01 §14.2): `enabled: false` turns OPE off for it without a deploy; the SDK keeps receiving valid answers and every decision is NO_OP; the platform keeps being able to notify."
+additionalProperties: false
+required: [enabled]
+properties:
+  enabled:
+    type: boolean
+    description: Whether OPE decides for this merchant.

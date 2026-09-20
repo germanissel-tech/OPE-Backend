@@ -58,7 +58,7 @@ types:
     status: 500
     title: The seed of an experiment is empty
   - slug: invalid-origin
-    status: 500
+    status: 422
     title: A registered origin is not scheme://host[:port]
   - slug: invalid-platform-secret
     status: 500

@@ -1,6 +1,6 @@
 // The admin log (ADR-031): what an operator did or tried, one entry per action. Never a
 // credential, never a personal datum: the actor is an operator identifier.
-import type { OperatorId } from "./ids.js";
+import type { OperatorId } from "../operator/index.js";
 import type { ExperimentId, MerchantId } from "../shared-kernel/index.js";
 
 /** Accepted by the use case, rejected by a business rule (with its code), or denied by scope. */

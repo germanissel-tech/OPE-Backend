@@ -43,7 +43,7 @@ export class DefaultPlatformSignatureVerifier implements PlatformSignatureVerifi
 
   async verify(request: SignedRequest): Promise<SignatureVerification> {
     const { merchant } = request;
-    if (!merchant.requiresSignature()) return ok(undefined);
+    if (!merchant.requiresSignature(request.now)) return ok(undefined);
     if (request.timestamp === undefined || request.signature === undefined)
       return fail(new SignatureMissing());
     const timestamp = PlatformSignature.timestampOf(request.timestamp);
@@ -52,7 +52,7 @@ export class DefaultPlatformSignatureVerifier implements PlatformSignatureVerifi
     if (!PlatformSignature.inWindow(timestamp, request.now, SIGNATURE_WINDOW_MS))
       return fail(new SignatureExpired());
     const message = PlatformSignature.message(timestamp, request.body);
-    for (const secret of merchant.platformSecrets) {
+    for (const secret of merchant.signingSecrets(request.now)) {
       if (signature.matches(await this.#deps.authenticator.hmacSha256Hex(secret, message)))
         return ok(undefined);
     }

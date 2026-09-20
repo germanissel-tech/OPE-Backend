@@ -90,6 +90,8 @@ interface Options {
   decision?: DecisionPolicy;
   commercial?: CommercialPolicy;
   profile?: MerchantProfile;
+  /** The kill switch (feature 017); on unless a test says otherwise. */
+  enabled?: boolean;
 }
 
 function subject(options: Options = {}) {
@@ -163,6 +165,7 @@ function subject(options: Options = {}) {
           decision: options.decision ?? DEFAULT_DECISION_POLICY,
           commercial: options.commercial ?? DEFAULT_COMMERCIAL_POLICY,
           profile: options.profile ?? { returnsPolicy: true, fitData: true, authorizedAttributes: [] },
+          enabled: options.enabled ?? true,
         }),
     },
     state: new DefaultStateService({ sessions: sessionStore, visitors: visitorStore }),
@@ -324,6 +327,15 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "control-arm" });
     expect(decision.inference).toMatchObject({ barrier: "fit", trigger: "rules", confidences: { fit: 0.8 } });
+  });
+
+  it("with the kill switch off → merchant-off before assigning: no experiment, no inference, recorded (feature 017)", async () => {
+    const { decide, calls } = subject({ catalog: snapshot, enabled: false });
+    const decision = await decide([sizeSelector(1), sizeSelector(2)]);
+    expect(decision).toMatchObject({ outcome: "NO_OP", reason: "merchant-off" });
+    expect(decision.experiment).toBeUndefined();
+    expect(decision.inference).toBeUndefined();
+    expect(calls).not.toContain("assign");
   });
 
   it("without an active experiment → no-active-experiment, still inferred", async () => {

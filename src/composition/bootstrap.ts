@@ -4,10 +4,12 @@
 // others), never a branch on configuration; what has to be closed, and in which order, is what
 // the profile reports it created; which operations exist is what the modules serve, checked
 // against the contract before listening.
+import { Operator } from "../domain/operator/index.js";
 import { buildServer } from "../infrastructure/http/build-server.js";
 import { loadContract } from "../infrastructure/http/load-contract.js";
 import { assertEveryOperationWired } from "./coverage.js";
 import { MODULES } from "./modules/index.js";
+import { importMerchantsOf } from "./modules/merchant.js";
 import { localProfile } from "./profiles/local.js";
 import { wireModules, type Module } from "./wiring.js";
 import type { AppConfig } from "./config.js";
@@ -39,9 +41,24 @@ async function shutdown(app: FastifyInstance, closables: readonly Closable[]): P
   for (const closable of [...closables].reverse()) await closable.close();
 }
 
+/**
+ * The seed of the configuration enters an empty store through the same use case as the API
+ * (ADR-031); a store that already holds merchants keeps them. A seed the configuration accepted
+ * and the entity rejects is a programming error.
+ */
+export async function importSeed(config: AppConfig, ports: Ports): Promise<void> {
+  const seeds = config.merchants.map((m) => m.seed);
+  const imported = await importMerchantsOf(ports).execute({ actor: Operator.system(), seeds });
+  if (!imported.ok) throw new Error(`The merchant seed was rejected: ${imported.error.code}.`);
+  if ("imported" in imported.value && imported.value.imported > 0) {
+    ports.logger.info({ merchants: imported.value.imported }, "merchant seed imported");
+  }
+}
+
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const definition = loadContract(config.contractPath);
   const { ports, closables } = (overrides.profile ?? localProfile)(config, overrides.ports ?? {});
+  await importSeed(config, ports);
   const wired = wireModules(overrides.modules ?? MODULES, { ports, contract: definition });
   const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
   assertEveryOperationWired(definition, handlers);

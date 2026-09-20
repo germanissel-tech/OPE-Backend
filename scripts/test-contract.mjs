@@ -14,6 +14,7 @@
 //
 // Manual negative test: OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { bundlePath, repoRoot } from "./lib.mjs";
@@ -21,6 +22,14 @@ import { startBuiltServer } from "./server-lib.mjs";
 
 // Pinned version: the same locally and in CI.
 const SCHEMATHESIS = "schemathesis@4.27.2";
+
+/** Test operator for Schemathesis (feature 017): the token travels as a bearer; only its fingerprint is configured. */
+const CONTRACT_ADMIN_TOKEN = "ope_contract_admin_token";
+const CONTRACT_OPERATOR = {
+  operatorId: "contract-test-operator",
+  tokenFingerprints: [createHash("sha256").update(CONTRACT_ADMIN_TOKEN, "utf8").digest("hex")],
+  scope: "*",
+};
 
 /** Test merchant for Schemathesis: both credentials travel in every request; no signature secret. */
 const CONTRACT_MERCHANT = {
@@ -64,6 +73,8 @@ function runSchemathesis(base) {
       `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
       "-H",
       `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? ""}`,
+      "-H",
+      `Authorization: Bearer ${CONTRACT_ADMIN_TOKEN}`,
       "--report",
       "junit",
       "--report-dir",
@@ -88,6 +99,7 @@ async function main() {
   }
   const server = await startBuiltServer({
     OPE_MERCHANTS: process.env["OPE_MERCHANTS"] ?? JSON.stringify([CONTRACT_MERCHANT]),
+    OPE_ADMIN_OPERATORS: process.env["OPE_ADMIN_OPERATORS"] ?? JSON.stringify([CONTRACT_OPERATOR]),
   });
   try {
     console.log(`test:contract — server at ${server.base}; running Schemathesis…`);

@@ -6,8 +6,12 @@ export {
   InvalidPlatformKeys,
   InvalidPlatformSecret,
   InvalidPlatformSecrets,
+  MerchantDeactivated,
+  MerchantNotFound,
+  OriginAlreadyRegistered,
   OriginNotAllowed,
   PlatformKeyCollision,
+  RotationGraceTooLong,
   SignatureExpired,
   SignatureInvalid,
   SignatureMissing,
@@ -16,5 +20,6 @@ export {
 export type { MerchantError, SignatureError } from "./errors.js";
 export { PlatformSignature } from "./platform-signature.js";
 export { Merchant } from "./merchant.js";
-export type { MerchantInput, MerchantRecord } from "./merchant.js";
+export type { MerchantInput, MerchantRecord, MerchantStatus } from "./merchant.js";
+export type { Credential, CredentialKind } from "./credential.js";
 export { Origin } from "./origin.js";

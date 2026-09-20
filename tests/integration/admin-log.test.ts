@@ -1,8 +1,8 @@
 // Feature 017 — Phase 2 (FR-007, FR-008): the first admin path: an operator authenticates with a
 // bearer token before the body is read and reads the admin log, newest first, paginated.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { asOperatorId } from "../../src/domain/admin/index.js";
-import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
+import { asOperatorId } from "../../src/domain/operator/index.js";
+import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { admin, sharedTestApp, startTestApp, type SharedApp } from "../helpers/test-app.js";
 import { recordingLogger } from "../helpers/unavailable-ledgers.js";
@@ -12,8 +12,8 @@ beforeAll(async () => {
   app = await sharedTestApp();
 });
 afterAll(() => app.close());
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 
 const entry = (n: number) => ({
@@ -54,7 +54,7 @@ describe("GET /v1/admin/log", () => {
       items: { operation: string }[];
       nextCursor?: string;
     };
-    expect(second.items.map((e) => e.operation)).toEqual(["op1"]);
+    expect(second.items.map((e) => e.operation)).toEqual(["op1", "importMerchants"]);
     expect(second).not.toHaveProperty("nextCursor");
   });
 
@@ -66,8 +66,17 @@ describe("GET /v1/admin/log", () => {
       reason: "anchor fix",
     });
     await app.ports.adminLog.record({ ...entry(2), outcome: "rejected", code: "configuration-frozen" });
+    await app.ports.adminLog.record({
+      ...entry(3),
+      operation: "activateExperiment",
+      result: { experimentId: asExperimentId("exp-2026-10") },
+    });
     const page = json(await admin(app.app, "GET", "/v1/admin/log")) as { items: Record<string, unknown>[] };
-    expect(page.items[1]).toStrictEqual({
+    expect(page.items[0]).toMatchObject({
+      operation: "activateExperiment",
+      result: { experimentId: asExperimentId("exp-2026-10") },
+    });
+    expect(page.items[2]).toStrictEqual({
       at: "2026-09-20T12:00:01.000Z",
       operatorId: "ops-all",
       operation: "publishMerchantConfiguration",
@@ -76,7 +85,7 @@ describe("GET /v1/admin/log", () => {
       result: { configurationVersion: 2, windowRestarted: true },
       reason: "anchor fix",
     });
-    expect(page.items[0]).toStrictEqual({
+    expect(page.items[1]).toStrictEqual({
       at: "2026-09-20T12:00:02.000Z",
       operatorId: "ops-all",
       operation: "op2",

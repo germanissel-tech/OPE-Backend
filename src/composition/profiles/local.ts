@@ -11,7 +11,7 @@ import { configDecisionPorts, memoryDecisionPorts } from "../modules/decision.js
 import { configExperimentPorts, memoryAssignmentPorts } from "../modules/experiment.js";
 import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
-import { configMerchantPorts } from "../modules/merchant.js";
+import { memoryMerchantPorts } from "../modules/merchant.js";
 import { memoryOutcomesPorts } from "../modules/outcomes.js";
 import { localKernelPorts } from "../modules/shared-kernel.js";
 import { binder, type Profile } from "../profile.js";
@@ -19,16 +19,17 @@ import { binder, type Profile } from "../profile.js";
 export const localProfile: Profile = (config, overrides) => {
   const { bind, closables } = binder(overrides);
   const kernel = bind(localKernelPorts);
+  const merchant = bind(memoryMerchantPorts());
   const ports = {
     ...kernel,
-    ...bind(configMerchantPorts(config.merchants.map((m) => m.merchant))),
+    ...merchant,
     ...bind(configExperimentPorts(config.merchants)),
     ...bind(memoryAssignmentPorts),
     ...bind(memoryIngestionPorts(kernel.clock)),
     ...bind(memoryLedgerPorts),
     ...bind(memoryCatalogPorts),
     ...bind(ruleBarrierPorts),
-    ...bind(configDecisionPorts(config.merchants)),
+    ...bind(configDecisionPorts(config.merchants, () => merchant.merchantStore)),
     ...bind(memoryDecisionPorts(kernel.clock)),
     ...bind(memoryOutcomesPorts),
     ...bind(configAdminPorts(config.operators)),

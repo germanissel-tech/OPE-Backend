@@ -121,4 +121,44 @@ export type MerchantError =
   | PlatformKeyCollision
   | InvalidPlatformSecrets
   | InvalidPlatformSecret
+  | MerchantDeactivated
+  | MerchantNotFound
+  | RotationGraceTooLong
+  | OriginAlreadyRegistered
   | SignatureError;
+
+/** The merchant was deactivated: nothing can be done to it (ADR-031). */
+export class MerchantDeactivated extends DomainError {
+  readonly code = "merchant-deactivated" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The merchant is deactivated.");
+  }
+}
+
+/** No merchant with that identifier within the operator's scope. */
+export class MerchantNotFound extends DomainError {
+  readonly code = "merchant-not-found" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The merchant does not exist.");
+  }
+}
+
+/** A rotation grace beyond what the platform allows. */
+export class RotationGraceTooLong extends DomainError {
+  readonly code = "rotation-grace-too-long" as const;
+  readonly module = MODULE;
+  constructor(maxGraceMs: number) {
+    super("The rotation grace exceeds the platform maximum.", { maxGraceMs });
+  }
+}
+
+/** An origin that already belongs to another merchant: an origin speaks for one merchant only. */
+export class OriginAlreadyRegistered extends DomainError {
+  readonly code = "origin-already-registered" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("An origin already belongs to another merchant.", { index });
+  }
+}

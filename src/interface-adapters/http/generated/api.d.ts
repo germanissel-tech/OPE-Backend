@@ -25,6 +25,197 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The merchants within the operator's scope
+         * @description Every merchant the operator may act on, oldest first, paginated with an opaque cursor
+         *     (ADR-020). Credentials appear by kind and instant, never by value.
+         */
+        get: operations["listMerchants"];
+        put?: never;
+        /**
+         * Create a merchant
+         * @description An operator gives the registered origins and whether the platform signs; OPE mints the
+         *     identifier, an ingest key, a platform key and, if asked, a signing secret, and answers the
+         *     values **once** (ADR-031). The merchant is active from this instant: the SDK authenticates
+         *     with the ingest key and the platform with its key and secret. No reading ever returns the
+         *     values again; a lost one is rotated. An origin already registered by another merchant is
+         *     refused (`422 origin-already-registered`). Every creation is written to the admin log.
+         */
+        post: operations["createMerchant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A merchant
+         * @description The merchant, within the operator's scope: status, origins and credentials by kind and
+         *     instant, never by value. Outside the scope, `403` without saying whether it exists.
+         */
+        get: operations["getMerchant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a merchant for good
+         * @description Terminal (ADR-031): from the next request no credential of the merchant resolves — the
+         *     edge answers `401` as to an unknown key — and it cannot be reactivated nor recreated with
+         *     the same identifier. Every record of the merchant (decisions, exposures, orders, its
+         *     configuration versions, its experiments) stays and remains readable by administration.
+         *     There is no delete. Repeating it changes nothing (`200` again).
+         */
+        post: operations["deactivateMerchant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/ingest-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the ingest key
+         * @description Mints a new ingest key for the tag of the merchant. The new value travels in the answer and never again. The previous one stays valid
+         *     for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+         *     are valid at a time — a second rotation within the grace expires the older one at once
+         *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+         */
+        post: operations["rotateIngestKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/kill-switch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn OPE on or off for a merchant
+         * @description The kill switch (01 §14.2), without a deploy, effective on the next request. Off: every
+         *     decision of the merchant is `NO_OP` with reason `merchant-off` before any assignment, no
+         *     intervention is emitted, the SDK keeps receiving valid answers; catalogue, orders and
+         *     returns of the platform keep being accepted (the measurement does not break). The state of
+         *     an open experiment does not change. Idempotent: setting the state it already has is `200`.
+         *     A deactivated merchant has no switch (`409`).
+         */
+        put: operations["setKillSwitch"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The admin log of a merchant
+         * @description The administration actions that named this merchant — accepted, rejected or denied — newest
+         *     first (ADR-031), within the operator's scope: outside it, `403` without saying whether the
+         *     merchant exists. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listMerchantAdminLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/platform-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the platform key
+         * @description Mints a new server-to-server key for the platform of the merchant. The new value travels in the answer and never again. The previous one stays valid
+         *     for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+         *     are valid at a time — a second rotation within the grace expires the older one at once
+         *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+         */
+        post: operations["rotatePlatformKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/platform-secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the signing secret
+         * @description Mints a new signing secret for the notifications of the platform (ADR-029); a merchant created without one starts signing from now on. The new value travels in the answer and never again. The previous one stays valid
+         *     for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+         *     are valid at a time — a second rotation within the grace expires the older one at once
+         *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+         */
+        post: operations["rotatePlatformSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/catalog": {
         parameters: {
             query?: never;
@@ -407,6 +598,49 @@ export type components = {
              */
             receivedAt: string;
         };
+        /** @description The credential just minted, shown once, and when the previous one expires. */
+        CredentialIssued: {
+            /**
+             * Format: date-time
+             * @description When it was minted.
+             */
+            issuedAt: string;
+            kind: components["schemas"]["CredentialKind"];
+            /**
+             * Format: date-time
+             * @description When the previous credential of the kind stops being valid; absent when there was none.
+             */
+            previousExpiresAt?: string;
+            /** @description The new value; give it out of band. No reading returns it. */
+            value: string;
+        };
+        /**
+         * @description The three credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of its notifications (ADR-014, ADR-025, ADR-029).
+         * @enum {string}
+         */
+        CredentialKind: "ingest" | "platform" | "signing";
+        /** @description A rotation (ADR-014, ADR-031): the previous credential of the kind lives on for the grace; none by default. */
+        CredentialRotation: {
+            /**
+             * @description Seconds the previous credential stays valid; 0 revokes it at once. Bounded by the platform.
+             * @default 0
+             */
+            graceSeconds: number;
+        };
+        /** @description A credential as an operator sees it — kind and instants, never the value (ADR-031). */
+        CredentialSummary: {
+            /**
+             * Format: date-time
+             * @description When it stops being valid; only after a rotation gave it a grace.
+             */
+            expiresAt?: string;
+            /**
+             * Format: date-time
+             * @description When it was minted.
+             */
+            issuedAt: string;
+            kind: components["schemas"]["CredentialKind"];
+        };
         /** @description Hover or approach to the purchase call to action. */
         CtaApproached: {
             /**
@@ -583,6 +817,11 @@ export type components = {
             /** @description Version of the curated message to render. The text is served by the message catalogue, not by this contract. */
             messageVersionId: string;
         };
+        /** @description The kill switch of the merchant (01 §14.2): `enabled: false` turns OPE off for it without a deploy; the SDK keeps receiving valid answers and every decision is NO_OP; the platform keeps being able to notify. */
+        KillSwitch: {
+            /** @description Whether OPE decides for this merchant. */
+            enabled: boolean;
+        };
         /** @description View of a listing or category. */
         ListingViewed: {
             device: components["schemas"]["DeviceClass"];
@@ -601,6 +840,55 @@ export type components = {
             type: "listing_viewed";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /** @description A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources. */
+        Merchant: {
+            /**
+             * Format: date-time
+             * @description When the merchant was created.
+             */
+            createdAt: string;
+            /** @description The credentials still valid, by kind; never their values. */
+            credentials: components["schemas"]["CredentialSummary"][];
+            merchantId: components["schemas"]["MerchantId"];
+            /** @description Registered origins of the store, as written. */
+            origins: string[];
+            status: components["schemas"]["MerchantStatus"];
+        };
+        /** @description What an operator gives to create a merchant; OPE mints everything else (ADR-031). */
+        MerchantCreate: {
+            /** @description Registered origins of the store: `scheme://host[:port]`, no path. An origin belongs to one merchant. */
+            origins: string[];
+            /** @description Whether the platform will sign its notifications (ADR-029); mints a signing secret too. */
+            signature: boolean;
+        };
+        /** @description The merchant just created and the values of its credentials — the only time they travel. */
+        MerchantCreated: {
+            credentials: components["schemas"]["MerchantCredentials"];
+            merchant: components["schemas"]["Merchant"];
+        };
+        /** @description The values of the credentials, shown once (ADR-031). Give them to the merchant out of band; no reading returns them. */
+        MerchantCredentials: {
+            /** @description The public key of the tag (`X-OPE-Ingest-Key`). */
+            ingestKey: string;
+            /** @description The server-to-server key of the platform (`X-OPE-Platform-Key`). */
+            platformKey: string;
+            /** @description The signing secret (ADR-029); only when the merchant was created with `signature`. */
+            platformSecret?: string;
+        };
+        /** @description Identifier of a merchant (ADR-031). OPE mints it when the merchant is created by the API (`mrc_` and twelve base32 characters); a merchant imported from a seed keeps the identifier the seed gave it. Immutable, never reused; it only ever appears in the path of an admin operation (constitution V). */
+        MerchantId: string;
+        /** @description A page of merchants, oldest first, within the scope of the operator (ADR-020). */
+        MerchantPage: {
+            /** @description Merchants of this page. */
+            items: components["schemas"]["Merchant"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
+        /**
+         * @description Whether OPE works for the merchant: `active`; `off` by the kill switch (decides nothing, still measures); `deactivated` for good (no credential resolves, every record stays).
+         * @enum {string}
+         */
+        MerchantStatus: "active" | "off" | "deactivated";
         /** @description Monetary amount. The amount travels as a decimal string so no precision is lost (ADR-014). */
         Money: {
             /** @description Amount with up to two decimals, dot as separator, no sign and no thousands separators. */
@@ -990,6 +1278,69 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description The merchant was deactivated; nothing can be done to it (ADR-031). */
+        MerchantDeactivatedConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:merchant-deactivated",
+                 *       "title": "The merchant is deactivated",
+                 *       "status": 409,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/kill-switch"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description The merchant is outside the operator's scope — whether it exists is not revealed — or the token lacks the capability the operation requires. */
+        MerchantForbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:merchant-out-of-scope",
+                 *       "title": "The merchant is outside the operator's scope",
+                 *       "status": 403,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/kill-switch"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description No merchant with that identifier within the operator's scope. */
+        MerchantNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:merchant-not-found",
+                 *       "title": "The merchant does not exist",
+                 *       "status": 404,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the merchant (ADR-007). The
+         *     `type` names the invariant.
+         */
+        MerchantUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description No operator token, or one that belongs to nobody; before the body is read. */
         OperatorUnauthorized: {
             headers: {
@@ -1028,6 +1379,30 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description Valid request rejected on semantics: the `x-invariants` of a rotation (ADR-007). */
+        RotationUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:rotation-grace-too-long",
+                 *       "title": "The rotation grace exceeds the platform maximum",
+                 *       "status": 422,
+                 *       "detail": "The rotation grace exceeds the platform maximum.",
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/ingest-keys",
+                 *       "errors": [
+                 *         {
+                 *           "pointer": "/graceSeconds",
+                 *           "message": "The rotation grace exceeds the platform maximum."
+                 *         }
+                 *       ]
+                 *     }
+                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -1077,6 +1452,8 @@ export type components = {
         cursor: string;
         /** @description Maximum number of items per page (ADR-020). */
         limit: number;
+        /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+        merchantId: components["schemas"]["MerchantId"];
         /**
          * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
          *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
@@ -1124,14 +1501,14 @@ export interface operations {
                      *           "at": "2026-09-20T12:00:05Z",
                      *           "operatorId": "ops-1",
                      *           "operation": "setKillSwitch",
-                     *           "merchantId": "mrc_7f3k9d2q1m4x",
+                     *           "merchantId": "mrc_7f3k5d2q4m6x",
                      *           "outcome": "accepted"
                      *         },
                      *         {
                      *           "at": "2026-09-20T12:00:00Z",
                      *           "operatorId": "system",
                      *           "operation": "importMerchants",
-                     *           "merchantId": "mrc_7f3k9d2q1m4x",
+                     *           "merchantId": "mrc_7f3k5d2q4m6x",
                      *           "outcome": "accepted"
                      *         }
                      *       ]
@@ -1144,6 +1521,470 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalServerError"];
+        };
+    };
+    listMerchants: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of merchants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "merchantId": "mrc_7f3k5d2q4m6x",
+                     *           "status": "active",
+                     *           "origins": [
+                     *             "https://tienda.example"
+                     *           ],
+                     *           "createdAt": "2026-09-20T12:00:00Z",
+                     *           "credentials": [
+                     *             {
+                     *               "kind": "ingest",
+                     *               "issuedAt": "2026-09-20T12:00:00Z"
+                     *             },
+                     *             {
+                     *               "kind": "platform",
+                     *               "issuedAt": "2026-09-20T12:00:00Z"
+                     *             },
+                     *             {
+                     *               "kind": "signing",
+                     *               "issuedAt": "2026-09-20T12:00:00Z"
+                     *             }
+                     *           ]
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    createMerchant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "origins": [
+                 *         "https://tienda.example"
+                 *       ],
+                 *       "signature": true
+                 *     }
+                 */
+                "application/json": components["schemas"]["MerchantCreate"];
+            };
+        };
+        responses: {
+            /** @description Merchant created; the credentials travel here and never again. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "merchant": {
+                     *         "merchantId": "mrc_7f3k5d2q4m6x",
+                     *         "status": "active",
+                     *         "origins": [
+                     *           "https://tienda.example"
+                     *         ],
+                     *         "createdAt": "2026-09-20T12:00:00Z",
+                     *         "credentials": [
+                     *           {
+                     *             "kind": "ingest",
+                     *             "issuedAt": "2026-09-20T12:00:00Z"
+                     *           },
+                     *           {
+                     *             "kind": "platform",
+                     *             "issuedAt": "2026-09-20T12:00:00Z"
+                     *           },
+                     *           {
+                     *             "kind": "signing",
+                     *             "issuedAt": "2026-09-20T12:00:00Z"
+                     *           }
+                     *         ]
+                     *       },
+                     *       "credentials": {
+                     *         "ingestKey": "ope_ik_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I",
+                     *         "platformKey": "ope_pk_Q2w9E4r7T1y6U3i8O5p0A9s2D4f6G8h1J3k5L7z9X0c",
+                     *         "platformSecret": "ope_ps_M4n6B8v0C2x4Z6l8K0j2H4g6F8d0S2a4P6o8I0u2Y4t"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            422: components["responses"]["MerchantUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The merchant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "merchantId": "mrc_7f3k5d2q4m6x",
+                     *       "status": "active",
+                     *       "origins": [
+                     *         "https://tienda.example"
+                     *       ],
+                     *       "createdAt": "2026-09-20T12:00:00Z",
+                     *       "credentials": [
+                     *         {
+                     *           "kind": "ingest",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         },
+                     *         {
+                     *           "kind": "platform",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         },
+                     *         {
+                     *           "kind": "signing",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Merchant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    deactivateMerchant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The merchant, deactivated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "merchantId": "mrc_7f3k5d2q4m6x",
+                     *       "status": "deactivated",
+                     *       "origins": [
+                     *         "https://tienda.example"
+                     *       ],
+                     *       "createdAt": "2026-09-20T12:00:00Z",
+                     *       "credentials": [
+                     *         {
+                     *           "kind": "ingest",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         },
+                     *         {
+                     *           "kind": "platform",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         },
+                     *         {
+                     *           "kind": "signing",
+                     *           "issuedAt": "2026-09-20T12:00:00Z"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Merchant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    rotateIngestKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceSeconds": 3600
+                 *     }
+                 */
+                "application/json": components["schemas"]["CredentialRotation"];
+            };
+        };
+        responses: {
+            /** @description The credential minted; its value travels here and never again. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "kind": "ingest",
+                     *       "value": "ope_ik_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I",
+                     *       "issuedAt": "2026-09-20T12:00:00Z",
+                     *       "previousExpiresAt": "2026-09-20T13:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    setKillSwitch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "enabled": false
+                 *     }
+                 */
+                "application/json": components["schemas"]["KillSwitch"];
+            };
+        };
+        responses: {
+            /** @description The switch as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "enabled": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["KillSwitch"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listMerchantAdminLog: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the log of the merchant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "at": "2026-09-20T12:00:05Z",
+                     *           "operatorId": "ops-1",
+                     *           "operation": "setKillSwitch",
+                     *           "merchantId": "mrc_7f3k5d2q4m6x",
+                     *           "outcome": "accepted"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AdminEntryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    rotatePlatformKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceSeconds": 3600
+                 *     }
+                 */
+                "application/json": components["schemas"]["CredentialRotation"];
+            };
+        };
+        responses: {
+            /** @description The credential minted; its value travels here and never again. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "kind": "platform",
+                     *       "value": "ope_pk_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I",
+                     *       "issuedAt": "2026-09-20T12:00:00Z",
+                     *       "previousExpiresAt": "2026-09-20T13:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    rotatePlatformSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceSeconds": 3600
+                 *     }
+                 */
+                "application/json": components["schemas"]["CredentialRotation"];
+            };
+        };
+        responses: {
+            /** @description The credential minted; its value travels here and never again. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "kind": "signing",
+                     *       "value": "ope_ps_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I",
+                     *       "issuedAt": "2026-09-20T12:00:00Z",
+                     *       "previousExpiresAt": "2026-09-20T13:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     upsertCatalogSnapshot: {

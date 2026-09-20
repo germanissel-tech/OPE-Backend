@@ -104,7 +104,8 @@ adentro:
 | `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo), `bootstrap()`      | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`      |
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
 
-**Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
+**Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `operator`
+(quién opera: `Operator`, `OperatorId`, alcance; sólo dominio), `merchant`,
 `ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
 `outcomes`, `configuration` (los tres niveles y su resolución; nadie lo importa: cada consumidor
 define su puerto de lectura y la composición enlaza), `admin` (operadores, registro de
@@ -129,9 +130,13 @@ no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConf
 `ConfigError` (variable + problema) lo que no puede arrancar el servidor; `bootstrap` se niega
 a arrancar si el contrato declara una operación que ningún módulo sirve. Las pruebas usan
 `startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable).
-Merchants por `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No
-hay servidor mock ni modo (ADR-018): el composition root no decide sobre configuración
-(`shape` regla 5).
+Los merchants viven detrás del puerto `MerchantStore` (ADR-031; en memoria hasta la feature de
+persistencia): `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE` es una **semilla** que
+`bootstrap` importa por `ImportMerchantsUseCase` como el operador `system` sólo si el store
+arranca vacío (con merchants ya registrados, no pisa nada); sin semilla ni store poblado, nadie
+autentica. Nada de lo que un operador hace a un merchant (crear, rotar, apagar, dar de baja)
+requiere reiniciar: se lee del store en la siguiente request. No hay servidor mock ni modo
+(ADR-018): el composition root no decide sobre configuración (`shape` regla 5).
 
 ### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
 
@@ -353,8 +358,35 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `Order.status()`) y `correlation` (`PENDING_CORRELATION | ATTRIBUTED`;
   `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde (`instantOf`, `linesOf`, `idempotent`)
   vive en `http/boundary.ts`, no en `controllers/` (un archivo allí es una operación).
-- **Firma de plataforma (ADR-029)**: `OPE_MERCHANTS[i].platformSecrets` (uno o dos, ≠ claves;
-  `Merchant.requiresSignature()`). Con secreto, toda operación con `platformKey` (catálogo,
+- **Merchants operados (ADR-031, feature 017)**: `Merchant` (dominio) lleva `status`
+  (`active | off | deactivated`) y `credentials: Credential[]` (`kind` `ingest | platform |
+signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma conserva el
+  secreto). Las reglas viven en el agregado: `owns(fingerprint, now)`, `ownsPlatformKey`,
+  `signingSecrets(now)`, `requiresSignature(now)`, `rotated(credential, grace, now)` (la anterior
+  sigue valiendo durante la gracia, acotada por un máximo), `switched(on)`, `deactivated()`
+  (irreversible; `409 merchant-deactivated`), `Merchant.judgeOrigins`. Los valores de las
+  credenciales los acuña el puerto `CredentialMinter` (`ope_ik_ | ope_pk_ | ope_ps_` + base64url)
+  y viajan **una sola vez** en la respuesta que los emite; el store guarda huellas
+  (`MerchantDirectory.byFingerprint`). Kill switch (01 §14.2): `switched(false)` ⇒ la decisión
+  responde `NO_OP` `merchant-off` **antes** de asignar (`MerchantPolicies.enabled`, leído del
+  store por `switchAwarePolicyDirectory`); ingesta, outcomes y catálogo siguen. Operadores:
+  `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE` (`operatorId`, huellas de sus
+  tokens, `scope: "*" | [merchantId]`); `adminToken` es bearer (`Authorization: Bearer
+ope_at_…`), `DefaultAdminTokenResolver` lo resuelve por huella (`401 operator-unknown`) y
+  entrega `OperatorPrincipal` (`operatorOf(req)`); un merchant fuera del alcance responde `403
+merchant-out-of-scope` con el mismo cuerpo que uno inexistente sólo cuando el operador no lo
+  alcanza (`DefaultScopedMerchantService.find`). Toda operación `admin` se envuelve en
+  `AuditedUseCase` (`composition/modules/admin.ts`): el registro de administración
+  (`AdminLog`, `AdminEntry`: operador, operación, merchant, resultado `accepted | rejected |
+failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
+/v1/admin/merchants/{merchantId}/log` lo leen paginado (`Page`/`PageQuery` del kernel de
+  aplicación, `pageOf` en `gateways/shared-kernel/`, `pageQueryOf`/`pageDto` en `boundary.ts`).
+  `node scripts/mint-admin-token.mjs` acuña un token y su huella; `config/dev-operators.json`
+  lleva el operador de desarrollo. `merchantId` de la ruta se lee con `merchantIdOf(req)`
+  (`admin-boundary.ts`), la única ruta donde figura (constitución V).
+- **Firma de plataforma (ADR-029)**: los secretos de firma son credenciales `signing` del merchant
+  (uno o dos vigentes, ≠ claves; en la semilla, `OPE_MERCHANTS[i].platformSecrets`;
+  `Merchant.requiresSignature(now)`). Con secreto, toda operación con `platformKey` (catálogo,
   órdenes, devoluciones) exige `X-OPE-Timestamp` y `X-OPE-Signature` (`v1=` + hex HMAC-SHA256 de
   `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
   cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
@@ -373,7 +405,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   experimento **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
   la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
-platformKey: [] }]`. El security handler resuelve el merchant antes de validar el body (401 /
+platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{
+adminToken: [] }]`. El security handler resuelve el merchant antes de validar el body (401 /
   403 `origin-not-allowed`) y entrega las capacidades de su consumidor
   (`http/security/capabilities.ts`, réplica del mapa); la infraestructura compara
   `x-required-capabilities` y responde `403 capability-missing` si falta alguna. Cada esquema

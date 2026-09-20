@@ -1,6 +1,6 @@
 // The admin security handler asks who presented the bearer token (ADR-023: authentication is a
 // service, not a use case). Unknown, missing or malformed → OperatorUnknown, before the body.
-import { OperatorUnknown, type Operator } from "../../../domain/admin/index.js";
+import { OperatorUnknown, type Operator } from "../../../domain/operator/index.js";
 import { fail, ok, type Result } from "../../../domain/shared-kernel/index.js";
 import type { OperatorDirectory } from "../ports/operator-directory.js";
 import type { TokenFingerprinter } from "../ports/token-fingerprinter.js";

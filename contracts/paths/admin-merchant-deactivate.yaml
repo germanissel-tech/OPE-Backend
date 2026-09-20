@@ -1,0 +1,47 @@
+post:
+  operationId: deactivateMerchant
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:write
+  summary: Deactivate a merchant for good
+  description: |
+    Terminal (ADR-031): from the next request no credential of the merchant resolves — the
+    edge answers `401` as to an unknown key — and it cannot be reactivated nor recreated with
+    the same identifier. Every record of the merchant (decisions, exposures, orders, its
+    configuration versions, its experiments) stays and remains readable by administration.
+    There is no delete. Repeating it changes nothing (`200` again).
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  responses:
+    "200":
+      description: The merchant, deactivated.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Merchant.yaml
+          example:
+            merchantId: mrc_7f3k5d2q4m6x
+            status: deactivated
+            origins: ["https://tienda.example"]
+            createdAt: "2026-09-20T12:00:00Z"
+            credentials:
+              - kind: ingest
+                issuedAt: "2026-09-20T12:00:00Z"
+              - kind: platform
+                issuedAt: "2026-09-20T12:00:00Z"
+              - kind: signing
+                issuedAt: "2026-09-20T12:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

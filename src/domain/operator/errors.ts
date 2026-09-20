@@ -1,7 +1,7 @@
-// Business errors of the admin module (ADR-023, ADR-031): operators and their scope.
+// Business errors of the operator module (ADR-023, ADR-031): operators and their scope.
 import { DomainError } from "../shared-kernel/index.js";
 
-const MODULE = "admin" as const;
+const MODULE = "operator" as const;
 
 /** The bearer token is missing or belongs to no operator (fail-closed, before the body). */
 export class OperatorUnknown extends DomainError {
@@ -42,4 +42,5 @@ export class InvalidOperatorTokens extends DomainError {
   }
 }
 
-export type AdminError = OperatorUnknown | MerchantOutOfScope | InvalidOperatorScope | InvalidOperatorTokens;
+export type OperatorError =
+  OperatorUnknown | MerchantOutOfScope | InvalidOperatorScope | InvalidOperatorTokens;

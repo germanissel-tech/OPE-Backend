@@ -26,7 +26,7 @@ export const configExperimentPorts = (
 ): Bindings<Pick<ExperimentPorts, "experiments">> => ({
   experiments: () =>
     configExperimentDirectory(
-      merchants.map((m) => ({ merchantId: m.merchant.merchantId, experiments: m.experiments })),
+      merchants.map((m) => ({ merchantId: m.merchantId, experiments: m.experiments })),
     ),
 });
 

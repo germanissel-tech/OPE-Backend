@@ -6,7 +6,7 @@ import {
   EVERY_MERCHANT,
   MerchantOutOfScope,
   Operator,
-} from "../../../../src/domain/admin/index.js";
+} from "../../../../src/domain/operator/index.js";
 import {
   asMerchantId,
   fail,

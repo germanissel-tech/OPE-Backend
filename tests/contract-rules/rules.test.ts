@@ -13,6 +13,7 @@ const rulesetPath = path.resolve("contracts/.spectral.yaml");
 // Fixtures that must pass without errors or warnings.
 const VALID = [
   "valid.yaml",
+  "valid-body-without-invariants.yaml",
   "merchant-id-in-response.yaml",
   "valid-invariants.yaml",
   "valid-capabilities.yaml",

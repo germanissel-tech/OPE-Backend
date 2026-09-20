@@ -1,8 +1,8 @@
 // The merchant a request was authenticated as, whichever security scheme resolved it (the
 // ingest key of the SDK or the platform key of the merchant's platform, ADR-025): what every
 // controller reads and neither scheme owns.
-import type { Operator } from "../../../domain/admin/index.js";
 import type { Merchant } from "../../../domain/merchant/index.js";
+import type { Operator } from "../../../domain/operator/index.js";
 import type { SecurityResults } from "../typed.js";
 
 /** What a merchant security handler leaves for the controllers. */

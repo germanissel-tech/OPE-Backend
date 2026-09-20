@@ -50,8 +50,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -59,7 +59,7 @@ afterAll(async () => {
 
 /** The ports of the test: an order ledger that is down, other merchants; the server is the file's. */
 function start(options: { merchants?: MerchantSpec[]; ordersDown?: boolean } = {}): Promise<void> {
-  app.resetPorts({
+  return app.resetPorts({
     ...(options.ordersDown ? { ports: { orders: unavailableOrderLedger() } } : {}),
     ...(options.merchants === undefined ? {} : { config: { merchants: options.merchants } }),
   });

@@ -4,7 +4,7 @@
 // Operator only exists valid: `of` enforces the rules, `rehydrate` trusts recorded facts.
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
 import { InvalidOperatorScope, InvalidOperatorTokens, MerchantOutOfScope } from "./errors.js";
-import type { OperatorId } from "./ids.js";
+import { SYSTEM_OPERATOR, type OperatorId } from "./ids.js";
 
 /** Every merchant, or the listed ones. */
 export type OperatorScope = "*" | readonly MerchantId[];
@@ -50,6 +50,11 @@ export class Operator implements OperatorRecord {
   /** An operator already recorded: the facts are not re-judged. */
   static rehydrate(record: OperatorRecord): Operator {
     return new Operator(record);
+  }
+
+  /** The platform acting by itself: every merchant in scope, no token to present. */
+  static system(): Operator {
+    return new Operator({ operatorId: SYSTEM_OPERATOR, tokenFingerprints: [], scope: EVERY_MERCHANT });
   }
 
   /** Whether the operator presented this token (by fingerprint). */

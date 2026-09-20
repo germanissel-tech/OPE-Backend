@@ -4,9 +4,9 @@ import { CommercialPolicy, DEFAULT_COMMERCIAL_POLICY } from "../../../src/domain
 import { DecisionPolicy, DEFAULT_DECISION_POLICY } from "../../../src/domain/decision/index.js";
 import { EMPTY_PROFILE, type MerchantProfile } from "../../../src/domain/selection/index.js";
 import { asMerchantId } from "../../../src/domain/shared-kernel/index.js";
-import { configPolicyDirectory } from "../../../src/interface-adapters/gateways/decision/config-policy-directory.js";
+import { configPolicySource } from "../../../src/interface-adapters/gateways/decision/config-policy-directory.js";
 
-describe("configPolicyDirectory", () => {
+describe("configPolicySource", () => {
   const decision = DecisionPolicy.rehydrate({
     version: "a-1",
     rules: DEFAULT_DECISION_POLICY.rules,
@@ -32,23 +32,27 @@ describe("configPolicyDirectory", () => {
     fitData: false,
     authorizedAttributes: ["material"],
   };
-  const directory = configPolicyDirectory([
+  const directory = configPolicySource([
     { merchantId: asMerchantId("m_a"), decision, commercial, profile },
     { merchantId: asMerchantId("m_b"), commercial },
     { merchantId: asMerchantId("m_c") },
   ]);
 
   it("answers what the merchant declared", async () => {
-    expect(await directory.policiesFor(asMerchantId("m_a"))).toEqual({ decision, commercial, profile });
+    expect(await directory.policySetFor(asMerchantId("m_a"))).toEqual({
+      decision,
+      commercial,
+      profile,
+    });
   });
 
   it("completes what it did not declare with the defaults", async () => {
-    expect(await directory.policiesFor(asMerchantId("m_b"))).toEqual({
+    expect(await directory.policySetFor(asMerchantId("m_b"))).toEqual({
       decision: DEFAULT_DECISION_POLICY,
       commercial,
       profile: EMPTY_PROFILE,
     });
-    expect(await directory.policiesFor(asMerchantId("m_c"))).toEqual({
+    expect(await directory.policySetFor(asMerchantId("m_c"))).toEqual({
       decision: DEFAULT_DECISION_POLICY,
       commercial: DEFAULT_COMMERCIAL_POLICY,
       profile: EMPTY_PROFILE,
@@ -56,6 +60,6 @@ describe("configPolicyDirectory", () => {
   });
 
   it("an unknown merchant gets the defaults too", async () => {
-    expect((await directory.policiesFor(asMerchantId("m_zzz"))).commercial).toBe(DEFAULT_COMMERCIAL_POLICY);
+    expect((await directory.policySetFor(asMerchantId("m_zzz"))).commercial).toBe(DEFAULT_COMMERCIAL_POLICY);
   });
 });

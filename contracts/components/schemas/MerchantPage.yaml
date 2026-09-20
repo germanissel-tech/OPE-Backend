@@ -1,0 +1,14 @@
+type: object
+description: A page of merchants, oldest first, within the scope of the operator (ADR-020).
+additionalProperties: false
+required: [items]
+properties:
+  items:
+    type: array
+    description: Merchants of this page.
+    items:
+      $ref: ./Merchant.yaml
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

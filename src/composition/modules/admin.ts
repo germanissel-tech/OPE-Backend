@@ -4,6 +4,7 @@
 import {
   DefaultAdminTokenResolver,
   ListAdminLogUseCase,
+  ListMerchantAdminLogUseCase,
   type AdminLog,
   type AnchorDiagnosticsStore,
   type OperatorDirectory,
@@ -15,12 +16,13 @@ import { memoryAdminLog } from "../../interface-adapters/gateways/admin/memory-a
 import { memoryAnchorDiagnosticsStore } from "../../interface-adapters/gateways/admin/memory-anchor-diagnostics-store.js";
 import { nodeTokenFingerprinter } from "../../interface-adapters/gateways/admin/node-token-fingerprinter.js";
 import { makeListAdminLog } from "../../interface-adapters/http/controllers/admin/list-admin-log.js";
+import { makeListMerchantAdminLog } from "../../interface-adapters/http/controllers/admin/list-merchant-admin-log.js";
 import {
   ADMIN_TOKEN_HEADER,
   ADMIN_TOKEN_SCHEME,
   makeAdminTokenSecurity,
 } from "../../interface-adapters/http/security/admin-token.js";
-import type { Operator } from "../../domain/admin/index.js";
+import type { Operator } from "../../domain/operator/index.js";
 import type { Bindings, Module } from "../wiring.js";
 
 export interface AdminPorts {
@@ -66,6 +68,14 @@ export const adminModule: Module<AdminPorts> = ({ ports }) => {
         consumer: "server",
       },
     },
-    handlers: { listAdminLog: makeListAdminLog(listAdminLog) },
+    handlers: {
+      listAdminLog: makeListAdminLog(listAdminLog),
+      listMerchantAdminLog: makeListMerchantAdminLog(
+        new LoggedUseCase("listMerchantAdminLog", new ListMerchantAdminLogUseCase({ log: adminLog }), {
+          clock,
+          logger,
+        }),
+      ),
+    },
   };
 };

@@ -10,8 +10,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp();
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();

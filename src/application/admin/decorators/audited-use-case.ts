@@ -3,7 +3,8 @@
 // merchant and what the action produced. A cross-cutting concern, like LoggedUseCase: applied
 // in the composition, never inside a use case.
 import { DomainError, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import type { AdminOutcome, AdminResult, Operator } from "../../../domain/admin/index.js";
+import type { AdminOutcome, AdminResult } from "../../../domain/admin/index.js";
+import type { Operator } from "../../../domain/operator/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { AdminLog } from "../ports/admin-log.js";
 
@@ -24,6 +25,8 @@ export interface AuditedUseCaseReaders<Request, Response> {
   result?: (response: Response) => AdminResult | undefined;
   /** The reason the operator declared, from the request. */
   reason?: (request: Request) => string | undefined;
+  /** The merchant the action produced, when the request could not name one (a creation). */
+  merchantId?: (response: Response) => MerchantId | undefined;
 }
 
 const OUT_OF_SCOPE = "merchant-out-of-scope";
@@ -68,7 +71,7 @@ export class AuditedUseCase<Request extends AdminRequest, Response> implements U
       at: this.#deps.clock.now(),
       operatorId: request.actor.operatorId,
       operation: this.#operation,
-      merchantId: request.merchantId,
+      merchantId: request.merchantId ?? this.#readers.merchantId?.(response),
       outcome,
       ...(error === undefined ? {} : { code: error.code }),
       ...(result === undefined ? {} : { result }),

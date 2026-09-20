@@ -1,0 +1,15 @@
+description: |
+  Valid request rejected on semantics: the `x-invariants` of a rotation (ADR-007).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:rotation-grace-too-long
+      title: The rotation grace exceeds the platform maximum
+      status: 422
+      detail: The rotation grace exceeds the platform maximum.
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/ingest-keys
+      errors:
+        - pointer: /graceSeconds
+          message: The rotation grace exceeds the platform maximum.

@@ -49,10 +49,11 @@ describe("readConfig", () => {
   it("merchants come inline from OPE_MERCHANTS or from OPE_MERCHANTS_FILE, inline first", () => {
     const inline = readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants;
     expect(inline).toHaveLength(1);
-    expect(inline[0]?.merchant).toMatchObject({
+    expect(inline[0]?.merchantId).toBe("m_a");
+    expect(inline[0]?.seed).toMatchObject({
       merchantId: "m_a",
       ingestKeys: ["k1"],
-      origins: [{ value: "https://a.example" }],
+      origins: ["https://a.example"],
       platformKeys: [],
       platformSecrets: [],
     });
@@ -502,15 +503,15 @@ describe("readConfig", () => {
       "merchants[0].ingestKeys must be an array of strings.",
     ],
     [
-      '[{"merchantId":"m","ingestKeys":[],"origins":["o"]}]',
+      '[{"merchantId":"m","ingestKeys":[],"origins":["https://o.example"]}]',
       "merchants[0].ingestKeys is invalid (A merchant needs one or two non-empty ingest keys.)",
     ],
     [
-      '[{"merchantId":"m","ingestKeys":["a","b","c"],"origins":["o"]}]',
+      '[{"merchantId":"m","ingestKeys":["a","b","c"],"origins":["https://o.example"]}]',
       "merchants[0].ingestKeys is invalid (A merchant needs one or two non-empty ingest keys.)",
     ],
     [
-      '[{"merchantId":"m","ingestKeys":["a",""],"origins":["o"]}]',
+      '[{"merchantId":"m","ingestKeys":["a",""],"origins":["https://o.example"]}]',
       "merchants[0].ingestKeys[1] is invalid (A merchant needs one or two non-empty ingest keys.)",
     ],
     [
@@ -526,14 +527,12 @@ describe("readConfig", () => {
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
   });
 
-  it("platformSecrets (ADR-029): optional, one or two, built into the merchant; invalid ones name the field", () => {
+  it("platformSecrets (ADR-029): optional, one or two, kept in the seed; invalid ones name the field", () => {
     const read = (over: Record<string, unknown>) =>
       readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, platformKeys: ["p1"], ...over }]) }, noFile)
-        .merchants[0]?.merchant;
+        .merchants[0]?.seed;
     expect(read({})?.platformSecrets).toEqual([]);
-    expect(read({})?.requiresSignature()).toBe(false);
     expect(read({ platformSecrets: ["s1", "s2"] })?.platformSecrets).toEqual(["s1", "s2"]);
-    expect(read({ platformSecrets: ["s1"] })?.requiresSignature()).toBe(true);
     expect(() => read({ platformSecrets: "s1" })).toThrow(
       "merchants[0].platformSecrets must be an array of strings",
     );

@@ -4,18 +4,18 @@
 // ports before each test (015 F-055): the contract is parsed and the routes compiled once.
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import {
   parseCommercialPolicy,
   parseEvidenceProfile,
 } from "../../src/composition/commercial-policy-config.js";
 import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
 import { localProfile } from "../../src/composition/profiles/local.js";
-import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/admin/index.js";
 import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
-import { Merchant } from "../../src/domain/merchant/index.js";
+import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
+import type { MerchantSeed } from "../../src/application/merchant/index.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
 import type { Ports } from "../../src/composition/ports.js";
@@ -48,18 +48,18 @@ const PERCENT = 100;
 
 /** Builds the entities of a spec the way config.ts does; a spec that breaks a rule is a test bug. */
 function configured(spec: MerchantSpec): MerchantConfig {
-  const merchant = Merchant.of({
-    merchantId: asMerchantId(spec.merchantId),
+  const merchantId = asMerchantId(spec.merchantId);
+  const seed: MerchantSeed = {
+    merchantId: spec.merchantId,
     ingestKeys: spec.ingestKeys,
     origins: spec.origins,
     platformKeys: spec.platformKeys ?? [],
     platformSecrets: spec.platformSecrets ?? [],
-  });
-  if (!merchant.ok) throw new Error(`test merchant ${spec.merchantId}: ${merchant.error.message}`);
+  };
   const experiments = spec.experiments.map((e) => {
     const experiment = Experiment.of({
       experimentId: asExperimentId(e.experimentId),
-      merchantId: merchant.value.merchantId,
+      merchantId,
       treatmentShare: e.treatmentPercent / PERCENT,
       seed: e.seed,
       status: e.status,
@@ -70,7 +70,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
   });
   const set = Experiments.of(experiments);
   if (!set.ok) throw new Error(`test experiments of ${spec.merchantId}: ${set.error.message}`);
-  const config: MerchantConfig = { merchant: merchant.value, experiments: set.value };
+  const config: MerchantConfig = { merchantId, seed, experiments: set.value };
   if (spec.decisionPolicy !== undefined) {
     config.decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
   }
@@ -137,7 +137,7 @@ export interface TestConfig extends Omit<Partial<AppConfig>, "merchants"> {
   merchants?: MerchantSpec[];
 }
 
-const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig => ({
+export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig => ({
   port: 0,
   host: "127.0.0.1",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
@@ -176,7 +176,7 @@ export interface SharedApp {
   /** The ports of the current test; they delegate to the ones the last reset built. */
   ports: Ports;
   /** Fresh in-memory ports for the next test — with other overrides or merchants when given — while the server stays. */
-  resetPorts(over?: PortsReset): void;
+  resetPorts(over?: PortsReset): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -221,8 +221,9 @@ export async function sharedTestApp(
   return {
     app: app.app,
     ports,
-    resetPorts: (over) => {
+    resetPorts: async (over) => {
       current = build(over);
+      await importSeed(testConfig(over?.config ?? config), current);
     },
     close: app.close,
   };

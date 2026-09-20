@@ -2,7 +2,7 @@
 // `OPE_ADMIN_OPERATORS_FILE`. Only the shape is parsed here; the rules are the Operator's, and a
 // rejected one stops the start naming the field. The tokens never appear: only their fingerprints.
 import path from "node:path";
-import { asOperatorId, EVERY_MERCHANT, Operator, type OperatorScope } from "../domain/admin/index.js";
+import { asOperatorId, EVERY_MERCHANT, Operator, type OperatorScope } from "../domain/operator/index.js";
 import { asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
 import { ConfigError, type OperatorField } from "./config-error.js";
 

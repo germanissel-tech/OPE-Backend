@@ -16,6 +16,12 @@ export type {
   AuditedUseCaseReaders,
 } from "./decorators/audited-use-case.js";
 export { ListAdminLogUseCase } from "./use-cases/list-admin-log.use-case.js";
+export { ListMerchantAdminLogUseCase } from "./use-cases/list-merchant-admin-log.use-case.js";
+export type {
+  ListMerchantAdminLogDependencies,
+  ListMerchantAdminLogRequest,
+  ListMerchantAdminLogResponse,
+} from "./use-cases/list-merchant-admin-log.use-case.js";
 export type {
   ListAdminLogDependencies,
   ListAdminLogRequest,

@@ -1,6 +1,6 @@
 // Feature 017 — US1 (FR-007): an operator holds tokens by fingerprint and acts within a scope.
 import { describe, expect, it } from "vitest";
-import { EVERY_MERCHANT, Operator, asOperatorId } from "../../../../src/domain/admin/index.js";
+import { EVERY_MERCHANT, Operator, asOperatorId } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
 const A = asMerchantId("mrc_a");
@@ -49,6 +49,13 @@ describe("Operator rules", () => {
     const op = valid({ tokenFingerprints: ["f1", "f2"] });
     expect(op.holds("f2")).toBe(true);
     expect(op.holds("token")).toBe(false);
+  });
+
+  it("the system operator reaches every merchant and holds no token: nobody authenticates as it", () => {
+    const system = Operator.system();
+    expect(system.operatorId).toBe("system");
+    expect(system.scopeFor(A).ok).toBe(true);
+    expect(system.tokenFingerprints).toEqual([]);
   });
 
   it("scopeFor: * allows every merchant; a list allows only its members; the error never names the merchant", () => {

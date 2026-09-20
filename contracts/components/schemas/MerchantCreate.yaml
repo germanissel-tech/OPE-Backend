@@ -1,0 +1,25 @@
+type: object
+description: What an operator gives to create a merchant; OPE mints everything else (ADR-031).
+additionalProperties: false
+required: [origins, signature]
+properties:
+  origins:
+    type: array
+    description: "Registered origins of the store: `scheme://host[:port]`, no path. An origin belongs to one merchant."
+    minItems: 1
+    maxItems: 20
+    items:
+      type: string
+      maxLength: 255
+  signature:
+    type: boolean
+    description: Whether the platform will sign its notifications (ADR-029); mints a signing secret too.
+x-invariants:
+  - type: invalid-origin
+    status: 422
+    rule: every origin is scheme://host[:port] without a path
+    description: The pair credential + origin protects the tag (ADR-014); an origin that is not one would protect nothing.
+  - type: origin-already-registered
+    status: 422
+    rule: no origin belongs to another merchant (deactivated ones included)
+    description: An origin speaks for one merchant only; the credential + origin pair is the protection of the tag (ADR-014).

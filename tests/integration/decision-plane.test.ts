@@ -41,8 +41,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [treatment] });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -63,7 +63,7 @@ const checkout = (s: number) => ev(s, { type: "checkout_advanced", step: "checko
 
 /** The merchant of the test and its catalogue; the server is the file's. */
 async function start(spec: MerchantSpec = treatment): Promise<void> {
-  app.resetPorts({ config: { merchants: [spec] } });
+  await app.resetPorts({ config: { merchants: [spec] } });
   const res = await putCatalog(
     app.app,
     { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },

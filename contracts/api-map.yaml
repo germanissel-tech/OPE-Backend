@@ -189,7 +189,7 @@ operations:
     tag: admin
     capabilities: [merchants:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: createMerchant
     method: post
@@ -198,7 +198,7 @@ operations:
     tag: admin
     capabilities: [merchants:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: rotateIngestKey
     method: post
@@ -207,7 +207,7 @@ operations:
     tag: admin
     capabilities: [credentials:rotate]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/014-protocolo-del-sdk.md
   - operationId: rotatePlatformKey
     method: post
@@ -216,7 +216,7 @@ operations:
     tag: admin
     capabilities: [credentials:rotate]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
   - operationId: createExperiment
     method: post
@@ -252,7 +252,7 @@ operations:
     tag: admin
     capabilities: [merchants:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: getMerchant
     method: get
@@ -261,7 +261,7 @@ operations:
     tag: admin
     capabilities: [merchants:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: deactivateMerchant
     method: post
@@ -270,7 +270,7 @@ operations:
     tag: admin
     capabilities: [merchants:write]
     feature: "017"
-    status: planned
+    status: built
     source: specs/017-merchants-y-configuracion/spec.md
   - operationId: rotatePlatformSecret
     method: post
@@ -279,7 +279,7 @@ operations:
     tag: admin
     capabilities: [credentials:rotate]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/029-firma-de-plataforma.md
   - operationId: getMerchantConfiguration
     method: get
@@ -351,7 +351,7 @@ operations:
     tag: admin
     capabilities: [log:read]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
   - operationId: listAnchorDiagnostics
     method: get

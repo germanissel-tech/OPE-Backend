@@ -8,22 +8,15 @@ import {
   type MessageAuthenticator,
   type SignedRequest,
 } from "../../../../src/application/merchant/index.js";
-import { Merchant } from "../../../../src/domain/merchant/index.js";
-import { asMerchantId, CLOCK_SKEW_TOLERANCE_MS } from "../../../../src/domain/shared-kernel/index.js";
+import { CLOCK_SKEW_TOLERANCE_MS } from "../../../../src/domain/shared-kernel/index.js";
 import { nodeMessageAuthenticator } from "../../../../src/interface-adapters/gateways/merchant/node-message-authenticator.js";
+import { testMerchant } from "../../../helpers/merchants.js";
+import type { Merchant } from "../../../../src/domain/merchant/index.js";
 
 const NOW = new Date("2026-09-19T12:00:00.000Z");
 const SECONDS = String(Math.floor(NOW.getTime() / 1000));
 const merchantOf = (platformSecrets: string[]): Merchant => {
-  const built = Merchant.of({
-    merchantId: asMerchantId("m_a"),
-    ingestKeys: ["k"],
-    origins: ["https://a.example"],
-    platformKeys: ["p"],
-    platformSecrets,
-  });
-  if (!built.ok) throw new Error(built.error.message);
-  return built.value;
+  return testMerchant({ ingestKeys: ["k"], platformKeys: ["p"], platformSecrets });
 };
 
 /** A deterministic "HMAC": the secret, a bar, and the message as text; 64 hex chars are not needed to compare. */

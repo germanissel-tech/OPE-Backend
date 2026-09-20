@@ -14,12 +14,14 @@ import {
   type VisitorStateStore,
 } from "../../application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../application/ledger/index.js";
-import { configPolicyDirectory } from "../../interface-adapters/gateways/decision/config-policy-directory.js";
+import { configPolicySource } from "../../interface-adapters/gateways/decision/config-policy-directory.js";
 import { memorySessionStateStore } from "../../interface-adapters/gateways/decision/memory-session-state-store.js";
 import { memoryVisitorStateStore } from "../../interface-adapters/gateways/decision/memory-visitor-state-store.js";
+import { switchAwarePolicyDirectory } from "../../interface-adapters/gateways/decision/switch-aware-policy-directory.js";
 import { productTruthOf, type CatalogPorts } from "./catalog.js";
 import { assignmentServiceOf, type ExperimentPorts } from "./experiment.js";
 import type { DecisionPlane } from "../../application/ingestion/index.js";
+import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock } from "../../application/shared-kernel/index.js";
 import type { MerchantConfig } from "../config.js";
 import type { Bindings, Module } from "../wiring.js";
@@ -33,17 +35,22 @@ export interface DecisionPorts
   visitors: VisitorStateStore;
 }
 
+/** The policies of the configuration, with the kill switch of each merchant read from the store. */
 export const configDecisionPorts = (
   merchants: readonly MerchantConfig[],
+  store: () => Pick<MerchantStore, "get">,
 ): Bindings<Pick<DecisionPorts, "policies">> => ({
   policies: () =>
-    configPolicyDirectory(
-      merchants.map((m) => ({
-        merchantId: m.merchant.merchantId,
-        ...(m.decisionPolicy === undefined ? {} : { decision: m.decisionPolicy }),
-        ...(m.commercialPolicy === undefined ? {} : { commercial: m.commercialPolicy }),
-        ...(m.evidenceProfile === undefined ? {} : { profile: m.evidenceProfile }),
-      })),
+    switchAwarePolicyDirectory(
+      configPolicySource(
+        merchants.map((m) => ({
+          merchantId: m.merchantId,
+          ...(m.decisionPolicy === undefined ? {} : { decision: m.decisionPolicy }),
+          ...(m.commercialPolicy === undefined ? {} : { commercial: m.commercialPolicy }),
+          ...(m.evidenceProfile === undefined ? {} : { profile: m.evidenceProfile }),
+        })),
+      ),
+      store(),
     ),
 });
 

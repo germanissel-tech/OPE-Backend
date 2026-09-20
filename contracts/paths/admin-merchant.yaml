@@ -1,0 +1,42 @@
+get:
+  operationId: getMerchant
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:read
+  summary: A merchant
+  description: |
+    The merchant, within the operator's scope: status, origins and credentials by kind and
+    instant, never by value. Outside the scope, `403` without saying whether it exists.
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  responses:
+    "200":
+      description: The merchant.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Merchant.yaml
+          example:
+            merchantId: mrc_7f3k5d2q4m6x
+            status: active
+            origins: ["https://tienda.example"]
+            createdAt: "2026-09-20T12:00:00Z"
+            credentials:
+              - kind: ingest
+                issuedAt: "2026-09-20T12:00:00Z"
+              - kind: platform
+                issuedAt: "2026-09-20T12:00:00Z"
+              - kind: signing
+                issuedAt: "2026-09-20T12:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml

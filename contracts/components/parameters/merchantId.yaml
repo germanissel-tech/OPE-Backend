@@ -1,0 +1,6 @@
+name: merchantId
+in: path
+required: true
+description: The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request).
+schema:
+  $ref: ../schemas/MerchantId.yaml

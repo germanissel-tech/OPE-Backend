@@ -1,7 +1,7 @@
 // Feature 017 — FR-007: the admin security handler resolves the operator by token fingerprint.
 import { describe, expect, it } from "vitest";
 import { DefaultAdminTokenResolver } from "../../../../src/application/admin/index.js";
-import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/admin/index.js";
+import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { configOperatorDirectory } from "../../../../src/interface-adapters/gateways/admin/config-operator-directory.js";
 
 /** Like Node crypto: only a non-empty string can be digested. */

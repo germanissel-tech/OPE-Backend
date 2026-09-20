@@ -7,4 +7,4 @@ content:
       type: urn:ope:problem:merchant-not-found
       title: The merchant does not exist
       status: 404
-      instance: /v1/admin/merchants/mrc_7f3k9d2q1m4x
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x

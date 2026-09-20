@@ -23,9 +23,10 @@ const MOD = `${SRC}(domain|application)/`;
 const CONTEXT_MAP = {
   "shared-kernel": [],
   system: ["shared-kernel"],
-  merchant: ["shared-kernel"],
+  operator: ["shared-kernel"],
+  merchant: ["shared-kernel", "operator"],
   ledger: ["shared-kernel"],
-  experiment: ["shared-kernel", "ledger"],
+  experiment: ["shared-kernel", "ledger", "operator"],
   ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
   catalog: ["shared-kernel", "ledger"],
   barrier: ["shared-kernel", "ingestion"],
@@ -47,6 +48,7 @@ const CONTEXT_MAP = {
   // the admin log and anchor diagnostics.
   configuration: [
     "shared-kernel",
+    "operator",
     "merchant",
     "experiment",
     "decision",
@@ -55,7 +57,7 @@ const CONTEXT_MAP = {
     "catalog",
     "ingestion",
   ],
-  admin: ["shared-kernel", "merchant", "configuration", "experiment"],
+  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
 };
 
 /**

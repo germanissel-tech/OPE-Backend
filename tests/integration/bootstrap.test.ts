@@ -5,11 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
+import { importSeed, type App } from "../../src/composition/bootstrap.js";
+import { readConfig } from "../../src/composition/config.js";
 import { MODULES } from "../../src/composition/modules/index.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
-import { fixedClock, startTestApp } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
+import { fixedClock, startTestApp, testConfig } from "../helpers/test-app.js";
 import type { Ports } from "../../src/composition/ports.js";
 import type { Module } from "../../src/composition/wiring.js";
 import type { Handlers } from "../../src/interface-adapters/http/typed.js";
@@ -92,5 +94,37 @@ describe("bootstrap", () => {
     });
     app = await startTestApp({ modules: [...MODULES, orphans] }, { contractPath });
     expect((await app.app.inject({ method: "GET", url: "/v1/orphans" })).statusCode).toBe(200);
+  });
+});
+
+describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => {
+  it("an empty store imports OPE_MERCHANTS on behalf of the system operator; a populated one keeps its merchants", async () => {
+    app = await startTestApp({ ports: { clock: fixedClock("2026-09-20T12:00:00.000Z") } });
+    const merchant = await app.ports.merchantStore.get(asMerchantId("m_a"));
+    expect(merchant?.status).toBe("active");
+    expect(merchant?.createdAt).toEqual(new Date("2026-09-20T12:00:00.000Z"));
+    const log = await app.ports.adminLog.list({ limit: 10 });
+    expect(log.items.map((e) => [e.operation, e.operatorId, e.outcome])).toEqual([
+      ["importMerchants", "system", "accepted"],
+    ]);
+    await importSeed(testConfig(), app.ports);
+    expect((await app.ports.adminLog.list({ limit: 10 })).items).toHaveLength(2);
+    expect((await app.ports.merchantStore.list({ limit: 10 })).items.map((m) => m.merchantId)).toEqual([
+      "m_a",
+      "m_b",
+    ]);
+  });
+
+  it("a seed the merchant rules reject stops the start naming the field (the configuration judges it first)", () => {
+    expect(() =>
+      readConfig(
+        {
+          OPE_MERCHANTS: JSON.stringify([
+            { merchantId: "m_x", ingestKeys: ["k", "k"], origins: ["https://x.example"] },
+          ]),
+        },
+        () => "",
+      ),
+    ).toThrow("merchants[0].ingestKeys[1] is invalid");
   });
 });

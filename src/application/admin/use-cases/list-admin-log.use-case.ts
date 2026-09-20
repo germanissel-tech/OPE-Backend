@@ -1,7 +1,8 @@
 // listAdminLog (ADR-031): the admin log, newest first, for an operator. Reading the log is not
 // audited (it would fill the log with its own readings); the scope does not apply: the log is
 // of the platform, and every entry names its merchant.
-import type { AdminEntry, Operator } from "../../../domain/admin/index.js";
+import type { AdminEntry } from "../../../domain/admin/index.js";
+import type { Operator } from "../../../domain/operator/index.js";
 import type { Page, PageQuery, UseCase } from "../../shared-kernel/index.js";
 import type { AdminLog } from "../ports/admin-log.js";
 

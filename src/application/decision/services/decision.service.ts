@@ -41,6 +41,7 @@ export interface DecisionServiceDependencies {
 }
 
 const PAGE_CONTEXT_INCOMPLETE: NoOpReason = "page-context-incomplete";
+const MERCHANT_OFF: NoOpReason = "merchant-off";
 
 /** The product truth of the focus as the authorities need it: facts for the rules, a summary for the barrier verdict, evidence for the gate, a record for the ledger. */
 interface Evidence {
@@ -80,12 +81,15 @@ export class DecisionService implements DecisionPlane {
     const whose = { merchantId, sessionId, visitorId };
     const facts: DecisionFactsInput = { ...whose, decidedAt: now };
 
+    // The kill switch comes before the assignment: off, nothing is assigned, nothing is consumed.
+    const merchant = await policies.policiesFor(merchantId);
+    if (!merchant.enabled) return recorder.record(facts, { kind: "no-op", reason: MERCHANT_OFF });
+
     const assigned = await assignment.assign(merchantId, visitorId);
     if (!assigned.ok) return recorder.unrecorded(facts, "assignment not recorded");
     if (assigned.value)
       facts.experiment = { experimentId: assigned.value.experimentId, arm: assigned.value.arm };
 
-    const merchant = await policies.policiesFor(merchantId);
     const remembered = await memory.recall(whose, now);
     const session = remembered.session.absorb(Signals.of(batch.events), now);
 

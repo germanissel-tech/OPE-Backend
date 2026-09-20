@@ -53,7 +53,7 @@ export const PROBLEM_TYPES = {
   },
   "invalid-seed": { status: HTTP_STATUS.INTERNAL_ERROR, title: "The seed of an experiment is empty" },
   "invalid-origin": {
-    status: HTTP_STATUS.INTERNAL_ERROR,
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "A registered origin is not scheme://host[:port]",
   },
   "invalid-platform-secret": {

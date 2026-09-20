@@ -1,7 +1,7 @@
 // In-memory anchor diagnostics (01 §3.1.1, ADR-031): the last report per merchant, anchor, page
 // type and configuration version, with a counter; bounded per merchant (the oldest goes first).
 import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import { pageOf } from "./memory-admin-log.js";
+import { pageOf } from "../shared-kernel/paging.js";
 import type { AnchorDiagnosticsStore } from "../../../application/admin/index.js";
 import type { AnchorDiagnostic } from "../../../domain/admin/index.js";
 
