@@ -42,6 +42,20 @@ const CONTEXT_MAP = {
     "commercial",
   ],
   outcomes: ["shared-kernel", "ledger"],
+  // Feature 017 (ADR-031): configuration owns the three levels and the resolution; nobody
+  // imports it (consumers define their read port, composition binds). admin owns operators,
+  // the admin log and anchor diagnostics.
+  configuration: [
+    "shared-kernel",
+    "merchant",
+    "experiment",
+    "decision",
+    "commercial",
+    "selection",
+    "catalog",
+    "ingestion",
+  ],
+  admin: ["shared-kernel", "merchant", "configuration", "experiment"],
 };
 
 /**

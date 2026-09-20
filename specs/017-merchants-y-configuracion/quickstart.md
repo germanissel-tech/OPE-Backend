@@ -66,4 +66,5 @@ Un commit por historia; PR a `main` sin merge. `release-check` sigue avisando la
 
 ## Cambios respecto del plan
 
-_(se completa durante la implementación)_
+- 2026-09-20 T001: línea base en `ccaa60c` (main tras la PR #25); `contract:check` y `npm test` en verde.
+- 2026-09-20 T003 (pedido del dueño): `test:scoped` + CI sin `lint`/`arch` repetidos; `tests/hooks/ci.test.ts` actualizado; `resolveBaseRef` compartido en `scripts/lib.mjs` (tres scripts lo duplicaban).

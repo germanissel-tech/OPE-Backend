@@ -106,7 +106,9 @@ adentro:
 
 **Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `merchant`,
 `ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
-`outcomes` (los demás cuando llegue su feature). Dentro de un módulo
+`outcomes`, `configuration` (los tres niveles y su resolución; nadie lo importa: cada consumidor
+define su puerto de lectura y la composición enlaza), `admin` (operadores, registro de
+administración, diagnóstico de anclajes) — los demás cuando llegue su feature. Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
