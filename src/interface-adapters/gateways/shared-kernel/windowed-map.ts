@@ -6,7 +6,7 @@
 // enforced where entries enter (a save); a sweep on load only expires by time.
 import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
-export interface Window {
+export interface BoundedWindow {
   readonly ttlMs: number;
   /** Entries a merchant may hold at once. */
   readonly max: number;
@@ -21,7 +21,7 @@ export interface WindowedByMerchant<K, V> {
 
 /** `touchedAt` reads, from a stored value, the instant (epoch ms) the TTL counts from. */
 export function windowedByMerchant<K, V>(
-  window: Window,
+  window: BoundedWindow,
   touchedAt: (value: V) => number,
 ): WindowedByMerchant<K, V> {
   const byMerchant = new Map<MerchantId, Map<K, V>>();
