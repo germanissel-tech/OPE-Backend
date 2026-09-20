@@ -58,33 +58,33 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 
 ### Comandos
 
-| Comando                                           | Qué hace                                                                                                                                     |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                 |
-| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                           |
-| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                                     |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                     |
-| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                       |
-| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                     |
-| `npm run contract:insomnia`                       | `docs/api/insomnia.json`: colección de Insomnia derivada del bundle (un request por operación, header de credencial, instantes vivos)        |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                              |
-| `npm test`                                        | Vitest: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura                             |
-| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                            |
-| `npm run arch`                                    | dependency-cruiser sobre `src/`: dirección de dependencias entre capas (ADR-006)                                                             |
-| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                        |
-| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                |
-| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                     |
-| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                           |
-| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida                      |
-| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                    |
-| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                            |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                             |
-| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                                                  |
-| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                             |
-| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                   |
-| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo                                  |
-| `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras |
-| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main`; `-- --all` muta todo, informativo                                         |
+| Comando                                           | Qué hace                                                                                                                                                                                                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                                                                                                                                           |
+| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                                                                                                                                                     |
+| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                                                                                                                                                               |
+| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                                                                                                                                               |
+| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                                                                                                                                                 |
+| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                                                                                                                                               |
+| `npm run contract:insomnia`                       | `docs/api/insomnia.json`: colección de Insomnia derivada del bundle (un request por operación, header de credencial, instantes vivos)                                                                                                                                  |
+| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                                                                                                                                                        |
+| `npm test` / `test:tools` / `test:all`            | Vitest, proyecto `fast`: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura / proyecto `tools` (auditoría sobre fixtures, cadena de calidad, documentación) / ambos, como CI                                     |
+| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                                                                                                                                                      |
+| `npm run arch`                                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                                                                                                                                                                              |
+| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                                                                                                                                                  |
+| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                                                                                                                                          |
+| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                               |
+| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                     |
+| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida                                                                                                                                                |
+| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                                                                                                                                              |
+| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                                                                                                                                                      |
+| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                                                                                                                                                       |
+| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                                                                                                                                                                            |
+| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                                                                                                                                                       |
+| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                                                                                                                                             |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo                                                                                                                                                            |
+| `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                           |
+| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental |
 
 Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
@@ -122,12 +122,12 @@ logger es un puerto (`Logger` en `shared-kernel`, pino en `infrastructure/loggin
 pruebas lo reemplazan por `ports.logger`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
 SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
 no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
-`ConfigError` (variable + problema) lo que no puede arrancar el servidor
-y, en modo real, falla si el contrato declara una operación que ningún módulo sirve; las pruebas usan `startTestApp()` de
-`tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable). Merchants por
-`OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No hay servidor
-mock ni modo (ADR-018): el composition root no decide sobre configuración (`shape` regla 5); un
-contrato con una operación que ningún módulo sirve no arranca.
+`ConfigError` (variable + problema) lo que no puede arrancar el servidor; `bootstrap` se niega
+a arrancar si el contrato declara una operación que ningún módulo sirve. Las pruebas usan
+`startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable).
+Merchants por `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE`; sin ninguno, nadie autentica. No
+hay servidor mock ni modo (ADR-018): el composition root no decide sobre configuración
+(`shape` regla 5).
 
 ### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
 
@@ -188,8 +188,12 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   (`merchants[i].experiments[j].treatmentPercent`, `merchants[i].origins[k]`). Los gateways
   reciben entidades, nunca registros crudos. Los errores de configuración son `DomainError` y
   figuran en el catálogo de problemas aunque ningún endpoint los emita.
-- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` es 0–1; el porcentaje
-  0–100 existe sólo en `OPE_MERCHANTS`. El reparto resuelve a buckets enteros (1 %).
+- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` y
+  `CommercialPolicy.{maxIncentiveShare, incentiveLadderShare, marginShare}` son 0–1; el
+  porcentaje entero 0–100 existe sólo en `OPE_MERCHANTS` (`treatmentPercent`,
+  `maxIncentivePercent`, …) y en el DTO (`Incentive.value`, lo que el comprador ve). El reparto
+  resuelve a buckets enteros (1 %) y el incentivo a un porcentaje entero (`Math.round`), una vez
+  en el dominio; `isRate`/`isCount` del `shared-kernel` juzgan los números.
 - **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
   dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
@@ -223,6 +227,17 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   escape, nunca como el carácter).
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
+- **Cómo se trabaja el gate de mutación** (la corrida completa cuesta minutos; no se repite por
+  cada arreglo): el archivo incremental `reports/mutation/stryker-incremental.json` **no se
+  borra** — la segunda corrida re-testea sólo lo que cambió; `--all` escribe en otro archivo y
+  nunca alimenta al gate. Ante un superviviente, en este orden: (1) describir el daño observable
+  del mutante; (2) clasificarlo — real, equivalente, sólo diagnóstico, específico del runner —
+  antes de tocar nada; (3) si es real, la prueba que pasa con el original y falla con el mutante;
+  si es equivalente, reestructurar el código para que el mutante no exista, no una excepción;
+  (4) confirmar con `npm run test:mutation -- --files <archivo>[:l1-l2]` (un minuto), no con la
+  corrida completa. La corrida completa del gate se hace una vez por historia, en segundo plano o
+  directamente en CI, que es el juez. Nunca se cambia producción sólo para satisfacer la
+  herramienta.
 
 ### Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)
 
@@ -232,7 +247,7 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 
 - Sin `any` explícito ni valores `any` (`no-unsafe-*`), sin `!`, promesas siempre manejadas,
   `switch` exhaustivo, imports de tipo con `type`. El borde con una librería que expone `any`
-  se lee como `unknown` y se estrecha (ver `build-server.ts`, `tests/helpers/json.ts`).
+  se lee como `unknown` y se estrecha (ver `infrastructure/http/dispatch.ts`, `tests/helpers/json.ts`).
 - Una excepción va **en la línea**, con motivo: `// eslint-disable-next-line <regla> -- <motivo>`.
   Sin motivo o sin uso, falla. Objetivo permanente: `Lint exceptions: 0`.
 - Scripts JavaScript (`scripts/`, `contracts/rules/functions/`) se verifican con `checkJs`:
@@ -263,6 +278,11 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
+- **Puerto de plataforma (constitución X)**: deuda declarada. El caso base construido es
+  push (la plataforma empuja catálogo, órdenes y devoluciones; ADR-025, ADR-028); el puerto
+  de cuatro operaciones con sus adaptadores genérico y de prueba es la feature "Platform port
+  and adapters" del mapa (`contracts/api-map.yaml`). Todo Constitution Check evalúa los diez
+  principios y cita la versión de la constitución.
 - **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
   `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
   200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
@@ -295,8 +315,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
   decisión registra `inference` y `selection` (candidatos con veredicto del gate, elegido,
   veredicto comercial, `commercialPolicyVersion`); el DTO del SDK sólo lleva `outcome`, `reason`
-  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta la
-  015, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
+  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el
+  catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
   y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
   intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
 - **Outcomes y cadena de evidencia (ADR-028)**: el módulo `outcomes` (`[shared-kernel, ledger]`)
@@ -325,7 +345,7 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
   cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
   antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
-  `build-server.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
+  `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
   los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
   compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
   `MessageAuthenticator` (`node:crypto` en `gateways/merchant/`). Toda operación con

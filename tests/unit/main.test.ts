@@ -1,4 +1,4 @@
-// US1, scenario 5 (ADR-013): main.ts only reads configuration, starts through the composition root
+// Feature 004, US1, scenario 5 (ADR-013): main.ts only reads configuration, starts through the composition root
 // and handles signals. No concrete instance lives there, and no "mode" does either (ADR-018): what
 // runs is what main wires, never a flag the layers below consult.
 import { readdirSync, readFileSync } from "node:fs";

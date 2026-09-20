@@ -474,7 +474,8 @@ export type components = {
          *     allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
          *     The SDK shows it; the merchant's platform redeems it at the checkout and declares what it
          *     applied in the order notification (`Order.incentive`), which OPE crosses with this grant.
-         *     Issuing the coupon and configuring it on the platform side arrive with feature 014.
+         *     Issuing the coupon and configuring it on the platform side arrive with the configuration
+         *     feature of the map ("Configuration, flags, kill switch and administration").
          */
         Incentive: {
             /**
@@ -498,7 +499,7 @@ export type components = {
         /**
          * @description The intervention the decision plane emits: where to render (`anchor`), which curated
          *     message version to fetch from the message catalogue and, when the commercial policy
-         *     allowed one, the incentive to show. Until the catalogue exists (feature 015)
+         *     allowed one, the incentive to show. Until the message catalogue feature of the map exists
          *     `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_<step>_v0`
          *     (the step of the incentive ladder: information, reassurance, evidence, incentive); the
          *     SDK renders nothing it cannot resolve.
@@ -1051,6 +1052,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["CatalogUnprocessable"];
             500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     ingestEvents: {

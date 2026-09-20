@@ -1,4 +1,4 @@
-// US3 (FR-020; ADR-016): structural duplication blocks in src/ and only informs in tests/.
+// Feature 005, US3 (FR-020; ADR-016): structural duplication blocks in src/ and only informs in tests/.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

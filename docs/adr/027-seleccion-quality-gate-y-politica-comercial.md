@@ -33,7 +33,7 @@ dejó escrito que la 012 decidiría si la política comercial se separaba de `de
    `availability` como guardia, `incentive`, `product-attribute:<clave>`). Escasez numérica y
    prueba social no existen como claim (03 §4.5). Un merchant declara qué evidencia provee
    (`evidenceProfile`: política de devoluciones, dato de calce, atributos autorizados), nunca
-   candidatos nuevos: eso llega con el catálogo de mensajes (015).
+   candidatos nuevos: eso llega con la feature del catálogo de mensajes.
 3. **El gate es una función pura y `UNACCEPTABLE` es un tipo de falla.** Cada claim sin
    evidencia de su clase rechaza el candidato entero con un motivo cerrado; sin candidato
    aceptable, `NO_OP no-acceptable-candidate`. Ninguna configuración puede aceptar un claim
@@ -61,5 +61,5 @@ dejó escrito que la 012 decidiría si la política comercial se separaba de `de
 - El piloto puede abrir el incentivo merchant por merchant configurando `marginPercent`; sin
   configurarlo, OPE nunca gasta margen.
 - Los `messageVersionId` placeholder llevan el escalón (`msg_<barrera>_<anclaje>_<escalón>_v0`);
-  la 015 los reemplaza por versiones reales del catálogo sin tocar la selección.
-- El escalón `uncertainty` existe en el vocabulario y no tiene candidatos hasta la 015.
+  la feature del catálogo de mensajes los reemplaza por versiones reales del catálogo sin tocar la selección.
+- El escalón `uncertainty` existe en el vocabulario y no tiene candidatos hasta el catálogo de mensajes.

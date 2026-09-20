@@ -28,6 +28,7 @@ ahí entra al reporte.
 | `proposal`     | `{ before, after }`: código, no prosa                                                                |
 | `coveringTest` | qué prueba lo cubriría: nombre y ubicación (`tests/unit/.../x.test.ts: "..."`)                        |
 | `status`       | `proposed` → `confirmed` \| `refuted`; `refuted` lleva `refutation`                                   |
+| `closure`      | opcional; lo escribe la feature que cierra el hallazgo: `{ status: resolved | absorbed-by | rejected, by: <commit | F-NNN | motivo>, feature: NNN }`; `verify-finding` no lo juzga |
 
 ## Severidad: la decide la fuente, no el revisor
 

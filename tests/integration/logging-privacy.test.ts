@@ -1,10 +1,10 @@
-// US2 (FR-016; 01-arquitectura-mvp.md §10.2): the IP is neither persisted nor logged; neither
+// Feature 004, US2 (FR-016; 01-arquitectura-mvp.md §10.2): the IP is neither persisted nor logged; neither
 // are the ingest key and the request body. The logger stream is captured and inspected.
 import { Writable } from "node:stream";
 import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { pinoLogger } from "../../src/infrastructure/logging/pino-logger.js";
-import { batchOf, postEvents, startTestApp } from "../helpers/test-app.js";
+import { batchOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
 let app: App | undefined;
@@ -27,7 +27,7 @@ function capturedLogger(): { logger: pino.Logger; lines: () => string[] } {
 describe("privacy in logs", () => {
   it("an ingest request leaves no IP, key, headers or body in the log; it does leave method, url, reqId and merchantId", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
     const batch = batchOf(2, 1, { page: { pageType: "product", productId: "SKU-SECRETO" } });
     const res = await postEvents(app.app, batch, { key: "key-a-1", remoteAddress: "203.0.113.9" });
     expect(res.statusCode).toBe(202);
@@ -51,7 +51,7 @@ describe("privacy in logs", () => {
 
   it("a request rejected by the credential does not log the key or the IP either", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
     await postEvents(app.app, batchOf(1), { key: "clave-robada", remoteAddress: "198.51.100.7" });
     const log = lines().join("\n");
     expect(log).not.toContain("clave-robada");
@@ -78,6 +78,19 @@ describe("operational fields in logs", () => {
     const entry = parsed(lines).find((e) => e["msg"] === "the handler threw an exception");
     expect(entry).toMatchObject({ operationId: "getHealth" });
     expect(entry?.["err"]).toBeDefined();
+  });
+
+  it("an error escaping the transport (a hook that throws) is logged with the error, without reaching the response", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app.app.addHook("onRequest", async () => {
+      throw new Error("boom from a hook");
+    });
+    const res = await app.app.inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(500);
+    expect(res.body).not.toContain("boom");
+    const entry = parsed(lines).find((e) => e["msg"] === "unhandled error");
+    expect(entry?.["err"]).toMatchObject({ message: "boom from a hook" });
   });
 
   it("a response outside the contract is logged with operationId, status and what was declared", async () => {

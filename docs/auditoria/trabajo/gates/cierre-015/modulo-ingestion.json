@@ -1,0 +1,311 @@
+{
+  "scope": "module:ingestion",
+  "files": [
+    "src/application/ingestion/index.ts",
+    "src/application/ingestion/policies/dedup-window.ts",
+    "src/application/ingestion/ports/decision-plane.ts",
+    "src/application/ingestion/ports/event-dedup.ts",
+    "src/application/ingestion/use-cases/ingest-batch.use-case.ts",
+    "src/domain/ingestion/errors.ts",
+    "src/domain/ingestion/event-batch.ts",
+    "src/domain/ingestion/event.ts",
+    "src/domain/ingestion/ids.ts",
+    "src/domain/ingestion/index.ts",
+    "src/interface-adapters/gateways/ingestion/memory-event-dedup.ts",
+    "src/interface-adapters/http/controllers/ingestion/ingest-events.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 3,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AddedToCart",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 4,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Availability",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 6,
+          "rule": "dead-code/types",
+          "message": "unused exported type: BlockDwelled",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CheckoutAdvanced",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CheckoutStep",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CtaApproach",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 10,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CtaApproached",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DeviceClass",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 14,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExitSignal",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 15,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExitSignaled",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 16,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ListingViewed",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 18,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PageType",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 19,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PhotoInteracted",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 20,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PhotoInteraction",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 21,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ProductReturnedTo",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 23,
+          "rule": "dead-code/types",
+          "message": "unused exported type: RemovedFromCart",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 24,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SizeSelectorInteracted",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/index.ts",
+          "line": 25,
+          "rule": "dead-code/types",
+          "message": "unused exported type: VariantSelected",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ingestion/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EventResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ingestion/index.ts",
+          "line": 9,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestBatchDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ingestion/index.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestOutcome",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 25,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Availability",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 26,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DeviceClass",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 48,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ListingViewed",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 49,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SizeSelectorInteracted",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 52,
+          "rule": "dead-code/types",
+          "message": "unused exported type: VariantSelected",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 56,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PhotoInteraction",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 57,
+          "rule": "dead-code/types",
+          "message": "unused exported type: PhotoInteracted",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 70,
+          "rule": "dead-code/types",
+          "message": "unused exported type: BlockDwelled",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 75,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CtaApproach",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 76,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CtaApproached",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 79,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ProductReturnedTo",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 82,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AddedToCart",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 85,
+          "rule": "dead-code/types",
+          "message": "unused exported type: RemovedFromCart",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 87,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CheckoutStep",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 88,
+          "rule": "dead-code/types",
+          "message": "unused exported type: CheckoutAdvanced",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 93,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExitSignal",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/ingestion/event.ts",
+          "line": 94,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExitSignaled",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ingestion/use-cases/ingest-batch.use-case.ts",
+          "line": 23,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EventResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/ingestion/use-cases/ingest-batch.use-case.ts",
+          "line": 28,
+          "rule": "dead-code/types",
+          "message": "unused exported type: IngestOutcome",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

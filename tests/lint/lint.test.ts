@@ -1,4 +1,4 @@
-// US1 (FR-001..FR-003, FR-051): every key lint rule catches its fixture; the valid fixture
+// Feature 003, US1 (FR-001..FR-003, FR-051): every key lint rule catches its fixture; the valid fixture
 // passes clean. Uses the same configuration as `npm run lint`, only removing the fixture
 // exclusion and pointing the parser at the tsconfig that includes them.
 import { readFileSync } from "node:fs";
@@ -36,6 +36,8 @@ const expected: Record<string, string> = {
   "no-ignored-exceptions.ts": "sonarjs/no-ignored-exceptions",
   // Only under src/ (FR-012): the fixture is linted as if it lived there.
   "as-src/no-magic-numbers.ts": "@typescript-eslint/no-magic-numbers",
+  // Object literals too (audit 014 F-013): `detectObjects`.
+  "as-src/no-magic-numbers-object.ts": "@typescript-eslint/no-magic-numbers",
   "as-src/no-magic-strings.ts": "ope/no-magic-strings",
   // Shape of the application and domain rings (ADR-023, spec 008 FR-002..FR-004, FR-021, FR-023).
   "as-src/application/demo/use-cases/use-case-shape.ts": "ope/use-case-shape",
@@ -107,6 +109,10 @@ describe("lint: strong typing that is enforced", () => {
 describe("lint: shape of the code by scope (ADR-016)", () => {
   it("0, 1, -1 and array indexes are not magic numbers under src/", async () => {
     expect(await lint("as-src/magic-numbers-allowed.ts")).toEqual([]);
+  });
+
+  it("a shared-kernel primitive (rate, compare, time, result, ids) may be a loose function", async () => {
+    expect(await lint("as-src/domain/shared-kernel/rate.ts")).toEqual([]);
   });
 
   it("literals the compiler checks, declarations, keys and punctuation are not magic strings", async () => {

@@ -27,7 +27,7 @@ const CONTEXT_MAP = {
   ledger: ["shared-kernel"],
   experiment: ["shared-kernel", "ledger"],
   ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
-  catalog: ["shared-kernel"],
+  catalog: ["shared-kernel", "ledger"],
   barrier: ["shared-kernel", "ingestion"],
   selection: ["shared-kernel"],
   commercial: ["shared-kernel", "barrier", "selection"],
@@ -186,12 +186,15 @@ module.exports = {
     {
       name: "gateways-no-cross",
       comment:
-        "A gateway implements the port of its module; it does not import another gateway (they are wired in composition).",
+        "A gateway implements the port of its module; it does not import another gateway (they are wired in composition). What the in-memory gateways share (the bounded window per merchant) lives in gateways/shared-kernel/, which implements no port.",
       severity: "error",
       from: { path: `${SRC}interface-adapters/gateways/([^/]+)/` },
       to: {
         path: `${SRC}interface-adapters/gateways/([^/]+)/`,
-        pathNot: `${SRC}interface-adapters/gateways/$1/`,
+        pathNot: [
+          `${SRC}interface-adapters/gateways/$1/`,
+          `${SRC}interface-adapters/gateways/shared-kernel/`,
+        ],
       },
     },
     {

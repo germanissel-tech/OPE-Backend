@@ -10,6 +10,8 @@ const SAMPLE = 100_000;
 const PERCENT = 100;
 const FINGERPRINTS: Record<number, number> = { 50: 1243557091, 20: 853083737, 80: 2325495260 };
 
+// Local copy of the domain's FNV-1a (src/domain/experiment/experiment.ts): the domain does not
+// export it (feature 009) and the fingerprint must not move with the code it checks.
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 function fnv1a32(text: string): number {

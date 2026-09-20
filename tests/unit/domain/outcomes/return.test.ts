@@ -10,7 +10,13 @@ import {
   ReturnItemsNotInOrder,
   type OrderItem,
 } from "../../../../src/domain/outcomes/index.js";
-import { asMerchantId, asSessionId, asVisitorId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import {
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+  CLOCK_SKEW_TOLERANCE_MS,
+  Money,
+} from "../../../../src/domain/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-24T09:00:00.000Z");
 const order = Order.rehydrate({
@@ -125,6 +131,7 @@ describe("Corroboration.of", () => {
   it("a browser instant beyond the tolerance → corroboration-confirmed-in-future; exactly at it, accepted", () => {
     const built = Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.001Z") });
     expect(built.ok ? undefined : built.error.code).toBe("corroboration-confirmed-in-future");
+    expect(built.ok ? undefined : built.error.details).toEqual({ toleranceMs: CLOCK_SKEW_TOLERANCE_MS });
     expect(Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.000Z") }).ok).toBe(true);
     expect(Corroboration.rehydrate(record)).toMatchObject(record);
   });

@@ -1,4 +1,4 @@
-// US3 (FR-020, FR-021) and ADR-024: a decision is NO_OP with a reason of the catalogue or
+// Feature 004, US3 (FR-020, FR-021) and ADR-024: a decision is NO_OP with a reason of the catalogue or
 // INTERVENE with its intervention; nothing in between exists, and a recorded one comes back as
 // what it was.
 import { describe, expect, it } from "vitest";
@@ -10,7 +10,12 @@ import {
   type DecisionRecord,
   asDecisionId,
 } from "../../../../src/domain/ledger/index.js";
-import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import {
+  asExperimentId,
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+} from "../../../../src/domain/shared-kernel/index.js";
 
 const now = new Date("2026-09-16T12:00:00.000Z");
 const facts: DecisionFacts = {
@@ -31,7 +36,7 @@ describe("NoOpDecision.of", () => {
   });
 
   it("keeps the experiment and arm when the visitor was assigned", () => {
-    const experiment = { experimentId: "exp_00000001" as never, arm: "CONTROL" as const };
+    const experiment = { experimentId: asExperimentId("exp_00000001"), arm: "CONTROL" as const };
     expect(NoOpDecision.of({ ...facts, experiment }, "control-arm").experiment).toEqual(experiment);
   });
 });

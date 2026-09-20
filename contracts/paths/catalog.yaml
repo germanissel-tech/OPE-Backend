@@ -72,3 +72,5 @@ put:
       $ref: ../components/responses/CatalogUnprocessable.yaml
     "500":
       $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

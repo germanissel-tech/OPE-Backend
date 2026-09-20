@@ -1,7 +1,9 @@
 // Feature 011, user stories 1 and 4 (FR-001..FR-003, FR-040, FR-041; SC-001, SC-004): the
 // decision plane through HTTP — the first INTERVENE, the reasons of the policy, what the SDK
 // sees and what the ledger keeps, and the evidence chain up to the exposure.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
 import {
   catalogProductOf,
@@ -10,10 +12,10 @@ import {
   postEvents,
   postExposure,
   putCatalog,
-  startTestApp,
+  sharedTestApp,
   type MerchantSpec,
+  type SharedApp,
 } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -34,8 +36,15 @@ const merchant = (treatmentPercent: number): MerchantSpec => ({
 const treatment = merchant(100);
 const control = merchant(0);
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [treatment] });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
@@ -52,8 +61,9 @@ const addedToCart = (s: number) => ev(s, { type: "added_to_cart", quantity: 1 })
 const removedFromCart = (s: number) => ev(s, { type: "removed_from_cart" });
 const checkout = (s: number) => ev(s, { type: "checkout_advanced", step: "checkout_started" });
 
+/** The merchant of the test and its catalogue; the server is the file's. */
 async function start(spec: MerchantSpec = treatment): Promise<void> {
-  app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [spec] });
+  app.resetPorts({ config: { merchants: [spec] } });
   const res = await putCatalog(
     app.app,
     { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },
@@ -72,7 +82,8 @@ const ingest = async (events: Record<string, unknown>[], session = "ses_00000001
   return json(res) as IngestResult;
 };
 
-const recorded = (decisionId: string) => app.ports.decisions.find("m_a" as never, decisionId as never);
+const recorded = (decisionId: string) =>
+  app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(decisionId));
 
 describe("decision plane — user story 1", () => {
   it("1. two size-selector interactions and the size guide → INTERVENE at the size selector; the ledger keeps the reasoning", async () => {
@@ -211,14 +222,16 @@ describe("decision plane — user story 4, the evidence chain", () => {
     const again = await postExposure(app.app, exposure, { key: KEY });
     expect(again.statusCode).toBe(200);
     expect(json(again)).toMatchObject({ status: "already-recorded" });
-    expect(await app.ports.exposures.find("m_a" as never, body.decision.decisionId as never)).toMatchObject({
+    expect(
+      await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
+    ).toMatchObject({
       decisionId: body.decision.decisionId,
       anchor: "size_selector",
     });
     const assignment = await app.ports.assignments.find(
-      "m_a" as never,
-      "exp_a_000001" as never,
-      "vis_00000001" as never,
+      asMerchantId("m_a"),
+      asExperimentId("exp_a_000001"),
+      asVisitorId("vis_00000001"),
     );
     expect(assignment?.arm).toBe("TREATMENT");
   });

@@ -4,3 +4,17 @@
 # rechazo indebido. El resto de los checks queda con sus valores por defecto.
 [checks.positive_data_acceptance]
 expected-statuses = ["2xx", 401, 403, 404, 409, 422, 429, "5xx"]
+
+# Las operaciones de plataforma (tag `outcomes`) declaran los dos headers de firma (ADR-029) y
+# desde la 015 (F-054) se ejercitan con su credencial. Dos límites de Schemathesis con esos
+# parámetros de header: (a) el caso negativo "propiedad inesperada" los manda como un header
+# desconocido, que ninguna API HTTP rechaza; `allow-extra-parameters = false` lo omite (también
+# para el cuerpo: que un campo desconocido en el body es 400 lo prueban tests/integration); (b) la
+# fase de cobertura no respeta `pattern` en headers y manda `X-OPE-Signature: 0` como conforme,
+# que el contrato rechaza con 400 (`/header/x-ope-signature`): en esa fase el check admite 400.
+[[operations]]
+include-tag = "outcomes"
+[operations.generation]
+allow-extra-parameters = false
+[operations.phases.coverage.checks.positive_data_acceptance]
+expected-statuses = ["2xx", 400, 401, 403, 404, 409, 422, 429, "5xx"]

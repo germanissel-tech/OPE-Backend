@@ -55,7 +55,7 @@ evidencia y veredicto.
    reglas cumplidas, la barrera elegida, el disparador y la evidencia consultada.
 6. **Criterio de revisión.** Se adopta un motor de reglas genérico (o un DSL propio con parser)
    cuando un merchant necesite un hecho fuera del vocabulario que OPE no quiera incorporar como
-   producto, o cuando la autoría de políticas pase al portal (016) y requiera un editor. Hasta
+   producto, o cuando la autoría de políticas pase al portal (feature "ITT analysis and merchant portal") y requiera un editor. Hasta
    entonces, cada hecho nuevo es una feature.
 
 ## Consecuencias
@@ -65,12 +65,12 @@ evidencia y veredicto.
   apoyo; 5 s; devoluciones → talle → precio; alta intención desde checkout; abandono sin señal
   ⇒ reaseguro de devoluciones; una intervención por sesión).
 - Las intervenciones son comparables sólo dentro de una misma `policyVersion`; el análisis ITT
-  (016) segmenta por ella.
+  (feature del portal) segmenta por ella.
 - El estado de sesión vive en memoria con la ventana de la deduplicación (24 h / 100 000 por
-  merchant) hasta la persistencia (017); una sesión olvidada vuelve a empezar.
+  merchant) hasta la feature de persistencia; una sesión olvidada vuelve a empezar.
 - **Holdout — DECIDIDO (stakeholder, 2026-09-18)**: un merchant conserva siempre un grupo de
   control mínimo, el _holdout_, como parámetro de su configuración (`holdoutPercent`, 5 % por
   defecto); el reparto a TREATMENT no puede superar `100 − holdout`, y pedir el 100 % da 95 con
   una advertencia. Sin holdout OPE dejaría de poder atribuir (01 §5). Se implementa con la
-  configuración por API de la feature 014; hasta entonces, `treatmentPercent` sigue sin tope
+  configuración por API (feature "Configuration, flags, kill switch and administration"); hasta entonces, `treatmentPercent` sigue sin tope
   (los merchants de desarrollo y prueba usan 100 para observar el plano).

@@ -1,0 +1,120 @@
+{
+  "scope": "module:decision",
+  "files": [
+    "src/application/decision/index.ts",
+    "src/application/decision/policies/session-window.ts",
+    "src/application/decision/policies/visitor-window.ts",
+    "src/application/decision/ports/policy-directory.ts",
+    "src/application/decision/ports/session-state-store.ts",
+    "src/application/decision/ports/visitor-state-store.ts",
+    "src/application/decision/services/decision.service.ts",
+    "src/application/decision/services/state.service.ts",
+    "src/domain/decision/decision-policy.ts",
+    "src/domain/decision/default-policy.ts",
+    "src/domain/decision/errors.ts",
+    "src/domain/decision/index.ts",
+    "src/domain/decision/session-state.ts",
+    "src/domain/decision/visitor-state.ts",
+    "src/interface-adapters/gateways/decision/config-policy-directory.ts",
+    "src/interface-adapters/gateways/decision/memory-session-state-store.ts",
+    "src/interface-adapters/gateways/decision/memory-visitor-state-store.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 7,
+          "rule": "dead-code/types",
+          "message": "unused exported type: VisitorStateRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: SessionStateRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: BarrierVerdictInput",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DecisionPolicyRecord",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 13,
+          "rule": "dead-code/types",
+          "message": "unused exported type: EvidenceRequirements",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/decision/index.ts",
+          "line": 18,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DecisionError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 10,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Remembered",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: StateService",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 12,
+          "rule": "dead-code/types",
+          "message": "unused exported type: StateServiceDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 13,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ToRemember",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 14,
+          "rule": "dead-code/types",
+          "message": "unused exported type: Whose",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/decision/index.ts",
+          "line": 19,
+          "rule": "dead-code/types",
+          "message": "unused exported type: DecisionServiceDependencies",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

@@ -3,7 +3,9 @@
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
 import { asEventId, type Event, type PageContext } from "../../../../domain/ingestion/index.js";
 import { asSessionId, asVisitorId, Money } from "../../../../domain/shared-kernel/index.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { instantOf } from "../../boundary.js";
+import { merchantOf } from "../../security/principal.js";
+import { HTTP_STATUS } from "../../status.js";
 import { toProblem } from "../../to-problem.js";
 import type { IngestBatchRequest, IngestBatchResponse } from "../../../../application/ingestion/index.js";
 import type { UseCase } from "../../../../application/shared-kernel/index.js";
@@ -20,13 +22,6 @@ function toPageContext(dto: PageContextDto): PageContext {
   return price === undefined ? rest : { ...rest, price: Money.rehydrate(price) };
 }
 type DecisionDto = components["schemas"]["Decision"];
-
-/** The contract validated `date-time`; a value Date cannot parse is a programming error, not a business one. */
-function instantOf(text: string): Date {
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) throw new Error(`The contract admitted an unparsable date-time: ${text}`);
-  return date;
-}
 
 /** An event DTO → domain event. The `switch` is exhaustive: a new type does not compile without a branch. */
 function toDomainEvent(dto: EventDto): Event {
@@ -88,7 +83,7 @@ export function makeIngestEvents(
     if (!result.ok) return toProblem(result.error, req.instance);
     const { accepted, duplicates, results, decision } = result.value;
     return {
-      status: 202,
+      status: HTTP_STATUS.ACCEPTED,
       body: { accepted, duplicates, results, decision: toDecisionDto(decision) },
     };
   };

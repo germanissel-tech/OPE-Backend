@@ -4,7 +4,7 @@
 // only exists valid: `of` checks every reference against the closed vocabulary, so a policy that
 // names a fact OPE does not capture never runs. `infer` is pure: same signals and facts, same
 // inference, on any instance.
-import { BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
+import { BARRIERS, fail, isCount, isRate, ok, type Barrier, type Result } from "../shared-kernel/index.js";
 import { FactContext, Vocabulary, type Condition, type ProductFacts } from "./condition.js";
 import {
   BarrierWithoutRules,
@@ -49,9 +49,6 @@ export interface Inference {
 /** Confidences are rounded so that sums of weights compare exactly against a threshold. */
 const CONFIDENCE_PRECISION = 10_000;
 
-const isShare = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;
-const isCount = (value: number): boolean => Number.isFinite(value) && value >= 0;
-
 export class BarrierRules {
   readonly rules: readonly Rule[];
   readonly weights: RuleWeights;
@@ -70,8 +67,8 @@ export class BarrierRules {
    * field inside it.
    */
   static of(record: BarrierRulesRecord): Result<BarrierRules, BarrierError> {
-    if (!isShare(record.weights.strong)) return fail(new InvalidRuleWeight("weights.strong"));
-    if (!isShare(record.weights.supporting)) return fail(new InvalidRuleWeight("weights.supporting"));
+    if (!isRate(record.weights.strong)) return fail(new InvalidRuleWeight("weights.strong"));
+    if (!isRate(record.weights.supporting)) return fail(new InvalidRuleWeight("weights.supporting"));
     if (!isCount(record.readingSeconds)) return fail(new InvalidRuleThreshold("readingSeconds"));
     const ids = new Set<string>();
     for (const [index, rule] of record.rules.entries()) {
@@ -115,6 +112,6 @@ function cap(sum: number): number {
 
 function checkRule(rule: Rule, index: number): BarrierError | undefined {
   if (!(BARRIERS as readonly string[]).includes(rule.barrier)) return new UnknownBarrier(rule.barrier, index);
-  if (rule.weight !== undefined && !isShare(rule.weight)) return new InvalidRuleWeight("weight", index);
+  if (rule.weight !== undefined && !isRate(rule.weight)) return new InvalidRuleWeight("weight", index);
   return Vocabulary.captured.check(rule.when, "when", index);
 }

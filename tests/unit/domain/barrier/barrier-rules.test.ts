@@ -258,10 +258,9 @@ describe("BarrierRules.of — invariants (SC-003)", () => {
     });
     expect(edge.weights).toEqual({ strong: 1, supporting: 0 });
     expect(edge.infer(Signals.empty(), product).confidences).toEqual({ fit: 1, price: 0, returns: 0 });
+    // Weights and thresholds are judged by the kernel's `isRate`/`isCount` (015 F-030); the table
+    // of edges lives in shared-kernel/rate.test.ts.
     expect(rejected({ ...base, weights: { strong: 1.0001, supporting: 0 } }).code).toBe(
-      "invalid-rule-weight",
-    );
-    expect(rejected({ ...base, weights: { strong: 1, supporting: -0.0001 } }).code).toBe(
       "invalid-rule-weight",
     );
     expect(rejected({ ...base, readingSeconds: Number.NaN }).code).toBe("invalid-rule-threshold");

@@ -1,4 +1,17 @@
 <!--
+Sync Impact Report (1.3.0, 2026-09-19)
+- Version change: 1.2.0 → 1.3.0 (MINOR: el principio VII amplía en un elemento la lista del
+  conector de órdenes; ningún otro principio cambia).
+- Modified sections: VII (el incentivo aplicado —clase y valor— entra en la lista cerrada del
+  conector de órdenes: OPE lo concedió y no identifica al comprador). Fuente: ADR-028 §5–6 y el
+  hallazgo F-062 de la auditoría 014 (docs/auditoria/2026-09-19-informe-auditoria-integral.md);
+  decisión del dueño del 2026-09-19 (specs/015-correcciones-auditoria/spec.md). Nota: 01 §10.3
+  (documento del MVP, fuera del repo) sigue listando seis campos; la enmienda es una extensión
+  que el documento fuente no contradice en su intención (no aceptar datos del comprador) y que
+  ADR-028 deja anotada hasta que 01 se actualice.
+- Templates: sin cambios. Los Constitution Check de los planes evalúan los diez principios y
+  citan la versión (specs/015 en adelante).
+
 Sync Impact Report (1.2.0, 2026-09-17)
 - Version change: 1.1.0 → 1.2.0 (MINOR: una excepción acotada al principio V para el
   consumidor `admin`, verificada por lint; ningún otro principio cambia).
@@ -151,7 +164,9 @@ Cuatro identidades, cuatro propósitos. Colapsarlas es la fuente de errores más
   datos de pago, documentos, grabación de sesión, dirección IP persistida, huella de
   dispositivo identificatoria. Sólo clase de dispositivo para layout.
 - El contrato del conector de órdenes MUST acotarse a: identificador de orden, monto, moneda,
-  ítems con SKU y cantidad, fecha y el identificador de OPE. Campos adicionales se rechazan.
+  ítems con SKU y cantidad, fecha, el identificador de OPE y el incentivo aplicado (clase y
+  valor: lo concedió OPE, no es un dato del comprador; v1.3.0, ADR-028). Campos adicionales se
+  rechazan.
 - El historial de devoluciones por cliente sólo entra con clave seudónima provista por el
   merchant. El principio gana sobre la funcionalidad.
 - La frase autorizada es "OPE no almacena información identificatoria". MUST NOT afirmarse en
@@ -284,4 +299,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
+**Version**: 1.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-19

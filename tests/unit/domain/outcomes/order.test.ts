@@ -4,7 +4,6 @@
 import { describe, expect, it } from "vitest";
 import {
   asOrderId,
-  CONFIRMATION_TOLERANCE_MS,
   Correlation,
   DuplicateOrderItem,
   IncentiveRedemption,
@@ -13,7 +12,13 @@ import {
   Return,
   type OrderRecord,
 } from "../../../../src/domain/outcomes/index.js";
-import { asMerchantId, asSessionId, asVisitorId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import {
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+  CLOCK_SKEW_TOLERANCE_MS,
+  Money,
+} from "../../../../src/domain/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-19T12:00:00.000Z");
 const base: OrderRecord = {
@@ -58,9 +63,14 @@ describe("Order.of", () => {
   });
 
   it("a confirmation beyond the tolerance ahead of the clock → order-confirmed-in-future; at the tolerance it is fine", () => {
-    const late = Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CONFIRMATION_TOLERANCE_MS + 1) });
+    const late = Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS + 1) });
+    // The tolerance travels in the details, not repeated in the message (015 F-022).
+    if (!late.ok) {
+      expect(late.error.details).toEqual({ toleranceMs: CLOCK_SKEW_TOLERANCE_MS });
+      expect(late.error.message).not.toMatch(/\d/);
+    }
     expect(late.ok ? undefined : late.error).toBeInstanceOf(OrderConfirmedInFuture);
-    expect(Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CONFIRMATION_TOLERANCE_MS) }).ok).toBe(
+    expect(Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS) }).ok).toBe(
       true,
     );
   });
@@ -72,7 +82,7 @@ describe("Order.of", () => {
         { sku: "SKU-1", quantity: 1 },
         { sku: "SKU-1", quantity: 1 },
       ],
-      confirmedAt: new Date(NOW.getTime() + CONFIRMATION_TOLERANCE_MS + 1),
+      confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS + 1),
     });
     expect(both.ok ? undefined : both.error.code).toBe("duplicate-order-item");
   });
@@ -167,6 +177,18 @@ describe("Order — the record, the return and the lines", () => {
     expect(bare.correlation).toBeUndefined();
     expect(bare.redemption).toBeUndefined();
     expect(bare.returned).toBeUndefined();
+  });
+
+  it("correlated attaches what OPE derived and nothing else; without a correlation the order stays pending", () => {
+    const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
+    const attributed = valid().correlated(correlation, undefined);
+    expect(attributed.correlation).toBe(correlation);
+    expect(attributed.redemption).toBeUndefined();
+    expect(attributed.status()).toBe("ATTRIBUTED_ORDER");
+    expect(attributed.sameContentAs(valid())).toBe(true);
+    const pending = valid().correlated(undefined, undefined);
+    expect(pending.correlation).toBeUndefined();
+    expect(pending.status()).toBe("PENDING_CORRELATION");
   });
 
   it("withReturn keeps everything and adds the return; status stays", () => {

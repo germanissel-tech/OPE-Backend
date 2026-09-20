@@ -1,4 +1,4 @@
-// US1 (FR-002; ADR-007, ADR-025): the invariants of a snapshot, enforced by construction, and
+// Feature 010, US1 (FR-002; ADR-007, ADR-025): the invariants of a snapshot, enforced by construction, and
 // what a snapshot answers about its products and variants.
 import { describe, expect, it } from "vitest";
 import {
@@ -7,11 +7,10 @@ import {
   CatalogCapturedInFuture,
   CatalogDuplicateProductId,
   CatalogDuplicateVariantId,
-  CAPTURE_TOLERANCE_MS,
   CatalogSnapshot,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
-import { asMerchantId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, CLOCK_SKEW_TOLERANCE_MS, Money } from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const receivedAt = new Date("2026-09-18T12:00:00.000Z");
@@ -45,8 +44,7 @@ describe("CatalogSnapshot.of", () => {
     if (!built.ok) return;
     expect(built.value.counts()).toEqual({ products: 2, variants: 2 });
     expect(built.value.product(asProductId("P1"))?.title).toBe("Product P1");
-    expect(built.value.variant(asProductId("P1"), asVariantId("P1-M"))?.variant.size).toBe("M");
-    expect(built.value.variant(asProductId("P2"), asVariantId("P1-M"))).toBeUndefined();
+    expect(built.value.product(asProductId("P1"))?.variants.map((v) => v.size)).toEqual(["M"]);
     expect(built.value.product(asProductId("P9"))).toBeUndefined();
   });
 
@@ -95,8 +93,13 @@ describe("CatalogSnapshot.of", () => {
       products: [],
     });
     expect(future).toMatchObject({ ok: false, error: { code: "catalog-captured-in-future" } });
-    if (!future.ok) expect(future.error).toBeInstanceOf(CatalogCapturedInFuture);
-    expect(CAPTURE_TOLERANCE_MS).toBe(5 * MIN);
+    if (!future.ok) {
+      expect(future.error).toBeInstanceOf(CatalogCapturedInFuture);
+      // The tolerance travels in the details, not repeated in the message (015 F-022).
+      expect(future.error.details).toEqual({ toleranceMs: CLOCK_SKEW_TOLERANCE_MS });
+      expect(future.error.message).not.toMatch(/\d/);
+    }
+    expect(CLOCK_SKEW_TOLERANCE_MS).toBe(5 * MIN);
     expect(CatalogSnapshot.of({ merchantId: A, capturedAt: at(5 * MIN), receivedAt, products: [] }).ok).toBe(
       true,
     );

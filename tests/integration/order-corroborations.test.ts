@@ -1,7 +1,7 @@
 // Feature 013, user story 3 (FR-030..FR-033): the SDK corroborates a purchase from the
 // confirmation page — evidence under the credential's merchant, never an order, never an
 // attribution; joined to the order by identity in whatever order they arrive.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { json } from "../helpers/json.js";
 import {
   eventOf,
@@ -10,10 +10,10 @@ import {
   postCorroboration,
   postEvents,
   postOrder,
-  startTestApp,
+  sharedTestApp,
+  type SharedApp,
 } from "../helpers/test-app.js";
 import { unavailableCorroborationLedger } from "../helpers/unavailable-ledgers.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { OrderId } from "../../src/domain/outcomes/index.js";
 import type { MerchantId } from "../../src/domain/shared-kernel/index.js";
 
@@ -33,18 +33,22 @@ const corroboration = (over: Record<string, unknown> = {}): Record<string, unkno
   ...over,
 });
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
-async function start(options: { down?: boolean } = {}): Promise<void> {
-  app = await startTestApp({
-    ports: {
-      clock: fixedClock(NOW),
-      ...(options.down ? { corroborations: unavailableCorroborationLedger() } : {}),
-    },
-  });
+/** The ports of the test (a corroboration ledger that is down); the server is the file's. */
+function start(options: { down?: boolean } = {}): Promise<void> {
+  app.resetPorts(options.down ? { ports: { corroborations: unavailableCorroborationLedger() } } : {});
+  return Promise.resolve();
 }
 
 const found = (merchant: MerchantId, orderId: string) =>

@@ -3,6 +3,7 @@
 // vocabulary (BarrierRules.of rejects it). Conditions are data — what the configuration
 // declares — and FactContext is the value that knows whether one holds.
 import { BLOCKS, EVENT_TYPES, SUBTYPES, type Block, type EventType } from "../ingestion/index.js";
+import { isCount } from "../shared-kernel/index.js";
 import { InvalidRuleThreshold, UnknownFact } from "./errors.js";
 import type { EventRef, Signals } from "./signals.js";
 
@@ -109,8 +110,6 @@ export class FactContext {
 /** What a condition may violate: a reference outside the vocabulary or a threshold out of range. */
 export type ConditionError = UnknownFact | InvalidRuleThreshold;
 
-const isCount = (value: number): boolean => Number.isFinite(value) && value >= 0;
-
 /**
  * The vocabulary check of a condition (ADR-026): every event type, subtype and block it names
  * exists, every threshold is a non-negative number. Shared by whoever declares conditions —
@@ -169,14 +168,13 @@ export class Vocabulary {
           this.#ref(condition.first, `${path}.first`, index) ??
           this.#ref(condition.then, `${path}.then`, index)
         );
-      // Stryker disable ConditionalExpression: without its case the last fact falls off the switch and yields undefined all the same
       case "productAttribute":
       case "returnedToProduct":
       case "variantAvailable":
       case "sessionAddedToCart":
+      // Stryker disable next-line ConditionalExpression: emptied, the last case falls through to the end of the switch and yields undefined all the same
       case "sessionEnteredCheckout":
         return undefined;
-      // Stryker restore ConditionalExpression
     }
   }
 

@@ -1,7 +1,6 @@
 // merchant module: who the credential is and which origins are theirs. Serves no operation of
 // its own; it serves the `ingestKey` and `platformKey` security schemes (ADR-014, ADR-025,
-// ADR-029) and the CORS policy. Security also runs in mock: the SDK develops against the mock
-// with the real key (SC-006).
+// ADR-029) and the CORS policy.
 import {
   DefaultIngestKeyResolver,
   DefaultPlatformKeyResolver,
@@ -46,10 +45,15 @@ export const merchantModule: Module<MerchantPorts> = ({ ports }) => {
   const signatures = new DefaultPlatformSignatureVerifier({ authenticator: ports.authenticator });
   return {
     security: {
-      [INGEST_KEY_SCHEME]: { handler: makeIngestKeySecurity(resolveIngestKey), header: INGEST_KEY_HEADER },
+      [INGEST_KEY_SCHEME]: {
+        handler: makeIngestKeySecurity(resolveIngestKey),
+        header: INGEST_KEY_HEADER,
+        consumer: "browser",
+      },
       [PLATFORM_KEY_SCHEME]: {
         handler: makePlatformKeySecurity({ keys, signatures, clock: ports.clock }),
         header: PLATFORM_KEY_HEADER,
+        consumer: "server",
       },
     },
     cors: ports.merchants,

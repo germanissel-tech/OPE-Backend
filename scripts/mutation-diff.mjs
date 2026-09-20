@@ -1,8 +1,10 @@
 // test:mutation — mutation testing scoped to the change (ADR-016, FR-030..FR-033).
 //
-//   node scripts/mutation-diff.mjs            # mutate the src/ lines changed against the base ref; break at 100 %
-//   node scripts/mutation-diff.mjs --all      # mutate everything Stryker's config allows; informative
-//   node scripts/mutation-diff.mjs --json     # gate JSON: { gate, mode, status, findings, skipped? }
+//   node scripts/mutation-diff.mjs                        # mutate the src/ lines changed against the base ref; break at 100 %
+//   node scripts/mutation-diff.mjs --files a.ts,b.ts:5-9  # the same verdict over just those files or lines, re-tested (--force)
+//   node scripts/mutation-diff.mjs --all                  # mutate everything Stryker's config allows; informative, own incremental file
+//   node scripts/mutation-diff.mjs --check-report         # no Stryker run: no ignored mutant outside a disable line (F-052)
+//   node scripts/mutation-diff.mjs --json                 # gate JSON: { gate, mode, status, findings, skipped? }
 //
 // Base ref: $CONTRACT_BASE_REF, origin/main or main, whichever exists. The diff is taken from the
 // merge base to the working tree, so local uncommitted changes count too. Without production
@@ -20,10 +22,13 @@ import { capture, repoRoot, run } from "./lib.mjs";
 /** @typedef {{ file: string; start: number; end: number }} Range */
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
 /**
- * @typedef {{ mutatorName: string; status: string; replacement?: string; testsCompleted?: number; coveredBy?: string[]; location: { start: { line: number } } }} Mutant
+ * @typedef {{ mutatorName: string; status: string; statusReason?: string; replacement?: string; testsCompleted?: number; coveredBy?: string[]; location: { start: { line: number } } }} Mutant
  */
 /** @typedef {{ files: Record<string, { mutants: Mutant[] }> }} MutationReport */
+/** @typedef {{ start: number; end: number }} LineRange */
 
+/** The informative sweep keeps its verdicts apart from the gate's incremental file. */
+const ALL_INCREMENTAL_FILE = "reports/mutation/stryker-incremental-all.json";
 const CONFIG_FILE = path.join(repoRoot, "stryker.config.json");
 const REPORT_FILE = path.join(repoRoot, "reports", "mutation", "report.json");
 const STRYKER = path.join(repoRoot, "node_modules", "@stryker-mutator", "core", "bin", "stryker.js");
@@ -98,6 +103,47 @@ export function rangesFromDiff(diffText, isMutable) {
 }
 
 /**
+ * Whole-file ranges for files `git diff` cannot see: the ones never added to the index. Locally a
+ * new file is invisible to the diff until it is staged, while CI sees it committed; without this
+ * the two gates would judge different code.
+ * @param {string[]} files repo-relative paths
+ * @param {(file: string) => boolean} isMutable
+ * @param {(file: string) => string} readSource
+ * @returns {Range[]}
+ */
+export function rangesOfUntracked(files, isMutable, readSource) {
+  return files
+    .filter(isMutable)
+    .map((file) => ({ file, start: 1, end: readSource(file).split(/\r?\n/).length }))
+    .filter((range) => range.end > 0);
+}
+
+/**
+ * The ranges a `--files` argument names: `a.ts,b.ts:10-20` (repo-relative, whole file unless a
+ * line range follows). The fix loop of one survivor mutates one file, not the whole diff.
+ * @param {string} spec
+ * @param {(file: string) => boolean} isMutable
+ * @param {(file: string) => string} readSource
+ * @returns {Range[]}
+ */
+export function rangesOfFiles(spec, isMutable, readSource) {
+  return spec
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => {
+      const m = /^(.+?)(?::(\d+)-(\d+))?$/.exec(item);
+      if (!m || m[1] === undefined) throw new Error(`--files: cannot read "${item}"`);
+      const file = m[1].split("\\").join("/");
+      if (!isMutable(file)) throw new Error(`--files: ${file} is not a mutable src/ file`);
+      const lines = readSource(file).split(/\r?\n/).length;
+      const start = m[2] === undefined ? 1 : Number(m[2]);
+      const end = m[3] === undefined ? lines : Number(m[3]);
+      return { file, start, end };
+    });
+}
+
+/**
  * @param {Range[]} ranges
  * @param {string | null} baseRef
  * @returns {{ mutate: string[] } | { skipped: "no-base-ref" | "no-production-lines" }}
@@ -122,6 +168,72 @@ export function guardZeroTests(report) {
   }
   return broken > 0 ? `mutation runner executed zero tests for ${broken} covered mutant(s)` : null;
 }
+
+const DISABLE_NEXT_LINE = /\/\/\s*Stryker disable next-line\b/;
+const DISABLE_BLOCK = /\/\/\s*Stryker disable\b(?! next-line)/;
+const RESTORE = /\/\/\s*Stryker restore\b/;
+const EXCLUDED_MUTATOR = /excluded mutation/;
+
+/**
+ * The lines a source file's `// Stryker disable` comments cover: `next-line` covers the line after
+ * it; a block covers from its comment to its `restore`, or to the end of the file when nothing
+ * restores it (which is the case this check exists to catch, F-052 of the audit 014).
+ * @param {string} source
+ * @returns {LineRange[]}
+ */
+export function disabledRanges(source) {
+  /** @type {LineRange[]} */
+  const ranges = [];
+  /** @type {number | null} */
+  let open = null;
+  const lines = source.split(/\r?\n/);
+  for (const [i, line] of lines.entries()) {
+    const number = i + 1;
+    if (DISABLE_NEXT_LINE.test(line)) ranges.push({ start: number + 1, end: number + 1 });
+    else if (DISABLE_BLOCK.test(line)) open = number;
+    else if (RESTORE.test(line) && open !== null) {
+      ranges.push({ start: open, end: number });
+      open = null;
+    }
+  }
+  if (open !== null) ranges.push({ start: open, end: lines.length });
+  return ranges;
+}
+
+/**
+ * Mutants Stryker ignored because of a `// Stryker disable` comment whose line is not the one the
+ * comment names (a `next-line` directive) nor inside a `disable`/`restore` block: a restore written
+ * after the last statement of a block does not restore, and the comment silences the rest of the
+ * file. Mutators excluded by configuration (StringLiteral) are not comments and are skipped.
+ * @param {MutationReport} report
+ * @param {(file: string) => string} readSource the source of a file of the report, by its key
+ * @returns {Finding[]}
+ */
+export function ignoredOutsideDisable(report, readSource) {
+  /** @type {Finding[]} */
+  const out = [];
+  for (const [file, { mutants }] of Object.entries(report.files)) {
+    const ignored = mutants.filter(
+      (m) => m.status === "Ignored" && !EXCLUDED_MUTATOR.test(m.statusReason ?? ""),
+    );
+    if (ignored.length === 0) continue;
+    const ranges = disabledRanges(readSource(file)).filter((r) => r.end - r.start <= MAX_BLOCK_LINES);
+    for (const m of ignored) {
+      const line = m.location.start.line;
+      if (ranges.some((r) => line >= r.start && line <= r.end)) continue;
+      out.push({
+        file: file.split(path.sep).join("/"),
+        line,
+        rule: `mutation/${m.mutatorName}`,
+        message: `Ignored outside any Stryker disable range: ${m.statusReason ?? m.mutatorName}`,
+      });
+    }
+  }
+  return out;
+}
+
+/** A disable block longer than this is a leaked one (the switch groups the repo has span a few lines). */
+const MAX_BLOCK_LINES = 20;
 
 /**
  * @param {MutationReport} report
@@ -155,6 +267,13 @@ function resolveBaseRef() {
   return null;
 }
 
+/** Files under src/ that git does not track yet (never staged). @returns {string[]} */
+function untrackedFiles() {
+  const listed = capture("git", ["ls-files", "--others", "--exclude-standard", "--", "src"]);
+  if (listed.status !== 0) throw new Error(`git ls-files failed: ${listed.stderr}`);
+  return listed.stdout.split(/\r?\n/).filter((line) => line.length > 0);
+}
+
 /**
  * @param {string} baseRef
  * @returns {string}
@@ -182,7 +301,7 @@ function readReport() {
 }
 
 /**
- * @param {{ mode: "blocking" | "informative"; status: "pass" | "fail"; findings: Finding[]; skipped?: string; error?: string }} outcome
+ * @param {{ mode: "blocking" | "informative"; status: "pass" | "fail"; findings: Finding[]; skipped?: string; error?: string; passed?: string }} outcome
  * @param {boolean} json
  */
 function emit(outcome, json) {
@@ -195,45 +314,115 @@ function emit(outcome, json) {
   if (outcome.error) console.error(`test:mutation — ${outcome.error}`);
   else if (outcome.status === "fail")
     console.error(`test:mutation — ${outcome.findings.length} mutant(s) survived.`);
-  else if (!outcome.skipped) console.log("test:mutation — every mutant died.");
+  else if (!outcome.skipped) console.log(`test:mutation — ${outcome.passed ?? "every mutant died."}`);
 }
 
-function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const json = args["json"] === true;
-  const all = args["all"] === true;
-  const isMutable = mutableFilter();
+/**
+ * The source of a file of the report, by the key Stryker used (relative to the repo root).
+ * @param {string} file
+ * @returns {string}
+ */
+function sourceOf(file) {
+  return readFileSync(path.isAbsolute(file) ? file : path.join(repoRoot, file), "utf8");
+}
 
-  if (all) {
-    runStryker(["--reporters", "clear-text,progress,html,json"]);
-    const report = readReport();
-    const error = guardZeroTests(report);
-    emit(
-      {
-        mode: "informative",
-        status: error ? "fail" : "pass",
-        findings: survivors(report),
-        ...(error ? { error } : {}),
-      },
-      json,
-    );
-    return error ? 1 : 0;
-  }
+/**
+ * @param {Finding[]} leaked
+ * @returns {string | null}
+ */
+function leakedError(leaked) {
+  return leaked.length > 0 ? `${leaked.length} mutant(s) ignored outside a Stryker disable range` : null;
+}
 
-  const baseRef = resolveBaseRef();
-  const ranges = baseRef === null ? [] : rangesFromDiff(diffAgainst(baseRef), isMutable);
+/**
+ * `--check-report`: the last full report, without running Stryker — every ignored mutant sits on a
+ * line its comment names (F-052 of the audit 014).
+ * @param {boolean} json
+ * @returns {number}
+ */
+function checkReportMode(json) {
+  const leaked = ignoredOutsideDisable(readReport(), sourceOf);
+  const error = leakedError(leaked);
+  emit(
+    {
+      mode: "blocking",
+      status: error ? "fail" : "pass",
+      findings: leaked,
+      passed: "every ignored mutant sits on the line its comment names.",
+      ...(error ? { error } : {}),
+    },
+    json,
+  );
+  return error ? 1 : 0;
+}
+
+/**
+ * `--all`: everything mutated, survivors informative; a leaked disable comment or a run without
+ * tests still fails.
+ * @param {boolean} json
+ * @returns {number}
+ */
+function allMode(json) {
+  // Its own incremental file: the informative sweep must not feed verdicts into the blocking gate.
+  runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]);
+  const report = readReport();
+  const leaked = ignoredOutsideDisable(report, sourceOf);
+  const error = guardZeroTests(report) ?? leakedError(leaked);
+  emit(
+    {
+      mode: "informative",
+      status: error ? "fail" : "pass",
+      findings: [...survivors(report), ...leaked],
+      ...(error ? { error } : {}),
+    },
+    json,
+  );
+  return error ? 1 : 0;
+}
+
+/**
+ * The blocking verdict over some ranges: every mutant of those lines dies, or the gate fails.
+ * @param {Range[]} ranges
+ * @param {string | null} baseRef
+ * @param {boolean} json
+ * @param {string[]} extra Stryker arguments beyond `--mutate`
+ * @returns {number}
+ */
+function blockingMode(ranges, baseRef, json, extra) {
   const decision = decide(ranges, baseRef);
   if ("skipped" in decision) {
     emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);
     return 0;
   }
-  const status = runStryker(["--mutate", decision.mutate.join(",")]);
+  const status = runStryker(["--mutate", decision.mutate.join(","), ...extra]);
   const report = readReport();
   const error = guardZeroTests(report);
   const findings = survivors(report);
   const failed = error !== null || status !== 0 || findings.length > 0;
   emit({ mode: "blocking", status: failed ? "fail" : "pass", findings, ...(error ? { error } : {}) }, json);
   return failed ? 1 : 0;
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const json = args["json"] === true;
+  if (args["check-report"] === true) return checkReportMode(json);
+  if (args["all"] === true) return allMode(json);
+  const isMutable = mutableFilter();
+  const files = args["files"];
+  if (typeof files === "string") {
+    // The fix loop: one file (or range), every mutant re-tested regardless of the incremental file.
+    return blockingMode(rangesOfFiles(files, isMutable, sourceOf), "--files", json, ["--force"]);
+  }
+  const baseRef = resolveBaseRef();
+  const ranges =
+    baseRef === null
+      ? []
+      : [
+          ...rangesFromDiff(diffAgainst(baseRef), isMutable),
+          ...rangesOfUntracked(untrackedFiles(), isMutable, sourceOf),
+        ];
+  return blockingMode(ranges, baseRef, json, []);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

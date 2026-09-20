@@ -1,5 +1,7 @@
-// Test application: the whole graph through the composition root with the local profile,
-// dos merchants fijos y reemplazos puntuales (reloj, puertos, manejadores).
+// Test application: the whole graph through the composition root with the local profile, two
+// fixed merchants and targeted replacements (clock, ports, handlers). `startTestApp` builds a
+// whole app; `sharedTestApp` builds the server once per file and rebuilds only the in-memory
+// ports before each test (015 F-055): the contract is parsed and the routes compiled once.
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import {
@@ -7,12 +9,14 @@ import {
   parseEvidenceProfile,
 } from "../../src/composition/commercial-policy-config.js";
 import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
-import { Experiment } from "../../src/domain/experiment/index.js";
+import { localProfile } from "../../src/composition/profiles/local.js";
+import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
 import { Merchant } from "../../src/domain/merchant/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
+import type { Ports } from "../../src/composition/ports.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
 /** A merchant as a test writes it: the shape of OPE_MERCHANTS, built into entities by `configured`. */
@@ -62,7 +66,9 @@ function configured(spec: MerchantSpec): MerchantConfig {
     if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
     return experiment.value;
   });
-  const config: MerchantConfig = { merchant: merchant.value, experiments };
+  const set = Experiments.of(experiments);
+  if (!set.ok) throw new Error(`test experiments of ${spec.merchantId}: ${set.error.message}`);
+  const config: MerchantConfig = { merchant: merchant.value, experiments: set.value };
   if (spec.decisionPolicy !== undefined) {
     config.decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
   }
@@ -116,7 +122,10 @@ const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig => ({
   ...over,
 });
 
-export function fixedClock(at: string | Date): Clock {
+/** The instant the fixed clock and the event helpers agree on unless a test says otherwise (015 F-056). */
+export const NOW = "2026-09-18T12:00:00.000Z";
+
+export function fixedClock(at: string | Date = NOW): Clock {
   const date = typeof at === "string" ? new Date(at) : at;
   return { now: () => date };
 }
@@ -132,6 +141,69 @@ export async function startTestApp(
   });
 }
 
+/** What a test may replace for the next test of a shared app: ports, the merchant configuration. */
+export interface PortsReset {
+  ports?: Partial<Ports>;
+  config?: TestConfig;
+}
+
+export interface SharedApp {
+  app: FastifyInstance;
+  /** The ports of the current test; they delegate to the ones the last reset built. */
+  ports: Ports;
+  /** Fresh in-memory ports for the next test — with other overrides or merchants when given — while the server stays. */
+  resetPorts(over?: PortsReset): void;
+  close(): Promise<void>;
+}
+
+/** An object whose members are read from `current()` on every access: the ports a reset replaces. */
+function delegating<T extends object>(current: () => T): T {
+  return new Proxy({} as T, {
+    get(_target, property) {
+      const target = current();
+      const value: unknown = Reflect.get(target, property);
+      return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+    },
+  });
+}
+
+/**
+ * The server built once for a file; `resetPorts()` before each test rebuilds the in-memory ports
+ * (ledgers, dedup, session and visitor state, the merchant and policy directories) behind the
+ * same use cases. The clock is fixed at `NOW` and the logger silent unless `overrides.ports`
+ * says otherwise; the logger is the one thing a reset keeps, because Fastify's request log is
+ * bound to it when the server is built (a test that captures logs starts its own app).
+ */
+export async function sharedTestApp(
+  overrides: BootstrapOverrides = {},
+  config: TestConfig = {},
+): Promise<SharedApp> {
+  const profile = overrides.profile ?? localProfile;
+  const logger = overrides.ports?.logger ?? silentLogger();
+  const build = (over: PortsReset = {}): Ports =>
+    profile(testConfig(over.config ?? config), {
+      clock: fixedClock(),
+      ...overrides.ports,
+      ...over.ports,
+      logger,
+    }).ports;
+  let current = build();
+  const entries = (Object.keys(current) as (keyof Ports)[]).map((key) => [
+    key,
+    key === "logger" ? logger : delegating(() => current[key]),
+  ]);
+  const ports = Object.fromEntries(entries) as unknown as Ports;
+  const app = await bootstrap(testConfig(config), { ...overrides, ports });
+  return {
+    app: app.app,
+    ports,
+    resetPorts: (over) => {
+      current = build(over);
+    },
+    close: app.close,
+  };
+}
+
 /** A valid event with unique ids; `over` overrides any field (even with garbage, on purpose). */
 export function eventOf(n: number, over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -139,7 +211,7 @@ export function eventOf(n: number, over: Record<string, unknown> = {}): Record<s
     eventId: `evt_${String(n).padStart(8, "0")}`,
     sessionId: "ses_00000001",
     visitorId: "vis_00000001",
-    occurredAt: new Date().toISOString(),
+    occurredAt: NOW,
     page: { pageType: "product", productId: "SKU-1" },
     device: "mobile",
     ...over,

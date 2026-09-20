@@ -1,4 +1,4 @@
-// FR-020 / FR-021: well-formed decision record with no broken citations.
+// Feature 002 — FR-020 / FR-021: well-formed decision record with no broken citations.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

@@ -17,19 +17,17 @@ export class InvalidIncentiveCeiling extends DomainError {
   readonly code = "invalid-incentive-ceiling" as const;
   readonly module = MODULE;
   constructor() {
-    super("The incentive ceiling must be an integer percentage between 0 and 100.", {
-      path: "maxIncentivePercent",
-    });
+    super("The incentive ceiling must be a rate between 0 and 1.", { path: "maxIncentiveShare" });
   }
 }
 
-/** A step of the ladder out of 1..ceiling, or not above the previous one. */
+/** A step of the ladder out of (0, ceiling], or not above the previous one. */
 export class InvalidIncentiveLadder extends DomainError {
   readonly code = "invalid-incentive-ladder" as const;
   readonly module = MODULE;
   constructor(index: number) {
-    super("The incentive ladder must be strictly increasing integers between 1 and the ceiling.", {
-      path: "incentiveLadderPercent",
+    super("The incentive ladder must be strictly increasing rates above 0 and up to the ceiling.", {
+      path: "incentiveLadderShare",
       index,
     });
   }
@@ -39,7 +37,7 @@ export class InvalidMargin extends DomainError {
   readonly code = "invalid-margin" as const;
   readonly module = MODULE;
   constructor() {
-    super("The margin must be a percentage between 0 and 100.", { path: "marginPercent" });
+    super("The margin must be a rate between 0 and 1.", { path: "marginShare" });
   }
 }
 

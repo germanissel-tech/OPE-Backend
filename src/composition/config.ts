@@ -3,7 +3,7 @@
 // experiments are built by their factories and a rejected one stops the start naming the
 // field. No built-in merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
-import { Experiment } from "../domain/experiment/index.js";
+import { Experiment, Experiments } from "../domain/experiment/index.js";
 import { Merchant } from "../domain/merchant/index.js";
 import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
 import { parseCommercialPolicy, parseEvidenceProfile } from "./commercial-policy-config.js";
@@ -13,10 +13,10 @@ import type { CommercialPolicy } from "../domain/commercial/index.js";
 import type { DecisionPolicy } from "../domain/decision/index.js";
 import type { MerchantProfile } from "../domain/selection/index.js";
 
-/** A merchant as configured: the entity and its experiments (at most one active, ADR-022). */
+/** A merchant as configured: the entity and its experiments (the set judged by its owner, ADR-022). */
 export interface MerchantConfig {
   merchant: Merchant;
-  experiments: readonly Experiment[];
+  experiments: Experiments;
   /** The merchant's decision policy (ADR-026); absent means the default one. */
   decisionPolicy?: DecisionPolicy;
   /** The merchant's commercial policy (ADR-027); absent means the default one. */
@@ -37,7 +37,6 @@ const DEFAULT_PORT = 3000;
 /** `PORT=0` asks the OS for a free port (tests); 65535 is the last TCP port. */
 const MAX_PORT = 65535;
 /** One active key, or two during a rotation (ADR-014). */
-const MAX_INGEST_KEYS = 2;
 const DEFAULT_TREATMENT_PERCENT = 50;
 /** Percentages live only here, at the edge: the domain works with rates 0..1. */
 const PERCENT = 100;
@@ -46,6 +45,7 @@ const ACTIVE = "active";
 const EXPERIMENT_STATUSES = [ACTIVE, "closed"];
 const NOT_AN_OBJECT = "is not an object";
 const NON_EMPTY_STRING = "must be a non-empty string";
+const STRING_ARRAY = "must be an array of strings";
 
 export { ConfigError } from "./config-error.js";
 
@@ -98,16 +98,32 @@ function rejected(at: MerchantField, error: DomainError): ConfigError {
 /** The detail a domain error uses to name the offending element of a list. */
 const INDEX_DETAIL = "index";
 
+/** The configured fields a domain error of a merchant or an experiment can point at. */
+type ConfiguredField =
+  | ".treatmentPercent"
+  | ".seed"
+  | ".ingestKeys"
+  | ".origins"
+  | ".platformKeys"
+  | ".platformSecrets"
+  | ".experiments";
+
 /** Which configured field each domain error points at (`[index]` is appended when the error names one). */
-const FIELD_BY_CODE: Readonly<Record<string, string>> = {
+const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "invalid-treatment-share": ".treatmentPercent",
   "invalid-seed": ".seed",
+  "invalid-ingest-keys": ".ingestKeys",
+  "invalid-origins": ".origins",
   "invalid-origin": ".origins",
+  "invalid-platform-keys": ".platformKeys",
   "platform-key-collision": ".platformKeys",
+  "invalid-platform-secrets": ".platformSecrets",
   "invalid-platform-secret": ".platformSecrets",
+  "multiple-active-experiments": ".experiments",
+  "duplicate-experiment-id": ".experiments",
 };
 
-/** Validates the minimal shape: an array of merchants with non-empty id, keys and origins. */
+/** Parses the shape (an array of merchants with an id and lists of strings); the rules are the Merchant's. */
 function parseMerchants(raw: string): MerchantConfig[] {
   let parsed: unknown;
   try {
@@ -128,19 +144,13 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (typeof merchantId !== "string" || merchantId === "") {
       throw new ConfigError(`merchants[${i}].merchantId`, NON_EMPTY_STRING);
     }
-    if (!isStringArray(ingestKeys) || ingestKeys.length === 0 || ingestKeys.length > MAX_INGEST_KEYS) {
-      throw new ConfigError(`merchants[${i}].ingestKeys`, "must have one or two keys");
-    }
-    if (!isStringArray(origins) || origins.length === 0) {
-      throw new ConfigError(`merchants[${i}].origins`, "must have at least one origin");
-    }
+    if (!isStringArray(ingestKeys)) throw new ConfigError(`merchants[${i}].ingestKeys`, STRING_ARRAY);
+    if (!isStringArray(origins)) throw new ConfigError(`merchants[${i}].origins`, STRING_ARRAY);
     const platformKeys = m["platformKeys"] ?? [];
-    if (!isStringArray(platformKeys) || platformKeys.length > MAX_INGEST_KEYS) {
-      throw new ConfigError(`merchants[${i}].platformKeys`, "must have at most two keys");
-    }
+    if (!isStringArray(platformKeys)) throw new ConfigError(`merchants[${i}].platformKeys`, STRING_ARRAY);
     const platformSecrets = m["platformSecrets"] ?? [];
-    if (!isStringArray(platformSecrets) || platformSecrets.length > MAX_INGEST_KEYS) {
-      throw new ConfigError(`merchants[${i}].platformSecrets`, "must have at most two secrets");
+    if (!isStringArray(platformSecrets)) {
+      throw new ConfigError(`merchants[${i}].platformSecrets`, STRING_ARRAY);
     }
     const merchant = Merchant.of({
       merchantId: asMerchantId(merchantId),
@@ -171,18 +181,18 @@ function policiesOf(m: Record<string, unknown>, i: number): Partial<MerchantConf
   return policies;
 }
 
-/** Experiments of a merchant: optional list; each one validated; at most one active (ADR-022). */
-function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchant): Experiment[] {
+/** Experiments of a merchant: optional list; each built by its factory, the set judged by its owner (ADR-022). */
+function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchant): Experiments {
   const at: MerchantField = `merchants[${merchantIndex}].experiments`;
-  if (raw === undefined) return [];
+  if (raw === undefined) return Experiments.rehydrate([]);
   if (!Array.isArray(raw)) throw new ConfigError(at, "must be an array of experiments");
-  const experiments = raw.map((item: unknown, j) =>
-    parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`, merchant),
+  const experiments = Experiments.of(
+    raw.map((item: unknown, j) =>
+      parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`, merchant),
+    ),
   );
-  if (experiments.filter((e) => e.isActive()).length > 1) {
-    throw new ConfigError(at, "must have at most one active experiment");
-  }
-  return experiments;
+  if (!experiments.ok) throw rejected(`merchants[${merchantIndex}]`, experiments.error);
+  return experiments.value;
 }
 
 function parseExperiment(item: unknown, at: MerchantField, merchant: Merchant): Experiment {

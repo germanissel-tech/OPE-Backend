@@ -20,4 +20,23 @@ export class InvalidSeed extends DomainError {
   }
 }
 
-export type ExperimentError = InvalidTreatmentShare | InvalidSeed;
+/** Two experiments of the merchant share an identifier (`details.index` names the second). */
+export class DuplicateExperimentId extends DomainError {
+  readonly code = "duplicate-experiment-id" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("Two experiments of the merchant share an identifier.", { index });
+  }
+}
+
+/** More than one experiment of the merchant is active (`details.index` names the second, ADR-022). */
+export class MultipleActiveExperiments extends DomainError {
+  readonly code = "multiple-active-experiments" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("A merchant may have at most one active experiment.", { index });
+  }
+}
+
+export type ExperimentError =
+  InvalidTreatmentShare | InvalidSeed | DuplicateExperimentId | MultipleActiveExperiments;

@@ -1,5 +1,5 @@
-// US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by construction; the
-// provisional NO_OP reason of a batch while there is no decision plane.
+// Feature 004 US2 (FR-015, FR-052; ADR-007) and ADR-024: batch invariants, enforced by
+// construction, and the product focus of a batch.
 import { describe, expect, it } from "vitest";
 import {
   EventBatch,
@@ -9,7 +9,11 @@ import {
   type ProductViewed,
   asEventId,
 } from "../../../../src/domain/ingestion/index.js";
-import { asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import {
+  asSessionId,
+  asVisitorId,
+  CLOCK_SKEW_TOLERANCE_MS,
+} from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -64,12 +68,17 @@ describe("EventBatch.of", () => {
   it("[invariant:event-timestamp-out-of-range] timestamp out of tolerance → rejected", () => {
     const future = EventBatch.of([event(1, { occurredAt: at(5 * MIN + 1) })], now);
     expect(future).toMatchObject({ ok: false, error: { code: "event-timestamp-out-of-range" } });
+    // The tolerance travels in the details, not repeated in the message (015 F-022).
+    if (!future.ok) {
+      expect(future.error.details).toEqual({ eventId: "evt_00000001", ...TIMESTAMP_TOLERANCE });
+      expect(future.error.message).toBe("The timestamp of event evt_00000001 is out of tolerance.");
+    }
     const past = EventBatch.of([event(1, { occurredAt: at(-24 * HOUR - 1) })], now);
     expect(past).toMatchObject({ ok: false, error: { code: "event-timestamp-out-of-range" } });
   });
 
   it("the tolerance is the one the contract publishes: 24 h behind, 5 min ahead", () => {
-    expect(TIMESTAMP_TOLERANCE).toEqual({ pastMs: 24 * HOUR, futureMs: 5 * MIN });
+    expect(TIMESTAMP_TOLERANCE).toEqual({ pastMs: 24 * HOUR, futureMs: CLOCK_SKEW_TOLERANCE_MS });
   });
 
   it("the edges of the tolerance are inside: exactly 5 min ahead and exactly 24 h behind", () => {

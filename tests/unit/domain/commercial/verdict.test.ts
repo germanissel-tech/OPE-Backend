@@ -37,9 +37,9 @@ const risky = FactContext.of({
 
 const record: CommercialPolicyRecord = {
   version: "v",
-  maxIncentivePercent: 10,
-  incentiveLadderPercent: [5, 10],
-  marginPercent: 40,
+  maxIncentiveShare: 0.1,
+  incentiveLadderShare: [0.05, 0.1],
+  marginShare: 0.4,
   directIncentiveOnPrice: true,
   returnRisk: {
     all: [
@@ -58,7 +58,7 @@ const variant = (over: Partial<CommercialPolicyRecord>): CommercialPolicy =>
   CommercialPolicy.rehydrate({ ...record, ...over });
 const withoutMargin = (over: Partial<CommercialPolicyRecord> = {}): CommercialPolicy => {
   const rest = { ...record };
-  delete rest.marginPercent;
+  delete rest.marginShare;
   return CommercialPolicy.rehydrate({ ...rest, ...over });
 };
 
@@ -144,7 +144,7 @@ describe("CommercialPolicy.verdict — the ladder (user story 2)", () => {
     ],
     [
       "ceiling 0 → incentive-not-allowed, the rest of the ladder goes on",
-      variant({ maxIncentivePercent: 0, incentiveLadderPercent: [] }),
+      variant({ maxIncentiveShare: 0, incentiveLadderShare: [] }),
       input({ barrier: "price", judged: judgedOf("price") }),
       intervene("msg_price_price_information_v0"),
     ],
@@ -186,7 +186,7 @@ describe("CommercialPolicy.verdict — the ladder (user story 2)", () => {
   });
 
   it("an empty ladder with a positive ceiling → incentive-not-allowed, the ladder goes on", () => {
-    const policy = variant({ incentiveLadderPercent: [] });
+    const policy = variant({ incentiveLadderShare: [] });
     expect(policy.verdict(input({ barrier: "price", judged: judgedOf("price") }))).toStrictEqual(
       intervene("msg_price_price_information_v0"),
     );
@@ -341,7 +341,7 @@ describe("CommercialPolicy.verdict — the abandonment amplifies (user story 3, 
         barrier: "fit",
         step: "incentive",
         anchor: "size_selector",
-        claims: ["incentive"],
+        claims: [{ kind: "incentive" }],
       },
       verdict: { acceptable: true },
     };

@@ -1,4 +1,4 @@
-// US1 (FR-003, FR-005; ADR-013): the whole application comes out of the composition root, with
+// Feature 004, US1 (FR-003, FR-005; ADR-013): the whole application comes out of the composition root, with
 // the local profile and targeted replacements; close() shuts down in order.
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -6,6 +6,7 @@ import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
 import { MODULES } from "../../src/composition/modules/index.js";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
@@ -71,7 +72,7 @@ describe("bootstrap", () => {
     app = await startTestApp({
       ports: {
         clock: { now: () => new Date(), close: () => closed.push("clock") },
-        decisionIds: { next: () => "dec_x" as never, close: () => closed.push("ids") },
+        decisionIds: { next: () => asDecisionId("dec_x"), close: () => closed.push("ids") },
       } as never,
     });
     const closing = app;

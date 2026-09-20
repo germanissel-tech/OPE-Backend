@@ -1,4 +1,4 @@
-// US2 (FR-010..FR-012): a single format, verified, fixable and idempotent; single list of
+// Feature 003, US2 (FR-010..FR-012): a single format, verified, fixable and idempotent; single list of
 // exclusiones.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

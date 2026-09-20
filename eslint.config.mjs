@@ -49,6 +49,9 @@ export const SRC_ONLY_RULES = {
       // A union of numeric literals (`0 | 1 | 2 | 3`) is a type, the compiler's constant, not a magic value.
       ignoreNumericLiteralTypes: true,
       ignoreEnums: true,
+      // A number inside an object literal (`{ status: 201 }`, `{ maxAge: 600 }`) is as magic as one
+      // outside it; the default leaves objects unchecked (audit 014 F-013).
+      detectObjects: true,
     },
   ],
   // The string counterpart (scripts/lint/no-magic-strings.mjs): a literal repeated in a file where
@@ -71,7 +74,15 @@ export const DOMAIN_RULES = {
   // ADR-024: a rule lives with its concept; only the shared-kernel primitives are loose functions.
   "ope/domain-no-loose-functions": [
     "error",
-    { allow: ["/ids.ts", "shared-kernel/result.ts", "shared-kernel/time.ts"] },
+    {
+      allow: [
+        "/ids.ts",
+        "shared-kernel/result.ts",
+        "shared-kernel/time.ts",
+        "shared-kernel/rate.ts",
+        "shared-kernel/compare.ts",
+      ],
+    },
   ],
 };
 export const DOMAIN_ERROR_RULES = { "ope/domain-error-shape": "error" };

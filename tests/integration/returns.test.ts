@@ -1,14 +1,21 @@
 // Feature 013, user story 4 (FR-035..FR-038): the platform reports the return of a recorded
 // order — RETURNED keeping the correlation, idempotent by orderId, rejected when the order is
 // unknown to the merchant or the items were not bought.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
 import { fail, type MerchantId } from "../../src/domain/shared-kernel/index.js";
 import { memoryOrderLedger } from "../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
 import { json } from "../helpers/json.js";
-import { eventOf, orderOf, postEvents, postOrder, postReturn, startTestApp } from "../helpers/test-app.js";
+import {
+  eventOf,
+  orderOf,
+  postEvents,
+  postOrder,
+  postReturn,
+  sharedTestApp,
+  type SharedApp,
+} from "../helpers/test-app.js";
 import type { OrderLedger } from "../../src/application/outcomes/index.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { OrderId } from "../../src/domain/outcomes/index.js";
 
 const NOW = "2026-09-18T12:00:00.000Z";
@@ -25,9 +32,16 @@ const returnOf = (orderId: string, over: Record<string, unknown> = {}): Record<s
   ...over,
 });
 
-let app: App;
 let now = new Date(NOW);
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: { now: () => now } } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
@@ -35,9 +49,7 @@ const find = (orderId: string) => app.ports.orders.find(A, orderId as OrderId);
 
 async function startWithOrder(options: { attributed?: boolean; orders?: OrderLedger } = {}): Promise<void> {
   now = new Date(NOW);
-  app = await startTestApp({
-    ports: { clock: { now: () => now }, ...(options.orders === undefined ? {} : { orders: options.orders }) },
-  });
+  app.resetPorts(options.orders === undefined ? {} : { ports: { orders: options.orders } });
   if (options.attributed)
     await postEvents(
       app.app,

@@ -1,9 +1,19 @@
-// Merchant (01-arquitectura-mvp.md §0.1; ADR-014, ADR-024, ADR-025): the store that installs
-// OPE. Identity, ingest credentials (the tag, public), platform credentials (its backend,
-// secret) and registered origins. A Merchant only exists valid: `of` parses every origin once
-// and keeps the two kinds of credential apart, `rehydrate` trusts recorded facts.
-import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
-import { InvalidOrigin, InvalidPlatformSecret, PlatformKeyCollision, type MerchantError } from "./errors.js";
+// Merchant (01-arquitectura-mvp.md §0.1; ADR-014, ADR-024, ADR-025, ADR-029): the store that
+// installs OPE. Identity, ingest credentials (the tag, public), platform credentials (its
+// backend, secret) and registered origins. A Merchant only exists valid: `of` judges the size of
+// every credential set (one or two keys, a rotation at most), parses every origin once and keeps
+// the two kinds of credential apart; `rehydrate` trusts recorded facts.
+import { constantTimeEquals, fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
+import {
+  InvalidIngestKeys,
+  InvalidOrigin,
+  InvalidOrigins,
+  InvalidPlatformKeys,
+  InvalidPlatformSecret,
+  InvalidPlatformSecrets,
+  PlatformKeyCollision,
+  type MerchantError,
+} from "./errors.js";
 import { Origin } from "./origin.js";
 
 /** What configuration or a store says about a merchant; origins as written. */
@@ -28,6 +38,9 @@ export interface MerchantRecord {
   platformSecrets: readonly string[];
 }
 
+/** A credential set is one key, or two during a rotation (ADR-014, ADR-025, ADR-029). */
+const MAX_KEYS_PER_SET = 2;
+
 export class Merchant {
   readonly merchantId: MerchantId;
   readonly ingestKeys: readonly string[];
@@ -44,11 +57,18 @@ export class Merchant {
   }
 
   /**
-   * A merchant as configured: every origin must parse, every platform key must be non-empty
-   * and distinct from the ingest keys, and every signing secret must be non-empty and distinct
-   * from every key (the first that fails names its index).
+   * A merchant as configured: one or two non-empty ingest keys, at least one origin and every
+   * origin parseable, at most two platform keys each non-empty and distinct from the ingest
+   * keys, at most two signing secrets each non-empty and distinct from every key (the first
+   * that fails names its index).
    */
   static of(input: MerchantInput): Result<Merchant, MerchantError> {
+    if (input.ingestKeys.length === 0 || input.ingestKeys.length > MAX_KEYS_PER_SET) {
+      return fail(new InvalidIngestKeys());
+    }
+    const emptyKey = input.ingestKeys.findIndex((key) => key === "");
+    if (emptyKey !== -1) return fail(new InvalidIngestKeys(emptyKey));
+    if (input.origins.length === 0) return fail(new InvalidOrigins());
     const origins: Origin[] = [];
     for (const [index, text] of input.origins.entries()) {
       const origin = Origin.parse(text);
@@ -56,10 +76,12 @@ export class Merchant {
       origins.push(origin);
     }
     const platformKeys = input.platformKeys ?? [];
+    if (platformKeys.length > MAX_KEYS_PER_SET) return fail(new InvalidPlatformKeys());
     for (const [index, key] of platformKeys.entries()) {
       if (key === "" || input.ingestKeys.includes(key)) return fail(new PlatformKeyCollision(index));
     }
     const platformSecrets = input.platformSecrets ?? [];
+    if (platformSecrets.length > MAX_KEYS_PER_SET) return fail(new InvalidPlatformSecrets());
     for (const [index, secret] of platformSecrets.entries()) {
       if (secret === "" || input.ingestKeys.includes(secret) || platformKeys.includes(secret)) {
         return fail(new InvalidPlatformSecret(index));
@@ -86,9 +108,13 @@ export class Merchant {
     return key !== "" && this.ingestKeys.includes(key);
   }
 
-  /** Does this platform credential belong to the merchant? Same rules as `owns`. */
+  /**
+   * Does this platform credential belong to the merchant? The key is a secret (ADR-029), so the
+   * comparison takes the same time whatever the first differing character; an empty key
+   * belongs to nobody.
+   */
   ownsPlatformKey(key: string): boolean {
-    return key !== "" && this.platformKeys.includes(key);
+    return key !== "" && this.platformKeys.some((own) => constantTimeEquals(own, key));
   }
 
   /** With a signing secret configured, every platform request must be signed (ADR-029). */

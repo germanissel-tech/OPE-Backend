@@ -1,4 +1,4 @@
-// US3 (FR-010; 01 §14.1; ADR-025): the observed level follows the cadence and degrades alone.
+// Feature 010, US3 (FR-010; 01 §14.1; ADR-025): the observed level follows the cadence and degrades alone.
 import { describe, expect, it } from "vitest";
 import { observedSyncLevel } from "../../../../src/application/catalog/index.js";
 

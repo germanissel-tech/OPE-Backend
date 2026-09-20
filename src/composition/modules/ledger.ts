@@ -20,7 +20,7 @@ export interface LedgerPorts {
   logger: Logger;
   decisions: DecisionLedger;
   exposures: ExposureLedger;
-  /** Who mints decision identifiers: the ledger owns the identity, ingestion asks for one. */
+  /** Who mints decision identifiers: the ledger's recorder, which the decision module receives (`decisionPlaneOf`). */
   decisionIds: DecisionIdGenerator;
 }
 

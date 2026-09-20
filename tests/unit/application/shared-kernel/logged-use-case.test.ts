@@ -1,4 +1,4 @@
-// US5 (FR-040; ADR-023): the logging decorator wraps any use case and reports name, duration
+// Feature 008, US5 (FR-040; ADR-023): the logging decorator wraps any use case and reports name, duration
 // and outcome — never the request.
 import { describe, expect, it } from "vitest";
 import { LoggedUseCase, type UseCase } from "../../../../src/application/shared-kernel/index.js";
@@ -54,10 +54,11 @@ describe("LoggedUseCase", () => {
     expect(JSON.stringify(entries)).not.toContain("details");
   });
 
-  it("a response that is not a Result is `ok`: an object, nothing at all, or a false `ok` without a DomainError", async () => {
+  it("a response that is not a Result is `ok`: an object, nothing at all, null, or a false `ok` without a DomainError", async () => {
     const cases: UseCase<void, unknown>[] = [
       { execute: () => Promise.resolve({ status: "fine" }) },
       { execute: () => Promise.resolve(undefined) },
+      { execute: () => Promise.resolve(null) },
       { execute: () => Promise.resolve({ ok: false, error: new Error("not a business error") }) },
     ];
     for (const inner of cases) {

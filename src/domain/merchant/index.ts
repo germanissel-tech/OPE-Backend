@@ -1,7 +1,11 @@
 // Public API of the merchant module (domain).
 export {
+  InvalidIngestKeys,
   InvalidOrigin,
+  InvalidOrigins,
+  InvalidPlatformKeys,
   InvalidPlatformSecret,
+  InvalidPlatformSecrets,
   OriginNotAllowed,
   PlatformKeyCollision,
   SignatureExpired,

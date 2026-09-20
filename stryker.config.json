@@ -9,7 +9,7 @@
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
   "coverageAnalysis": "perTest",
-  "$commentIncremental": "Incremental mode keeps the verdict of every mutant in reports/mutation/stryker-incremental.json (ignored by git; CI caches it per branch) and re-tests only the mutants whose code or covering tests changed: the second push of a PR pays seconds, not minutes. timeoutMS: a mutant that hangs a test is dead either way; 2 s is enough to know.",
+  "$commentIncremental": "Incremental mode keeps the verdict of every mutant in reports/mutation/stryker-incremental.json (ignored by git; CI caches it per branch) and re-tests only the mutants whose code or covering tests changed: the second push of a PR pays seconds, not minutes. Locally the file is kept too; --all writes its own (stryker-incremental-all.json) so the informative sweep never feeds the gate, and --files re-tests one file with --force. timeoutMS: a mutant that hangs a test is dead either way; 2 s is enough to know.",
   "incremental": true,
   "incrementalFile": "reports/mutation/stryker-incremental.json",
   "timeoutMS": 2000,

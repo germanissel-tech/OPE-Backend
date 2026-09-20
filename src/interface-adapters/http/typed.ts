@@ -61,10 +61,15 @@ export interface SecurityOutcome {
 export type SecurityHandler = (req: SecurityRequest) => SecurityOutcome | Promise<SecurityOutcome>;
 
 /** A security scheme as a module wires it: the handler and the header that carries the credential (ADR-025). */
+/** Who sends the credential: a browser (the SDK) or a server (the merchant's platform). */
+export type SchemeConsumer = "browser" | "server";
+
 export interface SecurityScheme {
   handler: SecurityHandler;
-  /** Lowercase header name; CORS and log redaction derive from it. */
+  /** Lowercase header name; log redaction derives from it, and CORS from the browser ones (ADR-025 §5, §7). */
   header: string;
+  /** Only the headers of browser consumers are announced to a preflight: a server credential never travels from a page. */
+  consumer: SchemeConsumer;
 }
 
 export class SecurityError extends Error {

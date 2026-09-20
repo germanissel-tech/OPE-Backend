@@ -130,7 +130,7 @@ function subject(options: Options = {}) {
       calls.push("truth");
       return Promise.resolve(options.catalog);
     },
-    replace: () => Promise.resolve(),
+    replace: () => Promise.resolve(ok(undefined)),
     receipts: () => Promise.resolve([]),
   };
   const inner = options.inference ?? new RuleBasedBarrierInference();

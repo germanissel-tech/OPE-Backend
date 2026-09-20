@@ -1,4 +1,4 @@
-// US2 (FR-013): deduplication by eventId within the merchant, with a declared window.
+// Feature 004, US2 (FR-013): deduplication by eventId within the merchant, with a declared window.
 import { describe, expect, it } from "vitest";
 import { DEDUP_WINDOW } from "../../../src/application/ingestion/index.js";
 import { asEventId } from "../../../src/domain/ingestion/index.js";

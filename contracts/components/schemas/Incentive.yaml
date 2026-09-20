@@ -4,7 +4,8 @@ description: |
   allowed one (03 §4.8: only for the price barrier, within the merchant's ceiling and ladder).
   The SDK shows it; the merchant's platform redeems it at the checkout and declares what it
   applied in the order notification (`Order.incentive`), which OPE crosses with this grant.
-  Issuing the coupon and configuring it on the platform side arrive with feature 014.
+  Issuing the coupon and configuring it on the platform side arrive with the configuration
+  feature of the map ("Configuration, flags, kill switch and administration").
 additionalProperties: false
 required: [kind, value]
 properties:

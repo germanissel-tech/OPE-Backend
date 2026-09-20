@@ -13,5 +13,5 @@ uso: disponible
 
 Una intervención posible para una barrera: su escalón en la escalera del incentivo, su anclaje
 y los **claims** que hace. Vocabulario cerrado de OPE por barrera (`CANDIDATES`); un merchant
-no agrega candidatos por configuración. Hasta el catálogo de mensajes (015) su identificador es
+no agrega candidatos por configuración. Hasta la feature del catálogo de mensajes su identificador es
 el placeholder `msg_<barrera>_<anclaje>_<escalón>_v0`.

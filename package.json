@@ -39,7 +39,9 @@
     "arch": "node node_modules/dependency-cruiser/bin/dependency-cruiser.mjs --config .dependency-cruiser.cjs src",
     "build": "tsc -p tsconfig.json",
     "dev": "cross-env OPE_MERCHANTS_FILE=config/dev-merchants.json tsx watch src/main.ts",
-    "test": "vitest run",
+    "test": "vitest run --project fast",
+    "test:tools": "vitest run --project tools",
+    "test:all": "vitest run",
     "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs",
     "check:api-map": "node scripts/check-api-map.mjs",
     "check:language": "node scripts/check-language.mjs",
@@ -48,6 +50,7 @@
     "quality": "node scripts/quality.mjs",
     "test:load": "node scripts/load-test.mjs",
     "test:mutation": "node scripts/mutation-diff.mjs",
+    "check:mutation-report": "node scripts/mutation-diff.mjs --check-report",
     "postinstall": "patch-package"
   },
   "dependencies": {

@@ -1,5 +1,7 @@
 // Feature 011 (FR-050; constitution IV, V): session state per merchant, expiring with the window.
 import { describe, expect, it } from "vitest";
+import { SESSION_WINDOW } from "../../../src/application/decision/index.js";
+import { DEDUP_WINDOW } from "../../../src/application/ingestion/index.js";
 import { Signals } from "../../../src/domain/barrier/index.js";
 import { SessionState } from "../../../src/domain/decision/index.js";
 import { asMerchantId, asSessionId, hours } from "../../../src/domain/shared-kernel/index.js";
@@ -49,5 +51,9 @@ describe("memorySessionStateStore", () => {
     expect(await s.load(A, S1)).toBeDefined();
     await s.save(B, S2, SessionState.empty(t0));
     expect(await s.load(B, S2)).toBeDefined();
+  });
+
+  it("the session window is the deduplication window, derived and not repeated (ADR-026 over ADR-024)", () => {
+    expect(SESSION_WINDOW).toEqual({ ttlMs: DEDUP_WINDOW.ttlMs, maxSessions: DEDUP_WINDOW.maxIds });
   });
 });

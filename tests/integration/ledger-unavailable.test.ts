@@ -1,4 +1,4 @@
-// US4 (FR-030..FR-032; ADR-021): when a ledger cannot accept a record the system fails closed —
+// Feature 007, US4 (FR-030..FR-032; ADR-021): when a ledger cannot accept a record the system fails closed —
 // the ingestion degrades to NO_OP `ledger-unavailable`, the exposure answers 503 with Retry-After —
 // and recovers as soon as the ledger is back.
 import { afterEach, describe, expect, it } from "vitest";
@@ -60,7 +60,9 @@ describe("ledger unavailable", () => {
     expect(res.statusCode).toBe(202);
     const body = json(res) as IngestResult;
     expect(body.decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
-    expect(await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never)).toBeUndefined();
+    expect(
+      await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
+    ).toBeUndefined();
     const reported = entries.find((e) => e.message.includes("ledger-unavailable"));
     expect(reported?.level).toBe("error");
     expect(reported?.fields).toMatchObject({ merchantId: "m_a" });
@@ -76,7 +78,9 @@ describe("ledger unavailable", () => {
     expect(res.statusCode).toBe(202);
     const body = json(res) as IngestResult;
     expect(body.decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
-    expect(await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never)).toBeUndefined();
+    expect(
+      await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
+    ).toBeUndefined();
     const reported = entries.find((e) => e.message.includes("assignment not recorded"));
     expect(reported?.level).toBe("error");
     expect(reported?.fields).toMatchObject({ merchantId: "m_a", decisionId: body.decision.decisionId });
@@ -94,7 +98,9 @@ describe("ledger unavailable", () => {
       instance: "/v1/exposures",
     });
     expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
-    expect(await app.ports.exposures.find("m_a" as never, "dec_intervene1" as never)).toBeUndefined();
+    expect(
+      await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId("dec_intervene1")),
+    ).toBeUndefined();
   });
 
   it("once the ledgers are back, the same batch records a decision and the same exposure is 201", async () => {
@@ -118,7 +124,9 @@ describe("ledger unavailable", () => {
       await postEvents(app.app, batchOf(1, 2, { occurredAt: NOW }), { key: KEY }),
     ) as IngestResult;
     expect(second.decision.reason).not.toBe("ledger-unavailable");
-    expect(await app.ports.decisions.find("m_a" as never, second.decision.decisionId as never)).toBeDefined();
+    expect(
+      await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(second.decision.decisionId)),
+    ).toBeDefined();
     await app.ports.decisions.record(intervene());
     expect((await postExposure(app.app, exposure, { key: KEY })).statusCode).toBe(201);
   });

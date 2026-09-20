@@ -1,6 +1,6 @@
 // Public API of the ledger module (application).
 export type { DecisionIdGenerator } from "./ports/decision-id-generator.js";
-export type { DecisionLedger, RecordResult } from "./ports/decision-ledger.js";
+export type { DecisionLedger, RecordResult, SessionDecisions } from "./ports/decision-ledger.js";
 export type { ExposureLedger, ExposureRecordResult, ExposureRecordStatus } from "./ports/exposure-ledger.js";
 export { DefaultDecisionRecorder } from "./services/decision-recorder.service.js";
 export type {

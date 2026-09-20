@@ -9,7 +9,7 @@ import {
   type SignedRequest,
 } from "../../../../src/application/merchant/index.js";
 import { Merchant } from "../../../../src/domain/merchant/index.js";
-import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, CLOCK_SKEW_TOLERANCE_MS } from "../../../../src/domain/shared-kernel/index.js";
 import { nodeMessageAuthenticator } from "../../../../src/interface-adapters/gateways/merchant/node-message-authenticator.js";
 
 const NOW = new Date("2026-09-19T12:00:00.000Z");
@@ -92,8 +92,8 @@ describe("DefaultPlatformSignatureVerifier", () => {
     expect(result.ok ? undefined : result.error.code).toBe(code);
   });
 
-  it("the window is five minutes each way", () => {
-    expect(SIGNATURE_WINDOW_MS).toBe(300_000);
+  it("the window is the clock skew tolerance every declared instant shares (015 F-048)", () => {
+    expect(SIGNATURE_WINDOW_MS).toBe(CLOCK_SKEW_TOLERANCE_MS);
   });
 });
 

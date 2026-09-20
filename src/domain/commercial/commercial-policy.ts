@@ -9,6 +9,7 @@
 import { Vocabulary, type Condition, type FactContext } from "../barrier/index.js";
 import {
   fail,
+  isRate,
   MS_PER_SECOND,
   ok,
   type Arm,
@@ -35,10 +36,12 @@ export type Abandonment = "nothing" | "reassure-returns";
 
 export interface CommercialPolicyRecord {
   version: string;
-  maxIncentivePercent: number;
-  incentiveLadderPercent: readonly number[];
+  /** The ceiling of the incentive as a rate 0..1 (the percentage stays at the edge, CLAUDE.md § Convenciones). */
+  maxIncentiveShare: number;
+  /** The steps of the ladder as rates, strictly increasing, each within (0, ceiling]. */
+  incentiveLadderShare: readonly number[];
   /** Absent: the merchant configured no margin, so nothing with an economic component goes out (01 §4.7). */
-  marginPercent?: number;
+  marginShare?: number;
   directIncentiveOnPrice: boolean;
   /** When it holds over the session, no accelerating incentive (01 §4.5). */
   returnRisk: Condition;
@@ -85,21 +88,21 @@ type Choice =
   | { kind: "chosen"; candidate: Candidate; incentive?: Incentive }
   | { kind: "refused"; reason: NoOpReason; blocked?: Blocked };
 
-const PERCENT_MAX = 100;
+/** The incentive the shopper sees is a whole percentage: the rate resolves to it once, here. */
+const PERCENT_PER_UNIT = 100;
 const INCENTIVE: Step = "incentive";
 const REASSURANCE: Step = "reassurance";
 const PRICE: Barrier = "price";
 const RETURNS: Barrier = "returns";
 const RETURN_RISK = "returnRisk";
 
-const isPercent = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= PERCENT_MAX;
 const isBudget = (value: number): boolean => Number.isInteger(value) && value >= 1;
 
 export class CommercialPolicy {
   readonly version: string;
-  readonly maxIncentivePercent: number;
-  readonly incentiveLadderPercent: readonly number[];
-  readonly marginPercent?: number;
+  readonly maxIncentiveShare: number;
+  readonly incentiveLadderShare: readonly number[];
+  readonly marginShare?: number;
   readonly directIncentiveOnPrice: boolean;
   readonly returnRisk: Condition;
   readonly highIntent: HighIntent;
@@ -110,9 +113,9 @@ export class CommercialPolicy {
 
   private constructor(record: CommercialPolicyRecord) {
     this.version = record.version;
-    this.maxIncentivePercent = record.maxIncentivePercent;
-    this.incentiveLadderPercent = record.incentiveLadderPercent;
-    if (record.marginPercent !== undefined) this.marginPercent = record.marginPercent;
+    this.maxIncentiveShare = record.maxIncentiveShare;
+    this.incentiveLadderShare = record.incentiveLadderShare;
+    if (record.marginShare !== undefined) this.marginShare = record.marginShare;
     this.directIncentiveOnPrice = record.directIncentiveOnPrice;
     this.returnRisk = record.returnRisk;
     this.highIntent = record.highIntent;
@@ -123,19 +126,17 @@ export class CommercialPolicy {
   }
 
   /**
-   * A policy, or the first violated invariant: version not blank, ceiling an integer
-   * percentage, ladder strictly increasing within 1..ceiling, margin absent or a percentage,
-   * return-risk condition inside the vocabulary, budgets of at least one, cooldown not negative.
+   * A policy, or the first violated invariant: version not blank, ceiling a rate 0..1, ladder
+   * strictly increasing within (0, ceiling], margin absent or a rate, return-risk condition
+   * inside the vocabulary, budgets of at least one, cooldown not negative. That the rates
+   * resolve to whole percentages is the edge's rule (the configuration reads integers).
    */
   static of(record: CommercialPolicyRecord): Result<CommercialPolicy, CommercialError> {
     if (record.version.trim() === "") return fail(new InvalidCommercialVersion());
-    if (!Number.isInteger(record.maxIncentivePercent) || !isPercent(record.maxIncentivePercent)) {
-      return fail(new InvalidIncentiveCeiling());
-    }
-    const ladder = ladderOffence(record.incentiveLadderPercent, record.maxIncentivePercent);
+    if (!isRate(record.maxIncentiveShare)) return fail(new InvalidIncentiveCeiling());
+    const ladder = ladderOffence(record.incentiveLadderShare, record.maxIncentiveShare);
     if (ladder !== undefined) return fail(new InvalidIncentiveLadder(ladder));
-    if (record.marginPercent !== undefined && !isPercent(record.marginPercent))
-      return fail(new InvalidMargin());
+    if (record.marginShare !== undefined && !isRate(record.marginShare)) return fail(new InvalidMargin());
     const risk = Vocabulary.captured.check(record.returnRisk, RETURN_RISK);
     if (risk !== undefined) return fail(new InvalidReturnRisk(String(risk.details["path"]), risk.message));
     if (!isBudget(record.interventionsPerSession))
@@ -145,9 +146,7 @@ export class CommercialPolicy {
     }
     if (!Number.isFinite(record.cooldownSeconds) || record.cooldownSeconds < 0)
       return fail(new InvalidCooldown());
-    return ok(
-      new CommercialPolicy({ ...record, incentiveLadderPercent: [...record.incentiveLadderPercent] }),
-    );
+    return ok(new CommercialPolicy({ ...record, incentiveLadderShare: [...record.incentiveLadderShare] }));
   }
 
   /** A policy a store recorded: its invariants are not re-judged. */
@@ -224,14 +223,14 @@ export class CommercialPolicy {
 
   /** Why an incentive cannot go out now, or undefined when it can. */
   #economicBlock(facts: FactContext): BlockReason | undefined {
-    if (this.marginPercent === undefined) return "margin-missing";
-    if (this.incentiveLadderPercent.length === 0) return "incentive-not-allowed";
+    if (this.marginShare === undefined) return "margin-missing";
+    if (this.incentiveLadderShare.length === 0) return "incentive-not-allowed";
     return facts.holds(this.returnRisk) ? "return-risk" : undefined;
   }
 
-  /** The first step of the ladder; the invariant keeps it within the ceiling. */
+  /** The first step of the ladder as the whole percentage the shopper sees; the invariant keeps it within the ceiling. */
   #incentiveValue(): number {
-    return this.incentiveLadderPercent[0] ?? this.maxIncentivePercent;
+    return Math.round((this.incentiveLadderShare[0] ?? this.maxIncentiveShare) * PERCENT_PER_UNIT);
   }
 
   #highIntent({ addedToCart, enteredCheckout }: CommercialInput): boolean {
@@ -261,7 +260,7 @@ function wouldHave(choice: Choice): { chosen?: string; blocked?: Blocked } {
 /**
  * Where the ladder walk starts among the acceptable candidates: at the reassurance when the
  * abandonment itself put the barrier on the table (03 §4.8), one step up when an abandonment
- * confirmed an inferred barrier (D-B), at the lowest otherwise.
+ * confirmed an inferred barrier (03-alcance-mvp.md §6, D-B), at the lowest otherwise.
  */
 function startOf({ trigger, abandoned }: CommercialInput, acceptable: readonly Candidate[]): number {
   if (trigger === "abandonment")
@@ -272,11 +271,11 @@ function startOf({ trigger, abandoned }: CommercialInput, acceptable: readonly C
   return abandoned ? 1 : 0;
 }
 
-/** The index of the first step of the ladder that is not an integer in 1..ceiling above the previous, or undefined. */
+/** The index of the first step of the ladder that is not a rate in (previous, ceiling], or undefined. */
 function ladderOffence(ladder: readonly number[], ceiling: number): number | undefined {
   let previous = 0;
   for (const [index, step] of ladder.entries()) {
-    if (!Number.isInteger(step) || step <= previous || step > ceiling) return index;
+    if (!isRate(step) || step <= previous || step > ceiling) return index;
     previous = step;
   }
   return undefined;

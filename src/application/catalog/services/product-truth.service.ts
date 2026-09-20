@@ -12,15 +12,14 @@ import type { CatalogStore } from "../ports/catalog-store.js";
 
 export type Freshness = "fresh" | "stale";
 
-export interface TruthFreshness {
-  catalog: "fresh";
-  stockAndPrice: Freshness;
-}
-
+/**
+ * A known truth is always inside the catalogue budget (a stale catalogue is `unknown`, reason
+ * `stale`), so the only freshness it carries is the one that can vary: stock and price.
+ */
 export type ProductTruth =
-  | { kind: "known"; product: Product; variant: Variant; freshness: TruthFreshness; ageMs: number }
+  | { kind: "known"; product: Product; variant: Variant; stockAndPrice: Freshness; ageMs: number }
   /** The product without a variant in focus: attributes yes, availability and price of nothing. */
-  | { kind: "known-product"; product: Product; freshness: TruthFreshness; ageMs: number }
+  | { kind: "known-product"; product: Product; stockAndPrice: Freshness; ageMs: number }
   | { kind: "unknown"; reason: "absent" | "stale" | "unknown-product" | "unknown-variant" };
 
 export interface ProductTruthService {
@@ -53,7 +52,7 @@ export class DefaultProductTruthService implements ProductTruthService {
       kind: "known",
       product: known.product,
       variant: found,
-      freshness: known.freshness,
+      stockAndPrice: known.stockAndPrice,
       ageMs: known.ageMs,
     };
   }
@@ -66,7 +65,7 @@ export class DefaultProductTruthService implements ProductTruthService {
     const product = snapshot.product(productId);
     if (product === undefined) return { kind: "unknown", reason: "unknown-product" };
     const stockAndPrice: Freshness = ageMs > this.#budget.stockAndPriceMs ? "stale" : "fresh";
-    return { kind: "known-product", product, freshness: { catalog: "fresh", stockAndPrice }, ageMs };
+    return { kind: "known-product", product, stockAndPrice, ageMs };
   }
 
   async syncLevel(merchantId: MerchantId): Promise<SyncLevel> {

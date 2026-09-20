@@ -1,8 +1,9 @@
-// US2 and US3 (FR-010..FR-013, FR-020..FR-024, SC-002, SC-003; constitution III; ADR-022): the
+// Feature 007, US2 and US3 (FR-010..FR-013, FR-020..FR-024, SC-002, SC-003; constitution III; ADR-022): the
 // assignment is recorded with the first accepted batch, once; CONTROL runs the same pipeline
 // and always resolves NO_OP `control-arm`; the arm never travels as a field.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Experiment } from "../../src/domain/experiment/index.js";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
@@ -12,10 +13,10 @@ import {
   merchantB,
   postEvents,
   postExposure,
-  startTestApp,
+  sharedTestApp,
+  type SharedApp,
   type MerchantSpec,
 } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -56,20 +57,23 @@ function visitorIn(arm: "CONTROL" | "TREATMENT"): string {
 const control = visitorIn("CONTROL");
 const treatment = visitorIn("TREATMENT");
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
-
-const start = () =>
-  startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
 const batchFor = (visitorId: string, n: number, from = 1) => batchOf(n, from, { occurredAt: NOW, visitorId });
 const find = (visitorId: string) =>
-  app.ports.assignments.find("m_a" as never, EXPERIMENT_ID as never, visitorId as never);
+  app.ports.assignments.find(asMerchantId("m_a"), asExperimentId(EXPERIMENT_ID), asVisitorId(visitorId));
 
 describe("assignment (ASSIGNED)", () => {
   it("the first accepted batch records one assignment with merchant, experiment, visitor, arm and the clock's instant", async () => {
-    app = await start();
     expect((await postEvents(app.app, batchFor(control, 2), { key: KEY })).statusCode).toBe(202);
     expect(await find(control)).toEqual({
       merchantId: "m_a",
@@ -81,7 +85,6 @@ describe("assignment (ASSIGNED)", () => {
   });
 
   it("idempotency: ten more batches leave exactly one assignment and the arm does not change", async () => {
-    app = await start();
     await postEvents(app.app, batchFor(treatment, 1, 1), { key: KEY });
     const first = await find(treatment);
     for (let i = 1; i <= 10; i += 1) {
@@ -91,7 +94,6 @@ describe("assignment (ASSIGNED)", () => {
   });
 
   it("a rejected batch (invariant or contract) does not assign", async () => {
-    app = await start();
     const mixed = {
       events: [
         eventOf(1, { occurredAt: NOW, visitorId: control }),
@@ -113,35 +115,44 @@ describe("assignment (ASSIGNED)", () => {
   });
 
   it("CONTROL runs the whole pipeline and resolves NO_OP control-arm; the decision records the arm and the experiment", async () => {
-    app = await start();
     const res = await postEvents(app.app, batchFor(control, 2), { key: KEY });
     const body = json(res) as IngestResult;
     expect(body).toMatchObject({ accepted: 2, decision: { outcome: "NO_OP", reason: "control-arm" } });
-    const decision = await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_a"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "CONTROL" });
   });
 
   it("TREATMENT goes through the decision plane (no signal → barrier-unclear) and records the arm too", async () => {
-    app = await start();
     const body = json(await postEvents(app.app, batchFor(treatment, 1), { key: KEY })) as IngestResult;
     expect(body.decision.reason).toBe("barrier-unclear");
-    const decision = await app.ports.decisions.find("m_a" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_a"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "TREATMENT" });
   });
 
   it("a merchant without an active experiment assigns nobody and resolves NO_OP no-active-experiment", async () => {
-    app = await start();
     const body = json(await postEvents(app.app, batchFor(control, 1), { key: "key-b-1" })) as IngestResult;
     expect(body.decision.reason).toBe("no-active-experiment");
     expect(
-      await app.ports.assignments.find("m_b" as never, EXPERIMENT_ID as never, control as never),
+      await app.ports.assignments.find(
+        asMerchantId("m_b"),
+        asExperimentId(EXPERIMENT_ID),
+        asVisitorId(control),
+      ),
     ).toBeUndefined();
-    const decision = await app.ports.decisions.find("m_b" as never, body.decision.decisionId as never);
+    const decision = await app.ports.decisions.find(
+      asMerchantId("m_b"),
+      asDecisionId(body.decision.decisionId),
+    );
     expect(decision?.experiment).toBeUndefined();
   });
 
   it("the arm and the experiment never travel as fields in any response (SC-003)", async () => {
-    app = await start();
     const ingest = await postEvents(app.app, batchFor(control, 1), { key: KEY });
     const decisionId = (json(ingest) as IngestResult).decision.decisionId;
     const exposure = await postExposure(

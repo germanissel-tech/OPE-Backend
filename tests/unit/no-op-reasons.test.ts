@@ -1,4 +1,4 @@
-// US3 (FR-020): the domain reason catalogue replicates contracts/no-op-reasons.yaml.
+// Feature 004, US3 (FR-020): the domain reason catalogue replicates contracts/no-op-reasons.yaml.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";

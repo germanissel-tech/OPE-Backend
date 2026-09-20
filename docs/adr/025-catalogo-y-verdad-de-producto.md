@@ -32,11 +32,11 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
    verdad" (el consumidor se calla); entre ambos ⇒ la variante existe pero stock y precio se
    reportan viejos (01 §8: calce y atributos sí, disponibilidad y precio no). Los presupuestos
    son políticas de aplicación publicadas en el contrato; pasan a configuración por merchant
-   con la 014.
+   con la configuración por API (feature "Configuration, flags, kill switch and administration").
 4. **Perfil observado, no declarado** (01 §14.1): el nivel de sincronización (0–3) se deriva de
    la cadencia de recepciones y la edad del vigente en cada consulta; degrada solo; 3 no se
    alcanza con snapshots completos. El mínimo con el nivel configurado y las familias que
-   habilita son de la 014.
+   habilita son de la feature de configuración por API.
 5. **`platformKey` decidido**: clave servidor a servidor por merchant (una o dos, rotación),
    header `X-OPE-Platform-Key`, configurada en `OPE_MERCHANTS` junto a las de ingesta y
    distinta de ellas; sin CORS; resuelta por un servicio del módulo `merchant` y un security
@@ -59,6 +59,14 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
 - La 011 lee `ProductTruthService` y decide con `freshness` por clase; nunca ve cantidades.
 - Un adaptador Magento/VTEX (pull) o un refresco parcial de stock/precio son operaciones
   posteriores del mapa (V3); el snapshot completo es el caso base que todos pueden cumplir.
+- **Deuda declarada frente a la constitución X** (2026-09-19, auditoría 014 F-062/F-063): el
+  principio X pide un puerto de plataforma de cuatro operaciones (`obtenerCatalogo`,
+  `obtenerStockYPrecio`, `alConfirmarOrden`, `alRegistrarDevolucion`) con un adaptador
+  genérico y uno de prueba "desde el día uno". Lo construido es el caso base push (este ADR y
+  ADR-028): la plataforma empuja catálogo, órdenes y devoluciones y el núcleo no tiene ese
+  puerto. El dueño decidió mantener X y planificarlo: la feature "Platform port and adapters"
+  del mapa del contrato construye el puerto, los dos adaptadores y la prueba de punta a punta
+  que el Flujo de desarrollo pide. Hasta entonces X es deuda, escrita aquí y en la guía.
 - Órdenes y devoluciones (013) reutilizan `platformKey` y la verificación de capacidades tal
   cual.
 - El `bodyLimit` del servidor sube a 32 MiB (openapi-backend rutea con un handler único; no

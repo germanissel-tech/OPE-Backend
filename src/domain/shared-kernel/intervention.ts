@@ -16,7 +16,7 @@ export interface Incentive {
   value: number;
 }
 
-/** Where to render, which curated message version to fetch (feature 015 serves the text) and, when granted, the incentive. */
+/** Where to render, which curated message version to fetch (the message catalogue feature serves the text) and, when granted, the incentive. */
 export interface Intervention {
   messageVersionId: string;
   anchor: Anchor;

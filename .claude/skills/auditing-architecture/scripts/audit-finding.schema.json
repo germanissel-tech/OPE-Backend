@@ -38,6 +38,17 @@
     "coveringTest": { "type": "string", "minLength": 1 },
     "status": { "enum": ["proposed", "confirmed", "refuted"] },
     "refutation": { "type": "string", "description": "Required when status is refuted." },
+    "closure": {
+      "type": "object",
+      "description": "How a later feature closed the finding (optional; verify-finding.mjs does not judge it).",
+      "additionalProperties": false,
+      "required": ["status", "by", "feature"],
+      "properties": {
+        "status": { "enum": ["resolved", "absorbed-by", "rejected"] },
+        "by": { "type": "string", "minLength": 1, "description": "Commit hash, F-NNN or the owner's reason." },
+        "feature": { "type": "string", "pattern": "^[0-9]{3}$" }
+      }
+    },
     "verified": { "type": "boolean", "description": "Set by verify-finding.mjs." },
     "reason": { "type": "string", "description": "Set by verify-finding.mjs when verified is false." }
   },

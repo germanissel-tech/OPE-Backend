@@ -3,7 +3,8 @@
 import { asOrderId } from "../../../../domain/outcomes/index.js";
 import { asSessionId, asVisitorId } from "../../../../domain/shared-kernel/index.js";
 import { instantOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
+import { HTTP_STATUS } from "../../status.js";
 import { toProblem } from "../../to-problem.js";
 import type {
   CorroborateOrderRequest,
@@ -26,7 +27,7 @@ export function makeCorroborateOrder(
     });
     if (!result.ok) return toProblem(result.error, req.instance);
     return {
-      status: 202,
+      status: HTTP_STATUS.ACCEPTED,
       body: { orderId: req.body.orderId, receivedAt: result.value.receivedAt.toISOString() },
     };
   };

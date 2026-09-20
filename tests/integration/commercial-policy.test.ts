@@ -1,7 +1,7 @@
 // Feature 012, user stories 1–4 through HTTP: the quality gate against the merchant's profile,
 // the commercial policy granting and blocking the incentive, cooldown and fatigue, the
 // abandonment as an amplifier (D-B) and what the ledger keeps versus what the SDK sees.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
@@ -11,10 +11,10 @@ import {
   fixedClock,
   postEvents,
   putCatalog,
-  startTestApp,
+  sharedTestApp,
   type MerchantSpec,
+  type SharedApp,
 } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
@@ -36,8 +36,15 @@ const spec = (over: Partial<MerchantSpec> = {}): MerchantSpec => ({
   ...over,
 });
 
-let app: App;
-afterEach(async () => {
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [spec()] });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
   await app.close();
 });
 
@@ -55,8 +62,9 @@ const addedToCart = (s: number) => ev(s, { type: "added_to_cart", quantity: 1 })
 const removedFromCart = (s: number) => ev(s, { type: "removed_from_cart" });
 const variant = (s: number, id: string) => ev(s, { type: "variant_selected", selectedVariantId: id });
 
+/** The merchant of the test and its catalogue; the server is the file's. */
 async function start(merchant: MerchantSpec = spec(), catalogAt = NOW): Promise<void> {
-  app = await startTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchant] });
+  app.resetPorts({ config: { merchants: [merchant] } });
   const res = await putCatalog(
     app.app,
     { capturedAt: catalogAt, products: [catalogProductOf("SKU-1", 2)] },
@@ -275,7 +283,6 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
     );
     const plain = await ingest([priceRead(1), cta(2)]);
     expect(plain.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
-    await app.close();
     await start(
       spec({ commercialPolicy: { version: "c", marginPercent: 40, directIncentiveOnPrice: false } }),
     );

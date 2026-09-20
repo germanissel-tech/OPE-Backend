@@ -1,4 +1,4 @@
-// US3 (FR-021; ADR-016): unused files, exports and dependencies block; unused exported types inform.
+// Feature 005, US3 (FR-021; ADR-016): unused files, exports and dependencies block; unused exported types inform.
 import { describe, expect, it } from "vitest";
 import { fixture, runScript } from "./run.js";
 

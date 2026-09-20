@@ -1,4 +1,4 @@
-// US5 (FR-040): the pre-commit hook runs format and lint on staged files and the typecheck;
+// Feature 003, US5 (FR-040): the pre-commit hook runs format and lint on staged files and the typecheck;
 // never the contract verification or the tests. Static verification of lefthook.yml
 // (running git hooks inside a test would be brittle).
 import { readFileSync } from "node:fs";

@@ -96,9 +96,9 @@ describe("DecisionPolicy.of", () => {
   });
 
   it("the boundaries are inside: threshold 0 and 1; a padded version is kept as written", () => {
-    expect(DecisionPolicy.of({ ...base, threshold: 0 }).ok).toBe(true);
+    // The threshold is judged by the kernel's `isRate` (015 F-030); the table of edges lives in
+    // shared-kernel/rate.test.ts.
     expect(DecisionPolicy.of({ ...base, threshold: 1 }).ok).toBe(true);
-    expect(rejected({ ...base, threshold: -0.0001 }).code).toBe("invalid-policy-threshold");
     expect(rejected({ ...base, threshold: 1.0001 }).code).toBe("invalid-policy-threshold");
     const padded = DecisionPolicy.of({ ...base, version: " v2 " });
     expect(padded.ok && padded.value.version).toBe(" v2 ");

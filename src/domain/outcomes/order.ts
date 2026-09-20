@@ -3,8 +3,8 @@
 // the storefront attached and the incentive applied. Every recorded order is a verified sale;
 // its correlation with a session is decided once, when it is recorded, and never re-judged.
 import {
+  CLOCK_SKEW_TOLERANCE_MS,
   fail,
-  minutes,
   ok,
   type Incentive,
   type MerchantId,
@@ -50,10 +50,6 @@ export interface OrderRecord extends OrderFacts {
   returned?: Return | undefined;
 }
 
-const CONFIRMATION_TOLERANCE_MINUTES = 5;
-/** How far ahead of the server clock a confirmation may be before it is a clock error. */
-export const CONFIRMATION_TOLERANCE_MS = minutes(CONFIRMATION_TOLERANCE_MINUTES);
-
 export class Order implements OrderRecord {
   readonly merchantId: MerchantId;
   readonly orderId: OrderId;
@@ -89,8 +85,8 @@ export class Order implements OrderRecord {
   static of(record: OrderRecord): Result<Order, OutcomesError> {
     const duplicate = Order.duplicatedSku(record.items);
     if (duplicate !== undefined) return fail(new DuplicateOrderItem(duplicate));
-    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + CONFIRMATION_TOLERANCE_MS) {
-      return fail(new OrderConfirmedInFuture());
+    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + CLOCK_SKEW_TOLERANCE_MS) {
+      return fail(new OrderConfirmedInFuture(CLOCK_SKEW_TOLERANCE_MS));
     }
     return ok(new Order(record));
   }
@@ -119,6 +115,11 @@ export class Order implements OrderRecord {
 
   status(): OrderStatus {
     return this.correlation === undefined ? "PENDING_CORRELATION" : "ATTRIBUTED_ORDER";
+  }
+
+  /** The same order, with what OPE derived when it recorded it (decided once, ADR-028). */
+  correlated(correlation: Correlation | undefined, redemption: IncentiveRedemption | undefined): Order {
+    return new Order({ ...this.record(), correlation, redemption });
   }
 
   /** The same order, returned. */

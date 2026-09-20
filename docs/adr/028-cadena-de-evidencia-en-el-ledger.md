@@ -45,17 +45,20 @@ ledger]`): la autoridad de entrada de compras, devoluciones y corroboraciones. E
    incentivo aplicado; OPE lo cruza con la última decisión `INTERVENE` con incentivo de la
    sesión y registra `matched | mismatched | not-applied | not-granted | unverifiable`. Nunca
    rechaza la orden.
-6. **El cuerpo de la orden está acotado por diseño** (01 §10.3): identificador, total, ítems
-   con SKU y cantidad, instante, sesión e incentivo. Nada del comprador; `additionalProperties:
-false` rechaza el objeto de orden completo.
+6. **El cuerpo de la orden está acotado por diseño** (constitución VII, v1.3.0): identificador,
+   total, ítems con SKU y cantidad, instante, sesión e incentivo aplicado. Nada del comprador;
+   `additionalProperties: false` rechaza el objeto de orden completo. Nota (2026-09-19,
+   auditoría 014 F-062): 01 §10.3 lista seis campos, sin el incentivo; la constitución lo
+   admite desde la v1.3.0 porque lo concede OPE y no identifica al comprador, y el documento
+   del MVP queda por actualizar fuera del repo.
 
 ## Consecuencias
 
 - El ledger puede explicar cada venta hasta su sesión, brazo, experimento, corroboración,
-  redención y devolución (constitución IX); el análisis ITT (016) sólo lee.
+  redención y devolución (constitución IX); el análisis ITT (feature del portal) sólo lee.
 - Un merchant que sólo puede corroborar (sin propagar el `sessionId`) queda con todas sus
   órdenes `PENDING_CORRELATION`: el piloto degradado se ve en el ledger, no se disimula.
 - El resultado causal no es un estado del ledger ni una respuesta: nadie puede leer
   "atribuida" como "causada".
-- La persistencia (017) hereda el contrato de los puertos: la atomicidad de la idempotencia
+- La feature de persistencia hereda el contrato de los puertos: la atomicidad de la idempotencia
   es del store, no del caso de uso.

@@ -3,7 +3,7 @@
 // must have declared it, the merchant's word; the first claim without support rejects the
 // candidate entire — UNACCEPTABLE is a kind of failure, not a low score. The gate knows no
 // ceiling, margin or policy: nothing in configuration relaxes it.
-import { ATTRIBUTE_CLAIM_PREFIX, type Candidate, type Claim } from "./candidate.js";
+import type { Candidate, Claim } from "./candidate.js";
 import type { MerchantProfile } from "./profile.js";
 
 /** What the product truth says, flattened for the claims (the catalog module answers it). */
@@ -57,8 +57,9 @@ export class QualityGate {
     return candidates.map((candidate) => ({ candidate, verdict: this.judge(candidate, evidence) }));
   }
 
+  /** Exhaustive over `kind` without a default: a claim class nobody judges does not compile (015 F-038). */
   #unsupported(claim: Claim, evidence: GateEvidence): GateRejection | undefined {
-    switch (claim) {
+    switch (claim.kind) {
       case "returns-policy":
         return this.#profile.returnsPolicy ? undefined : "no-returns-policy";
       case "fit-data":
@@ -70,8 +71,8 @@ export class QualityGate {
       case "incentive":
         // Whether an incentive may be granted is the commercial policy's, not the gate's.
         return undefined;
-      default:
-        return this.#attribute(claim.slice(ATTRIBUTE_CLAIM_PREFIX.length), evidence);
+      case "product-attribute":
+        return this.#attribute(claim.key, evidence);
     }
   }
 

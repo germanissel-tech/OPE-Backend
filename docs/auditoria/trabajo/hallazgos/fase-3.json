@@ -14,7 +14,12 @@
       "after": "// the scheme says who it is for; CORS derives from the browser ones only\nexport interface SecurityScheme { handler: SecurityHandler; header: string; consumer: \"browser\" | \"server\" }\n// build-server.ts\n  const credentialHeaders = Object.values(options.security ?? {})\n    .filter((scheme) => scheme.consumer === \"browser\")\n    .map((scheme) => scheme.header);\n// modules/merchant.ts: ingestKey → \"browser\", platformKey → \"server\""
     },
     "coveringTest": "tests/integration/cors.test.ts: a preflight from a registered origin announcing `x-ope-platform-key` (and `x-ope-timestamp`/`x-ope-signature`) must not list it in `access-control-allow-headers`; today the file asserts the ingest header is present (line 33) and nothing about the platform one. ADR-025 §5 decides `platformKey` \"sólo servidor a servidor (sin CORS)\" and spec 010 FR-021 repeats it; ADR-025 §7 makes CORS derive its headers from \"los esquemas registrados\" and the implementation took every scheme, so a page on any registered origin can send `POST /v1/orders` and `POST /v1/returns` with the platform key from the browser (the key is secret, so this is a defence the ADR decided and the code does not provide; with `platformSecrets` configured the signature headers are not allowed and the request fails, without them it succeeds)",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "d868ca1",
+      "feature": "015"
+    }
   },
   {
     "id": "F-052",
@@ -31,7 +36,12 @@
       "after": "  // Stryker disable next-line ConditionalExpression,LogicalOperator: … (one statement, one line form)\n  return Object.entries(results).filter(…);\n// same in src/domain/barrier/condition.ts:172-179 and src/domain/barrier/signals.ts:113-122: the `// Stryker restore` sits after the\n// `return undefined` of the last `case`; move it before the closing brace of the switch's parent, or use `next-line` on each case group"
     },
     "coveringTest": "the full mutation report (reports/mutation/report.json; `trabajo/gates/mutation-full-summary.json`) is the proof: every `Ignored` mutant carries the reason of the disable that silenced it, and the reason of line 117 appears on 40 mutants of `build-server.ts` from line 119 to 421 — `registerSecurity` (226: `if (error instanceof SecurityError)`), the declared-status check (302-303), the content type of errors (319-320), the log of a handler that throws (337), `send` headers (364), the Fastify error hook (396-398), the wiring of security (421). In `condition.ts` the reason of line 172 reaches `#ref` at 184 and 187 — the vocabulary check itself (`this.#types.includes(ref.type)`, `subtypes?.includes(ref.subtype)`) — and in `signals.ts` the reason of 113 reaches `combine` at 134. A `disable`/`restore` pair whose restore is the last thing in a block silences the rest of the file; `test:mutation` on a PR that touches those lines reports nothing. CLAUDE.md § Gates de calidad admits only the `next-line` form with a reason",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "83009af",
+      "feature": "015"
+    }
   },
   {
     "id": "F-053",
@@ -48,7 +58,12 @@
       "after": "    return key !== \"\" && this.platformKeys.some((own) => constantTimeEquals(own, key));\n// `constantTimeEquals` in the domain shared-kernel (pure: length check, then XOR over every code unit, no early exit),\n// the same primitive `PlatformSignature.matches` already needs; `owns` (ingest key, public) may keep `includes`"
     },
     "coveringTest": "tests/unit/domain/merchant/merchant.test.ts: `ownsPlatformKey` with a key that shares a long prefix with a real one must take the same path as a key that differs in the first character (a property test on the primitive, not a timing test). ADR-029:13 calls `platformKey` \"una clave secreta servidor a servidor\" and its §3 decides constant-time comparison for the signature; the key that authenticates the same requests — alone, when the merchant has no `platformSecrets` — is compared with `includes` (V8 string equality: length, then bytes with early exit), and the directory scans merchants with it (config-merchant-directory.ts:10). Over HTTP the leak is not measurable in practice; the inconsistency is with the ADR's own standard",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "d868ca1",
+      "feature": "015"
+    }
   },
   {
     "id": "F-054",
@@ -65,7 +80,12 @@
       "after": "      \"-H\", `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? \"\"}`,\n      \"-H\", `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? \"\"}`,\n// (a merchant without `platformSecrets`, so no signature is needed; or a Schemathesis hook that signs)"
     },
     "coveringTest": "`npm run test:contract` itself: today its output says \"401 Unauthorized (3 operations): POST /v1/orders, POST /v1/returns, PUT /v1/catalog\" (trabajo/gates/global-test-contract.txt:58-61), so three of the seven built operations are fuzzed only up to the credential. The \"schema validation mismatch\" of S-09 has two causes and neither is a contract stricter than the server: those three operations answer 401 to everything, and `POST /v1/events` / `POST /v1/exposures` reject most generated bodies through `x-invariants` the schema cannot express (random `visitorId` per event ⇒ 422 `session-visitor-mismatch`; random `decisionId` ⇒ 422 `exposure-decision-unknown`; random `occurredAt` outside 24 h/5 min ⇒ 422), by design (ADR-007)",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "83009af",
+      "feature": "015"
+    }
   },
   {
     "id": "F-055",
@@ -82,7 +102,12 @@
       "after": "// vitest.config: projects `fast` (unit, integration, contract rules) and `tools` (audit, quality, contract-docs);\n// `npm test` runs `fast`, CI runs both; and tests/integration/* start the app once per file (`beforeAll`) with\n// fresh in-memory ports per test instead of `startTestApp()` inside every `it`"
     },
     "coveringTest": "measurement of 2026-09-19 (vitest JSON reporter over the whole suite, 1004 tests, 147 s wall, 522 s of file time on the workers): tests/audit/audit.test.ts 148 s (14 tests), tests/unit/contract-docs.test.ts 78 s (2), tests/governance/quality.test.ts 58 s (4) — three files are 54 % of the CPU time; the 22 integration files take 162 s for 172 tests (0.94 s per test, one `bootstrap` each); the 75 unit files take 90 s for 599 tests. The handoff asks whether the suite scales as a project cost; nothing written fixes a budget, so this is a proposal, not a defect",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "83009af",
+      "feature": "015"
+    }
   },
   {
     "id": "F-056",
@@ -99,7 +124,12 @@
       "after": "    occurredAt: NOW, // the same instant `fixedClock` defaults to, exported by the helper; a test that fixes another clock passes its own"
     },
     "coveringTest": "none today. Every one of the 15 integration files that fixes the clock passes `occurredAt` explicitly (checked file by file), which is how the trap is avoided after it bit twice in 013 (handoff §5.E); the helper still defaults to the process clock, so the next test with `fixedClock(NOW)` and a bare `eventOf(n)` gets 422 `event-timestamp-out-of-range` when NOW is more than 5 min behind or 24 h ahead of the real date. `tests/unit/composition/wiring.test.ts:48` and `tests/integration/bootstrap.test.ts:73` use the real clock on purpose (start-up), which is fine",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "83009af",
+      "feature": "015"
+    }
   },
   {
     "id": "F-057",
@@ -116,7 +146,12 @@
       "after": "// the content-type parser already sees the request before buffering (keepRawBodies): cap by path there\n  app.addContentTypeParser(JSON_CONTENT_TYPE, { parseAs: \"buffer\", bodyLimit: limitFor(request.url) }, …)\n// or two Fastify instances (F-045): the SDK's with a batch-sized limit (50 events ≈ tens of KiB), the platform's with 32 MiB"
     },
     "coveringTest": "tests/integration/ingest-events.test.ts: a `POST /v1/events` body of, say, 1 MiB must be refused with 413 before it is parsed (today it is buffered, `JSON.parse`d and only then rejected by Ajv for `maxItems: 50`). ADR-025 decided the global limit on the premise that openapi-backend routes with one handler and \"no hay límite por operación\"; the premise holds for routes, not for the parser, which receives the request. The ingest credential is public by design (ADR-014: \"todo lo que lleva es público\"), so anyone can spend the decision plane's event loop on 32 MiB of JSON per request; the cost is the one F-045 measured (fase 2) and the mitigation is the same",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "d868ca1",
+      "feature": "015"
+    }
   },
   {
     "id": "F-058",
@@ -133,7 +168,12 @@
       "after": "3. **Ventana** de ±300 s contra el reloj del servidor; comparación en tiempo constante; se\n   acepta cualquiera de los secretos activos. Un replay dentro de la ventana es posible por\n   diseño y lo absorbe la idempotencia: orden y devolución repetidas responden `200` sin\n   segundo efecto; un snapshot repetido con el mismo `capturedAt` responde `200` y uno más\n   viejo `422 catalog-out-of-order`. Sin nonce: el efecto de un replay es siempre nulo."
     },
     "coveringTest": "tests/integration/platform-signature.test.ts: replaying the exact signed request (same timestamp, same body) inside the window must answer 200 for orders/returns and 200 or 422 for the catalogue, never a second record — provable today, unwritten in the ADR (S-11 of the handoff: verified, no exploitable window; the one effect of a replay is the same idempotent answer). Rotation: \"uno o dos\" secrets active at once is the grace window, and it is written (ADR-029 §1)",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "f8b5ee8",
+      "feature": "015"
+    }
   },
   {
     "id": "F-059",

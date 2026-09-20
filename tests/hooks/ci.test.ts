@@ -1,4 +1,4 @@
-// US6 (FR-050; ADR-016): CI runs the quality gates and the mutation gate on every change, and a
+// Feature 005, US6 (FR-050; ADR-016): CI runs the quality gates and the mutation gate on every change, and a
 // scheduled job mutates the whole repository informatively. Static verification of the workflow.
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -22,10 +22,11 @@ const runs = (job: string): string[] =>
   workflow.jobs[job]?.steps.map((s) => s.run ?? "").filter(Boolean) ?? [];
 
 describe(".github/workflows/ci.yml", () => {
-  it("runs quality after lint and the tests in the checks job", () => {
+  it("runs quality after lint and both test projects in the checks job (015 F-055)", () => {
     const checks = runs("checks");
     expect(checks.indexOf("npm run quality")).toBeGreaterThan(checks.indexOf("npm run lint"));
-    expect(checks.indexOf("npm test")).toBeGreaterThan(-1);
+    expect(checks).toContain("npm run test:all");
+    expect(checks).not.toContain("npm test");
     expect(checks).not.toContain("npm run test:mutation");
   });
 

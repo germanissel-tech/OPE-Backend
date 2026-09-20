@@ -12,5 +12,5 @@ content:
           type: urn:ope:problem:corroboration-confirmed-in-future
           title: The confirmation instant is in the future
           status: 422
-          detail: confirmedAt is more than 5 minutes ahead of the server clock.
+          detail: confirmedAt is ahead of the server clock beyond the tolerance.
           instance: /v1/orders/corroborations

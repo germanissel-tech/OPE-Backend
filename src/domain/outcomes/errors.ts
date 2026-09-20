@@ -3,7 +3,8 @@
 import { DomainError } from "../shared-kernel/index.js";
 
 const MODULE = "outcomes" as const;
-const AHEAD_OF_CLOCK = "confirmedAt is more than 5 minutes ahead of the server clock.";
+// The tolerance travels in `details`: the message does not repeat what its constant owns (015 F-022).
+const AHEAD_OF_CLOCK = "confirmedAt is ahead of the server clock beyond the tolerance.";
 
 export class DuplicateOrderItem extends DomainError {
   readonly code = "duplicate-order-item" as const;
@@ -16,16 +17,16 @@ export class DuplicateOrderItem extends DomainError {
 export class OrderConfirmedInFuture extends DomainError {
   readonly code = "order-confirmed-in-future" as const;
   readonly module = MODULE;
-  constructor() {
-    super(AHEAD_OF_CLOCK);
+  constructor(toleranceMs: number) {
+    super(AHEAD_OF_CLOCK, { toleranceMs });
   }
 }
 
 export class CorroborationConfirmedInFuture extends DomainError {
   readonly code = "corroboration-confirmed-in-future" as const;
   readonly module = MODULE;
-  constructor() {
-    super(AHEAD_OF_CLOCK);
+  constructor(toleranceMs: number) {
+    super(AHEAD_OF_CLOCK, { toleranceMs });
   }
 }
 

@@ -1,4 +1,4 @@
-// US6 (FR-050; ADR-016): one command chains the deterministic gates, stops at the first red one
+// Feature 005, US6 (FR-050; ADR-016): one command chains the deterministic gates, stops at the first red one
 // and names it; with --json it reports every gate.
 import path from "node:path";
 import { pathToFileURL } from "node:url";

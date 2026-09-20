@@ -1,20 +1,32 @@
-// US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
-import { afterEach, describe, expect, it } from "vitest";
+// Feature 004, US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { asMerchantId, asSessionId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
-import { batchOf, eventOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
-import type { App } from "../../src/composition/bootstrap.js";
+import {
+  batchOf,
+  eventOf,
+  fixedClock,
+  postEvents,
+  sharedTestApp,
+  type SharedApp,
+} from "../helpers/test-app.js";
 import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 
-let app: App | undefined;
-afterEach(async () => {
-  await app?.close();
-  app = undefined;
-});
-
 const NOW = "2026-09-16T12:00:00.000Z";
-const withClock = () => startTestApp({ ports: { clock: fixedClock(NOW) } });
+// One server per file (015 F-055): the in-memory ports are rebuilt before each test.
+let app: SharedApp;
+beforeAll(async () => {
+  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+});
+beforeEach(() => {
+  app.resetPorts();
+});
+afterAll(async () => {
+  await app.close();
+});
 const at = (offsetMs: number) => new Date(Date.parse(NOW) + offsetMs).toISOString();
 
 /** One event of each type of 03 §4.1, with its own attributes. */
@@ -40,7 +52,6 @@ function batchOfEach(from = 1): { events: unknown[] } {
 
 describe("POST /v1/events", () => {
   it("batch of 20 valid events (one of each type) → 202 with a result per event and a NO_OP decision", async () => {
-    app = await withClock();
     const res = await postEvents(app.app, batchOfEach(), { key: "key-a-1" });
     expect(res.statusCode, res.body).toBe(202);
     const body = json(res) as IngestResult;
@@ -55,18 +66,22 @@ describe("POST /v1/events", () => {
     expect(body.decision.sessionId).toBe("ses_00000001");
   });
 
-  it("duplicate event: resending the same batch → all `duplicate`, nothing is recorded twice (idempotency)", async () => {
-    app = await withClock();
+  it("duplicate event: resending the same batch → all `duplicate`; no event is recorded twice, and the resend gets a decision of its own", async () => {
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(res.statusCode).toBe(202);
     const body = json(res) as IngestResult;
     expect(body).toMatchObject({ accepted: 0, duplicates: 3 });
     expect(body.results.map((r) => r.status)).toEqual(["duplicate", "duplicate", "duplicate"]);
+    // What the ledger keeps: the events enter once, but every batch — this resend too — is decided
+    // and its decision recorded (the deduplication is of events, not of decisions; a fact for the
+    // persistence feature, F-024 of the audit 014).
+    const decisions = await app.ports.decisions.bySession(asMerchantId("m_a"), asSessionId("ses_00000001"));
+    expect(decisions).toHaveLength(2);
+    expect(new Set(decisions.map((d) => d.decisionId)).size).toBe(2);
   });
 
   it("a batch with one new and one repeated event reports each with its status", async () => {
-    app = await withClock();
     await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(2, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const body = json(res) as IngestResult;
@@ -78,7 +93,6 @@ describe("POST /v1/events", () => {
   });
 
   it("the same eventId twice inside one batch counts once: accepted, then duplicate", async () => {
-    app = await withClock();
     const twice = { events: [eventOf(1, { occurredAt: NOW }), eventOf(1, { occurredAt: NOW })] };
     const body = json(await postEvents(app.app, twice, { key: "key-a-1" })) as IngestResult;
     expect(body).toMatchObject({ accepted: 1, duplicates: 1 });
@@ -86,14 +100,12 @@ describe("POST /v1/events", () => {
   });
 
   it("the same eventId in another merchant is another event (isolation FR-050)", async () => {
-    app = await withClock();
     await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-a-1" });
     const res = await postEvents(app.app, batchOf(3, 1, { occurredAt: NOW }), { key: "key-b-1" });
     expect(json(res)).toMatchObject({ accepted: 3, duplicates: 0 });
   });
 
   it("undeclared field in an event → 400 with the exact pointer, and nothing of the batch is recorded", async () => {
-    app = await withClock();
     const bad = { events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, foo: 1 })] };
     const res = await postEvents(app.app, bad, { key: "key-a-1" });
     expect(res.statusCode).toBe(400);
@@ -106,7 +118,6 @@ describe("POST /v1/events", () => {
   });
 
   it("personal datum in the page context (page.email) → 400 naming the field; it is not scrubbed", async () => {
-    app = await withClock();
     const bad = { events: [eventOf(1, { occurredAt: NOW, page: { pageType: "product", email: "a@b.c" } })] };
     const res = await postEvents(app.app, bad, { key: "key-a-1" });
     expect(res.statusCode).toBe(400);
@@ -114,7 +125,6 @@ describe("POST /v1/events", () => {
   });
 
   it("unknown event type → 400 naming the discriminator", async () => {
-    app = await withClock();
     const res = await postEvents(
       app.app,
       { events: [eventOf(1, { occurredAt: NOW, type: "clicked" })] },
@@ -126,7 +136,6 @@ describe("POST /v1/events", () => {
   });
 
   it("missing own field in its branch (block_dwelled without dwellMs) → precise 400", async () => {
-    app = await withClock();
     const res = await postEvents(
       app.app,
       { events: [eventOf(1, { occurredAt: NOW, type: "block_dwelled", block: "price" })] },
@@ -137,7 +146,6 @@ describe("POST /v1/events", () => {
   });
 
   it("an event that is not an object (array, string, null) → 400, never passes the union", async () => {
-    app = await withClock();
     for (const events of [[[null, null]], ["product_viewed"], [null], [42]]) {
       const res = await postEvents(app.app, { events }, { key: "key-a-1" });
       expect(res.statusCode, JSON.stringify(events)).toBe(400);
@@ -146,15 +154,44 @@ describe("POST /v1/events", () => {
   });
 
   it("empty batch or more than 50 events → 400", async () => {
-    app = await withClock();
     expect((await postEvents(app.app, { events: [] }, { key: "key-a-1" })).statusCode).toBe(400);
     expect(
       (await postEvents(app.app, batchOf(51, 1, { occurredAt: NOW }), { key: "key-a-1" })).statusCode,
     ).toBe(400);
   });
 
+  it("a body past the browser limit (1 MiB) → 413 payload-too-large before it is parsed, for the public credential (F-057)", async () => {
+    const oneMiB = 1024 * 1024;
+    const filler = "x".repeat(oneMiB + 1);
+    const res = await postEvents(app.app, `{"events":[],"filler":"${filler}"}`, { key: "key-a-1" });
+    expect(res.statusCode).toBe(413);
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:payload-too-large",
+      instance: "/v1/events",
+    });
+    // The instance is the path: a query string neither changes the operation nor travels in the problem.
+    const withQuery = await app.app.inject({
+      method: "POST",
+      url: "/v1/events?utm=x",
+      headers: { "content-type": "application/json", "x-ope-ingest-key": "key-a-1" },
+      payload: `{"events":[],"filler":"${filler}"}`,
+    });
+    expect(withQuery.statusCode).toBe(413);
+    expect(problemOf(withQuery).instance).toBe("/v1/events");
+    // Exactly the limit is not past it: the body is read (and the contract rejects the stranger field).
+    const atTheLimit = `{"events":[],"filler":"${"x".repeat(oneMiB)}"}`;
+    const padding = oneMiB - Buffer.byteLength(atTheLimit) + oneMiB;
+    const exact = `{"events":[],"filler":"${"x".repeat(padding)}"}`;
+    expect(Buffer.byteLength(exact)).toBe(oneMiB);
+    expect((await postEvents(app.app, exact, { key: "key-a-1" })).statusCode).toBe(400);
+    const declaredButShort = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), {
+      key: "key-a-1",
+      headers: { "content-length": String(oneMiB + 1) },
+    });
+    expect(declaredButShort.statusCode).toBe(413);
+  });
+
   it("[invariant:session-visitor-mismatch] two visitors in the batch → 422 with its type", async () => {
-    app = await withClock();
     const mixed = {
       events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, visitorId: "vis_00000002" })],
     };
@@ -164,7 +201,6 @@ describe("POST /v1/events", () => {
   });
 
   it("[invariant:event-timestamp-out-of-range] timestamp out of tolerance → 422 with its type", async () => {
-    app = await withClock();
     const res = await postEvents(
       app.app,
       { events: [eventOf(1, { occurredAt: at(6 * 60_000) })] },
@@ -178,7 +214,6 @@ describe("POST /v1/events", () => {
   });
 
   it("a batch rejected by an invariant produces no decision and records no events", async () => {
-    app = await withClock();
     const mixed = {
       events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, visitorId: "vis_00000002" })],
     };
@@ -188,7 +223,6 @@ describe("POST /v1/events", () => {
   });
 
   it("merchantId and key never appear in the response", async () => {
-    app = await withClock();
     const res = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(res.body).not.toMatch(/m_a|key-a-1|merchantId/);
   });
@@ -196,7 +230,6 @@ describe("POST /v1/events", () => {
 
 describe("inline decision (US3)", () => {
   it("each batch produces a distinct decisionId with the contract pattern and the batch session", async () => {
-    app = await withClock();
     const r1 = json(
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
@@ -209,7 +242,6 @@ describe("inline decision (US3)", () => {
   });
 
   it("product page without productId → reason page-context-incomplete; a batch without signals → barrier-unclear", async () => {
-    app = await withClock();
     const incomplete = { events: [eventOf(1, { occurredAt: NOW, page: { pageType: "product" } })] };
     const r1 = json(await postEvents(app.app, incomplete, { key: "key-a-1" })) as IngestResult;
     expect(r1.decision.reason).toBe("page-context-incomplete");
@@ -220,12 +252,11 @@ describe("inline decision (US3)", () => {
   });
 
   it("the decision stays in the ledger with merchant, session, visitor, reason and instant; another merchant does not see it", async () => {
-    app = await withClock();
     const r = json(
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
     const id = r.decision.decisionId;
-    const found = await app.ports.decisions.find("m_a" as never, id as never);
+    const found = await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(id));
     expect(found).toMatchObject({
       merchantId: "m_a",
       sessionId: "ses_00000001",
@@ -234,6 +265,6 @@ describe("inline decision (US3)", () => {
       reason: "barrier-unclear",
       decidedAt: new Date(NOW),
     });
-    expect(await app.ports.decisions.find("m_b" as never, id as never)).toBeUndefined();
+    expect(await app.ports.decisions.find(asMerchantId("m_b"), asDecisionId(id))).toBeUndefined();
   });
 });

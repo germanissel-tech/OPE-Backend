@@ -1,4 +1,4 @@
-// FR-053, SC-003: ingestion latency measured by percentile on the local profile (memory ledgers).
+// Feature 004 — FR-053, SC-003: ingestion latency measured by percentile on the local profile (memory ledgers).
 // It is a reported measurement, not an SLA: if CI turns out noisy, the plan's policy is to relax
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
@@ -9,6 +9,8 @@ import {
   batchOf,
   catalogProductOf,
   eventOf,
+  fixedClock,
+  NOW,
   postEvents,
   putCatalog,
   startTestApp,
@@ -23,7 +25,7 @@ const P95_BUDGET_MS = 50;
 
 let app: App;
 beforeAll(async () => {
-  app = await startTestApp();
+  app = await startTestApp({ ports: { clock: fixedClock() } });
 });
 afterAll(async () => {
   await app.close();
@@ -60,10 +62,9 @@ describe("latency of POST /v1/events (local profile)", () => {
   });
 
   it(`with the decision plane active (catalogue, signals, default policy) the p95 stays under ${P95_BUDGET_MS} ms (feature 011, SC-004)`, async () => {
-    const now = new Date().toISOString();
     const catalog = await putCatalog(
       app.app,
-      { capturedAt: now, products: [catalogProductOf("SKU-1", 2)] },
+      { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },
       { platformKey: "platform-a-1" },
     );
     expect(catalog.statusCode).toBe(201);
@@ -117,7 +118,7 @@ describe("latency of POST /v1/events (local profile)", () => {
       startedAt: new Date(),
     });
     const armApp = await startTestApp(
-      {},
+      { ports: { clock: fixedClock() } },
       {
         merchants: [
           {

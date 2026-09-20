@@ -1,4 +1,4 @@
-// US2 (FR-005, FR-006; 01 §8; ADR-025): truth per class of datum, fail-closed with a reason.
+// Feature 010, US2 (FR-005, FR-006; 01 §8; ADR-025): truth per class of datum, fail-closed with a reason.
 import { describe, expect, it } from "vitest";
 import {
   DefaultProductTruthService,
@@ -11,7 +11,7 @@ import {
   CatalogSnapshot,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
-import { asMerchantId, Money } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, Money, ok } from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -39,7 +39,7 @@ const product: Product = {
 function service(snapshot: CatalogSnapshot | undefined, now: Date, receipts: Date[] = []) {
   const store: CatalogStore = {
     current: () => Promise.resolve(snapshot),
-    replace: () => Promise.resolve(),
+    replace: () => Promise.resolve(ok(undefined)),
     receipts: () => Promise.resolve(receipts),
   };
   return new DefaultProductTruthService({ clock: { now: () => now }, store });
@@ -62,7 +62,7 @@ describe("DefaultProductTruthService.lookup", () => {
     const truth = await service(snapshot, at(5 * MIN)).lookup(A, P1, V);
     expect(truth).toMatchObject({
       kind: "known",
-      freshness: { catalog: "fresh", stockAndPrice: "fresh" },
+      stockAndPrice: "fresh",
       ageMs: 5 * MIN,
     });
     if (truth.kind === "known") {
@@ -74,13 +74,13 @@ describe("DefaultProductTruthService.lookup", () => {
   it("2 hours after: known with stock/price stale (fit and attributes yes, availability and price no)", async () => {
     expect(await service(snapshot, at(2 * HOUR)).lookup(A, P1, V)).toMatchObject({
       kind: "known",
-      freshness: { catalog: "fresh", stockAndPrice: "stale" },
+      stockAndPrice: "stale",
     });
     expect(await service(snapshot, at(15 * MIN)).lookup(A, P1, V)).toMatchObject({
-      freshness: { stockAndPrice: "fresh" },
+      stockAndPrice: "fresh",
     });
     expect(await service(snapshot, at(15 * MIN + 1)).lookup(A, P1, V)).toMatchObject({
-      freshness: { stockAndPrice: "stale" },
+      stockAndPrice: "stale",
     });
   });
 
@@ -112,11 +112,11 @@ describe("DefaultProductTruthService.lookup", () => {
     const fresh = await service(snapshot, at(5 * MIN)).product(A, P1);
     expect(fresh).toMatchObject({
       kind: "known-product",
-      freshness: { catalog: "fresh", stockAndPrice: "fresh" },
+      stockAndPrice: "fresh",
     });
     expect(fresh.kind === "known-product" && fresh.product.productId).toBe(P1);
     const stale = await service(snapshot, at(2 * HOUR)).product(A, P1);
-    expect(stale).toMatchObject({ kind: "known-product", freshness: { stockAndPrice: "stale" } });
+    expect(stale).toMatchObject({ kind: "known-product", stockAndPrice: "stale" });
     expect(await service(snapshot, at(3 * 24 * HOUR)).product(A, P1)).toEqual({
       kind: "unknown",
       reason: "stale",

@@ -14,7 +14,12 @@
       "after": "# either the constitution (v1.3.0) and 01 §10.3 admit \"y el incentivo aplicado (kind, value), que no es un dato del comprador\",\n# citing ADR-028 §5–6 — or the field leaves the order and the redemption is measured another way (016).\n# The Constitution Check of specs/013-outcomes-ordenes-y-devoluciones/plan.md:65 passed VII listing `incentive?` \"(01 §10.3)\",\n# which does not list it: that row is where the gap should have surfaced."
     },
     "coveringTest": "none: a documentation decision. The field carries no buyer data (`{ kind: percent, value }`) and ADR-028 §5 decides the redemption is \"un dato, no una validación\" — a reasonable extension, but the constitution's list is closed (\"Campos adicionales se rechazan\") and prevails over ADRs (CLAUDE.md § Fuentes de verdad). The refutation \"VII is about personal data and this is not\" is the amendment that has to be written, not assumed",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "f8b5ee8",
+      "feature": "015"
+    }
   },
   {
     "id": "F-063",
@@ -31,7 +36,12 @@
       "after": "# either principle X is amended (v1.3.0): \"el caso base es que la plataforma empuja (ADR-025); el puerto de cuatro\n# operaciones y los adaptadores genérico y de prueba son la V3 del mapa\" — or the port and the adapters are\n# scheduled as a feature. Either way, every Constitution Check evaluates the ten principles, not a subset."
     },
     "coveringTest": "none: a decision. What exists: three inbound operations with the platform credential (`contracts/api-map.yaml` consumer `platform`), no `PlatformPort` interface in `src/application/**/ports/`, no adapter module; `tests/` has no end-to-end run through an adapter (constitution § Flujo de desarrollo asks for \"una prueba end-to-end … con el adaptador de prueba\", see A-049). The push design is sound and 02 §6.2 half-supports it (\"notificación HTTP de orden\"), but the constitution's wording is pull (`obtener…`) and \"desde el día uno\", and nothing amended it",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "f8b5ee8",
+      "feature": "015"
+    }
   },
   {
     "id": "F-064",

@@ -27,17 +27,16 @@ describe("Experiment.of", () => {
     }
   });
 
-  it.each([-0.1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
-    "[invariant] share %s is rejected",
-    (treatmentShare) => {
-      const built = Experiment.of(record({ treatmentShare }));
-      expect(built).toMatchObject({
-        ok: false,
-        error: { code: "invalid-treatment-share", module: "experiment", details: { share: treatmentShare } },
-      });
-      if (!built.ok) expect(built.error).toBeInstanceOf(InvalidTreatmentShare);
-    },
-  );
+  // The share is judged by the kernel's `isRate` (015 F-030); its table of edges lives in
+  // shared-kernel/rate.test.ts. One case here: the rejection names the share.
+  it("[invariant] a share outside 0..1 is rejected", () => {
+    const built = Experiment.of(record({ treatmentShare: 1.5 }));
+    expect(built).toMatchObject({
+      ok: false,
+      error: { code: "invalid-treatment-share", module: "experiment", details: { share: 1.5 } },
+    });
+    if (!built.ok) expect(built.error).toBeInstanceOf(InvalidTreatmentShare);
+  });
 
   it("[invariant] an empty seed is rejected", () => {
     const built = Experiment.of(record({ seed: "" }));

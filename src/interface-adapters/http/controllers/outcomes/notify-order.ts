@@ -4,7 +4,7 @@
 import { asOrderId, type Order } from "../../../../domain/outcomes/index.js";
 import { asSessionId, Money } from "../../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf, linesOf } from "../../boundary.js";
-import { merchantOf } from "../../security/ingest-key.js";
+import { merchantOf } from "../../security/principal.js";
 import { toProblem } from "../../to-problem.js";
 import type { NotifyOrderRequest, NotifyOrderResponse } from "../../../../application/outcomes/index.js";
 import type { UseCase } from "../../../../application/shared-kernel/index.js";

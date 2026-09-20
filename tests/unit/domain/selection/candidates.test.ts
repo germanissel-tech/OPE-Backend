@@ -1,6 +1,6 @@
 // Feature 012 (FR-010, FR-011): the candidate catalogue is a closed, well-formed vocabulary.
 import { describe, expect, it } from "vitest";
-import { ATTRIBUTE_CLAIM_PREFIX, CANDIDATES, STEPS } from "../../../../src/domain/selection/index.js";
+import { CANDIDATES, STEPS } from "../../../../src/domain/selection/index.js";
 import { ANCHORS, BARRIERS } from "../../../../src/domain/shared-kernel/index.js";
 
 const all = BARRIERS.flatMap((barrier) => CANDIDATES[barrier]);
@@ -27,14 +27,9 @@ describe("CANDIDATES", () => {
 
   it("the incentive claim exists only for the price barrier, and no candidate repeats a claim", () => {
     for (const c of all) {
-      if (c.claims.includes("incentive")) expect(c.barrier).toBe("price");
-      expect(new Set(c.claims).size).toBe(c.claims.length);
-      for (const claim of c.claims) {
-        expect(
-          ["returns-policy", "fit-data", "current-price", "availability", "incentive"].includes(claim) ||
-            claim.startsWith(ATTRIBUTE_CLAIM_PREFIX),
-        ).toBe(true);
-      }
+      const kinds = c.claims.map((claim) => claim.kind);
+      if (kinds.includes("incentive")) expect(c.barrier).toBe("price");
+      expect(new Set(kinds).size).toBe(kinds.length);
     }
   });
 
@@ -43,7 +38,7 @@ describe("CANDIDATES", () => {
   });
 
   it("declares the claims of the MVP catalogue (spec 012, Assumptions)", () => {
-    const claims = Object.fromEntries(all.map((c) => [c.candidateId, [...c.claims]]));
+    const claims = Object.fromEntries(all.map((c) => [c.candidateId, c.claims.map((claim) => claim.kind)]));
     expect(claims).toEqual({
       msg_fit_size_selector_information_v0: [],
       msg_fit_policies_reassurance_v0: ["returns-policy"],

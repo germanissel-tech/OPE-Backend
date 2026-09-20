@@ -1,6 +1,6 @@
 // Application service: the arm of a visitor in the merchant's active experiment (constitution
 // III; ADR-022). Shared by whoever orchestrates a batch, so it is a service, not a use case
-// (ADR-023). Deterministic (assignArm) and stable: an assignment already recorded wins over the
+// (ADR-023). Deterministic (`Experiment.assign`) and stable: an assignment already recorded wins over the
 // computed one, and the disagreement — only possible after an improper configuration change —
 // is logged as an operational error without the visitor. Recorded the first time it is resolved.
 import {

@@ -28,7 +28,7 @@ content:
           type: urn:ope:problem:catalog-captured-in-future
           title: The capture instant is in the future
           status: 422
-          detail: capturedAt is more than 5 minutes ahead of the server clock.
+          detail: capturedAt is ahead of the server clock beyond the tolerance.
           instance: /v1/catalog
       out-of-order:
         summary: catalog-out-of-order

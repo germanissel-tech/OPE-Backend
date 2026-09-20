@@ -2,7 +2,7 @@
 // VERIFIED_ORDER, ATTRIBUTED_ORDER, PENDING_CORRELATION and RETURNED states of the evidence
 // chain (01 §5, ADR-028).
 export { asOrderId } from "./ids.js";
-export { CONFIRMATION_TOLERANCE_MS, Order, Return } from "./order.js";
+export { Order, Return } from "./order.js";
 export type { OrderFacts, OrderItem, OrderRecord, OrderStatus, ReturnRecord } from "./order.js";
 export { Correlation, IncentiveRedemption, REDEMPTION_VERDICTS } from "./correlation.js";
 export type {
