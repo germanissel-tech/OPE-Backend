@@ -104,9 +104,9 @@ Ninguna: las tres historias son independientes entre sí; US3 depende de los tex
 
 ## Phase 6: Cierre
 
-- [ ] T050 `specs/016-alineacion-docs-base/quickstart.md` § "Cambios respecto del plan" completo (decisiones tomadas en el camino, ruido del gate de identificadores y cómo se resolvió, estado de la base y los diagramas)
-- [ ] T051 SC-002: releer la evaluación §2 contra los documentos editados de los dos lados; anotar el resultado en el quickstart; `docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md` gana una línea de estado al pie ("aplicada por la feature 016, commits …")
-- [ ] T052 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:mutation && npm run test:contract && npm run release-check`; commit `docs(016): cierre`; PR `016-alineacion-docs-base` → `main` con el Constitution Check (once principios) y SC-001..SC-006; sin merge hasta que el dueño lo pida
+- [x] T050 `specs/016-alineacion-docs-base/quickstart.md` § "Cambios respecto del plan" completo (decisiones tomadas en el camino, ruido del gate de identificadores y cómo se resolvió, estado de la base y los diagramas)
+- [x] T051 SC-002: releer la evaluación §2 contra los documentos editados de los dos lados; anotar el resultado en el quickstart; `docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md` gana una línea de estado al pie ("aplicada por la feature 016, commits …")
+- [x] T052 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:mutation && npm run test:contract && npm run release-check`; commit `docs(016): cierre`; PR `016-alineacion-docs-base` → `main` con el Constitution Check (once principios) y SC-001..SC-006; sin merge hasta que el dueño lo pida
 
 ---
 

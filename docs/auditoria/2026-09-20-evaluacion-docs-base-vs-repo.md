@@ -1,6 +1,6 @@
 # Evaluación: documentos base del MVP frente al repositorio
 
-**Fecha**: 2026-09-20 · **Estado**: decisiones tomadas por el dueño; trabajo derivado pendiente de spec.
+**Fecha**: 2026-09-20 · **Estado**: decisiones tomadas por el dueño; aplicadas por la feature 016 (ver el pie).
 **Base evaluada**: `../README.md`, `../01-arquitectura-mvp.md` (v0.1, 13/09), `../02-integracion-ecommerce.md` (v0.1, 13/09), `../03-alcance-mvp.md` (v0.4, 13/09), `../04-hoja-de-decisiones.md` y `../diagramas/` (tres fuentes `archify`).
 **Repositorio evaluado**: `main` tras la 015 (`.specify/memory/constitution.md` v1.3.0, `docs/adr/`, `docs/dominio/`, `contracts/`, `src/`, `CLAUDE.md`), en el estado de la PR #24.
 
@@ -109,3 +109,7 @@ Se ejecuta como una feature nueva (spec, plan, tareas); nada de esto se implemen
 ### 5.3 Fuera de esta feature
 
 Implementar los tres modos, el refresco parcial, la persistencia, el catálogo por idioma y el portal: cada uno en su feature del roadmap, con su spec.
+
+## 6. Estado de aplicación
+
+Aplicada por la feature 016 (`specs/016-alineacion-docs-base/`, rama `016-alineacion-docs-base`, 2026-09-20): gobernanza del repo (US1), contrato con la cadena de evidencia, `locale` y gate `check:identifiers` (US2), documentos base y fuentes de los diagramas (US3). Dos matices respecto de lo escrito arriba, ambos decididos por el dueño durante la implementación y registrados en el quickstart de la feature: la decisión 7 se aplicó **sin versión mayor** —el contrato queda en `1.3.0`, rutas `/v1/`, marcado `info.x-stability: building` mientras no tenga consumidores (ADR-003, precisión del 2026-09-20)—, y el gate de la decisión 12 encontró además las cuatro operaciones del puerto en español en la constitución X, que pasaron a inglés (1.4.1). Lo que §5.3 deja para otras features sigue ahí. Los `.html` de los diagramas quedan por compilar.
