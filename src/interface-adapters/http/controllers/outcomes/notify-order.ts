@@ -1,6 +1,7 @@
 // notifyOrder (ADR-028): DTO → domain (ids branded, total as Money) → use case → 201 created |
 // 200 repeated | the Problem Details of the returned error (422 invariant, 409 conflict, 503
-// ledger unavailable). The response carries the status of the order and nothing of the ledger.
+// ledger unavailable). The response carries the status of the order in the evidence chain
+// and what OPE knows of its correlation, and nothing of the ledger.
 import { asOrderId, type Order } from "../../../../domain/outcomes/index.js";
 import { asSessionId, Money } from "../../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf, linesOf } from "../../boundary.js";
@@ -14,7 +15,12 @@ import type { OperationHandler } from "../../typed.js";
 type OrderResultDto = components["schemas"]["OrderResult"];
 
 function toResult(order: Order): OrderResultDto {
-  return { orderId: order.orderId, status: order.status(), receivedAt: order.receivedAt.toISOString() };
+  return {
+    orderId: order.orderId,
+    status: order.status(),
+    correlation: order.correlationStatus(),
+    receivedAt: order.receivedAt.toISOString(),
+  };
 }
 
 export function makeNotifyOrder(

@@ -71,6 +71,14 @@ describe("contract:diff (oasdiff with OPE severities)", () => {
     expect(result.output).toContain("Expected incompatible change: major version 1 → 2");
   });
 
+  it("an incompatible change passes while the contract is marked building, and says so", () => {
+    const result = diff(base, path.join(fixtures, "building.yaml"));
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).toContain("response-optional-property-removed");
+    expect(result.output).toContain("Incompatible change accepted: the contract is building");
+    expect(result.output).not.toContain("without a major version bump");
+  });
+
   it("without a base contract the comparison is skipped with a warning", () => {
     const result = diff(path.join(fixtures, "no-existe.yaml"), base);
     expect(result.status).toBe(0);

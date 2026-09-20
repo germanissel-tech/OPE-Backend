@@ -50,7 +50,7 @@ describe("bootstrap", () => {
     expect(app.ports.clock).toBeDefined();
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
-    expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.2.0" });
+    expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.3.0" });
   });
 
   it("a port override replaces the profile one: the fixed clock shows in the response", async () => {

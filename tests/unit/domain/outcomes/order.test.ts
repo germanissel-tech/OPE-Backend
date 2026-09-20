@@ -42,7 +42,8 @@ describe("Order.of", () => {
   it("accepts an order as the platform sends it and keeps its lines as sent", () => {
     const order = valid();
     expect(order.items).toEqual(base.items);
-    expect(order.status()).toBe("PENDING_CORRELATION");
+    expect(order.status()).toBe("VERIFIED_ORDER");
+    expect(order.correlationStatus()).toBe("PENDING_CORRELATION");
     expect(order.sessionId).toBeUndefined();
   });
 
@@ -185,13 +186,15 @@ describe("Order — the record, the return and the lines", () => {
     expect(attributed.correlation).toBe(correlation);
     expect(attributed.redemption).toBeUndefined();
     expect(attributed.status()).toBe("ATTRIBUTED_ORDER");
+    expect(attributed.correlationStatus()).toBe("ATTRIBUTED");
     expect(attributed.sameContentAs(valid())).toBe(true);
     const pending = valid().correlated(undefined, undefined);
     expect(pending.correlation).toBeUndefined();
-    expect(pending.status()).toBe("PENDING_CORRELATION");
+    expect(pending.status()).toBe("VERIFIED_ORDER");
+    expect(pending.correlationStatus()).toBe("PENDING_CORRELATION");
   });
 
-  it("withReturn keeps everything and adds the return; status stays", () => {
+  it("withReturn keeps everything and adds the return; the status becomes RETURNED and the correlation stays", () => {
     const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
     const order = Order.rehydrate({ ...valid().record(), correlation });
     const returned = order.withReturn(
@@ -199,8 +202,15 @@ describe("Order — the record, the return and the lines", () => {
     );
     expect(returned.returned?.returnedAt).toEqual(NOW);
     expect(returned.correlation).toBe(correlation);
-    expect(returned.status()).toBe("ATTRIBUTED_ORDER");
+    expect(returned.status()).toBe("RETURNED");
+    expect(returned.correlationStatus()).toBe("ATTRIBUTED");
     expect(order.returned).toBeUndefined();
+    expect(order.status()).toBe("ATTRIBUTED_ORDER");
+    const pendingReturned = valid().withReturn(
+      Return.rehydrate({ orderId: base.orderId, returnedAt: NOW, receivedAt: NOW }),
+    );
+    expect(pendingReturned.status()).toBe("RETURNED");
+    expect(pendingReturned.correlationStatus()).toBe("PENDING_CORRELATION");
   });
 
   it("contains: the SKU with at least that many units", () => {

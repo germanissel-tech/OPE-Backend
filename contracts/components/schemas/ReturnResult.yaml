@@ -1,7 +1,7 @@
 type: object
-description: The order is returned; `orderStatus` says whether it was attributed.
+description: The order is returned; `correlation` says whether OPE had linked it to a session.
 additionalProperties: false
-required: [orderId, status, orderStatus, receivedAt]
+required: [orderId, status, correlation, receivedAt]
 properties:
   orderId:
     $ref: ./OrderId.yaml
@@ -9,8 +9,8 @@ properties:
     type: string
     description: The order came back (`RETURNED` state of the evidence chain, 01 §5).
     enum: [RETURNED]
-  orderStatus:
-    $ref: ./OrderStatus.yaml
+  correlation:
+    $ref: ./Correlation.yaml
   receivedAt:
     type: string
     format: date-time

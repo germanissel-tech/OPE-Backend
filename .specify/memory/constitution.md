@@ -1,4 +1,39 @@
 <!--
+Sync Impact Report (1.4.2, 2026-09-20)
+- Version change: 1.4.1 → 1.4.2 (PATCH: el gate del plan admite lo que ADR-003 ya precisa).
+- Modified sections: §Flujo de trabajo, Constitution Check, gate de superficie HTTP — un cambio
+  incompatible del contrato es compatible hacia atrás, declara la versión mayor **o** entra
+  bajo la marca `info.x-stability: building` (ningún merchant consume el contrato; ADR-003,
+  precisión del 2026-09-20; `contract:diff` lo reporta y lo acepta, `release-check` avisa).
+  Decisión del dueño en la feature 016: en construcción no se salta de versión mayor.
+- Nota transitoria de VII (1.3.0, reiterada en 1.4.0) cerrada el mismo día: 01 §10.3 lista
+  los siete campos del conector de órdenes desde el 2026-09-20 (feature 016, historia 3).
+- Templates: sin cambios.
+
+Sync Impact Report (1.4.1, 2026-09-20)
+- Version change: 1.4.0 → 1.4.1 (PATCH: redacción; ningún principio cambia de sentido).
+- Modified sections: X — las cuatro operaciones del puerto de plataforma se nombran con
+  identificadores en inglés (`fetchCatalog`, `fetchStockAndPrice`, `onOrderConfirmed`,
+  `onReturnRegistered`) en lugar de los nombres en español de 02 §6.1: el código y el
+  contrato son en inglés (ADR-015) y el gate `check:identifiers` (feature 016, decisión 12 de
+  la evaluación) los detectó como identificadores inexistentes. El mapa del contrato
+  (feature 019) los nombra; 02 §6.1 se alinea en la historia 3 de la feature 016.
+- Templates: sin cambios.
+
+Sync Impact Report (1.4.0, 2026-09-20)
+- Version change: 1.3.0 → 1.4.0 (MINOR: principio nuevo XI "Ninguna política vive en el
+  código"; acumula un PATCH de redacción en "Contrato de datos e identidad").
+- Added sections: XI (tres niveles de configuración —plataforma, default de tratamiento,
+  merchant—, orden de resolución, lo que queda en el código, lo que se estampa y congela).
+  Fuente: decisión 6 de docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md (§2.2),
+  aprobada por el dueño el 2026-09-20; 01 §14.2 (flags) y 03 §4.10 (congelamiento).
+- Modified sections: "Contrato de datos e identidad" — las barreras se nombran con los
+  identificadores del contrato (`fit`, `price`, `returns`; ADR-015) y el nombre de 03 §4.2 como
+  prosa (decisión 12 de la evaluación; el gate `check:identifiers` lo verifica). VII: la nota
+  transitoria de la 1.3.0 sobre 01 §10.3 se cierra cuando la feature 016 edite ese documento
+  (siete campos); hasta entonces sigue vigente.
+- Templates: sin cambios. Los Constitution Check evalúan los once principios y citan la versión.
+
 Sync Impact Report (1.3.0, 2026-09-19)
 - Version change: 1.2.0 → 1.3.0 (MINOR: el principio VII amplía en un elemento la lista del
   conector de órdenes; ningún otro principio cambia).
@@ -191,8 +226,8 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
 
 ### X. Puertos en los dos bordes
 
-- El **puerto de plataforma** tiene exactamente cuatro operaciones: `obtenerCatalogo`,
-  `obtenerStockYPrecio`, `alConfirmarOrden`, `alRegistrarDevolucion`. El núcleo depende del
+- El **puerto de plataforma** tiene exactamente cuatro operaciones: `fetchCatalog`,
+  `fetchStockAndPrice`, `onOrderConfirmed`, `onReturnRegistered`. El núcleo depende del
   puerto y MUST NOT saber si del otro lado hay Magento, VTEX o un adaptador de prueba.
 - El **adaptador genérico** (catálogo por REST/archivo + notificación HTTP de orden) y el
   **adaptador de prueba** existen desde el día uno; Magento 2 es el primer adaptador real;
@@ -202,6 +237,29 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
 - Mecanismo A (server-to-server con identificador propagado) es la única fuente autoritativa
   de atribución; B corrobora; C nunca es autoridad.
 
+### XI. Ninguna política vive en el código
+
+Todo valor que gobierna el comportamiento de OPE es **configuración**, en tres niveles y con
+este orden de resolución: lo que define el **merchant** → si no lo define, el **default global
+de tratamiento** de OPE → nunca una constante del código. El código conserva sólo las
+**invariantes** (qué valores son válidos: tasas 0–1, escalera creciente, techo ≥ escalón) y los
+**algoritmos** (asignación, inferencia), no los valores.
+
+- **Nivel plataforma**: reglas de OPE que el contrato publica o de las que depende la seguridad
+  (ventana de deduplicación, tolerancia de reloj, TTL de sesión y visitante, límites de cuerpo).
+  Configuración global del despliegue, versionada; nunca por merchant.
+- **Nivel default de tratamiento**: políticas de decisión y comercial, presupuesto de frescura,
+  umbrales del nivel de sincronización, estrategia de sincronización por flujo. Datos cargados
+  al arrancar, versionados.
+- **Nivel merchant**: lo que un merchant sobrescribe del nivel anterior, por flujo cuando
+  corresponda.
+
+Lo que está en los niveles default y merchant es **parte del tratamiento**: se versiona, se
+estampa en cada decisión del ledger y se congela durante el piloto (`03-alcance-mvp.md` §4.10).
+Una constante nueva en `src/` que gobierne comportamiento MUST ir a uno de los tres niveles;
+el gate de números mágicos la detecta. La feature que saca del código las políticas actuales
+es la de configuración del mapa del contrato.
+
 ## Contrato de datos e identidad
 
 - **Escalas**: las superficies visibles al merchant expresan porcentajes en 0–100; los motores
@@ -209,8 +267,9 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
   de API / DTO). Un tipo interno MUST NOT recibir un porcentaje 0–100.
 - **Frescura por merchant**: el presupuesto de frescura de catálogo, stock y precio se configura
   por merchant y se mide. Un dato más viejo que su presupuesto se trata como ausente.
-- **Barreras del MVP**: exactamente tres (`talle_calce`, `precio_valor`, `cambios_devoluciones`).
-  Agregar una barrera es cambio de alcance, no feature.
+- **Barreras del MVP**: exactamente tres — `fit` (talle y calce), `price` (precio y valor),
+  `returns` (cambios y devoluciones), con los identificadores del contrato. Agregar una barrera
+  es cambio de alcance, no feature.
 - **Superficies**: ficha de producto entra; carrito es capacidad construida con activación
   pendiente (D-A); home, listado y checkout quedan fuera.
 - **Estados de desconocimiento**: `PENDING_CORRELATION` y `NOT_AVAILABLE` son valores de primera
@@ -244,8 +303,9 @@ Decisiones D1 y D2 cerradas al ratificar esta constitución:
    implementación.
 2. `/speckit-plan` MUST pasar el **Constitution Check** con estos gates explícitos:
    - ¿La feature toca una superficie HTTP? → el cambio a `contracts/openapi.yaml` se diseña en
-     `specs/NNN/contracts/` **antes** de cualquier tarea de código, y es compatible hacia atrás
-     o declara la versión mayor.
+     `specs/NNN/contracts/` **antes** de cualquier tarea de código, y es compatible hacia atrás,
+     declara la versión mayor, o entra bajo la marca `info.x-stability: building` mientras
+     ningún merchant consuma el contrato (ADR-003; la marca se quita antes del primer piloto).
    - ¿Toca persistencia o API? → hay tareas de prueba de aislamiento por merchant.
    - ¿Toca el plano de decisión? → no introduce I/O de red ni escritura bloqueante en el camino
      crítico, y toda salida puede ser `NO_OP` con motivo.
@@ -299,4 +359,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-19
+**Version**: 1.4.2 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20

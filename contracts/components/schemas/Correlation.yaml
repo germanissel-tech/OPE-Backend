@@ -1,0 +1,6 @@
+type: string
+description: |
+  Whether OPE could link the order to one of its sessions (mechanism A, 02 §5.2): `ATTRIBUTED`,
+  or `PENDING_CORRELATION`, an explicit state of not knowing (01 §5.2) that is decided once,
+  when the order is recorded, and never completed by inference.
+enum: [PENDING_CORRELATION, ATTRIBUTED]

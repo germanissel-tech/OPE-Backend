@@ -115,7 +115,12 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     await knownSession();
     const res = await postOrder(app.app, orderOf("A-1", { sessionId: SESSION }), { platformKey: PLATFORM_A });
     expect(res.statusCode).toBe(201);
-    expect(json(res)).toEqual({ orderId: "A-1", status: "ATTRIBUTED_ORDER", receivedAt: NOW });
+    expect(json(res)).toEqual({
+      orderId: "A-1",
+      status: "ATTRIBUTED_ORDER",
+      correlation: "ATTRIBUTED",
+      receivedAt: NOW,
+    });
     const order = await find(A, "A-1");
     expect(order?.status()).toBe("ATTRIBUTED_ORDER");
     expect(order?.correlation).toMatchObject({
@@ -158,14 +163,19 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     expect(json(res)).toMatchObject({ type: "urn:ope:problem:payload-too-large", instance: "/v1/orders" });
   });
 
-  it("2. without a session → 201 PENDING_CORRELATION; a verified sale without correlation", async () => {
+  it("2. without a session → 201 VERIFIED_ORDER with PENDING_CORRELATION; a verified sale without correlation", async () => {
     await start();
     const res = await postOrder(app.app, orderOf("A-2"), { platformKey: PLATFORM_A });
     expect(res.statusCode).toBe(201);
-    expect(json(res)).toEqual({ orderId: "A-2", status: "PENDING_CORRELATION", receivedAt: NOW });
+    expect(json(res)).toEqual({
+      orderId: "A-2",
+      status: "VERIFIED_ORDER",
+      correlation: "PENDING_CORRELATION",
+      receivedAt: NOW,
+    });
     const order = await find(A, "A-2");
     expect(order?.correlation).toBeUndefined();
-    expect(order?.status()).toBe("PENDING_CORRELATION");
+    expect(order?.status()).toBe("VERIFIED_ORDER");
   });
 
   it("3. a session OPE never saw, or one of another merchant → PENDING_CORRELATION; nothing is inferred", async () => {
@@ -174,18 +184,18 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     const unknown = await postOrder(app.app, orderOf("A-3", { sessionId: "ses_99999999" }), {
       platformKey: PLATFORM_A,
     });
-    expect(json(unknown)).toMatchObject({ status: "PENDING_CORRELATION" });
+    expect(json(unknown)).toMatchObject({ status: "VERIFIED_ORDER", correlation: "PENDING_CORRELATION" });
     const foreign = await postOrder(app.app, orderOf("A-4", { sessionId: SESSION }), {
       platformKey: PLATFORM_A,
     });
-    expect(json(foreign)).toMatchObject({ status: "PENDING_CORRELATION" });
+    expect(json(foreign)).toMatchObject({ status: "VERIFIED_ORDER", correlation: "PENDING_CORRELATION" });
   });
 
   it("4. a known session whose merchant had no experiment → attributed to the session, without a group", async () => {
     await start();
     await knownSession("key-b-1");
     const res = await postOrder(app.app, orderOf("B-1", { sessionId: SESSION }), { platformKey: PLATFORM_B });
-    expect(json(res)).toMatchObject({ status: "ATTRIBUTED_ORDER" });
+    expect(json(res)).toMatchObject({ status: "ATTRIBUTED_ORDER", correlation: "ATTRIBUTED" });
     const order = await find(B, "B-1");
     expect(order?.correlation?.sessionId).toBe(SESSION);
     expect(order?.correlation?.experiment).toBeUndefined();
@@ -247,7 +257,12 @@ describe("notifyOrder — user story 1: verified, attributed or pending", () => 
     await start();
     await knownSession();
     const res = await postOrder(app.app, orderOf("A-9", { sessionId: SESSION }), { platformKey: PLATFORM_A });
-    expect(Object.keys(json(res) as object).sort()).toEqual(["orderId", "receivedAt", "status"]);
+    expect(Object.keys(json(res) as object).sort()).toEqual([
+      "correlation",
+      "orderId",
+      "receivedAt",
+      "status",
+    ]);
     expect(JSON.stringify(json(res))).not.toMatch(/arm|experiment|visitor|TREATMENT|CONTROL/);
   });
 
@@ -268,7 +283,12 @@ describe("notifyOrder — user story 2: idempotent by orderId, immutable", () =>
       codes.push((await postOrder(app.app, body, { platformKey: PLATFORM_A })).statusCode);
     expect(codes).toEqual([201, 200, 200]);
     const repeated = await postOrder(app.app, body, { platformKey: PLATFORM_A });
-    expect(json(repeated)).toEqual({ orderId: "A-1", status: "ATTRIBUTED_ORDER", receivedAt: NOW });
+    expect(json(repeated)).toEqual({
+      orderId: "A-1",
+      status: "ATTRIBUTED_ORDER",
+      correlation: "ATTRIBUTED",
+      receivedAt: NOW,
+    });
   });
 
   it("2. the same content with the keys and lines in another order is the same order (FR-021)", async () => {
@@ -308,7 +328,7 @@ describe("notifyOrder — user story 2: idempotent by orderId, immutable", () =>
     }
     const order = await find(A, "A-1");
     expect(order?.total.amount).toBe("18990.50");
-    expect(order?.status()).toBe("PENDING_CORRELATION");
+    expect(order?.status()).toBe("VERIFIED_ORDER");
   });
 
   it("4. the same orderId in two merchants are two orders (FR-014)", async () => {
@@ -324,14 +344,15 @@ describe("notifyOrder — user story 2: idempotent by orderId, immutable", () =>
     expect(
       json(await postOrder(app.app, orderOf("A-1", { sessionId: SESSION }), { platformKey: PLATFORM_A })),
     ).toMatchObject({
-      status: "PENDING_CORRELATION",
+      status: "VERIFIED_ORDER",
+      correlation: "PENDING_CORRELATION",
     });
     await knownSession();
     const again = await postOrder(app.app, orderOf("A-1", { sessionId: SESSION }), {
       platformKey: PLATFORM_A,
     });
     expect(again.statusCode).toBe(200);
-    expect(json(again)).toMatchObject({ status: "PENDING_CORRELATION" });
+    expect(json(again)).toMatchObject({ status: "VERIFIED_ORDER", correlation: "PENDING_CORRELATION" });
   });
 });
 
@@ -364,7 +385,12 @@ describe("notifyOrder — user story 5: the incentive applied is crossed with th
     for (const [orderId, body, verdict] of cases) {
       const res = await postOrder(app.app, { ...body, orderId }, { platformKey: PLATFORM_A });
       expect(res.statusCode).toBe(201);
-      expect(Object.keys(json(res) as object).sort()).toEqual(["orderId", "receivedAt", "status"]);
+      expect(Object.keys(json(res) as object).sort()).toEqual([
+        "correlation",
+        "orderId",
+        "receivedAt",
+        "status",
+      ]);
       expect((await find(A, orderId))?.redemption?.verdict).toBe(verdict);
     }
     await knownSession(KEY_A, "ses_00000002");
@@ -406,7 +432,7 @@ describe("notifyOrder — the corroboration is seen when the order arrives", () 
     const recorded = entries.find((e) => e.message === "order recorded");
     expect(recorded?.fields).toMatchObject({
       orderId: "A-1",
-      status: "PENDING_CORRELATION",
+      status: "VERIFIED_ORDER",
       corroborated: true,
     });
     expect(JSON.stringify(entries)).not.toMatch(/TREATMENT|CONTROL|visitorId/);

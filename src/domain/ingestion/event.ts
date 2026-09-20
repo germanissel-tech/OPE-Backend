@@ -32,6 +32,8 @@ export interface PageContext {
   variantId?: string;
   price?: Money;
   availability?: Availability;
+  /** Language of the page as the SDK read it (BCP 47, validated by shape at the boundary; 01 §3.1.1). */
+  locale?: string;
 }
 
 interface EventBase<T extends EventType> {

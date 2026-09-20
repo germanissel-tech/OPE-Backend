@@ -103,6 +103,7 @@ describe("NotifyOrderUseCase — correlation (user story 1)", () => {
     const { useCase } = await subject({ decisions: [noOp("d1")] });
     const order = await orderOf(useCase, { sessionId: S });
     expect(order.status()).toBe("ATTRIBUTED_ORDER");
+    expect(order.correlationStatus()).toBe("ATTRIBUTED");
     expect(order.correlation).toMatchObject({ sessionId: S, visitorId: V, experiment });
     expect(order.receivedAt).toEqual(NOW);
   });
@@ -124,9 +125,11 @@ describe("NotifyOrderUseCase — correlation (user story 1)", () => {
       corroborations: memoryCorroborationLedger(),
       logger: recordingLogger().logger,
     });
-    expect((await orderOf(spied)).status()).toBe("PENDING_CORRELATION");
+    const pending = await orderOf(spied);
+    expect(pending.status()).toBe("VERIFIED_ORDER");
+    expect(pending.correlationStatus()).toBe("PENDING_CORRELATION");
     expect(asked).toBe(0);
-    expect((await orderOf(useCase, { sessionId: S })).status()).toBe("PENDING_CORRELATION");
+    expect((await orderOf(useCase, { sessionId: S })).correlationStatus()).toBe("PENDING_CORRELATION");
   });
 
   it("a known session whose decisions had no experiment → attributed without a group", async () => {
@@ -171,7 +174,7 @@ describe("NotifyOrderUseCase — idempotency (user story 2)", () => {
     await ledger.record(noOp("d1"));
     const again = await useCase.execute(request({ sessionId: S }));
     expect(again.ok && again.value.outcome).toBe("repeated");
-    expect(again.ok && again.value.order.status()).toBe("PENDING_CORRELATION");
+    expect(again.ok && again.value.order.status()).toBe("VERIFIED_ORDER");
     const conflict = await useCase.execute(request({ sessionId: S, items: [{ sku: "SKU-1", quantity: 2 }] }));
     expect(conflict.ok ? undefined : conflict.error.code).toBe("idempotency-conflict");
     expect(conflict.ok ? undefined : conflict.error.message).toContain("A-1");

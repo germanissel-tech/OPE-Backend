@@ -92,6 +92,7 @@ export class DecisionService implements DecisionPlane {
     const focus = batch.focus();
     let outcome: DecisionOutcomeInput = { kind: "no-op", reason: PAGE_CONTEXT_INCOMPLETE };
     if (focus !== undefined) {
+      if (focus.locale !== undefined) facts.locale = focus.locale;
       const arm = assigned.value?.arm;
       const judged = await this.#judge({
         policies: merchant,

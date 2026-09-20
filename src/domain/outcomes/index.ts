@@ -3,7 +3,14 @@
 // chain (01 §5, ADR-028).
 export { asOrderId } from "./ids.js";
 export { Order, Return } from "./order.js";
-export type { OrderFacts, OrderItem, OrderRecord, OrderStatus, ReturnRecord } from "./order.js";
+export type {
+  CorrelationStatus,
+  OrderFacts,
+  OrderItem,
+  OrderRecord,
+  OrderStatus,
+  ReturnRecord,
+} from "./order.js";
 export { Correlation, IncentiveRedemption, REDEMPTION_VERDICTS } from "./correlation.js";
 export type {
   CorrelationRecord,

@@ -1,0 +1,54 @@
+[
+  {
+    "identifier": "ADR-NNN",
+    "reason": "Pattern of an ADR citation, not an identifier of the system (ADR-009, README of the ADRs)."
+  },
+  {
+    "identifier": "no-unresolved-refs",
+    "reason": "Built-in rule of the Redocly recommended preset (ADR-004); it is not named in redocly.yaml."
+  },
+  {
+    "identifier": "las-animas",
+    "reason": "Fixture name of the first contract features, retired (ADR-007 records the era)."
+  },
+  {
+    "identifier": "pre-commit",
+    "reason": "Name of the git hook lefthook installs (ADR-011)."
+  },
+  {
+    "identifier": "reflect-metadata",
+    "reason": "npm package rejected by ADR-013 (no DI container); never a dependency."
+  },
+  {
+    "identifier": "buildUseCases",
+    "reason": "Name of the replaced version of bootstrap.ts (ADR-013 records what was replaced)."
+  },
+  {
+    "identifier": "wireControllers",
+    "reason": "Name of the replaced version of bootstrap.ts (ADR-013 records what was replaced)."
+  },
+  {
+    "identifier": "TS2882",
+    "reason": "Diagnostic code of the TypeScript compiler (ADR-017)."
+  },
+  {
+    "identifier": "OPE_MOCK",
+    "reason": "Environment variable removed by ADR-018; the ADR names what was removed."
+  },
+  {
+    "identifier": "holdoutPercent",
+    "reason": "Alternative rejected by ADR-022 (ADR-026 cites the rejection); never a field."
+  },
+  {
+    "identifier": "checkBatch",
+    "reason": "Name of the replaced version of the ingestion rules (ADR-024 records what was replaced)."
+  },
+  {
+    "identifier": "assignArm",
+    "reason": "Name of the replaced version of the assignment (ADR-024 records what was replaced)."
+  },
+  {
+    "identifier": "originAllowed",
+    "reason": "Name of the replaced version of the origin rule (ADR-024 records what was replaced)."
+  }
+]

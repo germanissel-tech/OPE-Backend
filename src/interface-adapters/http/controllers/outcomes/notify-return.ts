@@ -1,6 +1,6 @@
 // notifyReturn (ADR-028): DTO → use case → 201 created | 200 repeated | the Problem Details of
 // the returned error (422 order unknown or items not in the order, 409 conflict, 503 ledger
-// unavailable). The response says the order is RETURNED and whether it was attributed.
+// unavailable). The response says the order is RETURNED and what OPE knows of its correlation.
 import { asOrderId, type Order } from "../../../../domain/outcomes/index.js";
 import { idempotent, instantOf, linesOf } from "../../boundary.js";
 import { merchantOf } from "../../security/principal.js";
@@ -16,7 +16,7 @@ function toResult(order: Order): ReturnResultDto {
   return {
     orderId: order.orderId,
     status: "RETURNED",
-    orderStatus: order.status(),
+    correlation: order.correlationStatus(),
     receivedAt: (order.returned?.receivedAt ?? order.receivedAt).toISOString(),
   };
 }

@@ -84,6 +84,8 @@ export interface DecisionFacts {
   inference?: DecisionInference;
   /** Absent when the plane did not get to select (no inference, or no barrier to select for). */
   selection?: DecisionSelection;
+  /** Language of the page in focus (BCP 47), so the message catalogue can pick the text; absent when the SDK did not read one. */
+  locale?: string;
 }
 
 /** A decision as the ledger stores it: the facts plus the outcome and what the outcome carries. */
@@ -102,6 +104,7 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly experiment?: DecisionExperiment;
   readonly inference?: DecisionInference;
   readonly selection?: DecisionSelection;
+  readonly locale?: string;
   abstract readonly outcome: DecisionOutcome;
   /** Why this outcome: a NO_OP reason of the catalogue, or the reason of the intervention. */
   abstract readonly reason: string;
@@ -115,6 +118,7 @@ export abstract class DecisionBase implements DecisionFacts {
     if (facts.experiment) this.experiment = facts.experiment;
     if (facts.inference) this.inference = facts.inference;
     if (facts.selection) this.selection = facts.selection;
+    if (facts.locale !== undefined) this.locale = facts.locale;
   }
 
   /** A recorded decision comes back as what it was; a record that fits no shape is corrupt. */

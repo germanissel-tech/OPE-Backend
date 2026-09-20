@@ -121,8 +121,11 @@ export type paths = {
          *     only authoritative source). The order enters the ledger as a verified sale. When the body
          *     carries the OPE `sessionId` the storefront attached to the order at creation and that
          *     session is known to the ledger of this merchant, the order is attributed
-         *     (`ATTRIBUTED_ORDER`) and inherits the assignment of the session; otherwise it stays
-         *     `PENDING_CORRELATION`, visible as such and never completed by inference (01 §5.2).
+         *     (`status: ATTRIBUTED_ORDER`, `correlation: ATTRIBUTED`) and inherits the assignment of the
+         *     session; otherwise it is a verified sale whose correlation is pending
+         *     (`status: VERIFIED_ORDER`, `correlation: PENDING_CORRELATION`), visible as such and never
+         *     completed by inference (01 §5.2). A repeat of an order that was returned since answers
+         *     `status: RETURNED`.
          *     The body is bounded by design (01 §10.3): identifier, total, items with SKU and quantity,
          *     confirmation instant, optionally the OPE session and the incentive applied. Nothing about
          *     the buyer is accepted; any other property is rejected.
@@ -325,6 +328,13 @@ export type components = {
             type: "checkout_advanced";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /**
+         * @description Whether OPE could link the order to one of its sessions (mechanism A, 02 §5.2): `ATTRIBUTED`,
+         *     or `PENDING_CORRELATION`, an explicit state of not knowing (01 §5.2) that is decided once,
+         *     when the order is recorded, and never completed by inference.
+         * @enum {string}
+         */
+        Correlation: "PENDING_CORRELATION" | "ATTRIBUTED";
         /** @description The corroboration was accepted (first time or repeated). */
         CorroborationResult: {
             orderId: components["schemas"]["OrderId"];
@@ -577,6 +587,7 @@ export type components = {
         };
         /** @description What OPE holds for the order after the notification. */
         OrderResult: {
+            correlation: components["schemas"]["Correlation"];
             orderId: components["schemas"]["OrderId"];
             /**
              * Format: date-time
@@ -586,13 +597,13 @@ export type components = {
             status: components["schemas"]["OrderStatus"];
         };
         /**
-         * @description Where the order stands in the evidence chain (01 §5). Every recorded order is a verified
-         *     sale; the status says whether a verifiable correlation with an OPE session exists
-         *     (`ATTRIBUTED_ORDER`) or not yet (`PENDING_CORRELATION`, an explicit state of not knowing,
-         *     01 §5.2). Never an arm nor an experiment.
+         * @description Where the order stands in the evidence chain (01 §5): confirmed by the platform as a real
+         *     purchase (`VERIFIED_ORDER`), confirmed and verifiably correlated with an OPE session
+         *     (`ATTRIBUTED_ORDER`), or returned (`RETURNED`, which keeps whatever correlation it had).
+         *     Whether OPE could link it travels apart, in `correlation`. Never an arm nor an experiment.
          * @enum {string}
          */
-        OrderStatus: "ATTRIBUTED_ORDER" | "PENDING_CORRELATION";
+        OrderStatus: "VERIFIED_ORDER" | "ATTRIBUTED_ORDER" | "RETURNED";
         /**
          * @description What the SDK could resolve about the page where the event happened (01-arquitectura-mvp.md
          *     §3.1.1, `PageContext`). Everything but `pageType` is optional: the SDK reports what it resolved
@@ -605,6 +616,13 @@ export type components = {
              * @enum {string}
              */
             availability?: "in_stock" | "out_of_stock" | "unknown";
+            /**
+             * @description Language of the page as the SDK reads it (`<html lang>`, the platform's store view): a
+             *     BCP 47 tag such as `es-AR` or `en`, validated by shape. Context of the interaction, not
+             *     personal data (01 §10.2); recorded with the decision so the message catalogue can pick
+             *     the text. Optional: without it, the merchant's default language applies once configured.
+             */
+            locale?: string;
             /**
              * @description Page type according to the SDK's platform adapter.
              * @enum {string}
@@ -732,10 +750,10 @@ export type components = {
              */
             returnedAt: string;
         };
-        /** @description The order is returned; `orderStatus` says whether it was attributed. */
+        /** @description The order is returned; `correlation` says whether OPE had linked it to a session. */
         ReturnResult: {
+            correlation: components["schemas"]["Correlation"];
             orderId: components["schemas"]["OrderId"];
-            orderStatus: components["schemas"]["OrderStatus"];
             /**
              * Format: date-time
              * @description Instant OPE recorded the return (the first receipt, when repeated).
@@ -1187,14 +1205,15 @@ export interface operations {
                     /**
                      * @example {
                      *       "orderId": "A-1",
-                     *       "status": "PENDING_CORRELATION",
+                     *       "status": "VERIFIED_ORDER",
+                     *       "correlation": "PENDING_CORRELATION",
                      *       "receivedAt": "2026-09-19T12:00:03Z"
                      *     }
                      */
                     "application/json": components["schemas"]["OrderResult"];
                 };
             };
-            /** @description Order recorded as a verified sale; `status` says whether it is attributed. */
+            /** @description Order recorded as a verified sale; `status` and `correlation` say whether it is attributed. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1285,7 +1304,7 @@ export interface operations {
                      * @example {
                      *       "orderId": "A-1",
                      *       "status": "RETURNED",
-                     *       "orderStatus": "ATTRIBUTED_ORDER",
+                     *       "correlation": "ATTRIBUTED",
                      *       "receivedAt": "2026-09-24T09:00:00Z"
                      *     }
                      */
@@ -1302,7 +1321,7 @@ export interface operations {
                      * @example {
                      *       "orderId": "A-1",
                      *       "status": "RETURNED",
-                     *       "orderStatus": "ATTRIBUTED_ORDER",
+                     *       "correlation": "ATTRIBUTED",
                      *       "receivedAt": "2026-09-24T09:00:00Z"
                      *     }
                      */

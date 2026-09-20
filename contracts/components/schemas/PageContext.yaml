@@ -25,3 +25,12 @@ properties:
     type: string
     description: Availability of the variant as the page shows it. A guard, not a claim (01 §4.3).
     enum: [in_stock, out_of_stock, unknown]
+  locale:
+    type: string
+    description: |
+      Language of the page as the SDK reads it (`<html lang>`, the platform's store view): a
+      BCP 47 tag such as `es-AR` or `en`, validated by shape. Context of the interaction, not
+      personal data (01 §10.2); recorded with the decision so the message catalogue can pick
+      the text. Optional: without it, the merchant's default language applies once configured.
+    pattern: "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    maxLength: 35

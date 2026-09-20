@@ -11,8 +11,11 @@ post:
     only authoritative source). The order enters the ledger as a verified sale. When the body
     carries the OPE `sessionId` the storefront attached to the order at creation and that
     session is known to the ledger of this merchant, the order is attributed
-    (`ATTRIBUTED_ORDER`) and inherits the assignment of the session; otherwise it stays
-    `PENDING_CORRELATION`, visible as such and never completed by inference (01 §5.2).
+    (`status: ATTRIBUTED_ORDER`, `correlation: ATTRIBUTED`) and inherits the assignment of the
+    session; otherwise it is a verified sale whose correlation is pending
+    (`status: VERIFIED_ORDER`, `correlation: PENDING_CORRELATION`), visible as such and never
+    completed by inference (01 §5.2). A repeat of an order that was returned since answers
+    `status: RETURNED`.
     The body is bounded by design (01 §10.3): identifier, total, items with SKU and quantity,
     confirmation instant, optionally the OPE session and the incentive applied. Nothing about
     the buyer is accepted; any other property is rejected.
@@ -41,7 +44,7 @@ post:
             $ref: ../examples/order-pending.yaml
   responses:
     "201":
-      description: Order recorded as a verified sale; `status` says whether it is attributed.
+      description: Order recorded as a verified sale; `status` and `correlation` say whether it is attributed.
       content:
         application/json:
           schema:
@@ -57,7 +60,8 @@ post:
             $ref: ../components/schemas/OrderResult.yaml
           example:
             orderId: A-1
-            status: PENDING_CORRELATION
+            status: VERIFIED_ORDER
+            correlation: PENDING_CORRELATION
             receivedAt: "2026-09-19T12:00:03Z"
     "400":
       $ref: ../components/responses/BadRequest.yaml

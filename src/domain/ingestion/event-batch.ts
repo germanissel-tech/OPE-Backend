@@ -27,10 +27,11 @@ export const TIMESTAMP_TOLERANCE = {
 
 const PRODUCT_PAGE = "product" satisfies PageType;
 
-/** The product (and variant, when the SDK resolved one) a batch is about. */
+/** The product (and variant, when the SDK resolved one) a batch is about, and the language of its page. */
 export interface ProductFocus {
   productId: string;
   variantId?: string;
+  locale?: string;
 }
 
 export class EventBatch {
@@ -84,8 +85,10 @@ export class EventBatch {
     );
     const page = resolved.at(-1)?.page;
     if (page?.productId === undefined) return undefined;
-    return page.variantId === undefined
-      ? { productId: page.productId }
-      : { productId: page.productId, variantId: page.variantId };
+    return {
+      productId: page.productId,
+      ...(page.variantId === undefined ? {} : { variantId: page.variantId }),
+      ...(page.locale === undefined ? {} : { locale: page.locale }),
+    };
   }
 }

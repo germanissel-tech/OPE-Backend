@@ -82,7 +82,7 @@ describe("corroborateOrder — user story 3", () => {
     await start();
     await postCorroboration(app.app, corroboration(), { key: KEY_A });
     const res = await postOrder(app.app, orderOf("A-1"), { platformKey: PLATFORM_A });
-    expect(json(res)).toMatchObject({ status: "PENDING_CORRELATION" });
+    expect(json(res)).toMatchObject({ status: "VERIFIED_ORDER", correlation: "PENDING_CORRELATION" });
     expect(await order(A, "A-1")).toBeDefined();
     expect(await found(A, "A-1")).toHaveLength(1);
   });
