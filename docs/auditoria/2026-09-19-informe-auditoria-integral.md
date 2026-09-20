@@ -2566,3 +2566,109 @@ Regla fija (`.claude/skills/auditing-architecture/SKILL.md` § Paso 7; spec 014 
 Qué significa este estado y qué no: ningún gate del repositorio está en rojo y el código construido hace lo que sus specs dicen (§4); el estado sale de contradicciones con decisiones escritas de rango superior — dos entre la constitución y lo construido (F-062, F-063), dos entre ADRs y el código (F-007, F-051) y dos entre la constitución y el diseño de los puertos y el despliegue, latentes hasta la 017 (F-043, F-045). Cuatro de las seis se resuelven escribiendo (enmienda de la constitución o del ADR, o el cambio que el ADR ya pedía); las otras dos son diseño para la 017. La regla no pondera: un `high` documental pesa igual que uno de código, y es lo que la spec 014 FR-018 fijó.
 
 Lo que un lector con menos tiempo debería llevarse, en orden: F-043 y F-045 (diseño, antes de la 017); F-051 y F-007 (código, chicos, con prueba propuesta); F-062 y F-063 (decisiones a escribir); F-052 (la mutación no mira lo que cree mirar); F-021/F-030/F-033 (conocimiento repetido bajo el umbral de los gates); el resto son legibilidad y prosa detrás del código, que el cuadro por módulo de §3.A ordena por alcance.
+
+## 8. Cierre (feature 015, 2026-09-19)
+
+Regla: cada hallazgo confirmado termina `resolved` (commit de la historia que lo corrigió),
+`absorbed-by` (la feature que lo toma) o `rejected` (motivo del dueño). Los tres de diseño
+de la fase 2 (F-043, F-045, F-046) van a la feature de persistencia del mapa; el resto se
+corrigió en la 015 (`specs/015-correcciones-auditoria/`), con el estado también escrito en
+`closure` de cada hallazgo en `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json`.
+
+Commits por historia: US1 `f8b5ee8` (decisiones escritas y tasas), US2 `d868ca1` (reglas en
+su dueño y bordes de seguridad), US3 `83009af` (gates que miran y conocimiento escrito una
+vez), US4 `4caa985` (legibilidad, cabeceras y forma); base `0d51a8d`.
+
+| F-NNN | Severidad | Estado        | Commit / feature / motivo                                                                                                             |
+| ----- | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| F-001 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-003 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-004 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-005 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-006 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-007 | high      | `resolved`    | `d868ca1` (US2)                                                                                                                       |
+| F-008 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-009 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-011 | medium    | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-012 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-013 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-014 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-015 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-016 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-017 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-018 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-019 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-020 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-021 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-022 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-023 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-024 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-025 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-026 | medium    | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-027 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-028 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-029 | low       | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-030 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-031 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-032 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-033 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-034 | low       | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-035 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-036 | medium    | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-037 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-038 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-039 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-040 | low       | `resolved`    | `4caa985` (US4)                                                                                                                       |
+| F-041 | low       | `rejected`    | la propuesta rehace `wiring.ts` y los perfiles por un beneficio de legibilidad; riesgo anotado para la feature de persistencia (R-13) |
+| F-043 | high      | `absorbed-by` | feature de persistencia (puertos de lectura con canal de fallo)                                                                       |
+| F-044 | medium    | `resolved`    | `d868ca1` (US2)                                                                                                                       |
+| F-045 | high      | `absorbed-by` | feature de persistencia (separación del plano de decisión)                                                                            |
+| F-046 | low       | `absorbed-by` | feature de persistencia (atomicidad del presupuesto por sesión)                                                                       |
+| F-047 | low       | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-048 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-051 | high      | `resolved`    | `d868ca1` (US2)                                                                                                                       |
+| F-052 | medium    | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-053 | low       | `resolved`    | `d868ca1` (US2)                                                                                                                       |
+| F-054 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-055 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-056 | low       | `resolved`    | `83009af` (US3)                                                                                                                       |
+| F-057 | low       | `resolved`    | `d868ca1` (US2)                                                                                                                       |
+| F-058 | low       | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-062 | high      | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+| F-063 | high      | `resolved`    | `f8b5ee8` (US1)                                                                                                                       |
+
+### Renumeración del mapa
+
+La 015 ocupa el número que el roadmap reservaba para la configuración; lo que sigue corre dos
+números y el puerto de plataforma gana su feature (constitución X, deuda declarada en
+ADR-025 y CLAUDE.md):
+
+| Antes                                                    | Después                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 014 Configuration, flags, kill switch and administration | 016                                                                                              |
+| 015 Message catalogue                                    | 017                                                                                              |
+| 016 ITT analysis and merchant portal                     | 018                                                                                              |
+| 017 Persistence and resilience                           | 019                                                                                              |
+| 018 Observability and end-to-end                         | 020                                                                                              |
+| —                                                        | 014 Integral engineering audit; 015 Audit findings — corrections; 021 Platform port and adapters |
+
+### Re-corrida del método (SC-002)
+
+- `run-gates.mjs` sobre los 15 alcances de §2.2, salida en
+  `docs/auditoria/trabajo/gates/cierre-015/`: todo `pass` salvo el mismo artefacto de la 014
+  en `http-compartido` (lint sobre `generated/api.d.ts`, que `npm run lint` ignora por
+  configuración; §2.2 y `avance.md`).
+- Rúbrica (`specs/014-auditoria-integral/contracts/rubrica.md`) sobre `git diff --name-only
+main -- src tests` (185 archivos): notas en `gates/cierre-015/rubrica.md`. Ningún hallazgo
+  `resolved` se reproduce; una observación de nombre (eje 1, `Window` → `BoundedWindow`) se
+  corrigió en `101e099` antes del cierre. Lo que la corrida completa de mutación muestra y
+  no era hallazgo (supervivientes informativos fuera de las líneas de la feature: `ajvOpts.strict`,
+  la condición del catch-all del error handler, `strictPreflight`, un spread condicional en
+  `decision.service.ts`) queda anotado en el quickstart de la 015, no como hallazgo.
+- Hallazgos reproducibles: sólo los tres absorbidos por la feature de persistencia (F-043,
+  F-045, F-046) y el rechazado (F-041).
+
+Estado global recalculado por la regla fija sobre lo que queda abierto: F-043 y F-045 son
+`high` (constitución II y IV) y siguen sin resolver hasta la feature de persistencia ⇒
+**`rejected` sólo por F-043/F-045** (SC-002); sin ellos, `approved` (F-046 y F-041 son
+`low`).

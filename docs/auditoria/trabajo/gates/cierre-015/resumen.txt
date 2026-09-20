@@ -1,0 +1,15 @@
+barrier: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(16) language:pass
+catalog: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(11) language:pass
+commercial: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(6) language:pass
+composition: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(2) language:pass
+decision: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(12) language:pass
+experiment: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(6) language:pass
+http-compartido: lint:fail(112) arch:pass shape:pass duplication:pass dead-code:pass(8) language:pass
+infrastructure: lint:pass arch:pass shape:pass duplication:pass dead-code:pass language:pass
+ingestion: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(40) language:pass
+ledger: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(10) language:pass
+merchant: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(9) language:pass
+outcomes: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(23) language:pass
+selection: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(1) language:pass
+shared-kernel: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(9) language:pass
+system: lint:pass arch:pass shape:pass duplication:pass dead-code:pass(4) language:pass

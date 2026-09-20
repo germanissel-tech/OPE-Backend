@@ -170,10 +170,10 @@ Proyecto único: `src/`, `tests/`, `contracts/`, `docs/`, `.specify/`, `scripts/
 
 ## Phase 7: Cierre de la auditoría (R-14, FR-001..FR-003)
 
-- [ ] T060 Escribir `closure` en cada hallazgo en alcance de `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json` (`resolved` + hash del commit de su historia; F-041 `rejected` + motivo; F-043/F-045/F-046 sin `closure`, anotados como persistencia); `verify-finding.mjs` sobre los cuatro archivos (SC-001)
-- [ ] T061 Re-corrida del método (SC-002): `run-gates.mjs --module <m> --json` sobre los 15 alcances y la rúbrica `specs/014-auditoria-integral/contracts/rubrica.md` sobre `git diff --name-only main -- src tests`; salida en `docs/auditoria/trabajo/gates/cierre-015/`; estado global recalculado por la regla fija
-- [ ] T062 Escribir `docs/auditoria/2026-09-19-informe-auditoria-integral.md` §8 según `contracts/closure-annex.md` (tabla F-NNN → estado → commit; renumeración del mapa; los tres de persistencia; resultado de la re-corrida; F-041 y su motivo); actualizar `docs/auditoria/trabajo/afirmaciones.md` donde la evidencia cambió (A-005, A-017, A-035/A-036 con la feature planificada, A-042, A-160/A-193 sin cambio)
-- [ ] T063 `specs/015-correcciones-auditoria/quickstart.md` § "Cambios respecto del plan" completado (duraciones, decisiones tomadas en el camino); `npm run check:markers` (0 abiertos, 0 placeholders); `npx prettier --check .`; `npm run release-check`
+- [x] T060 Escribir `closure` en cada hallazgo en alcance de `docs/auditoria/trabajo/hallazgos/fase-{1..4}.json` (`resolved` + hash del commit de su historia; F-041 `rejected` + motivo; F-043/F-045/F-046 sin `closure`, anotados como persistencia); `verify-finding.mjs` sobre los cuatro archivos (SC-001)
+- [x] T061 Re-corrida del método (SC-002): `run-gates.mjs --module <m> --json` sobre los 15 alcances y la rúbrica `specs/014-auditoria-integral/contracts/rubrica.md` sobre `git diff --name-only main -- src tests`; salida en `docs/auditoria/trabajo/gates/cierre-015/`; estado global recalculado por la regla fija
+- [x] T062 Escribir `docs/auditoria/2026-09-19-informe-auditoria-integral.md` §8 según `contracts/closure-annex.md` (tabla F-NNN → estado → commit; renumeración del mapa; los tres de persistencia; resultado de la re-corrida; F-041 y su motivo); actualizar `docs/auditoria/trabajo/afirmaciones.md` donde la evidencia cambió (A-005, A-017, A-035/A-036 con la feature planificada, A-042, A-160/A-193 sin cambio)
+- [x] T063 `specs/015-correcciones-auditoria/quickstart.md` § "Cambios respecto del plan" completado (duraciones, decisiones tomadas en el camino); `npm run check:markers` (0 abiertos, 0 placeholders); `npx prettier --check .`; `npm run release-check`
 - [ ] T064 Commit `docs(015): cierre de la auditoría 014`; PR `015-correcciones-auditoria` → `main` con el Constitution Check (diez principios, X como deuda declarada) y el resumen de SC-001..SC-006; sin merge hasta que el dueño lo pida
 
 ---

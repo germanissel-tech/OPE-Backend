@@ -1,0 +1,23 @@
+{
+  "scope": "dir:src/infrastructure",
+  "files": [
+    "src/infrastructure/http/build-server.ts",
+    "src/infrastructure/http/cors.ts",
+    "src/infrastructure/http/dispatch.ts",
+    "src/infrastructure/http/http-response.ts",
+    "src/infrastructure/http/load-contract.ts",
+    "src/infrastructure/http/raw-bodies.ts",
+    "src/infrastructure/http/request-logging.ts",
+    "src/infrastructure/http/security-boundary.ts",
+    "src/infrastructure/http/strip-discriminator-mappings.ts",
+    "src/infrastructure/logging/pino-logger.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "dead-code", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

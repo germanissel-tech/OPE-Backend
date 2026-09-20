@@ -1,0 +1,72 @@
+{
+  "scope": "module:experiment",
+  "files": [
+    "src/application/experiment/index.ts",
+    "src/application/experiment/ports/assignment-ledger.ts",
+    "src/application/experiment/ports/experiment-directory.ts",
+    "src/application/experiment/services/assignment.service.ts",
+    "src/domain/experiment/assignment.ts",
+    "src/domain/experiment/errors.ts",
+    "src/domain/experiment/experiment.ts",
+    "src/domain/experiment/experiments.ts",
+    "src/domain/experiment/index.ts",
+    "src/interface-adapters/gateways/experiment/config-experiment-directory.ts",
+    "src/interface-adapters/gateways/experiment/memory-assignment-ledger.ts"
+  ],
+  "gates": [
+    { "gate": "lint", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "arch", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "shape", "mode": "blocking", "status": "pass", "findings": [] },
+    { "gate": "duplication", "mode": "blocking", "status": "pass", "findings": [] },
+    {
+      "gate": "dead-code",
+      "mode": "blocking",
+      "status": "pass",
+      "findings": [
+        {
+          "file": "src/domain/experiment/index.ts",
+          "line": 11,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExperimentError",
+          "mode": "informative"
+        },
+        {
+          "file": "src/domain/experiment/index.ts",
+          "line": 13,
+          "rule": "dead-code/types",
+          "message": "unused exported type: ExperimentStatus",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/experiment/index.ts",
+          "line": 2,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AssignmentRecordResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/experiment/index.ts",
+          "line": 6,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AssignmentResult",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/experiment/index.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AssignmentServiceDependencies",
+          "mode": "informative"
+        },
+        {
+          "file": "src/application/experiment/ports/assignment-ledger.ts",
+          "line": 8,
+          "rule": "dead-code/types",
+          "message": "unused exported type: AssignmentRecordResult",
+          "mode": "informative"
+        }
+      ]
+    },
+    { "gate": "language", "mode": "blocking", "status": "pass", "findings": [], "exceptions": 0 }
+  ]
+}

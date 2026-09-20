@@ -31,7 +31,12 @@
       "after": "  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<Result<void, LedgerUnavailable>>;\n// UpsertCatalogSnapshotUseCase: `if (!written.ok) return fail(written.error)` → 503 `ledger-unavailable` with Retry-After,\n// as orders, returns and corroborations answer the same platform consumer (contracts/paths/orders.yaml:74)"
     },
     "coveringTest": "tests/unit/application/catalog/upsert-catalog-snapshot.use-case.test.ts with a store whose `replace` answers `unavailable` (tests/helpers/unavailable-ledgers.ts pattern) expecting `{ ok: false, error: { code: \"ledger-unavailable\" } }`, and tests/integration/catalog.test.ts expecting 503 + `Retry-After`. CLAUDE.md § Notas operativas fixes for the platform consumer that \"Todo record() devuelve Result<…, LedgerUnavailable> ⇒ 503 con Retry-After\"; the catalog is the fourth operation of that consumer and the only one whose write cannot say so — the platform cannot tell a snapshot that was not kept from a bug",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "d868ca1",
+      "feature": "015"
+    }
   },
   {
     "id": "F-045",
@@ -82,7 +87,12 @@
       "after": "// In-memory decision ledger. Composite key merchant + decision: a decision of another merchant\n// does not exist for whoever asks. A secondary index merchant + session serves `bySession`.\n// Unbounded by design: it stands in for the durable ledger (01 §9) on the local profile, so nothing\n// is pruned and `record` copies the session's array; not a profile for traffic (ADR-018, 017)."
     },
     "coveringTest": "none: a comment (or one paragraph in ADR-018 / profiles/local.ts). S-01 of the handoff, confirmed as stated: the five memory ledgers (`memoryDecisionLedger`, `memoryOrderLedger`, `memoryCorroborationLedger`, `memoryAssignmentLedger`, `memoryExposureLedger`) never prune while the three hot-state gateways do (SESSION_WINDOW, VISITOR_WINDOW, DEDUP_WINDOW); 01 §9 guarantees durability, so the memory ledgers stand in for a database and growing is what a database does — but neither ADR-018 (the profile), ADR-021 (\"En memoria la aceptación es inmediata\") nor the file says that the local profile is not meant to hold a day of traffic",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "f8b5ee8",
+      "feature": "015"
+    }
   },
   {
     "id": "F-048",
@@ -99,7 +109,12 @@
       "after": "// src/domain/shared-kernel/time.ts — one fact: how far ahead of OPE's clock a client's clock may be\nexport const CLOCK_SKEW_TOLERANCE_MS = minutes(5);\n// the four sites read it; the signature window keeps its own name if its symmetry (± 5 min) is a separate decision"
     },
     "coveringTest": "tests/unit/domain/ingestion/event-batch.test.ts:71 (\"the tolerance is the one the contract publishes\") and its siblings pin each value separately; one test on the kernel constant plus the contract text (`x-invariants` of EventBatch, CatalogSnapshot, Order, ADR-029) would keep the four in step. Consistent with each other and with 02 today (02 fixes no figure); they can only drift apart because they are four numbers",
-    "status": "confirmed"
+    "status": "confirmed",
+    "closure": {
+      "status": "resolved",
+      "by": "83009af",
+      "feature": "015"
+    }
   },
   {
     "id": "F-049",
