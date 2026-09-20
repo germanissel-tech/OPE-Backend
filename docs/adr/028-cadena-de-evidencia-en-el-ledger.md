@@ -49,8 +49,8 @@ ledger]`): la autoridad de entrada de compras, devoluciones y corroboraciones. E
    total, ítems con SKU y cantidad, instante, sesión e incentivo aplicado. Nada del comprador;
    `additionalProperties: false` rechaza el objeto de orden completo. Nota (2026-09-19,
    auditoría 014 F-062): 01 §10.3 lista seis campos, sin el incentivo; la constitución lo
-   admite desde la v1.3.0 porque lo concede OPE y no identifica al comprador, y el documento
-   del MVP queda por actualizar fuera del repo.
+   admite desde la v1.3.0 porque lo concede OPE y no identifica al comprador. Cerrada el
+   2026-09-20 (feature 016): 01 §10.3 lista los siete campos.
 
 ## Consecuencias
 

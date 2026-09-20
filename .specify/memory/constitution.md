@@ -6,6 +6,8 @@ Sync Impact Report (1.4.2, 2026-09-20)
   bajo la marca `info.x-stability: building` (ningún merchant consume el contrato; ADR-003,
   precisión del 2026-09-20; `contract:diff` lo reporta y lo acepta, `release-check` avisa).
   Decisión del dueño en la feature 016: en construcción no se salta de versión mayor.
+- Nota transitoria de VII (1.3.0, reiterada en 1.4.0) cerrada el mismo día: 01 §10.3 lista
+  los siete campos del conector de órdenes desde el 2026-09-20 (feature 016, historia 3).
 - Templates: sin cambios.
 
 Sync Impact Report (1.4.1, 2026-09-20)
