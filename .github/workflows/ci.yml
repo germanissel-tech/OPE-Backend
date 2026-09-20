@@ -1,5 +1,5 @@
 # FR-060: on every change, contract verification (lint, bundle, compatibility against main,
-# type drift), build, typecheck, quality gates (ADR-016), unit/integration tests and contract
+# type drift), build, typecheck, quality gates (ADR-016), the tests the change needs and contract
 # tests in one job, and mutation testing on the changed lines in a parallel job, so the PR waits
 # for the slower of the two rather than for their sum. A weekly job mutates everything,
 # informatively.
@@ -41,12 +41,12 @@ jobs:
       - run: npm ci
       - run: npm run contract:check
       - run: npm run format:check
-      - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
-      - run: npm run arch
+      # quality chains lint, arch, duplication, dead code and language (ADR-016): not repeated.
       - run: npm run quality
-      - run: npm run test:all
+      # The tools project (whole toolchains) only when the change exercises one (feature 017).
+      - run: npm run test:scoped
       - run: npm run test:contract
       - run: npm run release-check
 

@@ -17,7 +17,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "./governance-lib.mjs";
-import { capture, repoRoot, run } from "./lib.mjs";
+import { capture, repoRoot, resolveBaseRef, run } from "./lib.mjs";
 
 /** @typedef {{ file: string; start: number; end: number }} Range */
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
@@ -254,17 +254,6 @@ export function survivors(report) {
     }
   }
   return out;
-}
-
-/** @returns {string | null} */
-function resolveBaseRef() {
-  const candidates = [process.env["CONTRACT_BASE_REF"], "origin/main", "main"].filter(
-    (c) => typeof c === "string",
-  );
-  for (const ref of candidates) {
-    if (capture("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).status === 0) return ref;
-  }
-  return null;
 }
 
 /** Files under src/ that git does not track yet (never staged). @returns {string[]} */

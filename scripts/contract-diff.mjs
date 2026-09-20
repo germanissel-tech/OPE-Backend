@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import os from "node:os";
 import path from "node:path";
 import { argString, isRecord, parseArgs, prop, readYaml } from "./governance-lib.mjs";
-import { bundlePath, capture, captureBuffer, repoRoot, runCli } from "./lib.mjs";
+import { bundlePath, capture, captureBuffer, repoRoot, resolveBaseRef, runCli } from "./lib.mjs";
 import { resolveOasdiff } from "./oasdiff-install.mjs";
 
 const SEVERITY_FILE = path.join(repoRoot, "contracts", "oasdiff-severity.txt");
@@ -75,21 +75,6 @@ function majorOf(file) {
   const major = Number(version.split(".")[0]);
   if (!Number.isInteger(major)) throw new Error(`invalid info.version in ${file}: '${version}'`);
   return { version, major, building: prop(info, "x-stability") === BUILDING };
-}
-
-/**
- * Resolves the base git reference; null if none is available.
- * @returns {string | null}
- */
-function resolveBaseRef() {
-  const candidates = [process.env["CONTRACT_BASE_REF"], "origin/main", "main"].filter(
-    (c) => typeof c === "string",
-  );
-  for (const ref of candidates) {
-    const { status } = capture("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
-    if (status === 0) return ref;
-  }
-  return null;
 }
 
 /**

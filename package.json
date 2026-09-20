@@ -43,6 +43,7 @@
     "test": "vitest run --project fast",
     "test:tools": "vitest run --project tools",
     "test:all": "vitest run",
+    "test:scoped": "node scripts/test-scope.mjs",
     "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs",
     "check:api-map": "node scripts/check-api-map.mjs",
     "check:language": "node scripts/check-language.mjs",

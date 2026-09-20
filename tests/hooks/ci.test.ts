@@ -22,11 +22,14 @@ const runs = (job: string): string[] =>
   workflow.jobs[job]?.steps.map((s) => s.run ?? "").filter(Boolean) ?? [];
 
 describe(".github/workflows/ci.yml", () => {
-  it("runs quality after lint and both test projects in the checks job (015 F-055)", () => {
+  it("runs quality (which chains lint and arch, not repeated) and the scoped tests in the checks job (015 F-055, 017 T003)", () => {
     const checks = runs("checks");
-    expect(checks.indexOf("npm run quality")).toBeGreaterThan(checks.indexOf("npm run lint"));
-    expect(checks).toContain("npm run test:all");
+    expect(checks).toContain("npm run quality");
+    expect(checks).not.toContain("npm run lint");
+    expect(checks).not.toContain("npm run arch");
+    expect(checks).toContain("npm run test:scoped");
     expect(checks).not.toContain("npm test");
+    expect(checks).not.toContain("npm run test:all");
     expect(checks).not.toContain("npm run test:mutation");
   });
 
