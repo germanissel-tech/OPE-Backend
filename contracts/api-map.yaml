@@ -37,12 +37,13 @@ features:
   "013": Outcomes — orders, returns, browser corroboration
   "014": Integral engineering audit (read-only)
   "015": Audit findings — corrections
-  "016": Configuration, flags, kill switch and administration
-  "017": Message catalogue
-  "018": ITT analysis and merchant portal
-  "019": Persistence and resilience
-  "020": Observability and end-to-end
-  "021": Platform port and adapters — obtenerCatalogo, obtenerStockYPrecio, alConfirmarOrden, alRegistrarDevolucion; generic and test adapters; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6)
+  "016": Alignment with the MVP base documents — evidence-chain vocabulary in the contract, page locale, identifier gate, roadmap and governance texts (docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md)
+  "017": Configuration, flags, kill switch and administration — three levels (platform, treatment defaults, merchant; constitution XI), per-flow sync strategy and freshness budgets as merchant data, merchant locales, versioned configuration stamped on every decision, calibration then freeze (D-G)
+  "018": Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity (audit 014 F-043, F-045, F-046)
+  "019": Platform port, per-flow sync strategy and adapters — push / pull / subscribe per flow negotiated per merchant; partial stock-and-price refresh with a per-item instant; scheduler and queue consumer outside the decision path; Magento 2 adapter and test adapter; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6); preceded by the documentary verification of Magento 2 and VTEX
+  "020": Message catalogue — curated, versioned texts per family and locale; message-unavailable when the page locale has no text and no declared fallback
+  "021": ITT analysis and merchant portal — health always visible, results only at pre-registered cuts (D-F); NOT_AVAILABLE as a first-class value
+  "022": Observability and end-to-end — critical-path latency by percentile, NO_OP rate and reasons, catalogue ingest health, correlation completeness
 operations:
   - operationId: getHealth
     method: get
@@ -77,7 +78,7 @@ operations:
     consumer: sdk
     tag: ingest
     capabilities: [config:read]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:02-integracion-ecommerce.md#3
   - operationId: reportAnchorDiagnostics
@@ -86,7 +87,7 @@ operations:
     consumer: sdk
     tag: ingest
     capabilities: [diagnostics:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: corroborateOrder
@@ -131,7 +132,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "018"
+    feature: "021"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.3
   - operationId: getAccumulationStatus
@@ -140,7 +141,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "018"
+    feature: "021"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listDecisions
@@ -149,7 +150,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "018"
+    feature: "021"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listExposures
@@ -158,7 +159,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "018"
+    feature: "021"
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listOrders
@@ -167,7 +168,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "018"
+    feature: "021"
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.2
   - operationId: listMerchants
@@ -176,7 +177,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: createMerchant
@@ -185,7 +186,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: rotateIngestKey
@@ -194,7 +195,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [credentials:rotate]
-    feature: "016"
+    feature: "017"
     status: planned
     source: docs/adr/014-protocolo-del-sdk.md
   - operationId: rotatePlatformKey
@@ -203,7 +204,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [credentials:rotate]
-    feature: "016"
+    feature: "017"
     status: planned
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
   - operationId: createExperiment
@@ -212,7 +213,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [experiments:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#4.1
   - operationId: closeExperiment
@@ -221,7 +222,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [experiments:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: putFlags
@@ -230,7 +231,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [flags:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: setKillSwitch
@@ -239,7 +240,7 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [flags:write]
-    feature: "016"
+    feature: "017"
     status: planned
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: publishMessageCatalog
@@ -248,6 +249,6 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [messages:publish]
-    feature: "017"
+    feature: "020"
     status: planned
     source: mvp:03-alcance-mvp.md#4.4

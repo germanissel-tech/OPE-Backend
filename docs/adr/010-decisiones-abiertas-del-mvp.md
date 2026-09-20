@@ -25,8 +25,12 @@ no las confunda con marcadores del contrato:
 | D5 · Régimen de datos personales  | Plazos de retención              | Configuración de retención por merchant               |
 | D6 · Tamaño de muestra y duración | Regla de decisión pre-registrada | Análisis ITT; no toca el plano de decisión            |
 
-Cada una se cierra en `04-hoja-de-decisiones.md` de los documentos del MVP; al cerrarse, este
+Cada una se cierra en `01-arquitectura-mvp.md` §13 de los documentos del MVP; al cerrarse, este
 ADR pasa a `reemplazada` por uno nuevo con la decisión.
+
+Las decisiones de **producto** de `04-hoja-de-decisiones.md` (D-B, D-C, D-E, D-F, D-G) son
+otra lista: quedaron confirmadas por el dueño el 2026-09-20 (ADR-030). D-A (carrito) depende
+de la verificación V2 del merchant elegido.
 
 ## Consecuencias
 

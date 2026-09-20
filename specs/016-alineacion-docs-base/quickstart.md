@@ -40,4 +40,5 @@ Un commit por historia; PR a `main` sin merge.
 
 ## Cambios respecto del plan
 
-(Se completa durante la implementación, con fecha.)
+- 2026-09-20 T001: línea base en `c9a333d`; `contract:check` y `npm test` en verde; `check:identifiers` inexistente.
+- 2026-09-20 US1: la nota del glosario `estrategia-de-sincronizacion` usa `contexto: plataforma` y `uso: pendiente` (el glosario no admite `integracion` ni `planificado`). ADR-030 cita "feature 016" por número porque su spec existe; las reservadas sólo por nombre.

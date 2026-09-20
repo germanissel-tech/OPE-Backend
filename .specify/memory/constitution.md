@@ -1,4 +1,18 @@
 <!--
+Sync Impact Report (1.4.0, 2026-09-20)
+- Version change: 1.3.0 → 1.4.0 (MINOR: principio nuevo XI "Ninguna política vive en el
+  código"; acumula un PATCH de redacción en "Contrato de datos e identidad").
+- Added sections: XI (tres niveles de configuración —plataforma, default de tratamiento,
+  merchant—, orden de resolución, lo que queda en el código, lo que se estampa y congela).
+  Fuente: decisión 6 de docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md (§2.2),
+  aprobada por el dueño el 2026-09-20; 01 §14.2 (flags) y 03 §4.10 (congelamiento).
+- Modified sections: "Contrato de datos e identidad" — las barreras se nombran con los
+  identificadores del contrato (`fit`, `price`, `returns`; ADR-015) y el nombre de 03 §4.2 como
+  prosa (decisión 12 de la evaluación; el gate `check:identifiers` lo verifica). VII: la nota
+  transitoria de la 1.3.0 sobre 01 §10.3 se cierra cuando la feature 016 edite ese documento
+  (siete campos); hasta entonces sigue vigente.
+- Templates: sin cambios. Los Constitution Check evalúan los once principios y citan la versión.
+
 Sync Impact Report (1.3.0, 2026-09-19)
 - Version change: 1.2.0 → 1.3.0 (MINOR: el principio VII amplía en un elemento la lista del
   conector de órdenes; ningún otro principio cambia).
@@ -202,6 +216,29 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
 - Mecanismo A (server-to-server con identificador propagado) es la única fuente autoritativa
   de atribución; B corrobora; C nunca es autoridad.
 
+### XI. Ninguna política vive en el código
+
+Todo valor que gobierna el comportamiento de OPE es **configuración**, en tres niveles y con
+este orden de resolución: lo que define el **merchant** → si no lo define, el **default global
+de tratamiento** de OPE → nunca una constante del código. El código conserva sólo las
+**invariantes** (qué valores son válidos: tasas 0–1, escalera creciente, techo ≥ escalón) y los
+**algoritmos** (asignación, inferencia), no los valores.
+
+- **Nivel plataforma**: reglas de OPE que el contrato publica o de las que depende la seguridad
+  (ventana de deduplicación, tolerancia de reloj, TTL de sesión y visitante, límites de cuerpo).
+  Configuración global del despliegue, versionada; nunca por merchant.
+- **Nivel default de tratamiento**: políticas de decisión y comercial, presupuesto de frescura,
+  umbrales del nivel de sincronización, estrategia de sincronización por flujo. Datos cargados
+  al arrancar, versionados.
+- **Nivel merchant**: lo que un merchant sobrescribe del nivel anterior, por flujo cuando
+  corresponda.
+
+Lo que está en los niveles default y merchant es **parte del tratamiento**: se versiona, se
+estampa en cada decisión del ledger y se congela durante el piloto (`03-alcance-mvp.md` §4.10).
+Una constante nueva en `src/` que gobierne comportamiento MUST ir a uno de los tres niveles;
+el gate de números mágicos la detecta. La feature que saca del código las políticas actuales
+es la de configuración del mapa del contrato.
+
 ## Contrato de datos e identidad
 
 - **Escalas**: las superficies visibles al merchant expresan porcentajes en 0–100; los motores
@@ -209,8 +246,9 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
   de API / DTO). Un tipo interno MUST NOT recibir un porcentaje 0–100.
 - **Frescura por merchant**: el presupuesto de frescura de catálogo, stock y precio se configura
   por merchant y se mide. Un dato más viejo que su presupuesto se trata como ausente.
-- **Barreras del MVP**: exactamente tres (`talle_calce`, `precio_valor`, `cambios_devoluciones`).
-  Agregar una barrera es cambio de alcance, no feature.
+- **Barreras del MVP**: exactamente tres — `fit` (talle y calce), `price` (precio y valor),
+  `returns` (cambios y devoluciones), con los identificadores del contrato. Agregar una barrera
+  es cambio de alcance, no feature.
 - **Superficies**: ficha de producto entra; carrito es capacidad construida con activación
   pendiente (D-A); home, listado y checkout quedan fuera.
 - **Estados de desconocimiento**: `PENDING_CORRELATION` y `NOT_AVAILABLE` son valores de primera
@@ -299,4 +337,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-19
+**Version**: 1.4.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20

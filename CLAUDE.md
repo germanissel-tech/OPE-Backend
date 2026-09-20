@@ -278,10 +278,14 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
   (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
   los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
-- **Puerto de plataforma (constitución X)**: deuda declarada. El caso base construido es
-  push (la plataforma empuja catálogo, órdenes y devoluciones; ADR-025, ADR-028); el puerto
-  de cuatro operaciones con sus adaptadores genérico y de prueba es la feature "Platform port
-  and adapters" del mapa (`contracts/api-map.yaml`). Todo Constitution Check evalúa los diez
+- **Puerto de plataforma y estrategia de sincronización (constitución X, ADR-025)**: cada
+  flujo (catálogo, stock/precio, órdenes, devoluciones) llega por uno de tres modos negociados
+  con el merchant —`push` (construido: la plataforma empuja), `pull` (OPE consulta su API),
+  `subscribe` (OPE consume su cola)— y los tres entran por el mismo puerto; los adaptadores
+  viven en OPE, desacoplados del núcleo, y agregar una plataforma es agregar un adaptador. Los
+  modos `pull`/`subscribe`, el refresco parcial de stock/precio, el planificador, el consumidor
+  y los adaptadores Magento 2 y de prueba son la feature "Platform port, per-flow sync strategy
+  and adapters" del mapa (`contracts/api-map.yaml`). Todo Constitution Check evalúa los once
   principios y cita la versión de la constitución.
 - **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
   `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
@@ -417,6 +421,11 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
 
 ## Convenciones
 
+- **Ninguna política vive en el código (constitución XI)**: todo valor que gobierna el
+  comportamiento es configuración en tres niveles (plataforma → default de tratamiento →
+  merchant); el código conserva invariantes y algoritmos. Hasta la feature de configuración
+  del mapa, las políticas actuales (`default-1`, `commercial-default-1`, frescura, ventanas)
+  son el contenido inicial de esos niveles: no se agregan constantes de comportamiento nuevas.
 - TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en
   `src/composition/` (ADR-013). Identificadores como tipos marcados (`Branded`): una identidad
   vive en `src/domain/shared-kernel/ids.ts` **sólo** si la comparten módulos que no pueden

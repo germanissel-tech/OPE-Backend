@@ -57,16 +57,29 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
 ## Consecuencias
 
 - La 011 lee `ProductTruthService` y decide con `freshness` por clase; nunca ve cantidades.
-- Un adaptador Magento/VTEX (pull) o un refresco parcial de stock/precio son operaciones
-  posteriores del mapa (V3); el snapshot completo es el caso base que todos pueden cumplir.
-- **Deuda declarada frente a la constitución X** (2026-09-19, auditoría 014 F-062/F-063): el
-  principio X pide un puerto de plataforma de cuatro operaciones (`obtenerCatalogo`,
-  `obtenerStockYPrecio`, `alConfirmarOrden`, `alRegistrarDevolucion`) con un adaptador
-  genérico y uno de prueba "desde el día uno". Lo construido es el caso base push (este ADR y
-  ADR-028): la plataforma empuja catálogo, órdenes y devoluciones y el núcleo no tiene ese
-  puerto. El dueño decidió mantener X y planificarlo: la feature "Platform port and adapters"
-  del mapa del contrato construye el puerto, los dos adaptadores y la prueba de punta a punta
-  que el Flujo de desarrollo pide. Hasta entonces X es deuda, escrita aquí y en la guía.
+- **Push es un modo, no el caso base** (revisado el 2026-09-20; evaluación de los documentos
+  base, decisiones 1 y 2). El criterio de negocio es conectar cada merchant con la menor
+  fricción para su plataforma: por eso la **estrategia de sincronización se negocia por
+  merchant y por flujo** (catálogo, stock/precio, órdenes, devoluciones), con tres modos —
+  `push` (el merchant envía: este ADR y ADR-028), `pull` (OPE consulta la API de la plataforma
+  con credenciales que el merchant nos da) y `subscribe` (OPE consume una cola en la que la
+  plataforma publica cambios) — y se puede mezclar (catálogo por push diario, stock/precio por
+  pull cada pocos minutos). Los tres llegan al **mismo puerto** (`CatalogStore.replace`,
+  `OrderLedger.record`, `recordReturn`): el núcleo no sabe quién inició. Los adaptadores viven
+  en OPE, desacoplados del núcleo; agregar una plataforma es agregar un adaptador. Lo que este
+  ADR construyó sigue vigente como el modo push y como lo que cualquier adaptador usa por
+  dentro para depositar lo que trae: snapshot completo, `capturedAt` idempotente, firma
+  (ADR-029). La estrategia es configuración congelada durante el piloto (03 §4.10) y se estampa
+  en la versión de configuración.
+- Lo que falta para los otros dos modos lo construye la feature "Platform port, per-flow sync
+  strategy and adapters" del mapa del contrato: el refresco parcial de stock/precio con
+  instante por ítem (idempotente por variante + instante; una variante desconocida se ignora
+  con motivo), el planificador de pulls y el consumidor de suscripciones —fuera del camino de
+  decisión (01 §4.6)—, el adaptador Magento 2 y el adaptador de prueba que la constitución X
+  pide; antes, la verificación documental de Magento 2 y VTEX. El nivel de sincronización 3
+  (01 §14.1) pasa a ser alcanzable con `subscribe`, sin valor adicional para los claims del MVP.
+  El principio X queda cumplido en su forma (puerto único, adaptadores en el borde) y pendiente
+  en su construcción, que esa feature completa.
 - Órdenes y devoluciones (013) reutilizan `platformKey` y la verificación de capacidades tal
   cual.
 - El `bodyLimit` del servidor sube a 32 MiB (openapi-backend rutea con un handler único; no
