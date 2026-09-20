@@ -70,7 +70,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       x-required-capabilities:
-        - flags:write
+        - configuration:write
       parameters:
         - name: merchantId
           in: path

@@ -15,5 +15,6 @@ export const NO_OP_REASONS = [
   "no-acceptable-candidate",
   "commercial-policy-blocked",
   "visitor-fatigue",
+  "merchant-off",
 ] as const;
 export type NoOpReason = (typeof NO_OP_REASONS)[number];

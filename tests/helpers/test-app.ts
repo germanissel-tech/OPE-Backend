@@ -2,6 +2,7 @@
 // fixed merchants and targeted replacements (clock, ports, handlers). `startTestApp` builds a
 // whole app; `sharedTestApp` builds the server once per file and rebuilds only the in-memory
 // ports before each test (015 F-055): the contract is parsed and the routes compiled once.
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { bootstrap, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../../src/composition/commercial-policy-config.js";
 import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
 import { localProfile } from "../../src/composition/profiles/local.js";
+import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/admin/index.js";
 import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
 import { Merchant } from "../../src/domain/merchant/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
@@ -109,6 +111,27 @@ export const merchantB: MerchantSpec = {
 };
 const testMerchants: MerchantSpec[] = [merchantA, merchantB];
 
+/** The operators of the test platform (feature 017): one over every merchant, one scoped to A. */
+const TEST_OPERATOR_TOKENS = { "ops-all": "admin-token-all", "ops-a": "admin-token-a" } as const;
+export type TestOperator = keyof typeof TEST_OPERATOR_TOKENS;
+
+/** The raw bearer token of a test operator (the platform only stores its fingerprint). */
+const adminToken = (name: TestOperator): string => TEST_OPERATOR_TOKENS[name];
+
+const fingerprint = (token: string): string => createHash("sha256").update(token, "utf8").digest("hex");
+
+function operatorOf(name: TestOperator, scope: "*" | string[]): Operator {
+  const built = Operator.of({
+    operatorId: asOperatorId(name),
+    tokenFingerprints: [fingerprint(TEST_OPERATOR_TOKENS[name])],
+    scope: scope === EVERY_MERCHANT ? EVERY_MERCHANT : scope.map(asMerchantId),
+  });
+  if (!built.ok) throw new Error(`test operator ${name}: ${built.error.message}`);
+  return built.value;
+}
+
+const testOperators: Operator[] = [operatorOf("ops-all", EVERY_MERCHANT), operatorOf("ops-a", ["m_a"])];
+
 /** What a test may override of the configuration; merchants as specs, not entities. */
 export interface TestConfig extends Omit<Partial<AppConfig>, "merchants"> {
   merchants?: MerchantSpec[];
@@ -119,6 +142,7 @@ const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig => ({
   host: "127.0.0.1",
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
   merchants: (merchants ?? testMerchants).map(configured),
+  operators: testOperators,
   ...over,
 });
 
@@ -314,4 +338,20 @@ export function catalogOf(
     products: Array.from({ length: n }, (_, i) => catalogProductOf(`P${i + 1}`)),
     ...over,
   };
+}
+
+/** An administration request (feature 017): bearer token of a test operator, JSON body when given. */
+export function admin(
+  app: FastifyInstance,
+  method: "GET" | "POST" | "PUT",
+  url: string,
+  o: { as?: TestOperator | null; token?: string; body?: unknown } = {},
+): Promise<LightMyRequestResponse> {
+  const headers: Record<string, string> = {};
+  const token = o.token ?? (o.as === null ? undefined : adminToken(o.as ?? "ops-all"));
+  if (token !== undefined) headers["authorization"] = `Bearer ${token}`;
+  if (o.body !== undefined) headers["content-type"] = "application/json";
+  const options: InjectOptions = { method, url, headers };
+  if (o.body !== undefined) options.payload = o.body as Exclude<InjectOptions["payload"], undefined>;
+  return app.inject(options);
 }

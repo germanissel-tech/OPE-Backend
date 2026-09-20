@@ -22,13 +22,13 @@ idempotencia de orden con `orderId`) y con la paginación de lecturas.
 1. **Consumidores y esquemas** (el tag de una operación fija su consumidor; el consumidor fija
    su esquema; regla `ope-consumer-security`):
 
-   | Consumidor | Tags                 | Esquema                                     | Credencial                                                                  | Identifica                   |
-   | ---------- | -------------------- | ------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------- |
-   | `public`   | `system`             | ninguno (`security: []`)                    | —                                                                           | —                            |
-   | `sdk`      | `ingest`, `decision` | `ingestKey` (header `X-OPE-Ingest-Key`)     | pública, en el tag; ≤ 2 activas                                             | merchant (+ origen, ADR-014) |
-   | `platform` | `outcomes`           | `platformKey` (header `X-OPE-Platform-Key`) | **secreta**, servidor a servidor sobre TLS; ≤ 2 activas; nunca en navegador | merchant                     |
-   | `portal`   | `portal`             | `portalSession` (bearer, PROPUESTO)         | token de sesión de una persona del merchant                                 | persona + merchant           |
-   | `admin`    | `admin`              | `adminToken` (bearer, PROPUESTO)            | token de operador de OPE, emitido fuera de banda, auditado                  | operador                     |
+   | Consumidor | Tags                 | Esquema                                             | Credencial                                                                          | Identifica                   |
+   | ---------- | -------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------- |
+   | `public`   | `system`             | ninguno (`security: []`)                            | —                                                                                   | —                            |
+   | `sdk`      | `ingest`, `decision` | `ingestKey` (header `X-OPE-Ingest-Key`)             | pública, en el tag; ≤ 2 activas                                                     | merchant (+ origen, ADR-014) |
+   | `platform` | `outcomes`           | `platformKey` (header `X-OPE-Platform-Key`)         | **secreta**, servidor a servidor sobre TLS; ≤ 2 activas; nunca en navegador         | merchant                     |
+   | `portal`   | `portal`             | `portalSession` (bearer, PROPUESTO)                 | token de sesión de una persona del merchant                                         | persona + merchant           |
+   | `admin`    | `admin`              | `adminToken` (bearer; DECIDIDO 2026-09-20, ADR-031) | token propio de cada operador de OPE, emitido fuera de banda, con alcance, auditado | operador                     |
 
    Ausente o inválida ⇒ `401 unauthorized`. `platformKey`: DECIDIDO con el primer adaptador de
    plataforma (feature 010, ADR-025): clave servidor a servidor por merchant en
@@ -70,3 +70,10 @@ idempotency-conflict`, nunca sobrescritura. La igualdad de contenido se define e
 - Los esquemas de portal y admin quedan propuestos hasta sus features; su forma ya está fijada.
 - `idempotency-conflict` entra al catálogo de tipos de problema; ninguna operación construida
   lo emite hasta la feature de outcomes.
+
+- Precisión (feature 017, 2026-09-20; ADR-031): `adminToken` queda decidido — un token por
+  operador (nunca compartido), emitido fuera de banda con su huella en `OPE_ADMIN_OPERATORS`,
+  rotable, con alcance `*` o una lista de merchants; toda acción de administración queda en
+  el registro de administración. Las colecciones de `admin` usan `cursor`/`limit` y un
+  `<X>Page` como las del portal, sin que la regla `ope-collection-pagination` (sólo portal)
+  cambie. `portalSession` sigue `PROPUESTO` hasta el portal.

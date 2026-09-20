@@ -1,0 +1,10 @@
+description: No merchant with that identifier within the operator's scope.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:merchant-not-found
+      title: The merchant does not exist
+      status: 404
+      instance: /v1/admin/merchants/mrc_7f3k9d2q1m4x

@@ -1,0 +1,10 @@
+description: No operator token, or one that belongs to nobody; before the body is read.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:operator-unknown
+      title: Operator token missing or unknown
+      status: 401
+      instance: /v1/admin/log

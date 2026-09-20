@@ -1,0 +1,31 @@
+type: object
+description: "One entry of the admin log (ADR-031): who did what, on which merchant, with which outcome. Never a credential."
+additionalProperties: false
+required: [at, operatorId, operation, outcome]
+properties:
+  at:
+    type: string
+    format: date-time
+    description: Instant of the action.
+  operatorId:
+    $ref: ./OperatorId.yaml
+  operation:
+    type: string
+    description: The `operationId` of the contract, or the name of a system action.
+    maxLength: 64
+  merchantId:
+    type: string
+    description: The merchant the action named, when it named one.
+    maxLength: 64
+  outcome:
+    $ref: ./AdminOutcome.yaml
+  code:
+    type: string
+    description: The problem type slug when rejected or denied.
+    maxLength: 64
+  result:
+    $ref: ./AdminResult.yaml
+  reason:
+    type: string
+    description: The reason the operator declared (a corrective configuration version).
+    maxLength: 500

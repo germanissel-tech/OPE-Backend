@@ -1,0 +1,7 @@
+[
+  {
+    "operatorId": "dev-operator",
+    "tokenFingerprints": ["ba158449bab201b8a1f3627be46fcd31554e04442e56569d8b3a2ef6da708b4c"],
+    "scope": "*"
+  }
+]

@@ -9,6 +9,8 @@ import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared
 import { parseCommercialPolicy, parseEvidenceProfile } from "./commercial-policy-config.js";
 import { ConfigError, type MerchantField, type Variable } from "./config-error.js";
 import { parseDecisionPolicy } from "./decision-policy-config.js";
+import { readOperators } from "./operators-config.js";
+import type { Operator } from "../domain/admin/index.js";
 import type { CommercialPolicy } from "../domain/commercial/index.js";
 import type { DecisionPolicy } from "../domain/decision/index.js";
 import type { MerchantProfile } from "../domain/selection/index.js";
@@ -30,6 +32,8 @@ export interface AppConfig {
   host: string;
   contractPath: string;
   merchants: MerchantConfig[];
+  /** The operators of OPE (ADR-031); none configured means nobody administers. */
+  operators: Operator[];
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -56,6 +60,7 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     host: text(env, "HOST") ?? "127.0.0.1",
     contractPath: path.resolve(text(env, "OPE_CONTRACT") ?? "contracts/dist/openapi.yaml"),
     merchants: readMerchants(env, readFile),
+    operators: readOperators(env, readFile),
   };
 }
 

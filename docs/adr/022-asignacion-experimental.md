@@ -51,3 +51,8 @@ vive el experimento y qué ve el SDK.
 - Holdout (DECIDIDO, ADR-026): todo merchant conserva un grupo de control mínimo,
   `holdoutPercent` con 5 % por defecto; `treatmentPercent ≤ 100 − holdout`. El tope se aplica
   con la configuración por API (feature "Configuration, flags, kill switch and administration").
+- Precisión (feature 017, 2026-09-20; ADR-031): el experimento tiene tres estados —
+  `calibrating` (se asigna y se decide; las decisiones se marcan y no cuentan), `active` (la
+  ventana de acumulación empieza al activarlo y la configuración queda congelada) y `closed`
+  (terminal)—; lo abre, activa y cierra un operador por la API de administración; como máximo
+  uno abierto por merchant. El holdout se aplica al abrir un experimento por API.

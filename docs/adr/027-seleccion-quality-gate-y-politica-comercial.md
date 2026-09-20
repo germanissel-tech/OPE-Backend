@@ -63,3 +63,7 @@ dejó escrito que la 012 decidiría si la política comercial se separaba de `de
 - Los `messageVersionId` placeholder llevan el escalón (`msg_<barrera>_<anclaje>_<escalón>_v0`);
   la feature del catálogo de mensajes los reemplaza por versiones reales del catálogo sin tocar la selección.
 - El escalón `uncertainty` existe en el vocabulario y no tiene candidatos hasta el catálogo de mensajes.
+- Precisión (feature 017, 2026-09-20; ADR-031): `commercial-default-1` y el perfil de
+  evidencia vacío dejan de ser constantes del código y son el contenido inicial del nivel
+  **defaults de tratamiento** (`config/treatment-defaults.json`); el merchant los sobrescribe
+  con una versión de configuración por API (constitución XI).

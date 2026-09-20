@@ -3,13 +3,23 @@
 // configuration; `config.ts` re-exports it for main and the tests.
 
 /** The environment variables the server reads; anything else in the environment is ignored. */
-export type Variable = "PORT" | "HOST" | "OPE_CONTRACT" | "OPE_MERCHANTS" | "OPE_MERCHANTS_FILE";
+export type Variable =
+  | "PORT"
+  | "HOST"
+  | "OPE_CONTRACT"
+  | "OPE_MERCHANTS"
+  | "OPE_MERCHANTS_FILE"
+  | "OPE_ADMIN_OPERATORS"
+  | "OPE_ADMIN_OPERATORS_FILE";
 
 /** A field inside the merchants configuration, as a path from `merchants[i]`. */
 export type MerchantField = `merchants[${number}]${string}`;
 
+/** A field inside the operators configuration, as a path from `operators[i]`. */
+export type OperatorField = `operators[${number}]${string}`;
+
 export class ConfigError extends Error {
-  constructor(variable: Variable | MerchantField, problem: string) {
+  constructor(variable: Variable | MerchantField | OperatorField, problem: string) {
     super(`${variable} ${problem}.`);
     this.name = "ConfigError";
   }

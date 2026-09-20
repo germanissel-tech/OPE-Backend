@@ -45,3 +45,6 @@ reasons:
   - slug: visitor-fatigue
     emitter: commercial
     description: The visitor already received the interventions per day the merchant's commercial policy allows, across sessions.
+  - slug: merchant-off
+    emitter: orchestrator
+    description: "The merchant's kill switch is off (01 §14.2): OPE decides nothing and intervenes nowhere for this merchant until an operator turns it back on; assignment is not consulted and no budget is consumed."

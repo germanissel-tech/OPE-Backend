@@ -8,7 +8,7 @@ import {
   LedgerUnavailable,
 } from "../../../src/domain/ledger/index.js";
 import { OriginNotAllowed, Unauthorized } from "../../../src/domain/merchant/index.js";
-import { DomainError } from "../../../src/domain/shared-kernel/index.js";
+import { DomainError, StoreUnavailable } from "../../../src/domain/shared-kernel/index.js";
 import { PROBLEM_TYPES } from "../../../src/interface-adapters/http/problem-details.js";
 import { toProblem, type CataloguedError } from "../../../src/interface-adapters/http/to-problem.js";
 
@@ -40,6 +40,10 @@ describe("toProblem()", () => {
 
   it("ledger-unavailable is a 503 with Retry-After; the others carry no headers", () => {
     expect(toProblem(new LedgerUnavailable(), "/v1/exposures")).toMatchObject({
+      status: 503,
+      headers: { "retry-after": "5" },
+    });
+    expect(toProblem(new StoreUnavailable(), "/v1/admin/merchants")).toMatchObject({
       status: 503,
       headers: { "retry-after": "5" },
     });

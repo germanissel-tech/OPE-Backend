@@ -8,7 +8,7 @@ export type { Arm } from "./arm.js";
 export { CLOCK_SKEW_TOLERANCE_MS, hours, minutes, MS_PER_SECOND, seconds } from "./time.js";
 export { isCount, isRate } from "./rate.js";
 export { constantTimeEquals } from "./compare.js";
-export { DomainError, IdempotencyConflict, InvalidMoney } from "./errors.js";
+export { DomainError, IdempotencyConflict, InvalidMoney, StoreUnavailable } from "./errors.js";
 export type { SafeDetails, SharedKernelError } from "./errors.js";
 export { Money } from "./money.js";
 export type { MoneyRecord } from "./money.js";

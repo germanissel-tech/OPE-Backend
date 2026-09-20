@@ -2,6 +2,29 @@
 // Regenerate with: npm run contract:types
 
 export type paths = {
+    "/v1/admin/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The admin log, newest first
+         * @description Every administration action of the platform — accepted, rejected or denied — with its
+         *     operator, instant, operation, merchant and result (ADR-031). Reading the log is not itself
+         *     logged. Every operator reads the whole log: it is of the platform, and each entry names its
+         *     merchant. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listAdminLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/catalog": {
         parameters: {
             query?: never;
@@ -215,6 +238,46 @@ export type components = {
              */
             type: "added_to_cart";
             visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description One entry of the admin log (ADR-031): who did what, on which merchant, with which outcome. Never a credential. */
+        AdminEntry: {
+            /**
+             * Format: date-time
+             * @description Instant of the action.
+             */
+            at: string;
+            /** @description The problem type slug when rejected or denied. */
+            code?: string;
+            /** @description The merchant the action named, when it named one. */
+            merchantId?: string;
+            /** @description The `operationId` of the contract, or the name of a system action. */
+            operation: string;
+            operatorId: components["schemas"]["OperatorId"];
+            outcome: components["schemas"]["AdminOutcome"];
+            /** @description The reason the operator declared (a corrective configuration version). */
+            reason?: string;
+            result?: components["schemas"]["AdminResult"];
+        };
+        /** @description A page of the admin log, newest first (ADR-020). */
+        AdminEntryPage: {
+            /** @description Entries of this page, newest first. */
+            items: components["schemas"]["AdminEntry"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
+        /**
+         * @description How an administration action ended — accepted by the use case, rejected by a business rule (`code` says which) or denied because the merchant is outside the operator's scope.
+         * @enum {string}
+         */
+        AdminOutcome: "accepted" | "rejected" | "denied";
+        /** @description What an accepted action produced, when it produced something. */
+        AdminResult: {
+            /** @description The merchant configuration version the action published. */
+            configurationVersion?: number;
+            /** @description The experiment the action created, activated or closed. */
+            experimentId?: string;
+            /** @description Whether a corrective configuration version restarted the accumulation window. */
+            windowRestarted?: boolean;
         };
         /**
          * @description Semantic anchor point where an intervention is (or was) rendered. The SDK resolves it with the merchant's anchor map.
@@ -545,6 +608,8 @@ export type components = {
             /** @description Currency in ISO 4217. */
             currency: string;
         };
+        /** @description Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up). */
+        OperatorId: string;
         /**
          * @description A confirmed order, bounded by design (01 §10.3): what OPE needs to verify a sale and to
          *     correlate it with a session, nothing about the buyer. `sessionId` is the OPE session the
@@ -925,6 +990,23 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description No operator token, or one that belongs to nobody; before the body is read. */
+        OperatorUnauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:operator-unknown",
+                 *       "title": "Operator token missing or unknown",
+                 *       "status": 401,
+                 *       "instance": "/v1/admin/log"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /**
          * @description Valid request rejected on semantics: one of the `x-invariants` of the order (ADR-007). The
          *     `type` names the invariant.
@@ -991,6 +1073,10 @@ export type components = {
         };
     };
     parameters: {
+        /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+        cursor: string;
+        /** @description Maximum number of items per page (ADR-020). */
+        limit: number;
         /**
          * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
          *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
@@ -1011,6 +1097,55 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
+    listAdminLog: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "at": "2026-09-20T12:00:05Z",
+                     *           "operatorId": "ops-1",
+                     *           "operation": "setKillSwitch",
+                     *           "merchantId": "mrc_7f3k9d2q1m4x",
+                     *           "outcome": "accepted"
+                     *         },
+                     *         {
+                     *           "at": "2026-09-20T12:00:00Z",
+                     *           "operatorId": "system",
+                     *           "operation": "importMerchants",
+                     *           "merchantId": "mrc_7f3k9d2q1m4x",
+                     *           "outcome": "accepted"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AdminEntryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     upsertCatalogSnapshot: {
         parameters: {
             query?: never;

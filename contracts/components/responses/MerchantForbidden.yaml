@@ -1,0 +1,10 @@
+description: The merchant is outside the operator's scope — whether it exists is not revealed — or the token lacks the capability the operation requires.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:merchant-out-of-scope
+      title: The merchant is outside the operator's scope
+      status: 403
+      instance: /v1/admin/merchants/mrc_7f3k9d2q1m4x/kill-switch

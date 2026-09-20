@@ -16,6 +16,7 @@ describe("readConfig", () => {
       host: "127.0.0.1",
       contractPath: path.resolve("contracts/dist/openapi.yaml"),
       merchants: [],
+      operators: [],
     });
   });
 
@@ -541,5 +542,59 @@ describe("readConfig", () => {
     );
     expect(() => read({ platformSecrets: ["s1", ""] })).toThrow("merchants[0].platformSecrets[1] is invalid");
     expect(() => read({ platformSecrets: ["p1"] })).toThrow("merchants[0].platformSecrets[0] is invalid");
+  });
+});
+
+describe("readConfig — operators (feature 017)", () => {
+  const withFile = (content: string) => (file: string) =>
+    file.endsWith("ops.json") ? content : noFile(file);
+
+  it("reads OPE_ADMIN_OPERATORS inline or from a file; the token never appears, only fingerprints", () => {
+    const raw = JSON.stringify([
+      { operatorId: "ops-1", tokenFingerprints: ["f1", "f2"], scope: "*" },
+      { operatorId: "ops-a", tokenFingerprints: ["f3"], scope: ["m_a"] },
+    ]);
+    const inline = readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile).operators;
+    expect(inline.map((o) => [o.operatorId, o.scope])).toEqual([
+      ["ops-1", "*"],
+      ["ops-a", ["m_a"]],
+    ]);
+    expect(inline[0]?.holds("f2")).toBe(true);
+    expect(readConfig({ OPE_ADMIN_OPERATORS_FILE: "ops.json" }, withFile(raw)).operators).toHaveLength(2);
+  });
+
+  it.each([
+    ["not JSON", "{", "OPE_ADMIN_OPERATORS is not valid JSON"],
+    ["not an array", "{}", "OPE_ADMIN_OPERATORS must be a JSON array"],
+    ["not an object", "[1]", "operators[0] is not an object"],
+    ["no id", JSON.stringify([{ tokenFingerprints: ["f"], scope: "*" }]), "operators[0].operatorId must be"],
+    [
+      "fingerprints not strings",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: [1], scope: "*" }]),
+      "operators[0].tokenFingerprints must be",
+    ],
+    [
+      "no fingerprints",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: [], scope: "*" }]),
+      "operators[0].tokenFingerprints is invalid",
+    ],
+    [
+      "blank fingerprint",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f", " "], scope: "*" }]),
+      "operators[0].tokenFingerprints[1] is invalid",
+    ],
+    [
+      "scope not * nor list",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f"], scope: "all" }]),
+      "operators[0].scope must be",
+    ],
+    [
+      "empty merchant in scope",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f"], scope: ["m_a", ""] }]),
+      "operators[0].scope[1] is invalid",
+    ],
+  ])("%s → ConfigError naming the field", (_name, raw, message) => {
+    expect(() => readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile)).toThrow(ConfigError);
+    expect(() => readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile)).toThrow(message);
   });
 });

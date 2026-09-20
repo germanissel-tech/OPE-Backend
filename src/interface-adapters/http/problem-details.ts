@@ -45,6 +45,7 @@ export const PROBLEM_TYPES = {
   },
   "idempotency-conflict": { status: HTTP_STATUS.CONFLICT, title: "Same identity, different content" },
   "ledger-unavailable": { status: HTTP_STATUS.SERVICE_UNAVAILABLE, title: "The ledger is not available" },
+  "store-unavailable": { status: HTTP_STATUS.SERVICE_UNAVAILABLE, title: "The store is not available" },
   // Configuration errors (ADR-024): DomainErrors that stop the start; no operation emits them.
   "invalid-treatment-share": {
     status: HTTP_STATUS.INTERNAL_ERROR,
@@ -138,6 +139,54 @@ export const PROBLEM_TYPES = {
     status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "A returned item is not in the order",
   },
+  // Administration (feature 017, ADR-031): operators, merchants, configuration, experiments.
+  "operator-unknown": { status: HTTP_STATUS.UNAUTHORIZED, title: "Operator token missing or unknown" },
+  "merchant-out-of-scope": {
+    status: HTTP_STATUS.FORBIDDEN,
+    title: "The merchant is outside the operator's scope",
+  },
+  "merchant-not-found": { status: HTTP_STATUS.NOT_FOUND, title: "The merchant does not exist" },
+  "merchant-deactivated": { status: HTTP_STATUS.CONFLICT, title: "The merchant is deactivated" },
+  "origin-already-registered": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "An origin already belongs to another merchant",
+  },
+  "rotation-grace-too-long": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "The rotation grace exceeds the platform maximum",
+  },
+  "configuration-frozen": {
+    status: HTTP_STATUS.CONFLICT,
+    title: "The configuration is frozen while an experiment is active",
+  },
+  "configuration-reason-required": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "A corrective configuration version needs a reason",
+  },
+  "experiment-already-open": {
+    status: HTTP_STATUS.CONFLICT,
+    title: "The merchant already has an open experiment",
+  },
+  "experiment-not-open": {
+    status: HTTP_STATUS.CONFLICT,
+    title: "The experiment is not in a state that admits the transition",
+  },
+  "invalid-experiment-cuts": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "The experiment cuts are not strictly increasing",
+  },
+  "invalid-target-sample": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "The target sample is not an integer of at least 1",
+  },
+  "invalid-operator-tokens": {
+    status: HTTP_STATUS.INTERNAL_ERROR,
+    title: "An operator needs one or two non-empty token fingerprints",
+  },
+  "invalid-operator-scope": {
+    status: HTTP_STATUS.INTERNAL_ERROR,
+    title: 'The scope of an operator is neither "*" nor a list of merchants',
+  },
   // Decision policy configuration errors (ADR-026): they stop the start; no operation emits them.
   "invalid-rule-weight": {
     status: HTTP_STATUS.INTERNAL_ERROR,
@@ -229,6 +278,7 @@ const LEDGER_RETRY_AFTER_SECONDS = 5;
 /** Response headers a problem type carries, by code (ADR-023: `toProblem` adds them). */
 export const HEADERS_BY_CODE: Partial<Record<ProblemSlug, Readonly<Record<string, string>>>> = {
   "ledger-unavailable": { "retry-after": String(LEDGER_RETRY_AFTER_SECONDS) },
+  "store-unavailable": { "retry-after": String(LEDGER_RETRY_AFTER_SECONDS) },
 };
 
 /** Builds the error response for a catalogue type. Never includes internal details. */

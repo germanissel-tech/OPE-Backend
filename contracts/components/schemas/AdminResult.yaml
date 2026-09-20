@@ -1,0 +1,15 @@
+type: object
+description: What an accepted action produced, when it produced something.
+additionalProperties: false
+properties:
+  configurationVersion:
+    type: integer
+    minimum: 1
+    description: The merchant configuration version the action published.
+  experimentId:
+    type: string
+    pattern: "^[A-Za-z0-9_-]{8,64}$"
+    description: The experiment the action created, activated or closed.
+  windowRestarted:
+    type: boolean
+    description: Whether a corrective configuration version restarted the accumulation window.

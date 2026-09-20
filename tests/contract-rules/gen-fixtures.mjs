@@ -419,7 +419,7 @@ const fixtures = {
     withScheme(d, "adminToken");
     withTag(d, things(d), "admin");
     things(d).security = [{ adminToken: [] }];
-    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d)["x-required-capabilities"] = ["configuration:write"];
     things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
     d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
     things(d).parameters = [
@@ -709,7 +709,7 @@ const fixtures = {
     withScheme(d, "adminToken");
     withTag(d, things(d), "admin");
     things(d).security = [{ adminToken: [] }];
-    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d)["x-required-capabilities"] = ["configuration:write"];
     things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
     d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
     bodySchema(d).properties.merchantId = { type: "string", description: "Merchant." };

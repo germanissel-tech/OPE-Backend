@@ -1,0 +1,3 @@
+type: string
+description: "Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up)."
+pattern: "^[A-Za-z0-9_-]{2,64}$"

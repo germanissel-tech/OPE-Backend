@@ -48,6 +48,9 @@ types:
   - slug: ledger-unavailable
     status: 503
     title: The ledger is not available
+  - slug: store-unavailable
+    status: 503
+    title: The store is not available
   - slug: invalid-treatment-share
     status: 500
     title: The treatment share of an experiment is out of range
@@ -177,3 +180,46 @@ types:
   - slug: invalid-cooldown
     status: 500
     title: The cooldown of the commercial policy is negative
+  # Administration (feature 017, ADR-031): operators, merchants, configuration, experiments.
+  - slug: operator-unknown
+    status: 401
+    title: Operator token missing or unknown
+  - slug: merchant-out-of-scope
+    status: 403
+    title: The merchant is outside the operator's scope
+  - slug: merchant-not-found
+    status: 404
+    title: The merchant does not exist
+  - slug: merchant-deactivated
+    status: 409
+    title: The merchant is deactivated
+  - slug: origin-already-registered
+    status: 422
+    title: An origin already belongs to another merchant
+  - slug: rotation-grace-too-long
+    status: 422
+    title: The rotation grace exceeds the platform maximum
+  - slug: configuration-frozen
+    status: 409
+    title: The configuration is frozen while an experiment is active
+  - slug: configuration-reason-required
+    status: 422
+    title: A corrective configuration version needs a reason
+  - slug: experiment-already-open
+    status: 409
+    title: The merchant already has an open experiment
+  - slug: experiment-not-open
+    status: 409
+    title: The experiment is not in a state that admits the transition
+  - slug: invalid-experiment-cuts
+    status: 422
+    title: The experiment cuts are not strictly increasing
+  - slug: invalid-target-sample
+    status: 422
+    title: The target sample is not an integer of at least 1
+  - slug: invalid-operator-scope
+    status: 500
+    title: The scope of an operator is neither "*" nor a list of merchants
+  - slug: invalid-operator-tokens
+    status: 500
+    title: An operator needs one or two non-empty token fingerprints

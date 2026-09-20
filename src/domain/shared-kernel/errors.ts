@@ -40,4 +40,13 @@ export class IdempotencyConflict extends DomainError {
   }
 }
 
-export type SharedKernelError = InvalidMoney | IdempotencyConflict;
+/** A store of the platform (merchants, configuration, experiments, admin log) did not answer: nothing was written (ADR-031). */
+export class StoreUnavailable extends DomainError {
+  readonly code = "store-unavailable" as const;
+  readonly module = MODULE;
+  constructor(message = "The store is not available: nothing was written.") {
+    super(message);
+  }
+}
+
+export type SharedKernelError = InvalidMoney | IdempotencyConflict | StoreUnavailable;
