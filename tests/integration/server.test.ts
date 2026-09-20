@@ -116,6 +116,35 @@ describe("real server over the contract", () => {
     expect(json(oversized)).toMatchObject({ type: "urn:ope:problem:payload-too-large" });
   });
 
+  it("an error escaping the transport (a hook that throws) → 500 internal-error Problem Details with its instance, logged, and the server survives", async () => {
+    const srv = await server(realContract, healthHandlers);
+    srv.addHook("onRequest", async (request) => {
+      if (request.headers["x-test-boom"] !== undefined) throw new Error("boom from a hook");
+    });
+    const res = await srv.inject({ method: "GET", url: "/v1/health?x=1", headers: { "x-test-boom": "1" } });
+    expect(res.statusCode).toBe(500);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
+    expect(json(res)).toEqual({
+      type: "urn:ope:problem:internal-error",
+      title: "Internal error",
+      status: 500,
+      instance: "/v1/health",
+    });
+    expect(res.body).not.toContain("boom");
+    expect((await srv.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
+  });
+
+  it("a URL Fastify cannot decode → 400 Problem Details, never Fastify's own JSON", async () => {
+    const res = await (await server(realContract, healthHandlers)).inject({ method: "GET", url: "/v1/%zz" });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["content-type"]).toMatch(PROBLEM);
+    expect(json(res)).toMatchObject({
+      type: "urn:ope:problem:validation-failed",
+      instance: "/v1/%zz",
+      errors: [{ pointer: "/url" }],
+    });
+  });
+
   it("the root path is not declared either: 404 Problem Details, not Fastify's own not-found", async () => {
     const res = await (await server(realContract, healthHandlers)).inject({ method: "GET", url: "/" });
     expect(res.statusCode).toBe(404);

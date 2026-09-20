@@ -27,6 +27,11 @@ interface Module {
   guardZeroTests: (report: Report) => string | null;
   survivors: (report: Report) => { file: string; line: number; rule: string }[];
   disabledRanges: (source: string) => { start: number; end: number }[];
+  rangesOfUntracked: (
+    files: string[],
+    isMutable: (file: string) => boolean,
+    readSource: (file: string) => string,
+  ) => { file: string; start: number; end: number }[];
   ignoredOutsideDisable: (
     report: Report,
     readSource: (file: string) => string,
@@ -82,6 +87,18 @@ describe("decide", () => {
     expect(mod.decide([{ file: "src/x.ts", start: 3, end: 7 }], "origin/main")).toEqual({
       mutate: ["src/x.ts:3-7"],
     });
+  });
+});
+
+describe("rangesOfUntracked", () => {
+  it("a file git does not track yet is mutated whole, if it is mutable; the diff alone would miss it", () => {
+    const sources: Record<string, string> = { "src/new.ts": "a\nb\nc", "src/generated/x.ts": "z" };
+    const ranges = mod.rangesOfUntracked(
+      ["src/new.ts", "src/generated/x.ts"],
+      (file) => !file.includes("generated"),
+      (file) => sources[file] ?? "",
+    );
+    expect(ranges).toEqual([{ file: "src/new.ts", start: 1, end: 3 }]);
   });
 });
 

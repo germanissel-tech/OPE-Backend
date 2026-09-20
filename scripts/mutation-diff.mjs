@@ -99,6 +99,22 @@ export function rangesFromDiff(diffText, isMutable) {
 }
 
 /**
+ * Whole-file ranges for files `git diff` cannot see: the ones never added to the index. Locally a
+ * new file is invisible to the diff until it is staged, while CI sees it committed; without this
+ * the two gates would judge different code.
+ * @param {string[]} files repo-relative paths
+ * @param {(file: string) => boolean} isMutable
+ * @param {(file: string) => string} readSource
+ * @returns {Range[]}
+ */
+export function rangesOfUntracked(files, isMutable, readSource) {
+  return files
+    .filter(isMutable)
+    .map((file) => ({ file, start: 1, end: readSource(file).split(/\r?\n/).length }))
+    .filter((range) => range.end > 0);
+}
+
+/**
  * @param {Range[]} ranges
  * @param {string | null} baseRef
  * @returns {{ mutate: string[] } | { skipped: "no-base-ref" | "no-production-lines" }}
@@ -222,6 +238,13 @@ function resolveBaseRef() {
   return null;
 }
 
+/** Files under src/ that git does not track yet (never staged). @returns {string[]} */
+function untrackedFiles() {
+  const listed = capture("git", ["ls-files", "--others", "--exclude-standard", "--", "src"]);
+  if (listed.status !== 0) throw new Error(`git ls-files failed: ${listed.stderr}`);
+  return listed.stdout.split(/\r?\n/).filter((line) => line.length > 0);
+}
+
 /**
  * @param {string} baseRef
  * @returns {string}
@@ -335,7 +358,13 @@ function main() {
   const isMutable = mutableFilter();
 
   const baseRef = resolveBaseRef();
-  const ranges = baseRef === null ? [] : rangesFromDiff(diffAgainst(baseRef), isMutable);
+  const ranges =
+    baseRef === null
+      ? []
+      : [
+          ...rangesFromDiff(diffAgainst(baseRef), isMutable),
+          ...rangesOfUntracked(untrackedFiles(), isMutable, sourceOf),
+        ];
   const decision = decide(ranges, baseRef);
   if ("skipped" in decision) {
     emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);

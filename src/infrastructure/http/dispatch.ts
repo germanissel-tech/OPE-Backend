@@ -26,6 +26,8 @@ const NOT_IMPLEMENTED_DETAIL = (operationId: string): string =>
   `Operation ${operationId} is declared in the contract but has no registered handler.`;
 /** JSON pointer of the request body in Problem Details `errors`; openapi-backend validates it as `/requestBody`. */
 const BODY_POINTER = "/body";
+/** JSON pointer of the request line, for a URL that cannot be decoded. */
+const URL_POINTER = "/url";
 const REQUEST_BODY_PREFIX = "/requestBody";
 /** First error status: from here on every response of the contract is Problem Details. */
 const FIRST_ERROR_STATUS = 400;
@@ -183,6 +185,19 @@ export function registerHandlers(runtime: Runtime, handlers: Record<string, unkn
   }
 }
 
+/**
+ * A URL Fastify cannot decode never reaches a route nor the error handler: Fastify answers it by
+ * itself with its own JSON. `frameworkErrors` (createApp) routes it here, so it is Problem Details too.
+ */
+export function badUrl(error: Error, url: string): HttpResponse {
+  return toHttp(
+    problem("validation-failed", {
+      instance: url,
+      errors: [{ pointer: URL_POINTER, message: error.message }],
+    }),
+  );
+}
+
 /** Wildcard routes delegate to openapi-backend; Fastify's own errors also come out as Problem Details. */
 export function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
   const dispatch = async (request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
@@ -225,7 +240,7 @@ export function mountRoutes(app: FastifyInstance, api: OpenAPIBackend): void {
         ),
       );
     }
-    // Stryker disable next-line all: defensive catch-all; no request reaches it through the contract
+    // Anything else escaping the transport (a hook, a plugin): logged, and 500 without internals.
     app.log.error({ err: error }, "unhandled error");
     return send(reply, toHttp(problem("internal-error", { instance })));
   });

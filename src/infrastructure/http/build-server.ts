@@ -10,7 +10,8 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { OpenAPIBackend, type Document } from "openapi-backend";
 import { fastifyLoggerOf } from "../logging/pino-logger.js";
 import { registerCors, type CorsPolicy } from "./cors.js";
-import { mountRoutes, registerHandlers, registerSpecialHandlers, type Runtime } from "./dispatch.js";
+import { badUrl, mountRoutes, registerHandlers, registerSpecialHandlers, type Runtime } from "./dispatch.js";
+import { send } from "./http-response.js";
 import { BODY_LIMIT_BYTES, keepRawBodies, refuseOversizedBodies } from "./raw-bodies.js";
 import { registerSecurity } from "./security-boundary.js";
 import { stripDiscriminatorMappings } from "./strip-discriminator-mappings.js";
@@ -40,8 +41,15 @@ async function createApp(
   options: Pick<BuildServerOptions, "logger" | "cors" | "security">,
 ): Promise<FastifyInstance> {
   const loggerInstance = fastifyLoggerOf(options.logger);
-  // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
-  const app = Fastify({ bodyLimit: BODY_LIMIT_BYTES, ...(loggerInstance ? { loggerInstance } : {}) });
+  const app = Fastify({
+    bodyLimit: BODY_LIMIT_BYTES,
+    // A URL that cannot be decoded (`FST_ERR_BAD_URL`) is answered as Problem Details, like every error.
+    frameworkErrors: (error, request, reply) => {
+      send(reply, badUrl(error, request.url));
+    },
+    // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
+    ...(loggerInstance ? { loggerInstance } : {}),
+  });
   keepRawBodies(app);
   // Only the credentials a browser sends are announced to a preflight (ADR-025 §5: platformKey without CORS).
   const credentialHeaders = Object.values(options.security ?? {})

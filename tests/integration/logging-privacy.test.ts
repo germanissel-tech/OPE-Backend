@@ -80,6 +80,19 @@ describe("operational fields in logs", () => {
     expect(entry?.["err"]).toBeDefined();
   });
 
+  it("an error escaping the transport (a hook that throws) is logged with the error, without reaching the response", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app.app.addHook("onRequest", async () => {
+      throw new Error("boom from a hook");
+    });
+    const res = await app.app.inject({ method: "GET", url: "/v1/health" });
+    expect(res.statusCode).toBe(500);
+    expect(res.body).not.toContain("boom");
+    const entry = parsed(lines).find((e) => e["msg"] === "unhandled error");
+    expect(entry?.["err"]).toMatchObject({ message: "boom from a hook" });
+  });
+
   it("a response outside the contract is logged with operationId, status and what was declared", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({
