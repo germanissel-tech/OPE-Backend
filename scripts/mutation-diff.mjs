@@ -1,8 +1,10 @@
 // test:mutation — mutation testing scoped to the change (ADR-016, FR-030..FR-033).
 //
-//   node scripts/mutation-diff.mjs            # mutate the src/ lines changed against the base ref; break at 100 %
-//   node scripts/mutation-diff.mjs --all      # mutate everything Stryker's config allows; informative
-//   node scripts/mutation-diff.mjs --json     # gate JSON: { gate, mode, status, findings, skipped? }
+//   node scripts/mutation-diff.mjs                        # mutate the src/ lines changed against the base ref; break at 100 %
+//   node scripts/mutation-diff.mjs --files a.ts,b.ts:5-9  # the same verdict over just those files or lines, re-tested (--force)
+//   node scripts/mutation-diff.mjs --all                  # mutate everything Stryker's config allows; informative, own incremental file
+//   node scripts/mutation-diff.mjs --check-report         # no Stryker run: no ignored mutant outside a disable line (F-052)
+//   node scripts/mutation-diff.mjs --json                 # gate JSON: { gate, mode, status, findings, skipped? }
 //
 // Base ref: $CONTRACT_BASE_REF, origin/main or main, whichever exists. The diff is taken from the
 // merge base to the working tree, so local uncommitted changes count too. Without production
@@ -25,6 +27,8 @@ import { capture, repoRoot, run } from "./lib.mjs";
 /** @typedef {{ files: Record<string, { mutants: Mutant[] }> }} MutationReport */
 /** @typedef {{ start: number; end: number }} LineRange */
 
+/** The informative sweep keeps its verdicts apart from the gate's incremental file. */
+const ALL_INCREMENTAL_FILE = "reports/mutation/stryker-incremental-all.json";
 const CONFIG_FILE = path.join(repoRoot, "stryker.config.json");
 const REPORT_FILE = path.join(repoRoot, "reports", "mutation", "report.json");
 const STRYKER = path.join(repoRoot, "node_modules", "@stryker-mutator", "core", "bin", "stryker.js");
@@ -112,6 +116,31 @@ export function rangesOfUntracked(files, isMutable, readSource) {
     .filter(isMutable)
     .map((file) => ({ file, start: 1, end: readSource(file).split(/\r?\n/).length }))
     .filter((range) => range.end > 0);
+}
+
+/**
+ * The ranges a `--files` argument names: `a.ts,b.ts:10-20` (repo-relative, whole file unless a
+ * line range follows). The fix loop of one survivor mutates one file, not the whole diff.
+ * @param {string} spec
+ * @param {(file: string) => boolean} isMutable
+ * @param {(file: string) => string} readSource
+ * @returns {Range[]}
+ */
+export function rangesOfFiles(spec, isMutable, readSource) {
+  return spec
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => {
+      const m = /^(.+?)(?::(\d+)-(\d+))?$/.exec(item);
+      if (!m || m[1] === undefined) throw new Error(`--files: cannot read "${item}"`);
+      const file = m[1].split("\\").join("/");
+      if (!isMutable(file)) throw new Error(`--files: ${file} is not a mutable src/ file`);
+      const lines = readSource(file).split(/\r?\n/).length;
+      const start = m[2] === undefined ? 1 : Number(m[2]);
+      const end = m[3] === undefined ? lines : Number(m[3]);
+      return { file, start, end };
+    });
 }
 
 /**
@@ -334,7 +363,8 @@ function checkReportMode(json) {
  * @returns {number}
  */
 function allMode(json) {
-  runStryker(["--reporters", "clear-text,progress,html,json"]);
+  // Its own incremental file: the informative sweep must not feed verdicts into the blocking gate.
+  runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]);
   const report = readReport();
   const leaked = ignoredOutsideDisable(report, sourceOf);
   const error = guardZeroTests(report) ?? leakedError(leaked);
@@ -350,13 +380,40 @@ function allMode(json) {
   return error ? 1 : 0;
 }
 
+/**
+ * The blocking verdict over some ranges: every mutant of those lines dies, or the gate fails.
+ * @param {Range[]} ranges
+ * @param {string | null} baseRef
+ * @param {boolean} json
+ * @param {string[]} extra Stryker arguments beyond `--mutate`
+ * @returns {number}
+ */
+function blockingMode(ranges, baseRef, json, extra) {
+  const decision = decide(ranges, baseRef);
+  if ("skipped" in decision) {
+    emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);
+    return 0;
+  }
+  const status = runStryker(["--mutate", decision.mutate.join(","), ...extra]);
+  const report = readReport();
+  const error = guardZeroTests(report);
+  const findings = survivors(report);
+  const failed = error !== null || status !== 0 || findings.length > 0;
+  emit({ mode: "blocking", status: failed ? "fail" : "pass", findings, ...(error ? { error } : {}) }, json);
+  return failed ? 1 : 0;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const json = args["json"] === true;
   if (args["check-report"] === true) return checkReportMode(json);
   if (args["all"] === true) return allMode(json);
   const isMutable = mutableFilter();
-
+  const files = args["files"];
+  if (typeof files === "string") {
+    // The fix loop: one file (or range), every mutant re-tested regardless of the incremental file.
+    return blockingMode(rangesOfFiles(files, isMutable, sourceOf), "--files", json, ["--force"]);
+  }
   const baseRef = resolveBaseRef();
   const ranges =
     baseRef === null
@@ -365,18 +422,7 @@ function main() {
           ...rangesFromDiff(diffAgainst(baseRef), isMutable),
           ...rangesOfUntracked(untrackedFiles(), isMutable, sourceOf),
         ];
-  const decision = decide(ranges, baseRef);
-  if ("skipped" in decision) {
-    emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);
-    return 0;
-  }
-  const status = runStryker(["--mutate", decision.mutate.join(",")]);
-  const report = readReport();
-  const error = guardZeroTests(report);
-  const findings = survivors(report);
-  const failed = error !== null || status !== 0 || findings.length > 0;
-  emit({ mode: "blocking", status: failed ? "fail" : "pass", findings, ...(error ? { error } : {}) }, json);
-  return failed ? 1 : 0;
+  return blockingMode(ranges, baseRef, json, []);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

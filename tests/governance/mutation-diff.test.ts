@@ -27,6 +27,11 @@ interface Module {
   guardZeroTests: (report: Report) => string | null;
   survivors: (report: Report) => { file: string; line: number; rule: string }[];
   disabledRanges: (source: string) => { start: number; end: number }[];
+  rangesOfFiles: (
+    spec: string,
+    isMutable: (file: string) => boolean,
+    readSource: (file: string) => string,
+  ) => { file: string; start: number; end: number }[];
   rangesOfUntracked: (
     files: string[],
     isMutable: (file: string) => boolean,
@@ -87,6 +92,27 @@ describe("decide", () => {
     expect(mod.decide([{ file: "src/x.ts", start: 3, end: 7 }], "origin/main")).toEqual({
       mutate: ["src/x.ts:3-7"],
     });
+  });
+});
+
+describe("rangesOfFiles (--files, the fix loop of one survivor)", () => {
+  const sources: Record<string, string> = { "src/a.ts": "1\n2\n3\n4", "src/b.ts": "x" };
+  const read = (file: string) => sources[file] ?? "";
+
+  it("a whole file, a line range, and several of them", () => {
+    expect(mod.rangesOfFiles("src/a.ts, src/b.ts:1-1", () => true, read)).toEqual([
+      { file: "src/a.ts", start: 1, end: 4 },
+      { file: "src/b.ts", start: 1, end: 1 },
+    ]);
+    expect(mod.rangesOfFiles("src\\a.ts:2-3", () => true, read)).toEqual([
+      { file: "src/a.ts", start: 2, end: 3 },
+    ]);
+  });
+
+  it("refuses a file the gate would not mutate", () => {
+    expect(() => mod.rangesOfFiles("src/generated/x.ts", (f) => !f.includes("generated"), read)).toThrow(
+      "not a mutable src/ file",
+    );
   });
 });
 
