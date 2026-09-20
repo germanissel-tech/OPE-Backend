@@ -6,6 +6,8 @@
 //
 // Outputs: "WARNING: no base contract, comparison skipped" (exit 0) when there is no base;
 // "Expected incompatible change: major version X → Y" (exit 0) with a major bump;
+// "Incompatible change accepted: the contract is building" (exit 0) while the head declares
+// `info.x-stability: building` (no merchant consumes it yet; ADR-003 precision of 2026-09-20);
 // "No incompatible changes" (exit 0); or the oasdiff report (exit 1).
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -60,15 +62,19 @@ function addedClientErrorResponses(base, head) {
   return added;
 }
 
+/** The stability mark under which incompatible changes are accepted without a major bump. */
+const BUILDING = "building";
+
 /**
  * @param {string} file
- * @returns {{ version: string; major: number }}
+ * @returns {{ version: string; major: number; building: boolean }}
  */
 function majorOf(file) {
-  const version = String(prop(prop(readYaml(file), "info"), "version") ?? "");
+  const info = prop(readYaml(file), "info");
+  const version = String(prop(info, "version") ?? "");
   const major = Number(version.split(".")[0]);
   if (!Number.isInteger(major)) throw new Error(`invalid info.version in ${file}: '${version}'`);
-  return { version, major };
+  return { version, major, building: prop(info, "x-stability") === BUILDING };
 }
 
 /**
@@ -150,7 +156,8 @@ function resolvePair(baseArg, headArg) {
 }
 
 /**
- * Compares two bundles: a major bump is reported and passes; otherwise any breaking change fails.
+ * Compares two bundles: a major bump is reported and passes; a breaking change is reported and
+ * passes while the head is marked building; otherwise any breaking change fails.
  * @param {string} oasdiff
  * @param {string} base
  * @param {string} head
@@ -181,6 +188,12 @@ function compare(oasdiff, base, head) {
   const clientErrors = addedClientErrorResponses(base, head);
   for (const line of clientErrors) console.error(`error\t[ope-client-error-response-added] ${line}`);
   if (result.status !== 0 || clientErrors.length > 0) {
+    if (headVersion.building) {
+      console.log(
+        `Incompatible change accepted: the contract is building (info.x-stability: ${BUILDING}, ${headVersion.version}); remove the mark before the first pilot.`,
+      );
+      return 0;
+    }
     console.error(
       `contract:diff — incompatible changes without a major version bump (${headVersion.version}). Fix the contract or raise info.version to ${baseVersion.major + 1}.0.0 and the path prefix to /v${baseVersion.major + 1}/.`,
     );

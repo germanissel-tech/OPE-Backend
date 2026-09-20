@@ -1,7 +1,7 @@
 type: string
 description: |
-  Where the order stands in the evidence chain (01 §5). Every recorded order is a verified
-  sale; the status says whether a verifiable correlation with an OPE session exists
-  (`ATTRIBUTED_ORDER`) or not yet (`PENDING_CORRELATION`, an explicit state of not knowing,
-  01 §5.2). Never an arm nor an experiment.
-enum: [ATTRIBUTED_ORDER, PENDING_CORRELATION]
+  Where the order stands in the evidence chain (01 §5): confirmed by the platform as a real
+  purchase (`VERIFIED_ORDER`), confirmed and verifiably correlated with an OPE session
+  (`ATTRIBUTED_ORDER`), or returned (`RETURNED`, which keeps whatever correlation it had).
+  Whether OPE could link it travels apart, in `correlation`. Never an arm nor an experiment.
+enum: [VERIFIED_ORDER, ATTRIBUTED_ORDER, RETURNED]

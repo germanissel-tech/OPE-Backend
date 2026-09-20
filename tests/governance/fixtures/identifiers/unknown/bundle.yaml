@@ -1,0 +1,9 @@
+openapi: 3.0.3
+paths:
+  /v1/orders:
+    post:
+      operationId: notifyOrder
+components:
+  schemas:
+    OrderStatus:
+      enum: [VERIFIED_ORDER, ATTRIBUTED_ORDER, RETURNED]

@@ -1,0 +1,47 @@
+# Fixture of tests/contract-diff (FR-020): brk-remove-response-field. Compared against base.yaml.
+openapi: 3.1.0
+info:
+  title: Fixture diff
+  version: 1.1.0
+  x-stability: building
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+        "500":
+          description: err
+  /v1/things:
+    post:
+      operationId: createThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - a
+                    - b
+                note:
+                  type: string
+      responses:
+        "201":
+          description: created
+        "500":
+          description: err

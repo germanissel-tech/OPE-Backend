@@ -1,7 +1,9 @@
 // Order (01 §5, §6, §10.3; 02 §5.2; ADR-028): a purchase the merchant's platform confirmed,
 // bounded by design to what OPE needs — identifier, total, lines, instant, the OPE session
-// the storefront attached and the incentive applied. Every recorded order is a verified sale;
-// its correlation with a session is decided once, when it is recorded, and never re-judged.
+// the storefront attached and the incentive applied. Every recorded order is a verified sale
+// and walks the evidence chain of 01 §5 (VERIFIED_ORDER → ATTRIBUTED_ORDER → RETURNED); its
+// correlation with a session is decided once, when it is recorded, never re-judged, and
+// travels apart from the chain (PENDING_CORRELATION | ATTRIBUTED).
 import {
   CLOCK_SKEW_TOLERANCE_MS,
   fail,
@@ -28,7 +30,10 @@ export interface OrderItem {
 }
 
 /** Where the order stands in the evidence chain; replica of `OrderStatus.yaml`. */
-export type OrderStatus = "ATTRIBUTED_ORDER" | "PENDING_CORRELATION";
+export type OrderStatus = "VERIFIED_ORDER" | "ATTRIBUTED_ORDER" | "RETURNED";
+
+/** Whether OPE could link the order to one of its sessions; replica of `Correlation.yaml`. */
+export type CorrelationStatus = "PENDING_CORRELATION" | "ATTRIBUTED";
 
 /** What the platform sent, as the domain reads it. */
 export interface OrderFacts {
@@ -113,8 +118,15 @@ export class Order implements OrderRecord {
     return new Order(record);
   }
 
+  /** The chain: returned wins; then attributed if OPE linked it; otherwise a verified sale. */
   status(): OrderStatus {
-    return this.correlation === undefined ? "PENDING_CORRELATION" : "ATTRIBUTED_ORDER";
+    if (this.returned !== undefined) return "RETURNED";
+    return this.correlation === undefined ? "VERIFIED_ORDER" : "ATTRIBUTED_ORDER";
+  }
+
+  /** What OPE knows of the link, whatever the chain says. */
+  correlationStatus(): CorrelationStatus {
+    return this.correlation === undefined ? "PENDING_CORRELATION" : "ATTRIBUTED";
   }
 
   /** The same order, with what OPE derived when it recorded it (decided once, ADR-028). */

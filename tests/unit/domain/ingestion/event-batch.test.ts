@@ -121,6 +121,18 @@ describe("EventBatch.focus", () => {
     });
   });
 
+  it("the locale of the page in focus travels with the focus; without it, no undefined key", () => {
+    expect(
+      batchOf([viewed({ pageType: "product", productId: "SKU-1", locale: "es-AR" })]).focus(),
+    ).toStrictEqual({ productId: "SKU-1", locale: "es-AR" });
+    expect(
+      batchOf([
+        viewed({ pageType: "product", productId: "SKU-1", locale: "es-AR" }, 1),
+        viewed({ pageType: "product", productId: "SKU-2" }, 2),
+      ]).focus(),
+    ).toStrictEqual({ productId: "SKU-2" });
+  });
+
   it("the last resolved product page wins; an unresolved one after it does not erase it", () => {
     const batch = batchOf([
       viewed({ pageType: "product", productId: "SKU-1" }, 1),

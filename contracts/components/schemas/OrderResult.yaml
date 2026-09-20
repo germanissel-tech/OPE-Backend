@@ -1,12 +1,14 @@
 type: object
 description: What OPE holds for the order after the notification.
 additionalProperties: false
-required: [orderId, status, receivedAt]
+required: [orderId, status, correlation, receivedAt]
 properties:
   orderId:
     $ref: ./OrderId.yaml
   status:
     $ref: ./OrderStatus.yaml
+  correlation:
+    $ref: ./Correlation.yaml
   receivedAt:
     type: string
     format: date-time

@@ -32,3 +32,11 @@ un lugar único donde la versión se exprese.
   del servidor que todo cliente tolera igual (Problem Details) y es compatible. oasdiff no las
   distingue (`response-non-success-status-added` queda en aviso); la 4xx la detecta el chequeo
   propio `ope-client-error-response-added` de `contract:diff`.
+- Precisión (feature 016, 2026-09-20): **mientras ningún merchant consuma el contrato, el
+  contrato lo declara** con `info.x-stability: building` y un cambio incompatible entra con
+  un bump MINOR conservando el prefijo: `contract:diff` lo detecta y lo reporta igual, pero lo
+  acepta ("Incompatible change accepted: the contract is building"); `release-check` avisa
+  mientras la marca exista. Un salto a `/v2/` sin consumidores no protege a nadie y sí cuesta
+  rutas, pruebas y documentación (decisión del dueño). La marca se quita antes del primer
+  piloto y desde entonces rige la regla sin excepción; quitarla es un cambio del contrato como
+  cualquier otro (pasa por `contract:check`). Sin la marca, todo lo anterior vale tal cual.

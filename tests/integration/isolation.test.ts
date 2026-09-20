@@ -429,13 +429,13 @@ describe("isolation between merchants", () => {
     const inA = await postOrder(app.app, orderOf("X-1", { sessionId: "ses_00000001", confirmedAt: NOW }), {
       platformKey: "platform-a-1",
     });
-    expect(json(inA)).toMatchObject({ status: "PENDING_CORRELATION" });
+    expect(json(inA)).toMatchObject({ status: "VERIFIED_ORDER", correlation: "PENDING_CORRELATION" });
     const inB = await postOrder(app.app, orderOf("X-1", { sessionId: "ses_00000001", confirmedAt: NOW }), {
       platformKey: "platform-b-1",
     });
-    expect(json(inB)).toMatchObject({ status: "ATTRIBUTED_ORDER" });
+    expect(json(inB)).toMatchObject({ status: "ATTRIBUTED_ORDER", correlation: "ATTRIBUTED" });
     const orderId = "X-1" as OrderId;
-    expect((await app.ports.orders.find(asMerchantId(A.id), orderId))?.status()).toBe("PENDING_CORRELATION");
+    expect((await app.ports.orders.find(asMerchantId(A.id), orderId))?.status()).toBe("VERIFIED_ORDER");
     expect((await app.ports.orders.find(asMerchantId(B.id), orderId))?.status()).toBe("ATTRIBUTED_ORDER");
     // A's corroboration of X-1 lives under A only.
     await postCorroboration(

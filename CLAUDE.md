@@ -62,7 +62,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                                                                                                                                           |
 | `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                                                                                                                                                     |
-| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base                                                                                                                                                                               |
+| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base; con `info.x-stability: building` los reporta y acepta                                                                                                                        |
 | `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                                                                                                                                               |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                                                                                                                                                 |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                                                                                                                                               |
@@ -73,6 +73,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run arch`                                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                                                                                                                                                                              |
 | `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                                                                                                                                                  |
 | `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                                                                                                                                          |
+| `npm run check:identifiers`                       | Todo identificador citado entre comillas de código en constitución, ADR y glosario existe en el contrato, sus catálogos, `src/` o el tooling; allowlist con motivo en `scripts/identifiers-allowlist.json`                                                             |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                               |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                     |
 | `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida                                                                                                                                                |
@@ -86,7 +87,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                           |
 | `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental |
 
-Los cinco `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
+Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
@@ -317,8 +318,9 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   invariantes en el dominio; defaults `default-1`, `commercial-default-1` (sin margen ⇒ sin
   incentivos) y perfil vacío. Ambas políticas son parte del experimento. El vocabulario de hechos
   y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
-  decisión registra `inference` y `selection` (candidatos con veredicto del gate, elegido,
-  veredicto comercial, `commercialPolicyVersion`); el DTO del SDK sólo lleva `outcome`, `reason`
+  decisión registra `inference`, `selection` (candidatos con veredicto del gate, elegido,
+  veredicto comercial, `commercialPolicyVersion`) y el `locale` de la página en foco
+  (`PageContext.locale`, BCP 47 validado por forma, para el catálogo de mensajes); el DTO del SDK sólo lleva `outcome`, `reason`
   (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el
   catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
   y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
@@ -340,8 +342,9 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `IncentiveRedemption.of` lo cruza con la última intervención con incentivo de la sesión
   (`matched | mismatched | not-applied | not-granted | unverifiable`), sin rechazar nunca. Todo
   `record()` devuelve `Result<…, LedgerUnavailable>` ⇒ `503` con `Retry-After`. Las respuestas
-  llevan `status` (`ATTRIBUTED_ORDER | PENDING_CORRELATION`, `RETURNED`) y nunca brazo, experimento
-  ni visitante. Lo que comparten los controllers al borde (`instantOf`, `linesOf`, `idempotent`)
+  llevan `status` (la cadena de 01 §5: `VERIFIED_ORDER | ATTRIBUTED_ORDER | RETURNED`;
+  `Order.status()`) y `correlation` (`PENDING_CORRELATION | ATTRIBUTED`;
+  `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde (`instantOf`, `linesOf`, `idempotent`)
   vive en `http/boundary.ts`, no en `controllers/` (un archivo allí es una operación).
 - **Firma de plataforma (ADR-029)**: `OPE_MERCHANTS[i].platformSecrets` (uno o dos, ≠ claves;
   `Merchant.requiresSignature()`). Con secreto, toda operación con `platformKey` (catálogo,
@@ -370,7 +373,10 @@ platformKey: [] }]`. El security handler resuelve el merchant antes de validar e
   declara su header en el cableado (`SecurityScheme { handler, header }`): CORS los deriva de
   ahí y el log redacta todo header. Los logs nunca llevan IP, headers ni cuerpo
   (`request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
-- Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`.
+- Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`. Excepción
+  declarada (ADR-003): mientras el contrato lleve `info.x-stability: building` (ningún merchant
+  lo consume), entra con bump MINOR y el prefijo se conserva; `contract:diff` lo reporta y lo
+  acepta, `release-check` avisa. La marca se quita antes del primer piloto.
 - Todo schema de un media type es `$ref` a `components/schemas` (nunca inline).
 - `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
   involucra sus campos): `type` (slug del catálogo, nunca `unprocessable`), `status`, `rule`,
@@ -414,7 +420,8 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
 - Ningún campo de dato personal en ningún esquema (lista en el ruleset de lint).
 - Todo request body con `additionalProperties: false`.
 - Todo error es RFC 9457 Problem Details.
-- Cambio incompatible del contrato ⇒ nueva versión mayor, o falla.
+- Cambio incompatible del contrato ⇒ nueva versión mayor, o falla (salvo contrato marcado
+  `building`, ADR-003: se acepta y se reporta).
 - Cero llamadas a modelos de lenguaje en runtime.
 - Sin I/O de red ni escritura bloqueante en el camino crítico de decisión.
 - Toda feature que toca persistencia o API incluye pruebas de aislamiento entre merchants.

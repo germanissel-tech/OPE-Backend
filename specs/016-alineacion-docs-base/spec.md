@@ -38,7 +38,7 @@ Como dueño del producto, quiero que la constitución, los ADR, el mapa del cont
 glosario digan lo que decidí el 2026-09-20 —y nada que lo contradiga—, para que la siguiente
 feature que se especifique lo encuentre escrito con fuente y no lo rediscuta.
 
-**Why this priority**: es lo que gobierna todo lo demás; sin esto, el contrato v2 (historia 2)
+**Why this priority**: es lo que gobierna todo lo demás; sin esto, el contrato de la historia 2
 y la edición de la base (historia 3) no tendrían un texto de referencia en el repo.
 
 **Independent Test**: leer la constitución, los ADR tocados, el mapa y el glosario contra la
@@ -69,7 +69,7 @@ evaluación §2 y §5.2: cada decisión aparece con su fuente; `contract:check` 
 
 ---
 
-### User Story 2 - Contrato v2, idioma y gate de identificadores (Priority: P2)
+### User Story 2 - Contrato con la cadena de evidencia, idioma y gate de identificadores (Priority: P2)
 
 Como integrador de la plataforma de un merchant, quiero que la respuesta a una orden diga en
 qué estado de la cadena de evidencia quedó con el mismo vocabulario que los documentos del
@@ -81,7 +81,7 @@ incompatible y conviene hacerlo antes de que haya un merchant conectado; el idio
 opcional que el catálogo de mensajes va a necesitar; el gate cierra el hueco que dejó pasar
 `talle_calce` en la auditoría.
 
-**Independent Test**: `contract:check` con la versión mayor nueva; pruebas de integración de
+**Independent Test**: `contract:check` con el cambio incompatible aceptado por la marca `building`; pruebas de integración de
 órdenes, corroboraciones y devoluciones con el vocabulario nuevo; una prueba de ingesta con
 `locale`; la prueba del gate con un fixture que cita un identificador inexistente.
 
@@ -92,10 +92,13 @@ opcional que el catálogo de mensajes va a necesitar; el gate cierra el hueco qu
    una orden de una sesión en la que OPE decidió, **Then** `status: ATTRIBUTED_ORDER` y
    `correlation: ATTRIBUTED`; **Given** una devolución, **Then** `status: RETURNED` con la
    `correlation` de la orden intacta.
-2. **Given** el contrato v1, **When** cambia el vocabulario de `status`, **Then** la versión del
-   contrato es la mayor siguiente, toda ruta lleva `/v2/`, `contract:diff` reporta el cambio
-   como incompatible **y** la versión mayor lo justifica; los tipos generados, los controllers
-   y las pruebas usan sólo el vocabulario nuevo.
+2. **Given** el contrato 1.2.0 sin merchants que lo consuman, **When** cambia el vocabulario
+   de `status`, **Then** el contrato declara que está en construcción (`info.x-stability:
+building`), la versión es `1.3.0`, las rutas siguen en `/v1/`, `contract:diff` reporta el
+   cambio como incompatible **y** lo acepta por la marca; `release-check` avisa que la marca
+   sigue puesta; los tipos generados, los controllers y las pruebas usan sólo el vocabulario
+   nuevo. (Decisión del dueño del 2026-09-20: en construcción no se salta de versión mayor;
+   la marca se quita antes del primer piloto y desde entonces rige ADR-003 sin excepción.)
 3. **Given** un lote de eventos con `page.locale: "es-AR"`, **When** se ingiere, **Then** se
    acepta, el valor viaja hasta el contexto de la decisión y el registro del ledger lo conserva;
    **Given** un `locale` que no es una etiqueta BCP 47 válida, **Then** 400 `validation-failed`
@@ -155,8 +158,8 @@ diagramas se compilan con `archify` sin error; `check:glossary` sigue resolviend
 - La renumeración del roadmap cambia el número de features que otras prosas citan: sólo el
   mapa cita por número (015 ya movió la prosa a nombres); `check:api-map` verifica que toda
   operación planificada apunte a una feature que exista.
-- `contract:diff` compara contra `main`, donde el contrato es v1: el cambio es incompatible
-  por definición y el gate lo acepta sólo porque la versión mayor cambió.
+- `contract:diff` compara contra `main` (1.2.0): el cambio es incompatible por definición y
+  el gate lo acepta sólo porque el contrato está marcado `building`; sin la marca, falla.
 - Un consumidor que mande `locale` con mayúsculas o subetiquetas raras pero válidas
   (`es-419`, `pt-BR`, `zh-Hant-TW`): se acepta; la validación es de forma, no de lista.
 - La carpeta `../` no está autorizada en la sesión: la historia 3 se detiene al primer archivo
@@ -197,9 +200,11 @@ diagramas se compilan con `archify` sin error; `check:glossary` sigue resolviend
   `PENDING_CORRELATION` o `ATTRIBUTED`; una orden sin correlación es `VERIFIED_ORDER` +
   `PENDING_CORRELATION`; con correlación, `ATTRIBUTED_ORDER` + `ATTRIBUTED`; devuelta,
   `RETURNED` con la `correlation` que tenía.
-- **FR-011**: El cambio MUST publicarse como versión mayor del contrato (versión y prefijo de
-  ruta), MUST reflejarse en tipos generados, controllers, cliente y pruebas, y MUST dejar
-  `contract:check` en verde con el cambio incompatible justificado por la versión.
+- **FR-011**: El cambio MUST publicarse con la marca `info.x-stability: building` y un bump
+  MINOR (1.3.0) conservando `/v1/` mientras ningún merchant consuma el contrato (ADR-003,
+  precisión del 2026-09-20), MUST reflejarse en tipos generados, controllers, cliente y
+  pruebas, y MUST dejar `contract:check` en verde con el cambio incompatible reportado y
+  aceptado por la marca; `release-check` MUST avisar mientras la marca exista.
 - **FR-012**: El contexto de página de todo evento MUST admitir `locale` opcional, etiqueta
   BCP 47 validada por forma, en la lista blanca del contrato; MUST llegar al contexto de la
   decisión y al registro de la decisión en el ledger; MUST NOT cambiar ninguna decisión hasta
@@ -268,8 +273,8 @@ diagramas se compilan con `archify` sin error; `check:glossary` sigue resolviend
   consulta al dueño.
 - El número de esta feature es el siguiente de `specs/` (016); las features reservadas del
   mapa corren un número, una sola vez, en la historia 1.
-- La versión mayor del contrato no exige conservar `/v1/`: no hay merchants conectados; el
-  prefijo cambia en todas las rutas y las pruebas siguen al contrato.
+- No hay merchants conectados: el contrato está en construcción y lo declara; `/v1/` se
+  conserva y el salto de versión mayor queda para cuando haya un consumidor real.
 - `locale` se valida por forma (patrón BCP 47), no contra una lista de idiomas; el merchant
   declara los suyos en la feature de configuración.
 - El gate de identificadores lee la constitución, `docs/adr/` y `docs/dominio/`; los specs y

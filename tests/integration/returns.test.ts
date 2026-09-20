@@ -81,7 +81,7 @@ describe("notifyReturn — user story 4", () => {
     expect(json(res)).toEqual({
       orderId: "A-1",
       status: "RETURNED",
-      orderStatus: "ATTRIBUTED_ORDER",
+      correlation: "ATTRIBUTED",
       receivedAt: LATER,
     });
     const order = await find("A-1");
@@ -95,7 +95,24 @@ describe("notifyReturn — user story 4", () => {
   it("a pending order returned keeps saying pending", async () => {
     await startWithOrder();
     const res = await postReturn(app.app, returnOf("A-1"), { platformKey: PLATFORM_A });
-    expect(json(res)).toMatchObject({ status: "RETURNED", orderStatus: "PENDING_CORRELATION" });
+    expect(json(res)).toMatchObject({ status: "RETURNED", correlation: "PENDING_CORRELATION" });
+  });
+
+  it("a repeat of an order returned since answers RETURNED with the correlation it had", async () => {
+    await startWithOrder();
+    await postReturn(app.app, returnOf("A-1"), { platformKey: PLATFORM_A });
+    const again = await postOrder(
+      app.app,
+      orderOf("A-1", {
+        items: [
+          { sku: "SKU-1-M", quantity: 2 },
+          { sku: "SKU-2", quantity: 1 },
+        ],
+      }),
+      { platformKey: PLATFORM_A },
+    );
+    expect(again.statusCode).toBe(200);
+    expect(json(again)).toMatchObject({ status: "RETURNED", correlation: "PENDING_CORRELATION" });
   });
 
   it("2. repeated → 200; a different one (other items, other instant) → 409 and the first stays", async () => {

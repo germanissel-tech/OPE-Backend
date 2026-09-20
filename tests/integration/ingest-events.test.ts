@@ -267,4 +267,43 @@ describe("inline decision (US3)", () => {
     });
     expect(await app.ports.decisions.find(asMerchantId("m_b"), asDecisionId(id))).toBeUndefined();
   });
+
+  it("the locale of the page (BCP 47) is recorded with the decision; absent, the record has no locale", async () => {
+    const localized = {
+      events: [
+        eventOf(1, { occurredAt: NOW, page: { pageType: "product", productId: "SKU-1", locale: "es-AR" } }),
+      ],
+    };
+    const res = await postEvents(app.app, localized, { key: "key-a-1" });
+    expect(res.statusCode).toBe(202);
+    const id = (json(res) as IngestResult).decision.decisionId;
+    expect(await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(id))).toMatchObject({
+      locale: "es-AR",
+    });
+    const plain = json(
+      await postEvents(app.app, batchOf(1, 2, { occurredAt: NOW }), { key: "key-a-1" }),
+    ) as IngestResult;
+    const found = await app.ports.decisions.find(
+      asMerchantId("m_a"),
+      asDecisionId(plain.decision.decisionId),
+    );
+    expect(found).toBeDefined();
+    expect(found?.locale).toBeUndefined();
+  });
+
+  it("a locale that is not a language tag → 400 validation-failed pointing at the field", async () => {
+    const bad = {
+      events: [
+        eventOf(1, {
+          occurredAt: NOW,
+          page: { pageType: "product", productId: "SKU-1", locale: "not a tag!" },
+        }),
+      ],
+    };
+    const res = await postEvents(app.app, bad, { key: "key-a-1" });
+    expect(res.statusCode).toBe(400);
+    const problem = problemOf(res);
+    expect(problem.type).toBe("urn:ope:problem:validation-failed");
+    expect(problem.errors?.map((e) => e.pointer)).toContain("/body/events/0/page/locale");
+  });
 });

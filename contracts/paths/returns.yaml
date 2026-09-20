@@ -48,7 +48,7 @@ post:
           example:
             orderId: A-1
             status: RETURNED
-            orderStatus: ATTRIBUTED_ORDER
+            correlation: ATTRIBUTED
             receivedAt: "2026-09-24T09:00:00Z"
     "200":
       description: Same return as recorded; nothing changed.
@@ -59,7 +59,7 @@ post:
           example:
             orderId: A-1
             status: RETURNED
-            orderStatus: ATTRIBUTED_ORDER
+            correlation: ATTRIBUTED
             receivedAt: "2026-09-24T09:00:00Z"
     "400":
       $ref: ../components/responses/BadRequest.yaml

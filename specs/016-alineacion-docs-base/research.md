@@ -51,25 +51,32 @@ Fuente de cada decisión: `docs/auditoria/2026-09-20-evaluacion-docs-base-vs-rep
 - **Alternativa descartada**: numerar esta feature 022 para no mover las reservadas — rompe
   el orden cronológico de `specs/`; la renumeración es un edit mecánico verificado.
 
-## R-04 — Contrato v2: `status` y `correlation` (decisión 7)
+## R-04 — Contrato: `status` y `correlation` (decisión 7)
 
 - **Decisión**: `OrderStatus` pasa a `[VERIFIED_ORDER, ATTRIBUTED_ORDER, RETURNED]` (la
   cadena de `01 §5`); un esquema nuevo `Correlation` con `[PENDING_CORRELATION, ATTRIBUTED]`;
   `OrderResult` lleva `status` + `correlation`; `ReturnResult` lleva `status: RETURNED` +
   `correlation` y pierde `orderStatus` (era la correlación con otro nombre). Una orden
-  repetida que ya fue devuelta responde `status: RETURNED`. `info.version` 2.0.0 y todas las
-  rutas bajo `/v2/` (regla `ope-path-version-prefix` y `check:api-map`); `contract:diff`
-  reporta "Expected incompatible change: major version 1 → 2" y pasa. En el dominio,
+  repetida que ya fue devuelta responde `status: RETURNED`. `info.version` 1.3.0 con
+  `info.x-stability: building` y las rutas en `/v1/` (decisión del dueño del 2026-09-20 al
+  ver el primer `/v2/`: en construcción, sin consumidores, no se salta de mayor); `contract:diff`
+  reporta el cambio incompatible y lo acepta por la marca ("Incompatible change accepted: the
+  contract is building"); `release-check` avisa mientras la marca exista; ADR-003 lleva la
+  precisión y la constitución (1.4.2) la admite en el gate del plan. En el dominio,
   `Order.status()` devuelve la cadena y `Order.correlation` ya existe como valor; se agrega
   `Order.correlationStatus()`.
 - **Fundamento**: `01 §5` distingue "la plataforma confirmó" de "OPE pudo vincular"; dos ejes,
-  dos campos. Sin merchants conectados, la versión mayor cuesta sólo lo interno (ADR-003).
+  dos campos. Sin merchants conectados, un `/v2/` no protege a nadie y sí ensucia rutas,
+  pruebas y documentación; la marca hace explícito y auditable el período en que el contrato
+  puede romper, y `release-check` impide olvidarla.
 - **Alternativa descartada**: mantener `PENDING_CORRELATION` en `status` y agregar
   `VERIFIED_ORDER` como valor más — mezcla los dos ejes en un enum y obliga al portal (021) a
   inventar otro.
-- **Alcance del `/v2/`**: contrato, `api-map.yaml`, pruebas de integración y unitarias que
-  escriben rutas, Insomnia y docs generados, `scripts/test-contract.mjs` si nombra rutas,
-  `sign-platform-request.mjs` si las nombra. Los fixtures de `tests/contract-rules` y
+- **Alternativa descartada (2)**: `2.0.0` con rutas `/v2/` — correcto según ADR-003 tal
+  como estaba, pero sin consumidores es costo sin beneficio; y `2.0.0` con rutas `/v1/` rompe
+  la regla `ope-path-version-prefix`.
+- **Alcance de la marca**: sólo `contract:diff` (acepta) y `release-check` (avisa). Los
+  fixtures de `tests/contract-rules` y
   `tests/contract-diff` que usan `/v1/` como ejemplo genérico **no** cambian (son contratos
   de prueba con su propia versión).
 

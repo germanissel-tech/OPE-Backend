@@ -1,4 +1,23 @@
 <!--
+Sync Impact Report (1.4.2, 2026-09-20)
+- Version change: 1.4.1 → 1.4.2 (PATCH: el gate del plan admite lo que ADR-003 ya precisa).
+- Modified sections: §Flujo de trabajo, Constitution Check, gate de superficie HTTP — un cambio
+  incompatible del contrato es compatible hacia atrás, declara la versión mayor **o** entra
+  bajo la marca `info.x-stability: building` (ningún merchant consume el contrato; ADR-003,
+  precisión del 2026-09-20; `contract:diff` lo reporta y lo acepta, `release-check` avisa).
+  Decisión del dueño en la feature 016: en construcción no se salta de versión mayor.
+- Templates: sin cambios.
+
+Sync Impact Report (1.4.1, 2026-09-20)
+- Version change: 1.4.0 → 1.4.1 (PATCH: redacción; ningún principio cambia de sentido).
+- Modified sections: X — las cuatro operaciones del puerto de plataforma se nombran con
+  identificadores en inglés (`fetchCatalog`, `fetchStockAndPrice`, `onOrderConfirmed`,
+  `onReturnRegistered`) en lugar de los nombres en español de 02 §6.1: el código y el
+  contrato son en inglés (ADR-015) y el gate `check:identifiers` (feature 016, decisión 12 de
+  la evaluación) los detectó como identificadores inexistentes. El mapa del contrato
+  (feature 019) los nombra; 02 §6.1 se alinea en la historia 3 de la feature 016.
+- Templates: sin cambios.
+
 Sync Impact Report (1.4.0, 2026-09-20)
 - Version change: 1.3.0 → 1.4.0 (MINOR: principio nuevo XI "Ninguna política vive en el
   código"; acumula un PATCH de redacción en "Contrato de datos e identidad").
@@ -205,8 +224,8 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
 
 ### X. Puertos en los dos bordes
 
-- El **puerto de plataforma** tiene exactamente cuatro operaciones: `obtenerCatalogo`,
-  `obtenerStockYPrecio`, `alConfirmarOrden`, `alRegistrarDevolucion`. El núcleo depende del
+- El **puerto de plataforma** tiene exactamente cuatro operaciones: `fetchCatalog`,
+  `fetchStockAndPrice`, `onOrderConfirmed`, `onReturnRegistered`. El núcleo depende del
   puerto y MUST NOT saber si del otro lado hay Magento, VTEX o un adaptador de prueba.
 - El **adaptador genérico** (catálogo por REST/archivo + notificación HTTP de orden) y el
   **adaptador de prueba** existen desde el día uno; Magento 2 es el primer adaptador real;
@@ -282,8 +301,9 @@ Decisiones D1 y D2 cerradas al ratificar esta constitución:
    implementación.
 2. `/speckit-plan` MUST pasar el **Constitution Check** con estos gates explícitos:
    - ¿La feature toca una superficie HTTP? → el cambio a `contracts/openapi.yaml` se diseña en
-     `specs/NNN/contracts/` **antes** de cualquier tarea de código, y es compatible hacia atrás
-     o declara la versión mayor.
+     `specs/NNN/contracts/` **antes** de cualquier tarea de código, y es compatible hacia atrás,
+     declara la versión mayor, o entra bajo la marca `info.x-stability: building` mientras
+     ningún merchant consuma el contrato (ADR-003; la marca se quita antes del primer piloto).
    - ¿Toca persistencia o API? → hay tareas de prueba de aislamiento por merchant.
    - ¿Toca el plano de decisión? → no introduce I/O de red ni escritura bloqueante en el camino
      crítico, y toda salida puede ser `NO_OP` con motivo.
@@ -337,4 +357,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.4.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20
+**Version**: 1.4.2 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20

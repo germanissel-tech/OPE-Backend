@@ -1,9 +1,10 @@
-# Contrato v2: cadena de evidencia y `locale` (R-04, R-05)
+# Contrato: cadena de evidencia y `locale` (R-04, R-05)
 
-## `info.version` y rutas
+## `info.version`, marca y rutas
 
-- `contracts/openapi.yaml`: `info.version: 2.0.0`; toda ruta `/v1/...` → `/v2/...` (`contracts/paths/*.yaml` y `contracts/api-map.yaml`).
-- `contract:diff` contra `main` (1.2.0): "Expected incompatible change: major version 1 → 2", exit 0.
+- `contracts/openapi.yaml`: `info.version: 1.3.0` e `info.x-stability: building`; las rutas siguen en `/v1/` (decisión del dueño, 2026-09-20).
+- `contract:diff` contra `main` (1.2.0): reporta las rupturas de oasdiff y termina con "Incompatible change accepted: the contract is building (info.x-stability: building, 1.3.0); remove the mark before the first pilot.", exit 0. Sin la marca: "incompatible changes without a major version bump", exit 1.
+- `release-check`: "warning: the contract is marked building (info.x-stability) …", exit 0.
 
 ## Esquemas
 
