@@ -221,4 +221,20 @@ describe("memoryExperimentStore", () => {
     const store = memoryExperimentStore();
     await expect(store.update(testExperiment())).rejects.toThrow("was never opened");
   });
+
+  it("with several experiments of the merchant, get and update act on the one with the identifier and leave the rest as they are", async () => {
+    const store = memoryExperimentStore();
+    const first = testExperiment({ experimentId: "exp_00000001", status: "closed" });
+    const second = testExperiment({ experimentId: "exp_00000002", status: "calibrating" });
+    await store.open(first);
+    await store.open(second);
+    expect(await store.get(A, asExperimentId("exp_00000002"))).toBe(second);
+    expect(await store.get(A, asExperimentId("exp_00000001"))).toBe(first);
+    expect(await store.get(A, asExperimentId("exp_00000003"))).toBeUndefined();
+    const activated = second.activated(LATER);
+    if (!activated.ok) throw new Error(activated.error.message);
+    await store.update(activated.value);
+    expect((await store.listOf(A, { limit: 10 })).items).toEqual([activated.value, first]);
+    expect(await store.activeFor(A)).toBe(activated.value);
+  });
 });

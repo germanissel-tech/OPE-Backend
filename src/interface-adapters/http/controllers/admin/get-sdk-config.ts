@@ -18,10 +18,7 @@ function sdkConfigDto(config: SdkConfig): SdkConfigDto {
     enabled: config.enabled,
     versions: config.versions,
     surfaces: [...config.surfaces],
-    locales: {
-      supported: [...config.locales.supported],
-      ...(config.locales.fallback === undefined ? {} : { fallback: config.locales.fallback }),
-    },
+    locales: { ...config.locales, supported: [...config.locales.supported] },
     ...(anchors === undefined ? {} : { anchors }),
   };
 }

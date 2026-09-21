@@ -129,10 +129,11 @@ export class PolicyInput {
   }
 
   /**
-   * A rejection of a factory located at its field: `details.path` names the field and
-   * `details.index` the element — of the list `indexed` when the path is inside its elements
-   * (`rules[2].when…`), of the field itself otherwise (`incentiveLadderPercent[1]`). `aliases`
-   * map a domain field to the configuration field that fed it (a rate read from a percentage).
+   * A rejection of a factory located at its field: `details.path` always names the field (every
+   * error of the policy factories does) and `details.index` the element — of the list `indexed`
+   * when the path is inside its elements (`rules[2].when…`), of the field itself otherwise
+   * (`incentiveLadderPercent[1]`). `aliases` map a domain field to the configuration field that
+   * fed it (a rate read from a percentage).
    */
   private static located(
     at: string,
@@ -141,12 +142,11 @@ export class PolicyInput {
     aliases: Readonly<Record<string, string>> = {},
   ): InvalidConfigurationValue {
     const { path, index } = error.details;
-    const domainPath = typeof path === "string" ? path : "";
+    const domainPath = String(path);
     const inside = aliases[domainPath] ?? domainPath;
-    const field = inside === "" ? at : `${at}.${inside}`;
+    const field = `${at}.${inside}`;
     if (typeof index !== "number") return new InvalidConfigurationValue(field, error.message);
     if (indexed === undefined) return new InvalidConfigurationValue(`${field}[${index}]`, error.message);
-    const element = `${at}.${indexed}[${index}]`;
-    return new InvalidConfigurationValue(inside === "" ? element : `${element}.${inside}`, error.message);
+    return new InvalidConfigurationValue(`${at}.${indexed}[${index}].${inside}`, error.message);
   }
 }

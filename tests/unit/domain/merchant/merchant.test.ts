@@ -216,6 +216,18 @@ describe("Merchant credential sets (ADR-024: the owner judges them)", () => {
     expect(built.ok ? undefined : built.error).toBeInstanceOf(InvalidPlatformKeys);
   });
 
+  it("[invariant:invalid-platform-secret] a signing credential without its secret, or with an empty one, is refused naming its index", () => {
+    const empty = Merchant.of(inputOf({ credentials: [ingest("k"), signing("")] }));
+    expect(empty.ok ? undefined : [empty.error.code, empty.error.details]).toEqual([
+      "invalid-platform-secret",
+      { index: 1 },
+    ]);
+    const missing = Merchant.of(
+      inputOf({ credentials: [ingest("k"), Merchant.credential("signing", "fp:none", NOW)] }),
+    );
+    expect(missing.ok ? undefined : missing.error.code).toBe("invalid-platform-secret");
+  });
+
   it("[invariant:invalid-platform-secrets] more than two signing secrets reject the merchant", () => {
     const built = Merchant.of(
       inputOf({ credentials: [ingest("k"), signing("a"), signing("b"), signing("c")] }),

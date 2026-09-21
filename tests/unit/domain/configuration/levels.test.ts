@@ -38,6 +38,7 @@ describe("PlatformConfiguration.of", () => {
       [{ version: " " }, "version"],
       [{ dedupWindow: { ttlMs: 0, maxIds: 10 } }, "dedupWindow.ttlMs"],
       [{ dedupWindow: { ttlMs: 10, maxIds: 1.5 } }, "dedupWindow.maxIds"],
+      [{ dedupWindow: { ttlMs: 10, maxIds: 0 } }, "dedupWindow.maxIds"],
       [{ sessionWindowMs: 0 }, "sessionWindowMs"],
       [{ visitorWindowMs: -1 }, "visitorWindowMs"],
       [{ signatureWindowMs: 0 }, "signatureWindowMs"],
@@ -74,6 +75,7 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
     expect(built.ok ? built.value.record() : undefined).toEqual(defaults());
     expect(built.ok ? built.value.values.holdoutShare : undefined).toBe(0.05);
     expect(pointerOf(TreatmentDefaults.of({ ...defaults(), version: "" }))).toBe("version");
+    expect(pointerOf(TreatmentDefaults.of({ ...defaults(), version: " " }))).toBe("version");
     // The edges of the holdout are inside: nobody kept out, or everybody.
     for (const holdoutPercent of [0, 100]) {
       const edge = TreatmentValues.judge({ ...values(), holdoutPercent });

@@ -28,7 +28,7 @@ export function makePublishMerchantConfiguration(
       merchantId: merchantIdOf(req.path),
       declared: declared.value,
       corrective: req.body.corrective ?? false,
-      ...(req.body.reason === undefined ? {} : { reason: req.body.reason }),
+      reason: req.body.reason,
     });
     if (!result.ok) {
       // The resolution names the field from the root of the declared values; the body carries them under `declared`.

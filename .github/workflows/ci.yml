@@ -89,7 +89,7 @@ jobs:
           cache: npm
 
       - name: Restore the incremental mutation results of this branch
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: reports/mutation/stryker-incremental.json
           # A new entry per run; the newest of the branch is restored, then the newest of any branch.
@@ -101,6 +101,15 @@ jobs:
       - run: npm ci
       - run: npm run contract:bundle
       - run: npm run test:mutation
+
+      # Saved whether the gate passed or not: a run that ends with survivors still holds the
+      # verdict of every other mutant, and the next run re-tests only what changed.
+      - name: Save the incremental mutation results
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: reports/mutation/stryker-incremental.json
+          key: stryker-incremental-${{ github.ref_name }}-${{ github.run_id }}
 
       - name: Publish the mutation report
         if: always()

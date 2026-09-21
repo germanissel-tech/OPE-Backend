@@ -49,9 +49,13 @@ describe(".github/workflows/ci.yml", () => {
     const job = workflow.jobs["mutation"];
     expect(job?.if).toContain("schedule");
     expect(runs("mutation")).toContain("npm run test:mutation");
-    const cache = job?.steps.find((s) => s.uses?.startsWith("actions/cache"));
+    const cache = job?.steps.find((s) => s.uses?.startsWith("actions/cache/restore"));
     expect(cache?.with?.["path"]).toBe("reports/mutation/stryker-incremental.json");
     expect(cache?.with?.["restore-keys"]).toContain("stryker-incremental-");
+    // The verdicts are kept even when the gate fails: the next run re-tests only what changed.
+    const save = job?.steps.find((s) => s.uses?.startsWith("actions/cache/save"));
+    expect(save?.with?.["path"]).toBe("reports/mutation/stryker-incremental.json");
+    expect((save as { if?: string } | undefined)?.if).toBe("always()");
   });
 
   it("has a scheduled, manually triggerable full mutation job that never blocks and publishes its report", () => {
