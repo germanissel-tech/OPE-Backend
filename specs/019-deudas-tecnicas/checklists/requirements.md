@@ -44,5 +44,6 @@
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
 - 2026-09-21: D-04 (`config/` sin documentación ni esquema) agregada como historia P3 con FR-04-x y SC-04-x; lista pasada sobre ella sin cambios.
+- 2026-09-21: D-05 (`contracts/` README y extensiones) y D-06 (directorios de primer nivel con README verificado) agregadas como historias P3; la parte README de D-04 pasa a ser instancia de D-06. Lista pasada sobre ambas sin cambios.
 - Feature de **registro abierto**: al agregar una deuda (fila en la tabla + historia `D-NN` al
   final), volver a pasar esta lista sobre la historia nueva y regenerar plan y tareas para ella.

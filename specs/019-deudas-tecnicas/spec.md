@@ -55,6 +55,8 @@ prepare para usarla. La revisión de deudas sigue; esta feature es el lugar dond
 | D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable     | Evaluación con el dueño (D-01) | `especificada` | 2026-09-21 | —      |
 | D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —      |
 | D-04 | `config/` sin documentación ni esquema propio                                  | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —      |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                          | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —      |
+| D-06 | Los directorios de primer nivel no se explican solos                           | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —      |
 
 Fuera del alcance de toda deuda de esta feature: cambiar el contrato, agregar operaciones,
 tocar dominio o aplicación, persistencia.
@@ -189,19 +191,21 @@ cambiar una ventana, una política o una semilla no dependa de rastrear seis lug
 notas del glosario, lectores de composición, instrucciones para agentes, README, una spec
 histórica).
 
-**Why this priority**: es la deuda más chica y la de lectura más frecuente (cada `dev`, cada
-piloto tocará estos archivos); no depende de D-01 ni de D-02.
+**Why this priority**: es la de lectura más frecuente (cada `dev`, cada piloto tocará estos
+archivos); no depende de D-01 ni de D-02. El README de `config/` es una instancia de la
+convención de D-06; esta historia se queda con lo específico: esquemas, descripciones y
+validación.
 
 **Independent Test**: cada archivo de `config/` declara su esquema y valida contra él en una
-prueba; los dos esquemas del release se derivan del contrato (sin réplica); `config/README.md`
-existe y una prueba verifica que nombra cada archivo del directorio y su variable de entorno;
-un campo nuevo sin descripción falla.
+prueba; los dos esquemas del release se derivan del contrato (sin réplica); un campo nuevo sin
+descripción falla; el README de `config/` (D-06) lleva, además del inventario, la variable de
+entorno y el momento de lectura de cada archivo.
 
 **Acceptance Scenarios**:
 
-1. **Given** `config/`, **When** se lista, **Then** contiene un `README.md` que, por cada
-   archivo, dice qué es, qué nivel o rol cumple, quién lo lee y cuándo, qué variable de entorno
-   lo reemplaza, si viaja con el release o es sólo de desarrollo, y cómo se reporta un valor
+1. **Given** el `README.md` de `config/` (D-06), **When** se lee, **Then** por cada archivo
+   dice, además del inventario común, qué nivel o rol cumple, qué variable de entorno lo
+   reemplaza, si viaja con el release o es sólo de desarrollo, y cómo se reporta un valor
    inválido (el error que nombra el campo).
 2. **Given** los dos archivos del release (nivel de plataforma y defaults de tratamiento),
    **When** corre la generación desde el contrato, **Then** produce un esquema JSON por cada
@@ -223,6 +227,98 @@ un campo nuevo sin descripción falla.
 7. **Given** un campo del contrato sin descripción en alguno de los esquemas de los niveles o
    de sus sub-esquemas (políticas, condiciones, frescura, nivel de sincronización), **When**
    corre la verificación del contrato, **Then** falla nombrando el campo.
+
+---
+
+### User Story D-05 - `contracts/` se explica sola y sus extensiones tienen un lugar (Priority: P3)
+
+Como ingeniero o agente que abre `contracts/`, quiero saber qué es cada entrada (raíz, rutas,
+componentes, ejemplos, catálogos, mapa, reglas, severidades, lo derivado), qué convenciones
+rigen el multi-archivo (promoción del bundle, componentes sin referencia hasta su primera
+operación, subconjunto de OpenAPI 3.0, discriminadores con `mapping`), y qué significa cada
+extensión `x-*` —dónde va, qué forma tiene, qué regla la verifica y quién la consume en
+runtime—, y cómo se agrega una operación, un esquema, un tipo de problema, un motivo de
+`NO_OP`, una regla o un ejemplo, para no reconstruirlo desde cuatro ADR, las instrucciones para
+agentes y el README de las pruebas de reglas.
+
+**Why this priority**: es la carpeta con más convenciones del repo y la única fuente de verdad
+HTTP; hoy nada dentro de ella lo dice. Independiente de las demás.
+
+**Independent Test**: el README de `contracts/` (D-06) tiene una tabla de extensiones que
+nombra cada `x-*` presente en el contrato y una prueba lo verifica; `webhooks/` está
+justificado o no existe; las cabeceras de los catálogos y de las severidades son ciertas.
+
+**Acceptance Scenarios**:
+
+1. **Given** el `README.md` de `contracts/` (D-06), **When** se lee, **Then** por cada entrada
+   dice si es fuente o derivada, qué la lee (bundle, servidor, generación, reglas, diff) y las
+   convenciones del multi-archivo, enlazando a la fuente normativa (instrucciones para agentes,
+   ADR, README de las reglas) sin duplicarla.
+2. **Given** las extensiones `x-*` que aparecen en el contrato, **When** se lee el README,
+   **Then** cada una tiene su fila: nombre, dónde se declara (raíz, operación, esquema), forma,
+   regla que la verifica y consumidor en runtime si lo tiene; una extensión nueva sin fila hace
+   fallar la prueba, y una fila sin extensión también.
+3. **Given** la sección "cómo agregar", **When** se busca operación, esquema, tipo de problema,
+   motivo de `NO_OP`, regla o ejemplo, **Then** cada uno tiene su entrada breve con el paso a
+   paso o el enlace al lugar que lo describe.
+4. **Given** `webhooks/` (vacío desde la primera feature), **When** termina la historia,
+   **Then** o no existe, o el README dice para qué está reservado y qué feature del mapa lo usa;
+   la decisión es del dueño y queda registrada.
+5. **Given** la cabecera de `problem-types.yaml`, **When** se lee, **Then** describe lo que hoy
+   ocurre (el catálogo se genera a `generated/`, no se importa como constantes); **Given** las
+   severidades de `contract:diff`, **Then** el motivo de cada elevación está en el archivo o, si
+   la herramienta no admite comentarios, en el README con la cita al ADR.
+6. **Given** las instrucciones para agentes, **When** termina la historia, **Then** su bloque de
+   notas del contrato conserva lo normativo y enlaza al README para lo descriptivo.
+
+---
+
+### User Story D-06 - Los directorios de primer nivel se explican solos (Priority: P3)
+
+Como persona o agente que llega al repositorio, quiero que cada directorio de primer nivel que
+no sea código (`config/`, `contracts/`, `generated/`, `patches/`, `scripts/`, `docs/`,
+`tests/`, `client/`, `reports/`, `specs/`) tenga un `README.md` que inventaríe sus entradas
+—qué es cada una, si es fuente o derivada, quién la lee o la ejecuta, cómo se verifica— con una
+prueba que impida que el inventario se desactualice, para que la carpeta sea lo primero que
+explica y no la última que se entera, y para que las instrucciones para agentes dejen de ser el
+índice de todo.
+
+**Why this priority**: es la convención que da forma a D-04 y D-05 y evita que aparezcan D-07,
+D-08 y D-09 por `generated/`, `patches/` y `scripts/`; sin la prueba, cinco README divergen
+en un mes.
+
+**Independent Test**: una prueba del proyecto de herramientas recorre los directorios de primer
+nivel del repositorio y falla si a alguno le falta el README, si una entrada de primer nivel del
+directorio no está nombrada, o si el README nombra algo que no existe; dos verificaciones de
+cabecera acompañan: todo archivo generado cita un script que existe, y todo parche declara qué
+arregla y cuándo se retira.
+
+**Acceptance Scenarios**:
+
+1. **Given** un directorio de primer nivel que no es código (la lista la fija la prueba, con
+   `src/` y las dependencias fuera), **When** corre la suite, **Then** falla si falta su
+   `README.md`.
+2. **Given** el README de un directorio, **When** se compara con el directorio, **Then** cada
+   entrada de primer nivel (archivo o subdirectorio) aparece nombrada, y cada nombre del
+   inventario existe; la prueba lista lo que falta y lo que sobra.
+3. **Given** el inventario de una entrada, **When** se lee, **Then** dice qué es, si es fuente o
+   derivada, quién la lee o la ejecuta y cómo se verifica; un directorio puede exigir columnas
+   propias (D-04: variable de entorno y momento de lectura; D-05: la tabla de extensiones).
+4. **Given** `generated/`, **When** corre la suite, **Then** cada archivo lleva la cabecera de
+   generado con el comando que lo regenera y el script que lo produce, y ese script existe (hoy
+   uno cita un script inexistente).
+5. **Given** `patches/`, **When** corre la suite, **Then** cada parche declara en su cabecera
+   qué arregla (con la referencia al upstream) y la condición de retiro, y el README explica la
+   política (nunca degradar: parchear o convivencia oficial) y cómo se retira un parche.
+6. **Given** `scripts/`, **When** se lee su README, **Then** distingue entrypoints de
+   `package.json`, utilidades de línea de comandos, librerías compartidas, el plugin de lint y
+   los archivos de datos, y dice cómo se agrega una verificación (en qué cadena se engancha) y
+   una regla de lint; toda entrada lleva una cabecera que dice qué hace.
+7. **Given** las instrucciones para agentes, **When** termina la historia, **Then** conservan lo
+   normativo (qué falla el build, cómo se escribe cada cosa) y enlazan al README de cada
+   directorio para lo descriptivo; ninguna ruta citada está rota.
+8. **Given** un directorio de primer nivel nuevo en una feature futura, **When** se agrega sin
+   README, **Then** la suite falla nombrándolo.
 
 ---
 
@@ -257,6 +353,17 @@ un campo nuevo sin descripción falla.
 - **Un campo del contrato que la semilla admite con otro nombre** (porcentajes enteros, claves
   crudas en vez de huellas): el esquema de la semilla describe la forma de la semilla, no la del
   DTO; la prueba contra los lectores es la que evita que diverjan.
+- **Directorios derivados o efímeros** (`dist/`, `node_modules/`, `reports/` en parte,
+  `contracts/dist/`): la prueba de inventario los excluye por lista explícita o los exige con un
+  README que diga que su contenido no se inventaría (es derivado, ignorado por git) y qué lo
+  produce. `reports/` conserva el archivo incremental de mutación y merece README.
+- **Inventario a nivel de entrada, no de archivo**: en `contracts/components/schemas/` o
+  `scripts/lint/` el README nombra el subdirectorio y su convención, no cada archivo; la prueba
+  verifica el primer nivel de cada directorio y nada más.
+- **Cifras en prosa**: los README no dicen cuántas entradas hay (documentación viva); la prueba
+  es la que cuenta.
+- **Una extensión `x-*` que sólo aparece en el bundle o en lo generado** no cuenta: la prueba
+  de D-05 lee la fuente del contrato.
 - **Una deuda nueva que toca lo ya implementado.** Si una historia posterior obliga a cambiar el
   resultado de una `implementada`, se registra como deuda nueva con la referencia, no se reabre
   la cerrada.
@@ -329,9 +436,10 @@ un campo nuevo sin descripción falla.
 
 ### Functional Requirements D-04
 
-- **FR-04-1**: `config/` MUST tener un `README.md` que, por cada archivo, diga qué es, quién lo
-  lee y cuándo, qué variable de entorno lo reemplaza, si viaja con el release o es sólo de
-  desarrollo, y cómo se reporta un valor inválido.
+- **FR-04-1**: El README de `config/` (D-06) MUST decir, por cada archivo, qué nivel o rol
+  cumple, qué variable de entorno lo reemplaza, si viaja con el release o es sólo de desarrollo,
+  y cómo se reporta un valor inválido; la prueba de inventario de D-06 MUST exigir esas columnas
+  en ese directorio.
 - **FR-04-2**: Los esquemas JSON de los dos niveles del release MUST derivarse del contrato por
   la misma generación que el resto de lo generado, sin réplica manual, y verificarse por drift.
 - **FR-04-3**: La semilla de merchants y los operadores MUST tener cada uno un esquema escrito
@@ -346,6 +454,45 @@ un campo nuevo sin descripción falla.
 - **FR-04-7**: Ningún valor ni regla de validación MUST cambiar: los archivos actuales validan
   contra sus esquemas sin editarlos (salvo la referencia al esquema) y los mensajes de error de
   configuración se conservan.
+
+### Functional Requirements D-05
+
+- **FR-05-1**: El README de `contracts/` (D-06) MUST decir, por cada entrada, si es fuente o
+  derivada y qué la lee, y MUST enunciar las convenciones del multi-archivo enlazando a la
+  fuente normativa sin duplicarla.
+- **FR-05-2**: El README MUST tener una tabla de extensiones `x-*` (nombre, dónde se declara,
+  forma, regla que la verifica, consumidor en runtime) y una prueba MUST verificar que coincide
+  en los dos sentidos con las extensiones presentes en la fuente del contrato.
+- **FR-05-3**: El README MUST tener una sección "cómo agregar" para operación, esquema, tipo de
+  problema, motivo de `NO_OP`, regla y ejemplo.
+- **FR-05-4**: `webhooks/` MUST no existir o estar justificado en el README con la feature del
+  mapa que lo usará; decisión del dueño registrada.
+- **FR-05-5**: Las cabeceras de `problem-types.yaml` y de las severidades de `contract:diff`
+  MUST describir lo que ocurre hoy, con el motivo o la cita al ADR.
+- **FR-05-6**: El contrato, el mapa y lo generado MUST no cambiar (sólo comentarios).
+
+### Functional Requirements D-06
+
+- **FR-06-1**: Todo directorio de primer nivel que no sea código ni dependencia MUST tener un
+  `README.md`; la lista de directorios y las exclusiones MUST ser explícitas en la prueba.
+- **FR-06-2**: Una prueba del proyecto de herramientas MUST verificar, por directorio, que el
+  README existe, que nombra cada entrada de primer nivel y que no nombra nada inexistente,
+  listando faltantes y sobrantes.
+- **FR-06-3**: Cada entrada del inventario MUST decir qué es, si es fuente o derivada, quién la
+  lee o la ejecuta y cómo se verifica; un directorio MAY exigir columnas propias, declaradas en
+  la prueba.
+- **FR-06-4**: Todo archivo de `generated/` MUST llevar cabecera de generado con el comando y
+  el script que lo produce, y el script MUST existir; una prueba lo verifica.
+- **FR-06-5**: Todo parche MUST declarar qué arregla (referencia al upstream) y su condición de
+  retiro; una prueba lo verifica; el README de `patches/` MUST enunciar la política de no
+  degradar y cómo se retira un parche.
+- **FR-06-6**: Todo archivo de `scripts/` MUST llevar una cabecera que diga qué hace; el README
+  MUST clasificar entrypoints, utilidades, librerías, plugin de lint y datos, y decir cómo se
+  agrega una verificación y una regla.
+- **FR-06-7**: Las instrucciones para agentes MUST conservar lo normativo y enlazar al README de
+  cada directorio para lo descriptivo; ninguna ruta citada MUST quedar rota
+  (`check:identifiers` y la prueba de documentación lo verifican).
+- **FR-06-8**: Ningún README MUST llevar cifras de estado en prosa (documentación viva).
 
 ### Key Entities
 
@@ -368,6 +515,11 @@ un campo nuevo sin descripción falla.
   cualquier proyecto con esa clase de gate lo reproduce, propia si depende de esta arquitectura.
 - **Doctor**: la verificación de que un repositorio está acondicionado: gates que corren,
   fuentes que resuelven, criterios sin marcadores bloqueantes, veredicto máximo alcanzable.
+- **Inventario de directorio**: el README de un directorio de primer nivel que nombra cada
+  entrada con qué es, si es fuente o derivada, quién la lee y cómo se verifica; una prueba lo
+  mantiene igual al directorio.
+- **Extensión del contrato**: una propiedad `x-*` del contrato con lugar, forma, regla que la
+  verifica y consumidor en runtime.
 
 ## Success Criteria _(mandatory)_
 
@@ -408,10 +560,29 @@ un campo nuevo sin descripción falla.
   él en la suite; los dos del release contra esquemas derivados del contrato.
 - **SC-04-2**: Cien por ciento de los campos de los esquemas de los niveles y sus sub-esquemas
   con descripción, verificado por el contrato.
-- **SC-04-3**: `config/README.md` nombra el 100 % de los archivos del directorio con su variable
-  de entorno y su momento de lectura; una prueba lo verifica.
+- **SC-04-3**: El README de `config/` lleva, para el 100 % de los archivos, variable de entorno
+  y momento de lectura; la prueba de inventario (D-06) lo verifica.
 - **SC-04-4**: Cero cambios en los valores de los archivos actuales ni en los mensajes de
   error de configuración (la suite existente pasa sin cambiar una aserción).
+
+### Measurable Outcomes D-05
+
+- **SC-05-1**: El 100 % de las extensiones `x-*` presentes en la fuente del contrato tiene su
+  fila, y el 100 % de las filas tiene su extensión; una prueba lo verifica.
+- **SC-05-2**: `webhooks/` resuelto (ausente o justificado); cero cabeceras desactualizadas en
+  los catálogos y las severidades.
+- **SC-05-3**: Cero cambios en el contrato bundleado, el mapa y lo generado (sólo comentarios).
+
+### Measurable Outcomes D-06
+
+- **SC-06-1**: El 100 % de los directorios de primer nivel que la prueba lista tiene README con
+  inventario completo (cero faltantes, cero sobrantes) en la suite.
+- **SC-06-2**: El 100 % de los archivos generados cita un script existente; el 100 % de los
+  parches declara arreglo y retiro; el 100 % de los scripts lleva cabecera.
+- **SC-06-3**: Las instrucciones para agentes pierden líneas descriptivas (medido en el
+  cierre, sin cifra en prosa) y no citan ninguna ruta rota.
+- **SC-06-4**: Un directorio de primer nivel nuevo sin README falla la suite (probado con un
+  fixture).
 
 ## Assumptions
 
@@ -436,6 +607,9 @@ un campo nuevo sin descripción falla.
   API): dónde viven y cómo se verifican contra los lectores lo fija el plan. La referencia al
   esquema desde cada archivo (`$schema`) debe ser tolerada por los lectores sin cambiar su
   validación.
+- D-05 y D-06 son documentación y pruebas de documentación: no cambian código de `src/`, el
+  contrato bundleado ni lo generado. El orden natural es D-06 (la convención y la prueba)
+  antes que los README específicos de D-04 y D-05, o en el mismo commit que el primero de ellos.
 - Las dos historias son independientes en implementación pero D-02 se valida contra D-01 (su
   doctor y su perfil deben ser aceptados por la auditoría); el orden natural es D-01 → D-02.
 - La rama sale de `018-adaptadores-por-modulo` porque la skill actual ya resuelve las rutas del
