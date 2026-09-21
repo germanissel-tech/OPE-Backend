@@ -61,10 +61,12 @@ jobs:
   mutation:
     # The mutation gate on the lines the change introduced (ADR-016): every mutant must die.
     # Incremental: the verdicts of the previous run of the branch are restored from the cache,
-    # so only the mutants whose code or tests changed are re-tested.
+    # so only the mutants whose code or tests changed are re-tested. The first run of a long
+    # branch tests every mutant of its diff (a feature of several stories exceeds 1 500), and
+    # only a run that finishes saves the cache: the budget is the one of a full pass.
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
