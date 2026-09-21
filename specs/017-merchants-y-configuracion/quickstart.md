@@ -66,6 +66,20 @@ Un commit por historia; PR a `main` sin merge. `release-check` sigue avisando la
 
 ## Cambios respecto del plan
 
+Resumen al cierre (2026-09-21): las cuatro historias entraron en cuatro commits, uno por historia,
+más el de fundamentos y dos de herramientas (pruebas por alcance; presupuesto del gate de mutación en CI).
+Forma final de la semilla (`OPE_MERCHANTS[i]`): `merchantId`, `ingestKeys`, `platformKeys?`,
+`platformSecrets?`, `origins`, `experiments?[]` (`experimentId`, `treatmentPercent`, `seed`,
+`targetSample`, `cuts?`, `status`, `openedAt`) y cualquier campo de
+`MerchantConfigurationDeclared` (la versión 1). Archivos de nivel: `config/platform.json`
+(`platform-1`) y `config/treatment-defaults.json` (`defaults-1`), con la forma de
+`contracts/components/schemas/{PlatformConfiguration,TreatmentDefaults}.yaml`. Operadores:
+`config/dev-operators.json` (`ope_dev_admin_token`). Decisiones tomadas en el camino y
+supervivientes de mutación, por historia, en las entradas fechadas que siguen; el gate completo
+de mutación es CI (ritmo en dos velocidades, ADR-016 enmendado). Queda para la feature de
+calidad: el runner de vitest con corridas grandes; para después de 017: la spec del refactor de
+`interface-adapters` por módulo.
+
 - 2026-09-20 T001: línea base en `ccaa60c` (main tras la PR #25); `contract:check` y `npm test` en verde.
 - 2026-09-20 T003 (pedido del dueño): `test:scoped` + CI sin `lint`/`arch` repetidos; `tests/hooks/ci.test.ts` actualizado; `resolveBaseRef` compartido en `scripts/lib.mjs` (tres scripts lo duplicaban).
 - 2026-09-20 Phase 2: `AdminScopeService` no existe: la regla es del `Operator` (`scopeFor`) y el caso de uso la invoca; `AuditedUseCase` registra aceptadas, rechazadas y **denegadas** en un solo lugar (evita la doble entrada). `StoreUnavailable` (503, `Retry-After`) en el kernel para los stores de la feature. Las notas del glosario resuelven por palabra: `registro-de-administracion` lleva `en: log`, `diagnostico-de-anclajes` `en: diagnostics`, `estrategia-de-sincronizacion` pasa a `en: sync-strategy`; vocabulario técnico ampliado (`_tecnicos.json`). Consumidor `admin` como `server` (sin CORS). Supervivientes de mutación resueltos por reestructura (paginación sin condicional redundante, clave del diagnóstico por `JSON.stringify`) y pruebas (regex del bearer, lector de resultado en rechazos, huella con token vacío).
