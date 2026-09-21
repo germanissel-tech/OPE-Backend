@@ -54,6 +54,7 @@ prepare para usarla. La revisión de deudas sigue; esta feature es el lugar dond
 | D-01 | La skill de auditoría de arquitectura está acoplada a este repo                | Revisión del dueño tras la 018 | `especificada` | 2026-09-21 | —      |
 | D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable     | Evaluación con el dueño (D-01) | `especificada` | 2026-09-21 | —      |
 | D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —      |
+| D-04 | `config/` sin documentación ni esquema propio                                  | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —      |
 
 Fuera del alcance de toda deuda de esta feature: cambiar el contrato, agregar operaciones,
 tocar dominio o aplicación, persistencia.
@@ -178,6 +179,53 @@ historia se escribe aquí o en su propia feature, y el registro lo dice.
 
 ---
 
+### User Story D-04 - Los archivos de `config/` se explican solos (Priority: P3)
+
+Como ingeniero o agente que abre `config/`, quiero saber sin leer código qué es cada archivo,
+quién lo lee y cuándo, qué variable de entorno lo reemplaza, cuáles viajan con el release y
+cuáles son sólo de desarrollo, y qué significa cada campo con su rango, y quiero que el editor me
+lo diga al escribir y que un valor inválido se detecte antes de arrancar el servidor, para que
+cambiar una ventana, una política o una semilla no dependa de rastrear seis lugares (contrato,
+notas del glosario, lectores de composición, instrucciones para agentes, README, una spec
+histórica).
+
+**Why this priority**: es la deuda más chica y la de lectura más frecuente (cada `dev`, cada
+piloto tocará estos archivos); no depende de D-01 ni de D-02.
+
+**Independent Test**: cada archivo de `config/` declara su esquema y valida contra él en una
+prueba; los dos esquemas del release se derivan del contrato (sin réplica); `config/README.md`
+existe y una prueba verifica que nombra cada archivo del directorio y su variable de entorno;
+un campo nuevo sin descripción falla.
+
+**Acceptance Scenarios**:
+
+1. **Given** `config/`, **When** se lista, **Then** contiene un `README.md` que, por cada
+   archivo, dice qué es, qué nivel o rol cumple, quién lo lee y cuándo, qué variable de entorno
+   lo reemplaza, si viaja con el release o es sólo de desarrollo, y cómo se reporta un valor
+   inválido (el error que nombra el campo).
+2. **Given** los dos archivos del release (nivel de plataforma y defaults de tratamiento),
+   **When** corre la generación desde el contrato, **Then** produce un esquema JSON por cada
+   uno, derivado de su esquema del contrato (mismos campos, descripciones y rangos), en el
+   directorio de lo generado, verificado por drift como el resto de lo generado.
+3. **Given** los archivos de semilla de merchants y de operadores (que no son DTO de la API),
+   **When** termina la historia, **Then** cada uno tiene su esquema escrito una sola vez, con
+   descripción por campo, y una prueba verifica que lo que el esquema acepta es lo que los
+   lectores de composición aceptan (un campo del esquema que el lector rechaza, o al revés,
+   falla).
+4. **Given** cualquiera de los cuatro archivos, **When** se abre en un editor con soporte de
+   esquemas JSON, **Then** el archivo referencia su esquema y el editor muestra la descripción y
+   el rango de cada campo y marca un valor inválido.
+5. **Given** los cuatro archivos, **When** corre la suite, **Then** una prueba los valida
+   contra su esquema; un archivo nuevo en `config/` sin esquema ni entrada en el README falla.
+6. **Given** las notas del glosario de los dos niveles, **When** se leen, **Then** enlazan al
+   README y al esquema, sin duplicar descripciones: la fuente de cada campo sigue siendo el
+   contrato.
+7. **Given** un campo del contrato sin descripción en alguno de los esquemas de los niveles o
+   de sus sub-esquemas (políticas, condiciones, frescura, nivel de sincronización), **When**
+   corre la verificación del contrato, **Then** falla nombrando el campo.
+
+---
+
 ### Edge Cases
 
 - **Convivencia con la copia actual.** Hoy la skill vive en `.claude/skills/auditing-architecture/`
@@ -203,6 +251,12 @@ historia se escribe aquí o en su propia feature, y el registro lo dice.
   deja la decisión al dueño.
 - **Versiones.** Skill y perfil llevan versión; una skill nueva que cambia la forma del perfil
   documenta la migración y el doctor la detecta.
+- **La referencia al esquema dentro del archivo.** Los lectores de los niveles rechazan
+  claves desconocidas (forma cerrada); la clave que referencia el esquema no es un valor de
+  configuración y debe ignorarse sin abrir la forma a nada más.
+- **Un campo del contrato que la semilla admite con otro nombre** (porcentajes enteros, claves
+  crudas en vez de huellas): el esquema de la semilla describe la forma de la semilla, no la del
+  DTO; la prueba contra los lectores es la que evita que diverjan.
 - **Una deuda nueva que toca lo ya implementado.** Si una historia posterior obliga a cambiar el
   resultado de una `implementada`, se registra como deuda nueva con la referencia, no se reabre
   la cerrada.
@@ -273,6 +327,26 @@ historia se escribe aquí o en su propia feature, y el registro lo dice.
   doctor en verde; sobre un fixture vacío MUST escribir el mínimo y listar lo que falta sin
   fallar.
 
+### Functional Requirements D-04
+
+- **FR-04-1**: `config/` MUST tener un `README.md` que, por cada archivo, diga qué es, quién lo
+  lee y cuándo, qué variable de entorno lo reemplaza, si viaja con el release o es sólo de
+  desarrollo, y cómo se reporta un valor inválido.
+- **FR-04-2**: Los esquemas JSON de los dos niveles del release MUST derivarse del contrato por
+  la misma generación que el resto de lo generado, sin réplica manual, y verificarse por drift.
+- **FR-04-3**: La semilla de merchants y los operadores MUST tener cada uno un esquema escrito
+  una sola vez con descripción por campo, y una prueba MUST verificar que coincide con lo que
+  aceptan sus lectores.
+- **FR-04-4**: Cada archivo de `config/` MUST referenciar su esquema y una prueba MUST validarlo
+  contra él; un archivo nuevo sin esquema o sin entrada en el README MUST fallar.
+- **FR-04-5**: Todo campo de los esquemas del contrato que alimentan los niveles (y sus
+  sub-esquemas) MUST tener descripción; la verificación del contrato MUST fallar si falta.
+- **FR-04-6**: Las notas del glosario de los dos niveles MUST enlazar al README y al esquema sin
+  duplicar descripciones.
+- **FR-04-7**: Ningún valor ni regla de validación MUST cambiar: los archivos actuales validan
+  contra sus esquemas sin editarlos (salvo la referencia al esquema) y los mensajes de error de
+  configuración se conservan.
+
 ### Key Entities
 
 - **Deuda técnica**: un defecto de forma, herramienta o proceso registrado con id estable,
@@ -328,6 +402,17 @@ historia se escribe aquí o en su propia feature, y el registro lo dice.
 - **SC-02-4**: El número de preguntas al usuario sobre este repositorio es cero (todo se
   detecta) y sobre el fixture vacío no supera las tres decisiones que la spec enumera.
 
+### Measurable Outcomes D-04
+
+- **SC-04-1**: Cuatro de cuatro archivos de `config/` referencian un esquema y validan contra
+  él en la suite; los dos del release contra esquemas derivados del contrato.
+- **SC-04-2**: Cien por ciento de los campos de los esquemas de los niveles y sus sub-esquemas
+  con descripción, verificado por el contrato.
+- **SC-04-3**: `config/README.md` nombra el 100 % de los archivos del directorio con su variable
+  de entorno y su momento de lectura; una prueba lo verifica.
+- **SC-04-4**: Cero cambios en los valores de los archivos actuales ni en los mensajes de
+  error de configuración (la suite existente pasa sin cambiar una aserción).
+
 ## Assumptions
 
 - La skill portable y la de acondicionamiento se entregan juntas como un plugin de Claude Code
@@ -346,6 +431,11 @@ historia se escribe aquí o en su propia feature, y el registro lo dice.
   el plan.
 - La skill de acondicionamiento no instala herramientas de calidad: detecta las que hay y deja
   pendientes las que faltan. Instalar una cadena opinada es D-03, aparte y opt-in.
+- D-04 no cambia el contrato salvo agregar descripciones donde falten (aditivo, sin cambio de
+  forma); los esquemas de la semilla y de los operadores no entran al contrato (no son DTO de la
+  API): dónde viven y cómo se verifican contra los lectores lo fija el plan. La referencia al
+  esquema desde cada archivo (`$schema`) debe ser tolerada por los lectores sin cambiar su
+  validación.
 - Las dos historias son independientes en implementación pero D-02 se valida contra D-01 (su
   doctor y su perfil deben ser aceptados por la auditoría); el orden natural es D-01 → D-02.
 - La rama sale de `018-adaptadores-por-modulo` porque la skill actual ya resuelve las rutas del
