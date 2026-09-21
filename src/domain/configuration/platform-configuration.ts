@@ -24,6 +24,8 @@ export interface PlatformConfigurationRecord {
   signatureWindowMs: number;
   rotationGraceMaxMs: number;
   anchorDiagnosticsKept: number;
+  /** Seconds a client waits before retrying a write a store could not accept (ADR-021): the `Retry-After` of every 503. */
+  retryAfterSeconds: number;
 }
 
 const POSITIVE_PROBLEM = "must be a positive integer";
@@ -43,6 +45,7 @@ export class PlatformConfiguration {
   readonly signatureWindowMs: number;
   readonly rotationGraceMaxMs: number;
   readonly anchorDiagnosticsKept: number;
+  readonly retryAfterSeconds: number;
 
   private constructor(record: PlatformConfigurationRecord) {
     this.version = record.version;
@@ -54,6 +57,7 @@ export class PlatformConfiguration {
     this.signatureWindowMs = record.signatureWindowMs;
     this.rotationGraceMaxMs = record.rotationGraceMaxMs;
     this.anchorDiagnosticsKept = record.anchorDiagnosticsKept;
+    this.retryAfterSeconds = record.retryAfterSeconds;
   }
 
   /** A named version and every value in its range; the first offence names its field. */
@@ -78,6 +82,9 @@ export class PlatformConfiguration {
     if (!isWhole(record.anchorDiagnosticsKept) || record.anchorDiagnosticsKept < 1) {
       return fail(new InvalidConfigurationValue("anchorDiagnosticsKept", POSITIVE_PROBLEM));
     }
+    if (!isWhole(record.retryAfterSeconds) || record.retryAfterSeconds < 1) {
+      return fail(new InvalidConfigurationValue("retryAfterSeconds", POSITIVE_PROBLEM));
+    }
     return ok(new PlatformConfiguration(record));
   }
 
@@ -96,6 +103,7 @@ export class PlatformConfiguration {
       signatureWindowMs: this.signatureWindowMs,
       rotationGraceMaxMs: this.rotationGraceMaxMs,
       anchorDiagnosticsKept: this.anchorDiagnosticsKept,
+      retryAfterSeconds: this.retryAfterSeconds,
     };
   }
 }

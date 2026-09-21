@@ -37,10 +37,13 @@ Dentro de una feature que toca HTTP, el orden es:
 4. Reglas puras y errores en `src/domain/<módulo>/` (`errors.ts`), caso de uso en
    `src/application/<módulo>/use-cases/`, servicios en `services/` y puertos en `ports/`
    (ver "Cómo se escribe un caso de uso"), controller en
-   `src/interface-adapters/http/controllers/<módulo>/<operacion>.ts` tipado con
+   `src/interface-adapters/<módulo>/controllers/<operacion>.ts` tipado con
    `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ request/response; lee el merchant con
-   `merchantOf(req)`; un fallo se responde con `toProblem(result.error, req.instance)`), gateway
-   del puerto en `src/interface-adapters/gateways/<módulo>/`, y
+   `merchantOf(req)`; un fallo se responde con `toProblem(result.error, req.instance)`; lo que
+   varios controllers del módulo comparten —dominio → DTO— en `<módulo>/presenters.ts`; su
+   security handler en `<módulo>/security/`), gateway del puerto en
+   `src/interface-adapters/<módulo>/gateways/`, todo exportado por
+   `src/interface-adapters/<módulo>/index.ts`, y
    cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
    su tabla de enlaces por tecnología, instancia sus casos de uso con `new` —envueltos en
    `LoggedUseCase`— y entrega sus controllers; el
@@ -63,7 +66,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                                                                                                                                                   |
 | `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                                                                                                                                                             |
 | `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base; con `info.x-stability: building` los reporta y acepta                                                                                                                                |
-| `npm run contract:types` / `contract:types:check` | Regenera `src/interface-adapters/http/generated/api.d.ts` / falla si está desactualizado                                                                                                                                                                                       |
+| `npm run contract:types` / `contract:types:check` | Regenera `generated/api.d.ts` y `generated/problem-types.{js,d.ts}` (fuera de `src/`, leídos por `#generated/*`) / falla si alguno está desactualizado                                                                                                                         |
 | `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                                                                                                                                                         |
 | `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                                                                                                                                                       |
 | `npm run contract:insomnia`                       | `docs/api/insomnia.json`: colección de Insomnia derivada del bundle (un request por operación, header de credencial, instantes vivos)                                                                                                                                          |
@@ -96,16 +99,21 @@ Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` en
 `src/` contiene `main.ts`, `composition/` y cuatro anillos; nada más. Dependencia sólo hacia
 adentro:
 
-| Anillo                    | Qué va ahí                                                                                             | Puede importar de                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `src/domain/`             | reglas y valores puros, por módulo                                                                     | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                  |
-| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                             | `domain/`, `application/`. Tampoco npm ni Node                                                        |
-| `src/interface-adapters/` | `http/` (controllers, security, tipos generados, cliente) y `gateways/<módulo>/` (implementan puertos) | `application/`, `domain/`, npm. Un gateway no importa otro gateway; un controller no importa gateways |
-| `src/infrastructure/`     | frameworks y drivers: Fastify + openapi-backend, CORS, logging                                         | todo menos `composition/` y `main.ts`                                                                 |
-| `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo), `bootstrap()`      | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`      |
-| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                | `composition/` y Node; nadie lo importa                                                               |
+| Anillo                    | Qué va ahí                                                                                                                                                                                                                                       | Puede importar de                                                                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/`             | reglas y valores puros, por módulo                                                                                                                                                                                                               | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                                                                                                                                                   |
+| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                                                                                                                                                                       | `domain/`, `application/`. Tampoco npm ni Node                                                                                                                                                                                         |
+| `src/interface-adapters/` | todo lo que **traduce**, por módulo: `<módulo>/{controllers/, presenters.ts, security/, gateways/, index.ts}` (entrada y salida por nombre); núcleo `http/` sin módulos (tipado, Problem Details, borde genérico, principales); `shared-kernel/` | `application/`, `domain/`, `node:`. El mapa de contextos rige también aquí; un gateway no importa otro gateway ni npm (los drivers entran por `infrastructure/`); un controller no importa gateways; el núcleo no conoce ningún módulo |
+| `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                             | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
+| `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `adapters/` (lo que une puertos de varios módulos), `bootstrap()`, `*-config.ts`             | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
+| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                          | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
 
-**Módulos** dentro de `domain/` y `application/`: `shared-kernel`, `system`, `operator`
+Fuera de `src/`: `generated/` (lo que `contract:types` deriva del contrato: tipos de la API y
+catálogo de problemas; versionado, verificado por drift, nunca editado; importable sólo desde
+`interface-adapters/http/` e `infrastructure/http/` como `#generated/*`) y `client/` (el cliente
+tipado para consumidores, export `./client` del paquete; nada de `src/` lo importa).
+
+**Módulos** dentro de `domain/`, `application/` e `interface-adapters/`: `shared-kernel`, `system`, `operator`
 (quién opera: `Operator`, `OperatorId`, alcance; sólo dominio), `merchant`,
 `ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
 `outcomes`, `configuration` (los tres niveles y su resolución; nadie lo importa: cada consumidor
@@ -175,9 +183,11 @@ operador `system`) sólo si el merchant no tiene versiones. No hay servidor mock
 Error` queda para errores de programación (→ `500`). Sin `try/catch` en `application/`
   (`ope/no-generic-catch-in-application`): los puertos devuelven `Result`.
 - La traducción a HTTP es una sola: `toProblem(error, instance)` en
-  `interface-adapters/http/to-problem.ts` (`type` desde `code`, status y título del catálogo,
-  headers por código como `Retry-After`); sólo el adaptador HTTP la importa
-  (`problem-translation-only-in-http`). Los controllers no construyen errores.
+  `interface-adapters/http/to-problem.ts` (`type` desde `code`, status y título del catálogo
+  generado); sólo el borde HTTP del anillo la importa (controllers, presenters, security;
+  `problem-translation-only-in-http`). Los controllers no construyen errores. Los headers de un
+  status son del transporte: `Retry-After` de toda `503` lo agrega la infraestructura con
+  `retryAfterSeconds` del nivel de plataforma.
 - Preocupaciones transversales: un `UseCase<I, O>` que envuelve otro, en
   `application/shared-kernel/decorators/` (`LoggedUseCase`: nombre, duración y `ok` o `code`,
   nunca el request), aplicado en `composition/modules/<módulo>.ts`.
@@ -295,7 +305,9 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   valida Redocly. Detalle en `specs/001-api-contract-toolchain/research.md` (R-02).
 - Lista de datos personales prohibidos: **sólo** `contracts/rules/pii-denylist.json`.
 - Catálogo de tipos de error: `contracts/problem-types.yaml` (`urn:ope:problem:<slug>`),
-  replicado en `src/interface-adapters/http/problem-details.ts` y verificado por prueba.
+  **generado** a `generated/problem-types.{js,d.ts}` por `contract:types` (una sola fuente, sin
+  réplica; `ProblemSlug` y los status son literales) y re-exportado por
+  `interface-adapters/http/problem-details.ts`.
   Catálogo de motivos de `NO_OP`: `contracts/no-op-reasons.yaml`, replicado en
   `src/domain/shared-kernel/no-op-reasons.ts` (vocabulario compartido por ingesta, ledger y
   decisión; string con patrón, no enum: ampliar es compatible). Barreras (`BARRIERS`) y
@@ -382,8 +394,8 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `record()` devuelve `Result<…, LedgerUnavailable>` ⇒ `503` con `Retry-After`. Las respuestas
   llevan `status` (la cadena de 01 §5: `VERIFIED_ORDER | ATTRIBUTED_ORDER | RETURNED`;
   `Order.status()`) y `correlation` (`PENDING_CORRELATION | ATTRIBUTED`;
-  `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde (`instantOf`, `linesOf`, `idempotent`)
-  vive en `http/boundary.ts`, no en `controllers/` (un archivo allí es una operación).
+  `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde sin conocer un módulo (`instantOf`, `idempotent`, paginación)
+  vive en `http/boundary.ts`; lo que conoce el módulo (`linesOf`) en `outcomes/presenters.ts`; nunca en `controllers/` (un archivo allí es una operación).
 - **Merchants operados (ADR-031, feature 017)**: `Merchant` (dominio) lleva `status`
   (`active | off | deactivated`) y `credentials: Credential[]` (`kind` `ingest | platform |
 signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma conserva el
@@ -406,10 +418,12 @@ merchant-out-of-scope` con el mismo cuerpo que uno inexistente sólo cuando el o
   (`AdminLog`, `AdminEntry`: operador, operación, merchant, resultado `accepted | rejected |
 failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
 /v1/admin/merchants/{merchantId}/log` lo leen paginado (`Page`/`PageQuery` del kernel de
-  aplicación, `pageOf` en `gateways/shared-kernel/`, `pageQueryOf`/`pageDto` en `boundary.ts`).
+  aplicación, `pageOf` en `interface-adapters/shared-kernel/`, `pageQueryOf`/`pageDto`/`merchantPageResponse` en `http/boundary.ts`).
   `node scripts/mint-admin-token.mjs` acuña un token y su huella; `config/dev-operators.json`
   lleva el operador de desarrollo. `merchantId` de la ruta se lee con `merchantIdOf(req)`
-  (`admin-boundary.ts`), la única ruta donde figura (constitución V).
+  (`http/boundary.ts`), la única ruta donde figura (constitución V); el DTO del merchant y la
+  respuesta de rotación viven en `merchant/presenters.ts`, los del registro y el diagnóstico en
+  `admin/presenters.ts`.
 - **Firma de plataforma (ADR-029)**: los secretos de firma son credenciales `signing` del merchant
   (uno o dos vigentes, ≠ claves; en la semilla, `OPE_MERCHANTS[i].platformSecrets`;
   `Merchant.requiresSignature(now)`). Con secreto, toda operación con `platformKey` (catálogo,
@@ -420,7 +434,7 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
   los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
   compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
-  `MessageAuthenticator` (`node:crypto` en `gateways/merchant/`). Toda operación con
+  `MessageAuthenticator` (`node:crypto` en `interface-adapters/merchant/gateways/`). Toda operación con
   `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
   `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
 - **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo

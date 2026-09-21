@@ -55,7 +55,7 @@ baja) o no es un hallazgo. Fuentes válidas para `rule.source`: `constitution#<s
 ## LSP — implementaciones intercambiables, enlazadas en su módulo
 
 - **Definición acá**: los puertos son las interfaces (`application/<módulo>/ports/`), los
-  gateways las implementaciones (`interface-adapters/gateways/<módulo>/`), y **el enlace vive
+  gateways las implementaciones (`interface-adapters/<módulo>/gateways/`), y **el enlace vive
   con el módulo**: `composition/modules/<módulo>.ts` publica una tabla por tecnología
   (`memoryLedgerPorts`, `postgresLedgerPorts(pool)`; conviven). Un perfil es un **despliegue**
   que compone una tabla por módulo, no un "entorno" que conoce los gateways de todos. Cualquier

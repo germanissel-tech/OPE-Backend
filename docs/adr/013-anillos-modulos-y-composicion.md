@@ -99,3 +99,55 @@ inverso declarado por el perfil); la firma es `bootstrap(config, { profile?, mod
    un estado que no se puede confiar); el proceso es un parámetro, así que se prueba sin señales.
    `readConfig` valida (`PORT` decimal 0–65535, blanco = no definido, merchants con forma) y
    rechaza con `ConfigError` nombrando la variable.
+
+## Enmienda (2026-09-21): el anillo de adaptadores por módulo; lo derivado fuera de `src/`
+
+Feature 018 (`specs/018-adaptadores-por-modulo/`), tras la evaluación con el dueño del
+2026-09-21. El anillo `interface-adapters/` crecía partido por tecnología
+(`http/controllers/<m>/` y `gateways/<m>/`), con helpers de borde sueltos en la raíz de `http/`
+que un módulo tomaba de otro sin que ninguna regla lo viera, y con la composición importando
+cada archivo por su ruta.
+
+1. **Lectura estricta de Clean Architecture, confirmada.** `interface-adapters/` contiene todo lo
+   que **traduce**, en las dos direcciones: controllers y presenters (entrada), security handlers,
+   y gateways que implementan puertos (salida). `infrastructure/` contiene sólo lo que **hospeda o
+   provee tecnología** (Fastify, pino, CORS; mañana el driver de Postgres). Se evaluaron y
+   descartaron: la variante Onion (gateways en `infrastructure/<m>/`: mejor prior del agente y
+   persistencia en un solo lugar, pero un módulo en cuatro directorios y `infrastructure/`
+   redefinido), la radical (`src/modules/<m>/` con los cuatro anillos adentro: rompe los anillos y
+   el tooling) y la fusión de archivos (contraria a "un controller por operación, un gateway por
+   puerto y tecnología"). El adaptador en memoria no es un placeholder: es el doble oficial de cada
+   puerto para desarrollo y pruebas y se queda cuando llegue la persistencia.
+2. **Forma vertical, con la dirección por nombre.** `interface-adapters/<módulo>/{controllers/,
+presenters.ts, security/, gateways/, index.ts}`: un módulo tiene las partes que necesita
+   (`barrier`, `selection`, `commercial`, `operator` no tienen adaptadores y no tienen
+   directorio). `index.ts` exporta exactamente lo que la composición cablea; los presenters son
+   internos al módulo. `interface-adapters/shared-kernel/` (paginación, ids aleatorios, reloj,
+   mapa acotado) es importable por todo módulo del anillo.
+3. **Núcleo `http/` sin módulos.** `typed.ts` (tipado de handlers; re-exporta los tipos del
+   contrato para los módulos), `to-problem.ts`, `problem-details.ts`, `status.ts`, `boundary.ts`
+   (instantes, idempotencia, paginación, `merchantIdOf`, `merchantPageResponse`) y `security/`
+   (principales, capacidades, lectura de header). De los anillos interiores conoce sólo
+   `shared-kernel`, `operator` y `merchant` (los principales que una request resuelve).
+4. **Reglas nuevas en dependency-cruiser, cada una con fixture**: el mapa de contextos y
+   `modules-only-via-index` rigen también en el anillo (el núcleo no es un módulo y todos pueden
+   importarlo); `adapters-core-knows-no-module`; `composition-imports-module-index`
+   (`composition/modules/<m>.ts` importa del anillo sólo `interface-adapters/<m>/index.js` y el
+   `shared-kernel`); `gateways-drivers-from-infrastructure` (un gateway no importa npm; `node:`
+   sí; el driver entra por `infrastructure/`); `generated-only-from-http-core`. Las existentes
+   (`gateways-no-cross`, `controllers-no-gateways`, `profiles-compose-modules`,
+   `problem-translation-only-in-http`, `composition-wires-by-module`) cambian de ruta. Lo que une
+   puertos de varios módulos es un adaptador del root: `composition/adapters/`
+   (`switchAwarePolicyDirectory`: decisión + configuración + merchant).
+5. **Lo derivado y lo ajeno fuera de `src/`.** `generated/api.d.ts` y
+   `generated/problem-types.{js,d.ts}` los escribe `npm run contract:types` desde el bundle y desde
+   `contracts/problem-types.yaml` (una sola fuente: la réplica manual del catálogo y su prueba
+   desaparecen; la declaración lleva los literales para que el status siga verificándose en
+   compilación); se leen por el subpath import `#generated/*` de Node (`package.json` `imports`),
+   versionados, verificados por drift (`contract:types:check`) y marcados `linguist-generated`.
+   El cliente para consumidores vive en `client/` (export `./client` del paquete, su propio
+   `tsconfig.client.json`). `Retry-After` deja de ser una constante del adaptador: es
+   `retryAfterSeconds` del nivel de plataforma y lo agrega la infraestructura a toda `503`.
+6. `composition/config.ts` partido por lo que lee: `merchants-config.ts`, `experiments-config.ts`,
+   `levels-config.ts`, `env.ts`, `seed-errors.ts` (y `operators-config.ts`, que ya existía).
+   Las pruebas unitarias del anillo espejan el árbol (`tests/unit/interface-adapters/<m>/`).

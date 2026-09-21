@@ -12,7 +12,11 @@ export const MAX_RING_FILE_LINES = 300;
 /** Rings whose files are kept short: the ones that carry business rules. */
 const SHORT_RINGS = ["domain", "application"];
 /** Where infrastructure may be instantiated: the composition root, the framework layer and the gateways themselves. */
-const MAY_INSTANTIATE = ["composition/", "infrastructure/", "interface-adapters/gateways/"];
+const MAY_INSTANTIATE = ["composition/", "infrastructure/"];
+/** A gateway of a module of the adapters ring (feature 018): `interface-adapters/<module>/gateways/`. */
+const GATEWAY = /^interface-adapters\/[^/]+\/gateways\//;
+/** The controllers of the adapters ring (feature 018): `interface-adapters/<module>/controllers/`. */
+const CONTROLLER = /^interface-adapters\/[^/]+\/controllers\//;
 
 /**
  * Every `.ts` file under `dir`, as paths relative to `root` with forward slashes.
@@ -95,13 +99,13 @@ export function operationIds(bundlePath) {
 
 /**
  * Rule 2: one controller per operation. Every operationId of the contract has exactly one
- * `interface-adapters/http/controllers/<module>/<kebab>.ts`, and every controller file is one operationId.
+ * `interface-adapters/<module>/controllers/<kebab>.ts`, and every controller file is one operationId.
  * @param {string} root
  * @param {string} bundlePath
  * @returns {string[]}
  */
 export function oneControllerPerOperation(root, bundlePath) {
-  const controllers = tsFiles(root, "interface-adapters/http/controllers");
+  const controllers = tsFiles(root, "interface-adapters").filter((f) => CONTROLLER.test(f));
   const byName = new Map(controllers.map((f) => [path.posix.basename(f, ".ts"), f]));
   /** @type {string[]} */
   const out = [];
@@ -112,7 +116,7 @@ export function oneControllerPerOperation(root, bundlePath) {
     expected.add(name);
     if (!byName.has(name))
       out.push(
-        `interface-adapters/http/controllers/<module>/${name}.ts: missing controller for operationId ${id}`,
+        `interface-adapters/<module>/controllers/${name}.ts: missing controller for operationId ${id}`,
       );
   }
   for (const [name, file] of byName) {
@@ -161,7 +165,7 @@ export function newOnlyInComposition(root) {
   /** @type {string[]} */
   const out = [];
   for (const file of tsFiles(root, ".")) {
-    if (MAY_INSTANTIATE.some((p) => file.startsWith(p))) continue;
+    if (MAY_INSTANTIATE.some((p) => file.startsWith(p)) || GATEWAY.test(file)) continue;
     const source = readFileSync(path.join(root, file), "utf8");
     const external = npmValueImports(source);
     if (external.size === 0) continue;

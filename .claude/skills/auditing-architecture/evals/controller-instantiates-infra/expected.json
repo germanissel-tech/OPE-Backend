@@ -1,6 +1,6 @@
 {
   "id": "F-001",
-  "file": "tests/audit/fixtures/controller-instantiates-infra/src/interface-adapters/http/controllers/ledger/confirm-exposure.ts",
+  "file": "tests/audit/fixtures/controller-instantiates-infra/src/interface-adapters/ledger/controllers/confirm-exposure.ts",
   "line": 5,
   "rule": { "id": "dip-controller-instantiates-infrastructure", "source": "constitution#I. Separación de autoridades" },
   "severity": "high",

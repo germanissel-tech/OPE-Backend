@@ -16,9 +16,9 @@ import { DefaultScopedMerchantService } from "../../../../src/application/mercha
 import { MerchantConfigurationVersion } from "../../../../src/domain/configuration/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryConfigurationStore } from "../../../../src/interface-adapters/gateways/configuration/memory-configuration-store.js";
-import { memoryExperimentStore } from "../../../../src/interface-adapters/gateways/experiment/memory-experiment-store.js";
-import { memoryMerchantStore } from "../../../../src/interface-adapters/gateways/merchant/memory-merchant-store.js";
+import { memoryConfigurationStore } from "../../../../src/interface-adapters/configuration/gateways/memory-configuration-store.js";
+import { memoryExperimentStore } from "../../../../src/interface-adapters/experiment/gateways/memory-experiment-store.js";
+import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 import { TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 import { testLevels } from "../../../helpers/test-app.js";

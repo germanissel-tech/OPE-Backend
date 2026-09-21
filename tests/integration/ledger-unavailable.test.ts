@@ -4,8 +4,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { InterveneDecision, type Decision, asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
-import { memoryDecisionLedger } from "../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
-import { memoryExposureLedger } from "../../src/interface-adapters/gateways/ledger/memory-exposure-ledger.js";
+import { memoryDecisionLedger } from "../../src/interface-adapters/ledger/gateways/memory-decision-ledger.js";
+import { memoryExposureLedger } from "../../src/interface-adapters/ledger/gateways/memory-exposure-ledger.js";
 import { json, problemOf } from "../helpers/json.js";
 import { batchOf, fixedClock, postEvents, postExposure, startTestApp } from "../helpers/test-app.js";
 import {
@@ -15,8 +15,8 @@ import {
   unavailableDecisionLedger,
   unavailableExposureLedger,
 } from "../helpers/unavailable-ledgers.js";
+import type { components } from "#generated/api.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 

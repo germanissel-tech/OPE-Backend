@@ -76,7 +76,7 @@ describe("mutableFilter (stryker.config.json)", () => {
   it("mutates production TypeScript but not generated types, composition, main, index or declarations", () => {
     const isMutable = mod.mutableFilter();
     expect(isMutable("src/domain/ingestion/batch.ts")).toBe(true);
-    expect(isMutable("src/interface-adapters/http/generated/api.d.ts")).toBe(false);
+    expect(isMutable("generated/api.d.ts")).toBe(false);
     expect(isMutable("src/composition/ports.ts")).toBe(false);
     expect(isMutable("src/main.ts")).toBe(false);
     expect(isMutable("src/domain/ledger/index.ts")).toBe(false);

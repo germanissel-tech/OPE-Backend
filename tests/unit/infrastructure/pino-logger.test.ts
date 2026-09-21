@@ -72,6 +72,7 @@ describe("pinoLogger", () => {
       definition: loadContract("contracts/dist/openapi.yaml"),
       handlers: {},
       logger: stub,
+      retryAfterSeconds: 5,
     });
     try {
       expect((await app.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(501);

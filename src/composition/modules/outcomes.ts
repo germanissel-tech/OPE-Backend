@@ -15,11 +15,13 @@ import {
   type ClockTolerance,
   type Logger,
 } from "../../application/shared-kernel/index.js";
-import { memoryCorroborationLedger } from "../../interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
-import { memoryOrderLedger } from "../../interface-adapters/gateways/outcomes/memory-order-ledger.js";
-import { makeCorroborateOrder } from "../../interface-adapters/http/controllers/outcomes/corroborate-order.js";
-import { makeNotifyOrder } from "../../interface-adapters/http/controllers/outcomes/notify-order.js";
-import { makeNotifyReturn } from "../../interface-adapters/http/controllers/outcomes/notify-return.js";
+import {
+  memoryCorroborationLedger,
+  memoryOrderLedger,
+  makeCorroborateOrder,
+  makeNotifyOrder,
+  makeNotifyReturn,
+} from "../../interface-adapters/outcomes/index.js";
 import type { DecisionLedger } from "../../application/ledger/index.js";
 import type { Bindings, Module } from "../wiring.js";
 

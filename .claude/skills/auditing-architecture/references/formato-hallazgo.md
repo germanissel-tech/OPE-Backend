@@ -75,7 +75,7 @@ No hay puntuación numérica. Si alguien pide "un 1 a 10", la respuesta es el es
 ```json
 {
   "id": "F-002",
-  "file": "src/interface-adapters/http/controllers/ledger/confirm-exposure.ts",
+  "file": "src/interface-adapters/ledger/controllers/confirm-exposure.ts",
   "line": 20,
   "rule": { "id": "dry-duplicated-422-translation", "source": "lint:sonarjs/no-identical-functions" },
   "severity": "medium",

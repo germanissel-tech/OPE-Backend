@@ -91,7 +91,8 @@ export type Key =
   | "visitorWindowMs"
   | "signatureWindowMs"
   | "rotationGraceMaxMs"
-  | "anchorDiagnosticsKept";
+  | "anchorDiagnosticsKept"
+  | "retryAfterSeconds";
 
 /** `parent.key`, or `key` at the root. */
 export const at = (parent: Field, key: Key): Field => named(parent, key);

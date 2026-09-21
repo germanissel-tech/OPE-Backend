@@ -49,7 +49,7 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("domain-inward", "domain/ingestion/bad-application.ts");
     expectRule("application-inward", "application/ledger/bad-adapter.ts");
     expectRule("application-is-pure", "application/ledger/bad-npm.ts");
-    expectRule("adapters-inward", "interface-adapters/http/controllers/x/bad-infra.ts");
+    expectRule("adapters-inward", "interface-adapters/x/controllers/bad-infra.ts");
     expectRule("infrastructure-inward", "infrastructure/http/bad-composition.ts");
     expectRule("nobody-imports-composition", "some/bad-composition.ts");
     expectRule("nobody-imports-main", "some/bad-main.ts");
@@ -59,14 +59,21 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("modules-only-via-index", "application/ledger/bad-internal-import.ts");
     expectRule("context-map:ledger", "domain/ledger/bad-context.ts");
     expectRule("context-map:shared-kernel", "domain/shared-kernel/bad-context.ts");
-    expectRule("gateways-no-cross", "interface-adapters/gateways/a/bad-cross.ts");
-    // What the gateways share (015 F-033) is not a cross: gateways/shared-kernel/ implements no port.
+    expectRule("gateways-no-cross", "interface-adapters/a/gateways/bad-cross.ts");
+    // What the gateways share (015 F-033) is not a cross: the shared-kernel of the ring implements no port.
     expect(byRule("gateways-no-cross")).not.toContainEqual(expect.stringContaining("a/ok-shared-kernel.ts"));
-    expectRule("controllers-no-gateways", "interface-adapters/http/controllers/x/bad-gateway.ts");
+    expectRule("controllers-no-gateways", "interface-adapters/x/controllers/bad-gateway.ts");
+    // Adapters ring by module (feature 018)
+    expectRule("modules-only-via-index", "interface-adapters/a/bad-internal-import.ts");
+    expectRule("context-map:ledger", "interface-adapters/ledger/bad-context.ts");
+    expectRule("adapters-core-knows-no-module", "interface-adapters/http/bad-module.ts");
+    expectRule("composition-imports-module-index", "composition/modules/bad-deep-import.ts");
+    expectRule("gateways-drivers-from-infrastructure", "interface-adapters/a/gateways/bad-driver.ts");
+    expectRule("generated-only-from-http-core", "interface-adapters/a/bad-generated.ts");
     // Application ring (ADR-023)
     expectRule("use-cases-no-use-cases", "application/ledger/use-cases/bad-use-case-chain.ts");
     expectRule("services-no-use-cases", "application/ledger/services/bad-service.ts");
-    expectRule("problem-translation-only-in-http", "interface-adapters/gateways/c/bad-problem.ts");
+    expectRule("problem-translation-only-in-http", "interface-adapters/c/gateways/bad-problem.ts");
   });
 
   it("the legitimate modules of the fixture trigger no rule", async () => {

@@ -2,9 +2,9 @@
 // status and title from the catalogue, `detail` from the message, headers by code, and, when
 // the error names the field it is about (`details.pointer`, a path like
 // `declared.rules[2].when`), one `errors` entry with that field as a JSON pointer. A code the
-// catalogue does not know does not compile: the replica test keeps catalogue and domain in step.
+// catalogue does not know does not compile: the catalogue is generated from the contract. The
+// headers of a status (`Retry-After` of a 503) are the transport's: the infrastructure adds them.
 import {
-  HEADERS_BY_CODE,
   PROBLEM_TYPES,
   problem,
   type ProblemDetails,
@@ -48,7 +48,5 @@ export function toProblem<E extends CataloguedError>(error: E, instance: string)
     ...(errors === undefined ? {} : { errors }),
   });
   const status: ProblemStatus<E["code"]> = PROBLEM_TYPES[error.code].status;
-  const headers = HEADERS_BY_CODE[error.code];
-  const response = headers === undefined ? { status, body } : { status, body, headers };
-  return response;
+  return { status, body };
 }

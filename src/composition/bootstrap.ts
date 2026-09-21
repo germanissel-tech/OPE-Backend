@@ -92,6 +92,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
     security: wired.security,
     cors: wired.cors,
     logger: ports.logger,
+    retryAfterSeconds: config.levels.platform.retryAfterSeconds,
   });
   return { app, ports, close: () => shutdown(app, closables) };
 }

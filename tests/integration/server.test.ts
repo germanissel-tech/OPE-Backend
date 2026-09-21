@@ -8,10 +8,10 @@ import { parse } from "yaml";
 import { GetServiceHealthUseCase } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
 import { pinoLogger, silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
-import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { problem } from "../../src/interface-adapters/http/problem-details.js";
+import { makeGetHealth } from "../../src/interface-adapters/system/controllers/get-health.js";
 import { json, problemOf } from "../helpers/json.js";
-import type { components } from "../../src/interface-adapters/http/generated/api.js";
+import type { components } from "#generated/api.js";
 import type {
   Handlers,
   OperationsMap,
@@ -68,6 +68,7 @@ async function server<Ops extends OperationsMap<Ops> = operations>(
   app = await buildServer<Ops>({
     definition,
     handlers,
+    retryAfterSeconds: 5,
     logger: silentLogger(),
     ...(security && { security }),
   });
@@ -198,7 +199,12 @@ describe("real server over the contract", () => {
         throw new Error("secret detail from a gateway");
       },
     };
-    const s = await buildServer<TwoOps>({ definition: twoOps, handlers: failing, logger });
+    const s = await buildServer<TwoOps>({
+      definition: twoOps,
+      handlers: failing,
+      logger,
+      retryAfterSeconds: 5,
+    });
     app = s;
     const res = await s.inject({ method: "GET", url: "/v1/things" });
     expect(res.statusCode).toBe(500);
@@ -437,15 +443,15 @@ describe("real server over the contract", () => {
       info: { title: "no version" },
       paths: {},
     } as unknown as ContractDocument;
-    await expect(buildServer({ definition: invalid, handlers: {}, logger: silentLogger() })).rejects.toThrow(
-      /version|not valid/i,
-    );
+    await expect(
+      buildServer({ definition: invalid, handlers: {}, logger: silentLogger(), retryAfterSeconds: 5 }),
+    ).rejects.toThrow(/version|not valid/i);
   });
 
   it("refuses to register a handler with a nonexistent operationId (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
-    await expect(buildServer({ definition: realContract, handlers, logger: silentLogger() })).rejects.toThrow(
-      /doesNotExist/,
-    );
+    await expect(
+      buildServer({ definition: realContract, handlers, logger: silentLogger(), retryAfterSeconds: 5 }),
+    ).rejects.toThrow(/doesNotExist/);
   });
 });

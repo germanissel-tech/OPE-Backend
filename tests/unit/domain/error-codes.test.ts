@@ -5,8 +5,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { PROBLEM_TYPES } from "#generated/problem-types.js";
 import { DomainError } from "../../../src/domain/shared-kernel/index.js";
-import { PROBLEM_TYPES } from "../../../src/interface-adapters/http/problem-details.js";
 
 interface Catalog {
   types: { slug: string; status: number }[];

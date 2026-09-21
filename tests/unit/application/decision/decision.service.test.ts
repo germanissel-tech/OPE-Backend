@@ -37,7 +37,7 @@ import {
   type SessionId,
   type VisitorId,
 } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
+import { memoryDecisionLedger } from "../../../../src/interface-adapters/ledger/gateways/memory-decision-ledger.js";
 import {
   BASE,
   addedToCart,

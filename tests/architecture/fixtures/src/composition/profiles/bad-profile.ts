@@ -1,3 +1,3 @@
 // Fixture de tests/architecture: violación deliberada o módulo auxiliar.
-import { a } from "../../interface-adapters/gateways/a/gateway-a.js";
+import { a } from "../../interface-adapters/a/gateways/gateway-a.js";
 export const badProfile = { a };

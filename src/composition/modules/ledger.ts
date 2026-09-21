@@ -9,10 +9,12 @@ import {
   type ExposureLedger,
 } from "../../application/ledger/index.js";
 import { LoggedUseCase, type Clock, type Logger } from "../../application/shared-kernel/index.js";
-import { memoryDecisionLedger } from "../../interface-adapters/gateways/ledger/memory-decision-ledger.js";
-import { memoryExposureLedger } from "../../interface-adapters/gateways/ledger/memory-exposure-ledger.js";
-import { randomDecisionIds } from "../../interface-adapters/gateways/ledger/random-decision-ids.js";
-import { makeConfirmExposureHandler } from "../../interface-adapters/http/controllers/ledger/confirm-exposure.js";
+import {
+  memoryDecisionLedger,
+  memoryExposureLedger,
+  randomDecisionIds,
+  makeConfirmExposureHandler,
+} from "../../interface-adapters/ledger/index.js";
 import type { Bindings, Module } from "../wiring.js";
 
 export interface LedgerPorts {

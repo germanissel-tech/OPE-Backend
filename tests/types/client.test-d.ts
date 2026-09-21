@@ -1,6 +1,6 @@
 // SC-007: a typed request to getHealth compiles; a use with the wrong type does not compile.
 // Verified with `npm run typecheck`.
-import { createOpeClient, type components } from "../../src/interface-adapters/http/client.js";
+import { createOpeClient, type components } from "../../client/index.js";
 
 const client = createOpeClient({ baseUrl: "http://127.0.0.1:3000" });
 

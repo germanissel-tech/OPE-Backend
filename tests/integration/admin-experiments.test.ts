@@ -18,7 +18,7 @@ import {
   type SharedApp,
   type TestOperator,
 } from "../helpers/test-app.js";
-import type { components } from "../../src/interface-adapters/http/generated/api.js";
+import type { components } from "#generated/api.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 type Experiment = components["schemas"]["Experiment"];

@@ -9,7 +9,7 @@ decisión de implementación de cada puerto vive lejos de su módulo. Es el `pro
 anterior a la enmienda de ADR-013 sobre enlaces, condensado.
 
 **Lo ve un gate**: sí — `arch/profiles-compose-modules` (`composition/profiles/` no importa
-`interface-adapters/gateways/`). El gate da el archivo; la revisión pone la línea.
+`interface-adapters/<módulo>/gateways/`). El gate da el archivo; la revisión pone la línea.
 
 **Qué agrega la revisión cognitiva**: que un perfil es un *despliegue*, no un *entorno*: compone
 una tabla de enlaces por módulo (`memoryLedgerPorts`, `postgresLedgerPorts(pool)`), cada una

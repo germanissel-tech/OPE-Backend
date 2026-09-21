@@ -3,9 +3,9 @@
 import { makeIngestBatch, type IngestBatch } from "../application/ingestion/index.js";
 import { makeConfirmExposure, type ConfirmExposure } from "../application/ledger/index.js";
 import { makeGetServiceHealth, type GetServiceHealth } from "../application/system/index.js";
-import { makeIngestEvents } from "../interface-adapters/http/controllers/ingestion/ingest-events.js";
-import { makeConfirmExposureHandler } from "../interface-adapters/http/controllers/ledger/confirm-exposure.js";
-import { makeGetHealth } from "../interface-adapters/http/controllers/system/get-health.js";
+import { makeIngestEvents } from "../interface-adapters/ingestion/controllers/ingest-events.js";
+import { makeConfirmExposureHandler } from "../interface-adapters/ledger/controllers/confirm-exposure.js";
+import { makeGetHealth } from "../interface-adapters/system/controllers/get-health.js";
 
 interface Ports {
   clock: { now(): Date };

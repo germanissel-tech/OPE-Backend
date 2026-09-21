@@ -23,20 +23,20 @@ import {
   type Logger,
   type UseCase,
 } from "../../application/shared-kernel/index.js";
-import { configOperatorDirectory } from "../../interface-adapters/gateways/admin/config-operator-directory.js";
-import { memoryAdminLog } from "../../interface-adapters/gateways/admin/memory-admin-log.js";
-import { memoryAnchorDiagnosticsStore } from "../../interface-adapters/gateways/admin/memory-anchor-diagnostics-store.js";
-import { nodeTokenFingerprinter } from "../../interface-adapters/gateways/admin/node-token-fingerprinter.js";
-import { makeGetSdkConfig } from "../../interface-adapters/http/controllers/admin/get-sdk-config.js";
-import { makeListAdminLog } from "../../interface-adapters/http/controllers/admin/list-admin-log.js";
-import { makeListAnchorDiagnostics } from "../../interface-adapters/http/controllers/admin/list-anchor-diagnostics.js";
-import { makeListMerchantAdminLog } from "../../interface-adapters/http/controllers/admin/list-merchant-admin-log.js";
-import { makeReportAnchorDiagnostics } from "../../interface-adapters/http/controllers/admin/report-anchor-diagnostics.js";
 import {
+  configOperatorDirectory,
+  memoryAdminLog,
+  memoryAnchorDiagnosticsStore,
+  nodeTokenFingerprinter,
+  makeGetSdkConfig,
+  makeListAdminLog,
+  makeListAnchorDiagnostics,
+  makeListMerchantAdminLog,
+  makeReportAnchorDiagnostics,
   ADMIN_TOKEN_HEADER,
   ADMIN_TOKEN_SCHEME,
   makeAdminTokenSecurity,
-} from "../../interface-adapters/http/security/admin-token.js";
+} from "../../interface-adapters/admin/index.js";
 import { sdkConfigurationOf } from "./configuration.js";
 import type { ConfigurationService } from "../../application/configuration/index.js";
 import type { PlatformConfiguration } from "../../domain/configuration/index.js";

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { DefaultAdminTokenResolver } from "../../../../src/application/admin/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
-import { configOperatorDirectory } from "../../../../src/interface-adapters/gateways/admin/config-operator-directory.js";
+import { configOperatorDirectory } from "../../../../src/interface-adapters/admin/gateways/config-operator-directory.js";
 
 /** Like Node crypto: only a non-empty string can be digested. */
 const fingerprints = {

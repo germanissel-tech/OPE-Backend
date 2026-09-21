@@ -22,13 +22,15 @@ import {
   type ImportExperimentsResponse,
 } from "../../application/experiment/index.js";
 import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
-import { memoryAssignmentLedger } from "../../interface-adapters/gateways/experiment/memory-assignment-ledger.js";
-import { memoryExperimentStore } from "../../interface-adapters/gateways/experiment/memory-experiment-store.js";
-import { nodeExperimentIdMinter } from "../../interface-adapters/gateways/experiment/node-experiment-id-minter.js";
-import { makeActivateExperiment } from "../../interface-adapters/http/controllers/experiment/activate-experiment.js";
-import { makeCloseExperiment } from "../../interface-adapters/http/controllers/experiment/close-experiment.js";
-import { makeCreateExperiment } from "../../interface-adapters/http/controllers/experiment/create-experiment.js";
-import { makeListExperiments } from "../../interface-adapters/http/controllers/experiment/list-experiments.js";
+import {
+  memoryAssignmentLedger,
+  memoryExperimentStore,
+  nodeExperimentIdMinter,
+  makeActivateExperiment,
+  makeCloseExperiment,
+  makeCreateExperiment,
+  makeListExperiments,
+} from "../../interface-adapters/experiment/index.js";
 import { auditedWiring } from "./audited.js";
 import type { ConfigurationService } from "../../application/configuration/index.js";
 import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
