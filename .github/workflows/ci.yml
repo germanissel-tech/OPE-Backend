@@ -14,9 +14,16 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+# One run per branch: a new push cancels the run of the previous one (the gates judge the same
+# diff against main; the older verdict is worthless). The schedule keeps its own group.
+concurrency:
+  group: ci-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
-    if: github.event_name != 'schedule'
+    # A pull request from a branch of this repository is already verified by its push: no second run.
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -64,7 +71,7 @@ jobs:
     # so only the mutants whose code or tests changed are re-tested. The first run of a long
     # branch tests every mutant of its diff (a feature of several stories exceeds 1 500), and
     # only a run that finishes saves the cache: the budget is the one of a full pass.
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

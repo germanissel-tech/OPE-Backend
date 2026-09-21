@@ -22,6 +22,18 @@ const runs = (job: string): string[] =>
   workflow.jobs[job]?.steps.map((s) => s.run ?? "").filter(Boolean) ?? [];
 
 describe(".github/workflows/ci.yml", () => {
+  it("one run per branch: a new push cancels the previous run, and a pull request of this repository does not run twice (017)", () => {
+    const concurrency = (
+      workflow as unknown as { concurrency: { group: string; "cancel-in-progress": boolean } }
+    ).concurrency;
+    expect(concurrency.group).toContain("github.ref");
+    expect(concurrency["cancel-in-progress"]).toBe(true);
+    for (const job of ["checks", "mutation"]) {
+      expect(workflow.jobs[job]?.if, job).toContain("pull_request");
+      expect(workflow.jobs[job]?.if, job).toContain("head.repo.full_name != github.repository");
+    }
+  });
+
   it("runs quality (which chains lint and arch, not repeated) and the scoped tests in the checks job (015 F-055, 017 T003)", () => {
     const checks = runs("checks");
     expect(checks).toContain("npm run quality");
