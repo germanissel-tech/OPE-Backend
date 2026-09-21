@@ -13,7 +13,7 @@ import {
   readPlatformConfiguration,
   readTreatmentDefaults,
 } from "../application/configuration/index.js";
-import { Experiment, Experiments } from "../domain/experiment/index.js";
+import { Experiment, Experiments, type ExperimentStatus } from "../domain/experiment/index.js";
 import { Merchant } from "../domain/merchant/index.js";
 import {
   asExperimentId,
@@ -64,8 +64,9 @@ const MAX_PORT = 65535;
 /** Percentages live only here, at the edge: the domain works with rates 0..1. */
 const PERCENT = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const ACTIVE = "active";
-const EXPERIMENT_STATUSES = [ACTIVE, "closed"];
+const EXPERIMENT_STATUSES: readonly ExperimentStatus[] = ["calibrating", "active", "closed"];
+const isExperimentStatus = (value: unknown): value is ExperimentStatus =>
+  typeof value === "string" && (EXPERIMENT_STATUSES as readonly string[]).includes(value);
 const NOT_AN_OBJECT = "is not an object";
 const NON_EMPTY_STRING = "must be a non-empty string";
 const STRING_ARRAY = "must be an array of strings";
@@ -200,7 +201,9 @@ type ConfiguredField =
   | ".origins"
   | ".platformKeys"
   | ".platformSecrets"
-  | ".experiments";
+  | ".experiments"
+  | ".targetSample"
+  | ".cuts";
 
 /** Which configured field each domain error points at (`[index]` is appended when the error names one). */
 const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
@@ -213,8 +216,10 @@ const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "platform-key-collision": ".platformKeys",
   "invalid-platform-secrets": ".platformSecrets",
   "invalid-platform-secret": ".platformSecrets",
-  "multiple-active-experiments": ".experiments",
+  "experiment-already-open": ".experiments",
   "duplicate-experiment-id": ".experiments",
+  "invalid-target-sample": ".targetSample",
+  "invalid-experiment-cuts": ".cuts",
 };
 
 /** Parses the shape (an array of merchants with an id and lists of strings); the rules are the Merchant's. */
@@ -273,14 +278,21 @@ function parseExperiments(raw: unknown, merchantIndex: number, merchantId: Merch
   return experiments.value;
 }
 
+/**
+ * An experiment of the seed: opened at `openedAt` with its split, seed, target sample and cuts,
+ * then moved to the declared status at that same instant (active: the window starts there;
+ * closed: closed there). The seed is the origin: the holdout does not judge it.
+ */
 function parseExperiment(item: unknown, at: MerchantField, merchantId: MerchantId): Experiment {
   if (typeof item !== "object" || item === null) throw new ConfigError(at, NOT_AN_OBJECT);
   const e = item as Record<string, unknown>;
   const experimentId = e["experimentId"];
   const seed = e["seed"];
   const status = e["status"];
-  const startedAt = e["startedAt"];
+  const openedAt = e["openedAt"];
   const treatmentPercent = e["treatmentPercent"];
+  const targetSample = e["targetSample"];
+  const cuts = e["cuts"] ?? [];
   if (typeof experimentId !== "string" || !ID_PATTERN.test(experimentId)) {
     throw new ConfigError(`${at}.experimentId`, "must match ^[A-Za-z0-9_-]{8,64}$");
   }
@@ -289,22 +301,40 @@ function parseExperiment(item: unknown, at: MerchantField, merchantId: MerchantI
     throw new ConfigError(`${at}.treatmentPercent`, "must be an integer percentage");
   }
   if (typeof seed !== "string") throw new ConfigError(`${at}.seed`, NON_EMPTY_STRING);
-  if (typeof status !== "string" || !EXPERIMENT_STATUSES.includes(status)) {
+  if (typeof targetSample !== "number") throw new ConfigError(`${at}.targetSample`, "must be a number");
+  if (!isNumberArray(cuts)) throw new ConfigError(`${at}.cuts`, "must be an array of numbers");
+  if (!isExperimentStatus(status)) {
     throw new ConfigError(`${at}.status`, `must be one of ${EXPERIMENT_STATUSES.join(", ")}`);
   }
-  if (typeof startedAt !== "string" || Number.isNaN(Date.parse(startedAt))) {
-    throw new ConfigError(`${at}.startedAt`, "must be an RFC 3339 date-time");
+  if (typeof openedAt !== "string" || Number.isNaN(Date.parse(openedAt))) {
+    throw new ConfigError(`${at}.openedAt`, "must be an RFC 3339 date-time");
   }
+  const opened = new Date(openedAt);
   const experiment = Experiment.of({
     experimentId: asExperimentId(experimentId),
     merchantId,
     treatmentShare: Number(treatmentPercent) / PERCENT,
     seed,
-    status: status === ACTIVE ? "active" : "closed",
-    startedAt: new Date(startedAt),
+    targetSample,
+    cuts,
+    openedAt: opened,
   });
   if (!experiment.ok) throw rejected(at, experiment.error);
-  return experiment.value;
+  return moved(experiment.value, status, opened);
+}
+
+/** The experiment in the status the seed declares, as of its opening. */
+function moved(experiment: Experiment, status: ExperimentStatus, at: Date): Experiment {
+  if (status === "closed") return experiment.closed(at);
+  if (status === "calibrating") return experiment;
+  const activated = experiment.activated(at);
+  // A calibrating experiment always activates: the entity was just built.
+  if (!activated.ok) throw new Error("A calibrating experiment could not be activated.");
+  return activated.value;
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "number");
 }
 
 function isStringArray(value: unknown): value is string[] {

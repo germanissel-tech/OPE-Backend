@@ -12,10 +12,11 @@ import {
 } from "../../src/application/configuration/index.js";
 import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import { localProfile } from "../../src/composition/profiles/local.js";
-import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
+import { Experiment, Experiments, type ExperimentStatus } from "../../src/domain/experiment/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
+import { TEST_TARGET_SAMPLE } from "./experiments.js";
 import type { MerchantSeed } from "../../src/application/merchant/index.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig, ReleaseLevels } from "../../src/composition/config.js";
@@ -34,8 +35,10 @@ export interface MerchantSpec {
     experimentId: string;
     treatmentPercent: number;
     seed: string;
-    status: "active" | "closed";
-    startedAt: string;
+    status: ExperimentStatus;
+    openedAt: string;
+    targetSample?: number;
+    cuts?: number[];
   }[];
   /** The raw shape of OPE_MERCHANTS[i].decisionPolicy; read like config.ts does. */
   decisionPolicy?: Record<string, unknown>;
@@ -60,16 +63,23 @@ function configured(spec: MerchantSpec): MerchantConfig {
     platformSecrets: spec.platformSecrets ?? [],
   };
   const experiments = spec.experiments.map((e) => {
+    const openedAt = new Date(e.openedAt);
     const experiment = Experiment.of({
       experimentId: asExperimentId(e.experimentId),
       merchantId,
       treatmentShare: e.treatmentPercent / PERCENT,
       seed: e.seed,
-      status: e.status,
-      startedAt: new Date(e.startedAt),
+      targetSample: e.targetSample ?? TEST_TARGET_SAMPLE,
+      cuts: e.cuts ?? [],
+      openedAt,
     });
     if (!experiment.ok) throw new Error(`test experiment ${e.experimentId}: ${experiment.error.message}`);
-    return experiment.value;
+    // The seed's status as of its opening, the way config.ts moves it.
+    if (e.status === "closed") return experiment.value.closed(openedAt);
+    if (e.status === "calibrating") return experiment.value;
+    const activated = experiment.value.activated(openedAt);
+    if (!activated.ok) throw new Error(`test experiment ${e.experimentId}: ${activated.error.message}`);
+    return activated.value;
   });
   const set = Experiments.of(experiments);
   if (!set.ok) throw new Error(`test experiments of ${spec.merchantId}: ${set.error.message}`);
@@ -116,7 +126,7 @@ const merchantA: MerchantSpec = {
       treatmentPercent: 100,
       seed: "seed-a",
       status: "active",
-      startedAt: "2026-09-17T00:00:00Z",
+      openedAt: "2026-09-17T00:00:00Z",
     },
   ],
 };

@@ -1,15 +1,18 @@
 // What the admin controllers share at the boundary (ADR-031): the merchant DTO without any
-// credential value, the merchant identifier of the path, and the grace of a rotation.
+// credential value, the merchant identifier of the path, the grace of a rotation, and the
+// response of a paged collection of a merchant.
 import { type CredentialKind, type Merchant } from "../../domain/merchant/index.js";
-import { asMerchantId, type MerchantId } from "../../domain/shared-kernel/index.js";
+import { asMerchantId, type MerchantId, type Result } from "../../domain/shared-kernel/index.js";
+import { pageDto, pageQueryOf } from "./boundary.js";
 import { operatorOf } from "./security/principal.js";
 import { HTTP_STATUS } from "./status.js";
-import { toProblem } from "./to-problem.js";
+import { toProblem, type CataloguedError, type ProblemOf } from "./to-problem.js";
 import type { components, operations } from "./generated/api.js";
 import type { OperationHandler, TypedRequest } from "./typed.js";
 import type { RotateCredentialRequest, RotateCredentialResult } from "../../application/merchant/index.js";
-import type { UseCase } from "../../application/shared-kernel/index.js";
+import type { Page, PageQuery, UseCase } from "../../application/shared-kernel/index.js";
 import type { AdminEntry, AdminResult } from "../../domain/admin/index.js";
+import type { Operator } from "../../domain/operator/index.js";
 
 type MerchantDto = components["schemas"]["Merchant"];
 type CredentialSummaryDto = components["schemas"]["CredentialSummary"];
@@ -71,6 +74,30 @@ export function adminEntryDto(entry: AdminEntry): AdminEntryDto {
     ...(entry.result === undefined ? {} : { result: resultDto(entry.result) }),
     ...(entry.reason === undefined ? {} : { reason: entry.reason }),
   };
+}
+
+/** A collection of a merchant, paged (ADR-020): the operator, the merchant of the path and the paging of the query. */
+export interface MerchantPageRequest {
+  actor: Operator;
+  merchantId: MerchantId;
+  page: PageQuery;
+}
+
+type MerchantPageHttpRequest = TypedRequest<operations["listExperiments"]>;
+
+/** The listings of a merchant share one shape: path + paging → use case → 200 with the page. */
+export async function merchantPageResponse<T, D, E extends CataloguedError>(
+  req: Pick<MerchantPageHttpRequest, "security" | "path" | "query" | "instance">,
+  list: UseCase<MerchantPageRequest, Result<Page<T>, E>>,
+  item: (value: T) => D,
+): Promise<{ status: typeof HTTP_STATUS.OK; body: { items: D[]; nextCursor?: string } } | ProblemOf<E>> {
+  const result = await list.execute({
+    actor: operatorOf(req),
+    merchantId: merchantIdOf(req.path),
+    page: pageQueryOf(req.query),
+  });
+  if (!result.ok) return toProblem(result.error, req.instance);
+  return { status: HTTP_STATUS.OK, body: pageDto(result.value, item) };
 }
 
 /** The three rotations share one shape: kind from the operation, grace from the body, the credential once. */

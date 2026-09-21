@@ -30,7 +30,7 @@ import { makePublishMerchantConfiguration } from "../../interface-adapters/http/
 import { auditedWiring } from "./audited.js";
 import type { CatalogPolicies } from "../../application/catalog/index.js";
 import type { PolicySource } from "../../application/decision/index.js";
-import type { ExperimentDirectory } from "../../application/experiment/index.js";
+import type { ExperimentDirectory, ExperimentStore } from "../../application/experiment/index.js";
 import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
 import type { ReleaseLevels } from "../config.js";
 import type { Bindings, Module } from "../wiring.js";
@@ -44,6 +44,7 @@ export interface ConfigurationPorts {
   configuration: ConfigurationService;
   merchantStore: MerchantStore;
   experiments: ExperimentDirectory;
+  experimentStore: ExperimentStore;
   adminLog: AdminLog;
 }
 
@@ -102,7 +103,7 @@ export const importConfigurationOf = (
   );
 
 export const configurationModule: Module<ConfigurationPorts> = ({ ports }) => {
-  const { clock, configuration, configurationStore: store, experiments } = ports;
+  const { clock, configuration, configurationStore: store, experiments, experimentStore } = ports;
   const { logged, admin } = auditedWiring(ports);
   const scoped = new DefaultScopedMerchantService({ merchants: ports.merchantStore });
   const publish = new PublishMerchantConfigurationUseCase({
@@ -110,13 +111,17 @@ export const configurationModule: Module<ConfigurationPorts> = ({ ports }) => {
     store,
     configuration,
     experiments,
+    experimentStore,
     clock,
   });
   return {
     handlers: {
       publishMerchantConfiguration: makePublishMerchantConfiguration(
         admin("publishMerchantConfiguration", publish, {
-          result: (r) => (r.ok ? { configurationVersion: r.value.version.version } : undefined),
+          result: (r) =>
+            r.ok
+              ? { configurationVersion: r.value.version.version, windowRestarted: r.value.windowRestarted }
+              : undefined,
           reason: (request) => request.reason,
         }),
       ),

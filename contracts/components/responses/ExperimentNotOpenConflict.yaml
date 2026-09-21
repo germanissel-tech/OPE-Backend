@@ -1,0 +1,10 @@
+description: "The experiment is closed: it cannot be activated nor reopened (03 §4.10)."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:experiment-not-open
+      title: The experiment is not in a state that admits the transition
+      status: 409
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments/exp_9a8b7c6d5e4f/activate

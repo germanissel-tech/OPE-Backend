@@ -57,6 +57,7 @@ import {
 import { testLevels } from "../../../helpers/test-app.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 import type { AssignmentService } from "../../../../src/application/experiment/index.js";
+import type { ExperimentPhase } from "../../../../src/domain/experiment/index.js";
 import type { MerchantProfile } from "../../../../src/domain/selection/index.js";
 
 const A = asMerchantId("m_a");
@@ -93,6 +94,8 @@ const snapshot = CatalogSnapshot.rehydrate({
 
 interface Options {
   arm?: Arm | "none" | "down";
+  /** The phase of the experiment (feature 017); accumulation unless a test says otherwise. */
+  phase?: ExperimentPhase;
   catalog?: CatalogSnapshot;
   ledgerDown?: boolean;
   inference?: BarrierInference;
@@ -117,7 +120,16 @@ function subject(options: Options = {}) {
       if (arm === "down") return Promise.resolve(fail(new LedgerUnavailable()));
       if (arm === "none") return Promise.resolve(ok(undefined));
       return Promise.resolve(
-        ok({ merchantId, visitorId, experimentId: asExperimentId("exp_00000001"), arm, assignedAt: NOW }),
+        ok({
+          assignment: {
+            merchantId,
+            visitorId,
+            experimentId: asExperimentId("exp_00000001"),
+            arm,
+            assignedAt: NOW,
+          },
+          phase: options.phase ?? "accumulation",
+        }),
       );
     },
   };
@@ -220,6 +232,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     });
     expect(decision.reason).toBe("fit");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
+    expect(decision.phase).toBeUndefined();
     expect(decision.inference).toEqual({
       policyVersion: "default-1",
       confidences: { fit: 0.8, price: 0, returns: 0 },
@@ -231,6 +244,14 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(await decisions.find(A, decision.decisionId)).toBe(decision);
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(1);
     expect(visitors.get("m_a/vis_00000001")?.interventions).toEqual([NOW]);
+  });
+
+  it("while the experiment calibrates the decision is taken the same way and stamped as calibration (03 §4.10)", async () => {
+    const { decide } = subject({ catalog: snapshot, phase: "calibration" });
+    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    expect(decision.isIntervention()).toBe(true);
+    expect(decision.phase).toBe("calibration");
+    expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
   });
 
   it("a NO_OP without a candidate records the inference without a barrier key at all", async () => {

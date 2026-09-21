@@ -30,7 +30,7 @@ const merchant = (treatmentPercent: number): MerchantSpec => ({
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent, seed: "seed-a", status: "active", startedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentPercent, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 });
 const treatment = merchant(100);

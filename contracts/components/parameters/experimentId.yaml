@@ -1,0 +1,6 @@
+name: experimentId
+in: path
+required: true
+description: The experiment the operation acts on.
+schema:
+  $ref: ../schemas/ExperimentId.yaml

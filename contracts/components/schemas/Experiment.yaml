@@ -1,0 +1,53 @@
+type: object
+description: "An experiment of a merchant as the administration reads it (ADR-022, D-G): its state and instants; never the seed."
+additionalProperties: false
+required:
+  - experimentId
+  - status
+  - treatmentPercent
+  - targetSample
+  - cuts
+  - openedAt
+  - windowRestarts
+properties:
+  experimentId:
+    $ref: ./ExperimentId.yaml
+  status:
+    $ref: ./ExperimentStatus.yaml
+  treatmentPercent:
+    type: integer
+    description: Share of visitors assigned to TREATMENT, as an integer percentage.
+    minimum: 0
+    maximum: 100
+  targetSample:
+    type: integer
+    description: Visitors the accumulation window aims at.
+    minimum: 1
+  cuts:
+    type: array
+    description: Interim cuts as percentages of the target sample, strictly increasing; empty when the target sample is the only cut.
+    items:
+      type: integer
+      minimum: 1
+      maximum: 100
+  openedAt:
+    type: string
+    format: date-time
+    description: When the experiment was opened (calibration starts).
+  activatedAt:
+    type: string
+    format: date-time
+    description: When it was activated; absent while calibrating or when closed from calibration.
+  windowStartedAt:
+    type: string
+    format: date-time
+    description: Start of the accumulation window in force — the activation or the last restart; absent while calibrating.
+  closedAt:
+    type: string
+    format: date-time
+    description: When it was closed; absent while open.
+  windowRestarts:
+    type: array
+    description: Every restart of the accumulation window, oldest first.
+    items:
+      $ref: ./WindowRestart.yaml

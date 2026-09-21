@@ -29,7 +29,7 @@ const spec = (over: Partial<MerchantSpec> = {}): MerchantSpec => ({
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", startedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
   ],
   evidenceProfile: { returnsPolicy: true, fitData: true },
   commercialPolicy: { version: "a-commercial-1", marginPercent: 40 },

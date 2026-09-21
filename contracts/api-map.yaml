@@ -225,7 +225,7 @@ operations:
     tag: admin
     capabilities: [experiments:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#4.1
   - operationId: closeExperiment
     method: post
@@ -234,7 +234,7 @@ operations:
     tag: admin
     capabilities: [experiments:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: publishMerchantConfiguration
     method: post
@@ -306,7 +306,7 @@ operations:
     tag: admin
     capabilities: [experiments:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#4.1
   - operationId: activateExperiment
     method: post
@@ -315,7 +315,7 @@ operations:
     tag: admin
     capabilities: [experiments:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:03-alcance-mvp.md#4.10
   - operationId: getPlatformConfiguration
     method: get

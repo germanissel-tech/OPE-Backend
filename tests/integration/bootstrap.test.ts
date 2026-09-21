@@ -9,7 +9,7 @@ import { importSeed, type App } from "../../src/composition/bootstrap.js";
 import { readConfig } from "../../src/composition/config.js";
 import { MODULES } from "../../src/composition/modules/index.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
-import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
+import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp, testConfig } from "../helpers/test-app.js";
 import type { Ports } from "../../src/composition/ports.js";
@@ -106,14 +106,28 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
     const log = await app.ports.adminLog.list({ limit: 10 });
     expect(log.items.map((e) => [e.operation, e.operatorId, e.outcome])).toEqual([
       ["importMerchantConfiguration", "system", "accepted"],
+      ["importExperiments", "system", "accepted"],
       ["importMerchantConfiguration", "system", "accepted"],
       ["importMerchants", "system", "accepted"],
     ]);
     expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });
-    // The seed again: the merchants are kept, and so are their versions (nothing is published twice).
+    // The experiment of the seed is recorded as active from its opening, judged by the store (feature 017).
+    const experiment = await app.ports.experimentStore.get(
+      asMerchantId("m_a"),
+      asExperimentId("exp_a_000001"),
+    );
+    expect(experiment?.record()).toMatchObject({
+      status: "active",
+      openedAt: new Date("2026-09-17T00:00:00.000Z"),
+      windowStartedAt: new Date("2026-09-17T00:00:00.000Z"),
+    });
+    // The seed again: the merchants are kept, and so are their versions and experiments (nothing enters twice).
     await importSeed(testConfig(), app.ports);
     const again = await app.ports.adminLog.list({ limit: 10 });
-    expect(again.items).toHaveLength(6);
+    expect(again.items).toHaveLength(8);
+    expect((await app.ports.experimentStore.listOf(asMerchantId("m_a"), { limit: 10 })).items).toHaveLength(
+      1,
+    );
     expect(again.items.filter((e) => e.result !== undefined)).toHaveLength(2);
     expect((await app.ports.merchantStore.list({ limit: 10 })).items.map((m) => m.merchantId)).toEqual([
       "m_a",

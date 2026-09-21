@@ -139,7 +139,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 50,
       seed,
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     });
     const merchantA: MerchantSpec = {
       merchantId: A.id,
@@ -192,14 +192,14 @@ describe("isolation between merchants", () => {
       treatmentPercent: 50,
       seed: "old",
       status: "closed" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const active = {
       experimentId: "exp_active_01",
       treatmentPercent: 50,
       seed: "new",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const merchantA: MerchantSpec = {
       merchantId: A.id,
@@ -264,7 +264,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 100,
       seed: "s",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const a: MerchantSpec = {
       merchantId: A.id,
@@ -326,7 +326,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 100,
       seed: "s",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const profile = { returnsPolicy: true, fitData: true };
     const a: MerchantSpec = {

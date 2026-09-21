@@ -61,6 +61,12 @@ paths:
     $ref: ./paths/admin-configuration.yaml
   /v1/admin/merchants/{merchantId}/configuration/versions:
     $ref: ./paths/admin-configuration-versions.yaml
+  /v1/admin/merchants/{merchantId}/experiments:
+    $ref: ./paths/admin-experiments.yaml
+  /v1/admin/merchants/{merchantId}/experiments/{experimentId}/activate:
+    $ref: ./paths/admin-experiment-activate.yaml
+  /v1/admin/merchants/{merchantId}/experiments/{experimentId}/close:
+    $ref: ./paths/admin-experiment-close.yaml
   /v1/admin/platform-configuration:
     $ref: ./paths/admin-platform-configuration.yaml
   /v1/admin/treatment-defaults:

@@ -48,10 +48,13 @@ export const PROBLEM_TYPES = {
   "store-unavailable": { status: HTTP_STATUS.SERVICE_UNAVAILABLE, title: "The store is not available" },
   // Configuration errors (ADR-024): DomainErrors that stop the start; no operation emits them.
   "invalid-treatment-share": {
-    status: HTTP_STATUS.INTERNAL_ERROR,
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "The treatment share of an experiment is out of range",
   },
-  "invalid-seed": { status: HTTP_STATUS.INTERNAL_ERROR, title: "The seed of an experiment is empty" },
+  "invalid-seed": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "The seed of an experiment is empty",
+  },
   "invalid-origin": {
     status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "A registered origin is not scheme://host[:port]",
@@ -83,10 +86,6 @@ export const PROBLEM_TYPES = {
   "invalid-platform-secrets": {
     status: HTTP_STATUS.INTERNAL_ERROR,
     title: "A merchant has more than two platform signing secrets",
-  },
-  "multiple-active-experiments": {
-    status: HTTP_STATUS.INTERNAL_ERROR,
-    title: "A merchant has more than one active experiment",
   },
   "duplicate-experiment-id": {
     status: HTTP_STATUS.INTERNAL_ERROR,
@@ -190,6 +189,14 @@ export const PROBLEM_TYPES = {
   "invalid-target-sample": {
     status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "The target sample is not an integer of at least 1",
+  },
+  "treatment-exceeds-holdout": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "The treatment share leaves less than the holdout of the merchant",
+  },
+  "experiment-not-found": {
+    status: HTTP_STATUS.NOT_FOUND,
+    title: "The experiment does not exist",
   },
   "invalid-operator-tokens": {
     status: HTTP_STATUS.INTERNAL_ERROR,

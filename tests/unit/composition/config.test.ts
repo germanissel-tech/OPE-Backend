@@ -13,13 +13,14 @@ const noFile = (file: string): string => {
   throw new Error(`unexpected read of ${file}`);
 };
 const merchant = { merchantId: "m_a", ingestKeys: ["k1"], origins: ["https://a.example"] };
-/** An experiment of the seed: the treatment percent is required (no default, constitution XI). */
+/** An experiment of the seed: the treatment percent and the target sample are required (no default, constitution XI). */
 const exp = {
   experimentId: "exp_00000001",
   treatmentPercent: 50,
   seed: "s",
   status: "active",
-  startedAt: "2026-09-17T00:00:00Z",
+  openedAt: "2026-09-17T00:00:00Z",
+  targetSample: 1000,
 };
 
 describe("readConfig", () => {
@@ -112,16 +113,36 @@ describe("readConfig", () => {
   it("experiments are optional, the treatment percent is required, and the shape is validated", () => {
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
-    expect(parsed?.experiments.all()).toEqual([
+    // A seed declared active was opened, activated and its window started at the same instant.
+    expect(parsed?.experiments.all().map((e) => e.record())).toEqual([
       {
         experimentId: exp.experimentId,
         merchantId: "m_a",
         treatmentShare: 0.5,
         seed: exp.seed,
-        status: exp.status,
-        startedAt: new Date(exp.startedAt),
+        targetSample: 1000,
+        cuts: [],
+        status: "active",
+        openedAt: new Date(exp.openedAt),
+        activatedAt: new Date(exp.openedAt),
+        windowStartedAt: new Date(exp.openedAt),
+        closedAt: undefined,
+        windowRestarts: [],
       },
     ]);
+    const calibrating = readConfig(
+      {
+        OPE_MERCHANTS: JSON.stringify([
+          { ...merchant, experiments: [{ ...exp, status: "calibrating", cuts: [33, 66] }] },
+        ]),
+      },
+      noFile,
+    ).merchants[0]?.experiments.all()[0];
+    expect(calibrating?.record()).toMatchObject({
+      status: "calibrating",
+      activatedAt: undefined,
+      cuts: [33, 66],
+    });
     expect(
       readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments.all(),
     ).toEqual([]);
@@ -129,7 +150,8 @@ describe("readConfig", () => {
     const two = { ...merchant, experiments: [closed, exp] };
     const set = readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments;
     expect(set?.all()).toHaveLength(2);
-    expect(set?.active()?.experimentId).toBe(exp.experimentId);
+    expect(set?.open()?.experimentId).toBe(exp.experimentId);
+    expect(set?.all()[0]?.record()).toMatchObject({ status: "closed", closedAt: new Date(exp.openedAt) });
     const { treatmentPercent, ...noPercent } = exp;
     expect(treatmentPercent).toBe(50);
     expect(() =>
@@ -140,16 +162,13 @@ describe("readConfig", () => {
   it.each([
     [
       [{ ...exp }, { ...exp, experimentId: "exp_00000002" }],
-      "merchants[0].experiments[1] is invalid (A merchant may have at most one active experiment.)",
+      "merchants[0].experiments[1] is invalid (A merchant may have at most one open experiment.)",
     ],
     [[{ ...exp, experimentId: "bad id" }], "merchants[0].experiments[0].experimentId must match"],
     [
       [
         {
-          experimentId: "exp_00000001",
-          seed: "s",
-          status: "active",
-          startedAt: "2026-09-17T00:00:00Z",
+          ...exp,
           treatmentPercent: 101,
         },
       ],
@@ -158,10 +177,7 @@ describe("readConfig", () => {
     [
       [
         {
-          experimentId: "exp_00000001",
-          seed: "s",
-          status: "active",
-          startedAt: "2026-09-17T00:00:00Z",
+          ...exp,
           treatmentPercent: -1,
         },
       ],
@@ -170,10 +186,7 @@ describe("readConfig", () => {
     [
       [
         {
-          experimentId: "exp_00000001",
-          seed: "s",
-          status: "active",
-          startedAt: "2026-09-17T00:00:00Z",
+          ...exp,
           treatmentPercent: 12.5,
         },
       ],
@@ -183,10 +196,23 @@ describe("readConfig", () => {
       [{ ...exp, seed: "" }],
       "merchants[0].experiments[0].seed is invalid (The seed must be a non-empty string.)",
     ],
-    [[{ ...exp, status: "paused" }], "merchants[0].experiments[0].status must be one of active, closed."],
     [
-      [{ ...exp, startedAt: "yesterday" }],
-      "merchants[0].experiments[0].startedAt must be an RFC 3339 date-time.",
+      [{ ...exp, status: "paused" }],
+      "merchants[0].experiments[0].status must be one of calibrating, active, closed.",
+    ],
+    [
+      [{ ...exp, openedAt: "yesterday" }],
+      "merchants[0].experiments[0].openedAt must be an RFC 3339 date-time.",
+    ],
+    [[{ ...exp, targetSample: "many" }], "merchants[0].experiments[0].targetSample must be a number."],
+    [
+      [{ ...exp, targetSample: 0 }],
+      "merchants[0].experiments[0].targetSample is invalid (The target sample must be an integer of at least 1.)",
+    ],
+    [[{ ...exp, cuts: "33" }], "merchants[0].experiments[0].cuts must be an array of numbers."],
+    [
+      [{ ...exp, cuts: [66, 33] }],
+      "merchants[0].experiments[0].cuts[1] is invalid (The cuts must be strictly increasing percentages of the target sample.)",
     ],
     ["nope", "merchants[0].experiments must be an array of experiments."],
   ])("experiments=%j is refused: %s", (experiments, message) => {

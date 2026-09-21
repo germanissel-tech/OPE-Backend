@@ -41,7 +41,7 @@ const merchantWithMargin: MerchantSpec = {
   evidenceProfile: { returnsPolicy: true, fitData: true },
   commercialPolicy: { version: "a-commercial-1", marginPercent: 40 },
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", startedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 };
 

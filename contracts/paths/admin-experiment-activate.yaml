@@ -1,0 +1,50 @@
+post:
+  operationId: activateExperiment
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - experiments:write
+  summary: Activate a calibrating experiment
+  description: "Ends the calibration (03 §4.10, D-G): the accumulation window starts at this instant
+    with the configuration in force, which stays frozen for the merchant until the experiment
+    closes — only a corrective version, with its reason, enters and restarts the window. An
+    experiment already active is answered as it is (`200` again); a closed one cannot be
+    activated (`409 experiment-not-open`)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/experimentId.yaml
+  responses:
+    "200":
+      description: The experiment, active.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Experiment.yaml
+          example:
+            experimentId: exp_9a8b7c6d5e4f
+            status: active
+            treatmentPercent: 50
+            targetSample: 32000
+            cuts:
+              - 33
+              - 66
+            openedAt: 2026-09-20T12:00:00Z
+            activatedAt: 2026-09-27T12:00:00Z
+            windowStartedAt: 2026-09-27T12:00:00Z
+            windowRestarts: []
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/ExperimentNotFound.yaml
+    "409":
+      $ref: ../components/responses/ExperimentNotOpenConflict.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

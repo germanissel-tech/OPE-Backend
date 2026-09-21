@@ -1,0 +1,10 @@
+description: No merchant with that identifier within the operator's scope, or no experiment with that identifier for the merchant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:experiment-not-found
+      title: The experiment does not exist
+      status: 404
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments/exp_9a8b7c6d5e4f/activate

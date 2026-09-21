@@ -9,7 +9,7 @@ import { ruleBarrierPorts } from "../modules/barrier.js";
 import { configuredCatalogPorts, memoryCatalogPorts } from "../modules/catalog.js";
 import { memoryConfigurationPorts } from "../modules/configuration.js";
 import { configuredDecisionPorts, memoryDecisionPorts } from "../modules/decision.js";
-import { configExperimentPorts, memoryAssignmentPorts } from "../modules/experiment.js";
+import { configuredExperimentPorts, memoryExperimentPorts } from "../modules/experiment.js";
 import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
 import { memoryMerchantPorts } from "../modules/merchant.js";
@@ -27,8 +27,8 @@ export const localProfile: Profile = (config, overrides) => {
     ...kernel,
     ...merchant,
     ...configuration,
-    ...bind(configExperimentPorts(config.merchants)),
-    ...bind(memoryAssignmentPorts),
+    ...bind(memoryExperimentPorts()),
+    ...bind(configuredExperimentPorts(() => configuration.configuration)),
     ...bind(memoryIngestionPorts(kernel.clock, platform)),
     ...bind(memoryLedgerPorts),
     ...bind(memoryCatalogPorts),

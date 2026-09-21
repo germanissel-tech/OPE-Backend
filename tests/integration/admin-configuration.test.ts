@@ -40,7 +40,7 @@ const merchantA: MerchantSpec = {
   evidenceProfile: { returnsPolicy: true, fitData: true },
   declared: { holdoutPercent: 0 },
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", startedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 };
 

@@ -1,0 +1,3 @@
+type: string
+description: Identifier of an experiment, minted by OPE when the operator opens it.
+pattern: "^[A-Za-z0-9_-]{8,64}$"

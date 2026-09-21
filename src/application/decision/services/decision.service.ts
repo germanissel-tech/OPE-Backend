@@ -19,6 +19,7 @@ import type { ProductFocus } from "../../../domain/ingestion/index.js";
 import type {
   Decision,
   DecisionInference,
+  DecisionPhase,
   DecisionSelection,
   EvidenceRecord,
 } from "../../../domain/ledger/index.js";
@@ -41,6 +42,8 @@ export interface DecisionServiceDependencies {
 
 const PAGE_CONTEXT_INCOMPLETE: NoOpReason = "page-context-incomplete";
 const MERCHANT_OFF: NoOpReason = "merchant-off";
+/** The phase a decision records while the experiment calibrates (03 §4.10). */
+const CALIBRATION: DecisionPhase = "calibration";
 
 /** The product truth of the focus as the authorities need it: facts for the rules, a summary for the barrier verdict, evidence for the gate, a record for the ledger. */
 interface Evidence {
@@ -87,8 +90,11 @@ export class DecisionService implements DecisionPlane {
 
     const assigned = await assignment.assign(merchantId, visitorId);
     if (!assigned.ok) return recorder.unrecorded(facts, "assignment not recorded");
-    if (assigned.value)
-      facts.experiment = { experimentId: assigned.value.experimentId, arm: assigned.value.arm };
+    if (assigned.value) {
+      const { assignment, phase } = assigned.value;
+      facts.experiment = { experimentId: assignment.experimentId, arm: assignment.arm };
+      if (phase === CALIBRATION) facts.phase = CALIBRATION;
+    }
 
     const remembered = await memory.recall(whose, now);
     const session = remembered.session.absorb(Signals.of(batch.events), now);
@@ -97,7 +103,7 @@ export class DecisionService implements DecisionPlane {
     let outcome: DecisionOutcomeInput = { kind: "no-op", reason: PAGE_CONTEXT_INCOMPLETE };
     if (focus !== undefined) {
       if (focus.locale !== undefined) facts.locale = focus.locale;
-      const arm = assigned.value?.arm;
+      const arm = assigned.value?.assignment.arm;
       const judged = await this.#judge({
         policies: merchant,
         session,

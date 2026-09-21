@@ -52,10 +52,10 @@ types:
     status: 503
     title: The store is not available
   - slug: invalid-treatment-share
-    status: 500
+    status: 422
     title: The treatment share of an experiment is out of range
   - slug: invalid-seed
-    status: 500
+    status: 422
     title: The seed of an experiment is empty
   - slug: invalid-origin
     status: 422
@@ -81,9 +81,6 @@ types:
   - slug: invalid-platform-secrets
     status: 500
     title: A merchant has more than two platform signing secrets
-  - slug: multiple-active-experiments
-    status: 500
-    title: A merchant has more than one active experiment
   - slug: duplicate-experiment-id
     status: 500
     title: Two experiments of a merchant share an identifier
@@ -226,6 +223,12 @@ types:
   - slug: invalid-target-sample
     status: 422
     title: The target sample is not an integer of at least 1
+  - slug: treatment-exceeds-holdout
+    status: 422
+    title: The treatment share leaves less than the holdout of the merchant
+  - slug: experiment-not-found
+    status: 404
+    title: The experiment does not exist
   - slug: invalid-operator-scope
     status: 500
     title: The scope of an operator is neither "*" nor a list of merchants

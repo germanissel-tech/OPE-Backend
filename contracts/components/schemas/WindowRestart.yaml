@@ -1,0 +1,20 @@
+type: object
+description: "A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active."
+additionalProperties: false
+required:
+  - at
+  - reason
+  - configurationVersion
+properties:
+  at:
+    type: string
+    format: date-time
+    description: When the window restarted.
+  reason:
+    type: string
+    description: The reason the operator declared with the corrective version.
+    maxLength: 512
+  configurationVersion:
+    type: integer
+    description: The corrective version that restarted the window.
+    minimum: 1

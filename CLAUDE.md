@@ -423,12 +423,29 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   `MessageAuthenticator` (`node:crypto` en `gateways/merchant/`). Toda operación con
   `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
   `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
-- **Asignación (ADR-022, ADR-024)**: experimentos en `OPE_MERCHANTS` (`experiments[]`: `experimentId`,
-  `treatmentPercent`, `seed`, `status`, `startedAt`; como máximo uno activo). `Experiment.assign`
-  es pura (FNV-1a privado del dominio, `treatmentShare` 0–1, regresión con fingerprint de la 007);
-  la asignación se registra con el primer lote aceptado; CONTROL
-  resuelve `NO_OP` `control-arm`; sin experimento, `no-active-experiment`. El brazo y el
-  experimento **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
+- **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
+  abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentPercent`,
+  `seed`, `targetSample`, `cuts` crecientes como porcentajes de la muestra) y nace
+  `calibrating`: se asigna y se decide, pero cada decisión estampa `phase: calibration` y la
+  configuración sigue publicándose. `activate` lo pasa a `active` (`activatedAt` =
+  `windowStartedAt`) y **congela** la configuración: sólo entra una versión `corrective` con
+  `reason`, que reinicia la ventana (`windowRestarts[]` con la versión y el motivo;
+  `PublishMerchantConfigurationUseCase` la registra por `ExperimentStore.update` y el registro
+  de administración lleva `windowRestarted`). `close` es terminal (`closed`; repetir es 200;
+  reactivar es `409 experiment-not-open`). Como máximo uno abierto por merchant
+  (`Experiments.of` ⇒ `409 experiment-already-open`, juzgado dentro del store); el reparto no
+  puede tomar el holdout efectivo del merchant (`Experiment.withinHoldout` ⇒ `422
+treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interruptor no cambia su
+  estado. Las reglas viven en `Experiment` (`activated`, `closed`, `windowRestarted`,
+  `isOpen`, `phase`); el id lo acuña `ExperimentIdMinter` (`exp_` + base32). La semilla
+  (`OPE_MERCHANTS[i].experiments[]`: `experimentId`, `treatmentPercent`, `seed`,
+  `targetSample`, `cuts?`, `status`, `openedAt`) entra por `ImportExperimentsUseCase` sólo
+  con el store vacío y sin juzgar el holdout; un `active` de la semilla arranca su ventana en
+  `openedAt`. `Experiment.assign` es pura (FNV-1a privado del dominio, `treatmentShare` 0–1,
+  regresión con fingerprint de la 007) y no depende del estado; la asignación se registra con el
+  primer lote aceptado del experimento abierto (`ExperimentDirectory.activeFor`); CONTROL
+  resuelve `NO_OP` `control-arm`; sin experimento abierto, `no-active-experiment`. El brazo,
+  el experimento y la fase **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
   la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
 platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{

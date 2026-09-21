@@ -144,6 +144,70 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/experiments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The experiments of a merchant
+         * @description Every experiment of the merchant, open or closed, newest first: nothing is deleted. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listExperiments"];
+        put?: never;
+        /**
+         * Open an experiment for a merchant
+         * @description Opens the experiment in calibration (03 §4.10, D-G): from the next batch the visitors of the merchant are assigned and OPE decides, every decision marked as calibration; the configuration still moves. At most one open experiment per merchant (`409 experiment-already-open`); the split cannot exceed what the holdout of the merchant leaves (`422 treatment-exceeds-holdout`). Split and seed are immutable from here on (ADR-022).
+         */
+        post: operations["createExperiment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/experiments/{experimentId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a calibrating experiment
+         * @description Ends the calibration (03 §4.10, D-G): the accumulation window starts at this instant with the configuration in force, which stays frozen for the merchant until the experiment closes — only a corrective version, with its reason, enters and restarts the window. An experiment already active is answered as it is (`200` again); a closed one cannot be activated (`409 experiment-not-open`).
+         */
+        post: operations["activateExperiment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/experiments/{experimentId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close an experiment for good
+         * @description Terminal (03 §4.10): from the next batch no visitor of the merchant is assigned and every decision resolves NO_OP `no-active-experiment`; what was recorded stays. From calibration or from activity alike; it cannot be reopened. Repeating it changes nothing (`200` again).
+         */
+        post: operations["closeExperiment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/ingest-keys": {
         parameters: {
             query?: never;
@@ -1042,6 +1106,64 @@ export type components = {
             type: "exit_signaled";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /** @description An experiment of a merchant as the administration reads it (ADR-022, D-G): its state and instants; never the seed. */
+        Experiment: {
+            /**
+             * Format: date-time
+             * @description When it was activated; absent while calibrating or when closed from calibration.
+             */
+            activatedAt?: string;
+            /**
+             * Format: date-time
+             * @description When it was closed; absent while open.
+             */
+            closedAt?: string;
+            /** @description Interim cuts as percentages of the target sample, strictly increasing; empty when the target sample is the only cut. */
+            cuts: number[];
+            experimentId: components["schemas"]["ExperimentId"];
+            /**
+             * Format: date-time
+             * @description When the experiment was opened (calibration starts).
+             */
+            openedAt: string;
+            status: components["schemas"]["ExperimentStatus"];
+            /** @description Visitors the accumulation window aims at. */
+            targetSample: number;
+            /** @description Share of visitors assigned to TREATMENT, as an integer percentage. */
+            treatmentPercent: number;
+            /** @description Every restart of the accumulation window, oldest first. */
+            windowRestarts: components["schemas"]["WindowRestart"][];
+            /**
+             * Format: date-time
+             * @description Start of the accumulation window in force — the activation or the last restart; absent while calibrating.
+             */
+            windowStartedAt?: string;
+        };
+        /** @description What an operator declares to open an experiment (ADR-022, D-G): the split, the seed of the assignment key, the target sample and the cuts at which its result may be read (D-F). Split and seed are immutable: changing them is another experiment. */
+        ExperimentCreate: {
+            /** @description Interim cuts as percentages of the target sample, strictly increasing (D-F: results are read only at pre-fixed cuts). Without cuts, the target sample is the only one. */
+            cuts?: number[];
+            /** @description Part of the assignment key; never shown again. */
+            seed: string;
+            /** @description Visitors the accumulation window aims at; the last cut. */
+            targetSample: number;
+            /** @description Share of the merchant's visitors assigned to TREATMENT, as an integer percentage; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`100 − holdoutPercent`). */
+            treatmentPercent: number;
+        };
+        /** @description Identifier of an experiment, minted by OPE when the operator opens it. */
+        ExperimentId: string;
+        /** @description A page of a merchant's experiments, newest first. */
+        ExperimentPage: {
+            /** @description Experiments of this page, newest first. */
+            items: components["schemas"]["Experiment"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
+        /**
+         * @description The state of an experiment (03 §4.10, D-G): `calibrating` — visitors are assigned and OPE decides, every decision is marked as calibration and counts for nothing, the configuration still moves; `active` — the accumulation window runs and the configuration is frozen (only a corrective version enters, restarting the window); `closed` — terminal: nobody new is assigned, what was recorded stays.
+         * @enum {string}
+         */
+        ExperimentStatus: "calibrating" | "active" | "closed";
         /** @description Confirmation from the SDK that an intervention was rendered and visible. This is what constitutes an exposure (01 §3.1), not the decision. */
         ExposureConfirmation: {
             anchor: components["schemas"]["Anchor"];
@@ -1698,6 +1820,18 @@ export type components = {
         };
         /** @description Pseudonymous, persistent identifier of the browser, generated by the SDK. Gives stability to the experimental assignment. Does not identify a person. */
         VisitorId: string;
+        /** @description A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active. */
+        WindowRestart: {
+            /**
+             * Format: date-time
+             * @description When the window restarted.
+             */
+            at: string;
+            /** @description The corrective version that restarted the window. */
+            configurationVersion: number;
+            /** @description The reason the operator declared with the corrective version. */
+            reason: string;
+        };
     };
     responses: {
         /** @description Unknown, missing or wrongly typed parameter, header or field. `errors` lists each violation; the handler was not invoked. */
@@ -1809,6 +1943,75 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description The merchant already has an open experiment (calibrating or active): at most one per merchant (constitution I, ADR-022). */
+        ExperimentAlreadyOpenConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:experiment-already-open",
+                 *       "title": "The merchant already has an open experiment",
+                 *       "status": 409,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description No merchant with that identifier within the operator's scope, or no experiment with that identifier for the merchant. */
+        ExperimentNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:experiment-not-found",
+                 *       "title": "The experiment does not exist",
+                 *       "status": 404,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments/exp_9a8b7c6d5e4f/activate"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description The experiment is closed: it cannot be activated nor reopened (03 §4.10). */
+        ExperimentNotOpenConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:experiment-not-open",
+                 *       "title": "The experiment is not in a state that admits the transition",
+                 *       "status": 409,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments/exp_9a8b7c6d5e4f/activate"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description Valid request rejected on semantics: the `x-invariants` of an experiment (ADR-007). */
+        ExperimentUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:invalid-experiment-cuts",
+                 *       "title": "The experiment cuts are not strictly increasing",
+                 *       "status": 422,
+                 *       "detail": "The cuts must be strictly increasing percentages of the target sample.",
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments"
+                 *     }
+                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -2027,6 +2230,8 @@ export type components = {
     parameters: {
         /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
         cursor: string;
+        /** @description The experiment the operation acts on. */
+        experimentId: components["schemas"]["ExperimentId"];
         /** @description Maximum number of items per page (ADR-020). */
         limit: number;
         /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
@@ -2650,6 +2855,222 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listExperiments: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of experiments. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "experimentId": "exp_9a8b7c6d5e4f",
+                     *           "status": "active",
+                     *           "treatmentPercent": 50,
+                     *           "targetSample": 32000,
+                     *           "cuts": [
+                     *             33,
+                     *             66
+                     *           ],
+                     *           "openedAt": "2026-09-20T12:00:00Z",
+                     *           "activatedAt": "2026-09-27T12:00:00Z",
+                     *           "windowStartedAt": "2026-10-01T09:00:00Z",
+                     *           "windowRestarts": [
+                     *             {
+                     *               "at": "2026-10-01T09:00:00Z",
+                     *               "reason": "anchor fix",
+                     *               "configurationVersion": 3
+                     *             }
+                     *           ]
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ExperimentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createExperiment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "treatmentPercent": 50,
+                 *       "seed": "pilot-2026-q4",
+                 *       "targetSample": 32000,
+                 *       "cuts": [
+                 *         33,
+                 *         66
+                 *       ]
+                 *     }
+                 */
+                "application/json": components["schemas"]["ExperimentCreate"];
+            };
+        };
+        responses: {
+            /** @description The experiment, calibrating. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "experimentId": "exp_9a8b7c6d5e4f",
+                     *       "status": "calibrating",
+                     *       "treatmentPercent": 50,
+                     *       "targetSample": 32000,
+                     *       "cuts": [
+                     *         33,
+                     *         66
+                     *       ],
+                     *       "openedAt": "2026-09-20T12:00:00Z",
+                     *       "windowRestarts": []
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Experiment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["ExperimentAlreadyOpenConflict"];
+            422: components["responses"]["ExperimentUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    activateExperiment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The experiment the operation acts on. */
+                experimentId: components["parameters"]["experimentId"];
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The experiment, active. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "experimentId": "exp_9a8b7c6d5e4f",
+                     *       "status": "active",
+                     *       "treatmentPercent": 50,
+                     *       "targetSample": 32000,
+                     *       "cuts": [
+                     *         33,
+                     *         66
+                     *       ],
+                     *       "openedAt": "2026-09-20T12:00:00Z",
+                     *       "activatedAt": "2026-09-27T12:00:00Z",
+                     *       "windowStartedAt": "2026-09-27T12:00:00Z",
+                     *       "windowRestarts": []
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Experiment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["ExperimentNotFound"];
+            409: components["responses"]["ExperimentNotOpenConflict"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    closeExperiment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The experiment the operation acts on. */
+                experimentId: components["parameters"]["experimentId"];
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The experiment, closed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "experimentId": "exp_9a8b7c6d5e4f",
+                     *       "status": "closed",
+                     *       "treatmentPercent": 50,
+                     *       "targetSample": 32000,
+                     *       "cuts": [
+                     *         33,
+                     *         66
+                     *       ],
+                     *       "openedAt": "2026-09-20T12:00:00Z",
+                     *       "activatedAt": "2026-09-27T12:00:00Z",
+                     *       "windowStartedAt": "2026-09-27T12:00:00Z",
+                     *       "closedAt": "2026-11-15T12:00:00Z",
+                     *       "windowRestarts": []
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Experiment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["ExperimentNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

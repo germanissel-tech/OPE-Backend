@@ -2,9 +2,9 @@
 // assignment is recorded with the first accepted batch, once; CONTROL runs the same pipeline
 // and always resolves NO_OP `control-arm`; the arm never travels as a field.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Experiment } from "../../src/domain/experiment/index.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import { testExperiment } from "../helpers/experiments.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
   batchOf,
@@ -29,7 +29,7 @@ const experimentConfig = {
   treatmentPercent: 50,
   seed: "seed-5050",
   status: "active" as const,
-  startedAt: NOW,
+  openedAt: NOW,
 };
 const merchantA: MerchantSpec = {
   merchantId: "m_a",
@@ -37,13 +37,11 @@ const merchantA: MerchantSpec = {
   origins: ["https://a.example"],
   experiments: [experimentConfig],
 };
-const experiment = Experiment.rehydrate({
-  experimentId: asExperimentId(EXPERIMENT_ID),
-  merchantId: asMerchantId("m_a"),
+const experiment = testExperiment({
+  experimentId: EXPERIMENT_ID,
   treatmentShare: 0.5,
   seed: "seed-5050",
-  status: "active",
-  startedAt: new Date(NOW),
+  openedAt: new Date(NOW),
 });
 
 /** The first visitor id of each arm, chosen with the domain function so the test does not guess. */

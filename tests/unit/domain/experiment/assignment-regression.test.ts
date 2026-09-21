@@ -3,8 +3,8 @@
 // sequence, "T"/"C", of 100 000 sequential visitors); any change to the key, the hash or the
 // split rule changes them.
 import { describe, expect, it } from "vitest";
-import { Experiment } from "../../../../src/domain/experiment/index.js";
-import { asExperimentId, asMerchantId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { testExperiment } from "../../../helpers/experiments.js";
 
 const SAMPLE = 100_000;
 const PERCENT = 100;
@@ -27,14 +27,7 @@ describe("assignment regression against feature 007", () => {
   it.each(Object.entries(FINGERPRINTS))(
     "%s % treatment: the arm sequence of 100 000 visitors is unchanged",
     (percent, fingerprint) => {
-      const experiment = Experiment.rehydrate({
-        experimentId: asExperimentId("exp_00000001"),
-        merchantId: asMerchantId("m_a"),
-        treatmentShare: Number(percent) / PERCENT,
-        seed: "seed-alpha",
-        status: "active",
-        startedAt: new Date(0),
-      });
+      const experiment = testExperiment({ treatmentShare: Number(percent) / PERCENT, openedAt: new Date(0) });
       let arms = "";
       for (let n = 1; n <= SAMPLE; n += 1) {
         arms +=
@@ -55,14 +48,7 @@ describe("assignment regression against feature 007", () => {
 
   it("the threshold is the rounded bucket count for every integer percentage", () => {
     for (let percent = 0; percent <= PERCENT; percent += 1) {
-      const experiment = Experiment.rehydrate({
-        experimentId: asExperimentId("exp_00000001"),
-        merchantId: asMerchantId("m_a"),
-        treatmentShare: percent / PERCENT,
-        seed: "seed-alpha",
-        status: "active",
-        startedAt: new Date(0),
-      });
+      const experiment = testExperiment({ treatmentShare: percent / PERCENT, openedAt: new Date(0) });
       // 10 000 sequential visitors: the share of TREATMENT lands within 2 pp of the percentage.
       let treatment = 0;
       for (let n = 1; n <= 10_000; n += 1) {

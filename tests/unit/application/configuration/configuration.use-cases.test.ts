@@ -1,7 +1,8 @@
 // Feature 017 — US2 (FR-012, FR-017, FR-020; 03 §4.10; ADR-031): the configuration service
 // resolves once and serves from memory; publishing judges the draft, repeats an identical one,
-// freezes while an experiment is active unless the version is corrective, and the seed's
-// import publishes the version 1 only when the merchant has none.
+// freezes while an experiment is active unless the version is corrective — which restarts the
+// accumulation window (US3, D-G) —, and the seed's import publishes the version 1 only when the
+// merchant has none.
 import { describe, expect, it } from "vitest";
 import {
   DefaultConfigurationService,
@@ -12,13 +13,16 @@ import {
   type ConfigurationStore,
 } from "../../../../src/application/configuration/index.js";
 import { DefaultScopedMerchantService } from "../../../../src/application/merchant/index.js";
-import { Experiment } from "../../../../src/domain/experiment/index.js";
+import { MerchantConfigurationVersion } from "../../../../src/domain/configuration/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
-import { asExperimentId, asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryConfigurationStore } from "../../../../src/interface-adapters/gateways/configuration/memory-configuration-store.js";
+import { memoryExperimentStore } from "../../../../src/interface-adapters/gateways/experiment/memory-experiment-store.js";
 import { memoryMerchantStore } from "../../../../src/interface-adapters/gateways/merchant/memory-merchant-store.js";
+import { testExperiment } from "../../../helpers/experiments.js";
 import { TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 import { testLevels } from "../../../helpers/test-app.js";
+import type { ExperimentStatus } from "../../../../src/domain/experiment/index.js";
 
 const A = asMerchantId("m_a");
 const all = Operator.rehydrate({
@@ -28,7 +32,7 @@ const all = Operator.rehydrate({
 });
 const clock = { now: () => TEST_NOW };
 
-function subject(options: { active?: boolean; store?: ConfigurationStore } = {}) {
+function subject(options: { status?: ExperimentStatus; store?: ConfigurationStore } = {}) {
   const levels = testLevels();
   const calls: string[] = [];
   const inner = options.store ?? memoryConfigurationStore();
@@ -49,20 +53,31 @@ function subject(options: { active?: boolean; store?: ConfigurationStore } = {})
   });
   const merchants = memoryMerchantStore();
   const scoped = new DefaultScopedMerchantService({ merchants });
-  const experiment = Experiment.rehydrate({
-    experimentId: asExperimentId("exp_00000001"),
-    merchantId: A,
+  const experimentStore = memoryExperimentStore();
+  const experiment = testExperiment({
     treatmentShare: 1,
     seed: "s",
-    status: "active",
-    startedAt: TEST_NOW,
+    openedAt: TEST_NOW,
+    ...(options.status === undefined ? {} : { status: options.status }),
   });
-  const experiments = { activeFor: () => Promise.resolve(options.active === true ? experiment : undefined) };
+  const experiments = {
+    activeFor: () => Promise.resolve(options.status === undefined ? undefined : experiment),
+  };
+  if (options.status !== undefined) void experimentStore.open(experiment);
   return {
     calls,
     configuration,
     merchants,
-    publish: new PublishMerchantConfigurationUseCase({ scoped, store, configuration, experiments, clock }),
+    experimentStore,
+    experiment,
+    publish: new PublishMerchantConfigurationUseCase({
+      scoped,
+      store,
+      configuration,
+      experiments,
+      experimentStore,
+      clock,
+    }),
     get: new GetMerchantConfigurationUseCase({ scoped, store, configuration }),
     list: new ListConfigurationVersionsUseCase({ scoped, store }),
     import: new ImportMerchantConfigurationUseCase({ store, configuration, clock }),
@@ -116,7 +131,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
   });
 
   it("[invariant:configuration-frozen] with an active experiment only a corrective version passes; an identical draft still repeats", async () => {
-    const { publish, merchants } = subject({ active: true });
+    const { publish, merchants } = subject({ status: "active" });
     await merchants.create(testMerchant({ merchantId: "m_a" }));
     const frozen = await publish.execute({
       actor: all,
@@ -136,6 +151,93 @@ describe("PublishMerchantConfigurationUseCase", () => {
     expect(created.ok ? created.value.outcome : created.error).toBe("created");
     const repeated = await publish.execute(corrective);
     expect(repeated.ok ? repeated.value.outcome : repeated.error).toBe("repeated");
+  });
+
+  it("a corrective version restarts the accumulation window of the active experiment with the version and the reason (D-G)", async () => {
+    const { publish, merchants, experimentStore, experiment } = subject({ status: "active" });
+    await merchants.create(testMerchant({ merchantId: "m_a" }));
+    const created = await publish.execute({
+      actor: all,
+      merchantId: A,
+      declared: { holdoutPercent: 0 },
+      corrective: true,
+      reason: "anchor fix",
+    });
+    expect(created.ok ? [created.value.outcome, created.value.windowRestarted] : created.error).toEqual([
+      "created",
+      true,
+    ]);
+    const restarted = await experimentStore.get(A, experiment.experimentId);
+    expect(restarted?.record()).toMatchObject({
+      status: "active",
+      windowStartedAt: TEST_NOW,
+      windowRestarts: [{ at: TEST_NOW, reason: "anchor fix", configurationVersion: 1 }],
+    });
+    // Repeating it restarts nothing.
+    const repeated = await publish.execute({
+      actor: all,
+      merchantId: A,
+      declared: { holdoutPercent: 0 },
+      corrective: true,
+      reason: "anchor fix",
+    });
+    expect(repeated.ok ? repeated.value.windowRestarted : repeated.error).toBe(false);
+    expect((await experimentStore.get(A, experiment.experimentId))?.windowRestarts).toHaveLength(1);
+  });
+
+  it("while the experiment calibrates nothing freezes and nothing restarts, corrective or not (03 §4.10)", async () => {
+    const { publish, merchants, experimentStore, experiment } = subject({ status: "calibrating" });
+    await merchants.create(testMerchant({ merchantId: "m_a" }));
+    const plain = await publish.execute({
+      actor: all,
+      merchantId: A,
+      declared: { holdoutPercent: 0 },
+      corrective: false,
+    });
+    expect(plain.ok ? [plain.value.outcome, plain.value.windowRestarted] : plain.error).toEqual([
+      "created",
+      false,
+    ]);
+    const corrective = await publish.execute({
+      actor: all,
+      merchantId: A,
+      declared: { holdoutPercent: 5 },
+      corrective: true,
+      reason: "early",
+    });
+    expect(
+      corrective.ok ? [corrective.value.outcome, corrective.value.windowRestarted] : corrective.error,
+    ).toEqual(["created", false]);
+    expect((await experimentStore.get(A, experiment.experimentId))?.record()).toMatchObject({
+      status: "calibrating",
+      windowRestarts: [],
+    });
+  });
+
+  it("a store that numbers a corrective version without its reason is a programming error, not a business outcome", async () => {
+    const inner = memoryConfigurationStore();
+    const forgetful: ConfigurationStore = {
+      publish: async (draft) => {
+        const published = await inner.publish(draft);
+        if (!published.ok) return published;
+        const { reason, ...rest } = published.value.record();
+        expect(reason).toBe("anchor fix");
+        return { ok: true, value: MerchantConfigurationVersion.rehydrate(rest) };
+      },
+      latestOf: (m) => inner.latestOf(m),
+      versionsOf: (m, q) => inner.versionsOf(m, q),
+    };
+    const { publish, merchants } = subject({ status: "active", store: forgetful });
+    await merchants.create(testMerchant({ merchantId: "m_a" }));
+    await expect(
+      publish.execute({
+        actor: all,
+        merchantId: A,
+        declared: { holdoutPercent: 0 },
+        corrective: true,
+        reason: "anchor fix",
+      }),
+    ).rejects.toThrow("A corrective version carries a reason.");
   });
 
   it("an unknown merchant or one outside the scope is refused before anything is judged", async () => {
