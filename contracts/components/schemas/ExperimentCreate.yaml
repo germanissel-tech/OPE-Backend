@@ -1,0 +1,35 @@
+type: object
+description: "What an operator declares to open an experiment (ADR-022, D-G): the split, the seed of the assignment key, the target sample and the cuts at which its result may be read (D-F). Split and seed are immutable: changing them is another experiment."
+additionalProperties: false
+required:
+  - treatmentPercent
+  - seed
+  - targetSample
+properties:
+  treatmentPercent:
+    type: integer
+    description: "Share of the merchant's visitors assigned to TREATMENT, as an integer percentage; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`100 − holdoutPercent`)."
+    minimum: 0
+    maximum: 100
+  seed:
+    type: string
+    description: Part of the assignment key; never shown again.
+    minLength: 1
+    maxLength: 128
+  targetSample:
+    type: integer
+    description: Visitors the accumulation window aims at; the last cut.
+    minimum: 1
+  cuts:
+    type: array
+    description: "Interim cuts as percentages of the target sample, strictly increasing (D-F: results are read only at pre-fixed cuts). Without cuts, the target sample is the only one."
+    maxItems: 10
+    items:
+      type: integer
+      minimum: 1
+      maximum: 100
+x-invariants:
+  - type: invalid-experiment-cuts
+    status: 422
+    rule: the cuts are strictly increasing percentages
+    description: A cut that does not follow the previous one is a mistake, not an order (D-F).

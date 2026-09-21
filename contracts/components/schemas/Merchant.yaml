@@ -1,0 +1,25 @@
+type: object
+description: A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources.
+additionalProperties: false
+required: [merchantId, status, origins, createdAt, credentials]
+properties:
+  merchantId:
+    $ref: ./MerchantId.yaml
+  status:
+    $ref: ./MerchantStatus.yaml
+  origins:
+    type: array
+    description: Registered origins of the store, as written.
+    minItems: 1
+    items:
+      type: string
+      maxLength: 255
+  createdAt:
+    type: string
+    format: date-time
+    description: When the merchant was created.
+  credentials:
+    type: array
+    description: The credentials still valid, by kind; never their values.
+    items:
+      $ref: ./CredentialSummary.yaml

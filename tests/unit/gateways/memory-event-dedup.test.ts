@@ -1,9 +1,12 @@
 // Feature 004, US2 (FR-013): deduplication by eventId within the merchant, with a declared window.
 import { describe, expect, it } from "vitest";
-import { DEDUP_WINDOW } from "../../../src/application/ingestion/index.js";
 import { asEventId } from "../../../src/domain/ingestion/index.js";
 import { asMerchantId } from "../../../src/domain/shared-kernel/index.js";
 import { memoryEventDedup } from "../../../src/interface-adapters/gateways/ingestion/memory-event-dedup.js";
+import type { DedupWindow } from "../../../src/application/ingestion/index.js";
+
+/** The window the platform declares (level 1 of the configuration), as the tests declare it. */
+const DEDUP_WINDOW: DedupWindow = { ttlMs: 24 * 60 * 60 * 1000, maxIds: 100_000 };
 
 const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
@@ -54,9 +57,5 @@ describe("memoryEventDedup", () => {
     expect([...(await dedup.claim(A, [e(1)]))]).toEqual([]);
     clock.advance(2);
     expect([...(await dedup.claim(A, [e(1)]))]).toEqual([e(1)]);
-  });
-
-  it("the declared window is the contract one: 24 h or 100,000 ids per merchant", () => {
-    expect(DEDUP_WINDOW).toEqual({ ttlMs: 24 * 60 * 60 * 1000, maxIds: 100_000 });
   });
 });

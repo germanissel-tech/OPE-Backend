@@ -1,0 +1,36 @@
+type: object
+description: Thresholds of the observed synchronisation level (01 §14.1, ADR-025); the median
+  algorithm is the code's.
+additionalProperties: false
+required:
+  - receiptsKept
+  - noDataAfterMs
+  - minutesLevelMaxAgeMs
+  - minutesLevelMedianIntervalMs
+  - minutesLevelMinReceipts
+properties:
+  receiptsKept:
+    type: integer
+    description: Snapshot receipts kept per merchant to judge the cadence.
+    minimum: 2
+    maximum: 1000000
+  noDataAfterMs:
+    type: integer
+    description: Age of the latest receipt beyond which the level is 0.
+    minimum: 1
+    maximum: 31536000000
+  minutesLevelMaxAgeMs:
+    type: integer
+    description: Age of the latest receipt beyond which the level cannot be 2.
+    minimum: 1
+    maximum: 31536000000
+  minutesLevelMedianIntervalMs:
+    type: integer
+    description: Median interval between receipts at or under which the level is 2.
+    minimum: 1
+    maximum: 31536000000
+  minutesLevelMinReceipts:
+    type: integer
+    description: Least receipts to judge a cadence of minutes.
+    minimum: 2
+    maximum: 1000000

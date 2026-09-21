@@ -1,0 +1,3 @@
+type: string
+description: "Whether OPE works for the merchant: `active`; `off` by the kill switch (decides nothing, still measures); `deactivated` for good (no credential resolves, every record stays)."
+enum: [active, off, deactivated]

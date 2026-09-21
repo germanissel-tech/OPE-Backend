@@ -48,14 +48,17 @@ types:
   - slug: ledger-unavailable
     status: 503
     title: The ledger is not available
+  - slug: store-unavailable
+    status: 503
+    title: The store is not available
   - slug: invalid-treatment-share
-    status: 500
+    status: 422
     title: The treatment share of an experiment is out of range
   - slug: invalid-seed
-    status: 500
+    status: 422
     title: The seed of an experiment is empty
   - slug: invalid-origin
-    status: 500
+    status: 422
     title: A registered origin is not scheme://host[:port]
   - slug: invalid-platform-secret
     status: 500
@@ -78,9 +81,6 @@ types:
   - slug: invalid-platform-secrets
     status: 500
     title: A merchant has more than two platform signing secrets
-  - slug: multiple-active-experiments
-    status: 500
-    title: A merchant has more than one active experiment
   - slug: duplicate-experiment-id
     status: 500
     title: Two experiments of a merchant share an identifier
@@ -126,6 +126,12 @@ types:
   - slug: catalog-out-of-order
     status: 422
     title: The snapshot is older than the current one
+  - slug: invalid-sync-level-rules
+    status: 500
+    title: A synchronisation level threshold is not a positive integer
+  - slug: invalid-freshness-budget
+    status: 500
+    title: A freshness budget is not a positive number of milliseconds
   - slug: invalid-rule-weight
     status: 500
     title: A rule weight or the policy weights are outside 0..1
@@ -177,3 +183,55 @@ types:
   - slug: invalid-cooldown
     status: 500
     title: The cooldown of the commercial policy is negative
+  # Administration (feature 017, ADR-031): operators, merchants, configuration, experiments.
+  - slug: operator-unknown
+    status: 401
+    title: Operator token missing or unknown
+  - slug: merchant-out-of-scope
+    status: 403
+    title: The merchant is outside the operator's scope
+  - slug: merchant-not-found
+    status: 404
+    title: The merchant does not exist
+  - slug: merchant-deactivated
+    status: 409
+    title: The merchant is deactivated
+  - slug: origin-already-registered
+    status: 422
+    title: An origin already belongs to another merchant
+  - slug: rotation-grace-too-long
+    status: 422
+    title: The rotation grace exceeds the platform maximum
+  - slug: configuration-frozen
+    status: 409
+    title: The configuration is frozen while an experiment is active
+  - slug: configuration-reason-required
+    status: 422
+    title: A corrective configuration version needs a reason
+  - slug: invalid-configuration-value
+    status: 422
+    title: A configuration value violates an invariant of its type
+  - slug: experiment-already-open
+    status: 409
+    title: The merchant already has an open experiment
+  - slug: experiment-not-open
+    status: 409
+    title: The experiment is not in a state that admits the transition
+  - slug: invalid-experiment-cuts
+    status: 422
+    title: The experiment cuts are not strictly increasing
+  - slug: invalid-target-sample
+    status: 422
+    title: The target sample is not an integer of at least 1
+  - slug: treatment-exceeds-holdout
+    status: 422
+    title: The treatment share leaves less than the holdout of the merchant
+  - slug: experiment-not-found
+    status: 404
+    title: The experiment does not exist
+  - slug: invalid-operator-scope
+    status: 500
+    title: The scope of an operator is neither "*" nor a list of merchants
+  - slug: invalid-operator-tokens
+    status: 500
+    title: An operator needs one or two non-empty token fingerprints

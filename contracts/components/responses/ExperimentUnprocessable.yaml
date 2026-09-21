@@ -1,0 +1,11 @@
+description: "Valid request rejected on semantics: the `x-invariants` of an experiment (ADR-007)."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:invalid-experiment-cuts
+      title: The experiment cuts are not strictly increasing
+      status: 422
+      detail: The cuts must be strictly increasing percentages of the target sample.
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments

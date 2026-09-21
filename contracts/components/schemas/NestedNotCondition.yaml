@@ -1,0 +1,14 @@
+type: object
+description: "Holds when the fact does not; the innermost level of the algebra the API admits."
+additionalProperties: false
+required: [not]
+properties:
+  not:
+    type: object
+    description: "The fact that must not hold."
+    oneOf:
+      - $ref: ./EventCountCondition.yaml
+      - $ref: ./DwellSecondsCondition.yaml
+      - $ref: ./SequenceCondition.yaml
+      - $ref: ./ProductAttributeCondition.yaml
+      - $ref: ./FlagCondition.yaml

@@ -36,6 +36,11 @@ describe("contract:insomnia", () => {
       const events = requests.find((r) => r.url.endsWith("/v1/events"));
       expect(events?.headers).toContainEqual({ name: "X-OPE-Ingest-Key", value: "{{ _.ingest_key }}" });
       expect(requests.find((r) => r.url.endsWith("/v1/health"))?.headers).toEqual([]);
+      const merchants = requests.find((r) => r.method === "GET" && r.url.endsWith("/v1/admin/merchants"));
+      expect(merchants?.headers).toContainEqual({
+        name: "Authorization",
+        value: "Bearer {{ _.admin_token }}",
+      });
     },
   );
 });

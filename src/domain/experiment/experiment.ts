@@ -1,7 +1,3 @@
-// Experiment (01-arquitectura-mvp.md §4.1, §14.2; ADR-022, ADR-024): one per merchant may be
-// active. Seed and split are immutable: changing them is a new experiment with another
-// identifier. The assignment is not a feature flag: nobody changes a visitor's arm. An
-// Experiment only exists valid: `of` enforces the rules, `rehydrate` trusts recorded facts.
 import {
   fail,
   isRate,
@@ -12,20 +8,55 @@ import {
   type Result,
   type VisitorId,
 } from "../shared-kernel/index.js";
-import { InvalidSeed, InvalidTreatmentShare, type ExperimentError } from "./errors.js";
+import {
+  ExperimentNotOpen,
+  InvalidExperimentCuts,
+  InvalidSeed,
+  InvalidTargetSample,
+  InvalidTreatmentShare,
+  TreatmentExceedsHoldout,
+  type ExperimentError,
+} from "./errors.js";
 
-export type ExperimentStatus = "active" | "closed";
+/** `calibrating → active → closed`, or `calibrating → closed` (03 §4.10, D-G). */
+export type ExperimentStatus = "calibrating" | "active" | "closed";
+const CALIBRATING = "calibrating" satisfies ExperimentStatus;
+const ACTIVE = "active" satisfies ExperimentStatus;
+const CLOSED = "closed" satisfies ExperimentStatus;
 
-/** The facts of an experiment, as configuration or a store describes them. */
-export interface ExperimentRecord {
+/** What a decision taken under the experiment is for: nothing (calibration) or the analysis. */
+export type ExperimentPhase = "calibration" | "accumulation";
+
+/** A restart of the accumulation window: a corrective configuration version while active. */
+export interface WindowRestart {
+  at: Date;
+  reason: string;
+  configurationVersion: number;
+}
+
+/** What an operator declares to open an experiment; the instants and the state are the entity's. */
+export interface ExperimentInput {
   experimentId: ExperimentId;
   merchantId: MerchantId;
   /** Share of visitors assigned to TREATMENT, as a rate 0..1 (percentages stay at the edge). */
   treatmentShare: number;
   /** Part of the assignment key; immutable. */
   seed: string;
+  /** Visitors the accumulation window aims at; the last cut. */
+  targetSample: number;
+  /** Interim cuts as whole percentages of the target sample, strictly increasing (D-F). */
+  cuts: readonly number[];
+  openedAt: Date;
+}
+
+/** The facts of an experiment, as a store describes them. */
+export interface ExperimentRecord extends ExperimentInput {
   status: ExperimentStatus;
-  startedAt: Date;
+  activatedAt?: Date | undefined;
+  /** The activation or the last restart; the window in force. */
+  windowStartedAt?: Date | undefined;
+  closedAt?: Date | undefined;
+  windowRestarts: readonly WindowRestart[];
 }
 
 /** Unit separator: no field can imitate another inside the key. */
@@ -48,29 +79,61 @@ function fnv1a32(text: string): number {
   return hash >>> 0;
 }
 
+/** A whole percentage at most 100; the lower bound is the cut before it (none: 0). */
+const isCut = (value: number): boolean => Number.isInteger(value) && value <= PERCENT_BUCKETS;
+
+/** The index of the first cut that is not a whole percentage above the previous one, or -1. */
+function offendingCut(cuts: readonly number[]): number {
+  let previous = 0;
+  for (const [index, cut] of cuts.entries()) {
+    if (!isCut(cut) || cut <= previous) return index;
+    previous = cut;
+  }
+  return -1;
+}
+
+/** The share as whole buckets (1 %): the unit the assignment and the holdout are compared in. */
+const bucketsOf = (share: number): number => Math.round(share * PERCENT_BUCKETS);
+
 export class Experiment {
   readonly experimentId: ExperimentId;
   readonly merchantId: MerchantId;
   readonly treatmentShare: number;
   readonly seed: string;
+  readonly targetSample: number;
+  readonly cuts: readonly number[];
   readonly status: ExperimentStatus;
-  readonly startedAt: Date;
+  readonly openedAt: Date;
+  readonly activatedAt: Date | undefined;
+  readonly windowStartedAt: Date | undefined;
+  readonly closedAt: Date | undefined;
+  readonly windowRestarts: readonly WindowRestart[];
 
   private constructor(record: ExperimentRecord) {
     this.experimentId = record.experimentId;
     this.merchantId = record.merchantId;
     this.treatmentShare = record.treatmentShare;
     this.seed = record.seed;
+    this.targetSample = record.targetSample;
+    this.cuts = [...record.cuts];
     this.status = record.status;
-    this.startedAt = record.startedAt;
+    this.openedAt = record.openedAt;
+    this.activatedAt = record.activatedAt;
+    this.windowStartedAt = record.windowStartedAt;
+    this.closedAt = record.closedAt;
+    this.windowRestarts = [...record.windowRestarts];
   }
 
-  /** A new experiment: the rules of creation apply. */
-  static of(input: ExperimentRecord): Result<Experiment, ExperimentError> {
-    const { treatmentShare, seed } = input;
+  /** A new experiment, calibrating: the rules of creation apply. */
+  static of(input: ExperimentInput): Result<Experiment, ExperimentError> {
+    const { treatmentShare, seed, targetSample, cuts } = input;
     if (!isRate(treatmentShare)) return fail(new InvalidTreatmentShare(treatmentShare));
     if (seed === "") return fail(new InvalidSeed());
-    return ok(new Experiment(input));
+    if (!Number.isInteger(targetSample) || targetSample < 1)
+      return fail(new InvalidTargetSample(targetSample));
+    const offending = offendingCut(cuts);
+    if (offending >= 0) return fail(new InvalidExperimentCuts(offending));
+    return ok(new Experiment({ ...input, status: CALIBRATING, windowRestarts: [] }));
   }
 
   /** An experiment already recorded: its facts are not re-judged. */
@@ -78,8 +141,79 @@ export class Experiment {
     return new Experiment(record);
   }
 
+  record(): ExperimentRecord {
+    return {
+      experimentId: this.experimentId,
+      merchantId: this.merchantId,
+      treatmentShare: this.treatmentShare,
+      seed: this.seed,
+      targetSample: this.targetSample,
+      cuts: this.cuts,
+      status: this.status,
+      openedAt: this.openedAt,
+      activatedAt: this.activatedAt,
+      windowStartedAt: this.windowStartedAt,
+      closedAt: this.closedAt,
+      windowRestarts: this.windowRestarts,
+    };
+  }
+
+  /** Calibrating or active: it assigns and decides (03 §4.10). */
+  isOpen(): boolean {
+    return this.status !== CLOSED;
+  }
+
   isActive(): boolean {
-    return this.status === "active";
+    return this.status === ACTIVE;
+  }
+
+  /** What a decision taken now is for: nothing while calibrating, the analysis once active. */
+  phase(): ExperimentPhase {
+    return this.status === CALIBRATING ? "calibration" : "accumulation";
+  }
+
+  /**
+   * The split may not take what the holdout keeps out of OPE (feature 017): compared in whole
+   * buckets, the unit the assignment resolves to.
+   */
+  withinHoldout(holdoutShare: number): Result<Experiment, TreatmentExceedsHoldout> {
+    if (bucketsOf(this.treatmentShare) > PERCENT_BUCKETS - bucketsOf(holdoutShare)) {
+      return fail(new TreatmentExceedsHoldout(this.treatmentShare, holdoutShare));
+    }
+    return ok(this);
+  }
+
+  /** Active from `now`: the accumulation window starts here. Already active, unchanged; closed, refused. */
+  activated(now: Date): Result<Experiment, ExperimentNotOpen> {
+    if (this.status === ACTIVE) return ok(this);
+    if (this.status === CLOSED) return fail(new ExperimentNotOpen());
+    return ok(new Experiment({ ...this.record(), status: ACTIVE, activatedAt: now, windowStartedAt: now }));
+  }
+
+  /** Closed at `now`, from calibration or activity; terminal. Already closed, unchanged. */
+  closed(now: Date): Experiment {
+    if (this.status === CLOSED) return this;
+    return new Experiment({ ...this.record(), status: CLOSED, closedAt: now });
+  }
+
+  /**
+   * The accumulation window restarts at `now` because a corrective configuration version was
+   * published (D-G); only an active experiment has a window to restart.
+   */
+  windowRestarted(
+    now: Date,
+    reason: string,
+    configurationVersion: number,
+  ): Result<Experiment, ExperimentNotOpen> {
+    if (this.status !== ACTIVE) return fail(new ExperimentNotOpen());
+    const restart: WindowRestart = { at: now, reason, configurationVersion };
+    return ok(
+      new Experiment({
+        ...this.record(),
+        windowStartedAt: now,
+        windowRestarts: [...this.windowRestarts, restart],
+      }),
+    );
   }
 
   /**
@@ -91,6 +225,6 @@ export class Experiment {
   assign(visitorId: VisitorId): Arm {
     const key = [this.merchantId, this.experimentId, this.seed, visitorId].join(ASSIGNMENT_KEY_SEPARATOR);
     const bucket = fnv1a32(key) % PERCENT_BUCKETS;
-    return bucket < Math.round(this.treatmentShare * PERCENT_BUCKETS) ? "TREATMENT" : "CONTROL";
+    return bucket < bucketsOf(this.treatmentShare) ? "TREATMENT" : "CONTROL";
   }
 }

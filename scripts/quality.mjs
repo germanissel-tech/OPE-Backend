@@ -1,6 +1,6 @@
 // quality — every deterministic gate in one command (ADR-016, FR-050).
 //
-//   node scripts/quality.mjs          # lint → arch → check:duplication → check:dead-code → check:language
+//   node scripts/quality.mjs          # lint → arch → check:duplication → check:dead-code → check:language → check:behaviour-constants
 //   node scripts/quality.mjs --json   # { gates: [<each gate's own JSON>] }, all of them, no early stop
 //
 // Without --json it stops at the first red gate and names it on the first line of its output.
@@ -19,6 +19,7 @@ export const GATES = /** @type {readonly Gate[]} */ ([
   { name: "check:duplication", script: "check-duplication.mjs", args: [] },
   { name: "check:dead-code", script: "check-dead-code.mjs", args: [] },
   { name: "check:language", script: "check-language.mjs", args: [] },
+  { name: "check:behaviour-constants", script: "check-behaviour-constants.mjs", args: [] },
 ]);
 
 /** How a gate is launched: node_modules CLIs by their entry file, repo scripts by path. */
@@ -63,7 +64,12 @@ export function runQuality(runner, gates = GATES) {
 }
 
 /** Gates that speak JSON when asked; the others report pass/fail only. */
-const JSON_CAPABLE = new Set(["check:duplication", "check:dead-code", "check:language"]);
+const JSON_CAPABLE = new Set([
+  "check:duplication",
+  "check:dead-code",
+  "check:language",
+  "check:behaviour-constants",
+]);
 
 /** @returns {number} */
 function main() {

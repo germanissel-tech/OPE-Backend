@@ -1,0 +1,18 @@
+type: object
+description: "Holds when every fact holds (`all: []` holds); the innermost level of the algebra the API admits."
+additionalProperties: false
+required: [all]
+properties:
+  all:
+    type: array
+    description: Facts that must all hold.
+    maxItems: 16
+    items:
+      type: object
+      description: A fact of the closed vocabulary.
+      oneOf:
+        - $ref: ./EventCountCondition.yaml
+        - $ref: ./DwellSecondsCondition.yaml
+        - $ref: ./SequenceCondition.yaml
+        - $ref: ./ProductAttributeCondition.yaml
+        - $ref: ./FlagCondition.yaml

@@ -26,6 +26,7 @@ import {
 import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
 import { memoryCorroborationLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
 import { memoryOrderLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
+import { TEST_TOLERANCE, TEST_VERSIONS } from "../../../helpers/platform.js";
 import { recordingLogger, unavailableOrderLedger } from "../../../helpers/unavailable-ledgers.js";
 
 const A = asMerchantId("m_a");
@@ -36,6 +37,7 @@ const experiment = { experimentId: asExperimentId("exp_1"), arm: "TREATMENT" as 
 
 const facts = (id: string) => ({
   decisionId: asDecisionId(id),
+  configuration: TEST_VERSIONS,
   merchantId: A,
   sessionId: S,
   visitorId: V,
@@ -81,6 +83,7 @@ async function subject(
   const { logger, entries } = recordingLogger();
   const useCase = new NotifyOrderUseCase({
     clock: { now: () => NOW },
+    tolerance: TEST_TOLERANCE,
     orders,
     decisions,
     corroborations,
@@ -114,6 +117,7 @@ describe("NotifyOrderUseCase — correlation (user story 1)", () => {
     const { useCase } = await subject();
     const spied = new NotifyOrderUseCase({
       clock: { now: () => NOW },
+      tolerance: TEST_TOLERANCE,
       orders: memoryOrderLedger(),
       decisions: {
         ...decisions,

@@ -1,0 +1,10 @@
+description: The merchant was deactivated; nothing can be done to it (ADR-031).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:merchant-deactivated
+      title: The merchant is deactivated
+      status: 409
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/kill-switch

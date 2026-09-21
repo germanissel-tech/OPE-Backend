@@ -1,0 +1,12 @@
+type: object
+description: The modes a merchant declares per flow; an absent flow resolves from the treatment defaults.
+additionalProperties: false
+properties:
+  catalog:
+    $ref: ./SyncMode.yaml
+  stockAndPrice:
+    $ref: ./SyncMode.yaml
+  orders:
+    $ref: ./SyncMode.yaml
+  returns:
+    $ref: ./SyncMode.yaml

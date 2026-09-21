@@ -1,0 +1,58 @@
+type: object
+description: "Level 2 (constitution XI): what every merchant gets unless it declares otherwise, as
+  the release declares it (`config/treatment-defaults.json`); read-only by API."
+additionalProperties: false
+required:
+  - version
+  - freshness
+  - syncLevel
+  - holdoutPercent
+  - decisionPolicy
+  - commercialPolicy
+  - evidenceProfile
+  - surfaces
+  - barriers
+  - syncStrategy
+  - locales
+properties:
+  version:
+    type: string
+    description: Version of the treatment defaults the release declares.
+    minLength: 1
+    maxLength: 64
+  freshness:
+    $ref: ./Freshness.yaml
+  syncLevel:
+    $ref: ./SyncLevelRules.yaml
+  holdoutPercent:
+    type: integer
+    description: Share of the traffic kept out of every experiment, as an integer percentage; a merchant
+      may set it to 0.
+    minimum: 0
+    maximum: 100
+  decisionPolicy:
+    $ref: ./DecisionPolicy.yaml
+  commercialPolicy:
+    $ref: ./CommercialPolicy.yaml
+  evidenceProfile:
+    $ref: ./EvidenceProfile.yaml
+  surfaces:
+    type: array
+    description: Page types where OPE may intervene.
+    minItems: 1
+    maxItems: 2
+    uniqueItems: true
+    items:
+      $ref: ./Surface.yaml
+  barriers:
+    type: array
+    description: Barriers OPE may infer for the merchant; the others are never dominant.
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml
+  syncStrategy:
+    $ref: ./SyncStrategy.yaml
+  locales:
+    $ref: ./Locales.yaml

@@ -1,0 +1,101 @@
+get:
+  operationId: getTreatmentDefaults
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  summary: The treatment defaults of the release
+  description: "Level 2 of the configuration (constitution XI): what every merchant gets unless it
+    declares otherwise, with the version the release declares. Read-only: it changes with a deploy,
+    never in flight."
+  responses:
+    "200":
+      description: The treatment defaults.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TreatmentDefaults.yaml
+          example:
+            version: defaults-1
+            freshness:
+              catalogMs: 129600000
+              stockAndPriceMs: 900000
+            syncLevel:
+              receiptsKept: 8
+              noDataAfterMs: 129600000
+              minutesLevelMaxAgeMs: 3600000
+              minutesLevelMedianIntervalMs: 900000
+              minutesLevelMinReceipts: 3
+            holdoutPercent: 5
+            decisionPolicy:
+              version: default-1
+              rules:
+                - id: price.price-read
+                  barrier: price
+                  strength: strong
+                  when:
+                    fact: dwellSeconds
+                    block: price
+              weights:
+                strong: 0.4
+                supporting: 0.2
+              readingSeconds: 5
+              threshold: 0.6
+              priority:
+                - returns
+                - fit
+                - price
+              evidence:
+                freshStockAndPrice:
+                  - price
+                availableVariant:
+                  - fit
+            commercialPolicy:
+              version: commercial-default-1
+              maxIncentivePercent: 10
+              incentiveLadderPercent:
+                - 5
+                - 10
+              directIncentiveOnPrice: true
+              returnRisk:
+                all:
+                  - fact: eventCount
+                    type: size_selector_interacted
+                    min: 2
+                  - fact: dwellSeconds
+                    block: policies
+              highIntent: from-checkout
+              abandonment: reassure-returns
+              interventionsPerSession: 1
+              cooldownSeconds: 0
+              interventionsPerVisitorPerDay: 3
+            evidenceProfile:
+              returnsPolicy: false
+              fitData: false
+              authorizedAttributes: []
+            surfaces:
+              - product
+              - cart
+            barriers:
+              - fit
+              - price
+              - returns
+            syncStrategy:
+              catalog: push
+              stockAndPrice: push
+              orders: push
+              returns: push
+            locales:
+              supported: []
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

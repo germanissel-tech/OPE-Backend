@@ -38,8 +38,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: { now: () => now } } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -49,7 +49,7 @@ const find = (orderId: string) => app.ports.orders.find(A, orderId as OrderId);
 
 async function startWithOrder(options: { attributed?: boolean; orders?: OrderLedger } = {}): Promise<void> {
   now = new Date(NOW);
-  app.resetPorts(options.orders === undefined ? {} : { ports: { orders: options.orders } });
+  await app.resetPorts(options.orders === undefined ? {} : { ports: { orders: options.orders } });
   if (options.attributed)
     await postEvents(
       app.app,

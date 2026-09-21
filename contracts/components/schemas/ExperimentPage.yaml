@@ -1,0 +1,15 @@
+type: object
+description: A page of a merchant's experiments, newest first.
+additionalProperties: false
+required:
+  - items
+properties:
+  items:
+    type: array
+    description: Experiments of this page, newest first.
+    items:
+      $ref: ./Experiment.yaml
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

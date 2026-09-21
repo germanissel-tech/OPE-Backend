@@ -74,3 +74,7 @@ evidencia y veredicto.
   una advertencia. Sin holdout OPE dejaría de poder atribuir (01 §5). Se implementa con la
   configuración por API (feature "Configuration, flags, kill switch and administration"); hasta entonces, `treatmentPercent` sigue sin tope
   (los merchants de desarrollo y prueba usan 100 para observar el plano).
+- Precisión (feature 017, 2026-09-20; ADR-031): `default-1` deja de ser una constante del
+  código y es el contenido inicial del nivel **defaults de tratamiento**
+  (`config/treatment-defaults.json`); un merchant la sobrescribe publicando una versión de
+  configuración por API, y cada decisión estampa la terna de versiones (constitución XI).

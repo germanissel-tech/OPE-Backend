@@ -15,6 +15,7 @@ import {
 } from "../../../../src/domain/ingestion/index.js";
 import { NoOpDecision, asDecisionId } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { TEST_TOLERANCE, TEST_VERSIONS } from "../../../helpers/platform.js";
 
 const NOW = new Date("2026-09-17T12:00:00.000Z");
 const A = asMerchantId("m_a");
@@ -39,6 +40,7 @@ function subject(seen: readonly EventId[] = []) {
         NoOpDecision.of(
           {
             decisionId: asDecisionId("dec_00000001"),
+            configuration: TEST_VERSIONS,
             merchantId,
             sessionId: batch.sessionId,
             visitorId: batch.visitorId,
@@ -52,7 +54,12 @@ function subject(seen: readonly EventId[] = []) {
   const eventDedup: EventDedup = {
     claim: (_m, ids) => Promise.resolve(new Set(ids.filter((id) => !seen.includes(id)))),
   };
-  const useCase = new IngestBatchUseCase({ clock: { now: () => NOW }, eventDedup, decisionPlane });
+  const useCase = new IngestBatchUseCase({
+    clock: { now: () => NOW },
+    tolerance: TEST_TOLERANCE,
+    eventDedup,
+    decisionPlane,
+  });
   return { useCase, requests };
 }
 

@@ -1,0 +1,117 @@
+post:
+  operationId: createExperiment
+  tags: &a1
+    - admin
+  security: &a2
+    - adminToken: []
+  x-required-capabilities:
+    - experiments:write
+  summary: Open an experiment for a merchant
+  description: "Opens the experiment in calibration (03 §4.10, D-G): from the next batch the visitors
+    of the merchant are assigned and OPE decides, every decision marked as calibration; the
+    configuration still moves. At most one open experiment per merchant (`409
+    experiment-already-open`); the split cannot exceed what the holdout of the merchant leaves
+    (`422 treatment-exceeds-holdout`). Split and seed are immutable from here on (ADR-022)."
+  parameters:
+    - &a3
+      $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ExperimentCreate.yaml
+        example:
+          treatmentPercent: 50
+          seed: pilot-2026-q4
+          targetSample: 32000
+          cuts:
+            - 33
+            - 66
+  responses:
+    "201":
+      description: The experiment, calibrating.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Experiment.yaml
+          example:
+            experimentId: exp_9a8b7c6d5e4f
+            status: calibrating
+            treatmentPercent: 50
+            targetSample: 32000
+            cuts:
+              - 33
+              - 66
+            openedAt: 2026-09-20T12:00:00Z
+            windowRestarts: []
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "409":
+      $ref: ../components/responses/ExperimentAlreadyOpenConflict.yaml
+    "422":
+      $ref: ../components/responses/ExperimentUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml
+  x-invariants:
+    - type: treatment-exceeds-holdout
+      status: 422
+      rule: treatmentPercent ≤ 100 − the holdout of the merchant's effective configuration
+      description: "The holdout is what the merchant keeps out of OPE; an experiment cannot take it (feature 017, holdout decision)."
+get:
+  operationId: listExperiments
+  tags: *a1
+  security: *a2
+  x-required-capabilities:
+    - experiments:read
+  x-collection: true
+  summary: The experiments of a merchant
+  description: "Every experiment of the merchant, open or closed, newest first: nothing is deleted.
+    Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - *a3
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of experiments.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ExperimentPage.yaml
+          example:
+            items:
+              - experimentId: exp_9a8b7c6d5e4f
+                status: active
+                treatmentPercent: 50
+                targetSample: 32000
+                cuts:
+                  - 33
+                  - 66
+                openedAt: 2026-09-20T12:00:00Z
+                activatedAt: 2026-09-27T12:00:00Z
+                windowStartedAt: 2026-10-01T09:00:00Z
+                windowRestarts:
+                  - at: 2026-10-01T09:00:00Z
+                    reason: anchor fix
+                    configurationVersion: 3
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

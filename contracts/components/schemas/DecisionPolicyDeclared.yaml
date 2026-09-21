@@ -1,0 +1,41 @@
+type: object
+description: "What a merchant declares of its decision policy: the version and any field; the rest
+  resolves from the treatment defaults."
+additionalProperties: false
+required:
+  - version
+properties:
+  version:
+    type: string
+    description: Version the merchant gives its decision policy; stamped in every decision.
+    minLength: 1
+    maxLength: 64
+  rules:
+    type: array
+    description: The rules, at least one per active barrier.
+    minItems: 1
+    maxItems: 64
+    items:
+      $ref: ./BarrierRule.yaml
+  weights:
+    $ref: ./PolicyWeights.yaml
+  readingSeconds:
+    type: number
+    description: Seconds of dwell a `dwellSeconds` condition without `min` asks for.
+    minimum: 0
+    maximum: 3600
+  threshold:
+    type: number
+    description: Confidence a barrier must reach to be inferred, 0..1.
+    minimum: 0
+    maximum: 1
+  priority:
+    type: array
+    description: The three barriers in tie-break order (a permutation).
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml
+  evidence:
+    $ref: ./PolicyEvidence.yaml

@@ -1,45 +1,50 @@
-// Feature 015 (F-007 of the audit 014; ADR-022, ADR-024): the experiments of a merchant have an
-// owner — at most one active, identifiers unique — over experiments already built by their own
-// factory; the configuration only translates.
+// Feature 015 (F-007 of the audit 014; ADR-022, ADR-024) and 017 US3 (03 §4.10): the experiments
+// of a merchant have an owner — at most one open (calibrating or active), identifiers unique —
+// over experiments already built by their own factory; the configuration only translates.
 import { describe, expect, it } from "vitest";
 import {
   DuplicateExperimentId,
-  Experiment,
+  ExperimentAlreadyOpen,
   Experiments,
-  MultipleActiveExperiments,
-  type ExperimentRecord,
+  type Experiment,
+  type ExperimentStatus,
 } from "../../../../src/domain/experiment/index.js";
-import { asExperimentId, asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
+import { testExperiment } from "../../../helpers/experiments.js";
 
-const record = (id: string, status: "active" | "closed" = "active"): ExperimentRecord => ({
-  experimentId: asExperimentId(id),
-  merchantId: asMerchantId("m_a"),
-  treatmentShare: 0.5,
-  seed: "seed-alpha",
-  status,
-  startedAt: new Date("2026-09-17T00:00:00.000Z"),
-});
-const experiment = (id: string, status: "active" | "closed" = "active"): Experiment =>
-  Experiment.rehydrate(record(id, status));
+const experiment = (experimentId: string, status: ExperimentStatus = "active"): Experiment =>
+  testExperiment({ experimentId, status });
 
 describe("Experiments.of", () => {
-  it("accepts none, one active, and several closed next to one active; active() answers the one", () => {
+  it("accepts none, one open, and several closed next to one open; open() answers the one", () => {
     expect(Experiments.of([]).ok).toBe(true);
     const built = Experiments.of([experiment("exp_00000001", "closed"), experiment("exp_00000002")]);
     if (!built.ok) throw new Error(built.error.message);
     expect(built.value.all()).toHaveLength(2);
-    expect(built.value.active()?.experimentId).toBe("exp_00000002");
+    expect(built.value.open()?.experimentId).toBe("exp_00000002");
+    const calibrating = Experiments.of([
+      experiment("exp_00000001", "closed"),
+      experiment("exp_00000002", "calibrating"),
+    ]);
+    expect(calibrating.ok && calibrating.value.open()?.experimentId).toBe("exp_00000002");
     const none = Experiments.of([experiment("exp_00000001", "closed")]);
-    expect(none.ok && none.value.active()).toBeUndefined();
+    expect(none.ok && none.value.open()).toBeUndefined();
   });
 
-  it("[invariant:multiple-active-experiments] two active experiments reject the set, naming the second", () => {
-    const built = Experiments.of([experiment("exp_00000001"), experiment("exp_00000002")]);
-    expect(built).toMatchObject({
-      ok: false,
-      error: { code: "multiple-active-experiments", module: "experiment", details: { index: 1 } },
-    });
-    if (!built.ok) expect(built.error).toBeInstanceOf(MultipleActiveExperiments);
+  it("[invariant:experiment-already-open] two open experiments — active or calibrating — reject the set, naming the second", () => {
+    const pairs: [ExperimentStatus, ExperimentStatus][] = [
+      ["active", "active"],
+      ["active", "calibrating"],
+      ["calibrating", "active"],
+      ["calibrating", "calibrating"],
+    ];
+    for (const [first, second] of pairs) {
+      const built = Experiments.of([experiment("exp_00000001", first), experiment("exp_00000002", second)]);
+      expect(built, `${first} + ${second}`).toMatchObject({
+        ok: false,
+        error: { code: "experiment-already-open", module: "experiment", details: { index: 1 } },
+      });
+      if (!built.ok) expect(built.error).toBeInstanceOf(ExperimentAlreadyOpen);
+    }
   });
 
   it("[invariant:duplicate-experiment-id] two experiments with the same identifier reject the set, naming the second", () => {
@@ -51,9 +56,9 @@ describe("Experiments.of", () => {
     if (!built.ok) expect(built.error).toBeInstanceOf(DuplicateExperimentId);
   });
 
-  it("rehydrate does not re-judge: two recorded active experiments come back as recorded", () => {
+  it("rehydrate does not re-judge: two recorded open experiments come back as recorded", () => {
     const set = Experiments.rehydrate([experiment("exp_00000001"), experiment("exp_00000002")]);
     expect(set.all()).toHaveLength(2);
-    expect(set.active()?.experimentId).toBe("exp_00000001");
+    expect(set.open()?.experimentId).toBe("exp_00000001");
   });
 });

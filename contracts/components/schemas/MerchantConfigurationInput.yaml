@@ -1,0 +1,29 @@
+type: object
+description: "What an operator publishes: the declared values of the new version, whether it is
+  corrective (allowed while an experiment is active, with a reason) and why."
+additionalProperties: false
+required:
+  - declared
+properties:
+  declared:
+    $ref: ./MerchantConfigurationDeclared.yaml
+  corrective:
+    type: boolean
+    description: "A corrective version: the only kind allowed while an experiment is active; it restarts
+      the experiment's measurement window (03 §4.10)."
+  reason:
+    type: string
+    description: Why the version is published; required when corrective.
+    minLength: 1
+    maxLength: 512
+x-invariants:
+  - type: configuration-reason-required
+    status: 422
+    rule: a corrective version carries a reason
+    description: A corrective change while an experiment runs must be explained in the log (03 §4.10).
+  - type: invalid-configuration-value
+    status: 422
+    rule: every declared value satisfies the invariants of its type (rates 0..1, increasing ladder,
+      ceiling at or above the steps, language tags by shape, closed vocabularies) once resolved over
+      the treatment defaults
+    description: "Nothing invalid becomes a version: the pointer names the field (constitution XI, FR-014)."

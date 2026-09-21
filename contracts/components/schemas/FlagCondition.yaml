@@ -1,0 +1,14 @@
+type: object
+description: A fact of the session or the product that either holds or does not.
+additionalProperties: false
+required:
+  - fact
+properties:
+  fact:
+    type: string
+    description: The fact this condition judges.
+    enum:
+      - returnedToProduct
+      - variantAvailable
+      - sessionAddedToCart
+      - sessionEnteredCheckout

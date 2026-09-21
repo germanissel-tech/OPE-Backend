@@ -3,6 +3,7 @@ export { DecisionBase, InterveneDecision, NoOpDecision } from "./decision.js";
 export type {
   Decision,
   DecisionExperiment,
+  DecisionPhase,
   DecisionFacts,
   DecisionInference,
   DecisionSelection,

@@ -16,7 +16,7 @@ import {
   type VisitorId,
 } from "../../../domain/shared-kernel/index.js";
 import type { LedgerUnavailable } from "../../../domain/ledger/index.js";
-import type { Clock, UseCase } from "../../shared-kernel/index.js";
+import type { Clock, ClockTolerance, UseCase } from "../../shared-kernel/index.js";
 import type { CorroborationLedger, CorroborationRecordStatus } from "../ports/corroboration-ledger.js";
 
 export interface CorroborateOrderRequest {
@@ -39,6 +39,7 @@ export type CorroborateOrderResponse = Result<
 
 export interface CorroborateOrderDependencies {
   clock: Clock;
+  tolerance: ClockTolerance;
   corroborations: CorroborationLedger;
 }
 
@@ -50,8 +51,8 @@ export class CorroborateOrderUseCase implements UseCase<CorroborateOrderRequest,
   }
 
   async execute(request: CorroborateOrderRequest): Promise<CorroborateOrderResponse> {
-    const { clock, corroborations } = this.#deps;
-    const built = Corroboration.of({ ...request, receivedAt: clock.now() });
+    const { clock, tolerance, corroborations } = this.#deps;
+    const built = Corroboration.of({ ...request, receivedAt: clock.now() }, tolerance.skewMs());
     if (!built.ok) return fail(built.error);
     const recorded = await corroborations.record(built.value);
     if (!recorded.ok) return fail(recorded.error);

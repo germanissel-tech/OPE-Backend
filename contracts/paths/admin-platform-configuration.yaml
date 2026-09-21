@@ -1,0 +1,40 @@
+get:
+  operationId: getPlatformConfiguration
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  summary: The platform configuration of the release
+  description: "Level 1 of the configuration (constitution XI): the values no merchant overrides, with
+    the version the release declares. Read-only: it changes with a deploy, never in flight."
+  responses:
+    "200":
+      description: The platform configuration.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformConfiguration.yaml
+          example:
+            version: platform-1
+            dedupWindow:
+              ttlMs: 86400000
+              maxIds: 100000
+            eventPastToleranceMs: 86400000
+            clockSkewToleranceMs: 300000
+            sessionWindowMs: 86400000
+            visitorWindowMs: 86400000
+            signatureWindowMs: 300000
+            rotationGraceMaxMs: 604800000
+            anchorDiagnosticsKept: 200
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

@@ -15,10 +15,9 @@ import {
 } from "../../../../src/application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../../../src/application/ledger/index.js";
 import { CatalogSnapshot, asProductId, asVariantId } from "../../../../src/domain/catalog/index.js";
-import { DEFAULT_COMMERCIAL_POLICY, type CommercialPolicy } from "../../../../src/domain/commercial/index.js";
+import { type CommercialPolicy } from "../../../../src/domain/commercial/index.js";
 import {
   DecisionPolicy,
-  DEFAULT_DECISION_POLICY,
   type SessionState,
   type VisitorState,
 } from "../../../../src/domain/decision/index.js";
@@ -30,7 +29,10 @@ import {
   fail,
   ok,
   Money,
+  BARRIERS,
   type Arm,
+  type Barrier,
+  type ConfigurationVersions,
   type MerchantId,
   type SessionId,
   type VisitorId,
@@ -46,8 +48,16 @@ import {
   sizeSelector,
   viewed,
 } from "../../../helpers/events.js";
+import {
+  TEST_CATALOG_POLICIES,
+  TEST_TOLERANCE,
+  TEST_VERSIONS,
+  testVisitorWindow,
+} from "../../../helpers/platform.js";
+import { testLevels } from "../../../helpers/test-app.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 import type { AssignmentService } from "../../../../src/application/experiment/index.js";
+import type { ExperimentPhase } from "../../../../src/domain/experiment/index.js";
 import type { MerchantProfile } from "../../../../src/domain/selection/index.js";
 
 const A = asMerchantId("m_a");
@@ -84,13 +94,22 @@ const snapshot = CatalogSnapshot.rehydrate({
 
 interface Options {
   arm?: Arm | "none" | "down";
+  /** The phase of the experiment (feature 017); accumulation unless a test says otherwise. */
+  phase?: ExperimentPhase;
   catalog?: CatalogSnapshot;
   ledgerDown?: boolean;
   inference?: BarrierInference;
   decision?: DecisionPolicy;
   commercial?: CommercialPolicy;
   profile?: MerchantProfile;
+  /** The kill switch (feature 017); on unless a test says otherwise. */
+  enabled?: boolean;
+  /** The barriers the merchant enables (feature 017); all unless a test says otherwise. */
+  barriers?: readonly Barrier[];
+  versions?: ConfigurationVersions;
 }
+
+const DEFAULT_DECISION_POLICY = () => testLevels().defaults.values.decisionPolicy;
 
 function subject(options: Options = {}) {
   const calls: string[] = [];
@@ -101,7 +120,16 @@ function subject(options: Options = {}) {
       if (arm === "down") return Promise.resolve(fail(new LedgerUnavailable()));
       if (arm === "none") return Promise.resolve(ok(undefined));
       return Promise.resolve(
-        ok({ merchantId, visitorId, experimentId: asExperimentId("exp_00000001"), arm, assignedAt: NOW }),
+        ok({
+          assignment: {
+            merchantId,
+            visitorId,
+            experimentId: asExperimentId("exp_00000001"),
+            arm,
+            assignedAt: NOW,
+          },
+          phase: options.phase ?? "accumulation",
+        }),
       );
     },
   };
@@ -160,18 +188,32 @@ function subject(options: Options = {}) {
     policies: {
       policiesFor: () =>
         Promise.resolve({
-          decision: options.decision ?? DEFAULT_DECISION_POLICY,
-          commercial: options.commercial ?? DEFAULT_COMMERCIAL_POLICY,
+          decision: options.decision ?? testLevels().defaults.values.decisionPolicy,
+          commercial: options.commercial ?? testLevels().defaults.values.commercialPolicy,
           profile: options.profile ?? { returnsPolicy: true, fitData: true, authorizedAttributes: [] },
+          barriers: options.barriers ?? BARRIERS,
+          versions: options.versions ?? TEST_VERSIONS,
+          enabled: options.enabled ?? true,
         }),
     },
-    state: new DefaultStateService({ sessions: sessionStore, visitors: visitorStore }),
+    state: new DefaultStateService({
+      sessions: sessionStore,
+      visitors: visitorStore,
+      visitorWindow: testVisitorWindow(),
+    }),
     inference,
-    truth: new DefaultProductTruthService({ clock: { now: () => NOW }, store }),
+    truth: new DefaultProductTruthService({
+      clock: { now: () => NOW },
+      store,
+      policies: TEST_CATALOG_POLICIES,
+    }),
     recorder,
   });
   const decide = async (events: Event[]): Promise<Decision> => {
-    const batch = EventBatch.of(events, NOW);
+    const batch = EventBatch.of(events, NOW, {
+      pastMs: TEST_TOLERANCE.eventPastMs(),
+      futureMs: TEST_TOLERANCE.skewMs(),
+    });
     if (!batch.ok) throw new Error(batch.error.message);
     return service.decide({ merchantId: A, batch: batch.value, now: NOW });
   };
@@ -190,6 +232,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     });
     expect(decision.reason).toBe("fit");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
+    expect(decision.phase).toBeUndefined();
     expect(decision.inference).toEqual({
       policyVersion: "default-1",
       confidences: { fit: 0.8, price: 0, returns: 0 },
@@ -201,6 +244,14 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(await decisions.find(A, decision.decisionId)).toBe(decision);
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(1);
     expect(visitors.get("m_a/vis_00000001")?.interventions).toEqual([NOW]);
+  });
+
+  it("while the experiment calibrates the decision is taken the same way and stamped as calibration (03 §4.10)", async () => {
+    const { decide } = subject({ catalog: snapshot, phase: "calibration" });
+    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    expect(decision.isIntervention()).toBe(true);
+    expect(decision.phase).toBe("calibration");
+    expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
   });
 
   it("a NO_OP without a candidate records the inference without a barrier key at all", async () => {
@@ -255,9 +306,9 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
   it("the gate has its own guard on stale stock and price: with a policy that does not pre-check it, the current-price candidate is rejected", async () => {
     const lenient = DecisionPolicy.rehydrate({
       version: "lenient",
-      rules: DEFAULT_DECISION_POLICY.rules,
-      threshold: DEFAULT_DECISION_POLICY.threshold,
-      priority: DEFAULT_DECISION_POLICY.priority,
+      rules: DEFAULT_DECISION_POLICY().rules,
+      threshold: DEFAULT_DECISION_POLICY().threshold,
+      priority: DEFAULT_DECISION_POLICY().priority,
       evidence: { freshStockAndPrice: [], availableVariant: [] },
     });
     const stale = CatalogSnapshot.rehydrate({
@@ -289,9 +340,9 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
   it("without a variant in focus the gate sees no variant: the size recommendation is unacceptable", async () => {
     const lenient = DecisionPolicy.rehydrate({
       version: "lenient",
-      rules: DEFAULT_DECISION_POLICY.rules,
-      threshold: DEFAULT_DECISION_POLICY.threshold,
-      priority: DEFAULT_DECISION_POLICY.priority,
+      rules: DEFAULT_DECISION_POLICY().rules,
+      threshold: DEFAULT_DECISION_POLICY().threshold,
+      priority: DEFAULT_DECISION_POLICY().priority,
       evidence: { freshStockAndPrice: [], availableVariant: [] },
     });
     const { decide } = subject({ catalog: snapshot, decision: lenient });
@@ -324,6 +375,15 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "control-arm" });
     expect(decision.inference).toMatchObject({ barrier: "fit", trigger: "rules", confidences: { fit: 0.8 } });
+  });
+
+  it("with the kill switch off → merchant-off before assigning: no experiment, no inference, recorded (feature 017)", async () => {
+    const { decide, calls } = subject({ catalog: snapshot, enabled: false });
+    const decision = await decide([sizeSelector(1), sizeSelector(2)]);
+    expect(decision).toMatchObject({ outcome: "NO_OP", reason: "merchant-off" });
+    expect(decision.experiment).toBeUndefined();
+    expect(decision.inference).toBeUndefined();
+    expect(calls).not.toContain("assign");
   });
 
   it("without an active experiment → no-active-experiment, still inferred", async () => {

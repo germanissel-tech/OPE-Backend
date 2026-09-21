@@ -160,7 +160,7 @@ rules:
 
   # FR-019: mandatory error responses.
   ope-required-error-responses:
-    description: 500 always; 401 if authenticated; 400 and 422 if it has a request body.
+    description: 500 always; 401 if authenticated; 400 if it has a request body; 422 if the body or the operation declares an invariant.
     message: "{{error}}"
     severity: error
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"

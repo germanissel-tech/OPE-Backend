@@ -1,5 +1,3 @@
-// Business errors of the experiment module (ADR-023, ADR-024): the invariants of an experiment.
-// They surface at configuration time (fail-closed start), never over HTTP.
 import { DomainError } from "../shared-kernel/index.js";
 
 const MODULE = "experiment" as const;
@@ -20,6 +18,36 @@ export class InvalidSeed extends DomainError {
   }
 }
 
+/** The target sample is not a whole number of at least one visitor. */
+export class InvalidTargetSample extends DomainError {
+  readonly code = "invalid-target-sample" as const;
+  readonly module = MODULE;
+  constructor(targetSample: number) {
+    super("The target sample must be an integer of at least 1.", { targetSample });
+  }
+}
+
+/** The cuts are not strictly increasing whole percentages of the target sample (D-F). */
+export class InvalidExperimentCuts extends DomainError {
+  readonly code = "invalid-experiment-cuts" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("The cuts must be strictly increasing percentages of the target sample.", { index });
+  }
+}
+
+/** The split takes what the holdout of the merchant keeps out of OPE (feature 017). */
+export class TreatmentExceedsHoldout extends DomainError {
+  readonly code = "treatment-exceeds-holdout" as const;
+  readonly module = MODULE;
+  constructor(treatmentShare: number, holdoutShare: number) {
+    super("The treatment share must leave the holdout of the merchant out.", {
+      treatmentShare,
+      holdoutShare,
+    });
+  }
+}
+
 /** Two experiments of the merchant share an identifier (`details.index` names the second). */
 export class DuplicateExperimentId extends DomainError {
   readonly code = "duplicate-experiment-id" as const;
@@ -29,14 +57,35 @@ export class DuplicateExperimentId extends DomainError {
   }
 }
 
-/** More than one experiment of the merchant is active (`details.index` names the second, ADR-022). */
-export class MultipleActiveExperiments extends DomainError {
-  readonly code = "multiple-active-experiments" as const;
+/** More than one experiment of the merchant is open (`details.index` names the second; ADR-022). */
+export class ExperimentAlreadyOpen extends DomainError {
+  readonly code = "experiment-already-open" as const;
   readonly module = MODULE;
   constructor(index: number) {
-    super("A merchant may have at most one active experiment.", { index });
+    super("A merchant may have at most one open experiment.", { index });
   }
 }
 
+/** The experiment is closed: the transition does not exist (03 §4.10). */
+export class ExperimentNotOpen extends DomainError {
+  readonly code = "experiment-not-open" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The experiment is closed and cannot be activated nor reopened.");
+  }
+}
+
+export class ExperimentNotFound extends DomainError {
+  readonly code = "experiment-not-found" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The experiment does not exist.");
+  }
+}
+
+/** What opening an experiment can violate. */
 export type ExperimentError =
-  InvalidTreatmentShare | InvalidSeed | DuplicateExperimentId | MultipleActiveExperiments;
+  InvalidTreatmentShare | InvalidSeed | InvalidTargetSample | InvalidExperimentCuts;
+
+/** What the set of a merchant's experiments can violate. */
+export type ExperimentSetError = DuplicateExperimentId | ExperimentAlreadyOpen;

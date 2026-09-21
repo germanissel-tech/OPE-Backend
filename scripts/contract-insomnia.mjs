@@ -20,7 +20,9 @@ const BASE_URL = "http://127.0.0.1:3000";
 const CREDENTIALS = {
   ingestKey: { variable: "ingest_key", value: "ope_dev_ingest_key" },
   platformKey: { variable: "platform_key", value: "ope_dev_platform_key" },
+  adminToken: { variable: "admin_token", value: "ope_dev_admin_token" },
 };
+const BEARER = "bearer";
 
 /**
  * Resolves `#/...` references inside the bundled document; anything else comes back as is.
@@ -76,9 +78,14 @@ function credentialHeader(operation, doc) {
   const scheme = isRecord(requirement) ? Object.keys(requirement)[0] : undefined;
   if (scheme === undefined) return undefined;
   const declared = prop(prop(prop(doc, "components"), "securitySchemes"), scheme);
-  const name = prop(declared, "name");
   const credential = /** @type {Record<string, { variable: string }>} */ (CREDENTIALS)[scheme];
-  if (typeof name !== "string" || credential === undefined) return undefined;
+  if (credential === undefined) return undefined;
+  // A bearer scheme (the operator token) travels in Authorization; an apiKey in its own header.
+  if (prop(declared, "scheme") === BEARER) {
+    return { name: "Authorization", value: `Bearer {{ _.${credential.variable} }}` };
+  }
+  const name = prop(declared, "name");
+  if (typeof name !== "string") return undefined;
   return { name, value: `{{ _.${credential.variable} }}` };
 }
 

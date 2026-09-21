@@ -1,29 +1,20 @@
 // Batch of events of one session (contract: EventBatch.x-invariants; ADR-007, ADR-024). The
 // schema already validated shape and ranges; here live the rules the schema cannot express,
 // enforced by construction: an EventBatch only exists valid.
-import {
-  CLOCK_SKEW_TOLERANCE_MS,
-  fail,
-  hours,
-  ok,
-  type Result,
-  type SessionId,
-  type VisitorId,
-} from "../shared-kernel/index.js";
+import { fail, ok, type Result, type SessionId, type VisitorId } from "../shared-kernel/index.js";
 import { EventTimestampOutOfRange, SessionVisitorMismatch, type IngestionError } from "./errors.js";
 import type { Event, PageType } from "./event.js";
 import type { EventId } from "./ids.js";
 
 /**
  * Tolerance of the instant relative to the backend clock (contract: EventBatch.x-invariants):
- * a day into the past for late uploads; into the future, the clock skew every instant a client
- * declares is allowed (shared-kernel).
+ * into the past for late uploads, into the future the clock skew every instant a client declares
+ * is allowed. The values are the platform's (level 1 of the configuration, constitution XI).
  */
-const TOLERANCE_PAST_HOURS = 24;
-export const TIMESTAMP_TOLERANCE = {
-  pastMs: hours(TOLERANCE_PAST_HOURS),
-  futureMs: CLOCK_SKEW_TOLERANCE_MS,
-} as const;
+export interface TimestampTolerance {
+  pastMs: number;
+  futureMs: number;
+}
 
 const PRODUCT_PAGE = "product" satisfies PageType;
 
@@ -51,7 +42,11 @@ export class EventBatch {
    * the tolerance around `now`. An empty list is a programming error: the contract requires
    * at least one event.
    */
-  static of(events: readonly Event[], now: Date): Result<EventBatch, IngestionError> {
+  static of(
+    events: readonly Event[],
+    now: Date,
+    tolerance: TimestampTolerance,
+  ): Result<EventBatch, IngestionError> {
     const [first, ...rest] = events;
     if (first === undefined) throw new Error("The contract guarantees at least one event per batch.");
     for (const event of rest) {
@@ -59,12 +54,12 @@ export class EventBatch {
         return fail(new SessionVisitorMismatch(event.eventId));
       }
     }
-    const earliest = now.getTime() - TIMESTAMP_TOLERANCE.pastMs;
-    const latest = now.getTime() + TIMESTAMP_TOLERANCE.futureMs;
+    const earliest = now.getTime() - tolerance.pastMs;
+    const latest = now.getTime() + tolerance.futureMs;
     for (const event of events) {
       const t = event.occurredAt.getTime();
       if (t < earliest || t > latest) {
-        return fail(new EventTimestampOutOfRange(event.eventId, TIMESTAMP_TOLERANCE));
+        return fail(new EventTimestampOutOfRange(event.eventId, tolerance));
       }
     }
     return ok(new EventBatch([...events], first));

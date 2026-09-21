@@ -16,11 +16,13 @@ import {
   asMerchantId,
   asSessionId,
   asVisitorId,
-  CLOCK_SKEW_TOLERANCE_MS,
+  minutes,
   Money,
 } from "../../../../src/domain/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-19T12:00:00.000Z");
+/** The skew the platform tolerates (level 1 of the configuration), as the tests declare it. */
+const SKEW_MS = minutes(5);
 const base: OrderRecord = {
   merchantId: asMerchantId("m_a"),
   orderId: asOrderId("A-1"),
@@ -33,7 +35,7 @@ const base: OrderRecord = {
   receivedAt: NOW,
 };
 const valid = (over: Partial<OrderRecord> = {}): Order => {
-  const built = Order.of({ ...base, ...over });
+  const built = Order.of({ ...base, ...over }, SKEW_MS);
   if (!built.ok) throw new Error(built.error.message);
   return built.value;
 };
@@ -48,13 +50,16 @@ describe("Order.of", () => {
   });
 
   it("a repeated SKU → duplicate-order-item naming it", () => {
-    const built = Order.of({
-      ...base,
-      items: [
-        { sku: "SKU-1", quantity: 1 },
-        { sku: "SKU-1", quantity: 1 },
-      ],
-    });
+    const built = Order.of(
+      {
+        ...base,
+        items: [
+          { sku: "SKU-1", quantity: 1 },
+          { sku: "SKU-1", quantity: 1 },
+        ],
+      },
+      SKEW_MS,
+    );
     expect(built.ok).toBe(false);
     if (!built.ok) {
       expect(built.error).toBeInstanceOf(DuplicateOrderItem);
@@ -64,27 +69,28 @@ describe("Order.of", () => {
   });
 
   it("a confirmation beyond the tolerance ahead of the clock → order-confirmed-in-future; at the tolerance it is fine", () => {
-    const late = Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS + 1) });
+    const late = Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + SKEW_MS + 1) }, SKEW_MS);
     // The tolerance travels in the details, not repeated in the message (015 F-022).
     if (!late.ok) {
-      expect(late.error.details).toEqual({ toleranceMs: CLOCK_SKEW_TOLERANCE_MS });
+      expect(late.error.details).toEqual({ toleranceMs: SKEW_MS });
       expect(late.error.message).not.toMatch(/\d/);
     }
     expect(late.ok ? undefined : late.error).toBeInstanceOf(OrderConfirmedInFuture);
-    expect(Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS) }).ok).toBe(
-      true,
-    );
+    expect(Order.of({ ...base, confirmedAt: new Date(NOW.getTime() + SKEW_MS) }, SKEW_MS).ok).toBe(true);
   });
 
   it("checks the duplicate before the instant", () => {
-    const both = Order.of({
-      ...base,
-      items: [
-        { sku: "SKU-1", quantity: 1 },
-        { sku: "SKU-1", quantity: 1 },
-      ],
-      confirmedAt: new Date(NOW.getTime() + CLOCK_SKEW_TOLERANCE_MS + 1),
-    });
+    const both = Order.of(
+      {
+        ...base,
+        items: [
+          { sku: "SKU-1", quantity: 1 },
+          { sku: "SKU-1", quantity: 1 },
+        ],
+        confirmedAt: new Date(NOW.getTime() + SKEW_MS + 1),
+      },
+      SKEW_MS,
+    );
     expect(both.ok ? undefined : both.error.code).toBe("duplicate-order-item");
   });
 });

@@ -10,8 +10,8 @@ import {
   type SignatureError,
 } from "../../../domain/merchant/index.js";
 import { fail, ok, type Result } from "../../../domain/shared-kernel/index.js";
-import { SIGNATURE_WINDOW_MS } from "../policies/signature-window.js";
 import type { MessageAuthenticator } from "../ports/message-authenticator.js";
+import type { SignatureWindow } from "../ports/signature-window.js";
 
 export interface SignedRequest {
   merchant: Merchant;
@@ -32,6 +32,8 @@ export interface PlatformSignatureVerifier {
 
 export interface PlatformSignatureVerifierDependencies {
   authenticator: MessageAuthenticator;
+  /** The window of the platform (level 1 of the configuration). */
+  window: SignatureWindow;
 }
 
 export class DefaultPlatformSignatureVerifier implements PlatformSignatureVerifier {
@@ -43,16 +45,16 @@ export class DefaultPlatformSignatureVerifier implements PlatformSignatureVerifi
 
   async verify(request: SignedRequest): Promise<SignatureVerification> {
     const { merchant } = request;
-    if (!merchant.requiresSignature()) return ok(undefined);
+    if (!merchant.requiresSignature(request.now)) return ok(undefined);
     if (request.timestamp === undefined || request.signature === undefined)
       return fail(new SignatureMissing());
     const timestamp = PlatformSignature.timestampOf(request.timestamp);
     const signature = PlatformSignature.parse(request.signature);
     if (timestamp === undefined || signature === undefined) return fail(new SignatureInvalid());
-    if (!PlatformSignature.inWindow(timestamp, request.now, SIGNATURE_WINDOW_MS))
+    if (!PlatformSignature.inWindow(timestamp, request.now, this.#deps.window.windowMs()))
       return fail(new SignatureExpired());
     const message = PlatformSignature.message(timestamp, request.body);
-    for (const secret of merchant.platformSecrets) {
+    for (const secret of merchant.signingSecrets(request.now)) {
       if (signature.matches(await this.#deps.authenticator.hmacSha256Hex(secret, message)))
         return ok(undefined);
     }

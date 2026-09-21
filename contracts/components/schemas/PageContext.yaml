@@ -8,9 +8,7 @@ additionalProperties: false
 required: [pageType]
 properties:
   pageType:
-    type: string
-    description: Page type according to the SDK's platform adapter.
-    enum: [product, listing, cart, checkout, other]
+    $ref: ./PageType.yaml
   productId:
     type: string
     description: Product identifier on the merchant's platform, as the page exposes it.

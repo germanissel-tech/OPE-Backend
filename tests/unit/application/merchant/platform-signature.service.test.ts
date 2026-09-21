@@ -4,26 +4,18 @@
 import { describe, expect, it } from "vitest";
 import {
   DefaultPlatformSignatureVerifier,
-  SIGNATURE_WINDOW_MS,
   type MessageAuthenticator,
   type SignedRequest,
 } from "../../../../src/application/merchant/index.js";
-import { Merchant } from "../../../../src/domain/merchant/index.js";
-import { asMerchantId, CLOCK_SKEW_TOLERANCE_MS } from "../../../../src/domain/shared-kernel/index.js";
 import { nodeMessageAuthenticator } from "../../../../src/interface-adapters/gateways/merchant/node-message-authenticator.js";
+import { testMerchant } from "../../../helpers/merchants.js";
+import { TEST_SIGNATURE_WINDOW } from "../../../helpers/platform.js";
+import type { Merchant } from "../../../../src/domain/merchant/index.js";
 
 const NOW = new Date("2026-09-19T12:00:00.000Z");
 const SECONDS = String(Math.floor(NOW.getTime() / 1000));
 const merchantOf = (platformSecrets: string[]): Merchant => {
-  const built = Merchant.of({
-    merchantId: asMerchantId("m_a"),
-    ingestKeys: ["k"],
-    origins: ["https://a.example"],
-    platformKeys: ["p"],
-    platformSecrets,
-  });
-  if (!built.ok) throw new Error(built.error.message);
-  return built.value;
+  return testMerchant({ ingestKeys: ["k"], platformKeys: ["p"], platformSecrets });
 };
 
 /** A deterministic "HMAC": the secret, a bar, and the message as text; 64 hex chars are not needed to compare. */
@@ -35,7 +27,7 @@ const fakeDigest = (secret: string, message: Uint8Array): string =>
 const authenticator: MessageAuthenticator = {
   hmacSha256Hex: (secret, message) => Promise.resolve(fakeDigest(secret, message)),
 };
-const verifier = new DefaultPlatformSignatureVerifier({ authenticator });
+const verifier = new DefaultPlatformSignatureVerifier({ authenticator, window: TEST_SIGNATURE_WINDOW });
 const body = new TextEncoder().encode('{"orderId":"A-1"}');
 const request = (over: Partial<SignedRequest> = {}): SignedRequest => ({
   merchant: merchantOf(["s1", "s2"]),
@@ -92,8 +84,8 @@ describe("DefaultPlatformSignatureVerifier", () => {
     expect(result.ok ? undefined : result.error.code).toBe(code);
   });
 
-  it("the window is the clock skew tolerance every declared instant shares (015 F-048)", () => {
-    expect(SIGNATURE_WINDOW_MS).toBe(CLOCK_SKEW_TOLERANCE_MS);
+  it("the window is the one the platform declares (level 1 of the configuration): five minutes", () => {
+    expect(TEST_SIGNATURE_WINDOW.windowMs()).toBe(5 * 60 * 1000);
   });
 });
 

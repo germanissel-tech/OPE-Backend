@@ -7,21 +7,23 @@
 import {
   DecisionService,
   DefaultStateService,
-  SESSION_WINDOW,
-  VISITOR_WINDOW,
   type PolicyDirectory,
   type SessionStateStore,
   type VisitorStateStore,
+  type VisitorWindow,
 } from "../../application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../application/ledger/index.js";
-import { configPolicyDirectory } from "../../interface-adapters/gateways/decision/config-policy-directory.js";
 import { memorySessionStateStore } from "../../interface-adapters/gateways/decision/memory-session-state-store.js";
 import { memoryVisitorStateStore } from "../../interface-adapters/gateways/decision/memory-visitor-state-store.js";
+import { switchAwarePolicyDirectory } from "../../interface-adapters/gateways/decision/switch-aware-policy-directory.js";
 import { productTruthOf, type CatalogPorts } from "./catalog.js";
+import { policySourceOf } from "./configuration.js";
 import { assignmentServiceOf, type ExperimentPorts } from "./experiment.js";
+import type { ConfigurationService } from "../../application/configuration/index.js";
 import type { DecisionPlane } from "../../application/ingestion/index.js";
+import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock } from "../../application/shared-kernel/index.js";
-import type { MerchantConfig } from "../config.js";
+import type { PlatformConfiguration } from "../../domain/configuration/index.js";
 import type { Bindings, Module } from "../wiring.js";
 import type { BarrierPorts } from "./barrier.js";
 import type { LedgerPorts } from "./ledger.js";
@@ -31,35 +33,48 @@ export interface DecisionPorts
   policies: PolicyDirectory;
   sessions: SessionStateStore;
   visitors: VisitorStateStore;
+  /** The visitor window of the platform (level 1 of the configuration). */
+  visitorWindow: VisitorWindow;
 }
 
-export const configDecisionPorts = (
-  merchants: readonly MerchantConfig[],
+/** The policies each merchant resolves to (configuration module), with its kill switch read from the store. */
+export const configuredDecisionPorts = (
+  configuration: () => ConfigurationService,
+  store: () => Pick<MerchantStore, "get">,
 ): Bindings<Pick<DecisionPorts, "policies">> => ({
-  policies: () =>
-    configPolicyDirectory(
-      merchants.map((m) => ({
-        merchantId: m.merchant.merchantId,
-        ...(m.decisionPolicy === undefined ? {} : { decision: m.decisionPolicy }),
-        ...(m.commercialPolicy === undefined ? {} : { commercial: m.commercialPolicy }),
-        ...(m.evidenceProfile === undefined ? {} : { profile: m.evidenceProfile }),
-      })),
-    ),
+  policies: () => switchAwarePolicyDirectory(policySourceOf(configuration()), store()),
 });
 
+/** Session and visitor state in memory, within the windows the platform declares (level 1). */
 export const memoryDecisionPorts = (
   clock: Clock,
-): Bindings<Pick<DecisionPorts, "sessions" | "visitors">> => ({
-  sessions: () => memorySessionStateStore(clock, SESSION_WINDOW),
-  visitors: () => memoryVisitorStateStore(clock, VISITOR_WINDOW),
-});
+  platform: PlatformConfiguration,
+): Bindings<Pick<DecisionPorts, "sessions" | "visitors" | "visitorWindow">> => {
+  const visitorWindow: VisitorWindow = {
+    ttlMs: platform.visitorWindowMs,
+    maxVisitors: platform.dedupWindow.maxIds,
+  };
+  return {
+    sessions: () =>
+      memorySessionStateStore(clock, {
+        ttlMs: platform.sessionWindowMs,
+        maxSessions: platform.dedupWindow.maxIds,
+      }),
+    visitors: () => memoryVisitorStateStore(clock, visitorWindow),
+    visitorWindow: () => visitorWindow,
+  };
+};
 
 /** The plane the ingestion module needs; built here so the wiring of the authorities lives with its module. */
 export const decisionPlaneOf = (ports: DecisionPorts): DecisionPlane =>
   new DecisionService({
     assignment: assignmentServiceOf(ports),
     policies: ports.policies,
-    state: new DefaultStateService({ sessions: ports.sessions, visitors: ports.visitors }),
+    state: new DefaultStateService({
+      sessions: ports.sessions,
+      visitors: ports.visitors,
+      visitorWindow: ports.visitorWindow,
+    }),
     inference: ports.inference,
     truth: productTruthOf(ports),
     recorder: new DefaultDecisionRecorder({

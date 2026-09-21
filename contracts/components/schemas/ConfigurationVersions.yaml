@@ -1,0 +1,22 @@
+type: object
+description: "The three versions a decision is taken with (01 §14.2): platform, treatment defaults
+  and, when the merchant published one, its own."
+additionalProperties: false
+required:
+  - platform
+  - defaults
+properties:
+  platform:
+    type: string
+    description: Version of the platform configuration.
+    minLength: 1
+    maxLength: 64
+  defaults:
+    type: string
+    description: Version of the treatment defaults.
+    minLength: 1
+    maxLength: 64
+  merchant:
+    type: integer
+    description: The merchant's configuration version in force; absent when it never published one.
+    minimum: 1

@@ -25,7 +25,7 @@ const LOAD_MERCHANT = {
       treatmentPercent: 50,
       seed: "load-seed",
       status: "active",
-      startedAt: "2026-09-17T00:00:00Z",
+      openedAt: "2026-09-17T00:00:00Z",
     },
   ],
 };

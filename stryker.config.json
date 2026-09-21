@@ -2,13 +2,19 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "$comment": "Mutation testing (ADR-016, FR-030..FR-033). Run through scripts/mutation-diff.mjs: on a change it mutates only the src/ lines the change introduced (break at 100%); with --all it mutates everything, informatively. The vitest runner carries patches/@stryker-mutator+vitest-runner+10.0.0.patch until stryker-js#6210 is released.",
   "$commentMutator": "StringLiteral is excluded: free-text strings (Problem Details `detail`, log messages) are prose, not behaviour, and every typed literal (slugs, reasons, statuses) already turns into a compile error under the TypeScript checker when mutated. Everything else mutates.",
-  "mutator": { "excludedMutations": ["StringLiteral"] },
+  "mutator": {
+    "excludedMutations": ["StringLiteral"]
+  },
   "testRunner": "vitest",
   "$commentVitest": "vitest.mutation.config.ts is the behavioural suite: the tests that measure latency and snapshot size are excluded (they run per mutant for seconds and kill nothing the rest does not).",
-  "vitest": { "configFile": "vitest.mutation.config.ts" },
+  "vitest": {
+    "configFile": "vitest.mutation.config.ts"
+  },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
   "coverageAnalysis": "perTest",
+  "$commentIgnoreStatic": "ignoreStatic (ADR-016, amended 2026-09-21): a mutant in code that runs outside any test (module load, beforeAll: the bootstrap, the seed, the readers of the configuration) is static; the vitest runner cannot activate it reliably and reports false survivors, and each one runs the whole suite. A static mutant that a test also covers keeps running against those tests (hybrid); one covered by no test is Ignored with its own reason, which mutation-diff.mjs does not count as an undeclared exception. CI is the judge; the local loop is the fast suite.",
+  "ignoreStatic": true,
   "$commentIncremental": "Incremental mode keeps the verdict of every mutant in reports/mutation/stryker-incremental.json (ignored by git; CI caches it per branch) and re-tests only the mutants whose code or covering tests changed: the second push of a PR pays seconds, not minutes. Locally the file is kept too; --all writes its own (stryker-incremental-all.json) so the informative sweep never feeds the gate, and --files re-tests one file with --force. timeoutMS: a mutant that hangs a test is dead either way; 2 s is enough to know.",
   "incremental": true,
   "incrementalFile": "reports/mutation/stryker-incremental.json",
@@ -23,8 +29,12 @@
   ],
   "ignorePatterns": ["reports", "docs", ".schemathesis", "specs", "patches"],
   "reporters": ["clear-text", "progress", "html", "json"],
-  "htmlReporter": { "fileName": "reports/mutation/index.html" },
-  "jsonReporter": { "fileName": "reports/mutation/report.json" },
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/report.json"
+  },
   "tempDirName": ".stryker-tmp",
   "concurrency": 4
 }

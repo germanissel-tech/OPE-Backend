@@ -11,7 +11,7 @@ import {
 } from "../../../domain/ingestion/index.js";
 import { fail, ok, type MerchantId, type Result } from "../../../domain/shared-kernel/index.js";
 import type { Decision } from "../../../domain/ledger/index.js";
-import type { Clock, UseCase } from "../../shared-kernel/index.js";
+import type { Clock, ClockTolerance, UseCase } from "../../shared-kernel/index.js";
 import type { DecisionPlane } from "../ports/decision-plane.js";
 import type { EventDedup } from "../ports/event-dedup.js";
 
@@ -36,6 +36,7 @@ export type IngestBatchResponse = Result<IngestOutcome, IngestionError>;
 
 export interface IngestBatchDependencies {
   clock: Clock;
+  tolerance: ClockTolerance;
   eventDedup: EventDedup;
   decisionPlane: DecisionPlane;
 }
@@ -58,9 +59,12 @@ export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBat
   }
 
   async execute({ merchantId, events }: IngestBatchRequest): Promise<IngestBatchResponse> {
-    const { clock, eventDedup, decisionPlane } = this.#deps;
+    const { clock, tolerance, eventDedup, decisionPlane } = this.#deps;
     const now = clock.now();
-    const batch = EventBatch.of(events, now);
+    const batch = EventBatch.of(events, now, {
+      pastMs: tolerance.eventPastMs(),
+      futureMs: tolerance.skewMs(),
+    });
     if (!batch.ok) return fail(batch.error);
     const results = resultsOf(batch.value, await eventDedup.claim(merchantId, batch.value.eventIds()));
     const accepted = results.filter((r) => r.status === "accepted").length;

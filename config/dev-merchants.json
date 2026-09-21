@@ -10,7 +10,8 @@
         "treatmentPercent": 100,
         "seed": "dev-seed",
         "status": "active",
-        "startedAt": "2026-09-17T00:00:00Z"
+        "openedAt": "2026-09-17T00:00:00Z",
+        "targetSample": 1000
       }
     ],
     "evidenceProfile": {
@@ -22,6 +23,7 @@
       "version": "dev-commercial-1",
       "marginPercent": 40
     },
-    "platformSecrets": ["ope_dev_platform_secret"]
+    "platformSecrets": ["ope_dev_platform_secret"],
+    "holdoutPercent": 0
   }
 ]

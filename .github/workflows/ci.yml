@@ -1,5 +1,5 @@
 # FR-060: on every change, contract verification (lint, bundle, compatibility against main,
-# type drift), build, typecheck, quality gates (ADR-016), unit/integration tests and contract
+# type drift), build, typecheck, quality gates (ADR-016), the tests the change needs and contract
 # tests in one job, and mutation testing on the changed lines in a parallel job, so the PR waits
 # for the slower of the two rather than for their sum. A weekly job mutates everything,
 # informatively.
@@ -14,9 +14,16 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+# One run per branch: a new push cancels the run of the previous one (the gates judge the same
+# diff against main; the older verdict is worthless). The schedule keeps its own group.
+concurrency:
+  group: ci-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
-    if: github.event_name != 'schedule'
+    # A pull request from a branch of this repository is already verified by its push: no second run.
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -41,12 +48,12 @@ jobs:
       - run: npm ci
       - run: npm run contract:check
       - run: npm run format:check
-      - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
-      - run: npm run arch
+      # quality chains lint, arch, duplication, dead code and language (ADR-016): not repeated.
       - run: npm run quality
-      - run: npm run test:all
+      # The tools project (whole toolchains) only when the change exercises one (feature 017).
+      - run: npm run test:scoped
       - run: npm run test:contract
       - run: npm run release-check
 
@@ -61,10 +68,12 @@ jobs:
   mutation:
     # The mutation gate on the lines the change introduced (ADR-016): every mutant must die.
     # Incremental: the verdicts of the previous run of the branch are restored from the cache,
-    # so only the mutants whose code or tests changed are re-tested.
-    if: github.event_name != 'schedule'
+    # so only the mutants whose code or tests changed are re-tested. The first run of a long
+    # branch tests every mutant of its diff (a feature of several stories exceeds 1 500), and
+    # only a run that finishes saves the cache: the budget is the one of a full pass.
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,7 +89,7 @@ jobs:
           cache: npm
 
       - name: Restore the incremental mutation results of this branch
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: reports/mutation/stryker-incremental.json
           # A new entry per run; the newest of the branch is restored, then the newest of any branch.
@@ -92,6 +101,15 @@ jobs:
       - run: npm ci
       - run: npm run contract:bundle
       - run: npm run test:mutation
+
+      # Saved whether the gate passed or not: a run that ends with survivors still holds the
+      # verdict of every other mutant, and the next run re-tests only what changed.
+      - name: Save the incremental mutation results
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: reports/mutation/stryker-incremental.json
+          key: stryker-incremental-${{ github.ref_name }}-${{ github.run_id }}
 
       - name: Publish the mutation report
         if: always()

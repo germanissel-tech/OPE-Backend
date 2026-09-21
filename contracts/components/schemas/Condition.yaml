@@ -1,0 +1,11 @@
+type: object
+description: "A condition of a rule (ADR-026): a fact of the closed vocabulary, or `all`, `any`, `not` over conditions. The API admits two levels of combinators (a combinator over combinators over facts); a fact OPE does not capture is refused (`unknown-fact`)."
+oneOf:
+  - $ref: ./AllCondition.yaml
+  - $ref: ./AnyCondition.yaml
+  - $ref: ./NotCondition.yaml
+  - $ref: ./EventCountCondition.yaml
+  - $ref: ./DwellSecondsCondition.yaml
+  - $ref: ./SequenceCondition.yaml
+  - $ref: ./ProductAttributeCondition.yaml
+  - $ref: ./FlagCondition.yaml

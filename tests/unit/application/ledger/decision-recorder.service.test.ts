@@ -8,9 +8,11 @@ import {
 import { asDecisionId, InterveneDecision, NoOpDecision } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
+import { TEST_VERSIONS } from "../../../helpers/platform.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 
 const facts: DecisionFactsInput = {
+  configuration: TEST_VERSIONS,
   merchantId: asMerchantId("m_a"),
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),

@@ -1,0 +1,6 @@
+type: string
+description: One of the three purchase barriers OPE infers (01 §4.2).
+enum:
+  - fit
+  - price
+  - returns

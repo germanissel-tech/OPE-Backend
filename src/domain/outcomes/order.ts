@@ -5,7 +5,6 @@
 // correlation with a session is decided once, when it is recorded, never re-judged, and
 // travels apart from the chain (PENDING_CORRELATION | ATTRIBUTED).
 import {
-  CLOCK_SKEW_TOLERANCE_MS,
   fail,
   ok,
   type Incentive,
@@ -87,11 +86,11 @@ export class Order implements OrderRecord {
    * clock beyond the tolerance. What the schema already guarantees (a line at least, integer
    * quantities) is not re-judged.
    */
-  static of(record: OrderRecord): Result<Order, OutcomesError> {
+  static of(record: OrderRecord, skewMs: number): Result<Order, OutcomesError> {
     const duplicate = Order.duplicatedSku(record.items);
     if (duplicate !== undefined) return fail(new DuplicateOrderItem(duplicate));
-    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + CLOCK_SKEW_TOLERANCE_MS) {
-      return fail(new OrderConfirmedInFuture(CLOCK_SKEW_TOLERANCE_MS));
+    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + skewMs) {
+      return fail(new OrderConfirmedInFuture(skewMs));
     }
     return ok(new Order(record));
   }

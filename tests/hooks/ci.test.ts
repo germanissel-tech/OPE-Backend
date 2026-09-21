@@ -22,11 +22,26 @@ const runs = (job: string): string[] =>
   workflow.jobs[job]?.steps.map((s) => s.run ?? "").filter(Boolean) ?? [];
 
 describe(".github/workflows/ci.yml", () => {
-  it("runs quality after lint and both test projects in the checks job (015 F-055)", () => {
+  it("one run per branch: a new push cancels the previous run, and a pull request of this repository does not run twice (017)", () => {
+    const concurrency = (
+      workflow as unknown as { concurrency: { group: string; "cancel-in-progress": boolean } }
+    ).concurrency;
+    expect(concurrency.group).toContain("github.ref");
+    expect(concurrency["cancel-in-progress"]).toBe(true);
+    for (const job of ["checks", "mutation"]) {
+      expect(workflow.jobs[job]?.if, job).toContain("pull_request");
+      expect(workflow.jobs[job]?.if, job).toContain("head.repo.full_name != github.repository");
+    }
+  });
+
+  it("runs quality (which chains lint and arch, not repeated) and the scoped tests in the checks job (015 F-055, 017 T003)", () => {
     const checks = runs("checks");
-    expect(checks.indexOf("npm run quality")).toBeGreaterThan(checks.indexOf("npm run lint"));
-    expect(checks).toContain("npm run test:all");
+    expect(checks).toContain("npm run quality");
+    expect(checks).not.toContain("npm run lint");
+    expect(checks).not.toContain("npm run arch");
+    expect(checks).toContain("npm run test:scoped");
     expect(checks).not.toContain("npm test");
+    expect(checks).not.toContain("npm run test:all");
     expect(checks).not.toContain("npm run test:mutation");
   });
 
@@ -34,9 +49,13 @@ describe(".github/workflows/ci.yml", () => {
     const job = workflow.jobs["mutation"];
     expect(job?.if).toContain("schedule");
     expect(runs("mutation")).toContain("npm run test:mutation");
-    const cache = job?.steps.find((s) => s.uses?.startsWith("actions/cache"));
+    const cache = job?.steps.find((s) => s.uses?.startsWith("actions/cache/restore"));
     expect(cache?.with?.["path"]).toBe("reports/mutation/stryker-incremental.json");
     expect(cache?.with?.["restore-keys"]).toContain("stryker-incremental-");
+    // The verdicts are kept even when the gate fails: the next run re-tests only what changed.
+    const save = job?.steps.find((s) => s.uses?.startsWith("actions/cache/save"));
+    expect(save?.with?.["path"]).toBe("reports/mutation/stryker-incremental.json");
+    expect((save as { if?: string } | undefined)?.if).toBe("always()");
   });
 
   it("has a scheduled, manually triggerable full mutation job that never blocks and publishes its report", () => {

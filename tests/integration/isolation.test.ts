@@ -12,6 +12,7 @@ import {
 } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
+  admin,
   batchOf,
   catalogOf,
   catalogProductOf,
@@ -44,8 +45,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -67,6 +68,7 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
     {
       decisionId: asDecisionId(decisionId),
       merchantId: asMerchantId(merchantId),
+      configuration: { platform: "platform-1", defaults: "defaults-1" },
       sessionId: asSessionId("ses_00000001"),
       visitorId: asVisitorId("vis_00000001"),
       decidedAt: new Date(NOW),
@@ -137,7 +139,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 50,
       seed,
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     });
     const merchantA: MerchantSpec = {
       merchantId: A.id,
@@ -151,7 +153,7 @@ describe("isolation between merchants", () => {
       origins: ["https://c.example"],
       experiments: [experiment("seed-c")],
     };
-    app.resetPorts({ config: { merchants: [merchantA, merchantB, merchantC] } });
+    await app.resetPorts({ config: { merchants: [merchantA, merchantB, merchantC] } });
     // Over many visitors the two merchants must disagree about half of the time (seeds differ).
     let disagree = 0;
     const visitors = 60;
@@ -190,14 +192,14 @@ describe("isolation between merchants", () => {
       treatmentPercent: 50,
       seed: "old",
       status: "closed" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const active = {
       experimentId: "exp_active_01",
       treatmentPercent: 50,
       seed: "new",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const merchantA: MerchantSpec = {
       merchantId: A.id,
@@ -205,7 +207,7 @@ describe("isolation between merchants", () => {
       origins: [A.origin],
       experiments: [closed, active],
     };
-    app.resetPorts({ config: { merchants: [merchantA, merchantB] } });
+    await app.resetPorts({ config: { merchants: [merchantA, merchantB] } });
     const stale: Assignment = {
       merchantId: A.id as Assignment["merchantId"],
       experimentId: "exp_closed_001" as Assignment["experimentId"],
@@ -262,7 +264,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 100,
       seed: "s",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const a: MerchantSpec = {
       merchantId: A.id,
@@ -280,7 +282,7 @@ describe("isolation between merchants", () => {
       experiments: [experiment],
       decisionPolicy: policy("b-1", 0.4),
     };
-    app.resetPorts({ config: { merchants: [a, b] } });
+    await app.resetPorts({ config: { merchants: [a, b] } });
     for (const key of ["platform-a-1", "platform-b-1"]) {
       expect(
         (
@@ -324,7 +326,7 @@ describe("isolation between merchants", () => {
       treatmentPercent: 100,
       seed: "s",
       status: "active" as const,
-      startedAt: NOW,
+      openedAt: NOW,
     };
     const profile = { returnsPolicy: true, fitData: true };
     const a: MerchantSpec = {
@@ -345,7 +347,7 @@ describe("isolation between merchants", () => {
       evidenceProfile: profile,
       commercialPolicy: { version: "b-c" },
     };
-    app.resetPorts({ config: { merchants: [a, b] } });
+    await app.resetPorts({ config: { merchants: [a, b] } });
     for (const key of ["platform-a-1", "platform-b-1"]) {
       const res = await putCatalog(
         app.app,
@@ -459,5 +461,38 @@ describe("isolation between merchants", () => {
     );
     expect(foreign.statusCode).toBe(422);
     expect(json(foreign)).toMatchObject({ type: "urn:ope:problem:order-unknown" });
+  });
+
+  it("administration (feature 017, FR-025): an operator scoped to A neither reads, switches nor rotates B; A's log never carries B; the kill switch of A leaves B deciding", async () => {
+    const asA = { as: "ops-a" as const };
+    expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b", asA)).statusCode).toBe(403);
+    expect(
+      (
+        await admin(app.app, "PUT", "/v1/admin/merchants/m_b/kill-switch", {
+          ...asA,
+          body: { enabled: false },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/ingest-keys", asA)).statusCode).toBe(403);
+    expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/deactivate", asA)).statusCode).toBe(403);
+    expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b/log", asA)).statusCode).toBe(403);
+    expect(
+      (
+        await admin(app.app, "PUT", "/v1/admin/merchants/m_a/kill-switch", {
+          ...asA,
+          body: { enabled: false },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const inB = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-b-1" });
+    expect((json(inB) as { decision: { reason: string } }).decision.reason).not.toBe("merchant-off");
+    const inA = await postEvents(app.app, batchOf(1, 2, { occurredAt: NOW }), { key: "key-a-1" });
+    expect((json(inA) as { decision: { reason: string } }).decision.reason).toBe("merchant-off");
+    const logA = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/log")) as {
+      items: { merchantId?: string }[];
+    };
+    expect(logA.items.every((e) => e.merchantId === "m_a")).toBe(true);
+    expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b")).statusCode).toBe(200);
   });
 });

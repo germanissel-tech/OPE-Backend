@@ -1,0 +1,18 @@
+type: object
+description: "The deduplication window of the ingestion (ADR-024): ids older than the TTL or beyond
+  the budget are forgotten."
+additionalProperties: false
+required:
+  - ttlMs
+  - maxIds
+properties:
+  ttlMs:
+    type: integer
+    description: Milliseconds an event id is remembered.
+    minimum: 1
+    maximum: 31536000000
+  maxIds:
+    type: integer
+    description: Ids remembered per merchant at most.
+    minimum: 1
+    maximum: 1000000

@@ -1,0 +1,57 @@
+get:
+  operationId: getSdkConfig
+  tags: [ingest]
+  security:
+    - ingestKey: []
+  x-required-capabilities:
+    - config:read
+  summary: The configuration of the SDK
+  description: |
+    What the SDK needs to run for the merchant of its credential (01 §3.1.1, feature 017): the
+    kill switch, the versions in force, the surfaces, the languages and the anchor map. A
+    redesign of the store is corrected in the merchant's configuration, not in the SDK. Nothing
+    the constitution reserves to the backend travels: no policy, margin, ladder, split, arm nor
+    experiment. It changes without a restart, so the answer is not cacheable
+    (`Cache-Control: no-store`). A deactivated merchant does not authenticate; an Origin the
+    merchant did not register is refused as for ingestion (`403 origin-not-allowed`).
+  responses:
+    "200":
+      description: The configuration of the SDK.
+      headers:
+        Cache-Control:
+          description: "`no-store`: the configuration changes on the next request."
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SdkConfig.yaml
+          example:
+            enabled: true
+            versions:
+              platform: platform-1
+              defaults: defaults-1
+              merchant: 3
+            surfaces:
+              - product
+              - cart
+            locales:
+              supported:
+                - es-AR
+                - en
+              fallback: es-AR
+            anchors:
+              size_selector:
+                selectors:
+                  - "#product-options-wrapper .swatch-attribute.size"
+              price:
+                selectors:
+                  - .product-info-price
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

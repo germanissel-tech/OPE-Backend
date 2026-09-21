@@ -18,4 +18,5 @@ por forma, no contra una lista. Es contexto de la interacción, no un dato de la
 elija el texto y el análisis pueda leerlo como característica del visitante, no como un
 tratamiento distinto. Sin texto para el idioma de la página, la familia no es candidata
 (`NO_OP`), salvo fallback declarado por el merchant; los idiomas que un merchant soporta son
-configuración suya.
+configuración suya (feature 017: `locales { supported, fallback? }` de su versión de
+configuración; vacío = sin restricción hasta el catálogo de mensajes).

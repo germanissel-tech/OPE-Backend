@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.3.0
+  version: 1.4.0
   # While no merchant consumes the contract, incompatible changes pass contract:diff with a
   # MINOR bump (ADR-003, precision of 2026-09-20). Remove before the first pilot.
   x-stability: building
@@ -22,6 +22,8 @@ tags:
     description: Service status and support operations. No authentication.
   - name: outcomes
     description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
+  - name: admin
+    description: Administration of the platform by operators of OPE (merchants, credentials, configuration, experiments). Every action is logged.
 paths:
   /v1/health:
     $ref: ./paths/health.yaml
@@ -29,6 +31,10 @@ paths:
     $ref: ./paths/events.yaml
   /v1/exposures:
     $ref: ./paths/exposures.yaml
+  /v1/sdk/config:
+    $ref: ./paths/sdk-config.yaml
+  /v1/sdk/diagnostics:
+    $ref: ./paths/sdk-diagnostics.yaml
   /v1/catalog:
     $ref: ./paths/catalog.yaml
   /v1/orders:
@@ -37,6 +43,40 @@ paths:
     $ref: ./paths/order-corroborations.yaml
   /v1/returns:
     $ref: ./paths/returns.yaml
+  /v1/admin/log:
+    $ref: ./paths/admin-log.yaml
+  /v1/admin/merchants:
+    $ref: ./paths/admin-merchants.yaml
+  /v1/admin/merchants/{merchantId}:
+    $ref: ./paths/admin-merchant.yaml
+  /v1/admin/merchants/{merchantId}/deactivate:
+    $ref: ./paths/admin-merchant-deactivate.yaml
+  /v1/admin/merchants/{merchantId}/ingest-keys:
+    $ref: ./paths/admin-ingest-keys.yaml
+  /v1/admin/merchants/{merchantId}/platform-keys:
+    $ref: ./paths/admin-platform-keys.yaml
+  /v1/admin/merchants/{merchantId}/platform-secrets:
+    $ref: ./paths/admin-platform-secrets.yaml
+  /v1/admin/merchants/{merchantId}/kill-switch:
+    $ref: ./paths/admin-kill-switch.yaml
+  /v1/admin/merchants/{merchantId}/log:
+    $ref: ./paths/admin-merchant-log.yaml
+  /v1/admin/merchants/{merchantId}/configuration:
+    $ref: ./paths/admin-configuration.yaml
+  /v1/admin/merchants/{merchantId}/configuration/versions:
+    $ref: ./paths/admin-configuration-versions.yaml
+  /v1/admin/merchants/{merchantId}/experiments:
+    $ref: ./paths/admin-experiments.yaml
+  /v1/admin/merchants/{merchantId}/experiments/{experimentId}/activate:
+    $ref: ./paths/admin-experiment-activate.yaml
+  /v1/admin/merchants/{merchantId}/experiments/{experimentId}/close:
+    $ref: ./paths/admin-experiment-close.yaml
+  /v1/admin/merchants/{merchantId}/anchor-diagnostics:
+    $ref: ./paths/admin-diagnostics.yaml
+  /v1/admin/platform-configuration:
+    $ref: ./paths/admin-platform-configuration.yaml
+  /v1/admin/treatment-defaults:
+    $ref: ./paths/admin-treatment-defaults.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`
@@ -47,3 +87,5 @@ components:
       $ref: ./components/securitySchemes/ingestKey.yaml
     platformKey:
       $ref: ./components/securitySchemes/platformKey.yaml
+    adminToken:
+      $ref: ./components/securitySchemes/adminToken.yaml

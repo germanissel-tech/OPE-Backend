@@ -1,0 +1,48 @@
+put:
+  operationId: setKillSwitch
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:write
+  summary: Turn OPE on or off for a merchant
+  description: |
+    The kill switch (01 §14.2), without a deploy, effective on the next request. Off: every
+    decision of the merchant is `NO_OP` with reason `merchant-off` before any assignment, no
+    intervention is emitted, the SDK keeps receiving valid answers; catalogue, orders and
+    returns of the platform keep being accepted (the measurement does not break). The state of
+    an open experiment does not change. Idempotent: setting the state it already has is `200`.
+    A deactivated merchant has no switch (`409`).
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/KillSwitch.yaml
+        example:
+          enabled: false
+  responses:
+    "200":
+      description: The switch as it is now.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/KillSwitch.yaml
+          example:
+            enabled: false
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "409":
+      $ref: ../components/responses/MerchantDeactivatedConflict.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

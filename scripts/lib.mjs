@@ -48,6 +48,21 @@ export function run(cmd, args, options = {}) {
 }
 
 /**
+ * The git reference the repo compares against: `$CONTRACT_BASE_REF`, `origin/main` or `main`;
+ * null when none exists (a clone without main).
+ * @returns {string | null}
+ */
+export function resolveBaseRef() {
+  const candidates = [process.env["CONTRACT_BASE_REF"], "origin/main", "main"].filter(
+    (c) => typeof c === "string",
+  );
+  for (const ref of candidates) {
+    if (capture("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).status === 0) return ref;
+  }
+  return null;
+}
+
+/**
  * Runs the CLI of a package (see `cli`).
  * @param {CliName} name
  * @param {string[]} args

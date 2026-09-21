@@ -1,0 +1,49 @@
+get:
+  operationId: listConfigurationVersions
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  x-collection: true
+  summary: The configuration versions of a merchant
+  description: "Every version the merchant published, newest first: nothing is overwritten (FR-012).
+    Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of versions.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantConfigurationVersionPage.yaml
+          example:
+            items:
+              - version: 1
+                declared:
+                  freshness:
+                    stockAndPriceMs: 600000
+                  locales:
+                    supported:
+                      - es-AR
+                      - en
+                    fallback: es-AR
+                corrective: false
+                publishedAt: 2026-09-20T12:00:00Z
+                operatorId: ops-1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

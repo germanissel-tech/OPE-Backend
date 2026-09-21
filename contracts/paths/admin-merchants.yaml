@@ -1,0 +1,103 @@
+get:
+  operationId: listMerchants
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:read
+  x-collection: true
+  summary: The merchants within the operator's scope
+  description: |
+    Every merchant the operator may act on, oldest first, paginated with an opaque cursor
+    (ADR-020). Credentials appear by kind and instant, never by value.
+  parameters:
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of merchants.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantPage.yaml
+          example:
+            items:
+              - merchantId: mrc_7f3k5d2q4m6x
+                status: active
+                origins: ["https://tienda.example"]
+                createdAt: "2026-09-20T12:00:00Z"
+                credentials:
+                  - kind: ingest
+                    issuedAt: "2026-09-20T12:00:00Z"
+                  - kind: platform
+                    issuedAt: "2026-09-20T12:00:00Z"
+                  - kind: signing
+                    issuedAt: "2026-09-20T12:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: createMerchant
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:write
+  summary: Create a merchant
+  description: |
+    An operator gives the registered origins and whether the platform signs; OPE mints the
+    identifier, an ingest key, a platform key and, if asked, a signing secret, and answers the
+    values **once** (ADR-031). The merchant is active from this instant: the SDK authenticates
+    with the ingest key and the platform with its key and secret. No reading ever returns the
+    values again; a lost one is rotated. An origin already registered by another merchant is
+    refused (`422 origin-already-registered`). Every creation is written to the admin log.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MerchantCreate.yaml
+        example:
+          origins: ["https://tienda.example"]
+          signature: true
+  responses:
+    "201":
+      description: Merchant created; the credentials travel here and never again.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantCreated.yaml
+          example:
+            merchant:
+              merchantId: mrc_7f3k5d2q4m6x
+              status: active
+              origins: ["https://tienda.example"]
+              createdAt: "2026-09-20T12:00:00Z"
+              credentials:
+                - kind: ingest
+                  issuedAt: "2026-09-20T12:00:00Z"
+                - kind: platform
+                  issuedAt: "2026-09-20T12:00:00Z"
+                - kind: signing
+                  issuedAt: "2026-09-20T12:00:00Z"
+            credentials:
+              ingestKey: ope_ik_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I
+              platformKey: ope_pk_Q2w9E4r7T1y6U3i8O5p0A9s2D4f6G8h1J3k5L7z9X0c
+              platformSecret: ope_ps_M4n6B8v0C2x4Z6l8K0j2H4g6F8d0S2a4P6o8I0u2Y4t
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "422":
+      $ref: ../components/responses/MerchantUnprocessable.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

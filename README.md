@@ -32,27 +32,45 @@ npm run build && npm run typecheck && npm test
 npm run test:contract    # Schemathesis contra el servidor levantado
 npm run dev              # servidor real en memoria en http://127.0.0.1:3000 con el merchant de config/dev-merchants.json
 npm run contract:docs    # docs/api/index.html, autocontenido
-npm run contract:insomnia # docs/api/insomnia.json: colección de Insomnia con las operaciones, credenciales de dev e instantes vivos
+npm run contract:insomnia # docs/api/insomnia.json: colección de Insomnia con las operaciones, credenciales y token de dev e instantes vivos
 ```
 
 No hay servidor mock (ADR-018): el servidor real con el perfil en memoria arranca sin
 infraestructura, valida y autentica igual que en producción y responde con comportamiento real.
-`dev` carga el merchant de desarrollo de `config/dev-merchants.json` (clave `ope_dev_ingest_key`);
-en cualquier otro entorno los merchants vienen de `OPE_MERCHANTS`, un JSON
-`[{ "merchantId", "ingestKeys": [..], "platformKeys": [..], "platformSecrets": [..], "origins": [..], "experiments": [..] }]`, o de
-`OPE_MERCHANTS_FILE`, y sin ninguno el servidor no autentica a nadie. Un experimento activo
-(`{ "experimentId", "treatmentPercent", "seed", "status": "active", "startedAt" }`) asigna cada
-visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento, ningún
-visitante se asigna y toda decisión es `NO_OP` con motivo `no-active-experiment`. El merchant
-de desarrollo asigna el 100 % a TREATMENT para que el plano de decisión se pueda probar a mano.
-Tres datos opcionales por merchant: `decisionPolicy` (reglas de barrera, umbral, prioridad,
-evidencia por barrera; forma en `specs/011-plano-de-decision-i/contracts/decision-policy.config.md`,
-ADR-026), `commercialPolicy` (techo y escalones del incentivo, margen, riesgo de devolución,
-alta intención, abandono, presupuestos por sesión y visitante, cooldown) y `evidenceProfile`
-(política de devoluciones, dato de calce, atributos autorizados), estos dos con forma en
-`specs/012-plano-de-decision-ii/contracts/commercial-policy.config.md` (ADR-027). Sin ellos,
-`default-1`, `commercial-default-1` (sin margen ⇒ sin incentivos) y perfil vacío; uno inválido
-impide el arranque nombrando el campo. Con `platformSecrets` (uno o dos, ADR-029) la plataforma
+Los merchants se **operan** por la API de administración (ADR-031): un operador con su token
+(`Authorization: Bearer ope_at_…`) los crea, rota sus credenciales, los apaga con el interruptor,
+publica su configuración, abre y cierra sus experimentos y los da de baja, sin reiniciar nada.
+Los operadores vienen de `OPE_ADMIN_OPERATORS` (JSON `[{ "operatorId", "tokenFingerprints": [..],
+"scope": "*" | ["mrc_…"] }]`) o de `OPE_ADMIN_OPERATORS_FILE`; `node scripts/mint-admin-token.mjs
+<operatorId> [alcance]` imprime un token nuevo (una sola vez) y su entrada con la huella.
+`dev` arranca con `config/dev-operators.json` (token `ope_dev_admin_token`, alcance `*`) y con
+la **semilla** de `config/dev-merchants.json` (clave `ope_dev_ingest_key`); en cualquier otro
+entorno la semilla viene de `OPE_MERCHANTS`, un JSON
+`[{ "merchantId", "ingestKeys": [..], "platformKeys": [..], "platformSecrets": [..], "origins": [..], "experiments": [..], … }]`,
+o de `OPE_MERCHANTS_FILE`. La semilla entra sólo con el store vacío (con merchants ya
+registrados no pisa nada) y sin ninguna, el servidor no autentica a nadie hasta que un operador
+cree un merchant. Un experimento de la semilla
+(`{ "experimentId", "treatmentPercent", "seed", "targetSample", "cuts"?, "status": "calibrating" | "active" | "closed", "openedAt" }`)
+asigna cada visitante a CONTROL o TREATMENT de forma determinista (ADR-022); sin experimento
+abierto, ningún visitante se asigna y toda decisión es `NO_OP` con motivo
+`no-active-experiment`. Por la API un experimento nace en calibración (se asigna y se decide,
+nada cuenta), se activa (la configuración queda congelada; sólo entra una versión correctiva con
+motivo, que reinicia la ventana) y se cierra (03 §4.10, D-G). El merchant de desarrollo asigna el
+100 % a TREATMENT para que el plano de decisión se pueda probar a mano.
+
+**Ninguna política vive en el código** (constitución XI): el comportamiento se configura en tres
+niveles. `config/platform.json` (ventanas, tolerancias, topes; `OPE_PLATFORM_CONFIG` nombra
+otro archivo) y `config/treatment-defaults.json` (frescura, nivel de sincronización, holdout,
+políticas `default-1` y `commercial-default-1`, perfil de evidencia, superficies, barreras,
+estrategia de sincronización, idiomas; `OPE_TREATMENT_DEFAULTS`) son los dos niveles del release;
+el tercero es la versión de configuración de cada merchant, publicada por
+`POST /v1/admin/merchants/{merchantId}/configuration` y estampada en cada decisión (las tres
+versiones). Lo que la semilla declara junto a los campos del merchant (`decisionPolicy`,
+`commercialPolicy`, `evidenceProfile`, `holdoutPercent`, `freshness`, `anchors`, `locales`, …)
+es la versión 1 del merchant; un valor inválido impide el arranque nombrando el campo. El SDK lee
+lo suyo en `GET /v1/sdk/config` (interruptor, versiones, superficies, idiomas, mapa de anclajes;
+nunca una política) y reporta en `POST /v1/sdk/diagnostics` los anclajes que dejaron de
+resolver. Con `platformSecrets` (uno o dos, ADR-029) la plataforma
 del merchant debe firmar cada request de su credencial (`PUT /v1/catalog`, `POST /v1/orders`,
 `POST /v1/returns`) con `X-OPE-Timestamp` y `X-OPE-Signature`; `node scripts/sign-platform-request.mjs
 <secreto> <archivo.json>` imprime los dos headers para curl o Insomnia (forma exacta en

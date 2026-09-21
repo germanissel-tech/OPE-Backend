@@ -20,6 +20,7 @@ import {
   fail,
   ok,
 } from "../../../../src/domain/shared-kernel/index.js";
+import { TEST_VERSIONS } from "../../../helpers/platform.js";
 
 const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
@@ -31,6 +32,7 @@ const facts = {
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
   decidedAt: now,
+  configuration: TEST_VERSIONS,
 };
 const decision = (over: Partial<DecisionRecord> = {}): Decision =>
   DecisionBase.rehydrate({

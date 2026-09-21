@@ -1,0 +1,9 @@
+type: object
+description: The merchant just created and the values of its credentials — the only time they travel.
+additionalProperties: false
+required: [merchant, credentials]
+properties:
+  merchant:
+    $ref: ./Merchant.yaml
+  credentials:
+    $ref: ./MerchantCredentials.yaml

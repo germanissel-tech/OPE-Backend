@@ -1,0 +1,30 @@
+description: |
+  Valid request rejected on semantics: one of the `x-invariants` of the merchant (ADR-007). The
+  `type` names the invariant.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      invalid-origin:
+        summary: invalid-origin
+        value:
+          type: urn:ope:problem:invalid-origin
+          title: A registered origin is not scheme://host[:port]
+          status: 422
+          detail: A registered origin must be scheme://host[:port] without a path.
+          instance: /v1/admin/merchants
+          errors:
+            - pointer: /origins/0
+              message: A registered origin must be scheme://host[:port] without a path.
+      origin-already-registered:
+        summary: origin-already-registered
+        value:
+          type: urn:ope:problem:origin-already-registered
+          title: An origin already belongs to another merchant
+          status: 422
+          detail: An origin already belongs to another merchant.
+          instance: /v1/admin/merchants
+          errors:
+            - pointer: /origins/0
+              message: An origin already belongs to another merchant.

@@ -1,0 +1,15 @@
+type: object
+description: "The configuration of a merchant as it is served: the effective values, what it
+  declared in the version in force, and the three versions."
+additionalProperties: false
+required:
+  - effective
+  - declared
+  - versions
+properties:
+  effective:
+    $ref: ./EffectiveConfiguration.yaml
+  declared:
+    $ref: ./MerchantConfigurationDeclared.yaml
+  versions:
+    $ref: ./ConfigurationVersions.yaml

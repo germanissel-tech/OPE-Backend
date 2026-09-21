@@ -5,22 +5,20 @@ import {
   DefaultIngestKeyResolver,
   type MerchantDirectory,
 } from "../../../../src/application/merchant/index.js";
-import { Merchant, OriginNotAllowed, Unauthorized } from "../../../../src/domain/merchant/index.js";
-import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
+import { OriginNotAllowed, Unauthorized } from "../../../../src/domain/merchant/index.js";
+import { fakeMinter, TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 
-const built = Merchant.of({
-  merchantId: asMerchantId("m_a"),
-  ingestKeys: ["key-a-1"],
-  origins: ["https://shop-a.example"],
-});
-if (!built.ok) throw new Error("test merchant");
-const merchant = built.value;
+const merchant = testMerchant({ ingestKeys: ["key-a-1"], origins: ["https://shop-a.example"] });
 const merchants: MerchantDirectory = {
-  findByIngestKey: (key) => Promise.resolve(merchant.owns(key) ? merchant : undefined),
-  findByPlatformKey: (key) => Promise.resolve(merchant.ownsPlatformKey(key) ? merchant : undefined),
+  findByIngestKey: (fp, now) => Promise.resolve(merchant.owns(fp, now) ? merchant : undefined),
+  findByPlatformKey: (fp, now) => Promise.resolve(merchant.ownsPlatformKey(fp, now) ? merchant : undefined),
   isRegisteredOrigin: (origin) => Promise.resolve(merchant.allowsOrigin(origin)),
 };
-const resolver = new DefaultIngestKeyResolver({ merchants });
+const resolver = new DefaultIngestKeyResolver({
+  merchants,
+  minter: fakeMinter,
+  clock: { now: () => TEST_NOW },
+});
 
 describe("DefaultIngestKeyResolver", () => {
   it("a registered key without origin resolves the merchant", async () => {
@@ -32,6 +30,23 @@ describe("DefaultIngestKeyResolver", () => {
       ok: true,
       value: merchant,
     });
+  });
+
+  it("a missing or empty key is unauthorized before the minter fingerprints anything", async () => {
+    const untouchable = new DefaultIngestKeyResolver({
+      merchants,
+      minter: {
+        ...fakeMinter,
+        fingerprintOf: () => Promise.reject(new Error("the minter must not see an absent key")),
+      },
+      clock: { now: () => TEST_NOW },
+    });
+    for (const key of [undefined, ""]) {
+      expect(await untouchable.resolve(key, undefined)).toMatchObject({
+        ok: false,
+        error: { code: "unauthorized" },
+      });
+    }
   });
 
   it("no key or an unknown key → Unauthorized", async () => {

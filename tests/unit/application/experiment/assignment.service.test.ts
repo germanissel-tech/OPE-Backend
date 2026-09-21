@@ -5,28 +5,16 @@ import {
   DefaultAssignmentService,
   type AssignmentLedger,
 } from "../../../../src/application/experiment/index.js";
-import { Experiment, type Assignment } from "../../../../src/domain/experiment/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
-import {
-  asExperimentId,
-  asMerchantId,
-  asVisitorId,
-  fail,
-  ok,
-} from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, asVisitorId, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
+import { testExperiment } from "../../../helpers/experiments.js";
 import { recordingLogger } from "../../../helpers/unavailable-ledgers.js";
+import type { Assignment, Experiment } from "../../../../src/domain/experiment/index.js";
 
 const NOW = new Date("2026-09-17T12:00:00.000Z");
 const A = asMerchantId("m_a");
 const visitor = asVisitorId("vis_00000001");
-const experiment = Experiment.rehydrate({
-  experimentId: asExperimentId("exp_00000001"),
-  merchantId: A,
-  treatmentShare: 0.5,
-  seed: "seed-alpha",
-  status: "active",
-  startedAt: NOW,
-});
+const experiment = testExperiment({ openedAt: NOW });
 
 function fakeLedger(initial: Assignment[] = [], unavailable = false) {
   const store = new Map(initial.map((a) => [`${a.merchantId}/${a.experimentId}/${a.visitorId}`, a]));
@@ -72,11 +60,14 @@ describe("AssignmentService", () => {
     expect(result).toEqual({
       ok: true,
       value: {
-        merchantId: A,
-        experimentId: experiment.experimentId,
-        visitorId: visitor,
-        arm: experiment.assign(visitor),
-        assignedAt: NOW,
+        assignment: {
+          merchantId: A,
+          experimentId: experiment.experimentId,
+          visitorId: visitor,
+          arm: experiment.assign(visitor),
+          assignedAt: NOW,
+        },
+        phase: "accumulation",
       },
     });
     expect(recorded).toHaveLength(1);
@@ -90,6 +81,16 @@ describe("AssignmentService", () => {
     expect(second).toEqual(first);
     expect(recorded).toHaveLength(1);
     expect(entries.filter((e) => e.message.startsWith("assignment-drift"))).toEqual([]);
+  });
+
+  it("a calibrating experiment assigns the same way and answers the calibration phase (03 §4.10)", async () => {
+    const { ledger, recorded } = fakeLedger();
+    const calibrating = testExperiment({ openedAt: NOW, status: "calibrating" });
+    const { assign } = deps(ledger, calibrating);
+    const result = await assign(A, visitor);
+    expect(result).toMatchObject({ ok: true, value: { phase: "calibration" } });
+    expect(result.ok && result.value?.assignment.arm).toBe(calibrating.assign(visitor));
+    expect(recorded).toHaveLength(1);
   });
 
   it("ledger unavailable → not ok with error ledger-unavailable", async () => {
@@ -115,7 +116,7 @@ describe("AssignmentService", () => {
     const { ledger } = fakeLedger([stale]);
     const { assign, entries } = deps(ledger);
     const result = await assign(A, visitor);
-    expect(result).toEqual({ ok: true, value: stale });
+    expect(result).toEqual({ ok: true, value: { assignment: stale, phase: "accumulation" } });
     const drift = entries.find((e) => e.message.startsWith("assignment-drift"));
     expect(drift?.level).toBe("error");
     expect(drift?.fields).toMatchObject({

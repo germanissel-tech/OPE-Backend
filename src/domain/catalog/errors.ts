@@ -40,5 +40,38 @@ export class CatalogOutOfOrder extends DomainError {
   }
 }
 
+/** A threshold of the synchronisation level rules that is not a positive integer (constitution XI): configuration, never a request. */
+export class InvalidSyncLevelRules extends DomainError {
+  readonly code = "invalid-sync-level-rules" as const;
+  readonly module = MODULE;
+  /** The field that offends. */
+  readonly path: string;
+  constructor(path: string) {
+    super(
+      "Every synchronisation level threshold must be a positive integer; the receipts kept cover the receipts judged.",
+      { path },
+    );
+    this.path = path;
+  }
+}
+
+/** A freshness budget that is not a positive number of milliseconds (constitution XI): configuration, never a request. */
+export class InvalidFreshnessBudget extends DomainError {
+  readonly code = "invalid-freshness-budget" as const;
+  readonly module = MODULE;
+  /** The field that offends. */
+  readonly path: string;
+  constructor(path: string) {
+    super(
+      "Every freshness budget must be a positive number of milliseconds; stock and price never outlive the catalogue.",
+      { path },
+    );
+    this.path = path;
+  }
+}
+
 export type CatalogError =
   CatalogDuplicateProductId | CatalogDuplicateVariantId | CatalogCapturedInFuture | CatalogOutOfOrder;
+
+/** What the treatment configuration of the catalogue can violate (constitution XI); never a request. */
+export type CatalogPolicyError = InvalidSyncLevelRules | InvalidFreshnessBudget;

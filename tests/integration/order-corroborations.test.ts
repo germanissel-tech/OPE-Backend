@@ -38,8 +38,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -47,8 +47,7 @@ afterAll(async () => {
 
 /** The ports of the test (a corroboration ledger that is down); the server is the file's. */
 function start(options: { down?: boolean } = {}): Promise<void> {
-  app.resetPorts(options.down ? { ports: { corroborations: unavailableCorroborationLedger() } } : {});
-  return Promise.resolve();
+  return app.resetPorts(options.down ? { ports: { corroborations: unavailableCorroborationLedger() } } : {});
 }
 
 const found = (merchant: MerchantId, orderId: string) =>

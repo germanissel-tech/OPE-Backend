@@ -1,0 +1,9 @@
+type: string
+description: "How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform
+  notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring
+  `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port
+  feature."
+enum:
+  - push
+  - pull
+  - subscribe

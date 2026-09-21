@@ -1,0 +1,39 @@
+get:
+  operationId: listMerchantAdminLog
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - log:read
+  x-collection: true
+  summary: The admin log of a merchant
+  description: |
+    The administration actions that named this merchant — accepted, rejected or denied — newest
+    first (ADR-031), within the operator's scope: outside it, `403` without saying whether the
+    merchant exists. Paginated with an opaque cursor (ADR-020).
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of the log of the merchant.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AdminEntryPage.yaml
+          example:
+            items:
+              - at: "2026-09-20T12:00:05Z"
+                operatorId: ops-1
+                operation: setKillSwitch
+                merchantId: mrc_7f3k5d2q4m6x
+                outcome: accepted
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

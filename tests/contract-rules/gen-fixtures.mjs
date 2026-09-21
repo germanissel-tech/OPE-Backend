@@ -396,6 +396,14 @@ const bodySchema = (doc) => doc.components.schemas.ThingCreate;
 const fixtures = {
   // Valid ones
   "valid.yaml": (d) => withThings(d),
+  // A body without any invariant needs no 422 (feature 017): a 422 with nothing to name is what ope-no-generic-422 forbids.
+  "valid-body-without-invariants.yaml": (d) => {
+    withThings(d);
+    delete things(d).responses["422"];
+    delete d.components.responses.ThingUnprocessable;
+    delete d.components.schemas.ThingCreate["x-invariants"];
+    return d;
+  },
   "merchant-id-in-response.yaml": (d) => {
     d.components.schemas.Health.properties.merchantId = {
       type: "string",
@@ -419,7 +427,7 @@ const fixtures = {
     withScheme(d, "adminToken");
     withTag(d, things(d), "admin");
     things(d).security = [{ adminToken: [] }];
-    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d)["x-required-capabilities"] = ["configuration:write"];
     things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
     d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
     things(d).parameters = [
@@ -709,7 +717,7 @@ const fixtures = {
     withScheme(d, "adminToken");
     withTag(d, things(d), "admin");
     things(d).security = [{ adminToken: [] }];
-    things(d)["x-required-capabilities"] = ["flags:write"];
+    things(d)["x-required-capabilities"] = ["configuration:write"];
     things(d).responses["401"] = { $ref: "#/components/responses/Unauthorized" };
     d.components.responses.Unauthorized = problemResponse("No credential.", 401, "unauthorized");
     bodySchema(d).properties.merchantId = { type: "string", description: "Merchant." };

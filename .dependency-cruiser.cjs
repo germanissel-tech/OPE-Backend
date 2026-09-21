@@ -23,9 +23,10 @@ const MOD = `${SRC}(domain|application)/`;
 const CONTEXT_MAP = {
   "shared-kernel": [],
   system: ["shared-kernel"],
-  merchant: ["shared-kernel"],
+  operator: ["shared-kernel"],
+  merchant: ["shared-kernel", "operator"],
   ledger: ["shared-kernel"],
-  experiment: ["shared-kernel", "ledger"],
+  experiment: ["shared-kernel", "ledger", "operator", "merchant"],
   ingestion: ["shared-kernel", "merchant", "ledger", "experiment"],
   catalog: ["shared-kernel", "ledger"],
   barrier: ["shared-kernel", "ingestion"],
@@ -42,6 +43,22 @@ const CONTEXT_MAP = {
     "commercial",
   ],
   outcomes: ["shared-kernel", "ledger"],
+  // Feature 017 (ADR-031): configuration owns the three levels and the resolution; nobody
+  // imports it (consumers define their read port, composition binds). admin owns operators,
+  // the admin log and anchor diagnostics.
+  configuration: [
+    "shared-kernel",
+    "operator",
+    "merchant",
+    "experiment",
+    "decision",
+    "commercial",
+    "selection",
+    "catalog",
+    "ingestion",
+    "barrier",
+  ],
+  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
 };
 
 /**
@@ -127,9 +144,9 @@ module.exports = {
     {
       name: "composition-wires-by-module",
       comment:
-        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013).",
+        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013). config.ts is the exception: it reads the shape of the inputs through the readers of the configuration module (ADR-024, ADR-031).",
       severity: "error",
-      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/modules/` },
+      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/(modules/|config[.]ts$)` },
       to: {
         path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
         dependencyTypesNot: ["type-only"],

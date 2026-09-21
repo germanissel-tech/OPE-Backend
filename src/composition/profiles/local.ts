@@ -4,32 +4,47 @@
 // memory never prune (they stand in for the durable ledger of 01 §9). One binding table per
 // module; an override replaces a port before its gateway is built, and the kernel is bound first
 // because dedup shares its clock.
+import { configAdminPorts, configuredAdminPorts, memoryAdminPorts } from "../modules/admin.js";
 import { ruleBarrierPorts } from "../modules/barrier.js";
-import { memoryCatalogPorts } from "../modules/catalog.js";
-import { configDecisionPorts, memoryDecisionPorts } from "../modules/decision.js";
-import { configExperimentPorts, memoryAssignmentPorts } from "../modules/experiment.js";
+import { configuredCatalogPorts, memoryCatalogPorts } from "../modules/catalog.js";
+import { memoryConfigurationPorts } from "../modules/configuration.js";
+import { configuredDecisionPorts, memoryDecisionPorts } from "../modules/decision.js";
+import { configuredExperimentPorts, memoryExperimentPorts } from "../modules/experiment.js";
 import { memoryIngestionPorts } from "../modules/ingestion.js";
 import { memoryLedgerPorts } from "../modules/ledger.js";
-import { configMerchantPorts } from "../modules/merchant.js";
+import { memoryMerchantPorts } from "../modules/merchant.js";
 import { memoryOutcomesPorts } from "../modules/outcomes.js";
 import { localKernelPorts } from "../modules/shared-kernel.js";
 import { binder, type Profile } from "../profile.js";
 
 export const localProfile: Profile = (config, overrides) => {
   const { bind, closables } = binder(overrides);
-  const kernel = bind(localKernelPorts);
+  const { platform } = config.levels;
+  const kernel = bind(localKernelPorts(platform));
+  const merchant = bind(memoryMerchantPorts(platform));
+  const configuration = bind(memoryConfigurationPorts(config.levels));
   const ports = {
     ...kernel,
-    ...bind(configMerchantPorts(config.merchants.map((m) => m.merchant))),
-    ...bind(configExperimentPorts(config.merchants)),
-    ...bind(memoryAssignmentPorts),
-    ...bind(memoryIngestionPorts(kernel.clock)),
+    ...merchant,
+    ...configuration,
+    ...bind(memoryExperimentPorts()),
+    ...bind(configuredExperimentPorts(() => configuration.configuration)),
+    ...bind(memoryIngestionPorts(kernel.clock, platform)),
     ...bind(memoryLedgerPorts),
     ...bind(memoryCatalogPorts),
+    ...bind(configuredCatalogPorts(() => configuration.configuration)),
     ...bind(ruleBarrierPorts),
-    ...bind(configDecisionPorts(config.merchants)),
-    ...bind(memoryDecisionPorts(kernel.clock)),
+    ...bind(
+      configuredDecisionPorts(
+        () => configuration.configuration,
+        () => merchant.merchantStore,
+      ),
+    ),
+    ...bind(memoryDecisionPorts(kernel.clock, platform)),
     ...bind(memoryOutcomesPorts),
+    ...bind(configAdminPorts(config.operators)),
+    ...bind(memoryAdminPorts(platform)),
+    ...bind(configuredAdminPorts(() => configuration.configuration)),
   };
   return { ports, closables };
 };

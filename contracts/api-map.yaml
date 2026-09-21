@@ -29,7 +29,18 @@ consumers:
   admin:
     securityScheme: adminToken
     tags: [admin]
-    capabilities: [merchants:write, credentials:rotate, experiments:write, flags:write, messages:publish]
+    capabilities:
+      [
+        merchants:read,
+        merchants:write,
+        credentials:rotate,
+        configuration:read,
+        configuration:write,
+        experiments:read,
+        experiments:write,
+        log:read,
+        messages:publish,
+      ]
 features:
   "010": Catalogue and stock
   "011": Decision plane I — barrier and evidence
@@ -79,7 +90,7 @@ operations:
     tag: ingest
     capabilities: [config:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#3
   - operationId: reportAnchorDiagnostics
     method: post
@@ -88,7 +99,7 @@ operations:
     tag: ingest
     capabilities: [diagnostics:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: corroborateOrder
     method: post
@@ -176,9 +187,9 @@ operations:
     path: /v1/admin/merchants
     consumer: admin
     tag: admin
-    capabilities: [merchants:write]
+    capabilities: [merchants:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: createMerchant
     method: post
@@ -187,7 +198,7 @@ operations:
     tag: admin
     capabilities: [merchants:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.1
   - operationId: rotateIngestKey
     method: post
@@ -196,7 +207,7 @@ operations:
     tag: admin
     capabilities: [credentials:rotate]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/014-protocolo-del-sdk.md
   - operationId: rotatePlatformKey
     method: post
@@ -205,7 +216,7 @@ operations:
     tag: admin
     capabilities: [credentials:rotate]
     feature: "017"
-    status: planned
+    status: built
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
   - operationId: createExperiment
     method: post
@@ -214,7 +225,7 @@ operations:
     tag: admin
     capabilities: [experiments:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#4.1
   - operationId: closeExperiment
     method: post
@@ -223,26 +234,134 @@ operations:
     tag: admin
     capabilities: [experiments:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
-  - operationId: putFlags
-    method: put
-    path: /v1/admin/merchants/{merchantId}/flags
+  - operationId: publishMerchantConfiguration
+    method: post
+    path: /v1/admin/merchants/{merchantId}/configuration
     consumer: admin
     tag: admin
-    capabilities: [flags:write]
+    capabilities: [configuration:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: setKillSwitch
     method: put
     path: /v1/admin/merchants/{merchantId}/kill-switch
     consumer: admin
     tag: admin
-    capabilities: [flags:write]
+    capabilities: [merchants:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: getMerchant
+    method: get
+    path: /v1/admin/merchants/{merchantId}
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:read]
+    feature: "017"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#14.1
+  - operationId: deactivateMerchant
+    method: post
+    path: /v1/admin/merchants/{merchantId}/deactivate
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:write]
+    feature: "017"
+    status: built
+    source: specs/017-merchants-y-configuracion/spec.md
+  - operationId: rotatePlatformSecret
+    method: post
+    path: /v1/admin/merchants/{merchantId}/platform-secrets
+    consumer: admin
+    tag: admin
+    capabilities: [credentials:rotate]
+    feature: "017"
+    status: built
+    source: docs/adr/029-firma-de-plataforma.md
+  - operationId: getMerchantConfiguration
+    method: get
+    path: /v1/admin/merchants/{merchantId}/configuration
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    feature: "017"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: listConfigurationVersions
+    method: get
+    path: /v1/admin/merchants/{merchantId}/configuration/versions
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    feature: "017"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: listExperiments
+    method: get
+    path: /v1/admin/merchants/{merchantId}/experiments
+    consumer: admin
+    tag: admin
+    capabilities: [experiments:read]
+    feature: "017"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#4.1
+  - operationId: activateExperiment
+    method: post
+    path: /v1/admin/merchants/{merchantId}/experiments/{experimentId}/activate
+    consumer: admin
+    tag: admin
+    capabilities: [experiments:write]
+    feature: "017"
+    status: built
+    source: mvp:03-alcance-mvp.md#4.10
+  - operationId: getPlatformConfiguration
+    method: get
+    path: /v1/admin/platform-configuration
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    feature: "017"
+    status: built
+    source: constitucion#XI
+  - operationId: getTreatmentDefaults
+    method: get
+    path: /v1/admin/treatment-defaults
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    feature: "017"
+    status: built
+    source: constitucion#XI
+  - operationId: listAdminLog
+    method: get
+    path: /v1/admin/log
+    consumer: admin
+    tag: admin
+    capabilities: [log:read]
+    feature: "017"
+    status: built
+    source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
+  - operationId: listMerchantAdminLog
+    method: get
+    path: /v1/admin/merchants/{merchantId}/log
+    consumer: admin
+    tag: admin
+    capabilities: [log:read]
+    feature: "017"
+    status: built
+    source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
+  - operationId: listAnchorDiagnostics
+    method: get
+    path: /v1/admin/merchants/{merchantId}/anchor-diagnostics
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:read]
+    feature: "017"
+    status: built
+    source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: publishMessageCatalog
     method: post
     path: /v1/admin/merchants/{merchantId}/message-catalog

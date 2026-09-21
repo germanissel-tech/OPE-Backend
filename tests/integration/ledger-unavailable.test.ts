@@ -34,6 +34,7 @@ const intervene = (): Decision =>
     {
       decisionId: asDecisionId("dec_intervene1"),
       merchantId: asMerchantId("m_a"),
+      configuration: { platform: "platform-1", defaults: "defaults-1" },
       sessionId: asSessionId("ses_00000001"),
       visitorId: asVisitorId("vis_00000001"),
       decidedAt: new Date(NOW),

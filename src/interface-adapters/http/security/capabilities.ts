@@ -5,6 +5,17 @@
 export const CONSUMER_CAPABILITIES = {
   sdk: ["events:write", "config:read", "diagnostics:write", "orders:corroborate"],
   platform: ["orders:write", "returns:write", "catalog:write"],
+  admin: [
+    "merchants:read",
+    "merchants:write",
+    "credentials:rotate",
+    "configuration:read",
+    "configuration:write",
+    "experiments:read",
+    "experiments:write",
+    "log:read",
+    "messages:publish",
+  ],
 } as const;
 
 export type Consumer = keyof typeof CONSUMER_CAPABILITIES;

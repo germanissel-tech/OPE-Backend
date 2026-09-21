@@ -11,4 +11,4 @@ uso: disponible
 
 > `merchantId` MUST derivarse siempre de la credencial autenticada. MUST NOT tomarse del body, la query ni el path.
 
-Clave **pública** por merchant que viaja en el tag (`X-OPE-Ingest-Key`): identifica al merchant, no autentica al visitante. Hasta dos activas para rotar. Distinta de las credenciales del portal. Se usa como header, no como sustantivo del contrato.
+Clave **pública** por merchant que viaja en el tag (`X-OPE-Ingest-Key`): identifica al merchant, no autentica al visitante. Hasta dos activas para rotar. Distinta de las credenciales del portal. Se usa como header, no como sustantivo del contrato. Desde la feature 017 la acuña OPE al crear el merchant o al rotarla (`POST …/ingest-keys`, con gracia para la anterior), se entrega una sola vez y se guarda por huella (ver `credencial`).

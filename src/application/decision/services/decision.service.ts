@@ -12,14 +12,14 @@
 import { FactContext, Signals, type ProductFacts } from "../../../domain/barrier/index.js";
 import { asProductId, asVariantId } from "../../../domain/catalog/index.js";
 import { CANDIDATES, QualityGate, type GateEvidence, type Judged } from "../../../domain/selection/index.js";
-import { VISITOR_WINDOW } from "../policies/visitor-window.js";
 import type { StateService } from "./state.service.js";
 import type { CommercialVerdict, Trigger } from "../../../domain/commercial/index.js";
-import type { SessionState, TruthSummary, VisitorState } from "../../../domain/decision/index.js";
+import type { SessionState, TruthSummary } from "../../../domain/decision/index.js";
 import type { ProductFocus } from "../../../domain/ingestion/index.js";
 import type {
   Decision,
   DecisionInference,
+  DecisionPhase,
   DecisionSelection,
   EvidenceRecord,
 } from "../../../domain/ledger/index.js";
@@ -41,6 +41,9 @@ export interface DecisionServiceDependencies {
 }
 
 const PAGE_CONTEXT_INCOMPLETE: NoOpReason = "page-context-incomplete";
+const MERCHANT_OFF: NoOpReason = "merchant-off";
+/** The phase a decision records while the experiment calibrates (03 §4.10). */
+const CALIBRATION: DecisionPhase = "calibration";
 
 /** The product truth of the focus as the authorities need it: facts for the rules, a summary for the barrier verdict, evidence for the gate, a record for the ledger. */
 interface Evidence {
@@ -54,7 +57,7 @@ interface Evidence {
 interface Context {
   policies: MerchantPolicies;
   session: SessionState;
-  visitor: VisitorState;
+  visitorInterventions: number;
   arm?: Arm;
   evidence: Evidence;
   now: Date;
@@ -78,14 +81,21 @@ export class DecisionService implements DecisionPlane {
     const { assignment, policies, state: memory, recorder } = this.#deps;
     const { sessionId, visitorId } = batch;
     const whose = { merchantId, sessionId, visitorId };
-    const facts: DecisionFactsInput = { ...whose, decidedAt: now };
+    // The versions the decision is taken with come first: every outcome stamps them (01 §14.2).
+    const merchant = await policies.policiesFor(merchantId);
+    const facts: DecisionFactsInput = { ...whose, decidedAt: now, configuration: merchant.versions };
+
+    // The kill switch comes before the assignment: off, nothing is assigned, nothing is consumed.
+    if (!merchant.enabled) return recorder.record(facts, { kind: "no-op", reason: MERCHANT_OFF });
 
     const assigned = await assignment.assign(merchantId, visitorId);
     if (!assigned.ok) return recorder.unrecorded(facts, "assignment not recorded");
-    if (assigned.value)
-      facts.experiment = { experimentId: assigned.value.experimentId, arm: assigned.value.arm };
+    if (assigned.value) {
+      const { assignment, phase } = assigned.value;
+      facts.experiment = { experimentId: assignment.experimentId, arm: assignment.arm };
+      if (phase === CALIBRATION) facts.phase = CALIBRATION;
+    }
 
-    const merchant = await policies.policiesFor(merchantId);
     const remembered = await memory.recall(whose, now);
     const session = remembered.session.absorb(Signals.of(batch.events), now);
 
@@ -93,11 +103,11 @@ export class DecisionService implements DecisionPlane {
     let outcome: DecisionOutcomeInput = { kind: "no-op", reason: PAGE_CONTEXT_INCOMPLETE };
     if (focus !== undefined) {
       if (focus.locale !== undefined) facts.locale = focus.locale;
-      const arm = assigned.value?.arm;
+      const arm = assigned.value?.assignment.arm;
       const judged = await this.#judge({
         policies: merchant,
         session,
-        visitor: remembered.visitor,
+        visitorInterventions: remembered.visitorInterventions,
         evidence: await this.#evidence(merchantId, focus),
         now,
         ...(arm === undefined ? {} : { arm }),
@@ -111,24 +121,21 @@ export class DecisionService implements DecisionPlane {
     await memory.remember(
       whose,
       decision.isIntervention()
-        ? {
-            session: session.withIntervention(now),
-            visitor: remembered.visitor.withIntervention(now, VISITOR_WINDOW.ttlMs),
-          }
+        ? { session: session.withIntervention(now), intervention: { visitor: remembered.visitor, at: now } }
         : { session },
     );
     return decision;
   }
 
   /** Inference → barrier verdict → selection with the gate → commercial verdict; the ledger gets how it was reasoned. */
-  async #judge({ policies, session, visitor, arm, evidence, now }: Context): Promise<Judgement> {
-    const { decision, commercial, profile } = policies;
+  async #judge({ policies, session, visitorInterventions, arm, evidence, now }: Context): Promise<Judgement> {
+    const { decision, commercial, profile, barriers } = policies;
     const inference = await this.#deps.inference.infer({
       rules: decision.rules,
       signals: session.signals,
       product: evidence.product,
     });
-    const settled = decision.barrierVerdict({ inference, truth: evidence.truth });
+    const settled = decision.barrierVerdict({ inference, truth: evidence.truth, active: barriers });
     const abandoned = session.abandoned();
     const barrier = commercial.fallbackBarrier(settled.barrier, abandoned);
     const trigger = triggerOf(settled.barrier, barrier);
@@ -156,7 +163,7 @@ export class DecisionService implements DecisionPlane {
           ? {}
           : { lastInterventionAt: session.lastInterventionAt }),
       },
-      visitorInterventions: visitor.countSince(now, VISITOR_WINDOW.ttlMs),
+      visitorInterventions,
       now,
     });
     return {

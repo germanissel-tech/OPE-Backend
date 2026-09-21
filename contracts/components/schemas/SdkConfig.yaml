@@ -1,0 +1,28 @@
+type: object
+description: "What the SDK of a merchant needs to run (01 §3.1.1, feature 017): whether OPE is on,
+  the versions in force, the surfaces, the languages and the anchor map. Never a policy, a margin,
+  a ladder, a split, an arm nor an experiment: what the constitution reserves to the backend stays
+  there. It changes on the next request (`Cache-Control: no-store`)."
+additionalProperties: false
+required:
+  - enabled
+  - versions
+  - surfaces
+  - locales
+properties:
+  enabled:
+    type: boolean
+    description: "The kill switch (01 §14.2): `false` and the SDK may stay silent without calling the ingestion."
+  versions:
+    $ref: ./ConfigurationVersions.yaml
+  surfaces:
+    type: array
+    description: Page types where OPE may intervene.
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: ./Surface.yaml
+  locales:
+    $ref: ./Locales.yaml
+  anchors:
+    $ref: ./AnchorMap.yaml

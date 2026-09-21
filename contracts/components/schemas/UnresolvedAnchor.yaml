@@ -1,0 +1,11 @@
+type: object
+description: "An anchor of the merchant's map the SDK could not resolve on a page type (01 §3.1.1): the anchor and the page type, nothing of the page nor of the person."
+additionalProperties: false
+required:
+  - anchor
+  - pageType
+properties:
+  anchor:
+    $ref: ./Anchor.yaml
+  pageType:
+    $ref: ./PageType.yaml

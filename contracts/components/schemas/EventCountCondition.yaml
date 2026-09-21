@@ -1,0 +1,26 @@
+type: object
+description: Holds when the session carries at least `min` events of the type.
+additionalProperties: false
+required:
+  - fact
+  - type
+  - min
+properties:
+  fact:
+    type: string
+    description: The fact this condition judges.
+    enum:
+      - eventCount
+  type:
+    type: string
+    description: Event type of the SDK vocabulary.
+    maxLength: 64
+  subtype:
+    type: string
+    description: Subtype when the event type has one.
+    maxLength: 64
+  min:
+    type: integer
+    description: Least number of events.
+    minimum: 1
+    maximum: 1000

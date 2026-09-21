@@ -1,0 +1,7 @@
+type: object
+description: "Holds when the condition does not."
+additionalProperties: false
+required: [not]
+properties:
+  not:
+    $ref: ./NestedCondition.yaml

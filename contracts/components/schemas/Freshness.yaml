@@ -1,0 +1,17 @@
+type: object
+description: Freshness budgets by class of datum (01 §8, ADR-025), measured from `capturedAt`.
+additionalProperties: false
+required:
+  - catalogMs
+  - stockAndPriceMs
+properties:
+  catalogMs:
+    type: integer
+    description: Milliseconds since `capturedAt` beyond which the snapshot holds no truth at all.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceMs:
+    type: integer
+    description: Milliseconds since `capturedAt` beyond which availability and price no longer sustain a claim.
+    minimum: 1
+    maximum: 31536000000

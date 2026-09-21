@@ -3,8 +3,8 @@
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Experiment } from "../../src/domain/experiment/index.js";
-import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import { asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import { testExperiment } from "../helpers/experiments.js";
 import {
   batchOf,
   catalogProductOf,
@@ -109,13 +109,10 @@ describe("latency of POST /v1/events (local profile)", () => {
 
   it("the latency does not differ between arms (constitution III: the same pipeline for CONTROL and TREATMENT)", async () => {
     // Merchant A of the test app assigns 100 % to TREATMENT; a 50/50 experiment picks one visitor per arm.
-    const experiment = Experiment.rehydrate({
-      experimentId: asExperimentId("exp_lat_00001"),
-      merchantId: asMerchantId("m_a"),
+    const experiment = testExperiment({
+      experimentId: "exp_lat_00001",
       treatmentShare: 0.5,
       seed: "seed-lat",
-      status: "active",
-      startedAt: new Date(),
     });
     const armApp = await startTestApp(
       { ports: { clock: fixedClock() } },
@@ -131,7 +128,7 @@ describe("latency of POST /v1/events (local profile)", () => {
                 treatmentPercent: 50,
                 seed: "seed-lat",
                 status: "active",
-                startedAt: "2026-09-17T00:00:00Z",
+                openedAt: "2026-09-17T00:00:00Z",
               },
             ],
           },

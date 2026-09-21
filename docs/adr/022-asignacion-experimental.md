@@ -25,8 +25,10 @@ vive el experimento y qué ve el SDK.
    desviación < 0,3 pp del reparto, independencia entre merchants ≈ 50 %.
 2. **Experimento por configuración** (esta feature): `experiments` dentro de la configuración
    del merchant (`experimentId`, `treatmentPercent` 0..100 con 50 por defecto, `seed`,
-   `status` active|closed, `startedAt`); como máximo uno activo por merchant, validado
-   fail-closed al arrancar. **Semilla y reparto son inmutables**: cambiarlos es un experimento
+   `status`, `openedAt`); como máximo uno abierto por merchant, validado
+   fail-closed al arrancar. Desde la feature 017 (ADR-031) el experimento lo abre, activa y
+   cierra la administración (`calibrating → active → closed`) y la semilla es sólo el arranque
+   de un store vacío. **Semilla y reparto son inmutables**: cambiarlos es un experimento
    nuevo con otro identificador. Si el brazo calculado difiere del registrado, gana el
    registrado y se loguea `assignment-drift` como error operativo. La **política de decisión**
    del merchant es parte del experimento con la misma regla (ADR-026): cambiarla con un
@@ -51,3 +53,8 @@ vive el experimento y qué ve el SDK.
 - Holdout (DECIDIDO, ADR-026): todo merchant conserva un grupo de control mínimo,
   `holdoutPercent` con 5 % por defecto; `treatmentPercent ≤ 100 − holdout`. El tope se aplica
   con la configuración por API (feature "Configuration, flags, kill switch and administration").
+- Precisión (feature 017, 2026-09-20; ADR-031): el experimento tiene tres estados —
+  `calibrating` (se asigna y se decide; las decisiones se marcan y no cuentan), `active` (la
+  ventana de acumulación empieza al activarlo y la configuración queda congelada) y `closed`
+  (terminal)—; lo abre, activa y cierra un operador por la API de administración; como máximo
+  uno abierto por merchant. El holdout se aplica al abrir un experimento por API.

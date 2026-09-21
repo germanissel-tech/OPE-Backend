@@ -2,6 +2,10 @@ type: http
 scheme: bearer
 bearerFormat: opaque
 description: |
-  PROPOSED — Token of an OPE operator (ADR-020). It belongs to no merchant: admin operations
-  name the merchant they act on in the path, the single exception to "merchantId never in the
-  request" (constitution V, amendment). Issued out of band; audited.
+  Token of an operator of OPE (ADR-020, ADR-031). One token per operator, never shared: issued
+  out of band (`scripts/mint-admin-token.mjs`), stored by fingerprint only, rotatable (up to two
+  live), with an explicit scope — every merchant or a list. It belongs to no merchant: admin
+  operations name the merchant they act on in the path, the single exception to "merchantId
+  never in the request" (constitution V). A merchant outside the operator's scope answers
+  `403 merchant-out-of-scope` without revealing whether it exists. Every action is written to
+  the admin log with the operator identifier (never a personal datum).

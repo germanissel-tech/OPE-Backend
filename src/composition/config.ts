@@ -1,28 +1,50 @@
 // Application configuration: the only thing main.ts reads from the environment. It parses the
 // shape of what it reads; the business rules belong to the domain (ADR-024): merchants and
-// experiments are built by their factories and a rejected one stops the start naming the
-// field. No built-in merchants: a server nobody configured authenticates nobody (fail-closed).
+// experiments are judged by their factories and a rejected one stops the start naming the
+// field. Since feature 017 (ADR-031) the merchants are a seed: what an empty store imports at
+// start-up through the same use case as the API, with the credentials in the clear the seed
+// brings, and what it declares of its configuration is its version 1. The two levels of the
+// release (constitution XI) are read from their files and judged by their factories. No
+// built-in merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
-import { Experiment, Experiments } from "../domain/experiment/index.js";
+import {
+  DECLARED_CONFIGURATION_KEYS,
+  readDeclaredConfiguration,
+  readPlatformConfiguration,
+  readTreatmentDefaults,
+} from "../application/configuration/index.js";
+import { Experiment, Experiments, type ExperimentStatus } from "../domain/experiment/index.js";
 import { Merchant } from "../domain/merchant/index.js";
-import { asExperimentId, asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
-import { parseCommercialPolicy, parseEvidenceProfile } from "./commercial-policy-config.js";
+import {
+  asExperimentId,
+  asMerchantId,
+  type DomainError,
+  type MerchantId,
+} from "../domain/shared-kernel/index.js";
 import { ConfigError, type MerchantField, type Variable } from "./config-error.js";
-import { parseDecisionPolicy } from "./decision-policy-config.js";
-import type { CommercialPolicy } from "../domain/commercial/index.js";
-import type { DecisionPolicy } from "../domain/decision/index.js";
-import type { MerchantProfile } from "../domain/selection/index.js";
+import { readOperators } from "./operators-config.js";
+import type { MerchantSeed } from "../application/merchant/index.js";
+import type {
+  DeclaredConfiguration,
+  InvalidConfigurationValue,
+  PlatformConfiguration,
+  TreatmentDefaults,
+} from "../domain/configuration/index.js";
+import type { Operator } from "../domain/operator/index.js";
 
-/** A merchant as configured: the entity and its experiments (the set judged by its owner, ADR-022). */
+/** A merchant as configured: its seed (judged by the entity, imported at start-up) and its experiments (the set judged by its owner, ADR-022). */
 export interface MerchantConfig {
-  merchant: Merchant;
+  merchantId: MerchantId;
+  seed: MerchantSeed;
   experiments: Experiments;
-  /** The merchant's decision policy (ADR-026); absent means the default one. */
-  decisionPolicy?: DecisionPolicy;
-  /** The merchant's commercial policy (ADR-027); absent means the default one. */
-  commercialPolicy?: CommercialPolicy;
-  /** What the merchant declares it can sustain (ADR-027); absent means nothing. */
-  evidenceProfile?: MerchantProfile;
+  /** What the seed declares of the configuration (ADR-031): the version 1 of the merchant; empty when nothing. */
+  declared: DeclaredConfiguration;
+}
+
+/** The two levels of the release (constitution XI), judged by their factories. */
+export interface ReleaseLevels {
+  platform: PlatformConfiguration;
+  defaults: TreatmentDefaults;
 }
 
 export interface AppConfig {
@@ -30,19 +52,21 @@ export interface AppConfig {
   host: string;
   contractPath: string;
   merchants: MerchantConfig[];
+  /** The operators of OPE (ADR-031); none configured means nobody administers. */
+  operators: Operator[];
+  levels: ReleaseLevels;
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
 const DEFAULT_PORT = 3000;
 /** `PORT=0` asks the OS for a free port (tests); 65535 is the last TCP port. */
 const MAX_PORT = 65535;
-/** One active key, or two during a rotation (ADR-014). */
-const DEFAULT_TREATMENT_PERCENT = 50;
 /** Percentages live only here, at the edge: the domain works with rates 0..1. */
 const PERCENT = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const ACTIVE = "active";
-const EXPERIMENT_STATUSES = [ACTIVE, "closed"];
+const EXPERIMENT_STATUSES: readonly ExperimentStatus[] = ["calibrating", "active", "closed"];
+const isExperimentStatus = (value: unknown): value is ExperimentStatus =>
+  typeof value === "string" && (EXPERIMENT_STATUSES as readonly string[]).includes(value);
 const NOT_AN_OBJECT = "is not an object";
 const NON_EMPTY_STRING = "must be a non-empty string";
 const STRING_ARRAY = "must be an array of strings";
@@ -56,7 +80,49 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     host: text(env, "HOST") ?? "127.0.0.1",
     contractPath: path.resolve(text(env, "OPE_CONTRACT") ?? "contracts/dist/openapi.yaml"),
     merchants: readMerchants(env, readFile),
+    operators: readOperators(env, readFile),
+    levels: readLevels(env, readFile),
   };
+}
+
+/** The files of the release that hold the platform configuration and the treatment defaults. */
+const PLATFORM_FILE = "config/platform.json";
+const TREATMENT_DEFAULTS_FILE = "config/treatment-defaults.json";
+
+/** `OPE_PLATFORM_CONFIG` and `OPE_TREATMENT_DEFAULTS` name the files; the ones of the repository otherwise. */
+function readLevels(env: NodeJS.ProcessEnv, readFile: (file: string) => string): ReleaseLevels {
+  const platform = readPlatformConfiguration(
+    parseJson(
+      "OPE_PLATFORM_CONFIG",
+      readFile(path.resolve(text(env, "OPE_PLATFORM_CONFIG") ?? PLATFORM_FILE)),
+    ),
+  );
+  if (!platform.ok) throw levelError("platform", platform.error);
+  const defaults = readTreatmentDefaults(
+    parseJson(
+      "OPE_TREATMENT_DEFAULTS",
+      readFile(path.resolve(text(env, "OPE_TREATMENT_DEFAULTS") ?? TREATMENT_DEFAULTS_FILE)),
+    ),
+  );
+  if (!defaults.ok) throw levelError("treatmentDefaults", defaults.error);
+  return { platform: platform.value, defaults: defaults.value };
+}
+
+/** A value of a level the domain refuses: the field, prefixed by the level, and the rule. */
+function levelError(level: "platform" | "treatmentDefaults", error: InvalidConfigurationValue): ConfigError {
+  const { pointer, problem } = error.details;
+  return new ConfigError(`${level}.${String(pointer)}`, `is invalid (${String(problem)})`);
+}
+
+function parseJson(variable: Variable, raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new ConfigError(
+      variable,
+      `is not valid JSON (${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
 }
 
 /** A variable set to blank counts as unset: nothing here means "empty string". */
@@ -87,12 +153,41 @@ function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) => strin
 
 /**
  * A domain error of a factory becomes a configuration error naming the field: the rule is the
- * domain's; the location is the configuration's.
+ * domain's; the location is the configuration's. The entity judges the credentials as one
+ * list (ingest, then platform, then signing): the index is translated back to the seed's field.
  */
-function rejected(at: MerchantField, error: DomainError): ConfigError {
+function rejected(at: MerchantField, error: DomainError, seed?: MerchantSeed): ConfigError {
+  const field = FIELD_BY_CODE[error.code] ?? "";
   const position = error.details[INDEX_DETAIL];
-  const index = typeof position === "number" ? `[${position}]` : "";
-  return new ConfigError(`${at}${FIELD_BY_CODE[error.code] ?? ""}${index}`, `is invalid (${error.message})`);
+  const offset = seed === undefined ? 0 : credentialOffset(field, seed);
+  const index = typeof position === "number" ? `[${position - offset}]` : "";
+  return new ConfigError(`${at}${field}${index}`, `is invalid (${error.message})`);
+}
+
+/** Where each credential field starts in the list the entity judges. */
+function credentialOffset(field: ConfiguredField | "", seed: MerchantSeed): number {
+  if (field === ".platformKeys") return seed.ingestKeys.length;
+  if (field === ".platformSecrets") return seed.ingestKeys.length + seed.platformKeys.length;
+  return 0;
+}
+
+/**
+ * The rules of the merchant, applied to the seed at start-up so a bad one stops the start
+ * naming the field; the raw keys stand in for fingerprints (the import fingerprints them).
+ */
+function judgeSeed(seed: MerchantSeed): DomainError | undefined {
+  const at = new Date(0);
+  const judged = Merchant.of({
+    merchantId: asMerchantId(seed.merchantId),
+    origins: seed.origins,
+    credentials: [
+      ...seed.ingestKeys.map((k) => Merchant.credential("ingest", k, at)),
+      ...seed.platformKeys.map((k) => Merchant.credential("platform", k, at)),
+      ...seed.platformSecrets.map((s) => Merchant.credential("signing", s, at, s)),
+    ],
+    createdAt: at,
+  });
+  return judged.ok ? undefined : judged.error;
 }
 
 /** The detail a domain error uses to name the offending element of a list. */
@@ -106,7 +201,9 @@ type ConfiguredField =
   | ".origins"
   | ".platformKeys"
   | ".platformSecrets"
-  | ".experiments";
+  | ".experiments"
+  | ".targetSample"
+  | ".cuts";
 
 /** Which configured field each domain error points at (`[index]` is appended when the error names one). */
 const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
@@ -119,21 +216,15 @@ const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "platform-key-collision": ".platformKeys",
   "invalid-platform-secrets": ".platformSecrets",
   "invalid-platform-secret": ".platformSecrets",
-  "multiple-active-experiments": ".experiments",
+  "experiment-already-open": ".experiments",
   "duplicate-experiment-id": ".experiments",
+  "invalid-target-sample": ".targetSample",
+  "invalid-experiment-cuts": ".cuts",
 };
 
 /** Parses the shape (an array of merchants with an id and lists of strings); the rules are the Merchant's. */
 function parseMerchants(raw: string): MerchantConfig[] {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new ConfigError(
-      "OPE_MERCHANTS",
-      `is not valid JSON (${err instanceof Error ? err.message : String(err)})`,
-    );
-  }
+  const parsed = parseJson("OPE_MERCHANTS", raw);
   if (!Array.isArray(parsed)) throw new ConfigError("OPE_MERCHANTS", "must be a JSON array of merchants");
   return parsed.map((item: unknown, i) => {
     if (typeof item !== "object" || item === null) throw new ConfigError(`merchants[${i}]`, NOT_AN_OBJECT);
@@ -152,57 +243,56 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (!isStringArray(platformSecrets)) {
       throw new ConfigError(`merchants[${i}].platformSecrets`, STRING_ARRAY);
     }
-    const merchant = Merchant.of({
-      merchantId: asMerchantId(merchantId),
-      ingestKeys,
-      origins,
-      platformKeys,
-      platformSecrets,
-    });
-    if (!merchant.ok) throw rejected(`merchants[${i}]`, merchant.error);
-    const experiments = parseExperiments(m["experiments"], i, merchant.value);
-    return { merchant: merchant.value, experiments, ...policiesOf(m, i) };
+    const seed: MerchantSeed = { merchantId, ingestKeys, origins, platformKeys, platformSecrets };
+    const judged = judgeSeed(seed);
+    if (judged !== undefined) throw rejected(`merchants[${i}]`, judged, seed);
+    const experiments = parseExperiments(m["experiments"], i, asMerchantId(merchantId));
+    return { merchantId: asMerchantId(merchantId), seed, experiments, declared: declaredOf(m, i) };
   });
 }
 
-/** The optional policies of a merchant, each parsed only when present (absent means its default). */
-function policiesOf(m: Record<string, unknown>, i: number): Partial<MerchantConfig> {
-  const policies: Partial<MerchantConfig> = {};
-  const decision = m["decisionPolicy"];
-  if (decision !== undefined)
-    policies.decisionPolicy = parseDecisionPolicy(decision, `merchants[${i}].decisionPolicy`);
-  const commercial = m["commercialPolicy"];
-  if (commercial !== undefined) {
-    policies.commercialPolicy = parseCommercialPolicy(commercial, `merchants[${i}].commercialPolicy`);
+/** What the seed declares of the configuration, read by the same reader as the API (the shape); its values are judged at the import. */
+function declaredOf(m: Record<string, unknown>, i: number): DeclaredConfiguration {
+  const raw = Object.fromEntries(
+    DECLARED_CONFIGURATION_KEYS.filter((key) => m[key] !== undefined).map((key) => [key, m[key]]),
+  );
+  const declared = readDeclaredConfiguration(raw, `merchants[${i}]`);
+  if (!declared.ok) {
+    const { pointer, problem } = declared.error.details;
+    throw new ConfigError(String(pointer) as MerchantField, `is invalid (${String(problem)})`);
   }
-  const profile = m["evidenceProfile"];
-  if (profile !== undefined)
-    policies.evidenceProfile = parseEvidenceProfile(profile, `merchants[${i}].evidenceProfile`);
-  return policies;
+  return declared.value;
 }
 
 /** Experiments of a merchant: optional list; each built by its factory, the set judged by its owner (ADR-022). */
-function parseExperiments(raw: unknown, merchantIndex: number, merchant: Merchant): Experiments {
+function parseExperiments(raw: unknown, merchantIndex: number, merchantId: MerchantId): Experiments {
   const at: MerchantField = `merchants[${merchantIndex}].experiments`;
   if (raw === undefined) return Experiments.rehydrate([]);
   if (!Array.isArray(raw)) throw new ConfigError(at, "must be an array of experiments");
   const experiments = Experiments.of(
     raw.map((item: unknown, j) =>
-      parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`, merchant),
+      parseExperiment(item, `merchants[${merchantIndex}].experiments[${j}]`, merchantId),
     ),
   );
   if (!experiments.ok) throw rejected(`merchants[${merchantIndex}]`, experiments.error);
   return experiments.value;
 }
 
-function parseExperiment(item: unknown, at: MerchantField, merchant: Merchant): Experiment {
+/**
+ * An experiment of the seed: opened at `openedAt` with its split, seed, target sample and cuts,
+ * then moved to the declared status at that same instant (active: the window starts there;
+ * closed: closed there). The seed is the origin: the holdout does not judge it.
+ */
+function parseExperiment(item: unknown, at: MerchantField, merchantId: MerchantId): Experiment {
   if (typeof item !== "object" || item === null) throw new ConfigError(at, NOT_AN_OBJECT);
   const e = item as Record<string, unknown>;
   const experimentId = e["experimentId"];
   const seed = e["seed"];
   const status = e["status"];
-  const startedAt = e["startedAt"];
-  const treatmentPercent = e["treatmentPercent"] ?? DEFAULT_TREATMENT_PERCENT;
+  const openedAt = e["openedAt"];
+  const treatmentPercent = e["treatmentPercent"];
+  const targetSample = e["targetSample"];
+  const cuts = e["cuts"] ?? [];
   if (typeof experimentId !== "string" || !ID_PATTERN.test(experimentId)) {
     throw new ConfigError(`${at}.experimentId`, "must match ^[A-Za-z0-9_-]{8,64}$");
   }
@@ -211,22 +301,40 @@ function parseExperiment(item: unknown, at: MerchantField, merchant: Merchant): 
     throw new ConfigError(`${at}.treatmentPercent`, "must be an integer percentage");
   }
   if (typeof seed !== "string") throw new ConfigError(`${at}.seed`, NON_EMPTY_STRING);
-  if (typeof status !== "string" || !EXPERIMENT_STATUSES.includes(status)) {
+  if (typeof targetSample !== "number") throw new ConfigError(`${at}.targetSample`, "must be a number");
+  if (!isNumberArray(cuts)) throw new ConfigError(`${at}.cuts`, "must be an array of numbers");
+  if (!isExperimentStatus(status)) {
     throw new ConfigError(`${at}.status`, `must be one of ${EXPERIMENT_STATUSES.join(", ")}`);
   }
-  if (typeof startedAt !== "string" || Number.isNaN(Date.parse(startedAt))) {
-    throw new ConfigError(`${at}.startedAt`, "must be an RFC 3339 date-time");
+  if (typeof openedAt !== "string" || Number.isNaN(Date.parse(openedAt))) {
+    throw new ConfigError(`${at}.openedAt`, "must be an RFC 3339 date-time");
   }
+  const opened = new Date(openedAt);
   const experiment = Experiment.of({
     experimentId: asExperimentId(experimentId),
-    merchantId: merchant.merchantId,
+    merchantId,
     treatmentShare: Number(treatmentPercent) / PERCENT,
     seed,
-    status: status === ACTIVE ? "active" : "closed",
-    startedAt: new Date(startedAt),
+    targetSample,
+    cuts,
+    openedAt: opened,
   });
   if (!experiment.ok) throw rejected(at, experiment.error);
-  return experiment.value;
+  return moved(experiment.value, status, opened);
+}
+
+/** The experiment in the status the seed declares, as of its opening. */
+function moved(experiment: Experiment, status: ExperimentStatus, at: Date): Experiment {
+  if (status === "closed") return experiment.closed(at);
+  if (status === "calibrating") return experiment;
+  const activated = experiment.activated(at);
+  // A calibrating experiment always activates: the entity was just built.
+  if (!activated.ok) throw new Error("A calibrating experiment could not be activated.");
+  return activated.value;
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "number");
 }
 
 function isStringArray(value: unknown): value is string[] {

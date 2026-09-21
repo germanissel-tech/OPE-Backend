@@ -29,8 +29,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -50,7 +50,7 @@ describe("PUT /v1/catalog", () => {
   });
 
   it("a store that cannot keep the snapshot → 503 ledger-unavailable with Retry-After, nothing replaced (F-044, ADR-021)", async () => {
-    app.resetPorts({ ports: { catalog: unavailableCatalogStore() } });
+    await app.resetPorts({ ports: { catalog: unavailableCatalogStore() } });
     const res = await putCatalog(app.app, catalogOf(3, CAPTURED), { platformKey: PLATFORM_A });
     expect(res.statusCode).toBe(503);
     expect(res.headers["retry-after"]).toBe("5");
@@ -163,7 +163,7 @@ describe("PUT /v1/catalog", () => {
 
   it("the observed level rises to 2 after three receipts five minutes apart", async () => {
     const clock = { at: new Date(NOW), now: (): Date => clock.at };
-    app.resetPorts({ ports: { clock } });
+    await app.resetPorts({ ports: { clock } });
     let last;
     for (let i = 0; i < 3; i += 1) {
       clock.at = new Date(new Date(NOW).getTime() + i * 5 * 60_000);

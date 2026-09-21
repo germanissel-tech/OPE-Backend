@@ -3,11 +3,10 @@
 // (01 §8): beyond the catalogue budget nothing is true; between the two budgets the variant
 // exists but availability and price are stale and sustain no claim. Fail-closed: "unknown" with
 // a reason, and the consumer stays silent (P3).
-import { FRESHNESS_BUDGET, type FreshnessBudget } from "../policies/freshness.js";
-import { observedSyncLevel, type SyncLevel } from "../policies/sync-level.js";
-import type { Product, ProductId, Variant, VariantId } from "../../../domain/catalog/index.js";
+import type { Product, ProductId, SyncLevel, Variant, VariantId } from "../../../domain/catalog/index.js";
 import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 import type { Clock } from "../../shared-kernel/index.js";
+import type { CatalogPolicies } from "../ports/catalog-policies.js";
 import type { CatalogStore } from "../ports/catalog-store.js";
 
 export type Freshness = "fresh" | "stale";
@@ -32,15 +31,15 @@ export interface ProductTruthService {
 export interface ProductTruthServiceDependencies {
   clock: Clock;
   store: CatalogStore;
+  /** The freshness budgets and the level rules of each merchant (constitution XI). */
+  policies: CatalogPolicies;
 }
 
 export class DefaultProductTruthService implements ProductTruthService {
   readonly #deps: ProductTruthServiceDependencies;
-  readonly #budget: FreshnessBudget;
 
-  constructor(deps: ProductTruthServiceDependencies, budget: FreshnessBudget = FRESHNESS_BUDGET) {
+  constructor(deps: ProductTruthServiceDependencies) {
     this.#deps = deps;
-    this.#budget = budget;
   }
 
   async lookup(merchantId: MerchantId, productId: ProductId, variantId: VariantId): Promise<ProductTruth> {
@@ -60,15 +59,17 @@ export class DefaultProductTruthService implements ProductTruthService {
   async product(merchantId: MerchantId, productId: ProductId): Promise<ProductTruth> {
     const snapshot = await this.#deps.store.current(merchantId);
     if (snapshot === undefined) return { kind: "unknown", reason: "absent" };
+    const budget = await this.#deps.policies.freshnessFor(merchantId);
     const ageMs = snapshot.ageAt(this.#deps.clock.now());
-    if (ageMs > this.#budget.catalogMs) return { kind: "unknown", reason: "stale" };
+    if (ageMs > budget.catalogMs) return { kind: "unknown", reason: "stale" };
     const product = snapshot.product(productId);
     if (product === undefined) return { kind: "unknown", reason: "unknown-product" };
-    const stockAndPrice: Freshness = ageMs > this.#budget.stockAndPriceMs ? "stale" : "fresh";
+    const stockAndPrice: Freshness = ageMs > budget.stockAndPriceMs ? "stale" : "fresh";
     return { kind: "known-product", product, stockAndPrice, ageMs };
   }
 
   async syncLevel(merchantId: MerchantId): Promise<SyncLevel> {
-    return observedSyncLevel(await this.#deps.store.receipts(merchantId), this.#deps.clock.now());
+    const rules = await this.#deps.policies.syncLevelRulesFor(merchantId);
+    return rules.observe(await this.#deps.store.receipts(merchantId), this.#deps.clock.now());
   }
 }

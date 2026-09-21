@@ -1,0 +1,44 @@
+type: object
+description: "Level 3: what a merchant overrides of the treatment defaults, plus its anchor map
+  (which has no default). Every field is optional; a declared policy names its version and may
+  declare only some of its fields."
+additionalProperties: false
+properties:
+  freshness:
+    $ref: ./FreshnessDeclared.yaml
+  syncLevel:
+    $ref: ./SyncLevelRulesDeclared.yaml
+  holdoutPercent:
+    type: integer
+    description: Share of the traffic kept out of every experiment, as an integer percentage; a merchant
+      may set it to 0.
+    minimum: 0
+    maximum: 100
+  decisionPolicy:
+    $ref: ./DecisionPolicyDeclared.yaml
+  commercialPolicy:
+    $ref: ./CommercialPolicyDeclared.yaml
+  evidenceProfile:
+    $ref: ./EvidenceProfileDeclared.yaml
+  surfaces:
+    type: array
+    description: Page types where OPE may intervene.
+    minItems: 1
+    maxItems: 2
+    uniqueItems: true
+    items:
+      $ref: ./Surface.yaml
+  barriers:
+    type: array
+    description: Barriers OPE may infer for the merchant; the others are never dominant.
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml
+  syncStrategy:
+    $ref: ./SyncStrategyDeclared.yaml
+  locales:
+    $ref: ./Locales.yaml
+  anchors:
+    $ref: ./AnchorMap.yaml

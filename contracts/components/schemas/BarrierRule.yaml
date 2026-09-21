@@ -1,0 +1,29 @@
+type: object
+description: "A rule of the decision policy: when its condition holds, its barrier gains its weight (ADR-026)."
+additionalProperties: false
+required:
+  - id
+  - barrier
+  - strength
+  - when
+properties:
+  id:
+    type: string
+    description: Identifier of the rule, unique in the policy.
+    minLength: 1
+    maxLength: 64
+  barrier:
+    $ref: ./Barrier.yaml
+  strength:
+    type: string
+    description: Which policy weight the rule adds when it has no weight of its own.
+    enum:
+      - strong
+      - supporting
+  weight:
+    type: number
+    description: A weight of its own, 0..1; absent means the weight of its strength.
+    minimum: 0
+    maximum: 1
+  when:
+    $ref: ./Condition.yaml

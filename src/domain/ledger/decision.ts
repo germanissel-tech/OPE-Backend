@@ -7,6 +7,7 @@ import {
   NO_OP_REASONS,
   type Arm,
   type Barrier,
+  type ConfigurationVersions,
   type ExperimentId,
   type Intervention,
   type MerchantId,
@@ -71,6 +72,8 @@ export interface DecisionSelection {
   commercialPolicyVersion: string;
 }
 
+export type DecisionPhase = "calibration";
+
 /** What every decision carries, whatever its outcome. */
 export interface DecisionFacts {
   decisionId: DecisionId;
@@ -78,6 +81,10 @@ export interface DecisionFacts {
   sessionId: SessionId;
   visitorId: VisitorId;
   decidedAt: Date;
+  /** The three versions the decision was taken with (01 §14.2): platform, treatment defaults and, if any, the merchant's. */
+  configuration: ConfigurationVersions;
+  /** `calibration` while the open experiment is calibrating (03 §4.10); absent in accumulation or without an experiment. */
+  phase?: DecisionPhase;
   /** The experiment and arm the visitor was assigned to; absent when the merchant has no active experiment. */
   experiment?: DecisionExperiment;
   /** Absent only when the plane did not get to infer (no product in focus, ledger down before deciding). */
@@ -101,6 +108,8 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly sessionId: SessionId;
   readonly visitorId: VisitorId;
   readonly decidedAt: Date;
+  readonly configuration: ConfigurationVersions;
+  readonly phase?: DecisionPhase;
   readonly experiment?: DecisionExperiment;
   readonly inference?: DecisionInference;
   readonly selection?: DecisionSelection;
@@ -115,6 +124,8 @@ export abstract class DecisionBase implements DecisionFacts {
     this.sessionId = facts.sessionId;
     this.visitorId = facts.visitorId;
     this.decidedAt = facts.decidedAt;
+    this.configuration = { ...facts.configuration };
+    if (facts.phase !== undefined) this.phase = facts.phase;
     if (facts.experiment) this.experiment = facts.experiment;
     if (facts.inference) this.inference = facts.inference;
     if (facts.selection) this.selection = facts.selection;

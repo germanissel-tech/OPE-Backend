@@ -63,3 +63,26 @@ pruebas que confirman lo que el código ya hace. Un check que se puede saltar no
   al tamaño del cambio, no del repositorio.
 - Hay un parche local en `patches/` con fecha de vencimiento implícita (la publicación del fix
   upstream). Subir `@stryker-mutator/vitest-runner` obliga a revisarlo.
+
+## Enmienda 2026-09-21 — mutantes estáticos y ritmo en dos velocidades
+
+Un mutante en código que se ejecuta fuera de un `it` (carga de módulo, `beforeAll` →
+`bootstrap`, semilla, lectores de configuración) es **estático** para Stryker: no se atribuye a
+ningún test, corre la suite entera y necesita reiniciar el proceso de pruebas. Con
+`@stryker-mutator/vitest-runner` 10.0.0 esa activación no es fiable: el mismo mutante sale muerto
+en una corrida y vivo en otra, y aplicado a mano lo matan las pruebas. Se comprobó en la feature
+017 (US2: 733 de 1407 mutantes estáticos, una corrida de horas y ~200 falsos sobrevivientes).
+
+Decisión (dueño, 2026-09-21):
+
+- `ignoreStatic: true` en `stryker.config.json`. Un mutante estático que además cubre un test
+  sigue corriendo contra ese test (híbrido); uno sin cobertura por test queda `Ignored` con su
+  motivo, que `mutation-diff.mjs` no cuenta como excepción sin declarar.
+- El gate se juzga en **CI, en cada push** (job propio). El ritmo local por historia es la suite
+  rápida (`format:check`, `typecheck`, `quality`, `npm test`); la corrida completa de mutación no
+  se repite localmente. Ante un sobreviviente en CI, `--files <archivo>` local.
+- Deuda anotada para la feature de calidad: investigar la activación de estáticos en el runner
+  (o reducir lo que los tests de integración ejecutan en `beforeAll`, para que el código de
+  arranque vuelva a medirse).
+
+La regla de fondo no cambia: un cambio no entra a `main` con un mutante real vivo en sus líneas.

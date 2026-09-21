@@ -3,14 +3,7 @@
 // so no variant is orphan by construction. Availability is a guard (a boolean), never a claim.
 // A snapshot only exists valid: `of` enforces the invariants the schema cannot express,
 // `rehydrate` trusts what a store recorded.
-import {
-  CLOCK_SKEW_TOLERANCE_MS,
-  fail,
-  ok,
-  type MerchantId,
-  type Money,
-  type Result,
-} from "../shared-kernel/index.js";
+import { fail, ok, type MerchantId, type Money, type Result } from "../shared-kernel/index.js";
 import {
   CatalogCapturedInFuture,
   CatalogDuplicateProductId,
@@ -72,13 +65,13 @@ export class CatalogSnapshot {
   }
 
   /**
-   * A snapshot as the platform sent it: the capture is not in the future beyond the tolerance,
+   * A snapshot as the platform sent it: the capture is not in the future beyond the skew the platform tolerates,
    * product identifiers are unique and variant identifiers are unique across the snapshot.
    * The first violated invariant, in that order, is the error.
    */
-  static of(record: CatalogSnapshotRecord): Result<CatalogSnapshot, CatalogError> {
-    if (record.capturedAt.getTime() > record.receivedAt.getTime() + CLOCK_SKEW_TOLERANCE_MS) {
-      return fail(new CatalogCapturedInFuture(CLOCK_SKEW_TOLERANCE_MS));
+  static of(record: CatalogSnapshotRecord, skewMs: number): Result<CatalogSnapshot, CatalogError> {
+    if (record.capturedAt.getTime() > record.receivedAt.getTime() + skewMs) {
+      return fail(new CatalogCapturedInFuture(skewMs));
     }
     const products = new Set<ProductId>();
     const variants = new Set<VariantId>();

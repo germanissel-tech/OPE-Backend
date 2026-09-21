@@ -1,22 +1,23 @@
 // ADR-025: what each security handler leaves for the controllers and the log, and how the
 // controllers find the merchant whichever scheme resolved it.
 import { describe, expect, it } from "vitest";
-import { Merchant, Unauthorized } from "../../../src/domain/merchant/index.js";
-import { asMerchantId, fail, ok } from "../../../src/domain/shared-kernel/index.js";
+import { Unauthorized } from "../../../src/domain/merchant/index.js";
+import {
+  asOperatorId,
+  EVERY_MERCHANT,
+  Operator,
+  OperatorUnknown,
+} from "../../../src/domain/operator/index.js";
+import { fail, ok } from "../../../src/domain/shared-kernel/index.js";
+import { makeAdminTokenSecurity } from "../../../src/interface-adapters/http/security/admin-token.js";
 import { CONSUMER_CAPABILITIES } from "../../../src/interface-adapters/http/security/capabilities.js";
 import { makeIngestKeySecurity } from "../../../src/interface-adapters/http/security/ingest-key.js";
 import { makePlatformKeySecurity } from "../../../src/interface-adapters/http/security/platform-key.js";
-import { merchantOf } from "../../../src/interface-adapters/http/security/principal.js";
+import { merchantOf, operatorOf } from "../../../src/interface-adapters/http/security/principal.js";
 import { SecurityError } from "../../../src/interface-adapters/http/typed.js";
+import { testMerchant } from "../../helpers/merchants.js";
 
-const built = Merchant.of({
-  merchantId: asMerchantId("m_a"),
-  ingestKeys: ["k"],
-  origins: ["https://a.example"],
-  platformKeys: ["p"],
-});
-if (!built.ok) throw new Error("merchant");
-const merchant = built.value;
+const merchant = testMerchant({ ingestKeys: ["k"], platformKeys: ["p"] });
 
 describe("platformKey security handler", () => {
   const handler = makePlatformKeySecurity({
@@ -69,5 +70,52 @@ describe("merchantOf", () => {
     expect(() => merchantOf({ security: {} })).toThrow("security handler");
     expect(() => merchantOf({ security: { ingestKey: null } })).toThrow("security handler");
     expect(() => merchantOf({ security: { other: { user: "x" } } })).toThrow("security handler");
+  });
+});
+
+describe("adminToken security handler (feature 017)", () => {
+  const operator = Operator.rehydrate({
+    operatorId: asOperatorId("ops-1"),
+    tokenFingerprints: ["fp"],
+    scope: EVERY_MERCHANT,
+  });
+  const handler = makeAdminTokenSecurity({
+    resolve: (token) => Promise.resolve(token === "t1" ? ok(operator) : fail(new OperatorUnknown())),
+  });
+
+  it("grants the admin capabilities and leaves the operator for the controller and its id for the log", async () => {
+    const outcome = await handler({ headers: { authorization: "Bearer t1" } });
+    expect(outcome).toEqual({
+      principal: { operator },
+      capabilities: CONSUMER_CAPABILITIES.admin,
+      log: { operatorId: "ops-1" },
+    });
+    expect(operatorOf({ security: { adminToken: outcome.principal } })).toBe(operator);
+  });
+
+  it.each(["Bearer t1", "bearer t1", "Bearer  t1", "Bearer t1 "])(
+    "%j authenticates: case and spacing do not matter",
+    async (authorization) => {
+      expect((await handler({ headers: { authorization } })).principal).toEqual({ operator });
+    },
+  );
+
+  it.each([
+    undefined,
+    "t1",
+    "Basic t1",
+    "Bearer",
+    "Bearer t2",
+    "xBearer t1",
+    "Bearer t1 extra",
+    ["Bearer t2", "Bearer t1"],
+  ])("%j → operator-unknown before the body", async (authorization) => {
+    await expect(handler({ headers: { authorization } })).rejects.toMatchObject(
+      new SecurityError("operator-unknown"),
+    );
+  });
+
+  it("operatorOf refuses a request that went through a merchant handler", () => {
+    expect(() => operatorOf({ security: { ingestKey: { merchant } } })).toThrow(/admin security handler/);
   });
 });

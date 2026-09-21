@@ -17,7 +17,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "./governance-lib.mjs";
-import { capture, repoRoot, run } from "./lib.mjs";
+import { capture, repoRoot, resolveBaseRef, run } from "./lib.mjs";
 
 /** @typedef {{ file: string; start: number; end: number }} Range */
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
@@ -172,7 +172,8 @@ export function guardZeroTests(report) {
 const DISABLE_NEXT_LINE = /\/\/\s*Stryker disable next-line\b/;
 const DISABLE_BLOCK = /\/\/\s*Stryker disable\b(?! next-line)/;
 const RESTORE = /\/\/\s*Stryker restore\b/;
-const EXCLUDED_MUTATOR = /excluded mutation/;
+/** Ignored by configuration, not by a comment: an excluded mutator, or a static mutant under `ignoreStatic`. */
+const EXCLUDED_MUTATOR = /excluded mutation|Static mutant/;
 
 /**
  * The lines a source file's `// Stryker disable` comments cover: `next-line` covers the line after
@@ -204,7 +205,8 @@ export function disabledRanges(source) {
  * Mutants Stryker ignored because of a `// Stryker disable` comment whose line is not the one the
  * comment names (a `next-line` directive) nor inside a `disable`/`restore` block: a restore written
  * after the last statement of a block does not restore, and the comment silences the rest of the
- * file. Mutators excluded by configuration (StringLiteral) are not comments and are skipped.
+ * file. What the configuration ignores (the StringLiteral mutator, static mutants under
+ * `ignoreStatic`) is not a comment and is skipped.
  * @param {MutationReport} report
  * @param {(file: string) => string} readSource the source of a file of the report, by its key
  * @returns {Finding[]}
@@ -254,17 +256,6 @@ export function survivors(report) {
     }
   }
   return out;
-}
-
-/** @returns {string | null} */
-function resolveBaseRef() {
-  const candidates = [process.env["CONTRACT_BASE_REF"], "origin/main", "main"].filter(
-    (c) => typeof c === "string",
-  );
-  for (const ref of candidates) {
-    if (capture("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).status === 0) return ref;
-  }
-  return null;
 }
 
 /** Files under src/ that git does not track yet (never staged). @returns {string[]} */

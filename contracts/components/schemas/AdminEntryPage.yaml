@@ -1,0 +1,14 @@
+type: object
+description: A page of the admin log, newest first (ADR-020).
+additionalProperties: false
+required: [items]
+properties:
+  items:
+    type: array
+    description: Entries of this page, newest first.
+    items:
+      $ref: ./AdminEntry.yaml
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

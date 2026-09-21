@@ -21,8 +21,8 @@ let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
 });
-beforeEach(() => {
-  app.resetPorts();
+beforeEach(async () => {
+  await app.resetPorts();
 });
 afterAll(async () => {
   await app.close();
@@ -43,6 +43,7 @@ async function interveneDecision(a: SharedApp, merchantId: string, decisionId: s
     {
       decisionId: asDecisionId(decisionId),
       merchantId: asMerchantId(merchantId),
+      configuration: { platform: "platform-1", defaults: "defaults-1" },
       sessionId: asSessionId("ses_00000001"),
       visitorId: asVisitorId("vis_00000001"),
       decidedAt: new Date(NOW),

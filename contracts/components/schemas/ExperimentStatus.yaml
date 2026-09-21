@@ -1,0 +1,6 @@
+type: string
+description: "The state of an experiment (03 §4.10, D-G): `calibrating` — visitors are assigned and OPE decides, every decision is marked as calibration and counts for nothing, the configuration still moves; `active` — the accumulation window runs and the configuration is frozen (only a corrective version enters, restarting the window); `closed` — terminal: nobody new is assigned, what was recorded stays."
+enum:
+  - calibrating
+  - active
+  - closed
