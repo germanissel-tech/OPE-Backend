@@ -1,0 +1,15 @@
+type: object
+description: A page of anchor diagnostics of a merchant, most recent first.
+additionalProperties: false
+required:
+  - items
+properties:
+  items:
+    type: array
+    description: Diagnostics of this page, most recent first.
+    items:
+      $ref: ./AnchorDiagnostic.yaml
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

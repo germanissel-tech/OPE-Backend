@@ -446,6 +446,19 @@ treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interrupto
   primer lote aceptado del experimento abierto (`ExperimentDirectory.activeFor`); CONTROL
   resuelve `NO_OP` `control-arm`; sin experimento abierto, `no-active-experiment`. El brazo,
   el experimento y la fase **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
+- **Configuración del SDK y diagnóstico de anclajes (01 §3.1.1; feature 017)**: `GET
+/v1/sdk/config` (`ingestKey`, `config:read`) devuelve lo que el SDK puede ver del merchant de
+  su credencial —`enabled` (interruptor), `versions`, `surfaces`, `locales`, `anchors?`— y
+  nunca una política, margen, escalón, reparto, brazo ni experimento; `Cache-Control: no-store`.
+  Lo sirve el módulo `admin` por el puerto `SdkConfigurationSource` (`sdkConfigurationOf` en
+  `modules/configuration.ts`) y el merchant llega resuelto por el security handler
+  (`GetSdkConfigUseCase` recibe la entidad y lee `isOn()`). `POST /v1/sdk/diagnostics`
+  (`diagnostics:write`) recibe anclajes no resueltos (`anchor` del vocabulario, `pageType`,
+  `configurationVersion?`; nada de la página ni de la persona) y `AnchorDiagnosticsStore.upsert`
+  conserva por merchant el último instante y un contador por clave, con tope
+  `anchorDiagnosticsKept` de plataforma (se descarta el más viejo, nunca se rechaza); `GET
+/v1/admin/merchants/{merchantId}/anchor-diagnostics` lo lee paginado. `PageType` es un esquema
+  propio compartido por `PageContext` y los diagnósticos.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
   la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
 platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{

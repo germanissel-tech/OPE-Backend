@@ -1,13 +1,13 @@
 ---
 es: diagnóstico de anclajes
-en: diagnostics
+en: diagnostic
 contexto: ingesta
 estado: aprobado
 fuente: mvp:01-arquitectura-mvp.md#3.1.1
-uso: pendiente
+uso: disponible
 ---
 
-# diagnóstico de anclajes -> `diagnostics`
+# diagnóstico de anclajes -> `diagnostic`
 
 > El SDK verifica que cada anclaje del perfil efectivamente resuelva, y reporta cuando deja de hacerlo. Sin esto, un rediseño del tema degrada el sistema en silencio. — **DECIDIDO** (`01 §3.1.1`)
 

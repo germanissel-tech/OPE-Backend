@@ -1,0 +1,48 @@
+post:
+  operationId: reportAnchorDiagnostics
+  tags: [ingest]
+  security:
+    - ingestKey: []
+  x-required-capabilities:
+    - diagnostics:write
+  summary: Report anchors that stopped resolving
+  description: |
+    The SDK verifies the anchors of the merchant's map and reports the ones it could not resolve
+    (01 §3.1.1): the anchor, the page type and the configuration version it had loaded; no URL,
+    no product, nothing of the person. OPE keeps, per merchant, the last instant and a counter
+    per anchor, page type and version — a burst is one row with a higher count — up to the
+    limit the platform sets, discarding the oldest. An operator reads them with
+    `listAnchorDiagnostics`. A degradation is never silent. An Origin the merchant did not
+    register is refused as for ingestion (`403 origin-not-allowed`).
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AnchorDiagnosticsReport.yaml
+        example:
+          configurationVersion: 3
+          unresolved:
+            - anchor: size_selector
+              pageType: product
+            - anchor: cta
+              pageType: product
+  responses:
+    "202":
+      description: The report was recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/DiagnosticsReceived.yaml
+          example:
+            received: 2
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

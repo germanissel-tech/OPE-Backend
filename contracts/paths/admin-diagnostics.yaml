@@ -1,0 +1,43 @@
+get:
+  operationId: listAnchorDiagnostics
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:read
+  x-collection: true
+  summary: The anchors of a merchant the SDK could not resolve
+  description: "What the SDK of the merchant reported (01 §3.1.1): per anchor, page type and
+    configuration version, the last report and how many; most recent first, up to the limit the
+    platform keeps. Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of diagnostics.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AnchorDiagnosticPage.yaml
+          example:
+            items:
+              - anchor: size_selector
+                pageType: product
+                configurationVersion: 3
+                lastSeenAt: 2026-09-20T12:00:00Z
+                count: 17
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

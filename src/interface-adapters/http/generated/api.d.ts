@@ -76,6 +76,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/anchor-diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The anchors of a merchant the SDK could not resolve
+         * @description What the SDK of the merchant reported (01 §3.1.1): per anchor, page type and configuration version, the last report and how many; most recent first, up to the limit the platform keeps. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listAnchorDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/configuration": {
         parameters: {
             query?: never;
@@ -554,6 +574,58 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/sdk/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The configuration of the SDK
+         * @description What the SDK needs to run for the merchant of its credential (01 §3.1.1, feature 017): the
+         *     kill switch, the versions in force, the surfaces, the languages and the anchor map. A
+         *     redesign of the store is corrected in the merchant's configuration, not in the SDK. Nothing
+         *     the constitution reserves to the backend travels: no policy, margin, ladder, split, arm nor
+         *     experiment. It changes without a restart, so the answer is not cacheable
+         *     (`Cache-Control: no-store`). A deactivated merchant does not authenticate; an Origin the
+         *     merchant did not register is refused as for ingestion (`403 origin-not-allowed`).
+         */
+        get: operations["getSdkConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sdk/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report anchors that stopped resolving
+         * @description The SDK verifies the anchors of the merchant's map and reports the ones it could not resolve
+         *     (01 §3.1.1): the anchor, the page type and the configuration version it had loaded; no URL,
+         *     no product, nothing of the person. OPE keeps, per merchant, the last instant and a counter
+         *     per anchor, page type and version — a burst is one row with a higher count — up to the
+         *     limit the platform sets, discarding the oldest. An operator reads them with
+         *     `listAnchorDiagnostics`. A degradation is never silent. An Origin the merchant did not
+         *     register is refused as for ingestion (`403 origin-not-allowed`).
+         */
+        post: operations["reportAnchorDiagnostics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -628,6 +700,34 @@ export type components = {
          * @enum {string}
          */
         Anchor: "size_selector" | "price" | "cta" | "policies";
+        /** @description An unresolved anchor as the administration reads it (01 §3.1.1): the last time the SDK reported it and how many times, per anchor, page type and configuration version. */
+        AnchorDiagnostic: {
+            anchor: components["schemas"]["Anchor"];
+            /** @description The configuration version the SDK had loaded when it reported; absent when it did not say. */
+            configurationVersion?: number;
+            /** @description Reports received for this key. */
+            count: number;
+            /**
+             * Format: date-time
+             * @description The last report.
+             */
+            lastSeenAt: string;
+            pageType: components["schemas"]["PageType"];
+        };
+        /** @description A page of anchor diagnostics of a merchant, most recent first. */
+        AnchorDiagnosticPage: {
+            /** @description Diagnostics of this page, most recent first. */
+            items: components["schemas"]["AnchorDiagnostic"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
+        /** @description What the SDK reports when anchors stop resolving (01 §3.1.1): which ones, on which page types, and the configuration version it had loaded. */
+        AnchorDiagnosticsReport: {
+            /** @description The merchant configuration version the SDK had loaded, when it knows it. */
+            configurationVersion?: number;
+            /** @description The anchors that did not resolve. */
+            unresolved: components["schemas"]["UnresolvedAnchor"][];
+        };
         /** @description The merchant's anchor map (01 §3.1.1): where the SDK renders each anchor; an anchor absent here resolves by the SDK's own chain. */
         AnchorMap: {
             cta?: components["schemas"]["AnchorSelectors"];
@@ -991,6 +1091,11 @@ export type components = {
          * @enum {string}
          */
         DeviceClass: "desktop" | "mobile" | "tablet";
+        /** @description Acknowledgement of a diagnostics report. */
+        DiagnosticsReceived: {
+            /** @description How many unresolved anchors the report carried. */
+            received: number;
+        };
         /** @description Holds when the visitor dwelled on a block for at least `min` seconds (absent: the reading seconds of the policy). */
         DwellSecondsCondition: {
             /** @description Block of the page (`BlockDwelled`). */
@@ -1504,17 +1609,18 @@ export type components = {
              *     the text. Optional: without it, the merchant's default language applies once configured.
              */
             locale?: string;
-            /**
-             * @description Page type according to the SDK's platform adapter.
-             * @enum {string}
-             */
-            pageType: "product" | "listing" | "cart" | "checkout" | "other";
+            pageType: components["schemas"]["PageType"];
             price?: components["schemas"]["Money"];
             /** @description Product identifier on the merchant's platform, as the page exposes it. */
             productId?: string;
             /** @description Identifier of the selected variant (size + colour), if any. */
             variantId?: string;
         };
+        /**
+         * @description Page type according to the SDK's platform adapter.
+         * @enum {string}
+         */
+        PageType: "product" | "listing" | "cart" | "checkout" | "other";
         /** @description Zoom or navigation between product photos. */
         PhotoInteracted: {
             device: components["schemas"]["DeviceClass"];
@@ -1692,6 +1798,16 @@ export type components = {
              */
             status: "RETURNED";
         };
+        /** @description What the SDK of a merchant needs to run (01 §3.1.1, feature 017): whether OPE is on, the versions in force, the surfaces, the languages and the anchor map. Never a policy, a margin, a ladder, a split, an arm nor an experiment: what the constitution reserves to the backend stays there. It changes on the next request (`Cache-Control: no-store`). */
+        SdkConfig: {
+            anchors?: components["schemas"]["AnchorMap"];
+            /** @description The kill switch (01 §14.2): `false` and the SDK may stay silent without calling the ingestion. */
+            enabled: boolean;
+            locales: components["schemas"]["Locales"];
+            /** @description Page types where OPE may intervene. */
+            surfaces: components["schemas"]["Surface"][];
+            versions: components["schemas"]["ConfigurationVersions"];
+        };
         /** @description Holds when `first` happened and `then` happened after it in the session. */
         SequenceCondition: {
             /**
@@ -1797,6 +1913,11 @@ export type components = {
             syncStrategy: components["schemas"]["SyncStrategy"];
             /** @description Version of the treatment defaults the release declares. */
             version: string;
+        };
+        /** @description An anchor of the merchant's map the SDK could not resolve on a page type (01 §3.1.1): the anchor and the page type, nothing of the page nor of the person. */
+        UnresolvedAnchor: {
+            anchor: components["schemas"]["Anchor"];
+            pageType: components["schemas"]["PageType"];
         };
         /** @description Colour or variant selection. */
         VariantSelected: {
@@ -2481,6 +2602,53 @@ export interface operations {
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
             500: components["responses"]["InternalServerError"];
+        };
+    };
+    listAnchorDiagnostics: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of diagnostics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "anchor": "size_selector",
+                     *           "pageType": "product",
+                     *           "configurationVersion": 3,
+                     *           "lastSeenAt": "2026-09-20T12:00:00Z",
+                     *           "count": 17
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AnchorDiagnosticPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     getMerchantConfiguration: {
@@ -3796,6 +3964,114 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ReturnUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getSdkConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The configuration of the SDK. */
+            200: {
+                headers: {
+                    /** @description `no-store`: the configuration changes on the next request. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "enabled": true,
+                     *       "versions": {
+                     *         "platform": "platform-1",
+                     *         "defaults": "defaults-1",
+                     *         "merchant": 3
+                     *       },
+                     *       "surfaces": [
+                     *         "product",
+                     *         "cart"
+                     *       ],
+                     *       "locales": {
+                     *         "supported": [
+                     *           "es-AR",
+                     *           "en"
+                     *         ],
+                     *         "fallback": "es-AR"
+                     *       },
+                     *       "anchors": {
+                     *         "size_selector": {
+                     *           "selectors": [
+                     *             "#product-options-wrapper .swatch-attribute.size"
+                     *           ]
+                     *         },
+                     *         "price": {
+                     *           "selectors": [
+                     *             ".product-info-price"
+                     *           ]
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SdkConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    reportAnchorDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "configurationVersion": 3,
+                 *       "unresolved": [
+                 *         {
+                 *           "anchor": "size_selector",
+                 *           "pageType": "product"
+                 *         },
+                 *         {
+                 *           "anchor": "cta",
+                 *           "pageType": "product"
+                 *         }
+                 *       ]
+                 *     }
+                 */
+                "application/json": components["schemas"]["AnchorDiagnosticsReport"];
+            };
+        };
+        responses: {
+            /** @description The report was recorded. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "received": 2
+                     *     }
+                     */
+                    "application/json": components["schemas"]["DiagnosticsReceived"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

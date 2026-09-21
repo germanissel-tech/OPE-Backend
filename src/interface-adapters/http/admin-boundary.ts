@@ -11,7 +11,7 @@ import type { components, operations } from "./generated/api.js";
 import type { OperationHandler, TypedRequest } from "./typed.js";
 import type { RotateCredentialRequest, RotateCredentialResult } from "../../application/merchant/index.js";
 import type { Page, PageQuery, UseCase } from "../../application/shared-kernel/index.js";
-import type { AdminEntry, AdminResult } from "../../domain/admin/index.js";
+import type { AdminEntry, AdminResult, AnchorDiagnostic } from "../../domain/admin/index.js";
 import type { Operator } from "../../domain/operator/index.js";
 
 type MerchantDto = components["schemas"]["Merchant"];
@@ -73,6 +73,21 @@ export function adminEntryDto(entry: AdminEntry): AdminEntryDto {
     ...(entry.code === undefined ? {} : { code: entry.code }),
     ...(entry.result === undefined ? {} : { result: resultDto(entry.result) }),
     ...(entry.reason === undefined ? {} : { reason: entry.reason }),
+  };
+}
+
+type AnchorDiagnosticDto = components["schemas"]["AnchorDiagnostic"];
+
+/** The diagnostic as the contract publishes it: never the merchant (the path names it). */
+export function anchorDiagnosticDto(diagnostic: AnchorDiagnostic): AnchorDiagnosticDto {
+  return {
+    anchor: diagnostic.anchor,
+    pageType: diagnostic.pageType as AnchorDiagnosticDto["pageType"],
+    ...(diagnostic.configurationVersion === undefined
+      ? {}
+      : { configurationVersion: diagnostic.configurationVersion }),
+    lastSeenAt: diagnostic.lastSeenAt.toISOString(),
+    count: diagnostic.count,
   };
 }
 

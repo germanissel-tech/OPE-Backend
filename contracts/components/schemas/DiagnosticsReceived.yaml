@@ -1,0 +1,10 @@
+type: object
+description: Acknowledgement of a diagnostics report.
+additionalProperties: false
+required:
+  - received
+properties:
+  received:
+    type: integer
+    description: How many unresolved anchors the report carried.
+    minimum: 1

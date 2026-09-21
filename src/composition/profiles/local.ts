@@ -4,7 +4,7 @@
 // memory never prune (they stand in for the durable ledger of 01 §9). One binding table per
 // module; an override replaces a port before its gateway is built, and the kernel is bound first
 // because dedup shares its clock.
-import { configAdminPorts, memoryAdminPorts } from "../modules/admin.js";
+import { configAdminPorts, configuredAdminPorts, memoryAdminPorts } from "../modules/admin.js";
 import { ruleBarrierPorts } from "../modules/barrier.js";
 import { configuredCatalogPorts, memoryCatalogPorts } from "../modules/catalog.js";
 import { memoryConfigurationPorts } from "../modules/configuration.js";
@@ -44,6 +44,7 @@ export const localProfile: Profile = (config, overrides) => {
     ...bind(memoryOutcomesPorts),
     ...bind(configAdminPorts(config.operators)),
     ...bind(memoryAdminPorts(platform)),
+    ...bind(configuredAdminPorts(() => configuration.configuration)),
   };
   return { ports, closables };
 };

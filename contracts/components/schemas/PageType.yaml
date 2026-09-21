@@ -1,0 +1,8 @@
+type: string
+description: Page type according to the SDK's platform adapter.
+enum:
+  - product
+  - listing
+  - cart
+  - checkout
+  - other

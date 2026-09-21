@@ -4,7 +4,7 @@
 // version counts on the next request), how the release and memory serve its own ports, what it
 // serves (the administration of the configuration) and the adapters the consumer modules bind
 // to their own read ports (`policySourceOf`, `catalogPoliciesOf`): nobody imports this module.
-import { AuditedUseCase, type AdminLog } from "../../application/admin/index.js";
+import { AuditedUseCase, type AdminLog, type SdkConfigurationSource } from "../../application/admin/index.js";
 import {
   DefaultConfigurationService,
   GetMerchantConfigurationUseCase,
@@ -74,6 +74,21 @@ export const policySourceOf = (configuration: ConfigurationService): PolicySourc
       profile: evidenceProfile,
       barriers,
       versions: effective.versions,
+    };
+  },
+});
+
+/** What the SDK may see of a merchant (01 §3.1.1): versions, surfaces, languages and the anchor map; never a policy. */
+export const sdkConfigurationOf = (configuration: ConfigurationService): SdkConfigurationSource => ({
+  async sdkConfigurationFor(merchantId) {
+    const effective = await configuration.effectiveFor(merchantId);
+    const { surfaces, locales } = effective.values;
+    const anchors = effective.anchors?.record();
+    return {
+      versions: effective.versions,
+      surfaces,
+      locales,
+      ...(anchors === undefined ? {} : { anchors }),
     };
   },
 });

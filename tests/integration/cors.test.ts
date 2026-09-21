@@ -54,6 +54,22 @@ describe("origins per merchant", () => {
     }
   });
 
+  it("the SDK configuration and the diagnostics answer the preflight of a registered origin like the ingestion (feature 017)", async () => {
+    for (const url of ["/v1/sdk/config", "/v1/sdk/diagnostics"]) {
+      const res = await preflight(app, "https://a.example", "content-type, x-ope-ingest-key", url);
+      expect(res.statusCode, url).toBe(204);
+      expect(res.headers["access-control-allow-origin"], url).toBe("https://a.example");
+      expect(String(res.headers["access-control-allow-headers"]).toLowerCase()).toContain("x-ope-ingest-key");
+    }
+    const foreign = await preflight(
+      app,
+      "https://nadie.example",
+      "content-type, x-ope-ingest-key",
+      "/v1/sdk/config",
+    );
+    expect(foreign.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
   it("preflight from an origin no merchant registered → no Allow-Origin", async () => {
     const res = await preflight(app, "https://nadie.example");
     expect(res.headers["access-control-allow-origin"]).toBeUndefined();

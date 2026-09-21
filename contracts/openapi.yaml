@@ -31,6 +31,10 @@ paths:
     $ref: ./paths/events.yaml
   /v1/exposures:
     $ref: ./paths/exposures.yaml
+  /v1/sdk/config:
+    $ref: ./paths/sdk-config.yaml
+  /v1/sdk/diagnostics:
+    $ref: ./paths/sdk-diagnostics.yaml
   /v1/catalog:
     $ref: ./paths/catalog.yaml
   /v1/orders:
@@ -67,6 +71,8 @@ paths:
     $ref: ./paths/admin-experiment-activate.yaml
   /v1/admin/merchants/{merchantId}/experiments/{experimentId}/close:
     $ref: ./paths/admin-experiment-close.yaml
+  /v1/admin/merchants/{merchantId}/anchor-diagnostics:
+    $ref: ./paths/admin-diagnostics.yaml
   /v1/admin/platform-configuration:
     $ref: ./paths/admin-platform-configuration.yaml
   /v1/admin/treatment-defaults:

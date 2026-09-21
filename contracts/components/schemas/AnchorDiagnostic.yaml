@@ -1,0 +1,25 @@
+type: object
+description: "An unresolved anchor as the administration reads it (01 §3.1.1): the last time the SDK reported it and how many times, per anchor, page type and configuration version."
+additionalProperties: false
+required:
+  - anchor
+  - pageType
+  - lastSeenAt
+  - count
+properties:
+  anchor:
+    $ref: ./Anchor.yaml
+  pageType:
+    $ref: ./PageType.yaml
+  configurationVersion:
+    type: integer
+    description: The configuration version the SDK had loaded when it reported; absent when it did not say.
+    minimum: 1
+  lastSeenAt:
+    type: string
+    format: date-time
+    description: The last report.
+  count:
+    type: integer
+    description: Reports received for this key.
+    minimum: 1

@@ -90,7 +90,7 @@ operations:
     tag: ingest
     capabilities: [config:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:02-integracion-ecommerce.md#3
   - operationId: reportAnchorDiagnostics
     method: post
@@ -99,7 +99,7 @@ operations:
     tag: ingest
     capabilities: [diagnostics:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: corroborateOrder
     method: post
@@ -360,7 +360,7 @@ operations:
     tag: admin
     capabilities: [merchants:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1
   - operationId: publishMessageCatalog
     method: post

@@ -1,0 +1,17 @@
+type: object
+description: "What the SDK reports when anchors stop resolving (01 §3.1.1): which ones, on which page types, and the configuration version it had loaded."
+additionalProperties: false
+required:
+  - unresolved
+properties:
+  configurationVersion:
+    type: integer
+    description: The merchant configuration version the SDK had loaded, when it knows it.
+    minimum: 1
+  unresolved:
+    type: array
+    description: The anchors that did not resolve.
+    minItems: 1
+    maxItems: 50
+    items:
+      $ref: ./UnresolvedAnchor.yaml
