@@ -49,14 +49,14 @@ prepare para usarla. La revisión de deudas sigue; esta feature es el lugar dond
 
 ### Registro de deudas
 
-| Id   | Título                                                                         | Origen                         | Estado         | Fecha      | Cierre      |
-| ---- | ------------------------------------------------------------------------------ | ------------------------------ | -------------- | ---------- | ----------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                | Revisión del dueño tras la 018 | `especificada` | 2026-09-21 | —           |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable     | Evaluación con el dueño (D-01) | `especificada` | 2026-09-21 | —           |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —           |
-| D-04 | `config/` sin documentación ni esquema propio                                  | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —           |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                          | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —           |
-| D-06 | Los directorios de primer nivel no se explican solos                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `ver abajo` |
+| Id   | Título                                                                         | Origen                         | Estado         | Fecha      | Cierre    |
+| ---- | ------------------------------------------------------------------------------ | ------------------------------ | -------------- | ---------- | --------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                | Revisión del dueño tras la 018 | `especificada` | 2026-09-21 | —         |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable     | Evaluación con el dueño (D-01) | `especificada` | 2026-09-21 | —         |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —         |
+| D-04 | `config/` sin documentación ni esquema propio                                  | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —         |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                          | Revisión del dueño, 2026-09-21 | `especificada` | 2026-09-21 | —         |
+| D-06 | Los directorios de primer nivel no se explican solos                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `cd292e0` |
 
 Fuera del alcance de toda deuda de esta feature: cambiar el contrato, agregar operaciones,
 tocar dominio o aplicación, persistencia.
