@@ -1,0 +1,36 @@
+# contracts/ — la única fuente de verdad de la superficie HTTP
+
+`openapi.yaml` y lo que referencia describen todo lo que el servidor expone (constitución VI:
+contrato primero). El servidor rutea por `operationId` y valida requests y responses contra el
+contrato; los tipos, el catálogo de problemas y el cliente se **derivan** de él
+(`generated/`, `client/`); la documentación publicada y las pruebas generadas también. Nada entra
+al contrato sin estar antes en el mapa (`api-map.yaml`, ADR-019), y ningún cambio entra sin
+`npm run contract:check` en verde.
+
+Todo lo de este directorio es fuente salvo `dist/`, que es el bundle derivado (ignorado por
+git). Las reglas normativas —qué falla el build— están en `CLAUDE.md` § "Reglas que fallan el
+build" y en las notas operativas del contrato; acá está lo descriptivo: qué es cada cosa y cómo
+se agrega.
+
+## Inventario
+
+| Entrada                | Qué es                                                                                                                                                                                     | Fuente o derivado         | Quién lo lee                                                                                | Verificación                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `openapi.yaml`         | Raíz del contrato: `info` (versión, `x-stability`), `security` global, `$ref` a cada path. No declara `components` salvo `securitySchemes`.                                                | fuente                    | bundle, servidor (openapi-backend), generación de tipos, docs, Schemathesis                 | `contract:lint` (Redocly + Spectral), `contract:diff`, `check:api-map`                      |
+| `paths/`               | Un archivo por ruta, con sus operaciones (`operationId`, tag, seguridad, `x-*`, responses).                                                                                                | fuente                    | bundle                                                                                      | `contract:lint`; un controller por `operationId` (`shape`)                                  |
+| `components/`          | `schemas/`, `parameters/`, `responses/`, `securitySchemes/`: un archivo por componente, referenciado por ruta relativa; el bundle lo promueve a `#/components/<tipo>/<Archivo>`.           | fuente                    | bundle, generación de tipos y de esquemas de configuración                                  | `contract:lint`; `check:glossary` (todo sustantivo resuelve a `docs/dominio/`)              |
+| `examples/`            | Ejemplos con nombre que las responses citan; toda `422` nombra en su ejemplo la invariante que la produce.                                                                                 | fuente                    | bundle, docs, Insomnia                                                                      | `contract:lint` (`ope-*` de ejemplos)                                                       |
+| `api-map.yaml`         | Mapa del contrato: toda operación construida o planeada, con consumidor, esquema de seguridad, capacidades, feature y fuente; ciclo de vida `planned → built → deprecated → retired`.      | fuente                    | `check:api-map`, `contract:docs` (superficie planeada), la réplica de capacidades en `src/` | `check:api-map` (mapa ↔ contrato en los dos sentidos)                                       |
+| `problem-types.yaml`   | Catálogo de tipos de error RFC 9457 (`urn:ope:problem:<slug>`, status, título). Único origen: se genera a `generated/problem-types.{js,d.ts}`; ningún archivo escrito a mano lo replica.   | fuente                    | `contract:types`; el servidor lo importa generado; los `code` de los `DomainError`          | `contract:types:check` (drift); prueba de que todo `code` del dominio existe en el catálogo |
+| `no-op-reasons.yaml`   | Catálogo de motivos de `NO_OP` (string con patrón, no enum: ampliar es compatible), con la autoridad que emite cada uno.                                                                   | fuente                    | réplica en `src/domain/shared-kernel/no-op-reasons.ts`                                      | prueba de réplica contra el contrato                                                        |
+| `.spectral.yaml`       | Ruleset propio (`ope-*`) sobre el preset recomendado de Spectral; estilo bloque; `oas3-schema` apagada (la estructura la valida Redocly).                                                  | fuente                    | `contract:lint`, `tests/contract-rules`                                                     | un fixture por regla en `tests/contract-rules/fixtures/` (la prueba falla si falta)         |
+| `rules/`               | `functions/` (funciones CommonJS de las reglas `ope-*`, verificadas con `checkJs`) y `pii-denylist.json` (la **única** lista de datos personales prohibidos en esquemas).                  | fuente                    | `.spectral.yaml`                                                                            | `tests/contract-rules`; `typecheck` (scripts)                                               |
+| `oasdiff-severity.txt` | Severidades que `contract:diff` eleva a `err` (quitar un campo opcional de respuesta, especializar o generalizar un tipo): ADR-003.                                                        | fuente                    | `scripts/contract-diff.mjs`                                                                 | `contract:diff`                                                                             |
+| `webhooks/`            | Reservado para webhooks OpenAPI 3.1; ninguna feature del mapa lo usa hoy (D-05 de la feature 019 decide si se borra).                                                                      | fuente                    | nadie                                                                                       | —                                                                                           |
+| `dist/`                | Bundle derivado: `openapi.yaml` (lo que el servidor sirve y valida) y `openapi.docs.yaml` (con la superficie planeada desde el mapa). Ignorado por git; se regenera con `contract:bundle`. | derivado (no se commitea) | servidor, `contract:types`, `contract:docs`, `contract:insomnia`, Schemathesis              | `contract:bundle` corre dentro de `contract:check`                                          |
+
+## Cómo se agrega
+
+Las convenciones completas del multi-archivo, las extensiones `x-*` y el paso a paso llegan con
+D-05 de la feature 019; hasta entonces, `CLAUDE.md` § "Flujo de trabajo" (pasos 0–3) y
+§ "Notas operativas del contrato", y `tests/contract-rules/README.md` para las reglas.

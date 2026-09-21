@@ -32,7 +32,12 @@ const ROOT_FILES = [
 const CODE_EXTENSIONS = [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"];
 const TEXT_EXTENSIONS = [".yaml", ".yml", ".json"];
 const EXTENSIONS = [...CODE_EXTENSIONS, ...TEXT_EXTENSIONS];
-const ALWAYS_EXCLUDED = ["scripts/language-denylist.json", "patches/"];
+// The inventory policy names the (Spanish) columns of the documentation README, like the denylist names Spanish words.
+const ALWAYS_EXCLUDED = [
+  "scripts/language-denylist.json",
+  "scripts/readme-inventory-policy.json",
+  "patches/",
+];
 const SPANISH_CHARS = /[áéíóúñÁÉÍÓÚÑ¿¡]/u;
 // The directive must open the comment: a mention of `lang:es` in prose is not an exception.
 const ALLOW = /^\s*(?:\/\/|#|\/\*+|\*)?\s*lang:es(?:\s*--\s*(\S.*))?/;

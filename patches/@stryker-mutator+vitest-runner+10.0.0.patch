@@ -1,4 +1,4 @@
-# Fix for stryker-js#6210 (ADR-016): Vitest 5 matches `testNamePattern` against the suite chain
+# Fix: stryker-js#6210 (ADR-016). Vitest 5 matches `testNamePattern` against the suite chain
 # joined with " > ", while @stryker-mutator/vitest-runner 10.0.0 builds test ids joined with " ".
 # Every covered mutant then runs zero tests and is reported as Survived. This is the change of
 # stryker-js PR #6214 applied to the compiled output.

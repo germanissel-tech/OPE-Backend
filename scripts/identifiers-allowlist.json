@@ -50,5 +50,37 @@
   {
     "identifier": "originAllowed",
     "reason": "Name of the replaced version of the origin rule (ADR-024 records what was replaced)."
+  },
+  {
+    "identifier": "auditing-architecture",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "conditioning-project",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "profileVersion",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "file-glob",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "markdown-heading",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "gate-rule",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "criteria-section",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
+  },
+  {
+    "identifier": "findings-v1",
+    "reason": "Defined by the auditable-architecture plugin (ADR-032); the plugin lands with D-01 of feature 019 and this entry goes away when plugins/ becomes a tooling root."
   }
 ]

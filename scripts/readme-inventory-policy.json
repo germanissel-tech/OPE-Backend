@@ -1,0 +1,15 @@
+{
+  "fixedColumns": ["Entrada", "Qué es", "Fuente o derivado", "Quién lo lee", "Verificación"],
+  "globalExcludes": ["src", "node_modules", "dist", ".git", ".claude", ".specify", ".github", ".vscode"],
+  "directories": [
+    { "dir": "config", "columns": ["Variable de entorno", "Cuándo se lee"] },
+    { "dir": "contracts", "exclude": ["dist"] },
+    { "dir": "generated" },
+    { "dir": "patches" },
+    { "dir": "scripts", "columns": ["Clase"] },
+    { "dir": "docs" },
+    { "dir": "tests", "columns": ["Proyecto"] },
+    { "dir": "client" },
+    { "dir": "specs" }
+  ]
+}

@@ -1,3 +1,5 @@
+// Generates the API types (generated/api.d.ts) from the bundled contract with openapi-typescript;
+// contract-types.mjs writes them and contract-types-check.mjs compares (drift).
 import { existsSync, readFileSync } from "node:fs";
 import openapiTS, { astToString } from "openapi-typescript";
 import { bundlePath } from "./lib.mjs";
