@@ -24,27 +24,25 @@ import {
   type RotationPolicy,
   type SignatureWindow,
 } from "../../application/merchant/index.js";
-import { memoryMerchantStore } from "../../interface-adapters/gateways/merchant/memory-merchant-store.js";
-import { nodeCredentialMinter } from "../../interface-adapters/gateways/merchant/node-credential-minter.js";
-import { nodeMessageAuthenticator } from "../../interface-adapters/gateways/merchant/node-message-authenticator.js";
-import { makeCreateMerchant } from "../../interface-adapters/http/controllers/merchant/create-merchant.js";
-import { makeDeactivateMerchant } from "../../interface-adapters/http/controllers/merchant/deactivate-merchant.js";
-import { makeGetMerchant } from "../../interface-adapters/http/controllers/merchant/get-merchant.js";
-import { makeListMerchants } from "../../interface-adapters/http/controllers/merchant/list-merchants.js";
-import { makeRotateIngestKey } from "../../interface-adapters/http/controllers/merchant/rotate-ingest-key.js";
-import { makeRotatePlatformKey } from "../../interface-adapters/http/controllers/merchant/rotate-platform-key.js";
-import { makeRotatePlatformSecret } from "../../interface-adapters/http/controllers/merchant/rotate-platform-secret.js";
-import { makeSetKillSwitch } from "../../interface-adapters/http/controllers/merchant/set-kill-switch.js";
 import {
+  memoryMerchantStore,
+  nodeCredentialMinter,
+  nodeMessageAuthenticator,
+  makeCreateMerchant,
+  makeDeactivateMerchant,
+  makeGetMerchant,
+  makeListMerchants,
+  makeRotateIngestKey,
+  makeRotatePlatformKey,
+  makeRotatePlatformSecret,
+  makeSetKillSwitch,
   INGEST_KEY_HEADER,
   INGEST_KEY_SCHEME,
   makeIngestKeySecurity,
-} from "../../interface-adapters/http/security/ingest-key.js";
-import {
   makePlatformKeySecurity,
   PLATFORM_KEY_HEADER,
   PLATFORM_KEY_SCHEME,
-} from "../../interface-adapters/http/security/platform-key.js";
+} from "../../interface-adapters/merchant/index.js";
 import { auditedWiring } from "./audited.js";
 import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
 import type { PlatformConfiguration } from "../../domain/configuration/index.js";

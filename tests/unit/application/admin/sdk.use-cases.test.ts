@@ -12,8 +12,8 @@ import {
 import { DefaultScopedMerchantService } from "../../../../src/application/merchant/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId, fail, StoreUnavailable } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryAnchorDiagnosticsStore } from "../../../../src/interface-adapters/gateways/admin/memory-anchor-diagnostics-store.js";
-import { memoryMerchantStore } from "../../../../src/interface-adapters/gateways/merchant/memory-merchant-store.js";
+import { memoryAnchorDiagnosticsStore } from "../../../../src/interface-adapters/admin/gateways/memory-anchor-diagnostics-store.js";
+import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import { TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 
 const A = asMerchantId("m_a");

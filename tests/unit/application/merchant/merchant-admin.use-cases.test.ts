@@ -15,7 +15,7 @@ import {
 } from "../../../../src/application/merchant/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryMerchantStore } from "../../../../src/interface-adapters/gateways/merchant/memory-merchant-store.js";
+import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import { fakeMinter, fingerprintOf, TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 
 const HOUR = 3_600_000;

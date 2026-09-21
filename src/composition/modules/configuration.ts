@@ -20,13 +20,15 @@ import {
   type ImportMerchantConfigurationResponse,
 } from "../../application/configuration/index.js";
 import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
-import { memoryConfigurationStore } from "../../interface-adapters/gateways/configuration/memory-configuration-store.js";
-import { releaseConfigurationLevels } from "../../interface-adapters/gateways/configuration/release-configuration-levels.js";
-import { makeGetMerchantConfiguration } from "../../interface-adapters/http/controllers/configuration/get-merchant-configuration.js";
-import { makeGetPlatformConfiguration } from "../../interface-adapters/http/controllers/configuration/get-platform-configuration.js";
-import { makeGetTreatmentDefaults } from "../../interface-adapters/http/controllers/configuration/get-treatment-defaults.js";
-import { makeListConfigurationVersions } from "../../interface-adapters/http/controllers/configuration/list-configuration-versions.js";
-import { makePublishMerchantConfiguration } from "../../interface-adapters/http/controllers/configuration/publish-merchant-configuration.js";
+import {
+  memoryConfigurationStore,
+  releaseConfigurationLevels,
+  makeGetMerchantConfiguration,
+  makeGetPlatformConfiguration,
+  makeGetTreatmentDefaults,
+  makeListConfigurationVersions,
+  makePublishMerchantConfiguration,
+} from "../../interface-adapters/configuration/index.js";
 import { auditedWiring } from "./audited.js";
 import type { CatalogPolicies } from "../../application/catalog/index.js";
 import type { PolicySource } from "../../application/decision/index.js";

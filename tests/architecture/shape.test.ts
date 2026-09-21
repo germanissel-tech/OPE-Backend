@@ -66,9 +66,9 @@ describe("shape of the rings", () => {
       path.resolve("tests/architecture/fixtures/shape/controllers/openapi.yaml"),
     );
     expect(found).toEqual([
-      "interface-adapters/http/controllers/<module>/create-thing.ts: missing controller for operationId createThing",
-      "interface-adapters/http/controllers/<module>/list-things.ts: missing controller for operationId listThings",
-      "interface-adapters/http/controllers/x/two-ops.ts: no operationId in the contract maps to this controller",
+      "interface-adapters/<module>/controllers/create-thing.ts: missing controller for operationId createThing",
+      "interface-adapters/<module>/controllers/list-things.ts: missing controller for operationId listThings",
+      "interface-adapters/x/controllers/two-ops.ts: no operationId in the contract maps to this controller",
     ]);
   });
 
@@ -78,7 +78,7 @@ describe("shape of the rings", () => {
 
   it("a controller building an npm client is reported; builtins and domain classes are not", () => {
     expect(newOnlyInComposition(fixture("new-outside"))).toEqual([
-      "interface-adapters/http/controllers/x/bad-new.ts:7: instantiates Redis from an npm package outside composition",
+      "interface-adapters/x/controllers/bad-new.ts:7: instantiates Redis from an npm package outside composition",
     ]);
     expect(newOnlyInComposition(fixture("new-allowed"))).toEqual([]);
   });

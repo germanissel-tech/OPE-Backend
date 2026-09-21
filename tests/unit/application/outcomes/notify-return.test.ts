@@ -17,8 +17,8 @@ import {
   Money,
   ok,
 } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryCorroborationLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
-import { memoryOrderLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
+import { memoryCorroborationLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-corroboration-ledger.js";
+import { memoryOrderLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-order-ledger.js";
 import { TEST_TOLERANCE } from "../../../helpers/platform.js";
 import {
   unavailableCorroborationLedger,

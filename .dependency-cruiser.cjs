@@ -144,9 +144,9 @@ module.exports = {
     {
       name: "composition-wires-by-module",
       comment:
-        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013). config.ts is the exception: it reads the shape of the inputs through the readers of the configuration module (ADR-024, ADR-031).",
+        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013). The configuration readers (config.ts and *-config.ts) are the exception: they read the shape of the inputs through the readers of the configuration module (ADR-024, ADR-031).",
       severity: "error",
-      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/(modules/|config[.]ts$)` },
+      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/(modules/|[a-z-]*config[.]ts$)` },
       to: {
         path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
         dependencyTypesNot: ["type-only"],
@@ -195,9 +195,9 @@ module.exports = {
     {
       name: "problem-translation-only-in-http",
       comment:
-        "A DomainError becomes Problem Details only in the HTTP adapter (toProblem): controllers and security handlers.",
+        "A DomainError becomes Problem Details only at the HTTP boundary of the adapters ring (toProblem): controllers, presenters and security handlers; never a gateway, never another ring.",
       severity: "error",
-      from: { pathNot: `${SRC}interface-adapters/http/` },
+      from: { pathNot: `${SRC}interface-adapters/(?!gateways/|[^/]+/gateways/)` },
       to: { path: `${SRC}interface-adapters/http/to-problem\\.ts$` },
     },
     {

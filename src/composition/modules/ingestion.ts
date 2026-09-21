@@ -7,8 +7,7 @@ import {
   type ClockTolerance,
   type Logger,
 } from "../../application/shared-kernel/index.js";
-import { memoryEventDedup } from "../../interface-adapters/gateways/ingestion/memory-event-dedup.js";
-import { makeIngestEvents } from "../../interface-adapters/http/controllers/ingestion/ingest-events.js";
+import { memoryEventDedup, makeIngestEvents } from "../../interface-adapters/ingestion/index.js";
 import { decisionPlaneOf, type DecisionPorts } from "./decision.js";
 import type { PlatformConfiguration } from "../../domain/configuration/index.js";
 import type { Bindings, Module } from "../wiring.js";

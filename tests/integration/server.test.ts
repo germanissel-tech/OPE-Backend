@@ -8,8 +8,8 @@ import { parse } from "yaml";
 import { GetServiceHealthUseCase } from "../../src/application/system/index.js";
 import { buildServer, type ContractDocument } from "../../src/infrastructure/http/build-server.js";
 import { pinoLogger, silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
-import { makeGetHealth } from "../../src/interface-adapters/http/controllers/system/get-health.js";
 import { problem } from "../../src/interface-adapters/http/problem-details.js";
+import { makeGetHealth } from "../../src/interface-adapters/system/controllers/get-health.js";
 import { json, problemOf } from "../helpers/json.js";
 import type { components } from "../../src/interface-adapters/http/generated/api.js";
 import type {

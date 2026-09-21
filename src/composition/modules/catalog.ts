@@ -14,8 +14,7 @@ import {
   type ClockTolerance,
   type Logger,
 } from "../../application/shared-kernel/index.js";
-import { memoryCatalogStore } from "../../interface-adapters/gateways/catalog/memory-catalog-store.js";
-import { makeUpsertCatalogSnapshot } from "../../interface-adapters/http/controllers/catalog/upsert-catalog-snapshot.js";
+import { memoryCatalogStore, makeUpsertCatalogSnapshot } from "../../interface-adapters/catalog/index.js";
 import { catalogPoliciesOf } from "./configuration.js";
 import type { ConfigurationService } from "../../application/configuration/index.js";
 import type { Bindings, Module } from "../wiring.js";

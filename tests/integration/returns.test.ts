@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
 import { fail, type MerchantId } from "../../src/domain/shared-kernel/index.js";
-import { memoryOrderLedger } from "../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
+import { memoryOrderLedger } from "../../src/interface-adapters/outcomes/gateways/memory-order-ledger.js";
 import { json } from "../helpers/json.js";
 import {
   eventOf,

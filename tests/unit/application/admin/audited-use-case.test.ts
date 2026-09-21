@@ -14,7 +14,7 @@ import {
   ok,
   type Result,
 } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryAdminLog } from "../../../../src/interface-adapters/gateways/admin/memory-admin-log.js";
+import { memoryAdminLog } from "../../../../src/interface-adapters/admin/gateways/memory-admin-log.js";
 import type { UseCase } from "../../../../src/application/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-20T12:00:00.000Z");

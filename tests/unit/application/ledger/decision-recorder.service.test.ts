@@ -7,7 +7,7 @@ import {
 } from "../../../../src/application/ledger/index.js";
 import { asDecisionId, InterveneDecision, NoOpDecision } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
+import { memoryDecisionLedger } from "../../../../src/interface-adapters/ledger/gateways/memory-decision-ledger.js";
 import { TEST_VERSIONS } from "../../../helpers/platform.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 

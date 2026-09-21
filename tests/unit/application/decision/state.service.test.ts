@@ -6,8 +6,8 @@ import { DefaultStateService } from "../../../../src/application/decision/index.
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { SessionState } from "../../../../src/domain/decision/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
-import { memorySessionStateStore } from "../../../../src/interface-adapters/gateways/decision/memory-session-state-store.js";
-import { memoryVisitorStateStore } from "../../../../src/interface-adapters/gateways/decision/memory-visitor-state-store.js";
+import { memorySessionStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-session-state-store.js";
+import { memoryVisitorStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-visitor-state-store.js";
 import { addedToCart } from "../../../helpers/events.js";
 import { testVisitorWindow } from "../../../helpers/platform.js";
 

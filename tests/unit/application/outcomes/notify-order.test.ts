@@ -23,9 +23,9 @@ import {
   Money,
   type Incentive,
 } from "../../../../src/domain/shared-kernel/index.js";
-import { memoryDecisionLedger } from "../../../../src/interface-adapters/gateways/ledger/memory-decision-ledger.js";
-import { memoryCorroborationLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
-import { memoryOrderLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
+import { memoryDecisionLedger } from "../../../../src/interface-adapters/ledger/gateways/memory-decision-ledger.js";
+import { memoryCorroborationLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-corroboration-ledger.js";
+import { memoryOrderLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-order-ledger.js";
 import { TEST_TOLERANCE, TEST_VERSIONS } from "../../../helpers/platform.js";
 import { recordingLogger, unavailableOrderLedger } from "../../../helpers/unavailable-ledgers.js";
 
