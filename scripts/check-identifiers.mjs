@@ -50,7 +50,17 @@ const catalogs = (
   .split(",")
   .map((f) => path.resolve(root, f.trim()));
 const srcDir = path.resolve(argString(args, "src") ?? path.join(root, "src"));
-const TOOLING_EXTENSIONS = [".mjs", ".cjs", ".js", ".ts", ".json", ".yaml", ".yml", ".toml"];
+const TOOLING_EXTENSIONS = [
+  ".mjs",
+  ".cjs",
+  ".js",
+  ".ts",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".gitattributes",
+];
 const DEFAULT_TOOLING = [
   "package.json",
   "tsconfig.json",
@@ -58,6 +68,7 @@ const DEFAULT_TOOLING = [
   "tsconfig.scripts.json",
   "tsconfig.lint-fixtures.json",
   "tsconfig.client.json",
+  ".gitattributes",
   "client",
   "generated",
   "eslint.config.mjs",
