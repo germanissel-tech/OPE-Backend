@@ -156,7 +156,7 @@ Proyecto único: `src/` (anillos `domain/`, `application/`, `interface-adapters/
 
 - [x] T090 `specs/017-merchants-y-configuracion/quickstart.md` § "Cambios respecto del plan" completo (decisiones tomadas en el camino, supervivientes de mutación y cómo se resolvieron, forma final de la semilla y de los archivos de nivel)
 - [x] T091 `docs/api/` regenerado si está versionado (`contract:docs`, `contract:insomnia`); `README.md` del repo (arranque con operadores, `mint-admin-token`, `config/*.json`); `docs/dominio/README.md` si lista módulos
-- [ ] T092 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:mutation && npm run test:contract && npm run release-check`; commit `docs(017): cierre`; PR `017-merchants-y-configuracion` → `main` con el Constitution Check (once principios, v1.4.2) y SC-001..SC-007; sin merge hasta que el dueño lo pida
+- [x] T092 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:mutation && npm run test:contract && npm run release-check`; commit `docs(017): cierre`; PR `017-merchants-y-configuracion` → `main` con el Constitution Check (once principios, v1.4.2) y SC-001..SC-007; sin merge hasta que el dueño lo pida
 
 ---
 
