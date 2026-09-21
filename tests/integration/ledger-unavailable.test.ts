@@ -15,8 +15,8 @@ import {
   unavailableDecisionLedger,
   unavailableExposureLedger,
 } from "../helpers/unavailable-ledgers.js";
+import type { components } from "#generated/api.js";
 import type { App } from "../../src/composition/bootstrap.js";
-import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 

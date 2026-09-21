@@ -56,7 +56,7 @@ describe("single format (Prettier)", () => {
   it(".prettierignore holds the single list of exclusions", () => {
     const ignore = readFileSync(path.resolve(".prettierignore"), "utf8");
     for (const entry of [
-      "src/interface-adapters/http/generated/",
+      "generated/",
       "contracts/dist/",
       "docs/api/",
       "tests/architecture/fixtures/",

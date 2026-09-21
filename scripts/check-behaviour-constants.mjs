@@ -36,6 +36,7 @@ const RETIRED_NAMES = {
   DEFAULT_TREATMENT_PERCENT: "the seed and the API require the share",
   ROTATION_GRACE_MAX_MS: "platform: rotationGraceMaxMs",
   DIAGNOSTICS_KEPT: "platform: anchorDiagnosticsKept",
+  LEDGER_RETRY_AFTER_SECONDS: "platform: retryAfterSeconds",
 };
 
 const args = parseArgs(process.argv.slice(2));

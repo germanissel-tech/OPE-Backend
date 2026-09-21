@@ -69,6 +69,7 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("adapters-core-knows-no-module", "interface-adapters/http/bad-module.ts");
     expectRule("composition-imports-module-index", "composition/modules/bad-deep-import.ts");
     expectRule("gateways-drivers-from-infrastructure", "interface-adapters/a/gateways/bad-driver.ts");
+    expectRule("generated-only-from-http-core", "interface-adapters/a/bad-generated.ts");
     // Application ring (ADR-023)
     expectRule("use-cases-no-use-cases", "application/ledger/use-cases/bad-use-case-chain.ts");
     expectRule("services-no-use-cases", "application/ledger/services/bad-service.ts");

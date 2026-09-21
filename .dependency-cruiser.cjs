@@ -255,6 +255,14 @@ module.exports = {
       },
     },
     {
+      name: "generated-only-from-http-core",
+      comment:
+        "What the contract generates (generated/, reached by #generated/*) is read only by the core of the adapters ring and by the HTTP infrastructure; the modules of the ring take the contract types from the core (typed.ts).",
+      severity: "error",
+      from: { pathNot: `${SRC}(interface-adapters/http/|infrastructure/http/)` },
+      to: { path: "(?:^|/)generated/" },
+    },
+    {
       name: "gateways-drivers-from-infrastructure",
       comment:
         "A gateway implements a port with what Node offers or with a driver infrastructure/ provides; it never imports an npm package itself (the driver of the persistence enters by infrastructure/).",
@@ -271,12 +279,11 @@ module.exports = {
     },
     {
       name: "no-orphans",
-      comment:
-        "Every module of src/ is used by someone, except main.ts (root), the client (entrypoint) and generated files.",
+      comment: "Every module of src/ is used by someone, except main.ts (root) and generated files.",
       severity: "error",
       from: {
         orphan: true,
-        pathNot: [`${SRC}main\\.ts$`, `${SRC}interface-adapters/http/client\\.ts$`, "\\.d\\.ts$"],
+        pathNot: [`${SRC}main\\.ts$`, "\\.d\\.ts$"],
       },
       to: {},
     },

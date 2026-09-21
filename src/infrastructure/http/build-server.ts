@@ -15,8 +15,8 @@ import { send } from "./http-response.js";
 import { BODY_LIMIT_BYTES, keepRawBodies, refuseOversizedBodies } from "./raw-bodies.js";
 import { registerSecurity } from "./security-boundary.js";
 import { stripDiscriminatorMappings } from "./strip-discriminator-mappings.js";
+import type { operations } from "#generated/api.js";
 import type { Logger } from "../../application/shared-kernel/index.js";
-import type { operations } from "../../interface-adapters/http/generated/api.js";
 import type { Handlers, OperationsMap, SecurityScheme } from "../../interface-adapters/http/typed.js";
 
 export type ContractDocument = Document;
@@ -31,6 +31,21 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
   cors?: CorsPolicy | undefined;
   /** The process logger; Fastify's request log shares its stream when it is pino-backed. */
   logger: Logger;
+  /** Seconds every `503` tells the client to wait (`Retry-After`; level 1 of the configuration, ADR-021). */
+  retryAfterSeconds: number;
+}
+
+const SERVICE_UNAVAILABLE = 503;
+const RETRY_AFTER = "retry-after";
+
+/** Every 503 carries `Retry-After` (ADR-021): a write a store could not accept is retried, not lost. */
+function retryAfterOn503(app: FastifyInstance, seconds: number): void {
+  app.addHook("onSend", (_request, reply, payload, done) => {
+    if (reply.statusCode === SERVICE_UNAVAILABLE && !reply.hasHeader(RETRY_AFTER)) {
+      reply.header(RETRY_AFTER, String(seconds));
+    }
+    done(null, payload);
+  });
 }
 
 /**
@@ -38,7 +53,7 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
  * on the stream of the process logger; a foreign `Logger` (a test stub) gets no request log.
  */
 async function createApp(
-  options: Pick<BuildServerOptions, "logger" | "cors" | "security">,
+  options: Pick<BuildServerOptions, "logger" | "cors" | "security" | "retryAfterSeconds">,
 ): Promise<FastifyInstance> {
   const loggerInstance = fastifyLoggerOf(options.logger);
   const app = Fastify({
@@ -51,6 +66,7 @@ async function createApp(
     ...(loggerInstance ? { loggerInstance } : {}),
   });
   keepRawBodies(app);
+  retryAfterOn503(app, options.retryAfterSeconds);
   // Only the credentials a browser sends are announced to a preflight (ADR-025 §5: platformKey without CORS).
   const credentialHeaders = Object.values(options.security ?? {})
     .filter((scheme) => scheme.consumer === "browser")

@@ -8,8 +8,7 @@ import { toProblem } from "../http/to-problem.js";
 import type { RotateCredentialRequest, RotateCredentialResult } from "../../application/merchant/index.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 import type { CredentialKind, Merchant } from "../../domain/merchant/index.js";
-import type { components, operations } from "../http/generated/api.js";
-import type { OperationHandler, TypedRequest } from "../http/typed.js";
+import type { OperationHandler, TypedRequest, components, operations } from "../http/typed.js";
 
 type MerchantDto = components["schemas"]["Merchant"];
 type CredentialSummaryDto = components["schemas"]["CredentialSummary"];

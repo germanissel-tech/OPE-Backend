@@ -4,8 +4,7 @@ import { merchantOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
 import type { GetSdkConfigRequest, SdkConfig } from "../../../application/admin/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
-import type { components } from "../../http/generated/api.js";
-import type { OperationHandler } from "../../http/typed.js";
+import type { OperationHandler, components } from "../../http/typed.js";
 
 type SdkConfigDto = components["schemas"]["SdkConfig"];
 

@@ -38,14 +38,14 @@ describe("toProblem()", () => {
     },
   );
 
-  it("ledger-unavailable is a 503 with Retry-After; the others carry no headers", () => {
-    expect(toProblem(new LedgerUnavailable(), "/v1/exposures")).toMatchObject({
+  it("ledger-unavailable and store-unavailable are 503 without headers of their own: Retry-After is the transport's (feature 018)", () => {
+    expect(toProblem(new LedgerUnavailable(), "/v1/exposures")).toEqual({
       status: 503,
-      headers: { "retry-after": "5" },
+      body: expect.objectContaining({ type: "urn:ope:problem:ledger-unavailable", status: 503 }) as object,
     });
-    expect(toProblem(new StoreUnavailable(), "/v1/admin/merchants")).toMatchObject({
+    expect(toProblem(new StoreUnavailable(), "/v1/admin/merchants")).toEqual({
       status: 503,
-      headers: { "retry-after": "5" },
+      body: expect.objectContaining({ type: "urn:ope:problem:store-unavailable", status: 503 }) as object,
     });
     expect(toProblem(new ExposureOfNoOp("dec_1"), "/v1/exposures")).not.toHaveProperty("headers");
   });

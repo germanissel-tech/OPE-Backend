@@ -165,6 +165,7 @@ describe("readPlatformConfiguration", () => {
       [{ ...platform(), extra: 1 }, "extra", NOT_A_FIELD],
       [withKey(platform(), ["dedupWindow", "extra"], 1), "dedupWindow.extra", NOT_A_FIELD],
       [without(platform(), ["sessionWindowMs"]), "sessionWindowMs", REQUIRED],
+      [without(platform(), ["retryAfterSeconds"]), "retryAfterSeconds", REQUIRED],
       [without(platform(), ["dedupWindow", "maxIds"]), "dedupWindow.maxIds", REQUIRED],
     ];
     for (const [value, pointer, problem] of cases) {

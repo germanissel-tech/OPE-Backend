@@ -30,9 +30,9 @@ import {
   type MerchantSpec,
   type SharedApp,
 } from "../helpers/test-app.js";
+import type { components } from "#generated/api.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
 import type { OrderId } from "../../src/domain/outcomes/index.js";
-import type { components } from "../../src/interface-adapters/http/client.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 

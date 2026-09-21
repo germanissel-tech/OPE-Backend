@@ -1,9 +1,22 @@
-// contract:types — generates src/interface-adapters/http/generated/api.d.ts from the bundle (FR-030).
-// Deterministic: fixed options and LF line endings.
-import { writeFileSync } from "node:fs";
+// contract:types — generates what the server reads of the contract, outside src/ (FR-030;
+// feature 018): generated/api.d.ts from the bundle and generated/problem-types.{js,d.ts} from
+// contracts/problem-types.yaml. Deterministic: fixed options and LF line endings.
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import {
+  generateProblemTypes,
+  generatedProblemTypesDts,
+  generatedProblemTypesJs,
+} from "./contract-problem-types-lib.mjs";
 import { generateTypes } from "./contract-types-lib.mjs";
 import { generatedTypesPath } from "./lib.mjs";
 
 const source = await generateTypes();
+mkdirSync(path.dirname(generatedTypesPath), { recursive: true });
 writeFileSync(generatedTypesPath, source, "utf8");
 console.log(`Types generated at ${generatedTypesPath}`);
+const { js, dts } = generateProblemTypes();
+mkdirSync(path.dirname(generatedProblemTypesJs), { recursive: true });
+writeFileSync(generatedProblemTypesJs, js, "utf8");
+writeFileSync(generatedProblemTypesDts, dts, "utf8");
+console.log(`Problem types generated at ${generatedProblemTypesJs} (+ .d.ts)`);

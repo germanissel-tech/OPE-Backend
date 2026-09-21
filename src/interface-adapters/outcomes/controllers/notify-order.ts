@@ -10,8 +10,7 @@ import { toProblem } from "../../http/to-problem.js";
 import { linesOf } from "../presenters.js";
 import type { NotifyOrderRequest, NotifyOrderResponse } from "../../../application/outcomes/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
-import type { components } from "../../http/generated/api.js";
-import type { OperationHandler } from "../../http/typed.js";
+import type { OperationHandler, components } from "../../http/typed.js";
 
 type OrderResultDto = components["schemas"]["OrderResult"];
 

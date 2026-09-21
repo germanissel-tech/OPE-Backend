@@ -7,5 +7,6 @@
   "visitorWindowMs": 86400000,
   "signatureWindowMs": 300000,
   "rotationGraceMaxMs": 604800000,
-  "anchorDiagnosticsKept": 200
+  "anchorDiagnosticsKept": 200,
+  "retryAfterSeconds": 5
 }

@@ -10,8 +10,7 @@ import { toProblem } from "../../http/to-problem.js";
 import type { IngestBatchRequest, IngestBatchResponse } from "../../../application/ingestion/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
 import type { Decision } from "../../../domain/ledger/index.js";
-import type { components } from "../../http/generated/api.js";
-import type { OperationHandler } from "../../http/typed.js";
+import type { OperationHandler, components } from "../../http/typed.js";
 
 type EventDto = components["schemas"]["Event"];
 type PageContextDto = components["schemas"]["PageContext"];

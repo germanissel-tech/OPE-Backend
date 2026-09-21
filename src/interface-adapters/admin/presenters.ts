@@ -2,7 +2,7 @@
 // anchor diagnostic as the contract publishes them — instants as text, optional fields only
 // when present, never the merchant of a diagnostic (the path names it).
 import type { AdminEntry, AdminResult, AnchorDiagnostic } from "../../domain/admin/index.js";
-import type { components } from "../http/generated/api.js";
+import type { components } from "../http/typed.js";
 
 type AdminEntryDto = components["schemas"]["AdminEntry"];
 type AdminResultDto = components["schemas"]["AdminResult"];

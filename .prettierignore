@@ -2,7 +2,7 @@
 # deliberadas, lock y los archivos de Spec Kit (plantillas y skills sin modificar).
 dist/
 node_modules/
-src/interface-adapters/http/generated/
+generated/
 contracts/dist/
 docs/api/
 .schemathesis/

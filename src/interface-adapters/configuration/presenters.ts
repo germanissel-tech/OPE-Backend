@@ -10,7 +10,7 @@ import type {
   PlatformConfiguration,
   TreatmentDefaults,
 } from "../../domain/configuration/index.js";
-import type { components } from "../http/generated/api.js";
+import type { components } from "../http/typed.js";
 
 type PlatformDto = components["schemas"]["PlatformConfiguration"];
 type DefaultsDto = components["schemas"]["TreatmentDefaults"];

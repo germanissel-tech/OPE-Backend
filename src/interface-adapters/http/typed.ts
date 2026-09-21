@@ -1,8 +1,11 @@
 // Handler types, derived from the types generated from the contract (FR-046).
 // A handler receives the typed request of its operation and can only return a declared status
 // with the body declared for that status; anything else does not compile.
-import type { operations } from "./generated/api.js";
+import type { operations } from "#generated/api.js";
 import type { ProblemSlug } from "./problem-details.js";
+
+/** The types the contract generates (`npm run contract:types`): the modules of the ring read them from here. */
+export type { components, operations } from "#generated/api.js";
 
 /** Minimal shape of an operation as openapi-typescript generates it. */
 export interface OperationShape {
@@ -106,5 +109,3 @@ export type OperationHandler<Id extends keyof operations> = Handler<operations[I
 export type Handlers<Ops extends OperationsMap<Ops> = operations> = Partial<{
   [Id in keyof Ops]: Handler<Ops[Id], Id & string>;
 }>;
-
-export type { operations };

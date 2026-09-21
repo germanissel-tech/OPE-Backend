@@ -12,6 +12,7 @@ required:
   - signatureWindowMs
   - rotationGraceMaxMs
   - anchorDiagnosticsKept
+  - retryAfterSeconds
 properties:
   version:
     type: string
@@ -56,3 +57,8 @@ properties:
     description: Anchor diagnostics kept per merchant at most.
     minimum: 1
     maximum: 1000000
+  retryAfterSeconds:
+    type: integer
+    description: "Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021)."
+    minimum: 1
+    maximum: 3600

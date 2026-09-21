@@ -15,7 +15,7 @@ import {
   type SharedApp,
 } from "../helpers/test-app.js";
 import { unavailableCatalogStore } from "../helpers/unavailable-ledgers.js";
-import type { components } from "../../src/interface-adapters/http/client.js";
+import type { components } from "#generated/api.js";
 
 type Summary = components["schemas"]["CatalogSummary"];
 

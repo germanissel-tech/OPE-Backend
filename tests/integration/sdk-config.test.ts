@@ -15,7 +15,7 @@ import {
   type MerchantSpec,
   type SharedApp,
 } from "../helpers/test-app.js";
-import type { components } from "../../src/interface-adapters/http/generated/api.js";
+import type { components } from "#generated/api.js";
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
 
 type SdkConfig = components["schemas"]["SdkConfig"];

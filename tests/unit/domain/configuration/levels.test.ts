@@ -46,6 +46,8 @@ describe("PlatformConfiguration.of", () => {
       [{ clockSkewToleranceMs: -1 }, "clockSkewToleranceMs"],
       [{ rotationGraceMaxMs: 0.5 }, "rotationGraceMaxMs"],
       [{ anchorDiagnosticsKept: 0 }, "anchorDiagnosticsKept"],
+      [{ retryAfterSeconds: 0 }, "retryAfterSeconds"],
+      [{ retryAfterSeconds: 1.5 }, "retryAfterSeconds"],
     ];
     for (const [over, pointer] of cases) {
       expect(pointerOf(PlatformConfiguration.of({ ...platform(), ...over })), pointer).toBe(pointer);
@@ -59,6 +61,7 @@ describe("PlatformConfiguration.of", () => {
         clockSkewToleranceMs: 0,
         rotationGraceMaxMs: 0,
         anchorDiagnosticsKept: 1,
+        retryAfterSeconds: 1,
         dedupWindow: { ttlMs: 1, maxIds: 1 },
         sessionWindowMs: 1,
         visitorWindowMs: 1,

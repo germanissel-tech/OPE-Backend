@@ -21,7 +21,7 @@
   "timeoutMS": 2000,
   "mutate": [
     "src/**/*.ts",
-    "!src/interface-adapters/http/generated/**",
+    "!generated/**",
     "!src/composition/**",
     "!src/main.ts",
     "!src/**/index.ts",

@@ -1653,6 +1653,8 @@ export type components = {
             dedupWindow: components["schemas"]["DedupWindow"];
             /** @description Milliseconds an event instant may sit in the past (late uploads). */
             eventPastToleranceMs: number;
+            /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
+            retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
             rotationGraceMaxMs: number;
             /** @description Milliseconds a session is remembered since its last batch. */
@@ -2783,7 +2785,8 @@ export interface operations {
                      *           "visitorWindowMs": 86400000,
                      *           "signatureWindowMs": 300000,
                      *           "rotationGraceMaxMs": 604800000,
-                     *           "anchorDiagnosticsKept": 200
+                     *           "anchorDiagnosticsKept": 200,
+                     *           "retryAfterSeconds": 5
                      *         }
                      *       },
                      *       "declared": {
@@ -3504,7 +3507,8 @@ export interface operations {
                      *       "visitorWindowMs": 86400000,
                      *       "signatureWindowMs": 300000,
                      *       "rotationGraceMaxMs": 604800000,
-                     *       "anchorDiagnosticsKept": 200
+                     *       "anchorDiagnosticsKept": 200,
+                     *       "retryAfterSeconds": 5
                      *     }
                      */
                     "application/json": components["schemas"]["PlatformConfiguration"];

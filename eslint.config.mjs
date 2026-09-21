@@ -100,7 +100,7 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "node_modules/**",
-      "src/interface-adapters/http/generated/**",
+      "generated/**",
       "contracts/dist/**",
       "docs/api/**",
       ".schemathesis/**",

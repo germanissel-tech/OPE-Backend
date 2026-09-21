@@ -14,8 +14,7 @@ import { toProblem, type CataloguedError, type ProblemOf } from "../http/to-prob
 import type { UseCase } from "../../application/shared-kernel/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
 import type { Operator } from "../../domain/operator/index.js";
-import type { components, operations } from "../http/generated/api.js";
-import type { TypedRequest } from "../http/typed.js";
+import type { TypedRequest, components, operations } from "../http/typed.js";
 
 type ExperimentDto = components["schemas"]["Experiment"];
 

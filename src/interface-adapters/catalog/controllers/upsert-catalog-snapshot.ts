@@ -12,8 +12,7 @@ import type {
   UpsertCatalogSnapshotResponse,
 } from "../../../application/catalog/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
-import type { components } from "../../http/generated/api.js";
-import type { OperationHandler } from "../../http/typed.js";
+import type { OperationHandler, components } from "../../http/typed.js";
 
 type ProductDto = components["schemas"]["CatalogProduct"];
 type SummaryDto = components["schemas"]["CatalogSummary"];

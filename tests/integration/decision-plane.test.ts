@@ -16,7 +16,7 @@ import {
   type MerchantSpec,
   type SharedApp,
 } from "../helpers/test-app.js";
-import type { components } from "../../src/interface-adapters/http/client.js";
+import type { components } from "#generated/api.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 
