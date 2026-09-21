@@ -1,0 +1,9 @@
+{
+  "merchants": [
+    {
+      "merchantId": "m_seed",
+      "ingestKeys": [1],
+      "origins": ["https://shop.example"]
+    }
+  ]
+}

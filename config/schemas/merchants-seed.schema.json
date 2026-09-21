@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Merchants seed",
+  "description": "The seed of merchants a deployment may import at start-up (ADR-031): the file named by OPE_MERCHANTS_FILE (this object) or the JSON of OPE_MERCHANTS (this object, or the bare array of merchants). Imported by the `system` operator only when the merchant store starts empty; never overrides what an operator registered. Shape only: the rules are the Merchant's, the Experiment's and the declared configuration's (a rejected value stops the start naming the field).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["merchants"],
+  "properties": {
+    "$schema": { "type": "string", "description": "Path of this schema, for the editor." },
+    "merchants": {
+      "type": "array",
+      "description": "One entry per merchant.",
+      "items": { "$ref": "#/$defs/merchant" }
+    }
+  },
+  "$defs": {
+    "merchant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["merchantId", "ingestKeys", "origins"],
+      "properties": {
+        "merchantId": {
+          "type": "string",
+          "description": "Identifier of the merchant, as the credentials and the administration API name it.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "ingestKeys": {
+          "type": "array",
+          "description": "Raw values of the ingest credentials (`X-OPE-Ingest-Key`); the import stores their fingerprints, never the values. One or two.",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "platformKeys": {
+          "type": "array",
+          "description": "Raw values of the platform credentials (`X-OPE-Platform-Key`, server to server; ADR-025). At most two.",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "platformSecrets": {
+          "type": "array",
+          "description": "Secrets of the platform signature (ADR-029); with at least one, every platform request must be signed. At most two.",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "origins": {
+          "type": "array",
+          "description": "Origins the SDK may call from: `scheme://host[:port]`, no path. At least one.",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://[^/?#\\s]+$" }
+        },
+        "experiments": {
+          "type": "array",
+          "description": "Experiments opened at start-up with the store empty (ADR-022); the holdout does not judge the seed. At most one open (calibrating or active) per merchant.",
+          "items": { "$ref": "#/$defs/experiment" }
+        },
+        "freshness": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/freshness"
+        },
+        "syncLevel": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/syncLevel"
+        },
+        "holdoutPercent": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/holdoutPercent"
+        },
+        "decisionPolicy": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/decisionPolicy"
+        },
+        "commercialPolicy": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/commercialPolicy"
+        },
+        "evidenceProfile": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/evidenceProfile"
+        },
+        "surfaces": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/surfaces"
+        },
+        "barriers": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/barriers"
+        },
+        "syncStrategy": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/syncStrategy"
+        },
+        "locales": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/locales"
+        },
+        "anchors": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/anchors"
+        }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experimentId", "treatmentPercent", "seed", "status", "openedAt", "targetSample"],
+      "properties": {
+        "experimentId": {
+          "type": "string",
+          "description": "Identifier of the experiment (the API mints `exp_` + base32; the seed may choose its own).",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+        },
+        "treatmentPercent": {
+          "type": "integer",
+          "description": "Share of the visitors assigned to treatment, as an integer percentage (a rate 0–1 inside the domain).",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "seed": {
+          "type": "string",
+          "description": "Seed of the assignment hash: the same visitor lands in the same arm for the life of the experiment.",
+          "minLength": 1
+        },
+        "targetSample": {
+          "type": "integer",
+          "description": "Visitors the experiment aims to observe.",
+          "minimum": 1
+        },
+        "cuts": {
+          "type": "array",
+          "description": "Interim analyses as increasing percentages of the target sample.",
+          "items": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 }
+        },
+        "status": {
+          "type": "string",
+          "description": "State at start-up: `calibrating` assigns and decides without counting; `active` starts the window at `openedAt`; `closed` is terminal.",
+          "enum": ["calibrating", "active", "closed"]
+        },
+        "openedAt": {
+          "type": "string",
+          "description": "Instant the experiment opened (RFC 3339); an active one starts its window here.",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

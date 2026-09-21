@@ -15,4 +15,7 @@ El primer nivel: ventana de deduplicación, tolerancia de reloj, memoria de sesi
 visitante, ventana de la firma, gracia máxima de una rotación, tope de diagnósticos por
 merchant. Vive en `config/platform.json`, **viaja con el release** (cambiarlo es un deploy,
 no una operación), declara su `version`, se valida al construir el release y se lee por
-`GET /v1/admin/platform-configuration`. No existe operación para modificarlo en caliente.
+`GET /v1/admin/platform-configuration`. No existe operación para modificarlo en caliente. Qué es
+cada campo lo dice el contrato (`PlatformConfiguration`) y su esquema generado
+(`generated/schemas/platform-configuration.schema.json`, que el archivo referencia en `$schema`);
+quién lo lee y cuándo, `config/README.md`.

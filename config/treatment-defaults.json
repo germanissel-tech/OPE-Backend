@@ -1,4 +1,5 @@
 {
+  "$schema": "../generated/schemas/treatment-defaults.schema.json",
   "version": "defaults-1",
   "freshness": { "catalogMs": 129600000, "stockAndPriceMs": 900000 },
   "syncLevel": {

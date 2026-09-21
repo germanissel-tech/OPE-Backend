@@ -17,4 +17,6 @@ El segundo nivel: lo que rige para todo merchant que no declaró el valor. Vive 
 flujos: lo que hasta la feature 017 eran constantes del código). Viaja con el release; una
 prueba de la construcción verifica que cada valor resuelve al vocabulario del código
 (barreras, candidatos, claims, motivos, modos). Se lee por `GET /v1/admin/treatment-defaults`.
-Es parte del tratamiento: su versión se estampa en cada decisión.
+Es parte del tratamiento: su versión se estampa en cada decisión. Qué es cada campo lo dice el
+contrato (`TreatmentDefaults`) y su esquema generado (`generated/schemas/treatment-defaults.schema.json`,
+referenciado en `$schema`); quién lo lee y cuándo, `config/README.md`.

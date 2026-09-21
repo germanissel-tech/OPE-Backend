@@ -20,6 +20,7 @@ apagar, dar de baja, publicar configuración) requiere tocar este directorio ni 
 | `treatment-defaults.json` | Nivel 2: lo que rige para todo merchant que no declaró el valor (frescura, nivel de sincronización, holdout, políticas de decisión y comercial, perfil de evidencia, superficies, barreras, estrategia de sincronización, idiomas). Es parte del tratamiento: su `version` se estampa en cada decisión. | fuente            | `composition/levels-config.ts` → `readTreatmentDefaults` → `TreatmentDefaults.of`; se publica por `GET /v1/admin/treatment-defaults`                                         | `contract:check` (esquema `TreatmentDefaults`); una prueba verifica que cada valor resuelve al vocabulario del código                 | `OPE_TREATMENT_DEFAULTS` (ruta de otro archivo)           | Al arrancar, siempre                                                                                            |
 | `dev-merchants.json`      | Semilla de merchants para desarrollo: claves crudas (el import las huellea), orígenes, experimentos, y lo que `MerchantConfigurationDeclared` admite (se publica como versión 1 del merchant).                                                                                                          | fuente            | `composition/merchants-config.ts` y `experiments-config.ts` → `ImportMerchantsUseCase`, `ImportExperimentsUseCase`, `ImportMerchantConfigurationUseCase` (operador `system`) | La forma en composición; las reglas en `Merchant.of`, `Experiment` y el lector de configuración declarada                             | `OPE_MERCHANTS` (JSON en línea) o `OPE_MERCHANTS_FILE`    | Sólo cuando la variable lo nombra (`npm run dev` lo hace) y **sólo si el store arranca vacío**: nunca pisa nada |
 | `dev-operators.json`      | Operadores de administración para desarrollo: id, huellas SHA-256 de sus tokens (nunca el token) y alcance (`"*"` o merchants).                                                                                                                                                                         | fuente            | `composition/operators-config.ts` → `Operator.of`; `DefaultAdminTokenResolver` resuelve el bearer por huella                                                                 | La forma en composición; las reglas en `Operator.of`; `node scripts/mint-admin-token.mjs` acuña token y huella                        | `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE` | Sólo cuando la variable lo nombra (`npm run dev`); sin operadores nadie administra                              |
+| `schemas/`                | Esquemas JSON escritos una vez para lo que no es DTO de la API: la semilla de merchants (`merchants-seed.schema.json`) y los operadores (`operators.schema.json`); descripción por campo. Los de los dos niveles se generan en `generated/schemas/`.                                                    | fuente            | el editor (por `$schema` de cada archivo) y `tests/unit/composition/config-schemas.test.ts`                                                                                  | la prueba cruza cada esquema con su lector sobre fixtures válidos, inválidos y más estrictos                                          | —                                                         | —                                                                                                               |
 
 ## Release o desarrollo
 
@@ -46,6 +47,29 @@ campo con su ruta:
   la semilla; las reglas son las del agregado `Merchant` y de `Experiment`.
 - `operators[i].operatorId`, `operators[i].tokenFingerprints[k]`, `operators[i].scope` — los
   operadores.
+
+## Esquemas: el editor y la suite validan cada archivo
+
+Cada archivo nombra su esquema JSON en `$schema` (los lectores lo quitan antes de juzgar la
+forma; nunca llega al dominio) y `tests/unit/composition/config-schemas.test.ts` lo valida en
+cada corrida:
+
+| Archivo                   | Esquema                                                | Origen                                                                                                                |
+| ------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `platform.json`           | `generated/schemas/platform-configuration.schema.json` | generado desde `PlatformConfiguration` del contrato (`contract:types`)                                                |
+| `treatment-defaults.json` | `generated/schemas/treatment-defaults.schema.json`     | generado desde `TreatmentDefaults` del contrato                                                                       |
+| `dev-merchants.json`      | `schemas/merchants-seed.schema.json`                   | escrito una vez; las políticas declaradas referencian `generated/schemas/merchant-configuration-declared.schema.json` |
+| `dev-operators.json`      | `schemas/operators.schema.json`                        | escrito una vez                                                                                                       |
+
+La semilla y los operadores se escriben como el objeto del esquema (`{ "$schema", "merchants": [...] }`,
+`{ "$schema", "operators": [...] }`); en la variable de entorno en línea (`OPE_MERCHANTS`,
+`OPE_ADMIN_OPERATORS`) vale también el array a secas. Los esquemas describen la **forma** (tipos,
+rangos, patrones, claves admitidas); las reglas de negocio siguen en su dueño (`Merchant.of`,
+`Experiment.of`, `Operator.of`, las fábricas de configuración) y algunas se juzgan al importar,
+no al leer. En dos puntos el esquema es más estricto que el lector, a propósito, porque lleva la
+forma del contrato: el patrón de `merchantId` y de las huellas (hex de 64), y las claves
+desconocidas (el lector las ignora; la API las rechaza). La prueba mantiene esa lista en
+`tests/unit/composition/fixtures/config-schemas/*/stricter/`.
 
 ## Qué significa cada campo
 

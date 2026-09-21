@@ -4,7 +4,7 @@
 import path from "node:path";
 import { readPlatformConfiguration, readTreatmentDefaults } from "../application/configuration/index.js";
 import { ConfigError } from "./config-error.js";
-import { parseJson, text } from "./env.js";
+import { parseJson, text, withoutSchemaReference } from "./env.js";
 import type {
   InvalidConfigurationValue,
   PlatformConfiguration,
@@ -24,16 +24,20 @@ const TREATMENT_DEFAULTS_FILE = "config/treatment-defaults.json";
 /** `OPE_PLATFORM_CONFIG` and `OPE_TREATMENT_DEFAULTS` name the files; the ones of the repository otherwise. */
 export function readLevels(env: NodeJS.ProcessEnv, readFile: (file: string) => string): ReleaseLevels {
   const platform = readPlatformConfiguration(
-    parseJson(
-      "OPE_PLATFORM_CONFIG",
-      readFile(path.resolve(text(env, "OPE_PLATFORM_CONFIG") ?? PLATFORM_FILE)),
+    withoutSchemaReference(
+      parseJson(
+        "OPE_PLATFORM_CONFIG",
+        readFile(path.resolve(text(env, "OPE_PLATFORM_CONFIG") ?? PLATFORM_FILE)),
+      ),
     ),
   );
   if (!platform.ok) throw levelError("platform", platform.error);
   const defaults = readTreatmentDefaults(
-    parseJson(
-      "OPE_TREATMENT_DEFAULTS",
-      readFile(path.resolve(text(env, "OPE_TREATMENT_DEFAULTS") ?? TREATMENT_DEFAULTS_FILE)),
+    withoutSchemaReference(
+      parseJson(
+        "OPE_TREATMENT_DEFAULTS",
+        readFile(path.resolve(text(env, "OPE_TREATMENT_DEFAULTS") ?? TREATMENT_DEFAULTS_FILE)),
+      ),
     ),
   );
   if (!defaults.ok) throw levelError("treatmentDefaults", defaults.error);

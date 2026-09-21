@@ -9,7 +9,7 @@ import {
 import { Merchant } from "../domain/merchant/index.js";
 import { asMerchantId, type DomainError, type MerchantId } from "../domain/shared-kernel/index.js";
 import { ConfigError, type MerchantField } from "./config-error.js";
-import { NON_EMPTY_STRING, NOT_AN_OBJECT, parseJson, STRING_ARRAY, text } from "./env.js";
+import { listOf, NON_EMPTY_STRING, NOT_AN_OBJECT, parseJson, STRING_ARRAY, text } from "./env.js";
 import { parseExperiments } from "./experiments-config.js";
 import { rejected } from "./seed-errors.js";
 import type { MerchantSeed } from "../application/merchant/index.js";
@@ -54,8 +54,8 @@ function judgeSeed(seed: MerchantSeed): DomainError | undefined {
 
 /** Parses the shape (an array of merchants with an id and lists of strings); the rules are the Merchant's. */
 function parseMerchants(raw: string): MerchantConfig[] {
-  const parsed = parseJson("OPE_MERCHANTS", raw);
-  if (!Array.isArray(parsed)) throw new ConfigError("OPE_MERCHANTS", "must be a JSON array of merchants");
+  const parsed = listOf(parseJson("OPE_MERCHANTS", raw), "merchants");
+  if (parsed === undefined) throw new ConfigError("OPE_MERCHANTS", "must be a JSON array of merchants");
   return parsed.map((item: unknown, i) => {
     if (typeof item !== "object" || item === null) throw new ConfigError(`merchants[${i}]`, NOT_AN_OBJECT);
     const m = item as Record<string, unknown>;
