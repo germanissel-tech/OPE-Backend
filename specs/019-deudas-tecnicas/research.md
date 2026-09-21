@@ -190,11 +190,12 @@ un **patrón** (`NNN-<nombre>/`, con `<…>` como comodín) para directorios de 
 | `docs/`      | —                            | —                                                  |
 | `tests/`     | —                            | `Proyecto` (`fast`, `tools`, ambos)                |
 | `client/`    | —                            | —                                                  |
-| `reports/`   | lo ignorado por git          | —                                                  |
 | `specs/`     | —                            | fila patrón obligatoria                            |
 | `plugins/`   | —                            | —                                                  |
 
-Globalmente excluidos: `node_modules/`, `.git/`, `dist/`, `src/` (código: lo describe ADR-013 y
+Las entradas se enumeran con `git ls-files`: lo ignorado por git (`contracts/dist/`, `reports/`,
+`docs/api/`) no existe para la prueba, y `reports/` no lleva README porque no es parte del
+repositorio. Globalmente excluidos: `node_modules/`, `.git/`, `dist/`, `src/` (código: lo describe ADR-013 y
 CLAUDE.md), `.claude/`, `.specify/`, `.github/` (dot-directorios de herramientas; sus README son
 opcionales). Las entradas ocultas dentro de un directorio inventariado (`.spectral.yaml`,
 `.gitkeep`) **cuentan**. Cifras en prosa: la prueba falla si el README contiene un número seguido
