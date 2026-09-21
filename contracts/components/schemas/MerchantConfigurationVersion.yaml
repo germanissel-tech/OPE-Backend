@@ -1,0 +1,30 @@
+type: object
+description: "A published version of a merchant's configuration (01 §14.2): numbered, immutable,
+  with who published it and why."
+additionalProperties: false
+required:
+  - version
+  - declared
+  - corrective
+  - publishedAt
+  - operatorId
+properties:
+  version:
+    type: integer
+    description: Sequential number per merchant, assigned at publication.
+    minimum: 1
+  declared:
+    $ref: ./MerchantConfigurationDeclared.yaml
+  corrective:
+    type: boolean
+    description: Whether the version was published as corrective.
+  reason:
+    type: string
+    description: The reason the operator declared, when any.
+    maxLength: 512
+  publishedAt:
+    type: string
+    format: date-time
+    description: Instant of publication.
+  operatorId:
+    $ref: ./OperatorId.yaml

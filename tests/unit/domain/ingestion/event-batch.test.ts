@@ -3,20 +3,17 @@
 import { describe, expect, it } from "vitest";
 import {
   EventBatch,
-  TIMESTAMP_TOLERANCE,
   type Event,
   type PageContext,
   type ProductViewed,
   asEventId,
 } from "../../../../src/domain/ingestion/index.js";
-import {
-  asSessionId,
-  asVisitorId,
-  CLOCK_SKEW_TOLERANCE_MS,
-} from "../../../../src/domain/shared-kernel/index.js";
+import { asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
+/** The tolerance the platform declares (level 1 of the configuration), as the tests declare it. */
+const TOLERANCE = { pastMs: 24 * HOUR, futureMs: 5 * MIN };
 const now = new Date("2026-09-16T12:00:00.000Z");
 const at = (offsetMs: number): Date => new Date(now.getTime() + offsetMs);
 
@@ -32,7 +29,7 @@ const event = (n: number, over: Partial<ProductViewed> = {}): Event => ({
 });
 
 function batchOf(events: Event[]): EventBatch {
-  const built = EventBatch.of(events, now);
+  const built = EventBatch.of(events, now, TOLERANCE);
   if (!built.ok) throw new Error(built.error.message);
   return built.value;
 }
@@ -47,49 +44,54 @@ describe("EventBatch.of", () => {
   });
 
   it("a batch of a single event exists", () => {
-    expect(EventBatch.of([event(1)], now).ok).toBe(true);
+    expect(EventBatch.of([event(1)], now, TOLERANCE).ok).toBe(true);
   });
 
   it("an empty batch is a programming error: the contract requires at least one event", () => {
-    expect(() => EventBatch.of([], now)).toThrow("at least one event");
+    expect(() => EventBatch.of([], now, TOLERANCE)).toThrow("at least one event");
   });
 
   it("[invariant:session-visitor-mismatch] two visitors in the same batch → rejected", () => {
-    const result = EventBatch.of([event(1), event(2, { visitorId: asVisitorId("vis_00000002") })], now);
+    const result = EventBatch.of(
+      [event(1), event(2, { visitorId: asVisitorId("vis_00000002") })],
+      now,
+      TOLERANCE,
+    );
     expect(result).toMatchObject({ ok: false, error: { code: "session-visitor-mismatch" } });
     if (!result.ok) expect(result.error.message).toContain("evt_00000002");
   });
 
   it("[invariant:session-visitor-mismatch] two sessions in the same batch → rejected", () => {
-    const result = EventBatch.of([event(1), event(2, { sessionId: asSessionId("ses_00000002") })], now);
+    const result = EventBatch.of(
+      [event(1), event(2, { sessionId: asSessionId("ses_00000002") })],
+      now,
+      TOLERANCE,
+    );
     expect(result).toMatchObject({ ok: false, error: { code: "session-visitor-mismatch" } });
   });
 
   it("[invariant:event-timestamp-out-of-range] timestamp out of tolerance → rejected", () => {
-    const future = EventBatch.of([event(1, { occurredAt: at(5 * MIN + 1) })], now);
+    const future = EventBatch.of([event(1, { occurredAt: at(5 * MIN + 1) })], now, TOLERANCE);
     expect(future).toMatchObject({ ok: false, error: { code: "event-timestamp-out-of-range" } });
     // The tolerance travels in the details, not repeated in the message (015 F-022).
     if (!future.ok) {
-      expect(future.error.details).toEqual({ eventId: "evt_00000001", ...TIMESTAMP_TOLERANCE });
+      expect(future.error.details).toEqual({ eventId: "evt_00000001", ...TOLERANCE });
       expect(future.error.message).toBe("The timestamp of event evt_00000001 is out of tolerance.");
     }
-    const past = EventBatch.of([event(1, { occurredAt: at(-24 * HOUR - 1) })], now);
+    const past = EventBatch.of([event(1, { occurredAt: at(-24 * HOUR - 1) })], now, TOLERANCE);
     expect(past).toMatchObject({ ok: false, error: { code: "event-timestamp-out-of-range" } });
   });
 
-  it("the tolerance is the one the contract publishes: 24 h behind, 5 min ahead", () => {
-    expect(TIMESTAMP_TOLERANCE).toEqual({ pastMs: 24 * HOUR, futureMs: CLOCK_SKEW_TOLERANCE_MS });
-  });
-
   it("the edges of the tolerance are inside: exactly 5 min ahead and exactly 24 h behind", () => {
-    expect(EventBatch.of([event(1, { occurredAt: at(5 * MIN) })], now).ok).toBe(true);
-    expect(EventBatch.of([event(1, { occurredAt: at(-24 * HOUR) })], now).ok).toBe(true);
+    expect(EventBatch.of([event(1, { occurredAt: at(5 * MIN) })], now, TOLERANCE).ok).toBe(true);
+    expect(EventBatch.of([event(1, { occurredAt: at(-24 * HOUR) })], now, TOLERANCE).ok).toBe(true);
   });
 
   it("the first violated invariant wins: session mix before timestamp", () => {
     const result = EventBatch.of(
       [event(1), event(2, { sessionId: asSessionId("ses_00000002"), occurredAt: at(-48 * HOUR) })],
       now,
+      TOLERANCE,
     );
     expect(result).toMatchObject({ ok: false, error: { code: "session-visitor-mismatch" } });
   });

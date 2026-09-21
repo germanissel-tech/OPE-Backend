@@ -1,0 +1,15 @@
+type: object
+description: The CSS selectors that resolve an anchor in the merchant's store, in order of preference.
+additionalProperties: false
+required:
+  - selectors
+properties:
+  selectors:
+    type: array
+    description: Selectors tried in order; the first that resolves wins.
+    minItems: 1
+    maxItems: 8
+    items:
+      type: string
+      minLength: 1
+      maxLength: 255

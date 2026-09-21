@@ -7,6 +7,7 @@ import {
   CatalogOutOfOrder,
   CatalogSnapshot,
   type CatalogError,
+  type SyncLevel,
   type Product,
 } from "../../../domain/catalog/index.js";
 import {
@@ -16,9 +17,9 @@ import {
   type MerchantId,
   type Result,
 } from "../../../domain/shared-kernel/index.js";
-import { observedSyncLevel, type SyncLevel } from "../policies/sync-level.js";
 import type { LedgerUnavailable } from "../../../domain/ledger/index.js";
-import type { Clock, Logger, UseCase } from "../../shared-kernel/index.js";
+import type { Clock, ClockTolerance, Logger, UseCase } from "../../shared-kernel/index.js";
+import type { CatalogPolicies } from "../ports/catalog-policies.js";
 import type { CatalogStore } from "../ports/catalog-store.js";
 
 export interface UpsertCatalogSnapshotRequest {
@@ -43,7 +44,9 @@ export type UpsertCatalogSnapshotResponse = Result<
 
 export interface UpsertCatalogSnapshotDependencies {
   clock: Clock;
+  tolerance: ClockTolerance;
   store: CatalogStore;
+  policies: CatalogPolicies;
   logger: Logger;
 }
 
@@ -58,14 +61,17 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
   }
 
   async execute(request: UpsertCatalogSnapshotRequest): Promise<UpsertCatalogSnapshotResponse> {
-    const { clock, store, logger } = this.#deps;
+    const { clock, tolerance, store, policies, logger } = this.#deps;
     const now = clock.now();
-    const built = CatalogSnapshot.of({
-      merchantId: request.merchantId,
-      capturedAt: request.capturedAt,
-      receivedAt: now,
-      products: request.products,
-    });
+    const built = CatalogSnapshot.of(
+      {
+        merchantId: request.merchantId,
+        capturedAt: request.capturedAt,
+        receivedAt: now,
+        products: request.products,
+      },
+      tolerance.skewMs(),
+    );
     if (!built.ok) return fail(built.error);
     const snapshot = built.value;
     const current = await store.current(request.merchantId);
@@ -79,7 +85,8 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
         return ok(await this.#summary(request.merchantId, current, "repeated"));
       }
     }
-    const written = await store.replace(request.merchantId, snapshot);
+    const rules = await policies.syncLevelRulesFor(request.merchantId);
+    const written = await store.replace(request.merchantId, snapshot, rules.receiptsKept);
     if (!written.ok) return fail(written.error);
     const summary = await this.#summary(request.merchantId, snapshot, "created");
     logger.info(
@@ -100,7 +107,8 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
     outcome: CatalogSummary["outcome"],
   ): Promise<CatalogSummary> {
     const { products, variants } = snapshot.counts();
-    const level = observedSyncLevel(await this.#deps.store.receipts(merchantId), this.#deps.clock.now());
+    const rules = await this.#deps.policies.syncLevelRulesFor(merchantId);
+    const level = rules.observe(await this.#deps.store.receipts(merchantId), this.#deps.clock.now());
     return { products, variants, receivedAt: snapshot.receivedAt, observedSyncLevel: level, outcome };
   }
 }

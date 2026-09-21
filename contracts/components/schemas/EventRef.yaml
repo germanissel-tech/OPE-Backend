@@ -1,0 +1,14 @@
+type: object
+description: An event of the SDK vocabulary, by type and optional subtype.
+additionalProperties: false
+required:
+  - type
+properties:
+  type:
+    type: string
+    description: Event type of the SDK vocabulary (`Event`).
+    maxLength: 64
+  subtype:
+    type: string
+    description: Subtype when the event type has one.
+    maxLength: 64

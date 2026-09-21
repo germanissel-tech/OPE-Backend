@@ -12,6 +12,7 @@ import {
 } from "../../../../src/domain/catalog/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, fail, Money, ok } from "../../../../src/domain/shared-kernel/index.js";
+import { TEST_CATALOG_POLICIES, TEST_TOLERANCE } from "../../../helpers/platform.js";
 import { recordingLogger } from "../../../helpers/unavailable-ledgers.js";
 
 const MIN = 60_000;
@@ -53,7 +54,13 @@ function fakeStore(down = false): CatalogStore & { held: () => CatalogSnapshot |
 function subject(nowAt: () => Date, down = false) {
   const store = fakeStore(down);
   const { logger, entries } = recordingLogger();
-  const useCase = new UpsertCatalogSnapshotUseCase({ clock: { now: nowAt }, store, logger });
+  const useCase = new UpsertCatalogSnapshotUseCase({
+    clock: { now: nowAt },
+    tolerance: TEST_TOLERANCE,
+    store,
+    policies: TEST_CATALOG_POLICIES,
+    logger,
+  });
   return { useCase, store, entries };
 }
 

@@ -1,0 +1,11 @@
+type: object
+description: "A condition one level inside a combinator: a fact, or `all`, `any`, `not` over facts."
+oneOf:
+  - $ref: ./NestedAllCondition.yaml
+  - $ref: ./NestedAnyCondition.yaml
+  - $ref: ./NestedNotCondition.yaml
+  - $ref: ./EventCountCondition.yaml
+  - $ref: ./DwellSecondsCondition.yaml
+  - $ref: ./SequenceCondition.yaml
+  - $ref: ./ProductAttributeCondition.yaml
+  - $ref: ./FlagCondition.yaml

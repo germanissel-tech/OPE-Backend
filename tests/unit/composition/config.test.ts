@@ -1,13 +1,26 @@
 // Configuration is read once, at the entry, and either yields a complete AppConfig or refuses
 // with the variable and the problem: no NaN port, no half-parsed merchants (fail-closed).
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ConfigError, readConfig } from "../../../src/composition/config.js";
+import { testLevels } from "../../helpers/test-app.js";
 
+/** The files of the release are the only reads the configuration makes unless a variable names another. */
+const LEVEL_FILES = ["config/platform.json", "config/treatment-defaults.json"].map((f) => path.resolve(f));
 const noFile = (file: string): string => {
+  if (LEVEL_FILES.includes(file)) return readFileSync(file, "utf8");
   throw new Error(`unexpected read of ${file}`);
 };
 const merchant = { merchantId: "m_a", ingestKeys: ["k1"], origins: ["https://a.example"] };
+/** An experiment of the seed: the treatment percent is required (no default, constitution XI). */
+const exp = {
+  experimentId: "exp_00000001",
+  treatmentPercent: 50,
+  seed: "s",
+  status: "active",
+  startedAt: "2026-09-17T00:00:00Z",
+};
 
 describe("readConfig", () => {
   it("defaults: port 3000, loopback host, the bundled contract, no merchants", () => {
@@ -17,7 +30,35 @@ describe("readConfig", () => {
       contractPath: path.resolve("contracts/dist/openapi.yaml"),
       merchants: [],
       operators: [],
+      levels: testLevels(),
     });
+  });
+
+  it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {
+    const files: Record<string, string> = {
+      [path.resolve("p.json")]: JSON.stringify({ ...testLevels().platform.record(), version: "platform-2" }),
+      [path.resolve("d.json")]: JSON.stringify({
+        ...testLevels().defaults.record(),
+        version: "defaults-2",
+        holdoutPercent: 120,
+      }),
+    };
+    const read = (file: string): string => files[file] ?? noFile(file);
+    expect(readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform.version).toBe("platform-2");
+    expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
+      "treatmentDefaults.holdoutPercent is invalid (must be an integer percentage between 0 and 100).",
+    );
+    files[path.resolve("p.json")] = JSON.stringify({
+      ...testLevels().platform.record(),
+      sessionWindowMs: "1d",
+    });
+    expect(() => readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read)).toThrow(
+      "platform.sessionWindowMs is invalid (must be a number).",
+    );
+    files[path.resolve("p.json")] = "{nope";
+    expect(() => readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read)).toThrow(
+      "OPE_PLATFORM_CONFIG is not valid JSON (",
+    );
   });
 
   it("reads PORT, HOST and OPE_CONTRACT; a blank variable counts as unset", () => {
@@ -59,7 +100,7 @@ describe("readConfig", () => {
     });
     expect(inline[0]?.experiments.all()).toEqual([]);
     const read = (file: string): string => {
-      expect(file).toBe(path.resolve("config/m.json"));
+      if (file !== path.resolve("config/m.json")) return noFile(file);
       return JSON.stringify([merchant, { ...merchant, merchantId: "m_b" }]);
     };
     expect(readConfig({ OPE_MERCHANTS_FILE: "config/m.json" }, read).merchants).toHaveLength(2);
@@ -68,13 +109,7 @@ describe("readConfig", () => {
     ).toEqual([]);
   });
 
-  it("experiments are optional, treatmentPercent defaults to 50, and the shape is validated", () => {
-    const exp = {
-      experimentId: "exp_00000001",
-      seed: "s",
-      status: "active",
-      startedAt: "2026-09-17T00:00:00Z",
-    };
+  it("experiments are optional, the treatment percent is required, and the shape is validated", () => {
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
     expect(parsed?.experiments.all()).toEqual([
@@ -95,20 +130,19 @@ describe("readConfig", () => {
     const set = readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments;
     expect(set?.all()).toHaveLength(2);
     expect(set?.active()?.experimentId).toBe(exp.experimentId);
+    const { treatmentPercent, ...noPercent } = exp;
+    expect(treatmentPercent).toBe(50);
+    expect(() =>
+      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, experiments: [noPercent] }]) }, noFile),
+    ).toThrow("merchants[0].experiments[0].treatmentPercent must be an integer percentage.");
   });
 
   it.each([
     [
-      [
-        { experimentId: "exp_00000001", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
-        { experimentId: "exp_00000002", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" },
-      ],
+      [{ ...exp }, { ...exp, experimentId: "exp_00000002" }],
       "merchants[0].experiments[1] is invalid (A merchant may have at most one active experiment.)",
     ],
-    [
-      [{ experimentId: "bad id", seed: "s", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
-      "merchants[0].experiments[0].experimentId must match",
-    ],
+    [[{ ...exp, experimentId: "bad id" }], "merchants[0].experiments[0].experimentId must match"],
     [
       [
         {
@@ -146,15 +180,12 @@ describe("readConfig", () => {
       "merchants[0].experiments[0].treatmentPercent",
     ],
     [
-      [{ experimentId: "exp_00000001", seed: "", status: "active", startedAt: "2026-09-17T00:00:00Z" }],
+      [{ ...exp, seed: "" }],
       "merchants[0].experiments[0].seed is invalid (The seed must be a non-empty string.)",
     ],
+    [[{ ...exp, status: "paused" }], "merchants[0].experiments[0].status must be one of active, closed."],
     [
-      [{ experimentId: "exp_00000001", seed: "s", status: "paused", startedAt: "2026-09-17T00:00:00Z" }],
-      "merchants[0].experiments[0].status must be one of active, closed.",
-    ],
-    [
-      [{ experimentId: "exp_00000001", seed: "s", status: "active", startedAt: "yesterday" }],
+      [{ ...exp, startedAt: "yesterday" }],
       "merchants[0].experiments[0].startedAt must be an RFC 3339 date-time.",
     ],
     ["nope", "merchants[0].experiments must be an array of experiments."],
@@ -171,17 +202,6 @@ describe("readConfig", () => {
     evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
     rules: [
       {
-        id: "fit.size-selector-twice",
-        barrier: "fit",
-        strength: "strong",
-        when: {
-          all: [
-            { fact: "eventCount", type: "size_selector_interacted", min: 2 },
-            { not: { fact: "sessionAddedToCart" } },
-          ],
-        },
-      },
-      {
         id: "price.cta",
         barrier: "price",
         strength: "supporting",
@@ -189,167 +209,15 @@ describe("readConfig", () => {
         when: { fact: "eventCount", type: "cta_approached", min: 1 },
       },
       {
-        id: "returns.cart-then-policies",
+        id: "returns.any-doubt",
         barrier: "returns",
         strength: "strong",
         when: {
-          fact: "sequence",
-          first: { type: "added_to_cart" },
-          then: { type: "block_dwelled", subtype: "policies" },
+          any: [{ fact: "returnedToProduct" }, { not: { fact: "sessionAddedToCart" } }, { all: [] }],
         },
       },
     ],
   };
-
-  it("decisionPolicy is optional; a valid one is built with its defaults (weights 0.4/0.2, 5 s)", () => {
-    expect(
-      readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.decisionPolicy,
-    ).toBeUndefined();
-    const parsed = readConfig(
-      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, decisionPolicy: policy }]) },
-      noFile,
-    ).merchants[0]?.decisionPolicy;
-    expect(parsed?.version).toBe("sport-2");
-    expect(parsed?.rules.weights).toEqual({ strong: 0.4, supporting: 0.2 });
-    expect(parsed?.rules.readingSeconds).toBe(5);
-    expect(parsed?.rules.rules.map((r) => r.id)).toEqual([
-      "fit.size-selector-twice",
-      "price.cta",
-      "returns.cart-then-policies",
-    ]);
-    expect(parsed?.rules.rules[1]?.weight).toBe(0.25);
-    expect(parsed?.evidence).toEqual({ freshStockAndPrice: ["price"], availableVariant: ["fit"] });
-    const explicit = { ...policy, weights: { strong: 0.5, supporting: 0.1 }, readingSeconds: 8 };
-    const custom = readConfig(
-      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, decisionPolicy: explicit }]) },
-      noFile,
-    ).merchants[0]?.decisionPolicy;
-    expect(custom?.rules.weights).toEqual({ strong: 0.5, supporting: 0.1 });
-    expect(custom?.rules.readingSeconds).toBe(8);
-  });
-
-  it.each<[string, Record<string, unknown>, string]>([
-    ["not an object", { decisionPolicy: "x" }, "merchants[0].decisionPolicy is not an object."],
-    [
-      "version missing",
-      { decisionPolicy: { ...policy, version: undefined } },
-      "merchants[0].decisionPolicy.version must be a string.",
-    ],
-    [
-      "version blank (domain)",
-      { decisionPolicy: { ...policy, version: " " } },
-      "merchants[0].decisionPolicy.version is invalid (",
-    ],
-    [
-      "threshold out of range (domain)",
-      { decisionPolicy: { ...policy, threshold: 2 } },
-      "merchants[0].decisionPolicy.threshold is invalid (",
-    ],
-    [
-      "priority incomplete (domain)",
-      { decisionPolicy: { ...policy, priority: ["fit"] } },
-      "merchants[0].decisionPolicy.priority is invalid (",
-    ],
-    [
-      "highIntent, moved to the commercial policy",
-      { decisionPolicy: { ...policy, highIntent: "from-checkout" } },
-      "merchants[0].decisionPolicy.highIntent moved to commercialPolicy.",
-    ],
-    [
-      "interventionsPerSession, moved to the commercial policy",
-      { decisionPolicy: { ...policy, interventionsPerSession: 1 } },
-      "merchants[0].decisionPolicy.interventionsPerSession moved to commercialPolicy.",
-    ],
-    [
-      "abandonment, moved to the commercial policy",
-      { decisionPolicy: { ...policy, abandonment: "nothing" } },
-      "merchants[0].decisionPolicy.abandonment moved to commercialPolicy.",
-    ],
-    [
-      "evidence with a stranger (domain)",
-      { decisionPolicy: { ...policy, evidence: { freshStockAndPrice: ["size"], availableVariant: [] } } },
-      "merchants[0].decisionPolicy.evidence.freshStockAndPrice is invalid (",
-    ],
-    [
-      "rules not an array",
-      { decisionPolicy: { ...policy, rules: {} } },
-      "merchants[0].decisionPolicy.rules must be an array of rules.",
-    ],
-    [
-      "rule without strength",
-      { decisionPolicy: { ...policy, rules: [{ ...policy.rules[0], strength: "weak" }] } },
-      "merchants[0].decisionPolicy.rules[0].strength must be one of strong, supporting.",
-    ],
-    [
-      "unknown fact",
-      { decisionPolicy: { ...policy, rules: [{ ...policy.rules[0], when: { fact: "mood" } }] } },
-      "merchants[0].decisionPolicy.rules[0].when.fact must be one of eventCount, dwellSeconds, sequence, productAttribute, returnedToProduct, variantAvailable, sessionAddedToCart, sessionEnteredCheckout.",
-    ],
-    [
-      "unknown block inside a nested condition (domain)",
-      {
-        decisionPolicy: {
-          ...policy,
-          rules: [
-            policy.rules[0],
-            {
-              id: "r",
-              barrier: "returns",
-              strength: "strong",
-              when: { all: [{ fact: "returnedToProduct" }, { fact: "dwellSeconds", block: "footer" }] },
-            },
-            policy.rules[1],
-          ],
-        },
-      },
-      "merchants[0].decisionPolicy.rules[1].when.all[1].block is invalid (",
-    ],
-    [
-      "a barrier without rules (domain)",
-      { decisionPolicy: { ...policy, rules: [policy.rules[0], policy.rules[1]] } },
-      "merchants[0].decisionPolicy.rules is invalid (",
-    ],
-    [
-      "duplicate id (domain)",
-      { decisionPolicy: { ...policy, rules: [...policy.rules, policy.rules[0]] } },
-      "merchants[0].decisionPolicy.rules[3].id is invalid (",
-    ],
-    [
-      "weight above 1 (domain)",
-      {
-        decisionPolicy: {
-          ...policy,
-          rules: [{ ...policy.rules[0], weight: 3 }, policy.rules[1], policy.rules[2]],
-        },
-      },
-      "merchants[0].decisionPolicy.rules[0].weight is invalid (",
-    ],
-    [
-      "min not a number",
-      {
-        decisionPolicy: {
-          ...policy,
-          rules: [{ ...policy.rules[0], when: { fact: "eventCount", type: "cta_approached", min: "2" } }],
-        },
-      },
-      "merchants[0].decisionPolicy.rules[0].when.min must be a number.",
-    ],
-    [
-      "sequence without then",
-      {
-        decisionPolicy: {
-          ...policy,
-          rules: [{ ...policy.rules[0], when: { fact: "sequence", first: { type: "added_to_cart" } } }],
-        },
-      },
-      "merchants[0].decisionPolicy.rules[0].when.then is not an object.",
-    ],
-  ])("decisionPolicy %s is refused naming the field", (_name, over, message) => {
-    const raw = JSON.stringify([{ ...merchant, ...over }]);
-    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
-    expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
-  });
-
   const commercial = {
     version: "sport-commercial-1",
     maxIncentivePercent: 15,
@@ -364,127 +232,131 @@ describe("readConfig", () => {
     interventionsPerVisitorPerDay: 5,
   };
 
-  it("commercialPolicy is optional; a valid one is built, and one with only a version takes the defaults", () => {
-    const merchants = readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants;
-    expect(merchants[0]?.commercialPolicy).toBeUndefined();
-    expect(merchants[0]?.evidenceProfile).toBeUndefined();
-    const full = readConfig(
-      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, commercialPolicy: commercial }]) },
+  it("what the merchant declares of its configuration is read by shape into its version 1 (feature 017): the values are judged at the import", () => {
+    expect(readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.declared).toEqual(
+      {},
+    );
+    const declared = readConfig(
+      {
+        OPE_MERCHANTS: JSON.stringify([
+          {
+            ...merchant,
+            decisionPolicy: policy,
+            commercialPolicy: { version: "c-1", marginPercent: 40 },
+            evidenceProfile: { returnsPolicy: true, authorizedAttributes: ["material"] },
+            holdoutPercent: 0,
+            freshness: { stockAndPriceMs: 600000 },
+            locales: { supported: ["es-AR"], fallback: "es-AR" },
+            anchors: { price: { selectors: [".price"] } },
+          },
+        ]),
+      },
       noFile,
-    ).merchants[0]?.commercialPolicy;
-    expect(full).toMatchObject({
-      version: "sport-commercial-1",
-      maxIncentiveShare: 0.15,
-      incentiveLadderShare: [0.05, 0.1, 0.15],
-      marginShare: 0.4,
-      directIncentiveOnPrice: false,
-      returnRisk: { fact: "sessionAddedToCart" },
-      highIntent: "from-cart",
-      abandonment: "nothing",
-      interventionsPerSession: 2,
-      cooldownSeconds: 30,
-      interventionsPerVisitorPerDay: 5,
-    });
-    const minimal = readConfig(
-      { OPE_MERCHANTS: JSON.stringify([{ ...merchant, commercialPolicy: { version: "c-1" } }]) },
-      noFile,
-    ).merchants[0]?.commercialPolicy;
-    expect(minimal).toMatchObject({
-      version: "c-1",
-      maxIncentiveShare: 0.1,
-      incentiveLadderShare: [0.05, 0.1],
-      directIncentiveOnPrice: true,
-      highIntent: "from-checkout",
-      abandonment: "reassure-returns",
-      interventionsPerSession: 1,
-      cooldownSeconds: 0,
-      interventionsPerVisitorPerDay: 3,
-    });
-    expect(minimal?.marginShare).toBeUndefined();
-  });
-
-  it("evidenceProfile: anything absent is false or empty", () => {
-    const read = (evidenceProfile: unknown) =>
-      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, evidenceProfile }]) }, noFile).merchants[0]
-        ?.evidenceProfile;
-    expect(read({})).toEqual({ returnsPolicy: false, fitData: false, authorizedAttributes: [] });
-    expect(read({ returnsPolicy: true, authorizedAttributes: ["material"] })).toEqual({
-      returnsPolicy: true,
-      fitData: false,
-      authorizedAttributes: ["material"],
+    ).merchants[0]?.declared;
+    expect(declared).toEqual({
+      decisionPolicy: policy,
+      commercialPolicy: { version: "c-1", marginPercent: 40 },
+      evidenceProfile: { returnsPolicy: true, authorizedAttributes: ["material"] },
+      holdoutPercent: 0,
+      freshness: { stockAndPriceMs: 600000 },
+      locales: { supported: ["es-AR"], fallback: "es-AR" },
+      anchors: { price: { selectors: [".price"] } },
     });
   });
 
   it.each<[string, Record<string, unknown>, string]>([
-    ["commercial not an object", { commercialPolicy: 3 }, "merchants[0].commercialPolicy is not an object."],
+    [
+      "decisionPolicy not an object",
+      { decisionPolicy: "x" },
+      "merchants[0].decisionPolicy is invalid (is not an object).",
+    ],
+    [
+      "decisionPolicy without version",
+      { decisionPolicy: { ...policy, version: undefined } },
+      "merchants[0].decisionPolicy.version is invalid (is required).",
+    ],
+    [
+      "a rule condition with an unknown fact",
+      { decisionPolicy: { ...policy, rules: [{ ...policy.rules[0], when: { fact: "socialProof" } }] } },
+      "merchants[0].decisionPolicy.rules[0].when.fact is invalid (must be one of eventCount, dwellSeconds, sequence, productAttribute, returnedToProduct, variantAvailable, sessionAddedToCart, sessionEnteredCheckout).",
+    ],
+    [
+      "a condition inside a combinator with a wrong shape",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [{ ...policy.rules[0], when: { all: [{ fact: "dwellSeconds", block: 3 }] } }],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[0].when.all[0].block is invalid (must be a string).",
+    ],
+    [
+      "highIntent, moved to the commercial policy",
+      { decisionPolicy: { ...policy, highIntent: "from-checkout" } },
+      "merchants[0].decisionPolicy.highIntent is invalid (is not a field of this object).",
+    ],
+    [
+      "commercial not an object",
+      { commercialPolicy: 3 },
+      "merchants[0].commercialPolicy is invalid (is not an object).",
+    ],
     [
       "commercial without version",
       { commercialPolicy: {} },
-      "merchants[0].commercialPolicy.version must be a string.",
+      "merchants[0].commercialPolicy.version is invalid (is required).",
     ],
     [
       "ladder not numbers",
       { commercialPolicy: { ...commercial, incentiveLadderPercent: ["5"] } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent[0] must be an integer percentage between 0 and 100.",
+      "merchants[0].commercialPolicy.incentiveLadderPercent[0] is invalid (must be a number).",
     ],
     [
-      "ladder not an array",
-      { commercialPolicy: { ...commercial, incentiveLadderPercent: 5 } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent must be an array of integer percentages.",
+      "highIntent outside the vocabulary",
+      { commercialPolicy: { ...commercial, highIntent: "always" } },
+      "merchants[0].commercialPolicy.highIntent is invalid (must be one of from-cart, from-checkout, never).",
     ],
     [
-      "a fractional ceiling (shape: the configuration speaks integer percentages)",
-      { commercialPolicy: { ...commercial, maxIncentivePercent: 7.5 } },
-      "merchants[0].commercialPolicy.maxIncentivePercent must be an integer percentage between 0 and 100.",
-    ],
-    [
-      "a fractional step (shape)",
-      { commercialPolicy: { ...commercial, incentiveLadderPercent: [2.5] } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent[0] must be an integer percentage between 0 and 100.",
-    ],
-    [
-      "a step above the ceiling (domain, named by the configuration field)",
-      { commercialPolicy: { ...commercial, incentiveLadderPercent: [5, 20] } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent[1] is invalid (",
-    ],
-    [
-      "margin out of range (shape)",
-      { commercialPolicy: { ...commercial, marginPercent: 150 } },
-      "merchants[0].commercialPolicy.marginPercent must be an integer percentage between 0 and 100.",
-    ],
-    [
-      "return risk with an unknown block (domain)",
-      {
-        commercialPolicy: { ...commercial, returnRisk: { all: [{ fact: "dwellSeconds", block: "footer" }] } },
-      },
-      "merchants[0].commercialPolicy.returnRisk.all[0].block is invalid (",
-    ],
-    [
-      "highIntent unknown",
-      { commercialPolicy: { ...commercial, highIntent: "sometimes" } },
-      "merchants[0].commercialPolicy.highIntent must be one of from-cart, from-checkout, never.",
-    ],
-    [
-      "cooldown negative (domain)",
-      { commercialPolicy: { ...commercial, cooldownSeconds: -5 } },
-      "merchants[0].commercialPolicy.cooldownSeconds is invalid (",
-    ],
-    [
-      "visitor budget zero (domain)",
-      { commercialPolicy: { ...commercial, interventionsPerVisitorPerDay: 0 } },
-      "merchants[0].commercialPolicy.interventionsPerVisitorPerDay is invalid (",
-    ],
-    [
-      "profile with a non-boolean",
+      "evidenceProfile with a wrong type",
       { evidenceProfile: { returnsPolicy: "yes" } },
-      "merchants[0].evidenceProfile.returnsPolicy must be a boolean.",
+      "merchants[0].evidenceProfile.returnsPolicy is invalid (must be a boolean).",
+    ],
+    ["locales without the list", { locales: {} }, "merchants[0].locales.supported is invalid (is required)."],
+    [
+      "a fact with a field it does not have",
+      {
+        decisionPolicy: {
+          ...policy,
+          rules: [{ ...policy.rules[0], when: { fact: "returnedToProduct", min: 2 } }],
+        },
+      },
+      "merchants[0].decisionPolicy.rules[0].when.min is invalid (is not a field of this object).",
     ],
     [
-      "profile attributes not strings",
-      { evidenceProfile: { authorizedAttributes: [1] } },
-      "merchants[0].evidenceProfile.authorizedAttributes must be an array of strings.",
+      "a ladder that is not a list",
+      { commercialPolicy: { version: "c", incentiveLadderPercent: 5 } },
+      "merchants[0].commercialPolicy.incentiveLadderPercent is invalid (must be an array of numbers).",
     ],
-  ])("commercialPolicy / evidenceProfile %s is refused naming the field", (_name, over, message) => {
+    [
+      "rules that are not a list",
+      { decisionPolicy: { version: "d", rules: "none" } },
+      "merchants[0].decisionPolicy.rules is invalid (must be an array).",
+    ],
+    [
+      "anchors with a field that is not selectors",
+      { anchors: { price: { selectors: [".p"], weight: 1 } } },
+      "merchants[0].anchors.price.weight is invalid (is not a field of this object).",
+    ],
+    [
+      "an evidence profile whose attributes are not all strings",
+      { evidenceProfile: { authorizedAttributes: ["material", 3] } },
+      "merchants[0].evidenceProfile.authorizedAttributes is invalid (must be an array of strings).",
+    ],
+    [
+      "anchors with a bad selector list",
+      { anchors: { price: { selectors: "x" } } },
+      "merchants[0].anchors.price.selectors is invalid (must be an array of strings).",
+    ],
+  ])("the declared configuration: %s is refused naming the field", (_name, over, message) => {
     const raw = JSON.stringify([{ ...merchant, ...over }]);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);

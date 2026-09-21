@@ -1,0 +1,21 @@
+type: object
+description: The languages of the merchant's store (BCP 47 tags by shape) and the one to fall back
+  to; an empty list means no restriction until the message catalogue.
+additionalProperties: false
+required:
+  - supported
+properties:
+  supported:
+    type: array
+    description: Languages the store serves, as BCP 47 tags.
+    maxItems: 32
+    uniqueItems: true
+    items:
+      type: string
+      pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+      maxLength: 35
+  fallback:
+    type: string
+    description: The language to use when the page's is not supported; one of `supported`.
+    pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+    maxLength: 35

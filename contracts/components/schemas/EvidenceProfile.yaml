@@ -1,0 +1,23 @@
+type: object
+description: What a merchant declares it can sustain (03 §4.5, ADR-027); nothing declared means no
+  claim passes the gate.
+additionalProperties: false
+required:
+  - returnsPolicy
+  - fitData
+  - authorizedAttributes
+properties:
+  returnsPolicy:
+    type: boolean
+    description: Whether the merchant has a returns policy OPE may cite.
+  fitData:
+    type: boolean
+    description: Whether the merchant provides fit data OPE may recommend a size with.
+  authorizedAttributes:
+    type: array
+    description: Product attributes the messages may name.
+    maxItems: 32
+    uniqueItems: true
+    items:
+      type: string
+      maxLength: 64

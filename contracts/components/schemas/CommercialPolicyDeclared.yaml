@@ -1,0 +1,66 @@
+type: object
+description: "What a merchant declares of its commercial policy: the version and any field; the rest
+  resolves from the treatment defaults."
+additionalProperties: false
+required:
+  - version
+properties:
+  version:
+    type: string
+    description: Version the merchant gives its commercial policy; stamped in every decision.
+    minLength: 1
+    maxLength: 64
+  maxIncentivePercent:
+    type: integer
+    description: Ceiling of any incentive, as an integer percentage.
+    minimum: 0
+    maximum: 100
+  incentiveLadderPercent:
+    type: array
+    description: Incentive steps as integer percentages, strictly increasing, within the ceiling.
+    minItems: 1
+    maxItems: 8
+    items:
+      type: integer
+      description: One step.
+      minimum: 0
+      maximum: 100
+  marginPercent:
+    type: integer
+    description: Margin the merchant declares, as an integer percentage; absent means no incentive goes
+      out (01 §4.7).
+    minimum: 0
+    maximum: 100
+  directIncentiveOnPrice:
+    type: boolean
+    description: Whether the price barrier may receive the incentive directly.
+  returnRisk:
+    $ref: ./Condition.yaml
+  highIntent:
+    type: string
+    description: From which step a visitor counts as high intent, where OPE keeps quiet.
+    enum:
+      - from-cart
+      - from-checkout
+      - never
+  abandonment:
+    type: string
+    description: What a cart abandonment without a signal triggers.
+    enum:
+      - nothing
+      - reassure-returns
+  interventionsPerSession:
+    type: integer
+    description: Interventions a session may receive.
+    minimum: 1
+    maximum: 1000000
+  cooldownSeconds:
+    type: integer
+    description: Seconds between two interventions of a session.
+    minimum: 0
+    maximum: 86400
+  interventionsPerVisitorPerDay:
+    type: integer
+    description: Interventions a visitor may receive per day (fatigue).
+    minimum: 1
+    maximum: 1000000

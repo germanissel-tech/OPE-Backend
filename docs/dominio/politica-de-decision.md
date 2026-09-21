@@ -1,13 +1,13 @@
 ---
 es: política de decisión
-en: decision policy
+en: decision-policy
 contexto: decision
 estado: aprobado
 fuente: docs/adr/026-politica-de-decision-por-merchant.md
 uso: disponible
 ---
 
-# política de decisión -> `decision policy`
+# política de decisión -> `decision-policy`
 
 > La política de decisión es un dato del merchant, no código.
 

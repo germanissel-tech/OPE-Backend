@@ -19,6 +19,7 @@ import {
 } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryCorroborationLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
 import { memoryOrderLedger } from "../../../../src/interface-adapters/gateways/outcomes/memory-order-ledger.js";
+import { TEST_TOLERANCE } from "../../../helpers/platform.js";
 import {
   unavailableCorroborationLedger,
   unavailableOrderLedger,
@@ -41,7 +42,7 @@ describe("CorroborateOrderUseCase", () => {
 
   it("records the corroboration with the receipt instant; repeated is repeated", async () => {
     const corroborations = memoryCorroborationLedger();
-    const useCase = new CorroborateOrderUseCase({ clock, corroborations });
+    const useCase = new CorroborateOrderUseCase({ clock, tolerance: TEST_TOLERANCE, corroborations });
     expect(await useCase.execute(request)).toEqual({
       ok: true,
       value: { receivedAt: NOW, status: "recorded" },
@@ -55,14 +56,18 @@ describe("CorroborateOrderUseCase", () => {
 
   it("a browser instant beyond the tolerance → corroboration-confirmed-in-future, nothing recorded", async () => {
     const corroborations = memoryCorroborationLedger();
-    const useCase = new CorroborateOrderUseCase({ clock, corroborations });
+    const useCase = new CorroborateOrderUseCase({ clock, tolerance: TEST_TOLERANCE, corroborations });
     const result = await useCase.execute({ ...request, confirmedAt: new Date("2026-09-19T12:05:01.000Z") });
     expect(result.ok ? undefined : result.error.code).toBe("corroboration-confirmed-in-future");
     expect(await corroborations.find(A, ID)).toHaveLength(0);
   });
 
   it("the ledger down → ledger-unavailable", async () => {
-    const useCase = new CorroborateOrderUseCase({ clock, corroborations: unavailableCorroborationLedger() });
+    const useCase = new CorroborateOrderUseCase({
+      clock,
+      tolerance: TEST_TOLERANCE,
+      corroborations: unavailableCorroborationLedger(),
+    });
     const result = await useCase.execute(request);
     expect(result.ok ? undefined : result.error).toBeInstanceOf(LedgerUnavailable);
   });

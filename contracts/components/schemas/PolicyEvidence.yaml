@@ -1,0 +1,20 @@
+type: object
+description: Which barriers need which class of product evidence before OPE speaks (01 §4.3).
+additionalProperties: false
+properties:
+  freshStockAndPrice:
+    type: array
+    description: Barriers that need fresh availability and price.
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml
+  availableVariant:
+    type: array
+    description: Barriers that need an available variant in focus.
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml

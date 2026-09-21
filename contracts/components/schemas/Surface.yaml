@@ -1,0 +1,5 @@
+type: string
+description: "A page type where OPE may intervene: the product page or the cart."
+enum:
+  - product
+  - cart

@@ -1,0 +1,17 @@
+type: object
+description: The weight each strength adds to the confidence of a barrier, 0..1.
+additionalProperties: false
+required:
+  - strong
+  - supporting
+properties:
+  strong:
+    type: number
+    description: Weight of a strong rule.
+    minimum: 0
+    maximum: 1
+  supporting:
+    type: number
+    description: Weight of a supporting rule.
+    minimum: 0
+    maximum: 1

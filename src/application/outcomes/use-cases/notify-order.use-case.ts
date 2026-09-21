@@ -23,7 +23,7 @@ import {
 } from "../../../domain/shared-kernel/index.js";
 import type { Decision, LedgerUnavailable } from "../../../domain/ledger/index.js";
 import type { SessionDecisions } from "../../ledger/index.js";
-import type { Clock, Logger, UseCase } from "../../shared-kernel/index.js";
+import type { Clock, ClockTolerance, Logger, UseCase } from "../../shared-kernel/index.js";
 import type { CorroborationLedger } from "../ports/corroboration-ledger.js";
 import type { OrderLedger } from "../ports/order-ledger.js";
 
@@ -50,6 +50,7 @@ export type NotifyOrderResponse = Result<
 
 export interface NotifyOrderDependencies {
   clock: Clock;
+  tolerance: ClockTolerance;
   orders: OrderLedger;
   /** The slice of the decision ledger the correlation reads (ADR-028); the whole ledger satisfies it. */
   decisions: SessionDecisions;
@@ -77,7 +78,7 @@ export class NotifyOrderUseCase implements UseCase<NotifyOrderRequest, NotifyOrd
       declared: request.incentive,
       receivedAt,
     };
-    const built = Order.of(facts);
+    const built = Order.of(facts, this.#deps.tolerance.skewMs());
     if (!built.ok) return fail(built.error);
     const known: readonly Decision[] =
       request.sessionId === undefined ? [] : await decisions.bySession(request.merchantId, request.sessionId);

@@ -8,6 +8,10 @@ export {
   CatalogDuplicateVariantId,
   CatalogOutOfOrder,
 } from "./errors.js";
-export type { CatalogError } from "./errors.js";
+export type { CatalogError, CatalogPolicyError } from "./errors.js";
 export { asProductId, asVariantId } from "./ids.js";
+export { SyncLevelRules } from "./sync-level.js";
+export type { SyncLevel, SyncLevelRulesRecord } from "./sync-level.js";
+export { FreshnessBudget } from "./freshness.js";
+export type { FreshnessBudgetRecord } from "./freshness.js";
 export type { ProductId, VariantId } from "./ids.js";

@@ -1,0 +1,22 @@
+type: object
+description: "Holds when the visitor dwelled on a block for at least `min` seconds (absent: the
+  reading seconds of the policy)."
+additionalProperties: false
+required:
+  - fact
+  - block
+properties:
+  fact:
+    type: string
+    description: The fact this condition judges.
+    enum:
+      - dwellSeconds
+  block:
+    type: string
+    description: Block of the page (`BlockDwelled`).
+    maxLength: 64
+  min:
+    type: number
+    description: Least seconds of dwell; absent means the reading seconds.
+    minimum: 0
+    maximum: 86400

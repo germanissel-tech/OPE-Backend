@@ -1,0 +1,29 @@
+type: object
+description: Holds when `first` happened and `then` happened after it in the session.
+additionalProperties: false
+required:
+  - fact
+  - first
+  - then
+properties:
+  fact:
+    type: string
+    description: The fact this condition judges.
+    enum:
+      - sequence
+  first:
+    $ref: ./EventRef.yaml
+  then:
+    type: object
+    description: The event that must follow, by type and optional subtype.
+    additionalProperties: false
+    required: [type]
+    properties:
+      type:
+        type: string
+        description: Event type of the SDK vocabulary.
+        maxLength: 64
+      subtype:
+        type: string
+        description: Subtype when the event type has one.
+        maxLength: 64

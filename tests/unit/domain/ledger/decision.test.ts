@@ -24,6 +24,7 @@ const facts: DecisionFacts = {
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
   decidedAt: now,
+  configuration: { platform: "platform-1", defaults: "defaults-1" },
 };
 const intervention = { messageVersionId: "msg-1", anchor: "size_selector" as const };
 

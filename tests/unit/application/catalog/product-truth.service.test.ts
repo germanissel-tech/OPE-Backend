@@ -1,10 +1,6 @@
 // Feature 010, US2 (FR-005, FR-006; 01 §8; ADR-025): truth per class of datum, fail-closed with a reason.
 import { describe, expect, it } from "vitest";
-import {
-  DefaultProductTruthService,
-  FRESHNESS_BUDGET,
-  type CatalogStore,
-} from "../../../../src/application/catalog/index.js";
+import { DefaultProductTruthService, type CatalogStore } from "../../../../src/application/catalog/index.js";
 import {
   asProductId,
   asVariantId,
@@ -12,6 +8,7 @@ import {
   type Product,
 } from "../../../../src/domain/catalog/index.js";
 import { asMerchantId, Money, ok } from "../../../../src/domain/shared-kernel/index.js";
+import { TEST_CATALOG_POLICIES } from "../../../helpers/platform.js";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -42,7 +39,11 @@ function service(snapshot: CatalogSnapshot | undefined, now: Date, receipts: Dat
     replace: () => Promise.resolve(ok(undefined)),
     receipts: () => Promise.resolve(receipts),
   };
-  return new DefaultProductTruthService({ clock: { now: () => now }, store });
+  return new DefaultProductTruthService({
+    clock: { now: () => now },
+    store,
+    policies: TEST_CATALOG_POLICIES,
+  });
 }
 const snapshot = CatalogSnapshot.rehydrate({
   merchantId: A,
@@ -51,9 +52,12 @@ const snapshot = CatalogSnapshot.rehydrate({
   products: [product],
 });
 
-describe("freshness budget (01 §8)", () => {
-  it("catalogue 36 h, stock and price 15 min", () => {
-    expect(FRESHNESS_BUDGET).toEqual({ catalogMs: 36 * HOUR, stockAndPriceMs: 15 * MIN });
+describe("freshness budget (01 §8; level 2 of the configuration)", () => {
+  it("the defaults of the release: catalogue 36 h, stock and price 15 min", async () => {
+    expect((await TEST_CATALOG_POLICIES.freshnessFor(A)).record()).toEqual({
+      catalogMs: 36 * HOUR,
+      stockAndPriceMs: 15 * MIN,
+    });
   });
 });
 

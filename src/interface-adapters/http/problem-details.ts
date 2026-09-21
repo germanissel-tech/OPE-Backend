@@ -117,6 +117,14 @@ export const PROBLEM_TYPES = {
     status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "The snapshot is older than the current one",
   },
+  "invalid-sync-level-rules": {
+    status: HTTP_STATUS.INTERNAL_ERROR,
+    title: "A synchronisation level threshold is not a positive integer",
+  },
+  "invalid-freshness-budget": {
+    status: HTTP_STATUS.INTERNAL_ERROR,
+    title: "A freshness budget is not a positive number of milliseconds",
+  },
   // Platform signature (ADR-029): the security handler answers them before the body is read.
   "signature-missing": { status: HTTP_STATUS.UNAUTHORIZED, title: "The request is not signed" },
   "signature-invalid": { status: HTTP_STATUS.UNAUTHORIZED, title: "The signature does not match" },
@@ -162,6 +170,10 @@ export const PROBLEM_TYPES = {
   "configuration-reason-required": {
     status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
     title: "A corrective configuration version needs a reason",
+  },
+  "invalid-configuration-value": {
+    status: HTTP_STATUS.UNPROCESSABLE_CONTENT,
+    title: "A configuration value violates an invariant of its type",
   },
   "experiment-already-open": {
     status: HTTP_STATUS.CONFLICT,

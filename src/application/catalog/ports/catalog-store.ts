@@ -9,8 +9,12 @@ export type CatalogReplaceResult = Result<void, LedgerUnavailable>;
 
 export interface CatalogStore {
   current(merchantId: MerchantId): Promise<CatalogSnapshot | undefined>;
-  /** Replaces the current snapshot and records its `receivedAt` among the receipts, or says it cannot. */
-  replace(merchantId: MerchantId, snapshot: CatalogSnapshot): Promise<CatalogReplaceResult>;
-  /** The last receipts, oldest first; at most `RECEIPTS_KEPT`. */
+  /** Replaces the current snapshot and records its `receivedAt` among the last `receiptsKept`, or says it cannot. */
+  replace(
+    merchantId: MerchantId,
+    snapshot: CatalogSnapshot,
+    receiptsKept: number,
+  ): Promise<CatalogReplaceResult>;
+  /** The last receipts, oldest first. */
   receipts(merchantId: MerchantId): Promise<readonly Date[]>;
 }

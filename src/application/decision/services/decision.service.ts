@@ -12,10 +12,9 @@
 import { FactContext, Signals, type ProductFacts } from "../../../domain/barrier/index.js";
 import { asProductId, asVariantId } from "../../../domain/catalog/index.js";
 import { CANDIDATES, QualityGate, type GateEvidence, type Judged } from "../../../domain/selection/index.js";
-import { VISITOR_WINDOW } from "../policies/visitor-window.js";
 import type { StateService } from "./state.service.js";
 import type { CommercialVerdict, Trigger } from "../../../domain/commercial/index.js";
-import type { SessionState, TruthSummary, VisitorState } from "../../../domain/decision/index.js";
+import type { SessionState, TruthSummary } from "../../../domain/decision/index.js";
 import type { ProductFocus } from "../../../domain/ingestion/index.js";
 import type {
   Decision,
@@ -55,7 +54,7 @@ interface Evidence {
 interface Context {
   policies: MerchantPolicies;
   session: SessionState;
-  visitor: VisitorState;
+  visitorInterventions: number;
   arm?: Arm;
   evidence: Evidence;
   now: Date;
@@ -79,10 +78,11 @@ export class DecisionService implements DecisionPlane {
     const { assignment, policies, state: memory, recorder } = this.#deps;
     const { sessionId, visitorId } = batch;
     const whose = { merchantId, sessionId, visitorId };
-    const facts: DecisionFactsInput = { ...whose, decidedAt: now };
+    // The versions the decision is taken with come first: every outcome stamps them (01 §14.2).
+    const merchant = await policies.policiesFor(merchantId);
+    const facts: DecisionFactsInput = { ...whose, decidedAt: now, configuration: merchant.versions };
 
     // The kill switch comes before the assignment: off, nothing is assigned, nothing is consumed.
-    const merchant = await policies.policiesFor(merchantId);
     if (!merchant.enabled) return recorder.record(facts, { kind: "no-op", reason: MERCHANT_OFF });
 
     const assigned = await assignment.assign(merchantId, visitorId);
@@ -101,7 +101,7 @@ export class DecisionService implements DecisionPlane {
       const judged = await this.#judge({
         policies: merchant,
         session,
-        visitor: remembered.visitor,
+        visitorInterventions: remembered.visitorInterventions,
         evidence: await this.#evidence(merchantId, focus),
         now,
         ...(arm === undefined ? {} : { arm }),
@@ -115,24 +115,21 @@ export class DecisionService implements DecisionPlane {
     await memory.remember(
       whose,
       decision.isIntervention()
-        ? {
-            session: session.withIntervention(now),
-            visitor: remembered.visitor.withIntervention(now, VISITOR_WINDOW.ttlMs),
-          }
+        ? { session: session.withIntervention(now), intervention: { visitor: remembered.visitor, at: now } }
         : { session },
     );
     return decision;
   }
 
   /** Inference → barrier verdict → selection with the gate → commercial verdict; the ledger gets how it was reasoned. */
-  async #judge({ policies, session, visitor, arm, evidence, now }: Context): Promise<Judgement> {
-    const { decision, commercial, profile } = policies;
+  async #judge({ policies, session, visitorInterventions, arm, evidence, now }: Context): Promise<Judgement> {
+    const { decision, commercial, profile, barriers } = policies;
     const inference = await this.#deps.inference.infer({
       rules: decision.rules,
       signals: session.signals,
       product: evidence.product,
     });
-    const settled = decision.barrierVerdict({ inference, truth: evidence.truth });
+    const settled = decision.barrierVerdict({ inference, truth: evidence.truth, active: barriers });
     const abandoned = session.abandoned();
     const barrier = commercial.fallbackBarrier(settled.barrier, abandoned);
     const trigger = triggerOf(settled.barrier, barrier);
@@ -160,7 +157,7 @@ export class DecisionService implements DecisionPlane {
           ? {}
           : { lastInterventionAt: session.lastInterventionAt }),
       },
-      visitorInterventions: visitor.countSince(now, VISITOR_WINDOW.ttlMs),
+      visitorInterventions,
       now,
     });
     return {

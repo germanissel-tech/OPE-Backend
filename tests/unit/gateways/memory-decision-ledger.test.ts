@@ -15,6 +15,7 @@ const facts = (id: string, over: Partial<DecisionFacts> = {}): DecisionFacts => 
   sessionId: S,
   visitorId: asVisitorId("vis_0001"),
   decidedAt: new Date("2026-09-19T12:00:00.000Z"),
+  configuration: { platform: "platform-1", defaults: "defaults-1" },
   ...over,
 });
 

@@ -3,7 +3,6 @@
 // the clock guard the events share: a browser ahead of the server beyond the tolerance is a
 // clock error.
 import {
-  CLOCK_SKEW_TOLERANCE_MS,
   fail,
   ok,
   type MerchantId,
@@ -41,9 +40,12 @@ export class Corroboration implements CorroborationRecord {
     this.receivedAt = record.receivedAt;
   }
 
-  static of(record: CorroborationRecord): Result<Corroboration, CorroborationConfirmedInFuture> {
-    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + CLOCK_SKEW_TOLERANCE_MS) {
-      return fail(new CorroborationConfirmedInFuture(CLOCK_SKEW_TOLERANCE_MS));
+  static of(
+    record: CorroborationRecord,
+    skewMs: number,
+  ): Result<Corroboration, CorroborationConfirmedInFuture> {
+    if (record.confirmedAt.getTime() > record.receivedAt.getTime() + skewMs) {
+      return fail(new CorroborationConfirmedInFuture(skewMs));
     }
     return ok(new Corroboration(record));
   }

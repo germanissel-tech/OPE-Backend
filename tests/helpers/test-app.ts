@@ -3,13 +3,14 @@
 // whole app; `sharedTestApp` builds the server once per file and rebuilds only the in-memory
 // ports before each test (015 F-055): the contract is parsed and the routes compiled once.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import {
-  parseCommercialPolicy,
-  parseEvidenceProfile,
-} from "../../src/composition/commercial-policy-config.js";
-import { parseDecisionPolicy } from "../../src/composition/decision-policy-config.js";
+  readDeclaredConfiguration,
+  readPlatformConfiguration,
+  readTreatmentDefaults,
+} from "../../src/application/configuration/index.js";
+import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import { localProfile } from "../../src/composition/profiles/local.js";
 import { Experiment, Experiments } from "../../src/domain/experiment/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
@@ -17,7 +18,7 @@ import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/ind
 import { silentLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import type { MerchantSeed } from "../../src/application/merchant/index.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
-import type { AppConfig, MerchantConfig } from "../../src/composition/config.js";
+import type { AppConfig, MerchantConfig, ReleaseLevels } from "../../src/composition/config.js";
 import type { Ports } from "../../src/composition/ports.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
@@ -36,12 +37,14 @@ export interface MerchantSpec {
     status: "active" | "closed";
     startedAt: string;
   }[];
-  /** The raw shape of OPE_MERCHANTS[i].decisionPolicy; parsed like config.ts does. */
+  /** The raw shape of OPE_MERCHANTS[i].decisionPolicy; read like config.ts does. */
   decisionPolicy?: Record<string, unknown>;
-  /** The raw shape of OPE_MERCHANTS[i].commercialPolicy; parsed like config.ts does. */
+  /** The raw shape of OPE_MERCHANTS[i].commercialPolicy; read like config.ts does. */
   commercialPolicy?: Record<string, unknown>;
-  /** The raw shape of OPE_MERCHANTS[i].evidenceProfile; parsed like config.ts does. */
+  /** The raw shape of OPE_MERCHANTS[i].evidenceProfile; read like config.ts does. */
   evidenceProfile?: Record<string, unknown>;
+  /** Any other value the merchant declares of its configuration (feature 017), in the raw shape. */
+  declared?: Record<string, unknown>;
 }
 
 const PERCENT = 100;
@@ -70,18 +73,32 @@ function configured(spec: MerchantSpec): MerchantConfig {
   });
   const set = Experiments.of(experiments);
   if (!set.ok) throw new Error(`test experiments of ${spec.merchantId}: ${set.error.message}`);
-  const config: MerchantConfig = { merchantId, seed, experiments: set.value };
-  if (spec.decisionPolicy !== undefined) {
-    config.decisionPolicy = parseDecisionPolicy(spec.decisionPolicy, "merchants[0].decisionPolicy");
-  }
-  if (spec.commercialPolicy !== undefined) {
-    config.commercialPolicy = parseCommercialPolicy(spec.commercialPolicy, "merchants[0].commercialPolicy");
-  }
-  if (spec.evidenceProfile !== undefined) {
-    config.evidenceProfile = parseEvidenceProfile(spec.evidenceProfile, "merchants[0].evidenceProfile");
-  }
-  return config;
+  const raw: Record<string, unknown> = { ...spec.declared };
+  if (spec.decisionPolicy !== undefined) raw["decisionPolicy"] = spec.decisionPolicy;
+  if (spec.commercialPolicy !== undefined) raw["commercialPolicy"] = spec.commercialPolicy;
+  if (spec.evidenceProfile !== undefined) raw["evidenceProfile"] = spec.evidenceProfile;
+  const declared = readDeclaredConfiguration(raw, "merchants[0]");
+  if (!declared.ok) throw new Error(`test merchant ${spec.merchantId}: ${declared.error.message}`);
+  return { merchantId, seed, experiments: set.value, declared: declared.value };
 }
+
+/** The levels of the release as the repository declares them: the tests run under the real files. */
+function releaseLevels(): ReleaseLevels {
+  const read = (file: string): unknown => JSON.parse(readFileSync(path.resolve(file), "utf8"));
+  const platform = readPlatformConfiguration(read("config/platform.json"));
+  const defaults = readTreatmentDefaults(read("config/treatment-defaults.json"));
+  if (!platform.ok) throw new Error(`config/platform.json: ${platform.error.message}`);
+  if (!defaults.ok) throw new Error(`config/treatment-defaults.json: ${defaults.error.message}`);
+  return { platform: platform.value, defaults: defaults.value };
+}
+
+let levels: ReleaseLevels | undefined;
+
+/**
+ * Read once per process, on the first request and never at load: what a test file evaluates
+ * while it loads counts as static for the mutation gate and runs against the whole suite.
+ */
+export const testLevels = (): ReleaseLevels => (levels ??= releaseLevels());
 
 const merchantA: MerchantSpec = {
   merchantId: "m_a",
@@ -90,6 +107,8 @@ const merchantA: MerchantSpec = {
   origins: ["https://a.example"],
   // A declares what it can sustain, so the quality gate lets the reassurance and the size recommendation through.
   evidenceProfile: { returnsPolicy: true, fitData: true },
+  // The whole traffic goes to OPE: no holdout (feature 017).
+  declared: { holdoutPercent: 0 },
   // Everyone in TREATMENT: the decision reasons of feature 004 stay observable through A.
   experiments: [
     {
@@ -107,6 +126,7 @@ export const merchantB: MerchantSpec = {
   platformKeys: ["platform-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
+  declared: { holdoutPercent: 0 },
   experiments: [],
 };
 const testMerchants: MerchantSpec[] = [merchantA, merchantB];
@@ -143,6 +163,7 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   contractPath: path.resolve("contracts/dist/openapi.yaml"),
   merchants: (merchants ?? testMerchants).map(configured),
   operators: testOperators,
+  levels: testLevels(),
   ...over,
 });
 

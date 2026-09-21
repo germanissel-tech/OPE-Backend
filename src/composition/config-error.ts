@@ -10,7 +10,9 @@ export type Variable =
   | "OPE_MERCHANTS"
   | "OPE_MERCHANTS_FILE"
   | "OPE_ADMIN_OPERATORS"
-  | "OPE_ADMIN_OPERATORS_FILE";
+  | "OPE_ADMIN_OPERATORS_FILE"
+  | "OPE_PLATFORM_CONFIG"
+  | "OPE_TREATMENT_DEFAULTS";
 
 /** A field inside the merchants configuration, as a path from `merchants[i]`. */
 export type MerchantField = `merchants[${number}]${string}`;
@@ -18,8 +20,11 @@ export type MerchantField = `merchants[${number}]${string}`;
 /** A field inside the operators configuration, as a path from `operators[i]`. */
 export type OperatorField = `operators[${number}]${string}`;
 
+/** A field inside a level of the release, as a path from the file. */
+export type LevelField = `platform.${string}` | `treatmentDefaults.${string}`;
+
 export class ConfigError extends Error {
-  constructor(variable: Variable | MerchantField | OperatorField, problem: string) {
+  constructor(variable: Variable | MerchantField | OperatorField | LevelField, problem: string) {
     super(`${variable} ${problem}.`);
     this.name = "ConfigError";
   }

@@ -1,0 +1,21 @@
+type: object
+description: Holds when the product in focus carries the attribute with that value.
+additionalProperties: false
+required:
+  - fact
+  - key
+  - value
+properties:
+  fact:
+    type: string
+    description: The fact this condition judges.
+    enum:
+      - productAttribute
+  key:
+    type: string
+    description: Attribute key of the catalogue.
+    maxLength: 64
+  value:
+    type: string
+    description: Attribute value.
+    maxLength: 255

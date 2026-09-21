@@ -76,6 +76,50 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The configuration a merchant is served with
+         * @description The effective configuration (resolved value by value over the treatment defaults and the platform values), what the version in force declared, and the three versions every decision of the merchant stamps (01 §14.2). Never a secret.
+         */
+        get: operations["getMerchantConfiguration"];
+        put?: never;
+        /**
+         * Publish a configuration version for a merchant
+         * @description Creates the next version of the merchant's configuration (01 §14.2): numbered, immutable, effective on the next request without a restart (FR-017). What is declared overrides the treatment defaults value by value; the rest keeps resolving from the levels of the release. A body identical to the version in force repeats it (`200`) instead of creating one. While an experiment is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`); a corrective version restarts the experiment's measurement window. An invalid value is refused naming the field and no version is created.
+         */
+        post: operations["publishMerchantConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/configuration/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The configuration versions of a merchant
+         * @description Every version the merchant published, newest first: nothing is overwritten (FR-012). Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listConfigurationVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/deactivate": {
         parameters: {
             query?: never;
@@ -210,6 +254,46 @@ export type paths = {
          *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
          */
         post: operations["rotatePlatformSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/platform-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The platform configuration of the release
+         * @description Level 1 of the configuration (constitution XI): the values no merchant overrides, with the version the release declares. Read-only: it changes with a deploy, never in flight.
+         */
+        get: operations["getPlatformConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/treatment-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The treatment defaults of the release
+         * @description Level 2 of the configuration (constitution XI): what every merchant gets unless it declares otherwise, with the version the release declares. Read-only: it changes with a deploy, never in flight.
+         */
+        get: operations["getTreatmentDefaults"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -470,11 +554,52 @@ export type components = {
             /** @description Whether a corrective configuration version restarted the accumulation window. */
             windowRestarted?: boolean;
         };
+        /** @description Holds when every condition holds (`all: []` holds). */
+        AllCondition: {
+            /** @description Conditions that must all hold. */
+            all: components["schemas"]["NestedCondition"][];
+        };
         /**
          * @description Semantic anchor point where an intervention is (or was) rendered. The SDK resolves it with the merchant's anchor map.
          * @enum {string}
          */
         Anchor: "size_selector" | "price" | "cta" | "policies";
+        /** @description The merchant's anchor map (01 §3.1.1): where the SDK renders each anchor; an anchor absent here resolves by the SDK's own chain. */
+        AnchorMap: {
+            cta?: components["schemas"]["AnchorSelectors"];
+            policies?: components["schemas"]["AnchorSelectors"];
+            price?: components["schemas"]["AnchorSelectors"];
+            size_selector?: components["schemas"]["AnchorSelectors"];
+        };
+        /** @description The CSS selectors that resolve an anchor in the merchant's store, in order of preference. */
+        AnchorSelectors: {
+            /** @description Selectors tried in order; the first that resolves wins. */
+            selectors: string[];
+        };
+        /** @description Holds when at least one condition holds (`any: []` does not). */
+        AnyCondition: {
+            /** @description Conditions of which one must hold. */
+            any: components["schemas"]["NestedCondition"][];
+        };
+        /**
+         * @description One of the three purchase barriers OPE infers (01 §4.2).
+         * @enum {string}
+         */
+        Barrier: "fit" | "price" | "returns";
+        /** @description A rule of the decision policy: when its condition holds, its barrier gains its weight (ADR-026). */
+        BarrierRule: {
+            barrier: components["schemas"]["Barrier"];
+            /** @description Identifier of the rule, unique in the policy. */
+            id: string;
+            /**
+             * @description Which policy weight the rule adds when it has no weight of its own.
+             * @enum {string}
+             */
+            strength: "strong" | "supporting";
+            /** @description A weight of its own, 0..1; absent means the weight of its strength. */
+            weight?: number;
+            when: components["schemas"]["Condition"];
+        };
         /** @description Scroll and dwell over a block of the product page. */
         BlockDwelled: {
             /**
@@ -581,6 +706,77 @@ export type components = {
              */
             type: "checkout_advanced";
             visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description A complete commercial policy (ADR-027): incentive ceiling and ladder, margin, return risk, high intent, abandonment and budgets. Percentages at the edge; the domain works with rates. */
+        CommercialPolicy: {
+            /**
+             * @description What a cart abandonment without a signal triggers.
+             * @enum {string}
+             */
+            abandonment: "nothing" | "reassure-returns";
+            /** @description Seconds between two interventions of a session. */
+            cooldownSeconds: number;
+            /** @description Whether the price barrier may receive the incentive directly. */
+            directIncentiveOnPrice: boolean;
+            /**
+             * @description From which step a visitor counts as high intent, where OPE keeps quiet.
+             * @enum {string}
+             */
+            highIntent: "from-cart" | "from-checkout" | "never";
+            /** @description Incentive steps as integer percentages, strictly increasing, within the ceiling. */
+            incentiveLadderPercent: number[];
+            /** @description Interventions a session may receive. */
+            interventionsPerSession: number;
+            /** @description Interventions a visitor may receive per day (fatigue). */
+            interventionsPerVisitorPerDay: number;
+            /** @description Margin the merchant declares, as an integer percentage; absent means no incentive goes out (01 §4.7). */
+            marginPercent?: number;
+            /** @description Ceiling of any incentive, as an integer percentage. */
+            maxIncentivePercent: number;
+            returnRisk: components["schemas"]["Condition"];
+            /** @description Version the merchant gives its commercial policy; stamped in every decision. */
+            version: string;
+        };
+        /** @description What a merchant declares of its commercial policy: the version and any field; the rest resolves from the treatment defaults. */
+        CommercialPolicyDeclared: {
+            /**
+             * @description What a cart abandonment without a signal triggers.
+             * @enum {string}
+             */
+            abandonment?: "nothing" | "reassure-returns";
+            /** @description Seconds between two interventions of a session. */
+            cooldownSeconds?: number;
+            /** @description Whether the price barrier may receive the incentive directly. */
+            directIncentiveOnPrice?: boolean;
+            /**
+             * @description From which step a visitor counts as high intent, where OPE keeps quiet.
+             * @enum {string}
+             */
+            highIntent?: "from-cart" | "from-checkout" | "never";
+            /** @description Incentive steps as integer percentages, strictly increasing, within the ceiling. */
+            incentiveLadderPercent?: number[];
+            /** @description Interventions a session may receive. */
+            interventionsPerSession?: number;
+            /** @description Interventions a visitor may receive per day (fatigue). */
+            interventionsPerVisitorPerDay?: number;
+            /** @description Margin the merchant declares, as an integer percentage; absent means no incentive goes out (01 §4.7). */
+            marginPercent?: number;
+            /** @description Ceiling of any incentive, as an integer percentage. */
+            maxIncentivePercent?: number;
+            returnRisk?: components["schemas"]["Condition"];
+            /** @description Version the merchant gives its commercial policy; stamped in every decision. */
+            version: string;
+        };
+        /** @description A condition of a rule (ADR-026): a fact of the closed vocabulary, or `all`, `any`, `not` over conditions. The API admits two levels of combinators (a combinator over combinators over facts); a fact OPE does not capture is refused (`unknown-fact`). */
+        Condition: components["schemas"]["AllCondition"] | components["schemas"]["AnyCondition"] | components["schemas"]["NotCondition"] | components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"];
+        /** @description The three versions a decision is taken with (01 §14.2): platform, treatment defaults and, when the merchant published one, its own. */
+        ConfigurationVersions: {
+            /** @description Version of the treatment defaults. */
+            defaults: string;
+            /** @description The merchant's configuration version in force; absent when it never published one. */
+            merchant?: number;
+            /** @description Version of the platform configuration. */
+            platform: string;
         };
         /**
          * @description Whether OPE could link the order to one of its sessions (mechanism A, 02 §5.2): `ATTRIBUTED`,
@@ -689,11 +885,78 @@ export type components = {
         };
         /** @description Identifier of a decision issued by OPE. Generated by the backend and quoted by the SDK when confirming an exposure. */
         DecisionId: string;
+        /** @description A complete decision policy (ADR-026): rules, weights, threshold, priority and evidence requirements. */
+        DecisionPolicy: {
+            evidence: components["schemas"]["PolicyEvidence"];
+            /** @description The three barriers in tie-break order (a permutation). */
+            priority: components["schemas"]["Barrier"][];
+            /** @description Seconds of dwell a `dwellSeconds` condition without `min` asks for. */
+            readingSeconds: number;
+            /** @description The rules, at least one per active barrier. */
+            rules: components["schemas"]["BarrierRule"][];
+            /** @description Confidence a barrier must reach to be inferred, 0..1. */
+            threshold: number;
+            /** @description Version the merchant gives its decision policy; stamped in every decision. */
+            version: string;
+            weights: components["schemas"]["PolicyWeights"];
+        };
+        /** @description What a merchant declares of its decision policy: the version and any field; the rest resolves from the treatment defaults. */
+        DecisionPolicyDeclared: {
+            evidence?: components["schemas"]["PolicyEvidence"];
+            /** @description The three barriers in tie-break order (a permutation). */
+            priority?: components["schemas"]["Barrier"][];
+            /** @description Seconds of dwell a `dwellSeconds` condition without `min` asks for. */
+            readingSeconds?: number;
+            /** @description The rules, at least one per active barrier. */
+            rules?: components["schemas"]["BarrierRule"][];
+            /** @description Confidence a barrier must reach to be inferred, 0..1. */
+            threshold?: number;
+            /** @description Version the merchant gives its decision policy; stamped in every decision. */
+            version: string;
+            weights?: components["schemas"]["PolicyWeights"];
+        };
+        /** @description The deduplication window of the ingestion (ADR-024): ids older than the TTL or beyond the budget are forgotten. */
+        DedupWindow: {
+            /** @description Ids remembered per merchant at most. */
+            maxIds: number;
+            /** @description Milliseconds an event id is remembered. */
+            ttlMs: number;
+        };
         /**
          * @description Device class, for layout only. Never an identifying fingerprint (01 §10.2).
          * @enum {string}
          */
         DeviceClass: "desktop" | "mobile" | "tablet";
+        /** @description Holds when the visitor dwelled on a block for at least `min` seconds (absent: the reading seconds of the policy). */
+        DwellSecondsCondition: {
+            /** @description Block of the page (`BlockDwelled`). */
+            block: string;
+            /**
+             * @description The fact this condition judges.
+             * @enum {string}
+             */
+            fact: "dwellSeconds";
+            /** @description Least seconds of dwell; absent means the reading seconds. */
+            min?: number;
+        };
+        /** @description The configuration a merchant is served with, resolved value by value: what it declared, else the treatment defaults, with the platform values on top (constitution XI). Never a secret. */
+        EffectiveConfiguration: {
+            anchors?: components["schemas"]["AnchorMap"];
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            barriers: components["schemas"]["Barrier"][];
+            commercialPolicy: components["schemas"]["CommercialPolicy"];
+            decisionPolicy: components["schemas"]["DecisionPolicy"];
+            evidenceProfile: components["schemas"]["EvidenceProfile"];
+            freshness: components["schemas"]["Freshness"];
+            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
+            holdoutPercent: number;
+            locales: components["schemas"]["Locales"];
+            platform: components["schemas"]["PlatformConfiguration"];
+            /** @description Page types where OPE may intervene. */
+            surfaces: components["schemas"]["Surface"][];
+            syncLevel: components["schemas"]["SyncLevelRules"];
+            syncStrategy: components["schemas"]["SyncStrategy"];
+        };
         /**
          * @description A behavioural event from the SDK. Closed allow-list (03-alcance-mvp.md §4.1): a type outside
          *     this union or an undeclared field rejects the whole batch (01 §10.3).
@@ -706,8 +969,29 @@ export type components = {
             /** @description Events in the order the SDK captured them. Ordering comes from `occurredAt`, not from the position. */
             events: components["schemas"]["Event"][];
         };
+        /** @description Holds when the session carries at least `min` events of the type. */
+        EventCountCondition: {
+            /**
+             * @description The fact this condition judges.
+             * @enum {string}
+             */
+            fact: "eventCount";
+            /** @description Least number of events. */
+            min: number;
+            /** @description Subtype when the event type has one. */
+            subtype?: string;
+            /** @description Event type of the SDK vocabulary. */
+            type: string;
+        };
         /** @description Unique identifier of the event, generated by the SDK. Deduplicates retries and replays within the merchant. */
         EventId: string;
+        /** @description An event of the SDK vocabulary, by type and optional subtype. */
+        EventRef: {
+            /** @description Subtype when the event type has one. */
+            subtype?: string;
+            /** @description Event type of the SDK vocabulary (`Event`). */
+            type: string;
+        };
         /** @description Result of one event of the batch. */
         EventResult: {
             eventId: components["schemas"]["EventId"];
@@ -716,6 +1000,24 @@ export type components = {
              * @enum {string}
              */
             status: "accepted" | "duplicate";
+        };
+        /** @description What a merchant declares it can sustain (03 §4.5, ADR-027); nothing declared means no claim passes the gate. */
+        EvidenceProfile: {
+            /** @description Product attributes the messages may name. */
+            authorizedAttributes: string[];
+            /** @description Whether the merchant provides fit data OPE may recommend a size with. */
+            fitData: boolean;
+            /** @description Whether the merchant has a returns policy OPE may cite. */
+            returnsPolicy: boolean;
+        };
+        /** @description What a merchant declares of its evidence profile; an absent field resolves from the treatment defaults. */
+        EvidenceProfileDeclared: {
+            /** @description Product attributes the messages may name. */
+            authorizedAttributes?: string[];
+            /** @description Whether the merchant provides fit data OPE may recommend a size with. */
+            fitData?: boolean;
+            /** @description Whether the merchant has a returns policy OPE may cite. */
+            returnsPolicy?: boolean;
         };
         /** @description Exit signal. Exactly the four of 03 §4.1; adding one is a scope change. */
         ExitSignaled: {
@@ -760,6 +1062,28 @@ export type components = {
              * @enum {string}
              */
             status: "recorded" | "already-recorded";
+        };
+        /** @description A fact of the session or the product that either holds or does not. */
+        FlagCondition: {
+            /**
+             * @description The fact this condition judges.
+             * @enum {string}
+             */
+            fact: "returnedToProduct" | "variantAvailable" | "sessionAddedToCart" | "sessionEnteredCheckout";
+        };
+        /** @description Freshness budgets by class of datum (01 §8, ADR-025), measured from `capturedAt`. */
+        Freshness: {
+            /** @description Milliseconds since `capturedAt` beyond which the snapshot holds no truth at all. */
+            catalogMs: number;
+            /** @description Milliseconds since `capturedAt` beyond which availability and price no longer sustain a claim. */
+            stockAndPriceMs: number;
+        };
+        /** @description The freshness budgets a merchant declares; an absent one resolves from the treatment defaults. */
+        FreshnessDeclared: {
+            /** @description Milliseconds since `capturedAt` beyond which the snapshot holds no truth at all. */
+            catalogMs?: number;
+            /** @description Milliseconds since `capturedAt` beyond which availability and price no longer sustain a claim. */
+            stockAndPriceMs?: number;
         };
         /** @description Service status. */
         Health: {
@@ -840,6 +1164,13 @@ export type components = {
             type: "listing_viewed";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /** @description The languages of the merchant's store (BCP 47 tags by shape) and the one to fall back to; an empty list means no restriction until the message catalogue. */
+        Locales: {
+            /** @description The language to use when the page's is not supported; one of `supported`. */
+            fallback?: string;
+            /** @description Languages the store serves, as BCP 47 tags. */
+            supported: string[];
+        };
         /** @description A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources. */
         Merchant: {
             /**
@@ -853,6 +1184,60 @@ export type components = {
             /** @description Registered origins of the store, as written. */
             origins: string[];
             status: components["schemas"]["MerchantStatus"];
+        };
+        /** @description The configuration of a merchant as it is served: the effective values, what it declared in the version in force, and the three versions. */
+        MerchantConfiguration: {
+            declared: components["schemas"]["MerchantConfigurationDeclared"];
+            effective: components["schemas"]["EffectiveConfiguration"];
+            versions: components["schemas"]["ConfigurationVersions"];
+        };
+        /** @description Level 3: what a merchant overrides of the treatment defaults, plus its anchor map (which has no default). Every field is optional; a declared policy names its version and may declare only some of its fields. */
+        MerchantConfigurationDeclared: {
+            anchors?: components["schemas"]["AnchorMap"];
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            barriers?: components["schemas"]["Barrier"][];
+            commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
+            decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];
+            evidenceProfile?: components["schemas"]["EvidenceProfileDeclared"];
+            freshness?: components["schemas"]["FreshnessDeclared"];
+            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
+            holdoutPercent?: number;
+            locales?: components["schemas"]["Locales"];
+            /** @description Page types where OPE may intervene. */
+            surfaces?: components["schemas"]["Surface"][];
+            syncLevel?: components["schemas"]["SyncLevelRulesDeclared"];
+            syncStrategy?: components["schemas"]["SyncStrategyDeclared"];
+        };
+        /** @description What an operator publishes: the declared values of the new version, whether it is corrective (allowed while an experiment is active, with a reason) and why. */
+        MerchantConfigurationInput: {
+            /** @description A corrective version: the only kind allowed while an experiment is active; it restarts the experiment's measurement window (03 §4.10). */
+            corrective?: boolean;
+            declared: components["schemas"]["MerchantConfigurationDeclared"];
+            /** @description Why the version is published; required when corrective. */
+            reason?: string;
+        };
+        /** @description A published version of a merchant's configuration (01 §14.2): numbered, immutable, with who published it and why. */
+        MerchantConfigurationVersion: {
+            /** @description Whether the version was published as corrective. */
+            corrective: boolean;
+            declared: components["schemas"]["MerchantConfigurationDeclared"];
+            operatorId: components["schemas"]["OperatorId"];
+            /**
+             * Format: date-time
+             * @description Instant of publication.
+             */
+            publishedAt: string;
+            /** @description The reason the operator declared, when any. */
+            reason?: string;
+            /** @description Sequential number per merchant, assigned at publication. */
+            version: number;
+        };
+        /** @description A page of a merchant's configuration versions, newest first. */
+        MerchantConfigurationVersionPage: {
+            /** @description Versions of this page, newest first. */
+            items: components["schemas"]["MerchantConfigurationVersion"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
         };
         /** @description What an operator gives to create a merchant; OPE mints everything else (ADR-031). */
         MerchantCreate: {
@@ -895,6 +1280,27 @@ export type components = {
             amount: string;
             /** @description Currency in ISO 4217. */
             currency: string;
+        };
+        /** @description Holds when every fact holds (`all: []` holds); the innermost level of the algebra the API admits. */
+        NestedAllCondition: {
+            /** @description Facts that must all hold. */
+            all: (components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"])[];
+        };
+        /** @description Holds when at least one fact holds (`any: []` does not); the innermost level of the algebra the API admits. */
+        NestedAnyCondition: {
+            /** @description Facts of which one must hold. */
+            any: (components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"])[];
+        };
+        /** @description A condition one level inside a combinator: a fact, or `all`, `any`, `not` over facts. */
+        NestedCondition: components["schemas"]["NestedAllCondition"] | components["schemas"]["NestedAnyCondition"] | components["schemas"]["NestedNotCondition"] | components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"];
+        /** @description Holds when the fact does not; the innermost level of the algebra the API admits. */
+        NestedNotCondition: {
+            /** @description The fact that must not hold. */
+            not: components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"];
+        };
+        /** @description Holds when the condition does not. */
+        NotCondition: {
+            not: components["schemas"]["NestedCondition"];
         };
         /** @description Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up). */
         OperatorId: string;
@@ -1010,6 +1416,40 @@ export type components = {
             type: "photo_interacted";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /** @description Level 1 (constitution XI): the values of the platform that no merchant overrides, as the release declares them (`config/platform.json`); read-only by API. */
+        PlatformConfiguration: {
+            /** @description Anchor diagnostics kept per merchant at most. */
+            anchorDiagnosticsKept: number;
+            /** @description Milliseconds an instant a client declares may sit in the future. */
+            clockSkewToleranceMs: number;
+            dedupWindow: components["schemas"]["DedupWindow"];
+            /** @description Milliseconds an event instant may sit in the past (late uploads). */
+            eventPastToleranceMs: number;
+            /** @description Longest grace a credential rotation may give the previous credential. */
+            rotationGraceMaxMs: number;
+            /** @description Milliseconds a session is remembered since its last batch. */
+            sessionWindowMs: number;
+            /** @description Milliseconds a platform signature's timestamp may sit from the server clock, either way (ADR-029). */
+            signatureWindowMs: number;
+            /** @description Version of the platform configuration the release declares. */
+            version: string;
+            /** @description Milliseconds a visitor's interventions count for the fatigue limit. */
+            visitorWindowMs: number;
+        };
+        /** @description Which barriers need which class of product evidence before OPE speaks (01 §4.3). */
+        PolicyEvidence: {
+            /** @description Barriers that need an available variant in focus. */
+            availableVariant?: components["schemas"]["Barrier"][];
+            /** @description Barriers that need fresh availability and price. */
+            freshStockAndPrice?: components["schemas"]["Barrier"][];
+        };
+        /** @description The weight each strength adds to the confidence of a barrier, 0..1. */
+        PolicyWeights: {
+            /** @description Weight of a strong rule. */
+            strong: number;
+            /** @description Weight of a supporting rule. */
+            supporting: number;
+        };
         /** @description Error according to RFC 9457 (Problem Details for HTTP APIs). Every 4xx/5xx response of the API uses this schema with the `application/problem+json` content type. The values of `type` belong to the catalogue `contracts/problem-types.yaml` (URN `urn:ope:problem:<slug>`). */
         ProblemDetails: {
             /** @description Human-readable explanation of this occurrence. Never includes internal details. */
@@ -1032,6 +1472,18 @@ export type components = {
              * @description Stable identifier of the problem type, from OPE's catalogue.
              */
             type: string;
+        };
+        /** @description Holds when the product in focus carries the attribute with that value. */
+        ProductAttributeCondition: {
+            /**
+             * @description The fact this condition judges.
+             * @enum {string}
+             */
+            fact: "productAttribute";
+            /** @description Attribute key of the catalogue. */
+            key: string;
+            /** @description Attribute value. */
+            value: string;
         };
         /** @description Return to a product seen earlier in the session (A → B → A comparison). Observed and recorded; it has no messages of its own in the MVP. */
         ProductReturnedTo: {
@@ -1118,6 +1570,22 @@ export type components = {
              */
             status: "RETURNED";
         };
+        /** @description Holds when `first` happened and `then` happened after it in the session. */
+        SequenceCondition: {
+            /**
+             * @description The fact this condition judges.
+             * @enum {string}
+             */
+            fact: "sequence";
+            first: components["schemas"]["EventRef"];
+            /** @description The event that must follow, by type and optional subtype. */
+            then: {
+                /** @description Subtype when the event type has one. */
+                subtype?: string;
+                /** @description Event type of the SDK vocabulary. */
+                type: string;
+            };
+        };
         /** @description Identifier of the visit, generated by the SDK. Groups the behavioural sequence; it expires. */
         SessionId: string;
         /** @description Interaction with the size selector. */
@@ -1139,6 +1607,74 @@ export type components = {
              */
             type: "size_selector_interacted";
             visitorId: components["schemas"]["VisitorId"];
+        };
+        /**
+         * @description A page type where OPE may intervene: the product page or the cart.
+         * @enum {string}
+         */
+        Surface: "product" | "cart";
+        /** @description Thresholds of the observed synchronisation level (01 §14.1, ADR-025); the median algorithm is the code's. */
+        SyncLevelRules: {
+            /** @description Age of the latest receipt beyond which the level cannot be 2. */
+            minutesLevelMaxAgeMs: number;
+            /** @description Median interval between receipts at or under which the level is 2. */
+            minutesLevelMedianIntervalMs: number;
+            /** @description Least receipts to judge a cadence of minutes. */
+            minutesLevelMinReceipts: number;
+            /** @description Age of the latest receipt beyond which the level is 0. */
+            noDataAfterMs: number;
+            /** @description Snapshot receipts kept per merchant to judge the cadence. */
+            receiptsKept: number;
+        };
+        /** @description The synchronisation level thresholds a merchant declares; an absent one resolves from the treatment defaults. */
+        SyncLevelRulesDeclared: {
+            /** @description Age of the latest receipt beyond which the level cannot be 2. */
+            minutesLevelMaxAgeMs?: number;
+            /** @description Median interval between receipts at or under which the level is 2. */
+            minutesLevelMedianIntervalMs?: number;
+            /** @description Least receipts to judge a cadence of minutes. */
+            minutesLevelMinReceipts?: number;
+            /** @description Age of the latest receipt beyond which the level is 0. */
+            noDataAfterMs?: number;
+            /** @description Snapshot receipts kept per merchant to judge the cadence. */
+            receiptsKept?: number;
+        };
+        /**
+         * @description How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port feature.
+         * @enum {string}
+         */
+        SyncMode: "push" | "pull" | "subscribe";
+        /** @description The mode negotiated with the merchant for each flow (constitution X, ADR-025). */
+        SyncStrategy: {
+            catalog: components["schemas"]["SyncMode"];
+            orders: components["schemas"]["SyncMode"];
+            returns: components["schemas"]["SyncMode"];
+            stockAndPrice: components["schemas"]["SyncMode"];
+        };
+        /** @description The modes a merchant declares per flow; an absent flow resolves from the treatment defaults. */
+        SyncStrategyDeclared: {
+            catalog?: components["schemas"]["SyncMode"];
+            orders?: components["schemas"]["SyncMode"];
+            returns?: components["schemas"]["SyncMode"];
+            stockAndPrice?: components["schemas"]["SyncMode"];
+        };
+        /** @description Level 2 (constitution XI): what every merchant gets unless it declares otherwise, as the release declares it (`config/treatment-defaults.json`); read-only by API. */
+        TreatmentDefaults: {
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            barriers: components["schemas"]["Barrier"][];
+            commercialPolicy: components["schemas"]["CommercialPolicy"];
+            decisionPolicy: components["schemas"]["DecisionPolicy"];
+            evidenceProfile: components["schemas"]["EvidenceProfile"];
+            freshness: components["schemas"]["Freshness"];
+            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
+            holdoutPercent: number;
+            locales: components["schemas"]["Locales"];
+            /** @description Page types where OPE may intervene. */
+            surfaces: components["schemas"]["Surface"][];
+            syncLevel: components["schemas"]["SyncLevelRules"];
+            syncStrategy: components["schemas"]["SyncStrategy"];
+            /** @description Version of the treatment defaults the release declares. */
+            version: string;
         };
         /** @description Colour or variant selection. */
         VariantSelected: {
@@ -1190,6 +1726,47 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description The configuration is frozen: an experiment is active and the version is not corrective (03 §4.10). */
+        ConfigurationFrozenConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:configuration-frozen",
+                 *       "title": "The configuration is frozen while an experiment is active",
+                 *       "status": 409,
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description Valid request rejected on semantics: the `x-invariants` of a configuration version (ADR-007). */
+        ConfigurationUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:invalid-configuration-value",
+                 *       "title": "A configuration value violates an invariant of its type",
+                 *       "status": 422,
+                 *       "detail": "declared.commercialPolicy.incentiveLadderPercent is invalid (The incentive ladder is not strictly increasing within 1 and the ceiling).",
+                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration",
+                 *       "errors": [
+                 *         {
+                 *           "pointer": "/declared/commercialPolicy/incentiveLadderPercent",
+                 *           "message": "The incentive ladder is not strictly increasing within 1 and the ceiling."
+                 *         }
+                 *       ]
+                 *     }
+                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -1701,6 +2278,329 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    getMerchantConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The configuration of the merchant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "effective": {
+                     *         "freshness": {
+                     *           "catalogMs": 129600000,
+                     *           "stockAndPriceMs": 600000
+                     *         },
+                     *         "syncLevel": {
+                     *           "receiptsKept": 8,
+                     *           "noDataAfterMs": 129600000,
+                     *           "minutesLevelMaxAgeMs": 3600000,
+                     *           "minutesLevelMedianIntervalMs": 900000,
+                     *           "minutesLevelMinReceipts": 3
+                     *         },
+                     *         "holdoutPercent": 5,
+                     *         "decisionPolicy": {
+                     *           "version": "default-1",
+                     *           "rules": [
+                     *             {
+                     *               "id": "price.price-read",
+                     *               "barrier": "price",
+                     *               "strength": "strong",
+                     *               "when": {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "price"
+                     *               }
+                     *             }
+                     *           ],
+                     *           "weights": {
+                     *             "strong": 0.4,
+                     *             "supporting": 0.2
+                     *           },
+                     *           "readingSeconds": 5,
+                     *           "threshold": 0.6,
+                     *           "priority": [
+                     *             "returns",
+                     *             "fit",
+                     *             "price"
+                     *           ],
+                     *           "evidence": {
+                     *             "freshStockAndPrice": [
+                     *               "price"
+                     *             ],
+                     *             "availableVariant": [
+                     *               "fit"
+                     *             ]
+                     *           }
+                     *         },
+                     *         "commercialPolicy": {
+                     *           "version": "commercial-default-1",
+                     *           "maxIncentivePercent": 10,
+                     *           "incentiveLadderPercent": [
+                     *             5,
+                     *             10
+                     *           ],
+                     *           "directIncentiveOnPrice": true,
+                     *           "returnRisk": {
+                     *             "all": [
+                     *               {
+                     *                 "fact": "eventCount",
+                     *                 "type": "size_selector_interacted",
+                     *                 "min": 2
+                     *               },
+                     *               {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "policies"
+                     *               }
+                     *             ]
+                     *           },
+                     *           "highIntent": "from-checkout",
+                     *           "abandonment": "reassure-returns",
+                     *           "interventionsPerSession": 1,
+                     *           "cooldownSeconds": 0,
+                     *           "interventionsPerVisitorPerDay": 3
+                     *         },
+                     *         "evidenceProfile": {
+                     *           "returnsPolicy": false,
+                     *           "fitData": false,
+                     *           "authorizedAttributes": []
+                     *         },
+                     *         "surfaces": [
+                     *           "product",
+                     *           "cart"
+                     *         ],
+                     *         "barriers": [
+                     *           "fit",
+                     *           "price",
+                     *           "returns"
+                     *         ],
+                     *         "syncStrategy": {
+                     *           "catalog": "push",
+                     *           "stockAndPrice": "push",
+                     *           "orders": "push",
+                     *           "returns": "push"
+                     *         },
+                     *         "locales": {
+                     *           "supported": [
+                     *             "es-AR",
+                     *             "en"
+                     *           ],
+                     *           "fallback": "es-AR"
+                     *         },
+                     *         "platform": {
+                     *           "version": "platform-1",
+                     *           "dedupWindow": {
+                     *             "ttlMs": 86400000,
+                     *             "maxIds": 100000
+                     *           },
+                     *           "eventPastToleranceMs": 86400000,
+                     *           "clockSkewToleranceMs": 300000,
+                     *           "sessionWindowMs": 86400000,
+                     *           "visitorWindowMs": 86400000,
+                     *           "signatureWindowMs": 300000,
+                     *           "rotationGraceMaxMs": 604800000,
+                     *           "anchorDiagnosticsKept": 200
+                     *         }
+                     *       },
+                     *       "declared": {
+                     *         "freshness": {
+                     *           "stockAndPriceMs": 600000
+                     *         },
+                     *         "locales": {
+                     *           "supported": [
+                     *             "es-AR",
+                     *             "en"
+                     *           ],
+                     *           "fallback": "es-AR"
+                     *         }
+                     *       },
+                     *       "versions": {
+                     *         "platform": "platform-1",
+                     *         "defaults": "defaults-1",
+                     *         "merchant": 1
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    publishMerchantConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "declared": {
+                 *         "freshness": {
+                 *           "stockAndPriceMs": 600000
+                 *         },
+                 *         "locales": {
+                 *           "supported": [
+                 *             "es-AR",
+                 *             "en"
+                 *           ],
+                 *           "fallback": "es-AR"
+                 *         }
+                 *       }
+                 *     }
+                 */
+                "application/json": components["schemas"]["MerchantConfigurationInput"];
+            };
+        };
+        responses: {
+            /** @description The version in force, identical to what was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 1,
+                     *       "declared": {
+                     *         "freshness": {
+                     *           "stockAndPriceMs": 600000
+                     *         },
+                     *         "locales": {
+                     *           "supported": [
+                     *             "es-AR",
+                     *             "en"
+                     *           ],
+                     *           "fallback": "es-AR"
+                     *         }
+                     *       },
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-09-20T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfigurationVersion"];
+                };
+            };
+            /** @description The version created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 1,
+                     *       "declared": {
+                     *         "freshness": {
+                     *           "stockAndPriceMs": 600000
+                     *         },
+                     *         "locales": {
+                     *           "supported": [
+                     *             "es-AR",
+                     *             "en"
+                     *           ],
+                     *           "fallback": "es-AR"
+                     *         }
+                     *       },
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-09-20T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfigurationVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["ConfigurationFrozenConflict"];
+            422: components["responses"]["ConfigurationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listConfigurationVersions: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "version": 1,
+                     *           "declared": {
+                     *             "freshness": {
+                     *               "stockAndPriceMs": 600000
+                     *             },
+                     *             "locales": {
+                     *               "supported": [
+                     *                 "es-AR",
+                     *                 "en"
+                     *               ],
+                     *               "fallback": "es-AR"
+                     *             }
+                     *           },
+                     *           "corrective": false,
+                     *           "publishedAt": "2026-09-20T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfigurationVersionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     deactivateMerchant: {
         parameters: {
             query?: never;
@@ -1983,6 +2883,172 @@ export interface operations {
             404: components["responses"]["MerchantNotFound"];
             409: components["responses"]["MerchantDeactivatedConflict"];
             422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPlatformConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The platform configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": "platform-1",
+                     *       "dedupWindow": {
+                     *         "ttlMs": 86400000,
+                     *         "maxIds": 100000
+                     *       },
+                     *       "eventPastToleranceMs": 86400000,
+                     *       "clockSkewToleranceMs": 300000,
+                     *       "sessionWindowMs": 86400000,
+                     *       "visitorWindowMs": 86400000,
+                     *       "signatureWindowMs": 300000,
+                     *       "rotationGraceMaxMs": 604800000,
+                     *       "anchorDiagnosticsKept": 200
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformConfiguration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTreatmentDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The treatment defaults. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": "defaults-1",
+                     *       "freshness": {
+                     *         "catalogMs": 129600000,
+                     *         "stockAndPriceMs": 900000
+                     *       },
+                     *       "syncLevel": {
+                     *         "receiptsKept": 8,
+                     *         "noDataAfterMs": 129600000,
+                     *         "minutesLevelMaxAgeMs": 3600000,
+                     *         "minutesLevelMedianIntervalMs": 900000,
+                     *         "minutesLevelMinReceipts": 3
+                     *       },
+                     *       "holdoutPercent": 5,
+                     *       "decisionPolicy": {
+                     *         "version": "default-1",
+                     *         "rules": [
+                     *           {
+                     *             "id": "price.price-read",
+                     *             "barrier": "price",
+                     *             "strength": "strong",
+                     *             "when": {
+                     *               "fact": "dwellSeconds",
+                     *               "block": "price"
+                     *             }
+                     *           }
+                     *         ],
+                     *         "weights": {
+                     *           "strong": 0.4,
+                     *           "supporting": 0.2
+                     *         },
+                     *         "readingSeconds": 5,
+                     *         "threshold": 0.6,
+                     *         "priority": [
+                     *           "returns",
+                     *           "fit",
+                     *           "price"
+                     *         ],
+                     *         "evidence": {
+                     *           "freshStockAndPrice": [
+                     *             "price"
+                     *           ],
+                     *           "availableVariant": [
+                     *             "fit"
+                     *           ]
+                     *         }
+                     *       },
+                     *       "commercialPolicy": {
+                     *         "version": "commercial-default-1",
+                     *         "maxIncentivePercent": 10,
+                     *         "incentiveLadderPercent": [
+                     *           5,
+                     *           10
+                     *         ],
+                     *         "directIncentiveOnPrice": true,
+                     *         "returnRisk": {
+                     *           "all": [
+                     *             {
+                     *               "fact": "eventCount",
+                     *               "type": "size_selector_interacted",
+                     *               "min": 2
+                     *             },
+                     *             {
+                     *               "fact": "dwellSeconds",
+                     *               "block": "policies"
+                     *             }
+                     *           ]
+                     *         },
+                     *         "highIntent": "from-checkout",
+                     *         "abandonment": "reassure-returns",
+                     *         "interventionsPerSession": 1,
+                     *         "cooldownSeconds": 0,
+                     *         "interventionsPerVisitorPerDay": 3
+                     *       },
+                     *       "evidenceProfile": {
+                     *         "returnsPolicy": false,
+                     *         "fitData": false,
+                     *         "authorizedAttributes": []
+                     *       },
+                     *       "surfaces": [
+                     *         "product",
+                     *         "cart"
+                     *       ],
+                     *       "barriers": [
+                     *         "fit",
+                     *         "price",
+                     *         "returns"
+                     *       ],
+                     *       "syncStrategy": {
+                     *         "catalog": "push",
+                     *         "stockAndPrice": "push",
+                     *         "orders": "push",
+                     *         "returns": "push"
+                     *       },
+                     *       "locales": {
+                     *         "supported": []
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TreatmentDefaults"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

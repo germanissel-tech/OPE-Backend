@@ -3,6 +3,7 @@
 import { adminModule } from "./admin.js";
 import { barrierModule } from "./barrier.js";
 import { catalogModule } from "./catalog.js";
+import { configurationModule } from "./configuration.js";
 import { decisionModule } from "./decision.js";
 import { experimentModule } from "./experiment.js";
 import { ingestionModule } from "./ingestion.js";
@@ -24,4 +25,5 @@ export const MODULES: readonly Module<Ports>[] = [
   ledgerModule,
   outcomesModule,
   adminModule,
+  configurationModule,
 ];

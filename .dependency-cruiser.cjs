@@ -56,6 +56,7 @@ const CONTEXT_MAP = {
     "selection",
     "catalog",
     "ingestion",
+    "barrier",
   ],
   admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
 };
@@ -143,9 +144,9 @@ module.exports = {
     {
       name: "composition-wires-by-module",
       comment:
-        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013).",
+        "Outside composition/modules/, the composition root imports neither controllers, security handlers nor use cases: each module wires its own, the root keeps the list of modules (ADR-013). config.ts is the exception: it reads the shape of the inputs through the readers of the configuration module (ADR-024, ADR-031).",
       severity: "error",
-      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/modules/` },
+      from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/(modules/|config[.]ts$)` },
       to: {
         path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
         dependencyTypesNot: ["type-only"],

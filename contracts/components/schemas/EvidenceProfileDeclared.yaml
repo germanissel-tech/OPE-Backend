@@ -1,0 +1,19 @@
+type: object
+description: What a merchant declares of its evidence profile; an absent field resolves from the
+  treatment defaults.
+additionalProperties: false
+properties:
+  returnsPolicy:
+    type: boolean
+    description: Whether the merchant has a returns policy OPE may cite.
+  fitData:
+    type: boolean
+    description: Whether the merchant provides fit data OPE may recommend a size with.
+  authorizedAttributes:
+    type: array
+    description: Product attributes the messages may name.
+    maxItems: 32
+    uniqueItems: true
+    items:
+      type: string
+      maxLength: 64

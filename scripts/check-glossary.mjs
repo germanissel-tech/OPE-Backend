@@ -134,15 +134,36 @@ function resolveWord(word) {
 }
 
 /**
- * A compound name resolves as a whole (`foo-bar`, `foobar` or, for the wire values of a
- * discriminator, `foo_bar`), or word by word.
+ * A run of words resolves as a whole (`foo-bar`, `foobar` or, for the wire values of a
+ * discriminator, `foo_bar`).
+ * @param {string[]} lower
+ * @returns {boolean}
+ */
+const resolveRun = (lower) => ["-", "", "_"].some((sep) => resolveWord(lower.join(sep)));
+
+/**
+ * A sequence of words resolves when it splits into runs that each resolve as a whole
+ * (`CommercialPolicyDeclared` → `commercial-policy` + `declared`); the longest run first.
+ * @param {string[]} lower
+ * @returns {boolean}
+ */
+function resolveSequence(lower) {
+  if (lower.length === 0) return true;
+  for (let n = lower.length; n >= 1; n -= 1) {
+    if (resolveRun(lower.slice(0, n)) && resolveSequence(lower.slice(n))) return true;
+  }
+  return false;
+}
+
+/**
+ * A compound name resolves as a whole, as a sequence of compounds, or word by word.
  * @param {string[]} words
  * @param {string} label
  * @param {string} at
  */
 function resolveCompound(words, label, at) {
   const lower = words.map((w) => w.toLowerCase());
-  if (["-", "", "_"].some((sep) => resolveWord(lower.join(sep)))) return;
+  if (resolveSequence(lower)) return;
   const orphan = words.filter((w) => !resolveWord(w));
   const first = orphan[0];
   if (first !== undefined) {

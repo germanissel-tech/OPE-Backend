@@ -1,0 +1,17 @@
+type: object
+description: The mode negotiated with the merchant for each flow (constitution X, ADR-025).
+additionalProperties: false
+required:
+  - catalog
+  - stockAndPrice
+  - orders
+  - returns
+properties:
+  catalog:
+    $ref: ./SyncMode.yaml
+  stockAndPrice:
+    $ref: ./SyncMode.yaml
+  orders:
+    $ref: ./SyncMode.yaml
+  returns:
+    $ref: ./SyncMode.yaml

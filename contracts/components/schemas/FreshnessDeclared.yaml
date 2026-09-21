@@ -1,0 +1,14 @@
+type: object
+description: The freshness budgets a merchant declares; an absent one resolves from the treatment defaults.
+additionalProperties: false
+properties:
+  catalogMs:
+    type: integer
+    description: Milliseconds since `capturedAt` beyond which the snapshot holds no truth at all.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceMs:
+    type: integer
+    description: Milliseconds since `capturedAt` beyond which availability and price no longer sustain a claim.
+    minimum: 1
+    maximum: 31536000000

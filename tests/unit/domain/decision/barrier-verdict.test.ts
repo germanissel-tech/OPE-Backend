@@ -3,13 +3,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DecisionPolicy,
-  DEFAULT_DECISION_POLICY,
   type BarrierVerdict,
   type TruthSummary,
 } from "../../../../src/domain/decision/index.js";
+import { testLevels } from "../../../helpers/test-app.js";
 import type { Inference } from "../../../../src/domain/barrier/index.js";
 
-const policy = DEFAULT_DECISION_POLICY;
+/** The default decision policy of the release (config/treatment-defaults.json). */
+const policy = () => testLevels().defaults.values.decisionPolicy;
 const inference = (fit = 0, price = 0, returns = 0): Inference => ({
   confidences: { fit, price, returns },
   matched: [],
@@ -30,16 +31,31 @@ describe("DecisionPolicy.barrierVerdict — the dominant barrier", () => {
     ["the threshold is inclusive", inference(0.6), { barrier: "fit", confidence: 0.6 }],
     ["just below the threshold → no barrier", inference(0.5999), {}],
   ])("%s", (_name, given, expected) => {
-    expect(policy.barrierVerdict({ inference: given, truth: fresh })).toEqual(expected);
+    expect(policy().barrierVerdict({ inference: given, truth: fresh })).toEqual(expected);
+  });
+
+  it("only the barriers the merchant enables may be dominant: fit above the threshold loses to an active price", () => {
+    const given = inference(0.9, 0.7, 0);
+    expect(policy().barrierVerdict({ inference: given, truth: fresh, active: ["price"] })).toEqual({
+      barrier: "price",
+      confidence: 0.7,
+    });
+    expect(policy().barrierVerdict({ inference: given, truth: fresh, active: ["returns"] })).toEqual({});
+    expect(
+      policy().barrierVerdict({ inference: given, truth: fresh, active: ["fit", "price", "returns"] }),
+    ).toEqual({
+      barrier: "fit",
+      confidence: 0.9,
+    });
   });
 
   it("a different priority breaks the tie differently", () => {
     const other = DecisionPolicy.rehydrate({
       version: "v",
-      rules: policy.rules,
-      threshold: policy.threshold,
+      rules: policy().rules,
+      threshold: policy().threshold,
       priority: ["price", "fit", "returns"],
-      evidence: policy.evidence,
+      evidence: policy().evidence,
     });
     expect(other.barrierVerdict({ inference: inference(0.8, 0.8, 0.8), truth: fresh })).toEqual({
       barrier: "price",
@@ -93,7 +109,7 @@ describe("DecisionPolicy.barrierVerdict — the evidence of the barrier (user st
       "variant-unavailable",
     ],
   ])("%s", (_name, given, truth, evidenceReason) => {
-    const verdict = policy.barrierVerdict({ inference: given, truth });
+    const verdict = policy().barrierVerdict({ inference: given, truth });
     expect(verdict.barrier).toBeDefined();
     expect(verdict.evidenceReason).toBe(evidenceReason);
   });
@@ -101,9 +117,9 @@ describe("DecisionPolicy.barrierVerdict — the evidence of the barrier (user st
   it("evidence requirements follow the policy: fit may require fresh stock and price too", () => {
     const strict = DecisionPolicy.rehydrate({
       version: "v",
-      rules: policy.rules,
-      threshold: policy.threshold,
-      priority: policy.priority,
+      rules: policy().rules,
+      threshold: policy().threshold,
+      priority: policy().priority,
       evidence: { freshStockAndPrice: ["price", "fit"], availableVariant: ["fit"] },
     });
     expect(strict.barrierVerdict({ inference: inference(0.8), truth: stale }).evidenceReason).toBe(
@@ -112,6 +128,6 @@ describe("DecisionPolicy.barrierVerdict — the evidence of the barrier (user st
   });
 
   it("without a barrier the evidence is not judged", () => {
-    expect(policy.barrierVerdict({ inference: inference(), truth: { kind: "absent" } })).toEqual({});
+    expect(policy().barrierVerdict({ inference: inference(), truth: { kind: "absent" } })).toEqual({});
   });
 });

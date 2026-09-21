@@ -4,7 +4,7 @@ export type { MessageAuthenticator } from "./ports/message-authenticator.js";
 export type { MerchantStore } from "./ports/merchant-store.js";
 export type { CredentialMinter, MintedCredential } from "./ports/credential-minter.js";
 export type { RotationPolicy } from "./ports/rotation-policy.js";
-export { SIGNATURE_WINDOW_MS } from "./policies/signature-window.js";
+export type { SignatureWindow } from "./ports/signature-window.js";
 export { DefaultPlatformSignatureVerifier } from "./services/platform-signature.service.js";
 export type {
   PlatformSignatureVerifier,

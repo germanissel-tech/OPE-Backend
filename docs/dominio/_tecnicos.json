@@ -61,6 +61,19 @@
     "received",
     "switch",
     "enabled",
-    "outcome"
+    "outcome",
+    "count",
+    "dwell",
+    "seconds",
+    "sequence",
+    "attribute",
+    "flag",
+    "nested",
+    "all",
+    "any",
+    "not",
+    "ref",
+    "weights",
+    "dedup"
   ]
 }

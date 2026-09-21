@@ -172,7 +172,8 @@ export function guardZeroTests(report) {
 const DISABLE_NEXT_LINE = /\/\/\s*Stryker disable next-line\b/;
 const DISABLE_BLOCK = /\/\/\s*Stryker disable\b(?! next-line)/;
 const RESTORE = /\/\/\s*Stryker restore\b/;
-const EXCLUDED_MUTATOR = /excluded mutation/;
+/** Ignored by configuration, not by a comment: an excluded mutator, or a static mutant under `ignoreStatic`. */
+const EXCLUDED_MUTATOR = /excluded mutation|Static mutant/;
 
 /**
  * The lines a source file's `// Stryker disable` comments cover: `next-line` covers the line after
@@ -204,7 +205,8 @@ export function disabledRanges(source) {
  * Mutants Stryker ignored because of a `// Stryker disable` comment whose line is not the one the
  * comment names (a `next-line` directive) nor inside a `disable`/`restore` block: a restore written
  * after the last statement of a block does not restore, and the comment silences the rest of the
- * file. Mutators excluded by configuration (StringLiteral) are not comments and are skipped.
+ * file. What the configuration ignores (the StringLiteral mutator, static mutants under
+ * `ignoreStatic`) is not a comment and is skipped.
  * @param {MutationReport} report
  * @param {(file: string) => string} readSource the source of a file of the report, by its key
  * @returns {Finding[]}

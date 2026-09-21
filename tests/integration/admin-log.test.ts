@@ -50,11 +50,17 @@ describe("GET /v1/admin/log", () => {
     expect(page.items.map((e) => e.operation)).toEqual(["op3", "op2"]);
     expect(page.items[0]?.at).toBe("2026-09-20T12:00:03.000Z");
     expect(page.nextCursor).toBeDefined();
-    const second = json(await admin(app.app, "GET", `/v1/admin/log?limit=2&cursor=${page.nextCursor}`)) as {
+    const second = json(await admin(app.app, "GET", `/v1/admin/log?limit=4&cursor=${page.nextCursor}`)) as {
       items: { operation: string }[];
       nextCursor?: string;
     };
-    expect(second.items.map((e) => e.operation)).toEqual(["op1", "importMerchants"]);
+    // The seed: the merchants, then what each declared of its configuration (feature 017).
+    expect(second.items.map((e) => e.operation)).toEqual([
+      "op1",
+      "importMerchantConfiguration",
+      "importMerchantConfiguration",
+      "importMerchants",
+    ]);
     expect(second).not.toHaveProperty("nextCursor");
   });
 

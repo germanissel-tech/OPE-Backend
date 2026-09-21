@@ -129,6 +129,12 @@ types:
   - slug: catalog-out-of-order
     status: 422
     title: The snapshot is older than the current one
+  - slug: invalid-sync-level-rules
+    status: 500
+    title: A synchronisation level threshold is not a positive integer
+  - slug: invalid-freshness-budget
+    status: 500
+    title: A freshness budget is not a positive number of milliseconds
   - slug: invalid-rule-weight
     status: 500
     title: A rule weight or the policy weights are outside 0..1
@@ -205,6 +211,9 @@ types:
   - slug: configuration-reason-required
     status: 422
     title: A corrective configuration version needs a reason
+  - slug: invalid-configuration-value
+    status: 422
+    title: A configuration value violates an invariant of its type
   - slug: experiment-already-open
     status: 409
     title: The merchant already has an open experiment

@@ -14,11 +14,13 @@ import {
   asMerchantId,
   asSessionId,
   asVisitorId,
-  CLOCK_SKEW_TOLERANCE_MS,
+  minutes,
   Money,
 } from "../../../../src/domain/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-24T09:00:00.000Z");
+/** The skew the platform tolerates (level 1 of the configuration), as the tests declare it. */
+const SKEW_MS = minutes(5);
 const order = Order.rehydrate({
   merchantId: asMerchantId("m_a"),
   orderId: asOrderId("A-1"),
@@ -123,16 +125,18 @@ describe("Corroboration.of", () => {
   };
 
   it("accepts a browser instant within the tolerance and keeps every fact", () => {
-    const built = Corroboration.of(record);
+    const built = Corroboration.of(record, SKEW_MS);
     expect(built.ok).toBe(true);
     if (built.ok) expect(built.value).toMatchObject(record);
   });
 
   it("a browser instant beyond the tolerance → corroboration-confirmed-in-future; exactly at it, accepted", () => {
-    const built = Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.001Z") });
+    const built = Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.001Z") }, SKEW_MS);
     expect(built.ok ? undefined : built.error.code).toBe("corroboration-confirmed-in-future");
-    expect(built.ok ? undefined : built.error.details).toEqual({ toleranceMs: CLOCK_SKEW_TOLERANCE_MS });
-    expect(Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.000Z") }).ok).toBe(true);
+    expect(built.ok ? undefined : built.error.details).toEqual({ toleranceMs: SKEW_MS });
+    expect(
+      Corroboration.of({ ...record, confirmedAt: new Date("2026-09-19T12:05:00.000Z") }, SKEW_MS).ok,
+    ).toBe(true);
     expect(Corroboration.rehydrate(record)).toMatchObject(record);
   });
 });

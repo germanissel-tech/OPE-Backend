@@ -84,11 +84,12 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                                                                                                                                                                                    |
 | `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                                                                                                                                                               |
 | `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                                                                                                                                                     |
+| `npm run check:behaviour-constants`               | Ninguna constante de comportamiento en `src/` (constitución XI): los archivos retirados no existen y ningún archivo declara sus nombres; `-- --src <dir>` para un fixture                                                                                                      |
 | `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo                                                                                                                                                                    |
 | `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                                   |
 | `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental         |
 
-Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016).
+Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants`.
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
@@ -135,7 +136,17 @@ persistencia): `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE` es una **semilla** 
 `bootstrap` importa por `ImportMerchantsUseCase` como el operador `system` sólo si el store
 arranca vacío (con merchants ya registrados, no pisa nada); sin semilla ni store poblado, nadie
 autentica. Nada de lo que un operador hace a un merchant (crear, rotar, apagar, dar de baja)
-requiere reiniciar: se lee del store en la siguiente request. No hay servidor mock ni modo
+requiere reiniciar: se lee del store en la siguiente request. Los dos niveles del release
+(constitución XI, ADR-031) son archivos del repositorio, `config/platform.json` y
+`config/treatment-defaults.json` (`OPE_PLATFORM_CONFIG` / `OPE_TREATMENT_DEFAULTS` nombran
+otros), que `readConfig` lee por los lectores de forma del módulo `configuration`
+(`readPlatformConfiguration`, `readTreatmentDefaults`) y las fábricas del dominio
+(`PlatformConfiguration.of`, `TreatmentDefaults.of`) juzgan: un valor fuera de rango es un
+`ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`. La semilla admite,
+junto a los campos del merchant, todo lo que `MerchantConfigurationDeclared` admite
+(`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutPercent`, `freshness`, …):
+`bootstrap` lo publica como la versión 1 del merchant (`ImportMerchantConfigurationUseCase`,
+operador `system`) sólo si el merchant no tiene versiones. No hay servidor mock ni modo
 (ADR-018): el composition root no decide sobre configuración (`shape` regla 5).
 
 ### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
@@ -244,13 +255,20 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   antes de tocar nada; (3) si es real, la prueba que pasa con el original y falla con el mutante;
   si es equivalente, reestructurar el código para que el mutante no exista, no una excepción;
   (4) confirmar con `npm run test:mutation -- --files <archivo>[:l1-l2]` (un minuto), no con la
-  corrida completa. La corrida completa del gate se hace una vez por historia, en segundo plano o
-  directamente en CI, que es el juez. Nunca se cambia producción sólo para satisfacer la
-  herramienta.
-- **Ritmo de las pruebas durante una historia**: `npm test` (proyecto `fast`) y
-  `test:mutation -- --files` mientras se trabaja; `test:all` y la corrida completa de
-  mutación una vez, al cierre de la historia, antes del commit. CI corre `test:scoped`: el
-  proyecto `tools` sólo cuando el cambio toca una herramienta.
+  corrida completa. La corrida completa del gate la hace **CI en cada push** (job propio): es el
+  juez; localmente no se espera. Un mutante **estático** (código que corre fuera de un `it`: carga
+  de módulo, `beforeAll` → `bootstrap`, semilla, lectores de configuración) se ignora
+  (`ignoreStatic`, ADR-016 enmendado 2026-09-21): el runner de Vitest no lo activa de forma fiable
+  y da falsos sobrevivientes; si además lo cubre un test, sigue corriendo contra ese test. Nunca
+  se cambia producción sólo para satisfacer la herramienta.
+- **Ritmo de las pruebas, en dos velocidades** (decisión del dueño, 2026-09-21): por historia,
+  local y en minutos — `format:check`, `typecheck`, `quality`, `npm test` (proyecto `fast`) — y
+  commit. Por hito — el cierre de la feature (antes de la PR) y cada push de la rama — CI corre
+  todo: `contract:check`, `quality`, `test:scoped` (el proyecto `tools` sólo cuando el cambio
+  toca una herramienta), `test:contract`, `release-check` y `test:mutation` en su job. Ante un
+  sobreviviente en CI, `test:mutation -- --files <archivo>` local (un minuto), nunca la corrida
+  completa. La `--all` informativa y `test:load` son medidas de tendencia para hitos más gruesos
+  (varias features, un piloto), no gates.
 
 ### Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)
 
@@ -304,9 +322,12 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
   200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
   existe válido; `ProductTruthService` (aplicación) responde `known` con frescura por clase
-  (`application/catalog/policies/freshness.ts`: catálogo 36 h, stock/precio 15 min desde
-  `capturedAt`) o `unknown` con motivo, y `syncLevel` observado (`policies/sync-level.ts`, 0–2;
-  3 nunca con snapshots completos). El stock es guardia: `available` booleano, sin cantidades.
+  (`FreshnessBudget` del dominio `catalog`; los presupuestos son defaults de tratamiento en
+  `config/treatment-defaults.json` — catálogo 36 h, stock/precio 15 min desde `capturedAt` —
+  que el merchant sobrescribe en su versión y el servicio lee por el puerto `CatalogPolicies`)
+  o `unknown` con motivo, y `syncLevel` observado (`SyncLevelRules.observe`, 0–2; 3 nunca con
+  snapshots completos; los umbrales y las recepciones conservadas son defaults de tratamiento,
+  la mediana es el algoritmo). El stock es guardia: `available` booleano, sin cantidades.
   `Money` vive en el `shared-kernel` del dominio.
 - **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
   invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
@@ -323,12 +344,17 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   más bajo (uno más con abandono que confirma la barrera, D-B; el reaseguro cuando el abandono
   la puso en la mesa; incentivo directo en `price`), bloquea (`margin-missing`,
   `incentive-not-allowed`, `return-risk`), aplica alta intención, presupuesto por sesión,
-  cooldown y fatiga por visitante. Tres datos del merchant en `OPE_MERCHANTS[i]`:
-  `decisionPolicy` (inferencia), `commercialPolicy` (techo, escalones, margen, riesgo de
-  devolución, alta intención, abandono, presupuestos) y `evidenceProfile` (qué declara poder
-  sostener); forma en `composition/{condition,decision-policy,commercial-policy}-config.ts`,
-  invariantes en el dominio; defaults `default-1`, `commercial-default-1` (sin margen ⇒ sin
-  incentivos) y perfil vacío. Ambas políticas son parte del experimento. El vocabulario de hechos
+  cooldown y fatiga por visitante. Las tres políticas del merchant —`decisionPolicy`
+  (inferencia), `commercialPolicy` (techo, escalones, margen, riesgo de devolución, alta
+  intención, abandono, presupuestos) y `evidenceProfile` (qué declara poder sostener)— son
+  defaults de tratamiento (`config/treatment-defaults.json`: `default-1`,
+  `commercial-default-1` sin margen ⇒ sin incentivos, perfil vacío) que la versión del merchant
+  sobrescribe **campo por campo** (una política declarada nombra su versión y sólo lo que
+  cambia); la forma la leen los lectores de `application/configuration/input/` (semilla, archivo
+  y API por igual), las invariantes el dominio (`PolicyInput`, `TreatmentValues`). El plano lee
+  `PolicyDirectory` (`PolicySet`: políticas, `barriers` activas, `versions`) que la composición
+  enlaza al servicio de configuración; sólo las barreras activas pueden ser dominantes. Ambas
+  políticas son parte del experimento. El vocabulario de hechos
   y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
   decisión registra `inference`, `selection` (candidatos con veredicto del gate, elegido,
   veredicto comercial, `commercialPolicyVersion`) y el `locale` de la página en foco
@@ -468,11 +494,20 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
 
 ## Convenciones
 
-- **Ninguna política vive en el código (constitución XI)**: todo valor que gobierna el
-  comportamiento es configuración en tres niveles (plataforma → default de tratamiento →
-  merchant); el código conserva invariantes y algoritmos. Hasta la feature de configuración
-  del mapa, las políticas actuales (`default-1`, `commercial-default-1`, frescura, ventanas)
-  son el contenido inicial de esos niveles: no se agregan constantes de comportamiento nuevas.
+- **Ninguna política vive en el código (constitución XI, ADR-031)**: todo valor que gobierna
+  el comportamiento es configuración en tres niveles —plataforma (`config/platform.json`:
+  ventana de deduplicación, tolerancia de reloj, memoria de sesión y visitante, ventana de
+  firma, gracia máxima de rotación, tope de diagnósticos), default de tratamiento
+  (`config/treatment-defaults.json`: frescura, umbrales del nivel de sincronización,
+  `holdoutPercent`, las tres políticas, superficies, barreras, estrategia de sincronización,
+  idiomas) y merchant (versiones publicadas por `publishMerchantConfiguration`, más el mapa de
+  anclajes)— resuelta valor por valor por `EffectiveConfiguration` y servida desde memoria por
+  `ConfigurationService`; cada decisión estampa la terna (`DecisionFacts.configuration`). El
+  código conserva invariantes y algoritmos; las constantes ya salieron (`check:behaviour-constants`
+  vigila que no vuelvan): un valor de comportamiento nuevo es una entrada en un nivel, nunca una
+  constante. Los consumidores reciben los valores por su puerto (`ClockTolerance`,
+  `SignatureWindow`, `CatalogPolicies`, `PolicyDirectory`, `VisitorWindow`) o en su construcción
+  (los stores en memoria reciben su ventana), enlazados en `composition/modules/`.
 - TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en
   `src/composition/` (ADR-013). Identificadores como tipos marcados (`Branded`): una identidad
   vive en `src/domain/shared-kernel/ids.ts` **sólo** si la comparten módulos que no pueden

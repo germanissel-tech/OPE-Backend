@@ -1,9 +1,6 @@
 // Public API of the catalogue module (application).
-export { FRESHNESS_BUDGET } from "./policies/freshness.js";
-export type { FreshnessBudget } from "./policies/freshness.js";
-export { observedSyncLevel, RECEIPTS_KEPT } from "./policies/sync-level.js";
-export type { SyncLevel } from "./policies/sync-level.js";
 export type { CatalogReplaceResult, CatalogStore } from "./ports/catalog-store.js";
+export type { CatalogPolicies } from "./ports/catalog-policies.js";
 export { DefaultProductTruthService } from "./services/product-truth.service.js";
 export type {
   Freshness,

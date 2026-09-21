@@ -1,0 +1,11 @@
+description: "The configuration is frozen: an experiment is active and the version is not corrective
+  (03 §4.10)."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:configuration-frozen
+      title: The configuration is frozen while an experiment is active
+      status: 409
+      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration

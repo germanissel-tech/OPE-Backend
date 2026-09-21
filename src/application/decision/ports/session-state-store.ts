@@ -4,6 +4,14 @@
 import type { SessionState } from "../../../domain/decision/index.js";
 import type { MerchantId, SessionId } from "../../../domain/shared-kernel/index.js";
 
+/** How long, and how many, sessions the plane remembers per merchant (level 1 of the configuration). */
+export interface SessionWindow {
+  /** States untouched for longer than this are forgotten. */
+  ttlMs: number;
+  /** States kept per merchant at most; the least recently updated go first. */
+  maxSessions: number;
+}
+
 export interface SessionStateStore {
   load(merchantId: MerchantId, sessionId: SessionId): Promise<SessionState | undefined>;
   save(merchantId: MerchantId, sessionId: SessionId, state: SessionState): Promise<void>;

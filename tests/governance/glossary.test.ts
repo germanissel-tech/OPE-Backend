@@ -29,6 +29,12 @@ describe("check:glossary", () => {
     expect(r.output).toContain("3 used in the contract");
   });
 
+  it("a schema name resolves as a sequence of compounds: a compound note followed by a technical word", () => {
+    const r = check("compound-sequence");
+    expect(r.status, r.output).toBe(0);
+    expect(r.output).toContain("1 used in the contract");
+  });
+
   it("fails on a contract noun without a note", () => {
     const r = check("orphan");
     expect(r.status).toBe(1);

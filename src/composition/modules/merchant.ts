@@ -2,12 +2,7 @@
 // store, the security schemes of the SDK and the platform, and the administration of merchants
 // and credentials. One store instance serves both the store and the directory the security
 // handlers read: an administration change counts on the next request.
-import {
-  AuditedUseCase,
-  type AdminLog,
-  type AdminRequest,
-  type AuditedUseCaseReaders,
-} from "../../application/admin/index.js";
+import { AuditedUseCase, type AdminLog } from "../../application/admin/index.js";
 import {
   CreateMerchantUseCase,
   DeactivateMerchantUseCase,
@@ -27,14 +22,8 @@ import {
   type MerchantStore,
   type MessageAuthenticator,
   type RotationPolicy,
+  type SignatureWindow,
 } from "../../application/merchant/index.js";
-import {
-  LoggedUseCase,
-  type Clock,
-  type Logger,
-  type UseCase,
-} from "../../application/shared-kernel/index.js";
-import { hours } from "../../domain/shared-kernel/index.js";
 import { memoryMerchantStore } from "../../interface-adapters/gateways/merchant/memory-merchant-store.js";
 import { nodeCredentialMinter } from "../../interface-adapters/gateways/merchant/node-credential-minter.js";
 import { nodeMessageAuthenticator } from "../../interface-adapters/gateways/merchant/node-message-authenticator.js";
@@ -56,6 +45,9 @@ import {
   PLATFORM_KEY_HEADER,
   PLATFORM_KEY_SCHEME,
 } from "../../interface-adapters/http/security/platform-key.js";
+import { auditedWiring } from "./audited.js";
+import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
+import type { PlatformConfiguration } from "../../domain/configuration/index.js";
 import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
 import type { Bindings, Module } from "../wiring.js";
 
@@ -67,18 +59,21 @@ export interface MerchantPorts {
   merchantStore: MerchantStore;
   minter: CredentialMinter;
   rotation: RotationPolicy;
+  /** The window of a platform signature (level 1 of the configuration). */
+  signatureWindow: SignatureWindow;
   /** The HMAC behind the platform signature (ADR-029). */
   authenticator: MessageAuthenticator;
   adminLog: AdminLog;
 }
 
-/** Grace a rotation may declare until the platform configuration (US2) says otherwise: seven days, in hours. */
-const ROTATION_GRACE_MAX_HOURS = 168;
-const ROTATION_GRACE_MAX_MS = hours(ROTATION_GRACE_MAX_HOURS);
-
-/** The merchants in memory (one instance behind both ports), credentials and HMAC with the crypto of Node. */
-export const memoryMerchantPorts = (): Bindings<
-  Pick<MerchantPorts, "merchants" | "merchantStore" | "minter" | "rotation" | "authenticator">
+/** The merchants in memory (one instance behind both ports), credentials and HMAC with the crypto of Node; the rotation grace and the signature window the platform declares. */
+export const memoryMerchantPorts = (
+  platform: PlatformConfiguration,
+): Bindings<
+  Pick<
+    MerchantPorts,
+    "merchants" | "merchantStore" | "minter" | "rotation" | "signatureWindow" | "authenticator"
+  >
 > => {
   let store: ReturnType<typeof memoryMerchantStore> | undefined;
   const shared = (): ReturnType<typeof memoryMerchantStore> => (store ??= memoryMerchantStore());
@@ -86,7 +81,8 @@ export const memoryMerchantPorts = (): Bindings<
     merchants: shared,
     merchantStore: shared,
     minter: () => nodeCredentialMinter,
-    rotation: () => ({ maxGraceMs: () => Promise.resolve(ROTATION_GRACE_MAX_MS) }),
+    rotation: () => ({ maxGraceMs: () => Promise.resolve(platform.rotationGraceMaxMs) }),
+    signatureWindow: () => ({ windowMs: () => platform.signatureWindowMs }),
     authenticator: () => nodeMessageAuthenticator,
   };
 };
@@ -106,7 +102,10 @@ function securityOf(ports: MerchantPorts): Record<string, SecurityScheme> {
   const { clock, minter } = ports;
   const resolveIngestKey = new DefaultIngestKeyResolver({ merchants: ports.merchants, minter, clock });
   const keys = new DefaultPlatformKeyResolver({ merchants: ports.merchants, minter, clock });
-  const signatures = new DefaultPlatformSignatureVerifier({ authenticator: ports.authenticator });
+  const signatures = new DefaultPlatformSignatureVerifier({
+    authenticator: ports.authenticator,
+    window: ports.signatureWindow,
+  });
   return {
     [INGEST_KEY_SCHEME]: {
       handler: makeIngestKeySecurity(resolveIngestKey),
@@ -123,15 +122,8 @@ function securityOf(ports: MerchantPorts): Record<string, SecurityScheme> {
 
 /** The administration of merchants and credentials (ADR-031): every write audited and logged. */
 function handlersOf(ports: MerchantPorts): Handlers {
-  const { clock, logger, merchantStore, minter, rotation, adminLog } = ports;
-  const logged = <I, O>(operation: string, inner: UseCase<I, O>): UseCase<I, O> =>
-    new LoggedUseCase(operation, inner, { clock, logger });
-  const admin = <I extends AdminRequest, O>(
-    operation: string,
-    inner: UseCase<I, O>,
-    readers: AuditedUseCaseReaders<I, O> = {},
-  ): UseCase<I, O> =>
-    logged(operation, new AuditedUseCase(operation, inner, { log: adminLog, clock }, readers));
+  const { clock, merchantStore, minter, rotation } = ports;
+  const { logged, admin } = auditedWiring(ports);
   const scoped = new DefaultScopedMerchantService({ merchants: merchantStore });
   const rotate = new RotateCredentialUseCase({ scoped, merchants: merchantStore, minter, rotation, clock });
   return {

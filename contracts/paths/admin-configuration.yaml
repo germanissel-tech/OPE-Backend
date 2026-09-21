@@ -1,0 +1,197 @@
+post:
+  operationId: publishMerchantConfiguration
+  tags: &a3
+    - admin
+  security: &a4
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:write
+  x-idempotency:
+    key: declared
+    first: "201"
+    repeat: "200"
+  summary: Publish a configuration version for a merchant
+  description: "Creates the next version of the merchant's configuration (01 §14.2): numbered,
+    immutable, effective on the next request without a restart (FR-017). What is declared overrides
+    the treatment defaults value by value; the rest keeps resolving from the levels of the release.
+    A body identical to the version in force repeats it (`200`) instead of creating one. While an
+    experiment is active only a corrective version — with its reason — is accepted (`409
+    configuration-frozen`); a corrective version restarts the experiment's measurement window. An
+    invalid value is refused naming the field and no version is created."
+  parameters:
+    - &a5
+      $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MerchantConfigurationInput.yaml
+        example:
+          declared: &a1
+            freshness:
+              stockAndPriceMs: 600000
+            locales:
+              supported:
+                - es-AR
+                - en
+              fallback: es-AR
+  responses:
+    "200":
+      description: The version in force, identical to what was published.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantConfigurationVersion.yaml
+          example: &a2
+            version: 1
+            declared: *a1
+            corrective: false
+            publishedAt: 2026-09-20T12:00:00Z
+            operatorId: ops-1
+    "201":
+      description: The version created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantConfigurationVersion.yaml
+          example: *a2
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "409":
+      $ref: ../components/responses/ConfigurationFrozenConflict.yaml
+    "422":
+      $ref: ../components/responses/ConfigurationUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml
+get:
+  operationId: getMerchantConfiguration
+  tags: *a3
+  security: *a4
+  x-required-capabilities:
+    - configuration:read
+  summary: The configuration a merchant is served with
+  description: The effective configuration (resolved value by value over the treatment defaults and
+    the platform values), what the version in force declared, and the three versions every decision
+    of the merchant stamps (01 §14.2). Never a secret.
+  parameters:
+    - *a5
+  responses:
+    "200":
+      description: The configuration of the merchant.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantConfiguration.yaml
+          example:
+            effective:
+              freshness:
+                catalogMs: 129600000
+                stockAndPriceMs: 600000
+              syncLevel:
+                receiptsKept: 8
+                noDataAfterMs: 129600000
+                minutesLevelMaxAgeMs: 3600000
+                minutesLevelMedianIntervalMs: 900000
+                minutesLevelMinReceipts: 3
+              holdoutPercent: 5
+              decisionPolicy:
+                version: default-1
+                rules:
+                  - id: price.price-read
+                    barrier: price
+                    strength: strong
+                    when:
+                      fact: dwellSeconds
+                      block: price
+                weights:
+                  strong: 0.4
+                  supporting: 0.2
+                readingSeconds: 5
+                threshold: 0.6
+                priority:
+                  - returns
+                  - fit
+                  - price
+                evidence:
+                  freshStockAndPrice:
+                    - price
+                  availableVariant:
+                    - fit
+              commercialPolicy:
+                version: commercial-default-1
+                maxIncentivePercent: 10
+                incentiveLadderPercent:
+                  - 5
+                  - 10
+                directIncentiveOnPrice: true
+                returnRisk:
+                  all:
+                    - fact: eventCount
+                      type: size_selector_interacted
+                      min: 2
+                    - fact: dwellSeconds
+                      block: policies
+                highIntent: from-checkout
+                abandonment: reassure-returns
+                interventionsPerSession: 1
+                cooldownSeconds: 0
+                interventionsPerVisitorPerDay: 3
+              evidenceProfile:
+                returnsPolicy: false
+                fitData: false
+                authorizedAttributes: []
+              surfaces:
+                - product
+                - cart
+              barriers:
+                - fit
+                - price
+                - returns
+              syncStrategy:
+                catalog: push
+                stockAndPrice: push
+                orders: push
+                returns: push
+              locales:
+                supported:
+                  - es-AR
+                  - en
+                fallback: es-AR
+              platform:
+                version: platform-1
+                dedupWindow:
+                  ttlMs: 86400000
+                  maxIds: 100000
+                eventPastToleranceMs: 86400000
+                clockSkewToleranceMs: 300000
+                sessionWindowMs: 86400000
+                visitorWindowMs: 86400000
+                signatureWindowMs: 300000
+                rotationGraceMaxMs: 604800000
+                anchorDiagnosticsKept: 200
+            declared: *a1
+            versions:
+              platform: platform-1
+              defaults: defaults-1
+              merchant: 1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

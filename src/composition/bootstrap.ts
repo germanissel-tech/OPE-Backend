@@ -7,12 +7,13 @@
 import { Operator } from "../domain/operator/index.js";
 import { buildServer } from "../infrastructure/http/build-server.js";
 import { loadContract } from "../infrastructure/http/load-contract.js";
+import { ConfigError, type AppConfig } from "./config.js";
 import { assertEveryOperationWired } from "./coverage.js";
+import { importConfigurationOf } from "./modules/configuration.js";
 import { MODULES } from "./modules/index.js";
 import { importMerchantsOf } from "./modules/merchant.js";
 import { localProfile } from "./profiles/local.js";
 import { wireModules, type Module } from "./wiring.js";
-import type { AppConfig } from "./config.js";
 import type { Closable, Ports } from "./ports.js";
 import type { Profile } from "./profile.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
@@ -42,16 +43,32 @@ async function shutdown(app: FastifyInstance, closables: readonly Closable[]): P
 }
 
 /**
- * The seed of the configuration enters an empty store through the same use case as the API
- * (ADR-031); a store that already holds merchants keeps them. A seed the configuration accepted
- * and the entity rejects is a programming error.
+ * The seed of the configuration enters an empty store through the same use cases as the API
+ * (ADR-031): the merchants, then what each declares of its configuration as its version 1; a
+ * store that already holds them keeps them. A seed the configuration accepted and the entity
+ * rejects is a programming error; a declared value the resolution refuses stops the start
+ * naming the field (constitution XI).
  */
 export async function importSeed(config: AppConfig, ports: Ports): Promise<void> {
+  const actor = Operator.system();
   const seeds = config.merchants.map((m) => m.seed);
-  const imported = await importMerchantsOf(ports).execute({ actor: Operator.system(), seeds });
+  const imported = await importMerchantsOf(ports).execute({ actor, seeds });
   if (!imported.ok) throw new Error(`The merchant seed was rejected: ${imported.error.code}.`);
   if ("imported" in imported.value && imported.value.imported > 0) {
     ports.logger.info({ merchants: imported.value.imported }, "merchant seed imported");
+  }
+  const importConfiguration = importConfigurationOf(ports);
+  for (const [i, merchant] of config.merchants.entries()) {
+    if (Object.keys(merchant.declared).length === 0) continue;
+    const configured = await importConfiguration.execute({
+      actor,
+      merchantId: merchant.merchantId,
+      declared: merchant.declared,
+    });
+    if (!configured.ok) {
+      const { pointer, problem } = configured.error.details;
+      throw new ConfigError(`merchants[${i}].${String(pointer)}`, `is invalid (${String(problem)})`);
+    }
   }
 }
 

@@ -25,13 +25,14 @@ beforeAll(async () => {
 });
 
 describe("quality", () => {
-  it("chains lint, arch, duplication, dead code and language, in that order", () => {
+  it("chains lint, arch, duplication, dead code, language and behaviour constants, in that order", () => {
     expect(mod.GATES.map((g) => g.name)).toEqual([
       "lint",
       "arch",
       "check:duplication",
       "check:dead-code",
       "check:language",
+      "check:behaviour-constants",
     ]);
     const duplication = mod.GATES.find((g) => g.name === "check:duplication");
     expect(duplication).toBeDefined();
@@ -53,7 +54,7 @@ describe("quality", () => {
   it("reports no failure when every gate is green", () => {
     const { failed, ran } = mod.runQuality(() => 0);
     expect(failed).toBeNull();
-    expect(ran).toHaveLength(5);
+    expect(ran).toHaveLength(6);
   });
 
   it("--json returns one entry per gate with a status", () => {
@@ -61,7 +62,14 @@ describe("quality", () => {
     const j = JSON.parse(r.output.slice(r.output.indexOf("{"))) as {
       gates: { gate: string; status: string }[];
     };
-    expect(j.gates.map((g) => g.gate)).toEqual(["lint", "arch", "duplication", "dead-code", "language"]);
+    expect(j.gates.map((g) => g.gate)).toEqual([
+      "lint",
+      "arch",
+      "duplication",
+      "dead-code",
+      "language",
+      "behaviour-constants",
+    ]);
     expect(j.gates.every((g) => g.status === "pass" || g.status === "fail")).toBe(true);
   }, 120_000);
 });

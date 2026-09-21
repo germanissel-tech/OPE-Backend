@@ -243,7 +243,7 @@ operations:
     tag: admin
     capabilities: [configuration:write]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: setKillSwitch
     method: put
@@ -288,7 +288,7 @@ operations:
     tag: admin
     capabilities: [configuration:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: listConfigurationVersions
     method: get
@@ -297,7 +297,7 @@ operations:
     tag: admin
     capabilities: [configuration:read]
     feature: "017"
-    status: planned
+    status: built
     source: mvp:01-arquitectura-mvp.md#14.2
   - operationId: listExperiments
     method: get
@@ -324,7 +324,7 @@ operations:
     tag: admin
     capabilities: [configuration:read]
     feature: "017"
-    status: planned
+    status: built
     source: constitucion#XI
   - operationId: getTreatmentDefaults
     method: get
@@ -333,7 +333,7 @@ operations:
     tag: admin
     capabilities: [configuration:read]
     feature: "017"
-    status: planned
+    status: built
     source: constitucion#XI
   - operationId: listAdminLog
     method: get

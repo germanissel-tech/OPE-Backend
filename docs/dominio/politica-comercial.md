@@ -1,13 +1,13 @@
 ---
 es: política comercial
-en: commercial policy
+en: commercial-policy
 contexto: decision
 estado: aprobado
 fuente: mvp:01-arquitectura-mvp.md#4.5
 uso: disponible
 ---
 
-# política comercial -> `commercial policy`
+# política comercial -> `commercial-policy`
 
 > Último filtro y única autoridad que emite el veredicto. Puede bloquear una intervención que el resto del pipeline consideró buena.
 

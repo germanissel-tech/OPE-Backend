@@ -22,6 +22,7 @@ import {
   ADMIN_TOKEN_SCHEME,
   makeAdminTokenSecurity,
 } from "../../interface-adapters/http/security/admin-token.js";
+import type { PlatformConfiguration } from "../../domain/configuration/index.js";
 import type { Operator } from "../../domain/operator/index.js";
 import type { Bindings, Module } from "../wiring.js";
 
@@ -34,9 +35,6 @@ export interface AdminPorts {
   diagnostics: AnchorDiagnosticsStore;
 }
 
-/** Diagnostics kept per merchant until the platform configuration (US2) says otherwise. */
-const DIAGNOSTICS_KEPT = 200;
-
 /** Operators as the configuration lists them; fingerprints with Node's crypto. */
 export const configAdminPorts = (
   operators: readonly Operator[],
@@ -45,10 +43,13 @@ export const configAdminPorts = (
   fingerprints: () => nodeTokenFingerprinter,
 });
 
-export const memoryAdminPorts: Bindings<Pick<AdminPorts, "adminLog" | "diagnostics">> = {
+/** The log and the diagnostics in memory; how many diagnostics are kept is the platform's (level 1). */
+export const memoryAdminPorts = (
+  platform: PlatformConfiguration,
+): Bindings<Pick<AdminPorts, "adminLog" | "diagnostics">> => ({
   adminLog: memoryAdminLog,
-  diagnostics: () => memoryAnchorDiagnosticsStore(DIAGNOSTICS_KEPT),
-};
+  diagnostics: () => memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+});
 
 export const adminModule: Module<AdminPorts> = ({ ports }) => {
   const { clock, logger, adminLog } = ports;

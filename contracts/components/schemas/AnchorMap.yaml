@@ -1,0 +1,13 @@
+type: object
+description: "The merchant's anchor map (01 §3.1.1): where the SDK renders each anchor; an anchor
+  absent here resolves by the SDK's own chain."
+additionalProperties: false
+properties:
+  size_selector:
+    $ref: ./AnchorSelectors.yaml
+  price:
+    $ref: ./AnchorSelectors.yaml
+  cta:
+    $ref: ./AnchorSelectors.yaml
+  policies:
+    $ref: ./AnchorSelectors.yaml

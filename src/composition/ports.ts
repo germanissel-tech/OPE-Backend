@@ -4,6 +4,7 @@
 import type { AdminPorts } from "./modules/admin.js";
 import type { BarrierPorts } from "./modules/barrier.js";
 import type { CatalogPorts } from "./modules/catalog.js";
+import type { ConfigurationPorts } from "./modules/configuration.js";
 import type { DecisionPorts } from "./modules/decision.js";
 import type { ExperimentPorts } from "./modules/experiment.js";
 import type { IngestionPorts } from "./modules/ingestion.js";
@@ -23,7 +24,8 @@ export type Ports = SharedKernelPorts &
   BarrierPorts &
   DecisionPorts &
   OutcomesPorts &
-  AdminPorts;
+  AdminPorts &
+  ConfigurationPorts;
 
 /** A gateway may need to shut down (connections, timers). In memory there is nothing to close. */
 export interface Closable {

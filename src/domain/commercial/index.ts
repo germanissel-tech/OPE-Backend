@@ -11,6 +11,5 @@ export type {
   HighIntent,
   Trigger,
 } from "./commercial-policy.js";
-export { DEFAULT_COMMERCIAL_POLICY } from "./default-commercial-policy.js";
 // The error classes stay inside the module: the configuration reads `code` and `details`.
 export type { CommercialError } from "./errors.js";

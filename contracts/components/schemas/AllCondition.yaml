@@ -1,0 +1,11 @@
+type: object
+description: "Holds when every condition holds (`all: []` holds)."
+additionalProperties: false
+required: [all]
+properties:
+  all:
+    type: array
+    description: Conditions that must all hold.
+    maxItems: 16
+    items:
+      $ref: ./NestedCondition.yaml

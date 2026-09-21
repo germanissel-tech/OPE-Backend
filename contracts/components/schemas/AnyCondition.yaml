@@ -1,0 +1,11 @@
+type: object
+description: "Holds when at least one condition holds (`any: []` does not)."
+additionalProperties: false
+required: [any]
+properties:
+  any:
+    type: array
+    description: Conditions of which one must hold.
+    maxItems: 16
+    items:
+      $ref: ./NestedCondition.yaml

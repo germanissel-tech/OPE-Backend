@@ -9,7 +9,12 @@ import {
   type CorroborationLedger,
   type OrderLedger,
 } from "../../application/outcomes/index.js";
-import { LoggedUseCase, type Clock, type Logger } from "../../application/shared-kernel/index.js";
+import {
+  LoggedUseCase,
+  type Clock,
+  type ClockTolerance,
+  type Logger,
+} from "../../application/shared-kernel/index.js";
 import { memoryCorroborationLedger } from "../../interface-adapters/gateways/outcomes/memory-corroboration-ledger.js";
 import { memoryOrderLedger } from "../../interface-adapters/gateways/outcomes/memory-order-ledger.js";
 import { makeCorroborateOrder } from "../../interface-adapters/http/controllers/outcomes/corroborate-order.js";
@@ -21,6 +26,7 @@ import type { Bindings, Module } from "../wiring.js";
 export interface OutcomesPorts {
   clock: Clock;
   logger: Logger;
+  tolerance: ClockTolerance;
   orders: OrderLedger;
   corroborations: CorroborationLedger;
   /** The decision ledger answers what it knows of a session: the correlation needs it. */
@@ -33,16 +39,16 @@ export const memoryOutcomesPorts: Bindings<Pick<OutcomesPorts, "orders" | "corro
 };
 
 export const outcomesModule: Module<OutcomesPorts> = ({ ports }) => {
-  const { clock, logger, orders, corroborations, decisions } = ports;
+  const { clock, tolerance, logger, orders, corroborations, decisions } = ports;
   const logged = { clock, logger };
   const notifyOrder = new LoggedUseCase(
     "notifyOrder",
-    new NotifyOrderUseCase({ clock, orders, decisions, corroborations, logger }),
+    new NotifyOrderUseCase({ clock, tolerance, orders, decisions, corroborations, logger }),
     logged,
   );
   const corroborateOrder = new LoggedUseCase(
     "corroborateOrder",
-    new CorroborateOrderUseCase({ clock, corroborations }),
+    new CorroborateOrderUseCase({ clock, tolerance, corroborations }),
     logged,
   );
   const notifyReturn = new LoggedUseCase("notifyReturn", new NotifyReturnUseCase({ clock, orders }), logged);

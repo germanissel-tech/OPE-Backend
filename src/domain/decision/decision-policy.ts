@@ -46,6 +46,8 @@ export interface TruthSummary {
 export interface BarrierVerdictInput {
   inference: Inference;
   truth: TruthSummary;
+  /** The barriers the merchant enables (configuration); absent means all three. */
+  active?: readonly Barrier[];
 }
 
 /** The barrier the rules settled on, if any, and whether its evidence can sustain it. */
@@ -94,14 +96,15 @@ export class DecisionPolicy {
   }
 
   /**
-   * The dominant barrier over the threshold (ties by priority) and, when there is one, whether
+   * The dominant barrier over the threshold among the active ones (ties by priority) and, when there is one, whether
    * the evidence can sustain it (01 §4.3): absent truth ⇒ `evidence-missing`, stale ⇒
    * `evidence-stale`, an unavailable variant where the barrier would recommend it ⇒
    * `variant-unavailable`, no variant where the barrier needs one ⇒ `evidence-missing`.
    */
-  barrierVerdict({ inference, truth }: BarrierVerdictInput): BarrierVerdict {
+  barrierVerdict({ inference, truth, active }: BarrierVerdictInput): BarrierVerdict {
     let best: { barrier: Barrier; confidence: number } | undefined;
     for (const barrier of this.priority) {
+      if (active !== undefined && !active.includes(barrier)) continue;
       const confidence = inference.confidences[barrier];
       if (confidence >= this.threshold && (best === undefined || confidence > best.confidence)) {
         best = { barrier, confidence };

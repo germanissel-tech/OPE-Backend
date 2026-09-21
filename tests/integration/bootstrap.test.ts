@@ -105,10 +105,16 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
     expect(merchant?.createdAt).toEqual(new Date("2026-09-20T12:00:00.000Z"));
     const log = await app.ports.adminLog.list({ limit: 10 });
     expect(log.items.map((e) => [e.operation, e.operatorId, e.outcome])).toEqual([
+      ["importMerchantConfiguration", "system", "accepted"],
+      ["importMerchantConfiguration", "system", "accepted"],
       ["importMerchants", "system", "accepted"],
     ]);
+    expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });
+    // The seed again: the merchants are kept, and so are their versions (nothing is published twice).
     await importSeed(testConfig(), app.ports);
-    expect((await app.ports.adminLog.list({ limit: 10 })).items).toHaveLength(2);
+    const again = await app.ports.adminLog.list({ limit: 10 });
+    expect(again.items).toHaveLength(6);
+    expect(again.items.filter((e) => e.result !== undefined)).toHaveLength(2);
     expect((await app.ports.merchantStore.list({ limit: 10 })).items.map((m) => m.merchantId)).toEqual([
       "m_a",
       "m_b",
