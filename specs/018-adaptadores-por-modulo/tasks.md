@@ -126,8 +126,8 @@ importen del núcleo o de su propio `presenters.ts` cuando se muevan.
 
 ## Phase 7: Cierre
 
-- [ ] T070 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:contract && npm run release-check` en verde; `npm run build` produce `dist/` y `dist/client/`; `npm run dev` arranca y responde `GET /v1/health`
-- [ ] T071 Push de la rama; CI: `checks` y el gate de mutación (archivos movidos: corrida larga, cero sobrevivientes esperados; ante uno, `test:mutation -- --files` local); PR `018-adaptadores-por-modulo` → `main` con el Constitution Check (once principios, v1.4.2) y SC-001..SC-006; sin merge hasta que el dueño lo pida
+- [x] T070 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:contract && npm run release-check` en verde; `npm run build` produce `dist/` y `dist/client/`; `npm run dev` arranca y responde `GET /v1/health`
+- [x] T071 Push de la rama; CI: `checks` y el gate de mutación (archivos movidos: corrida larga, cero sobrevivientes esperados; ante uno, `test:mutation -- --files` local); PR `018-adaptadores-por-modulo` → `main` con el Constitution Check (once principios, v1.4.2) y SC-001..SC-006; sin merge hasta que el dueño lo pida
 
 ---
 
