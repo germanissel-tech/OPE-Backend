@@ -4,8 +4,8 @@
 //   node .claude/skills/auditing-architecture/scripts/run-gates.mjs --dir <path> [--json]
 //   node .claude/skills/auditing-architecture/scripts/run-gates.mjs --diff [--json]
 //
-// Scope → files: a module is src/domain/<name>, src/application/<name> and every file whose path
-// contains /<name>/ under src/interface-adapters; a dir is that directory; --diff is every src/
+// Scope → files: a module is src/domain/<name>, src/application/<name> and
+// src/interface-adapters/<name>; a dir is that directory; --diff is every src/
 // file changed against origin/main (merge base to working tree). Gates: lint (ESLint on the files),
 // arch (dependency-cruiser violations touching the files), shape (scripts/shape-rules.mjs on the
 // scope root), duplication, dead-code and language (repo-wide, findings filtered to the files)
@@ -67,9 +67,9 @@ function resolveScope(args) {
   const module = argString(args, "module");
   const dir = argString(args, "dir");
   if (module !== undefined) {
-    const roots = [path.join(repoRoot, "src", "domain", module), path.join(repoRoot, "src", "application", module)];
-    const adapters = tsFilesUnder(path.join(repoRoot, "src", "interface-adapters")).filter((f) => f.includes(`/${module}/`));
-    return { scope: `module:${module}`, files: [...roots.flatMap(tsFilesUnder), ...adapters].sort(), root: "src", diff: false };
+    const rings = ["domain", "application", "interface-adapters"];
+    const roots = rings.map((ring) => path.join(repoRoot, "src", ring, module));
+    return { scope: `module:${module}`, files: roots.flatMap(tsFilesUnder).sort(), root: "src", diff: false };
   }
   if (dir !== undefined) {
     return { scope: `dir:${dir}`, files: tsFilesUnder(path.resolve(repoRoot, dir)), root: sourceRoot(dir), diff: false };

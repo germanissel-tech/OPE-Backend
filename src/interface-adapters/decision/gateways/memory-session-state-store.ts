@@ -2,7 +2,7 @@
 // (SESSION_WINDOW) through the shared bounded window: a save moves the session to the most
 // recent position, the window is applied on every load, and the plane always loads a session
 // before it saves it.
-import { windowedByMerchant } from "../../shared-kernel/windowed-map.js";
+import { windowedByMerchant } from "../../shared-kernel/index.js";
 import type { SessionStateStore, SessionWindow } from "../../../application/decision/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
 import type { SessionState } from "../../../domain/decision/index.js";

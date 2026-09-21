@@ -13,11 +13,8 @@ import {
   type VisitorWindow,
 } from "../../application/decision/index.js";
 import { DefaultDecisionRecorder } from "../../application/ledger/index.js";
-import {
-  memorySessionStateStore,
-  memoryVisitorStateStore,
-  switchAwarePolicyDirectory,
-} from "../../interface-adapters/decision/index.js";
+import { memorySessionStateStore, memoryVisitorStateStore } from "../../interface-adapters/decision/index.js";
+import { switchAwarePolicyDirectory } from "../adapters/switch-aware-policy-directory.js";
 import { productTruthOf, type CatalogPorts } from "./catalog.js";
 import { policySourceOf } from "./configuration.js";
 import { assignmentServiceOf, type ExperimentPorts } from "./experiment.js";

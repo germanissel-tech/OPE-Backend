@@ -5,7 +5,7 @@
 // Nothing crosses merchants; nothing is deleted.
 import { Experiments, type Experiment } from "../../../domain/experiment/index.js";
 import { fail, ok, type ExperimentId, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import { pageOf } from "../../shared-kernel/paging.js";
+import { pageOf } from "../../shared-kernel/index.js";
 import type { ExperimentDirectory, ExperimentStore } from "../../../application/experiment/index.js";
 
 export function memoryExperimentStore(): ExperimentStore & ExperimentDirectory {

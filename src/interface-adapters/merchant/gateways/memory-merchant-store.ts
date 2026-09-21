@@ -2,7 +2,7 @@
 // the store (writes by intention) and the directory the security handlers read. One instance
 // behind both ports is what makes an administration change count on the next request.
 import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import { pageOf } from "../../shared-kernel/paging.js";
+import { pageOf } from "../../shared-kernel/index.js";
 import type { MerchantDirectory, MerchantStore } from "../../../application/merchant/index.js";
 import type { Merchant } from "../../../domain/merchant/index.js";
 

@@ -12,12 +12,21 @@
 //                        a profile (composition/profiles/) composes modules, it never picks gateways
 //   main.ts            → composition and Node; nobody imports it
 //
-// Modules (inside domain/ and application/): a module imports from another only through its
-// index.ts and only if CONTEXT_MAP allows it. Adding a module = adding an entry here.
+// Modules (inside domain/, application/ and interface-adapters/): a module imports from another
+// only through its index.ts and only if CONTEXT_MAP allows it. Adding a module = adding an entry
+// here. The adapters ring (feature 018) is cut by module too — interface-adapters/<module>/
+// {controllers,presenters.ts,security,gateways,index.ts} — with a core, interface-adapters/http/,
+// that knows no feature module (typed handlers, Problem Details, generic boundary, principals);
+// composition/modules/<module>.ts imports from the ring only the index of its module (and the
+// shared-kernel); a gateway takes drivers only from infrastructure/.
 
 // Non-capturing group: the `$1`/`$2` back-references must point at the rules' own groups.
 const SRC = "(?:^|/)src/";
-const MOD = `${SRC}(domain|application)/`;
+const MOD = `${SRC}(domain|application|interface-adapters)/`;
+/** The core of the adapters ring: not a module, importable by every module of the ring. */
+const CORE = `${SRC}interface-adapters/http/`;
+/** What the core may know of the inner rings: the kernels and the principals a request resolves to. */
+const CORE_MAY_KNOW = `${SRC}(domain/(shared-kernel|operator|merchant)/|application/shared-kernel/)`;
 
 /** Context map: module → modules it may depend on (besides itself). */
 const CONTEXT_MAP = {
@@ -85,7 +94,7 @@ const contextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => ({
   comment: `${mod} depends only on: ${[mod, ...allowed].join(", ")} (context map, ADR-013)`,
   severity: "error",
   from: { path: `${MOD}${mod}/` },
-  to: { path: `${MOD}[^/]+/`, pathNot: `${MOD}(${[mod, ...allowed].join("|")})/` },
+  to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}(${[mod, ...allowed].join("|")})/`, CORE] },
 }));
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -148,7 +157,7 @@ module.exports = {
       severity: "error",
       from: { path: `${SRC}composition/`, pathNot: `${SRC}composition/(modules/|[a-z-]*config[.]ts$)` },
       to: {
-        path: `${SRC}(interface-adapters/http/(controllers|security)/|application/)`,
+        path: `${SRC}(interface-adapters/[^/]+/(controllers|security)/|application/)`,
         dependencyTypesNot: ["type-only"],
       },
     },
@@ -158,7 +167,7 @@ module.exports = {
         "A profile is a deployment: it composes one binding table per module (composition/modules/<module>.ts); it never picks gateways itself (ADR-013).",
       severity: "error",
       from: { path: `${SRC}composition/profiles/` },
-      to: { path: `${SRC}interface-adapters/gateways/` },
+      to: { path: `${SRC}interface-adapters/[^/]+/gateways/` },
     },
     {
       name: "nobody-imports-main",
@@ -172,8 +181,8 @@ module.exports = {
       name: "modules-only-via-index",
       comment: "A module imports from another only through its index.ts (public API).",
       severity: "error",
-      from: { path: `${MOD}([^/]+)/` },
-      to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`] },
+      from: { path: `${MOD}([^/]+)/`, pathNot: CORE },
+      to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`, CORE] },
     },
     ...contextRules,
     // --- Application ring (ADR-023) -------------------------------------------------------------
@@ -205,21 +214,53 @@ module.exports = {
       comment:
         "A gateway implements the port of its module; it does not import another gateway (they are wired in composition). What the in-memory gateways share (the bounded window per merchant) lives in gateways/shared-kernel/, which implements no port.",
       severity: "error",
-      from: { path: `${SRC}interface-adapters/gateways/([^/]+)/` },
+      from: { path: `${SRC}interface-adapters/([^/]+)/gateways/` },
       to: {
-        path: `${SRC}interface-adapters/gateways/([^/]+)/`,
-        pathNot: [
-          `${SRC}interface-adapters/gateways/$1/`,
-          `${SRC}interface-adapters/gateways/shared-kernel/`,
-        ],
+        path: `${SRC}interface-adapters/([^/]+)/gateways/`,
+        pathNot: [`${SRC}interface-adapters/$1/gateways/`, `${SRC}interface-adapters/shared-kernel/`],
       },
     },
     {
       name: "controllers-no-gateways",
       comment: "A controller receives use cases; it does not instantiate gateways.",
       severity: "error",
-      from: { path: `${SRC}interface-adapters/http/` },
-      to: { path: `${SRC}interface-adapters/gateways/` },
+      from: { path: `${SRC}interface-adapters/([^/]+/(controllers|security)/|http/)` },
+      to: { path: `${SRC}interface-adapters/[^/]+/gateways/` },
+    },
+    // --- Adapters ring by module (feature 018) ---------------------------------------------
+    {
+      name: "adapters-core-knows-no-module",
+      comment:
+        "The core of the adapters ring (interface-adapters/http/) knows no feature module: neither a module of the ring nor a module of domain or application beyond the kernels and the principals (shared-kernel, operator, merchant).",
+      severity: "error",
+      from: { path: CORE },
+      to: {
+        path: `${SRC}(interface-adapters/(?!http/)[^/]+/|(domain|application)/[^/]+/)`,
+        pathNot: CORE_MAY_KNOW,
+      },
+    },
+    {
+      name: "composition-imports-module-index",
+      comment:
+        "composition/modules/<module>.ts imports from the adapters ring only interface-adapters/<module>/index.ts and the shared-kernel of the ring; what crosses modules lives in composition/adapters/.",
+      severity: "error",
+      from: { path: `${SRC}composition/modules/([^/]+)\\.ts$` },
+      to: {
+        path: `${SRC}interface-adapters/`,
+        pathNot: [
+          `${SRC}interface-adapters/$1/index\\.ts$`,
+          `${SRC}interface-adapters/shared-kernel/index\\.ts$`,
+          CORE,
+        ],
+      },
+    },
+    {
+      name: "gateways-drivers-from-infrastructure",
+      comment:
+        "A gateway implements a port with what Node offers or with a driver infrastructure/ provides; it never imports an npm package itself (the driver of the persistence enters by infrastructure/).",
+      severity: "error",
+      from: { path: `${SRC}interface-adapters/[^/]+/gateways/` },
+      to: { dependencyTypes: EXTERNAL.filter((type) => type !== "core") },
     },
     // --- General ----------------------------------------------------------------------
     {

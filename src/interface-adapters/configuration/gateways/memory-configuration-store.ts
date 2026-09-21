@@ -3,7 +3,7 @@
 // await in between (01 §6). Nothing crosses merchants; nothing is overwritten.
 import { MerchantConfigurationVersion } from "../../../domain/configuration/index.js";
 import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import { pageOf } from "../../shared-kernel/paging.js";
+import { pageOf } from "../../shared-kernel/index.js";
 import type { ConfigurationStore } from "../../../application/configuration/index.js";
 
 export function memoryConfigurationStore(): ConfigurationStore {

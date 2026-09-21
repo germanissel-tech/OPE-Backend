@@ -2,7 +2,7 @@
 // (VISITOR_WINDOW) through the shared bounded window: a save moves the visitor to the most
 // recent position, the window is applied on every load, and the plane always loads a visitor
 // before it saves it. A visitor never intervened counts as touched at the epoch.
-import { windowedByMerchant } from "../../shared-kernel/windowed-map.js";
+import { windowedByMerchant } from "../../shared-kernel/index.js";
 import type { VisitorStateStore, VisitorWindow } from "../../../application/decision/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
 import type { VisitorState } from "../../../domain/decision/index.js";

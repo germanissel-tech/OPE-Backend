@@ -3,7 +3,7 @@
 // lowercase base32 characters as the merchant identifier.
 import { createHash, randomBytes } from "node:crypto";
 import { asMerchantId } from "../../../domain/shared-kernel/index.js";
-import { randomId } from "../../shared-kernel/random-id.js";
+import { randomId } from "../../shared-kernel/index.js";
 import type { CredentialMinter } from "../../../application/merchant/index.js";
 import type { CredentialKind } from "../../../domain/merchant/index.js";
 
