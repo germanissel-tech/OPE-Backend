@@ -28,7 +28,6 @@ src/interface-adapters/
 │                                  gateways/{memory-experiment-store, memory-assignment-ledger, node-experiment-id-minter}; index.ts
 ├── ingestion/                     controllers/ingest-events; gateways/memory-event-dedup; index.ts
 ├── catalog/                       controllers/upsert-catalog-snapshot; gateways/memory-catalog-store; index.ts
-├── barrier/                       gateways/…; index.ts                (sólo salida)
 ├── decision/                      gateways/{memory-session-state-store, memory-visitor-state-store,
 │                                  switch-aware-policy-directory}; index.ts   (sólo salida)
 ├── outcomes/                      controllers/{notify-order, notify-return, corroborate-order}; presenters.ts (linesOf);
@@ -41,7 +40,8 @@ src/interface-adapters/
                                    config-operator-directory, node-token-fingerprinter}; index.ts
 ```
 
-Un módulo tiene las partes que necesita; la ausencia de una parte no cambia la forma. `index.ts`
+Un módulo tiene las partes que necesita; la ausencia de una parte no cambia la forma, y un
+módulo sin adaptadores (`barrier`, `selection`, `commercial`, `operator`) no tiene directorio. `index.ts`
 exporta exactamente lo que `composition/modules/<m>.ts` cablea: fábricas de controllers
 (`makeX`), security handlers y sus constantes de esquema/header, fábricas de gateways.
 
