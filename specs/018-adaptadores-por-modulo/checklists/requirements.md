@@ -18,16 +18,16 @@
 
 - [x] No [NEEDS CLARIFICATION] markers remain — las decisiones abiertas (radical vs
       conservadora, ampliar el mapa) ya las tomó el dueño y figuran en Assumptions
-- [x] Requirements are testable and unambiguous — FR-001..FR-011 se verifican con listados de
+- [x] Requirements are testable and unambiguous — FR-001..FR-018 se verifican con listados de
       directorios, reglas de arquitectura con fixture y la suite existente
-- [x] Success criteria are measurable — conteos a cero, 100 % de módulos, suite sin diff
+- [x] Success criteria are measurable — conteos a cero, 100 % de módulos, suite sin diff, src sin generados
 - [x] Success criteria are technology-agnostic (no implementation details) — hablan de módulos,
       núcleo, reglas y pruebas, no de una librería
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified — helpers compartidos, credencial compartida, módulos sólo con
       gateways, fixtures de auditoría, gate de mutación
-- [x] Scope is clearly bounded — versión conservadora; fuera: contrato, dominio, aplicación,
-      persistencia, versión radical
+- [x] Scope is clearly bounded — lectura estricta de CA con corte por módulo; fuera: contrato,
+      dominio, aplicación, persistencia, variantes Onion y radical, fusionar archivos
 - [x] Dependencies and assumptions identified
 
 ## Feature Readiness
@@ -40,4 +40,4 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
-- Sin marcadores de clarificación: lista para `/speckit-plan`.
+- Reescrito el 2026-09-21 con lo acordado en la evaluación con el dueño (lectura estricta de CA, generados fuera de `src/`, catálogo generado, `config.ts` partido, pruebas espejo). Sin marcadores de clarificación: lista para `/speckit-plan`.
