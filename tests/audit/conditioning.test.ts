@@ -35,6 +35,15 @@ interface Doctor {
   maxVerdict: string;
 }
 
+/** The sources the committed profile declares. */
+function profileSources(): { kind: string; resolve: { dirEnv?: string } }[] {
+  return (
+    JSON.parse(readFileSync("audit.profile.json", "utf8")) as {
+      sources: { kind: string; resolve: { dirEnv?: string } }[];
+    }
+  ).sources;
+}
+
 const tmp: string[] = [];
 afterAll(() => {
   for (const dir of tmp) rmSync(dir, { recursive: true, force: true });
@@ -131,7 +140,15 @@ describe("write-profile.mjs and doctor.mjs on this repository", () => {
     expect(r.status, r.stderr).toBe(0);
     const report = JSON.parse(r.stdout) as Doctor;
     expect(report.gates.filter((g) => g.status !== "ready")).toEqual([]);
-    expect(report.sources.filter((s) => s.status !== "ready")).toEqual([]);
+    // A source that points outside the repository (the MVP documents, `../` with `dirEnv`) is
+    // ready only where those documents are checked out: the doctor says so honestly, and CI
+    // has no `../`. Every source of the repository itself must be ready.
+    const external = new Set(
+      profileSources()
+        .filter((src) => src.resolve.dirEnv !== undefined)
+        .map((src) => src.kind),
+    );
+    expect(report.sources.filter((s) => s.status !== "ready" && !external.has(s.kind))).toEqual([]);
     expect(report.criteria).toEqual({ status: "ready", placeholders: 0 });
     expect(report.maxVerdict).toBe("rejected");
   }, 180_000);
