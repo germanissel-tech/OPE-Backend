@@ -33,10 +33,10 @@ Proyecto único: `src/`, `tests/`, `scripts/` en la raíz del repositorio (ADR-0
 
 **Purpose**: dejar registrado el punto de partida y preparar el harness de las pruebas de tipos.
 
-- [ ] T001 Registrar la línea de base en verde antes de tocar nada: `npm run format:check`,
+- [x] T001 Registrar la línea de base en verde antes de tocar nada: `npm run format:check`,
       `npm run quality`, `npm run typecheck`, `npm test`, y anotar en el commit de la fase que la
       suite parte limpia (es el juez de toda la feature)
-- [ ] T002 [P] Extender el harness de `tests/typecheck/typecheck.test.ts` para que un fixture pueda
+- [x] T002 [P] Extender el harness de `tests/typecheck/typecheck.test.ts` para que un fixture pueda
       afirmar **código y fragmento del mensaje** (hoy sólo afirma el código): los cuatro casos del
       grafo se juzgan por el nombre que el error imprime
 

@@ -41,6 +41,19 @@ function compile(base: string, files: string[]): { status: number; output: strin
   }
 }
 
+/**
+ * A fixture that must not compile: the error code, and the fragments the message has to name.
+ * The fragments matter as much as the code — a guarantee whose message does not say what is
+ * missing sends whoever hits it to read the library instead of the error (feature 020, T002).
+ */
+function expectFailure(file: string, code: string, fragments: readonly string[] = []): void {
+  const r = compile("tsconfig.json", [path.join(fixtures, file)]);
+  expect(r.status, r.output).not.toBe(0);
+  expect(r.output).toContain(code);
+  expect(r.output).toContain(file);
+  for (const fragment of fragments) expect(r.output).toContain(fragment);
+}
+
 describe("hardened compiler (tsconfig.json)", () => {
   it.each([
     ["index-signature-dot.ts", "TS4111"],
@@ -48,10 +61,7 @@ describe("hardened compiler (tsconfig.json)", () => {
     ["side-effect-import.ts", "TS2882"],
     ["erasable-enum.ts", "TS1294"],
   ])("%s fails with %s", (file, code) => {
-    const r = compile("tsconfig.json", [path.join(fixtures, file)]);
-    expect(r.status).not.toBe(0);
-    expect(r.output).toContain(code);
-    expect(r.output).toContain(file);
+    expectFailure(file, code);
   });
 
   it("a profile omitting a port of `Ports` does not compile (FR-003 of feature 004)", () => {
