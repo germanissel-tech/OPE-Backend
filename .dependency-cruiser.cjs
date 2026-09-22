@@ -97,6 +97,28 @@ const contextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => ({
   to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}(${[mod, ...allowed].join("|")})/`, CORE] },
 }));
 
+/** Where a module wires itself: one file per module, judged by the same map (ADR-033, FR-011). */
+const WIRING = `${SRC}composition/modules/`;
+
+/**
+ * The context map rules the composition too: consuming something of another module is an import of
+ * its port, so the same arcs apply to `composition/modules/<module>.ts` (feature 020, ADR-033).
+ * @type {import('dependency-cruiser').IForbiddenRuleType[]}
+ */
+const wiringContextRules = Object.entries(CONTEXT_MAP).map(([mod, allowed]) => {
+  const reachable = [mod, ...allowed].join("|");
+  return {
+    name: `context-map:composition/${mod}`,
+    comment: `composition/modules/${mod}.ts depends only on: ${[mod, ...allowed].join(", ")} (context map, ADR-033)`,
+    severity: "error",
+    from: { path: `${WIRING}${mod}\\.ts$` },
+    to: {
+      path: `(${MOD}[^/]+/|${WIRING}[^/]+\\.ts$)`,
+      pathNot: [`${MOD}(${reachable})/`, `${WIRING}(${reachable})\\.ts$`, CORE],
+    },
+  };
+});
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -185,6 +207,7 @@ module.exports = {
       to: { path: `${MOD}[^/]+/`, pathNot: [`${MOD}$2/`, `${MOD}[^/]+/index\\.ts$`, CORE] },
     },
     ...contextRules,
+    ...wiringContextRules,
     // --- Application ring (ADR-023) -------------------------------------------------------------
     {
       name: "use-cases-no-use-cases",

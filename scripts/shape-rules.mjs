@@ -293,6 +293,50 @@ export function noRawControlCharacters(root) {
 }
 
 /** The names of the shape rules, as `shape:<rule>` citations and the audit adapter list them. */
+/** Where a module of composition wires itself: one file per module (ADR-033). */
+const WIRING_MODULE = /^composition\/modules\/[^/]+\.ts$/;
+/** What such a file may export: a component of the graph, and the module itself. */
+const WIRED = /^\s*(port\(|compositionModule\()/;
+
+/**
+ * What an `export` declares, for the message; undefined when the form is allowed.
+ * @param {string} line
+ * @param {string} initializer the rest of the line, or the next non-empty line
+ * @returns {string | undefined}
+ */
+function exportedOther(line, initializer) {
+  if (/^export (type|interface) /.test(line)) return undefined;
+  const constant = /^export const (\w+)\s*=(.*)$/.exec(line);
+  if (!constant) return line.replace(/^export\s+/, "").split(/[ ({=]/)[0] || "something";
+  const value = (constant[2] ?? "").trim();
+  return WIRED.test(value === "" ? initializer : value) ? undefined : `the value ${constant[1] ?? ""}`;
+}
+
+/**
+ * Rule 7 (ADR-033, FR-008): a module of composition exports only the components it declares, the
+ * module itself and the types of what it exposes. Anything else —a factory, a service built
+ * outside a binding, a table of gateways— is a side channel through which another module reaches
+ * this one without the graph, and therefore without the context map judging it.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function compositionModuleShape(root) {
+  /** @type {string[]} */
+  const out = [];
+  for (const file of tsFiles(root, ".").filter((f) => WIRING_MODULE.test(f))) {
+    const lines = readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
+    lines.forEach((line, i) => {
+      if (!line.startsWith("export ")) return;
+      const next = lines.slice(i + 1).find((l) => l.trim() !== "") ?? "";
+      const other = exportedOther(line, next);
+      if (other !== undefined) {
+        out.push(`${file}:${i + 1}: a module of composition exports ${other}; only its ports and itself`);
+      }
+    });
+  }
+  return out;
+}
+
 export const SHAPE_RULES = [
   "max-file-lines",
   "one-controller-per-operation",
@@ -300,6 +344,7 @@ export const SHAPE_RULES = [
   "no-computed-dynamic-import",
   "no-config-branch-in-root",
   "no-raw-control-characters",
+  "composition-module-shape",
 ];
 
 /**
@@ -326,5 +371,6 @@ export function shapeFindings(root, bundlePath) {
     ...noComputedDynamicImport(root).map((t) => toFinding("no-computed-dynamic-import", t)),
     ...noConfigBranchInRoot(root).map((t) => toFinding("no-config-branch-in-root", t)),
     ...noRawControlCharacters(root).map((t) => toFinding("no-raw-control-characters", t)),
+    ...compositionModuleShape(root).map((t) => toFinding("composition-module-shape", t)),
   ];
 }

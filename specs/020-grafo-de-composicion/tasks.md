@@ -194,19 +194,19 @@ npm test`, **sin una sola aserción de comportamiento modificada**
 **Independent Test**: una verificación de forma reporta un módulo que exporte otra cosa; el mapa de
 contextos reporta un import prohibido entre módulos de composición, con su fixture.
 
-- [ ] T038 [US2] Regla de forma `composition-module-shape` en `scripts/shape-rules.mjs` (+
+- [x] T038 [US2] Regla de forma `composition-module-shape` en `scripts/shape-rules.mjs` (+
       `SHAPE_RULES`): un archivo de `src/composition/modules/` exporta sólo sus puertos, sus tablas
       por tecnología, lo que expone y lo que sirve
-- [ ] T039 [US2] [P] Fixture de la regla en
+- [x] T039 [US2] [P] Fixture de la regla en
       `tests/architecture/fixtures/shape/composition-module-shape/src/` y su caso en
       `tests/architecture/shape.test.ts` (verde en `src/`, rojo en el fixture nombrando el archivo)
-- [ ] T040 [US2] Extender las reglas `context-map:<módulo>` de `.dependency-cruiser.cjs` a
+- [x] T040 [US2] Extender las reglas `context-map:<módulo>` de `.dependency-cruiser.cjs` a
       `src/composition/modules/<módulo>.ts`, y actualizar `composition-imports-module-index` a la
       forma nueva
-- [ ] T041 [US2] [P] Fixture del mapa en
+- [x] T041 [US2] [P] Fixture del mapa en
       `tests/architecture/fixtures/src/composition/modules/` y su caso en
       `tests/architecture/architecture.test.ts`
-- [ ] T042 [US2] Verificar los conteos de SC-002 sobre `src/`: cero `extends` de slices ajenos, cero
+- [x] T042 [US2] Verificar los conteos de SC-002 sobre `src/`: cero `extends` de slices ajenos, cero
       módulos que devuelvan un objeto vacío, cero servicios compartidos construidos más de una vez,
       cero envoltorios perezosos en el despliegue, cero resoluciones por texto
 

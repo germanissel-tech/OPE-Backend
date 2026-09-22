@@ -14,6 +14,7 @@ interface Rules {
   noComputedDynamicImport: (root: string) => string[];
   noConfigBranchInRoot: (root: string) => string[];
   noRawControlCharacters: (root: string) => string[];
+  compositionModuleShape: (root: string) => string[];
 }
 
 let MAX_RING_FILE_LINES: number;
@@ -24,6 +25,7 @@ let newOnlyInComposition: Rules["newOnlyInComposition"];
 let noComputedDynamicImport: Rules["noComputedDynamicImport"];
 let noConfigBranchInRoot: Rules["noConfigBranchInRoot"];
 let noRawControlCharacters: Rules["noRawControlCharacters"];
+let compositionModuleShape: Rules["compositionModuleShape"];
 beforeAll(async () => {
   const mod = (await import(pathToFileURL(path.resolve("scripts/shape-rules.mjs")).href)) as Rules;
   ({
@@ -35,6 +37,7 @@ beforeAll(async () => {
     noComputedDynamicImport,
     noConfigBranchInRoot,
     noRawControlCharacters,
+    compositionModuleShape,
   } = mod);
 });
 
@@ -90,6 +93,16 @@ describe("shape of the rings", () => {
   it("a module loaded from a runtime value is reported; a literal dynamic import is not", () => {
     expect(noComputedDynamicImport(fixture("dynamic-import"))).toEqual([
       "composition/bad-import.ts:7: dynamic import() of a computed specifier (pathToFileURL(file).href)",
+    ]);
+  });
+
+  // Feature 020, US2 (FR-008; ADR-033): a module of composition exports its components and
+  // itself, and nothing else — a factory another module could call without the graph is a side
+  // channel the context map cannot judge.
+  it("every module of composition exports only its ports and itself; a factory is reported", () => {
+    expect(compositionModuleShape(src)).toEqual([]);
+    expect(compositionModuleShape(fixture("composition-module-shape"))).toEqual([
+      "composition/modules/ledger.ts:5: a module of composition exports function; only its ports and itself",
     ]);
   });
 

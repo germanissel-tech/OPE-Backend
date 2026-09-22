@@ -68,6 +68,8 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("context-map:ledger", "interface-adapters/ledger/bad-context.ts");
     expectRule("adapters-core-knows-no-module", "interface-adapters/http/bad-module.ts");
     expectRule("composition-imports-module-index", "composition/modules/bad-deep-import.ts");
+    // Feature 020 (ADR-033): the context map rules the composition too.
+    expectRule("context-map:composition/ledger", "composition/modules/ledger.ts");
     expectRule("gateways-drivers-from-infrastructure", "interface-adapters/a/gateways/bad-driver.ts");
     expectRule("generated-only-from-http-core", "interface-adapters/a/bad-generated.ts");
     // Application ring (ADR-023)
@@ -78,7 +80,12 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
 
   it("the legitimate modules of the fixture trigger no rule", async () => {
     const found = await violations("tests/architecture/fixtures/src");
-    const legit = found.filter((v) => !v.from.includes("bad-") && v.rule.name !== "no-orphans");
+    // A violation of the context map between composition modules cannot be named `bad-…`: the rule
+    // fires on the file of a module, so the fixture has to be that module's own file.
+    const deliberate = "composition/modules/ledger.ts";
+    const legit = found.filter(
+      (v) => !v.from.includes("bad-") && !v.from.includes(deliberate) && v.rule.name !== "no-orphans",
+    );
     expect(legit.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`)).toEqual([]);
   });
 });

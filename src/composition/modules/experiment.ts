@@ -34,9 +34,8 @@ import { bind, compositionModule, derive, handler, port, technology } from "../g
 import { ScopedMerchantsPort } from "./merchant.js";
 import { ClockPort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
-import type { AdminResult } from "../../domain/admin/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
-import type { DomainError, Result } from "../../domain/shared-kernel/index.js";
+import type { AuditResult, DomainError, Result } from "../../domain/shared-kernel/index.js";
 
 export const ExperimentStorePort = port("experiment.store")<ExperimentStore>();
 /** The directory the assignment reads: the very instance of the store. */
@@ -64,7 +63,7 @@ const PORTS = [
 ] as const;
 
 /** What the administration of an experiment writes in the audit entry. */
-const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AdminResult | undefined =>
+const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AuditResult | undefined =>
   r.ok ? { experimentId: r.value.experimentId } : undefined;
 
 export const experimentModule = compositionModule({
