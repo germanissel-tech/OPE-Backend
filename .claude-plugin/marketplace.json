@@ -1,0 +1,11 @@
+{
+  "name": "ope",
+  "owner": { "name": "OPE" },
+  "plugins": [
+    {
+      "name": "auditable-architecture",
+      "source": "./plugins/auditable-architecture",
+      "description": "Architecture audit by method, driven by a per-project profile; conditioning of a repository."
+    }
+  ]
+}

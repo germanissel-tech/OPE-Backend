@@ -13,16 +13,24 @@
     "vitest.config.ts",
     "vitest.mutation.config.ts",
     ".dependency-cruiser.cjs",
-    ".claude/skills/*/scripts/*.mjs"
+    "plugins/*/skills/*/scripts/*.mjs",
+    "scripts/audit/*.mjs"
   ],
   "project": [
     "src/**/*.ts",
     "client/**/*.ts",
     "scripts/**/*.mjs",
     "tests/**/*.ts",
-    "contracts/rules/functions/*.js"
+    "contracts/rules/functions/*.js",
+    "plugins/**/*.mjs"
   ],
-  "ignore": ["tests/**/fixtures/**", "generated/**", ".claude/skills/*/evals/**", "tests/lint/fixtures/**"],
+  "ignore": [
+    "tests/**/fixtures/**",
+    "generated/**",
+    "tests/lint/fixtures/**",
+    "plugins/**/evals/**",
+    "tests/audit/evals/**"
+  ],
   "ignoreDependencies": [
     "@redocly/cli",
     "@stoplight/spectral-ruleset-bundler",

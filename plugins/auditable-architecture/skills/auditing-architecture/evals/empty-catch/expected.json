@@ -1,0 +1,17 @@
+{
+  "id": "F-001",
+  "file": "plugins/auditable-architecture/skills/auditing-architecture/evals/empty-catch/fixture/src/application/pricing/quote-price.ts",
+  "line": 12,
+  "rule": {
+    "id": "errors-ignored-exception",
+    "source": "lint:sonarjs/no-ignored-exceptions"
+  },
+  "severity": "medium",
+  "evidence": "} catch (err) {}",
+  "proposal": {
+    "before": "} catch (err) {}\n    return price;",
+    "after": "} catch (err) {\n      return { ok: false, reason: \"price-source-unavailable\" };\n    }\n    return { ok: true, price };"
+  },
+  "coveringTest": "tests/unit/application/pricing/quote-price.test.ts: \"a failing price source resolves NO_OP with reason price-source-unavailable\"",
+  "status": "confirmed"
+}

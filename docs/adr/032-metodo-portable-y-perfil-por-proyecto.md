@@ -40,7 +40,7 @@ abre la carpeta primero.
   con `{name}`, `--diff` con su base e `include`); gates con su comando, su modo
   (`blocking | informative`) y sus alcances; clases de fuente de verdad con su prefijo, la
   severidad que imponen y un resolutor de un vocabulario **cerrado** (`file-glob`,
-  `markdown-heading`, `gate-rule`, `criteria-section`); ruta del documento de criterios; ruta de
+  `markdown-heading`, `text-in-file`, `gate-rule`, `criteria-section`); ruta del documento de criterios; ruta de
   las evaluaciones propias. Una versión que la skill no conoce se rechaza nombrando las dos; sin
   perfil, la skill dice qué falta y termina.
 - **Los gates entregan hallazgos como datos** por un protocolo fijo (`findings-v1`): el

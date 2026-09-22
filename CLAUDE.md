@@ -539,6 +539,18 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
   existe), de parches (`# Fix:`, `# Retire:`) y de scripts (comentario inicial). Lo normativo
   queda en este archivo; lo descriptivo, en el README de cada directorio.
 
+### Auditoría de arquitectura (ADR-032)
+
+La skill `auditing-architecture` vive en el plugin `plugins/auditable-architecture/` (habilitado
+por `.claude/settings.json`; marketplace en `.claude-plugin/marketplace.json`) y es sólo el
+método: lo que es de este repo está en `audit.profile.json` (alcances, gates, fuentes de verdad
+con su severidad, criterios, evals). Los gates hablan el protocolo `findings-v1` por los
+adaptadores de `scripts/audit/gate-*.mjs`; agregar un gate es un adaptador y una línea en el
+perfil; agregar una fuente de verdad, una línea en `sources[]`. Los criterios de diseño están en
+`docs/auditoria/criterios-diseno.md`; las evaluaciones propias en `tests/audit/evals/` (las
+universales viajan con el plugin). El plugin no importa nada del repo por ruta
+(`tests/audit/plugin-isolation.test.ts`).
+
 ## Reglas que fallan el build (no son sugerencias)
 
 - `merchantId` nunca en path, query ni body: se deriva de la credencial. Única excepción: en

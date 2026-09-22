@@ -1,0 +1,17 @@
+{
+  "id": "F-001",
+  "file": "plugins/auditable-architecture/skills/auditing-architecture/evals/identical-functions/fixture/src/domain/pricing/percent.ts",
+  "line": 8,
+  "rule": {
+    "id": "dry-identical-functions",
+    "source": "lint:sonarjs/no-identical-functions"
+  },
+  "severity": "medium",
+  "evidence": "export function discountPercent(rate: number): number { if (rate < 0) return 0; if (rate > 1) return 100; return Math.round(rate * 100); }",
+  "proposal": {
+    "before": "export function marginPercent(rate) {...}\nexport function discountPercent(rate) {...}",
+    "after": "export const toPercent = (rate: number): number => Math.round(Math.min(1, Math.max(0, rate)) * 100);\nexport const marginPercent = toPercent;\nexport const discountPercent = toPercent;"
+  },
+  "coveringTest": "tests/unit/domain/pricing/percent.test.ts: \"clamps to 0–100 and rounds\"",
+  "status": "confirmed"
+}

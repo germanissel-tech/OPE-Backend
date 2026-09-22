@@ -1,0 +1,6 @@
+{
+  "extraKnownMarketplaces": {
+    "ope": { "source": { "source": "directory", "path": "." } }
+  },
+  "enabledPlugins": { "auditable-architecture@ope": true }
+}

@@ -27,8 +27,10 @@ la skill acepta exactamente las versiones que conoce). Su esquema JSON viaja con
 - `sources[]`: `kind` (prefijo literal: `ADR-`, `constitution#`, `guide#`, `lint:`, `arch:`,
   `shape:`, `clarity:`), `severity` (`high | medium | low`) y `resolve` de tipo cerrado que la
   skill implementa: `file-glob` (`docs/adr/{id}-*.md`), `markdown-heading` (archivo + el resto
-  del identificador es un encabezado), `gate-rule` (pregunta `--list-rules` al gate nombrado),
-  `criteria-section` (encabezado del documento de criterios).
+  del identificador es un encabezado; `{id}` y `dirEnv` para documentos externos como los del
+  MVP), `text-in-file` (un archivo con `{id}` que contiene un texto con `{ref}`: las `FR`/`SC`
+  de una spec), `gate-rule` (pregunta `--list-rules` al gate nombrado), `criteria-section`
+  (resuelve mientras exista el documento de criterios).
 - `criteria`: ruta del documento de criterios (`docs/auditoria/criterios-diseno.md`).
 - `evals`: ruta de las evaluaciones propias (`tests/audit/evals`).
 

@@ -1,21 +1,56 @@
 {
   "fixedColumns": ["Entrada", "Qué es", "Fuente o derivado", "Quién lo lee", "Verificación"],
-  "globalExcludes": ["src", "node_modules", "dist", ".git", ".claude", ".specify", ".github", ".vscode"],
+  "globalExcludes": [
+    "src",
+    "node_modules",
+    "dist",
+    ".git",
+    ".claude",
+    ".specify",
+    ".github",
+    ".vscode",
+    ".claude-plugin"
+  ],
   "directories": [
-    { "dir": "config", "columns": ["Variable de entorno", "Cuándo se lee"] },
+    {
+      "dir": "config",
+      "columns": ["Variable de entorno", "Cuándo se lee"]
+    },
     {
       "dir": "contracts",
       "exclude": ["dist"],
       "sections": [
-        { "heading": "Extensiones", "columns": ["Extensión", "Dónde", "Forma", "Regla", "Consumidor"] }
+        {
+          "heading": "Extensiones",
+          "columns": ["Extensión", "Dónde", "Forma", "Regla", "Consumidor"]
+        }
       ]
     },
-    { "dir": "generated" },
-    { "dir": "patches" },
-    { "dir": "scripts", "columns": ["Clase"] },
-    { "dir": "docs" },
-    { "dir": "tests", "columns": ["Proyecto"] },
-    { "dir": "client" },
-    { "dir": "specs" }
+    {
+      "dir": "generated"
+    },
+    {
+      "dir": "patches"
+    },
+    {
+      "dir": "scripts",
+      "columns": ["Clase"]
+    },
+    {
+      "dir": "docs"
+    },
+    {
+      "dir": "tests",
+      "columns": ["Proyecto"]
+    },
+    {
+      "dir": "client"
+    },
+    {
+      "dir": "specs"
+    },
+    {
+      "dir": "plugins"
+    }
   ]
 }

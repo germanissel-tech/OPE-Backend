@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuditProfile",
+  "description": "What a project tells the auditing-architecture skill: where the code is, how a scope resolves, which gates emit findings and how, which sources of truth exist and the severity each one imposes, where the design criteria and the project's own evals live. The skill knows nothing outside this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profileVersion", "sourceRoot", "scopes", "gates", "sources", "criteria", "evals"],
+  "properties": {
+    "$schema": { "type": "string", "description": "Path of this schema, for the editor." },
+    "profileVersion": {
+      "type": "integer",
+      "description": "Version of the profile's shape. The skill accepts exactly the versions it understands (currently 1) and refuses any other, naming both.",
+      "enum": [1]
+    },
+    "sourceRoot": {
+      "type": "string",
+      "description": "Root of the auditable code, relative to the repository root (`src`).",
+      "minLength": 1
+    },
+    "scopes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "diff"],
+      "properties": {
+        "module": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["roots"],
+          "properties": {
+            "roots": {
+              "type": "array",
+              "description": "Templates of the directories a module spans; `{name}` is the module name (`src/domain/{name}`).",
+              "minItems": 1,
+              "items": { "type": "string", "pattern": "\\{name\\}" }
+            }
+          }
+        },
+        "diff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "include"],
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "Git reference the working tree is compared against (`origin/main`).",
+              "minLength": 1
+            },
+            "include": {
+              "type": "array",
+              "description": "Path prefixes that count as auditable in a diff (`src/`).",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "description": "The deterministic checks of the project, each behind an adapter that speaks `findings-v1`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "mode", "run", "format"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Name of the gate as the report cites it (`lint`, `arch`)."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["blocking", "informative"],
+            "description": "A blocking gate in `fail` decides `rejected`; an informative one never does."
+          },
+          "scopes": {
+            "type": "array",
+            "description": "Scopes the gate applies to; every scope when absent.",
+            "items": { "type": "string", "enum": ["module", "dir", "diff"] },
+            "uniqueItems": true
+          },
+          "run": {
+            "type": "string",
+            "description": "Command line of the adapter, run from the repository root; the skill appends `--files-from <file>` or `--list-rules`.",
+            "minLength": 1
+          },
+          "format": {
+            "type": "string",
+            "enum": ["findings-v1"],
+            "description": "Protocol of the adapter's output."
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "description": "The kinds of source of truth a finding may cite, by prefix, with the severity each one imposes and how the skill resolves the rest of the citation.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "severity", "resolve"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Literal prefix of `rule.source` (`ADR-`, `constitution#`, `lint:`)."
+          },
+          "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+          "resolve": {
+            "type": "object",
+            "description": "How the rest of the citation resolves; one of the closed vocabulary.",
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "required": ["type", "pattern"],
+                "properties": {
+                  "type": {
+                    "const": "file-glob",
+                    "description": "A file matching the pattern exists; `{id}` is the rest of the citation."
+                  },
+                  "pattern": { "type": "string", "minLength": 1 }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "required": ["type", "file"],
+                "properties": {
+                  "type": {
+                    "const": "markdown-heading",
+                    "description": "A heading of the file contains the section named after `#`; `{id}` in `file` is what comes before `#` when the citation carries an identifier (`mvp:01#5.2`)."
+                  },
+                  "file": { "type": "string", "minLength": 1 },
+                  "dirEnv": {
+                    "type": "string",
+                    "description": "Environment variable that, when set, replaces the directory part of `file`."
+                  }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "required": ["type", "file", "contains"],
+                "properties": {
+                  "type": {
+                    "const": "text-in-file",
+                    "description": "The file (with `{id}`) contains the text template (with `{ref}`); citation `<id>#<ref>`."
+                  },
+                  "file": { "type": "string", "minLength": 1 },
+                  "contains": { "type": "string", "minLength": 1 },
+                  "refPattern": {
+                    "type": "string",
+                    "description": "Regular expression `ref` must match (`^(FR|SC)-\\d{3}$`)."
+                  }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "required": ["type", "gate"],
+                "properties": {
+                  "type": {
+                    "const": "gate-rule",
+                    "description": "The rest of the citation is a rule the named gate lists with `--list-rules`."
+                  },
+                  "gate": { "type": "string", "minLength": 1 }
+                }
+              },
+              {
+                "additionalProperties": false,
+                "required": ["type"],
+                "properties": {
+                  "type": {
+                    "const": "criteria-section",
+                    "description": "No formal source: resolves while the criteria document exists (the slug is free)."
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "criteria": {
+      "type": "string",
+      "description": "Path of the design criteria document the review reads in full.",
+      "minLength": 1
+    },
+    "evals": {
+      "type": "string",
+      "description": "Directory of the project's own evaluations (`<name>/expected.json`, `README.md`).",
+      "minLength": 1
+    },
+    "conditioning": {
+      "type": "object",
+      "description": "Written and read only by the conditioning-project skill.",
+      "additionalProperties": false,
+      "properties": { "answers": { "type": "object", "additionalProperties": true } }
+    }
+  }
+}
