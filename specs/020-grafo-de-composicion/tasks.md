@@ -98,21 +98,21 @@ exactamente lo mismo que hoy (las pruebas del registro pasan sin cambios).
 `application/admin`, y el mapa de contextos sobre la composición (US2) no puede pasar. Además no
 depende del grafo: es un movimiento dentro de `application/`.
 
-- [ ] T013 [US6] Crear `src/application/shared-kernel/ports/audit-trail.ts`: puerto de **escritura
+- [x] T013 [US6] Crear `src/application/shared-kernel/ports/audit-trail.ts`: puerto de **escritura
       angosto** (el actor como texto, la operación, el merchant opcional, el resultado y el motivo),
       exportado por `src/application/shared-kernel/index.ts`
-- [ ] T014 [US6] Mover `AuditedUseCase` a
+- [x] T014 [US6] Mover `AuditedUseCase` a
       `src/application/shared-kernel/decorators/audited.use-case.ts`, escribiendo contra el puerto
       nuevo; `src/application/admin/` deja de exportarlo
-- [ ] T015 [US6] Crear `src/interface-adapters/admin/gateways/audit-trail.ts`: implementa el puerto
+- [x] T015 [US6] Crear `src/interface-adapters/admin/gateways/audit-trail.ts`: implementa el puerto
       del kernel sobre `AdminLog` y **vuelve a tipar** el actor con `asOperatorId` (la pérdida de
       tipado, acotada a este borde, queda comentada acá y en ADR-034)
-- [ ] T016 [US6] Actualizar `src/composition/modules/audited.ts` y los módulos que auditan
+- [x] T016 [US6] Actualizar `src/composition/modules/audited.ts` y los módulos que auditan
       (`merchant.ts`, `admin.ts`, `experiment.ts`, `configuration.ts`) para pedir el puerto del
       kernel en vez de `AdminLog`
-- [ ] T017 [US6] `npm run arch` y `npm run check:dead-code` en verde: `application/admin` conserva
+- [x] T017 [US6] `npm run arch` y `npm run check:dead-code` en verde: `application/admin` conserva
       la entrada, el almacén y las dos lecturas paginadas, y nadie lo importa para auditar
-- [ ] T018 [US6] Prueba de igualdad del registro: la entrada escrita por una operación aceptada, una
+- [x] T018 [US6] Prueba de igualdad del registro: la entrada escrita por una operación aceptada, una
       rechazada y una denegada es idéntica campo por campo a la de hoy (las pruebas existentes del
       registro y de la semilla corren **sin tocarse**)
 

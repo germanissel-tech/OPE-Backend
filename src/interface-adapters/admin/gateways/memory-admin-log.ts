@@ -1,5 +1,6 @@
 // In-memory admin log (ADR-031): append-only, newest first when read. The cursor is the
 // position in the list as an opaque string; a limit above the cap is capped.
+import { asOperatorId } from "../../../domain/operator/index.js";
 import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
 import { pageOf } from "../../shared-kernel/index.js";
 import type { AdminLog } from "../../../application/admin/index.js";
@@ -10,8 +11,11 @@ export function memoryAdminLog(): AdminLog {
   const newestFirst = (of?: MerchantId): AdminEntry[] =>
     entries.filter((e) => of === undefined || e.merchantId === of).reverse();
   return {
+    // The audit trail writes the actor as text (the kernel cannot see the identity it belongs to,
+    // ADR-034); the administration owns that identity and types it again here, at the only border
+    // where the loss is repaired.
     record(entry) {
-      entries.push(entry);
+      entries.push({ ...entry, operatorId: asOperatorId(entry.operatorId) });
       return Promise.resolve(ok(undefined));
     },
     list(query) {

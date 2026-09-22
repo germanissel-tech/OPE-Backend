@@ -3,12 +3,10 @@
 // entry that is written whether the action was accepted, rejected or denied.
 import {
   AuditedUseCase,
-  type AdminLog,
-  type AdminRequest,
-  type AuditedUseCaseReaders,
-} from "../../application/admin/index.js";
-import {
   LoggedUseCase,
+  type AdminRequest,
+  type AuditTrail,
+  type AuditedUseCaseReaders,
   type Clock,
   type Logger,
   type UseCase,
@@ -17,7 +15,7 @@ import {
 export interface AuditedWiringPorts {
   clock: Clock;
   logger: Logger;
-  adminLog: AdminLog;
+  auditTrail: AuditTrail;
 }
 
 export interface AuditedWiring {
@@ -31,12 +29,12 @@ export interface AuditedWiring {
   ) => UseCase<I, O>;
 }
 
-export function auditedWiring({ clock, logger, adminLog }: AuditedWiringPorts): AuditedWiring {
+export function auditedWiring({ clock, logger, auditTrail }: AuditedWiringPorts): AuditedWiring {
   const logged = <I, O>(operation: string, inner: UseCase<I, O>): UseCase<I, O> =>
     new LoggedUseCase(operation, inner, { clock, logger });
   return {
     logged,
     admin: (operation, inner, readers = {}) =>
-      logged(operation, new AuditedUseCase(operation, inner, { log: adminLog, clock }, readers)),
+      logged(operation, new AuditedUseCase(operation, inner, { log: auditTrail, clock }, readers)),
   };
 }

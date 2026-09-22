@@ -19,6 +19,7 @@ import {
 import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
   LoggedUseCase,
+  type AuditTrail,
   type Clock,
   type Logger,
   type UseCase,
@@ -49,6 +50,8 @@ export interface AdminPorts {
   operators: OperatorDirectory;
   fingerprints: TokenFingerprinter;
   adminLog: AdminLog;
+  /** Where every module that audits writes (ADR-034). */
+  auditTrail: AuditTrail;
   diagnostics: AnchorDiagnosticsStore;
   /** What the SDK may see of the configuration of its merchant. */
   sdkConfiguration: SdkConfigurationSource;
@@ -63,13 +66,22 @@ export const configAdminPorts = (
   fingerprints: () => nodeTokenFingerprinter,
 });
 
-/** The log and the diagnostics in memory; how many diagnostics are kept is the platform's (level 1). */
+/**
+ * The log and the diagnostics in memory; how many diagnostics are kept is the platform's (level 1).
+ * One instance behind two views: the administration reads the log, and every module that audits
+ * writes to the same one through the kernel's port (ADR-034).
+ */
 export const memoryAdminPorts = (
   platform: PlatformConfiguration,
-): Bindings<Pick<AdminPorts, "adminLog" | "diagnostics">> => ({
-  adminLog: memoryAdminLog,
-  diagnostics: () => memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
-});
+): Bindings<Pick<AdminPorts, "adminLog" | "auditTrail" | "diagnostics">> => {
+  let log: AdminLog | undefined;
+  const shared = (): AdminLog => (log ??= memoryAdminLog());
+  return {
+    adminLog: shared,
+    auditTrail: shared,
+    diagnostics: () => memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+  };
+};
 
 /** The SDK view of the configuration, from the resolution the configuration module serves. */
 export const configuredAdminPorts = (

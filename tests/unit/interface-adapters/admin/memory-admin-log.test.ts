@@ -1,7 +1,7 @@
 // Feature 017 — the in-memory admin log and its paging.
 import { describe, expect, it } from "vitest";
 import { asOperatorId } from "../../../../src/domain/operator/index.js";
-import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, type AuditEntry } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryAdminLog } from "../../../../src/interface-adapters/admin/gateways/memory-admin-log.js";
 import { pageOf } from "../../../../src/interface-adapters/shared-kernel/paging.js";
 import type { AdminEntry } from "../../../../src/domain/admin/index.js";
@@ -17,6 +17,24 @@ const entry = (n: number, merchantId = A): AdminEntry => ({
 });
 
 describe("memoryAdminLog", () => {
+  // Feature 020, US6 (ADR-034): the audit trail is the kernel's port and writes the actor as text
+  // —the kernel cannot see the identity it belongs to—; this gateway is the one border that types
+  // it again, and what is read back is an entry of the administration, identical in every field.
+  it("an entry written through the kernel's port reads back with its operator, field by field", async () => {
+    const log = memoryAdminLog();
+    const written: AuditEntry = {
+      at: new Date(1000),
+      operatorId: "ops",
+      operation: "publishMerchantConfiguration",
+      merchantId: A,
+      outcome: "accepted",
+      result: { configurationVersion: 2 },
+    };
+    await log.record(written);
+    const [read] = (await log.list({ limit: 1 })).items;
+    expect(read).toStrictEqual({ ...written, operatorId: asOperatorId("ops") });
+  });
+
   it("lists newest first, pages by cursor and filters by merchant", async () => {
     const log = memoryAdminLog();
     for (const n of [1, 2, 3]) await log.record(entry(n, n === 2 ? B : A));

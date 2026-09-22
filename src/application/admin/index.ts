@@ -10,12 +10,6 @@ export type {
   AdminTokenResolver,
   AdminTokenResolverDependencies,
 } from "./services/admin-token.service.js";
-export { AuditedUseCase } from "./decorators/audited-use-case.js";
-export type {
-  AdminRequest,
-  AuditedUseCaseDependencies,
-  AuditedUseCaseReaders,
-} from "./decorators/audited-use-case.js";
 export { ListAdminLogUseCase } from "./use-cases/list-admin-log.use-case.js";
 export { ListMerchantAdminLogUseCase } from "./use-cases/list-merchant-admin-log.use-case.js";
 export type {

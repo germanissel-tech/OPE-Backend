@@ -1,28 +1,37 @@
-// Audit (ADR-031): every administration use case leaves an entry in the admin log — accepted,
-// rejected by a business rule (with its code) or denied by scope — with the actor, the
-// merchant and what the action produced. A cross-cutting concern, like LoggedUseCase: applied
-// in the composition, never inside a use case.
-import { DomainError, type MerchantId } from "../../../domain/shared-kernel/index.js";
-import type { AdminOutcome, AdminResult } from "../../../domain/admin/index.js";
-import type { Operator } from "../../../domain/operator/index.js";
-import type { Clock, UseCase } from "../../shared-kernel/index.js";
-import type { AdminLog } from "../ports/admin-log.js";
+// Audit (ADR-031, ADR-034): every administration use case leaves an entry in the audit trail —
+// accepted, rejected by a business rule (with its code) or denied by scope — with the actor, the
+// merchant and what the action produced. A cross-cutting concern of the platform, like
+// LoggedUseCase: it lives in the kernel, is applied in the composition, and is never invoked
+// inside a use case.
+import {
+  DomainError,
+  type AuditOutcome,
+  type AuditResult,
+  type MerchantId,
+} from "../../../domain/shared-kernel/index.js";
+import type { AuditTrail } from "../ports/audit-trail.js";
+import type { Clock } from "../ports/clock.js";
+import type { UseCase } from "../use-case.js";
 
-/** What every administration request carries: who acts and, when the action names one, on which merchant. */
+/**
+ * What every administration request carries: who acts and, when the action names one, on which
+ * merchant. The actor is read as an identifier: which identity it belongs to is not the kernel's
+ * business (ADR-034).
+ */
 export interface AdminRequest {
-  actor: Operator;
+  actor: { readonly operatorId: string };
   merchantId?: MerchantId | undefined;
 }
 
 export interface AuditedUseCaseDependencies {
-  log: AdminLog;
+  log: AuditTrail;
   clock: Clock;
 }
 
 /** How the entry reads the response and the request; both optional. */
 export interface AuditedUseCaseReaders<Request, Response> {
   /** What the action produced, from a successful response. */
-  result?: (response: Response) => AdminResult | undefined;
+  result?: (response: Response) => AuditResult | undefined;
   /** The reason the operator declared, from the request. */
   reason?: (request: Request) => string | undefined;
   /** The merchant the action produced, when the request could not name one (a creation). */
@@ -38,7 +47,7 @@ function errorOf(response: unknown): DomainError | undefined {
   return error instanceof DomainError ? error : undefined;
 }
 
-function outcomeOf(error: DomainError | undefined): AdminOutcome {
+function outcomeOf(error: DomainError | undefined): AuditOutcome {
   if (error === undefined) return "accepted";
   return error.code === OUT_OF_SCOPE ? "denied" : "rejected";
 }

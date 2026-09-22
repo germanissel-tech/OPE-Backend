@@ -1,6 +1,10 @@
 // Feature 017 — FR-008: every administration action leaves an entry in the admin log.
 import { describe, expect, it } from "vitest";
-import { AuditedUseCase, type AdminRequest } from "../../../../src/application/admin/index.js";
+import {
+  AuditedUseCase,
+  type AdminRequest,
+  type UseCase,
+} from "../../../../src/application/shared-kernel/index.js";
 import {
   asOperatorId,
   EVERY_MERCHANT,
@@ -15,7 +19,6 @@ import {
   type Result,
 } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryAdminLog } from "../../../../src/interface-adapters/admin/gateways/memory-admin-log.js";
-import type { UseCase } from "../../../../src/application/shared-kernel/index.js";
 
 const NOW = new Date("2026-09-20T12:00:00.000Z");
 const actor = Operator.rehydrate({

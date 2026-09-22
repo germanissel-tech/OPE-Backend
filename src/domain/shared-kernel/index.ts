@@ -21,3 +21,4 @@ export type { Anchor, Incentive, IncentiveKind, Intervention } from "./intervent
 export { BARRIERS } from "./barrier.js";
 export type { Barrier } from "./barrier.js";
 export type { ConfigurationVersions } from "./configuration-versions.js";
+export type { AuditEntry, AuditOutcome, AuditResult } from "./audit.js";

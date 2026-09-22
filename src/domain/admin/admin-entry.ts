@@ -1,28 +1,16 @@
-// The admin log (ADR-031): what an operator did or tried, one entry per action. Never a
-// credential, never a personal datum: the actor is an operator identifier.
+// The admin log (ADR-031, ADR-034): what an operator did or tried, one entry per action. Never a
+// credential, never a personal datum: the actor is an operator identifier. It is the kernel's
+// audit entry with its actor typed again: what is written comes in as text (any module may write
+// it) and is stored as the identity it belongs to.
 import type { OperatorId } from "../operator/index.js";
-import type { ExperimentId, MerchantId } from "../shared-kernel/index.js";
+import type { AuditEntry, AuditOutcome, AuditResult } from "../shared-kernel/index.js";
 
 /** Accepted by the use case, rejected by a business rule (with its code), or denied by scope. */
-export type AdminOutcome = "accepted" | "rejected" | "denied";
+export type AdminOutcome = AuditOutcome;
 
 /** What an action produced, when it produced something. */
-export interface AdminResult {
-  configurationVersion?: number | undefined;
-  experimentId?: ExperimentId | undefined;
-  windowRestarted?: boolean | undefined;
-}
+export type AdminResult = AuditResult;
 
-export interface AdminEntry {
-  at: Date;
+export interface AdminEntry extends Omit<AuditEntry, "operatorId"> {
   operatorId: OperatorId;
-  /** The `operationId` of the contract, or the name of the system action (the import). */
-  operation: string;
-  merchantId?: MerchantId | undefined;
-  outcome: AdminOutcome;
-  /** The slug of the error when rejected or denied. */
-  code?: string | undefined;
-  result?: AdminResult | undefined;
-  /** The reason the operator declared (a corrective configuration version). */
-  reason?: string | undefined;
 }

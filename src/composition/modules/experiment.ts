@@ -3,7 +3,6 @@
 // closed by the administration counts on the next batch), where assignments are recorded, and
 // the administration of experiments. The ingestion module asks it for the arm; the holdout it
 // judges the split against is what the configuration resolves for the merchant.
-import { AuditedUseCase, type AdminLog } from "../../application/admin/index.js";
 import {
   ActivateExperimentUseCase,
   CloseExperimentUseCase,
@@ -23,6 +22,13 @@ import {
 } from "../../application/experiment/index.js";
 import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
+  AuditedUseCase,
+  type AuditTrail,
+  type Clock,
+  type Logger,
+  type UseCase,
+} from "../../application/shared-kernel/index.js";
+import {
   memoryAssignmentLedger,
   memoryExperimentStore,
   nodeExperimentIdMinter,
@@ -33,7 +39,6 @@ import {
 } from "../../interface-adapters/experiment/index.js";
 import { auditedWiring } from "./audited.js";
 import type { ConfigurationService } from "../../application/configuration/index.js";
-import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
 import type { AdminResult } from "../../domain/admin/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
 import type { DomainError, Result } from "../../domain/shared-kernel/index.js";
@@ -50,7 +55,7 @@ export interface ExperimentPorts {
   holdout: HoldoutSource;
   assignments: AssignmentLedger;
   merchantStore: MerchantStore;
-  adminLog: AdminLog;
+  auditTrail: AuditTrail;
 }
 
 /** The experiments in memory (one instance behind both ports), identifiers with the crypto of Node, assignments in memory. */
@@ -88,7 +93,7 @@ export const importExperimentsOf = (
   new AuditedUseCase(
     "importExperiments",
     new ImportExperimentsUseCase({ experiments: ports.experimentStore }),
-    { log: ports.adminLog, clock: ports.clock },
+    { log: ports.auditTrail, clock: ports.clock },
   );
 
 export const experimentModule: Module<ExperimentPorts> = ({ ports }) => {

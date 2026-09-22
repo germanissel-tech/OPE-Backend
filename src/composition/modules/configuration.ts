@@ -4,7 +4,6 @@
 // version counts on the next request), how the release and memory serve its own ports, what it
 // serves (the administration of the configuration) and the adapters the consumer modules bind
 // to their own read ports (`policySourceOf`, `catalogPoliciesOf`): nobody imports this module.
-import { AuditedUseCase, type AdminLog, type SdkConfigurationSource } from "../../application/admin/index.js";
 import {
   DefaultConfigurationService,
   GetMerchantConfigurationUseCase,
@@ -21,6 +20,13 @@ import {
 } from "../../application/configuration/index.js";
 import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
+  AuditedUseCase,
+  type AuditTrail,
+  type Clock,
+  type Logger,
+  type UseCase,
+} from "../../application/shared-kernel/index.js";
+import {
   memoryConfigurationStore,
   releaseConfigurationLevels,
   makeGetMerchantConfiguration,
@@ -30,10 +36,10 @@ import {
   makePublishMerchantConfiguration,
 } from "../../interface-adapters/configuration/index.js";
 import { auditedWiring } from "./audited.js";
+import type { SdkConfigurationSource } from "../../application/admin/index.js";
 import type { CatalogPolicies } from "../../application/catalog/index.js";
 import type { PolicySource } from "../../application/decision/index.js";
 import type { ExperimentDirectory, ExperimentStore } from "../../application/experiment/index.js";
-import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
 import type { ReleaseLevels } from "../config.js";
 import type { Bindings, Module } from "../wiring.js";
 
@@ -47,7 +53,7 @@ export interface ConfigurationPorts {
   merchantStore: MerchantStore;
   experiments: ExperimentDirectory;
   experimentStore: ExperimentStore;
-  adminLog: AdminLog;
+  auditTrail: AuditTrail;
 }
 
 /** The levels of the release from the files the configuration read; the versions in memory; one service over both. */
@@ -112,7 +118,7 @@ export const importConfigurationOf = (
       configuration: ports.configuration,
       clock: ports.clock,
     }),
-    { log: ports.adminLog, clock: ports.clock },
+    { log: ports.auditTrail, clock: ports.clock },
     {
       result: (r) =>
         r.ok && "version" in r.value ? { configurationVersion: r.value.version.version } : undefined,

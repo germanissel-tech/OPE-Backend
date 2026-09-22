@@ -2,7 +2,6 @@
 // store, the security schemes of the SDK and the platform, and the administration of merchants
 // and credentials. One store instance serves both the store and the directory the security
 // handlers read: an administration change counts on the next request.
-import { AuditedUseCase, type AdminLog } from "../../application/admin/index.js";
 import {
   CreateMerchantUseCase,
   DeactivateMerchantUseCase,
@@ -25,6 +24,13 @@ import {
   type SignatureWindow,
 } from "../../application/merchant/index.js";
 import {
+  AuditedUseCase,
+  type AuditTrail,
+  type Clock,
+  type Logger,
+  type UseCase,
+} from "../../application/shared-kernel/index.js";
+import {
   memoryMerchantStore,
   nodeCredentialMinter,
   nodeMessageAuthenticator,
@@ -44,7 +50,6 @@ import {
   PLATFORM_KEY_SCHEME,
 } from "../../interface-adapters/merchant/index.js";
 import { auditedWiring } from "./audited.js";
-import type { Clock, Logger, UseCase } from "../../application/shared-kernel/index.js";
 import type { PlatformConfiguration } from "../../domain/configuration/index.js";
 import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
 import type { Bindings, Module } from "../wiring.js";
@@ -61,7 +66,7 @@ export interface MerchantPorts {
   signatureWindow: SignatureWindow;
   /** The HMAC behind the platform signature (ADR-029). */
   authenticator: MessageAuthenticator;
-  adminLog: AdminLog;
+  auditTrail: AuditTrail;
 }
 
 /** The merchants in memory (one instance behind both ports), credentials and HMAC with the crypto of Node; the rotation grace and the signature window the platform declares. */
@@ -92,7 +97,7 @@ export const importMerchantsOf = (
   new AuditedUseCase(
     "importMerchants",
     new ImportMerchantsUseCase({ merchants: ports.merchantStore, minter: ports.minter, clock: ports.clock }),
-    { log: ports.adminLog, clock: ports.clock },
+    { log: ports.auditTrail, clock: ports.clock },
   );
 
 /** The security schemes of the SDK and the platform (ADR-014, ADR-025, ADR-029). */
