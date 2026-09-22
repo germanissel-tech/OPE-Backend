@@ -184,7 +184,7 @@ Proyecto único; raíz del repo: `src/`, `tests/`, `scripts/`, `generated/`, `co
 
 ## Phase 7: Cierre de la feature (cuando el dueño cierra el registro)
 
-- [ ] T070 Registro de la spec: toda fila `implementada` con commit o `descartada` con motivo; D-03 `evaluada` con la nota de feature aparte; `checklists/requirements.md` al día
+- [x] T070 Registro de la spec: toda fila `implementada` con commit o `descartada` con motivo; D-03 `evaluada` con la nota de feature aparte; `checklists/requirements.md` al día
 - [ ] T071 `npm run format:check && npm run quality && npm run typecheck && npm run test:all && npm run test:contract && npm run release-check`; push de la rama (con permiso del dueño) y `test:mutation` en CI (composición: `env.ts`, `*-config.ts`); PR a `main` con el Constitution Check de la 019; sin merge sin el dueño
 
 ---
