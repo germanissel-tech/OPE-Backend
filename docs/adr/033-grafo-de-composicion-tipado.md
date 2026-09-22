@@ -1,7 +1,7 @@
 ---
 numero: 033
 titulo: Grafo de composición tipado
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-22
 fuente: specs/020-grafo-de-composicion/research.md
 ---
@@ -73,8 +73,9 @@ El cableado es un **grafo tipado**, con inyección de dependencias manual y sin 
   memoria y una línea del despliegue; ningún consumidor cambia. Refuerza la constitución X.
 - Los mensajes de error del compilador son largos. Se mitigan con alias con nombre que aparecen
   literalmente en el mensaje y con pruebas de tipos que fijan el texto esperado.
-- La biblioteca del grafo lleva un único `as` documentado, en el borde entre una lista heterogénea
-  de enlaces y sus constructores ya verificados.
+- Los únicos `as` de la biblioteca están en un mismo borde, comentado: el que separa una lista
+  heterogénea de enlaces y recetas de sus constructores, cuyos parámetros ya verificó quien los
+  declaró.
 - Es un cambio de una sola vez: los dos mecanismos no pueden convivir sin mantener dos listas, que
   es el defecto que la decisión elimina.
 

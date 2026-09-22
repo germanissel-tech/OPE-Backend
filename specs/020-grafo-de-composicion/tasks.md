@@ -315,15 +315,15 @@ responde el build.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T061 Actualizar `CLAUDE.md`: la sección de composición (el grafo, la forma del módulo, el
+- [x] T061 Actualizar `CLAUDE.md`: la sección de composición (el grafo, la forma del módulo, el
       despliegue, los tres archivos de un módulo nuevo), la tabla de comandos con
       `check:ports-bound`, la cadena de `quality`, la tabla de anillos (sin `adapters/`, con
       `graph/`) y la lista de módulos (con `access`)
-- [ ] T062 [P] Pasar `docs/adr/033-grafo-de-composicion-tipado.md` y
+- [x] T062 [P] Pasar `docs/adr/033-grafo-de-composicion-tipado.md` y
       `docs/adr/034-dueno-del-acceso-y-auditoria-de-plataforma.md` a `estado: aceptada`
-- [ ] T063 [P] Poner al día los inventarios de `README.md` que la prueba de documentación verifica
+- [x] T063 [P] Poner al día los inventarios de `README.md` que la prueba de documentación verifica
       (`scripts/`, `tests/`) con las entradas nuevas
-- [ ] T064 Correr [quickstart.md](./quickstart.md) entero, incluida **la prueba del algodón** (§ 6):
+- [x] T064 Correr [quickstart.md](./quickstart.md) entero, incluida **la prueba del algodón** (§ 6):
       crear un módulo de juguete, omitir por turno cada uno de los tres pasos y anotar el error
       obtenido en cada caso
 - [ ] T065 Cadena de cierre: `npm run contract:check` (cero diff del contrato y del mapa),

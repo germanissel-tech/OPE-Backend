@@ -102,5 +102,18 @@ Y olvidarse de cualquiera de los tres tiene que fallar **antes de ejecutar**:
 | Un puerto sin enlace             | `typecheck` (`Unserved<…>`) o `check:ports-bound` |
 | La entrada del mapa de contextos | `npm run arch`                                    |
 
-Verificación manual sugerida al cerrar la feature: crear un módulo de juguete, omitir cada uno de
-los tres pasos por turno y anotar el error obtenido.
+### La prueba del algodón, corrida (2026-09-22)
+
+Con un módulo de juguete y un puerto de aplicación de juguete, omitiendo cada paso por turno:
+
+| Lo que se omitió                                    | Qué falló, y cómo                                                   |
+| --------------------------------------------------- | ------------------------------------------------------------------- |
+| Enlazar un puerto en la tabla de su tecnología      | `typecheck`: `Unserved<"toy.thing">`                                |
+| La línea del despliegue de un módulo que sirve algo | `typecheck`: `Unwired<"getHealth">`                                 |
+| Enlazar en el grafo un puerto de `application/`     | `check:ports-bound`: lo nombra con su archivo y su línea            |
+| La entrada del mapa de contextos                    | `npm test` (arquitectura): el módulo aparece sin entrada en el mapa |
+
+El cuarto caso era un hueco y la prueba lo descubrió: un módulo sin entrada en el mapa no tenía
+ninguna regla, y una regla que no existe no prohíbe nada. Lo cierra una prueba nueva en
+`tests/architecture/architecture.test.ts`: el conjunto de los módulos de los anillos y de la
+composición está contenido en las claves de `CONTEXT_MAP`.

@@ -1,5 +1,6 @@
 // Feature 004 — FR-001, FR-002, FR-004 (ADR-013): rings, modules and the context map are enforced.
 // (a) src/ has no violations; (b) every rule catches the violation of its fixture.
+import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { cruise, type ICruiseOptions, type IForbiddenRuleType } from "dependency-cruiser";
@@ -77,6 +78,31 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("use-cases-no-use-cases", "application/ledger/use-cases/bad-use-case-chain.ts");
     expectRule("services-no-use-cases", "application/ledger/services/bad-service.ts");
     expectRule("problem-translation-only-in-http", "interface-adapters/c/gateways/bad-problem.ts");
+  });
+
+  // Feature 020, SC-001: adding a module touches three files —its own, the deployment and the
+  // context map— and forgetting any of them fails before running. The deployment is the
+  // compiler's business; this is the map's: a module with no entry has no rule, and a rule that
+  // does not exist forbids nothing.
+  it("every module of the rings and of the composition has an entry in the context map", () => {
+    const map = require(path.resolve(".dependency-cruiser.cjs")) as { forbidden: { name: string }[] };
+    const declared = new Set(
+      map.forbidden
+        .map((rule) => /^context-map:(?:composition\/)?(.+)$/.exec(rule.name)?.[1])
+        .filter((name): name is string => name !== undefined),
+    );
+    /** The core of the adapters ring is not a module: it knows none and serves them all. */
+    const core = "http";
+    const modules = new Set<string>();
+    for (const ring of ["domain", "application", "interface-adapters"]) {
+      for (const entry of readdirSync(path.resolve("src", ring), { withFileTypes: true })) {
+        if (entry.isDirectory() && entry.name !== core) modules.add(entry.name);
+      }
+    }
+    for (const file of readdirSync(path.resolve("src/composition/modules"))) {
+      modules.add(path.basename(file, ".ts"));
+    }
+    expect([...modules].filter((name) => !declared.has(name)).sort()).toEqual([]);
   });
 
   it("the legitimate modules of the fixture trigger no rule", async () => {

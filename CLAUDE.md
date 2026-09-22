@@ -44,10 +44,12 @@ Dentro de una feature que toca HTTP, el orden es:
    security handler en `<módulo>/security/`), gateway del puerto en
    `src/interface-adapters/<módulo>/gateways/`, todo exportado por
    `src/interface-adapters/<módulo>/index.ts`, y
-   cableado en `src/composition/modules/<módulo>.ts` (el módulo declara su slice de puertos,
-   su tabla de enlaces por tecnología, instancia sus casos de uso con `new` —envueltos en
-   `LoggedUseCase`— y entrega sus controllers; el
-   perfil en `profiles/local.ts` compone esa tabla). Un módulo nuevo es una línea en `MODULES` y otra en `CONTEXT_MAP`;
+   cableado en `src/composition/modules/<módulo>.ts` (el módulo declara sus componentes como
+   constantes con `port("<módulo>.<qué>")<Tipo>()`, su tabla de enlaces por tecnología, lo que
+   expone a otros módulos y lo que sirve; los casos de uso se instancian con `new` dentro de los
+   builders, envueltos por los decoradores del kernel; el despliegue en `deployments/local.ts`
+   elige una tecnología por módulo). Un módulo nuevo son tres archivos: el suyo, una línea en el
+   despliegue y otra en `CONTEXT_MAP`; olvidarse de cualquiera falla en compilación o en `arch`.
    `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
    que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
@@ -88,25 +90,26 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                                                                                                                                                               |
 | `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                                                                                                                                                     |
 | `npm run check:behaviour-constants`               | Ninguna constante de comportamiento en `src/` (constitución XI): los archivos retirados no existen y ningún archivo declara sus nombres; `-- --src <dir>` para un fixture                                                                                                      |
-| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language`; se detiene en el primero rojo                                                                                                                                                                    |
+| `npm run check:ports-bound`                       | Todo puerto de `src/application/*/ports/` está enlazado en el grafo y ninguna etiqueta se repite (ADR-033); `-- --src <dir>` para un fixture                                                                                                                                   |
+| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`; se detiene en el primero rojo                                                                                                                |
 | `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                                   |
 | `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental         |
 
-Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants`.
+Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los siete gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`.
 
 ### Anillos y módulos (ADR-013, verificado por `npm run arch`)
 
 `src/` contiene `main.ts`, `composition/` y cuatro anillos; nada más. Dependencia sólo hacia
 adentro:
 
-| Anillo                    | Qué va ahí                                                                                                                                                                                                                                       | Puede importar de                                                                                                                                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/domain/`             | reglas y valores puros, por módulo                                                                                                                                                                                                               | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                                                                                                                                                   |
-| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                                                                                                                                                                       | `domain/`, `application/`. Tampoco npm ni Node                                                                                                                                                                                         |
-| `src/interface-adapters/` | todo lo que **traduce**, por módulo: `<módulo>/{controllers/, presenters.ts, security/, gateways/, index.ts}` (entrada y salida por nombre); núcleo `http/` sin módulos (tipado, Problem Details, borde genérico, principales); `shared-kernel/` | `application/`, `domain/`, `node:`. El mapa de contextos rige también aquí; un gateway no importa otro gateway ni npm (los drivers entran por `infrastructure/`); un controller no importa gateways; el núcleo no conoce ningún módulo |
-| `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                             | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
-| `src/composition/`        | `Ports` (intersección de slices), perfiles, `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `adapters/` (lo que une puertos de varios módulos), `bootstrap()`, `*-config.ts`             | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
-| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                          | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
+| Anillo                    | Qué va ahí                                                                                                                                                                                                                                                                                                   | Puede importar de                                                                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/`             | reglas y valores puros, por módulo                                                                                                                                                                                                                                                                           | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                                                                                                                                                   |
+| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                                                                                                                                                                                                                                   | `domain/`, `application/`. Tampoco npm ni Node                                                                                                                                                                                         |
+| `src/interface-adapters/` | todo lo que **traduce**, por módulo: `<módulo>/{controllers/, presenters.ts, security/, gateways/, index.ts}` (entrada y salida por nombre); núcleo `http/` sin módulos (tipado, Problem Details, borde genérico, principales); `shared-kernel/`                                                             | `application/`, `domain/`, `node:`. El mapa de contextos rige también aquí; un gateway no importa otro gateway ni npm (los drivers entran por `infrastructure/`); un controller no importa gateways; el núcleo no conoce ningún módulo |
+| `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                                                                                         | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
+| `src/composition/`        | `graph/` (la biblioteca del grafo, sin conocer ningún módulo), `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `deployments/` (la lista de módulos con su tecnología), `release.ts` (lo que viene de afuera del grafo), `bootstrap()`, `*-config.ts` | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
+| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                                                                                      | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
 
 Fuera de `src/`: `generated/` (lo que `contract:types` deriva del contrato; nunca editado;
 importable sólo desde `interface-adapters/http/` e `infrastructure/http/` como `#generated/*`) y
@@ -119,23 +122,35 @@ directorio de primer nivel lo dice su `README.md` (ADR-032; verificado por `test
 (quién opera: `Operator`, `OperatorId`, alcance; sólo dominio), `merchant`,
 `ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
 `outcomes`, `configuration` (los tres niveles y su resolución; nadie lo importa: cada consumidor
-define su puerto de lectura y la composición enlaza), `admin` (operadores, registro de
-administración, diagnóstico de anclajes) — los demás cuando llegue su feature. Dentro de un módulo
+define su puerto de lectura y la composición enlaza), `admin` (registro de administración,
+diagnóstico de anclajes, configuración del SDK), `access` (ADR-034: los tres esquemas de
+autenticación, sus resolvedores y las políticas de seguridad del nivel 1; lee el directorio de
+merchants y nunca escribe) — los demás cuando llegue su feature. Dentro de un módulo
 de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
 en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
 contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
 agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
 
-**Composición** (DI manual, sin contenedor): cada `src/composition/modules/<módulo>.ts` declara
-los puertos que necesita (`LedgerPorts`), cómo los sirve cada tecnología
-(`memoryLedgerPorts: Bindings<LedgerPorts>`; `postgresLedgerPorts(pool)` cuando llegue) y lo
-que sirve (`{ handlers?, security?, cors? }`). `Ports` es la intersección de esos slices y un
-puerto nuevo sin proveer no compila. Un perfil (`profiles/local.ts`) es un despliegue: compone
-una tabla de enlaces por módulo con `binder(overrides).bind(...)`; nunca elige gateways por su
-cuenta (`arch`: `profiles-compose-modules`).
-`bootstrap(config, { profile?, modules?, ports?, handlers? })` devuelve `{ app, ports, close }`; el
-logger es un puerto (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y las
-pruebas lo reemplazan por `ports.logger`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
+**Composición** (DI manual, sin contenedor; grafo tipado, ADR-033): el cableado es un grafo donde
+cada componente lo declara **una vez** su módulo dueño como una constante exportada —`port("
+ledger.decisions")<DecisionLedger>()`— y quien lo necesita la importa: **no hay resolución por
+texto**, y por eso el mapa de contextos también rige entre módulos de composición. Cada
+`src/composition/modules/<módulo>.ts` exporta tres cosas y nada más (regla de forma
+`composition-module-shape`): `technologies` (una tabla de enlaces por tecnología de sus puertos;
+`memory` hoy, `postgres` cuando llegue), `exposes` (lo que otros módulos consumen, igual en todo
+despliegue) y `serves` (handlers por `operationId`, esquemas de seguridad, CORS). Todo opcional.
+
+Un enlace declara lo que necesita **por nombre**: `bind(Puerto, { clock: ClockPort }, ({ clock })
+=> …)`; `derive(Vista, Fuente)` dice "una instancia, dos vistas". El despliegue
+(`deployments/local.ts`) es una lista sin orden significativo: `merchantModule.with("memory")`.
+**No compilan**: un requisito sin proveedor (`Missing<…>`), una tabla que no sirve un puerto de su
+módulo (`Unserved<…>`), una vista derivada de otra instancia, y un despliegue que no cubre las
+operaciones del contrato (`Unwired<…>`). La resolución es perezosa y memorizada —una instancia por
+arranque, sin nada global ni estático— y un ciclo falla al arrancar nombrándolo.
+`instantiate(plan, [replace(Puerto, doble)])` es lo que una prueba reemplaza.
+`bootstrap(config, { deployment?, ports?, handlers? })` devuelve `{ app, resolve, close }`; el
+logger es un componente (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y las
+pruebas lo reemplazan con `replace(LoggerPort, …)`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
 SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
 no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
 `ConfigError` (variable + problema) lo que no puede arrancar el servidor; `bootstrap` se niega
@@ -191,8 +206,11 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   status son del transporte: `Retry-After` de toda `503` lo agrega la infraestructura con
   `retryAfterSeconds` del nivel de plataforma.
 - Preocupaciones transversales: un `UseCase<I, O>` que envuelve otro, en
-  `application/shared-kernel/decorators/` (`LoggedUseCase`: nombre, duración y `ok` o `code`,
-  nunca el request), aplicado en `composition/modules/<módulo>.ts`.
+  `application/shared-kernel/decorators/` (`LoggedUseCase`: nombre del **caso de uso**, duración y
+  `ok` o `code`, nunca el request; `AuditedUseCase`: lo que un operador hizo, por el puerto
+  `AuditTrail` del kernel que `admin` implementa, ADR-034). La composición los aplica por el
+  servicio `UseCaseDecorators` del kernel: `logged` (sólo log), `audited` (sólo registro, lo que
+  entra en el arranque) y `administered` (las dos cosas, lo que el servidor sirve).
 - Cada regla `ope/*` vive en `scripts/lint/<regla>.mjs` (plugin `scripts/lint/plugin.mjs`) con su
   fixture en `tests/lint/fixtures/as-src/` y las de arquitectura en
   `tests/architecture/fixtures/src/`.
@@ -256,7 +274,9 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
   calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`);
   ningún carácter de control crudo en el fuente (un separador como U+001F se escribe como su
-  escape, nunca como el carácter).
+  escape, nunca como el carácter); un módulo de composición exporta sólo sus componentes y a sí
+  mismo (`composition-module-shape`) y construye la implementación de un puerto sólo dentro del
+  builder de un enlace (`port-implementations-only-in-bind`, ADR-033).
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
 - **Cómo se trabaja el gate de mutación** (la corrida completa cuesta minutos; no se repite por
@@ -352,7 +372,7 @@ Acá queda lo normativo:
 - **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
   invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
   `DecisionService` (`application/decision/services/`) y la composición enlaza
-  (`decisionPlaneOf(ports)` en `modules/decision.ts`). El orquestador recorre las cinco
+  (el módulo `decision` enlaza el puerto `DecisionPlane` que declara `ingestion`). El orquestador recorre las cinco
   autoridades: asignación → inferencia (`barrier`) → evidencia (`catalog`) → selección + quality
   gate (`selection`) → política comercial (`commercial`, la única que emite el veredicto) →
   ledger (`DecisionRecorder`, que acuña el id y degrada a `ledger-unavailable`). La inferencia es
@@ -415,14 +435,14 @@ signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma c
   y viajan **una sola vez** en la respuesta que los emite; el store guarda huellas
   (`MerchantDirectory.byFingerprint`). Kill switch (01 §14.2): `switched(false)` ⇒ la decisión
   responde `NO_OP` `merchant-off` **antes** de asignar (`MerchantPolicies.enabled`, leído del
-  store por `switchAwarePolicyDirectory`); ingesta, outcomes y catálogo siguen. Operadores:
+  store por `switchAwarePolicyDirectory`, en los gateways del módulo `configuration`); ingesta, outcomes y catálogo siguen. Operadores:
   `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE` (`operatorId`, huellas de sus
   tokens, `scope: "*" | [merchantId]`); `adminToken` es bearer (`Authorization: Bearer
 ope_at_…`), `DefaultAdminTokenResolver` lo resuelve por huella (`401 operator-unknown`) y
   entrega `OperatorPrincipal` (`operatorOf(req)`); un merchant fuera del alcance responde `403
 merchant-out-of-scope` con el mismo cuerpo que uno inexistente sólo cuando el operador no lo
   alcanza (`DefaultScopedMerchantService.find`). Toda operación `admin` se envuelve en
-  `AuditedUseCase` (`composition/modules/admin.ts`): el registro de administración
+  `AuditedUseCase` (decorador del kernel, ADR-034): el registro de administración
   (`AdminLog`, `AdminEntry`: operador, operación, merchant, resultado `accepted | rejected |
 failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
 /v1/admin/merchants/{merchantId}/log` lo leen paginado (`Page`/`PageQuery` del kernel de
@@ -442,7 +462,7 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
   los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
   compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
-  `MessageAuthenticator` (`node:crypto` en `interface-adapters/merchant/gateways/`). Toda operación con
+  `MessageAuthenticator` (`node:crypto` en `interface-adapters/access/gateways/`). Toda operación con
   `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
   `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
 - **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
@@ -472,8 +492,8 @@ treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interrupto
 /v1/sdk/config` (`ingestKey`, `config:read`) devuelve lo que el SDK puede ver del merchant de
   su credencial —`enabled` (interruptor), `versions`, `surfaces`, `locales`, `anchors?`— y
   nunca una política, margen, escalón, reparto, brazo ni experimento; `Cache-Control: no-store`.
-  Lo sirve el módulo `admin` por el puerto `SdkConfigurationSource` (`sdkConfigurationOf` en
-  `modules/configuration.ts`) y el merchant llega resuelto por el security handler
+  Lo sirve el módulo `admin` por el puerto `SdkConfigurationSource` (`sdkConfigurationOf`, un
+  gateway de `admin` sobre la resolución de la configuración) y el merchant llega resuelto por el security handler
   (`GetSdkConfigUseCase` recibe la entidad y lee `isOn()`). `POST /v1/sdk/diagnostics`
   (`diagnostics:write`) recibe anclajes no resueltos (`anchor` del vocabulario, `pageType`,
   `configurationVersion?`; nada de la página ni de la persona) y `AnchorDiagnosticsStore.upsert`

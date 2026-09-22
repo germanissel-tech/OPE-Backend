@@ -1,7 +1,7 @@
 ---
 numero: 034
 titulo: Dueño del acceso y auditoría como obligación de plataforma
-estado: propuesta
+estado: aceptada
 fecha: 2026-09-22
 fuente: specs/020-grafo-de-composicion/research.md
 ---
