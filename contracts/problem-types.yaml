@@ -1,5 +1,7 @@
-# Catalogue of problem types (RFC 9457 `type`). Single source: the server imports these
-# constants and a test verifies that every emitted `type` belongs to the catalogue.
+# Catalogue of problem types (RFC 9457 `type`). Single source: `npm run contract:types` generates
+# generated/problem-types.{js,d.ts} from it (status and title as literals; `ProblemSlug` as the
+# union of slugs), the server imports the generated module, `contract:types:check` fails on drift,
+# and a test verifies that every `code` of a DomainError is a slug of this catalogue.
 # URN scheme: urn:ope:problem:<slug>. Adding a type is compatible; changing or removing one is not.
 namespace: "urn:ope:problem:"
 types:

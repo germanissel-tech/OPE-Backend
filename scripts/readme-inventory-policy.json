@@ -3,7 +3,13 @@
   "globalExcludes": ["src", "node_modules", "dist", ".git", ".claude", ".specify", ".github", ".vscode"],
   "directories": [
     { "dir": "config", "columns": ["Variable de entorno", "Cuándo se lee"] },
-    { "dir": "contracts", "exclude": ["dist"] },
+    {
+      "dir": "contracts",
+      "exclude": ["dist"],
+      "sections": [
+        { "heading": "Extensiones", "columns": ["Extensión", "Dónde", "Forma", "Regla", "Consumidor"] }
+      ]
+    },
     { "dir": "generated" },
     { "dir": "patches" },
     { "dir": "scripts", "columns": ["Clase"] },

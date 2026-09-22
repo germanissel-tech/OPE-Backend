@@ -302,6 +302,12 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
 
 ### Notas operativas del contrato
 
+Lo descriptivo —qué es cada entrada de `contracts/`, las convenciones del multi-archivo, la
+tabla de extensiones `x-*` (dónde, forma, regla, consumidor) y cómo se agrega una operación, un
+esquema, un tipo de problema, un motivo de `NO_OP`, una regla o un ejemplo— vive en
+`contracts/README.md` (verificado por `tests/docs`: toda extensión de la fuente tiene su fila).
+Acá queda lo normativo:
+
 - Ruleset de Spectral en estilo bloque (no `{ a: b }`), `"off"` entre comillas.
   `oas3-schema` está apagada por un bug con path items `$ref` en 3.1; la estructura la
   valida Redocly. Detalle en `specs/001-api-contract-toolchain/research.md` (R-02).
