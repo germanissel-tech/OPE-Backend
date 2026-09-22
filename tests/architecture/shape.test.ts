@@ -15,6 +15,7 @@ interface Rules {
   noConfigBranchInRoot: (root: string) => string[];
   noRawControlCharacters: (root: string) => string[];
   compositionModuleShape: (root: string) => string[];
+  portImplementationsOnlyInBind: (root: string) => string[];
 }
 
 let MAX_RING_FILE_LINES: number;
@@ -26,6 +27,7 @@ let noComputedDynamicImport: Rules["noComputedDynamicImport"];
 let noConfigBranchInRoot: Rules["noConfigBranchInRoot"];
 let noRawControlCharacters: Rules["noRawControlCharacters"];
 let compositionModuleShape: Rules["compositionModuleShape"];
+let portImplementationsOnlyInBind: Rules["portImplementationsOnlyInBind"];
 beforeAll(async () => {
   const mod = (await import(pathToFileURL(path.resolve("scripts/shape-rules.mjs")).href)) as Rules;
   ({
@@ -38,6 +40,7 @@ beforeAll(async () => {
     noConfigBranchInRoot,
     noRawControlCharacters,
     compositionModuleShape,
+    portImplementationsOnlyInBind,
   } = mod);
 });
 
@@ -103,6 +106,17 @@ describe("shape of the rings", () => {
     expect(compositionModuleShape(src)).toEqual([]);
     expect(compositionModuleShape(fixture("composition-module-shape"))).toEqual([
       "composition/modules/ledger.ts:5: a module of composition exports function; only its ports and itself",
+    ]);
+  });
+
+  // Feature 020, US3 (FR-015; ADR-033): the implementation of a port is built inside the builder
+  // of its binding and nowhere else — a gateway instantiated in what the module serves is a
+  // component the graph does not know it has, and nothing can replace it.
+  it("src/ builds every implementation inside a binding; a fixture that does not is reported", () => {
+    expect(portImplementationsOnlyInBind(src)).toEqual([]);
+    expect(portImplementationsOnlyInBind(fixture("port-outside-bind"))).toEqual([
+      "composition/modules/merchant.ts:6: writes an implementation outside the builder of a binding",
+      "composition/modules/merchant.ts:15: builds MemoryMerchantStore outside the builder of a binding",
     ]);
   });
 

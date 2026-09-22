@@ -6,11 +6,24 @@
     "module": {
       "roots": ["src/domain/{name}", "src/application/{name}", "src/interface-adapters/{name}"]
     },
-    "diff": { "base": "origin/main", "include": ["src/"] }
+    "diff": {
+      "base": "origin/main",
+      "include": ["src/"]
+    }
   },
   "gates": [
-    { "id": "lint", "mode": "blocking", "run": "node scripts/audit/gate-lint.mjs", "format": "findings-v1" },
-    { "id": "arch", "mode": "blocking", "run": "node scripts/audit/gate-arch.mjs", "format": "findings-v1" },
+    {
+      "id": "lint",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-lint.mjs",
+      "format": "findings-v1"
+    },
+    {
+      "id": "arch",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-arch.mjs",
+      "format": "findings-v1"
+    },
     {
       "id": "shape",
       "mode": "blocking",
@@ -36,6 +49,12 @@
       "format": "findings-v1"
     },
     {
+      "id": "ports-bound",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-ports-bound.mjs",
+      "format": "findings-v1"
+    },
+    {
       "id": "mutation",
       "mode": "informative",
       "scopes": ["diff"],
@@ -47,17 +66,27 @@
     {
       "kind": "constitution#",
       "severity": "high",
-      "resolve": { "type": "markdown-heading", "file": ".specify/memory/constitution.md" }
+      "resolve": {
+        "type": "markdown-heading",
+        "file": ".specify/memory/constitution.md"
+      }
     },
     {
       "kind": "ADR-",
       "severity": "high",
-      "resolve": { "type": "file-glob", "pattern": "docs/adr/{id}-*.md" }
+      "resolve": {
+        "type": "file-glob",
+        "pattern": "docs/adr/{id}-*.md"
+      }
     },
     {
       "kind": "mvp:",
       "severity": "high",
-      "resolve": { "type": "markdown-heading", "file": "../{id}-*.md", "dirEnv": "OPE_MVP_DOCS_DIR" }
+      "resolve": {
+        "type": "markdown-heading",
+        "file": "../{id}-*.md",
+        "dirEnv": "OPE_MVP_DOCS_DIR"
+      }
     },
     {
       "kind": "spec:",
@@ -72,14 +101,46 @@
     {
       "kind": "guide#",
       "severity": "medium",
-      "resolve": { "type": "markdown-heading", "file": "CLAUDE.md" }
+      "resolve": {
+        "type": "markdown-heading",
+        "file": "CLAUDE.md"
+      }
     },
-    { "kind": "lint:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "lint" } },
-    { "kind": "arch:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "arch" } },
-    { "kind": "shape:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "shape" } },
-    { "kind": "clarity:", "severity": "low", "resolve": { "type": "criteria-section" } }
+    {
+      "kind": "lint:",
+      "severity": "medium",
+      "resolve": {
+        "type": "gate-rule",
+        "gate": "lint"
+      }
+    },
+    {
+      "kind": "arch:",
+      "severity": "medium",
+      "resolve": {
+        "type": "gate-rule",
+        "gate": "arch"
+      }
+    },
+    {
+      "kind": "shape:",
+      "severity": "medium",
+      "resolve": {
+        "type": "gate-rule",
+        "gate": "shape"
+      }
+    },
+    {
+      "kind": "clarity:",
+      "severity": "low",
+      "resolve": {
+        "type": "criteria-section"
+      }
+    }
   ],
   "criteria": "docs/auditoria/criterios-diseno.md",
   "evals": "tests/audit/evals",
-  "conditioning": { "answers": {} }
+  "conditioning": {
+    "answers": {}
+  }
 }

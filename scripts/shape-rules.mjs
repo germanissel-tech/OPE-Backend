@@ -3,6 +3,7 @@
 // shape.test.ts runs them on src/ and on the fixtures; the auditing skill runs them on any scope.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { parse } from "yaml";
 
 // Five screens. Past that, a domain or application file holds more than one responsibility or
@@ -337,6 +338,109 @@ export function compositionModuleShape(root) {
   return out;
 }
 
+/** Where a component is built: the builder of a `bind` (or the derivation of a view). */
+const BUILDERS = ["bind", "derive"];
+
+/**
+ * Is this node inside the builder of a binding? What a module serves or exposes may instantiate
+ * use cases and services of the application with what the graph resolved; building the
+ * implementation of a port is the business of a binding (ADR-033).
+ * @param {import("typescript").Node} node
+ * @returns {boolean}
+ */
+function insideABinding(node) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (
+      ts.isCallExpression(current) &&
+      ts.isIdentifier(current.expression) &&
+      BUILDERS.includes(current.expression.text)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * An object literal that stands for a component: it carries behaviour —a method or a property
+ * that is a function of its own— and it is what something produces, not what something is told.
+ * The readers a decorator takes are arguments, and a property holding the result of a call (a
+ * handler a factory returns) is not behaviour of its own.
+ * @param {import("typescript").Node} node
+ * @returns {boolean}
+ */
+function carriesBehaviour(node) {
+  if (!ts.isObjectLiteralExpression(node)) return false;
+  const produced =
+    ts.isReturnStatement(node.parent) ||
+    ts.isVariableDeclaration(node.parent) ||
+    (ts.isParenthesizedExpression(node.parent) && ts.isArrowFunction(node.parent.parent)) ||
+    ts.isArrowFunction(node.parent);
+  if (!produced) return false;
+  return node.properties.some(
+    (property) =>
+      ts.isMethodDeclaration(property) ||
+      (ts.isPropertyAssignment(property) &&
+        (ts.isArrowFunction(property.initializer) || ts.isFunctionExpression(property.initializer))),
+  );
+}
+
+/**
+ * The names an import statement binds as values, or none when it is not a value import of the
+ * adapters or the infrastructure.
+ * @param {import("typescript").Statement} statement
+ * @returns {string[]}
+ */
+function adapterNames(statement) {
+  if (!ts.isImportDeclaration(statement) || statement.importClause?.isTypeOnly === true) return [];
+  const from = statement.moduleSpecifier;
+  if (!ts.isStringLiteral(from) || !/(interface-adapters|infrastructure)\//.test(from.text)) return [];
+  const bindings = statement.importClause?.namedBindings;
+  if (!bindings || !ts.isNamedImports(bindings)) return [];
+  return bindings.elements.filter((element) => !element.isTypeOnly).map((element) => element.name.text);
+}
+
+/**
+ * The identifiers a file takes, as values, from the adapters or the infrastructure.
+ * @param {import("typescript").SourceFile} source
+ * @returns {Set<string>}
+ */
+function adapterImports(source) {
+  return new Set(source.statements.flatMap(adapterNames));
+}
+
+/**
+ * Rule 8 (ADR-033, FR-015): in a module of composition, the implementation of a port is built
+ * inside the builder of its binding and nowhere else. A gateway instantiated in what the module
+ * serves, or an object with behaviour written in the middle of the wiring, is a component the
+ * graph does not know it has: nothing can replace it, and no deployment can serve it otherwise.
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function portImplementationsOnlyInBind(root) {
+  /** @type {string[]} */
+  const out = [];
+  for (const file of tsFiles(root, ".").filter((f) => WIRING_MODULE.test(f))) {
+    const full = path.join(root, file);
+    const source = ts.createSourceFile(full, readFileSync(full, "utf8"), ts.ScriptTarget.Latest, true);
+    const adapters = adapterImports(source);
+    /** @param {import("typescript").Node} node */
+    const visit = (node) => {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      const isAdapter =
+        ts.isNewExpression(node) && ts.isIdentifier(node.expression) && adapters.has(node.expression.text);
+      if (isAdapter && !insideABinding(node)) {
+        out.push(`${file}:${line}: builds ${node.expression.getText()} outside the builder of a binding`);
+      } else if (carriesBehaviour(node) && !insideABinding(node)) {
+        out.push(`${file}:${line}: writes an implementation outside the builder of a binding`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(source, visit);
+  }
+  return out;
+}
+
 export const SHAPE_RULES = [
   "max-file-lines",
   "one-controller-per-operation",
@@ -345,6 +449,7 @@ export const SHAPE_RULES = [
   "no-config-branch-in-root",
   "no-raw-control-characters",
   "composition-module-shape",
+  "port-implementations-only-in-bind",
 ];
 
 /**
@@ -372,5 +477,6 @@ export function shapeFindings(root, bundlePath) {
     ...noConfigBranchInRoot(root).map((t) => toFinding("no-config-branch-in-root", t)),
     ...noRawControlCharacters(root).map((t) => toFinding("no-raw-control-characters", t)),
     ...compositionModuleShape(root).map((t) => toFinding("composition-module-shape", t)),
+    ...portImplementationsOnlyInBind(root).map((t) => toFinding("port-implementations-only-in-bind", t)),
   ];
 }

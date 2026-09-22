@@ -27,7 +27,7 @@ export const localDeployment = (config: AppConfig) =>
   deployment([
     releaseComponents(config),
     kernelModule.with("system"),
-    systemModule.with("stateless"),
+    systemModule.with("contract"),
     merchantModule.with("memory"),
     accessModule.with("platform"),
     experimentModule.with("memory"),

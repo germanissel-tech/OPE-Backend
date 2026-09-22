@@ -290,21 +290,21 @@ forma falla ante una implementación construida fuera de su enlace; cada una con
 **Por qué va última**: verifica el estado final. Corriéndola antes, la reportaría todo lo que las
 fases anteriores todavía no movieron.
 
-- [ ] T055 [US3] Crear `scripts/check-ports-bound.mjs`: lee `src/application/*/ports/*.ts` con la
+- [x] T055 [US3] Crear `scripts/check-ports-bound.mjs`: lee `src/application/*/ports/*.ts` con la
       API 6.0 de TypeScript, verifica que cada tipo exportado sea el tipo servido de algún puerto de
       `src/composition/modules/*.ts`, que ninguna etiqueta se repita, con `--src <dir>` y `--json`
       en protocolo `findings-v1` ([contracts/ports-bound-gate.md](./contracts/ports-bound-gate.md))
-- [ ] T056 [US3] Sumarlo a `package.json`, a la cadena de `scripts/quality.mjs` (después de
+- [x] T056 [US3] Sumarlo a `package.json`, a la cadena de `scripts/quality.mjs` (después de
       `check:dead-code`) y a `tests/governance/quality.test.ts`, que cuenta los gates de la cadena
-- [ ] T057 [US3] [P] Crear el adaptador `scripts/audit/gate-ports-bound.mjs` (`--files-from`,
+- [x] T057 [US3] [P] Crear el adaptador `scripts/audit/gate-ports-bound.mjs` (`--files-from`,
       `--list-rules`, `--describe`) y agregar el gate a `audit.profile.json`
-- [ ] T058 [US3] [P] Fixture `tests/audit/fixtures/unbound-port/src/` y su caso en
+- [x] T058 [US3] [P] Fixture `tests/audit/fixtures/unbound-port/src/` y su caso en
       `tests/audit/audit.test.ts`: el gate nombra el puerto con archivo y línea, y `src/` pasa limpio
-- [ ] T059 [US3] Regla de forma `port-implementations-only-in-bind` en `scripts/shape-rules.mjs`
+- [x] T059 [US3] Regla de forma `port-implementations-only-in-bind` en `scripts/shape-rules.mjs`
       (+ `SHAPE_RULES`): en `src/composition/modules/*.ts`, un `new` de algo de
       `interface-adapters/`/`infrastructure/` y todo objeto literal que haga de implementación de
       puerto sólo dentro del builder de un `bind`
-- [ ] T060 [US3] [P] Fixture
+- [x] T060 [US3] [P] Fixture
       `tests/architecture/fixtures/shape/port-outside-bind/src/` y su caso en
       `tests/architecture/shape.test.ts`
 

@@ -53,6 +53,7 @@
     "check:duplication": "node scripts/check-duplication.mjs",
     "check:dead-code": "node scripts/check-dead-code.mjs",
     "check:behaviour-constants": "node scripts/check-behaviour-constants.mjs",
+    "check:ports-bound": "node scripts/check-ports-bound.mjs",
     "quality": "node scripts/quality.mjs",
     "test:load": "node scripts/load-test.mjs",
     "test:mutation": "node scripts/mutation-diff.mjs",
