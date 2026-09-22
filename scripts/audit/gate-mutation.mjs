@@ -7,7 +7,8 @@ import { emitFindings, emitRules, fail, inScope, invocation } from "./lib.mjs";
 // Stryker names the mutator in the rule (`mutation/<mutator>`); the list is the mutators of the config.
 const RULES = ["mutation/*"];
 
-const call = invocation(process.argv.slice(2));
+// Mutation is slow and judges a change, not a module: informative, on the diff scope only.
+const call = invocation(process.argv.slice(2), { mode: "informative", scopes: ["diff"] });
 if (call.listRules) {
   emitRules(RULES);
 } else {

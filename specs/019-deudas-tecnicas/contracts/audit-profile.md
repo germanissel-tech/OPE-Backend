@@ -106,6 +106,10 @@ Salida estándar, JSON:
 
 Invocación: `<run> --list-rules` → `{ "rules": ["sonarjs/no-identical-functions", "..."] }`.
 
+Invocación opcional: `<run> --describe` → `{ "mode"?: "blocking" | "informative", "scopes"?: [...] }`,
+lo que el perfil debe registrar del gate (la skill de acondicionamiento lo usa; sin respuesta,
+`blocking` en todos los alcances).
+
 Códigos de salida: `0` = corrió (los hallazgos deciden); cualquier otro = degradado, motivo =
 stderr recortado a una línea. `file` y `line` obligatorios; un hallazgo sin ellos se descarta.
 `rule` es el identificador que las fuentes `lint:`/`arch:`/`shape:` citan.

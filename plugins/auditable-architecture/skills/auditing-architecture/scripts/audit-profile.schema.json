@@ -6,7 +6,10 @@
   "additionalProperties": false,
   "required": ["profileVersion", "sourceRoot", "scopes", "gates", "sources", "criteria", "evals"],
   "properties": {
-    "$schema": { "type": "string", "description": "Path of this schema, for the editor." },
+    "$schema": {
+      "type": "string",
+      "description": "Path of this schema, for the editor."
+    },
     "profileVersion": {
       "type": "integer",
       "description": "Version of the profile's shape. The skill accepts exactly the versions it understands (currently 1) and refuses any other, naming both.",
@@ -31,7 +34,10 @@
               "type": "array",
               "description": "Templates of the directories a module spans; `{name}` is the module name (`src/domain/{name}`).",
               "minItems": 1,
-              "items": { "type": "string", "pattern": "\\{name\\}" }
+              "items": {
+                "type": "string",
+                "pattern": "\\{name\\}"
+              }
             }
           }
         },
@@ -49,7 +55,10 @@
               "type": "array",
               "description": "Path prefixes that count as auditable in a diff (`src/`).",
               "minItems": 1,
-              "items": { "type": "string", "minLength": 1 }
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -76,7 +85,10 @@
           "scopes": {
             "type": "array",
             "description": "Scopes the gate applies to; every scope when absent.",
-            "items": { "type": "string", "enum": ["module", "dir", "diff"] },
+            "items": {
+              "type": "string",
+              "enum": ["module", "dir", "diff"]
+            },
             "uniqueItems": true
           },
           "run": {
@@ -106,7 +118,10 @@
             "minLength": 2,
             "description": "Literal prefix of `rule.source` (`ADR-`, `constitution#`, `lint:`)."
           },
-          "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
           "resolve": {
             "type": "object",
             "description": "How the rest of the citation resolves; one of the closed vocabulary.",
@@ -119,7 +134,10 @@
                     "const": "file-glob",
                     "description": "A file matching the pattern exists; `{id}` is the rest of the citation."
                   },
-                  "pattern": { "type": "string", "minLength": 1 }
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               },
               {
@@ -130,7 +148,10 @@
                     "const": "markdown-heading",
                     "description": "A heading of the file contains the section named after `#`; `{id}` in `file` is what comes before `#` when the citation carries an identifier (`mvp:01#5.2`)."
                   },
-                  "file": { "type": "string", "minLength": 1 },
+                  "file": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "dirEnv": {
                     "type": "string",
                     "description": "Environment variable that, when set, replaces the directory part of `file`."
@@ -145,8 +166,14 @@
                     "const": "text-in-file",
                     "description": "The file (with `{id}`) contains the text template (with `{ref}`); citation `<id>#<ref>`."
                   },
-                  "file": { "type": "string", "minLength": 1 },
-                  "contains": { "type": "string", "minLength": 1 },
+                  "file": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contains": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "refPattern": {
                     "type": "string",
                     "description": "Regular expression `ref` must match (`^(FR|SC)-\\d{3}$`)."
@@ -161,7 +188,10 @@
                     "const": "gate-rule",
                     "description": "The rest of the citation is a rule the named gate lists with `--list-rules`."
                   },
-                  "gate": { "type": "string", "minLength": 1 }
+                  "gate": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               },
               {
@@ -193,7 +223,33 @@
       "type": "object",
       "description": "Written and read only by the conditioning-project skill.",
       "additionalProperties": false,
-      "properties": { "answers": { "type": "object", "additionalProperties": true } }
+      "properties": {
+        "answers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "pending": {
+          "type": "array",
+          "description": "Detected tools without a gate adapter yet (written by the conditioning-project skill).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool", "gate", "adapter"],
+            "properties": {
+              "tool": {
+                "type": "string"
+              },
+              "gate": {
+                "type": "string"
+              },
+              "adapter": {
+                "type": "string",
+                "description": "Path the adapter should take."
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

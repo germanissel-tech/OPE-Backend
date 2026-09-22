@@ -54,14 +54,9 @@ describe("the plugin depends on nothing of this repository", () => {
   });
 
   it("never names this repository's tooling", () => {
-    const forbidden = [
-      "scripts/lib.mjs",
-      "governance-lib",
-      "shape-rules",
-      "eslint.config",
-      ".dependency-cruiser",
-      "OPE-Backend",
-    ];
+    // Names of this repository, not of the tools (a detector may name `eslint.config.*`: every
+    // ESLint project has one) nor of the conventions the plugin proposes (`scripts/audit/`).
+    const forbidden = ["scripts/lib.mjs", "governance-lib", "shape-rules", "OPE-Backend"];
     const problems = walk(PLUGIN)
       .filter((f) => /\.(mjs|md|json)$/u.test(f))
       .flatMap((f) =>

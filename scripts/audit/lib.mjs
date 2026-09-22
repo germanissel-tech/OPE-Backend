@@ -2,7 +2,8 @@
 // auditing-architecture skill speaks. An adapter is invoked from the repository root with
 // `--files-from <file>` (one repo-relative path per line; may be empty) and answers on stdout
 // `{ "findings": [{ file, line, rule, message }] }`; with `--list-rules` it answers
-// `{ "rules": [...] }` so a `lint:`/`arch:`/`shape:` citation can be resolved. Exit ≠ 0 means
+// `{ "rules": [...] }` so a `lint:`/`arch:`/`shape:` citation can be resolved; with `--describe`
+// it says what the profile should record of it (mode, scopes). Exit ≠ 0 means
 // the gate is degraded (the message goes to stderr). The adapters are the repository's side of
 // the frontier: they know eslint.config.mjs, .dependency-cruiser.cjs, shape-rules.mjs and the
 // check-*.mjs scripts; the skill knows only this protocol.
@@ -14,12 +15,18 @@ import { repoRoot } from "../lib.mjs";
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
 
 /**
- * The invocation of an adapter: the rules mode, or the files of the scope.
+ * The invocation of an adapter: the rules mode, the files of the scope, or `--describe` (what
+ * the adapter says of itself for the profile: mode and scopes; printed and done).
  * @param {readonly string[]} argv
+ * @param {{ mode?: "blocking" | "informative"; scopes?: ("module" | "dir" | "diff")[] }} [description]
  * @returns {{ listRules: true } | { listRules: false; files: string[] }}
  */
-export function invocation(argv) {
+export function invocation(argv, description = {}) {
   const args = parseArgs(argv);
+  if (args["describe"] === true) {
+    console.log(JSON.stringify(description));
+    process.exit(0);
+  }
   if (args["list-rules"] === true) return { listRules: true };
   const from = argString(args, "files-from");
   if (from === undefined) fail("usage: --files-from <file> | --list-rules");

@@ -1,6 +1,8 @@
 {
   "name": "auditable-architecture",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Architecture audit by method: a portable seven-step review driven by a per-project profile (audit.profile.json), plus the conditioning skill that makes a repository auditable.",
-  "author": { "name": "OPE" }
+  "author": {
+    "name": "OPE"
+  }
 }
