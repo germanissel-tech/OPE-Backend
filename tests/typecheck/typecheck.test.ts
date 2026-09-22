@@ -76,6 +76,20 @@ describe("hardened compiler (tsconfig.json)", () => {
     expect(r.output).toContain("ports-incomplete.ts");
   });
 
+  // Feature 020 (ADR-033): the four guarantees the graph takes to compile time. What each one says
+  // matters as much as that it fails: the message has to name what is missing.
+  it.each([
+    ["graph-missing-provider.ts", 'Missing<"test.clock">'],
+    ["graph-technology-partial.ts", 'Unserved<"test.directory">'],
+    ["graph-operation-unwired.ts", "Unwired<"],
+  ])("%s does not compile and names %s", (file, fragment) => {
+    expectFailure(file, "TS2345", [fragment]);
+  });
+
+  it("a view derived from an instance that does not satisfy it does not compile", () => {
+    expectFailure("graph-derive-foreign.ts", "TS2379", ["test.clock"]);
+  });
+
   it("valid.ts compila", () => {
     const r = compile("tsconfig.json", [path.join(fixtures, "valid.ts")]);
     expect(r.status, r.output).toBe(0);

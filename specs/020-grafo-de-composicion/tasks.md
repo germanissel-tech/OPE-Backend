@@ -51,34 +51,34 @@ Proyecto único: `src/`, `tests/`, `scripts/` en la raíz del repositorio (ADR-0
 **Purpose**: la biblioteca que todo lo demás usa. Sin conocimiento de ningún módulo: no importa
 `application/` ni `interface-adapters/`.
 
-- [ ] T003 Crear `src/composition/graph/port.ts`: `Port<T, L>` con la etiqueta en el tipo y el
+- [x] T003 Crear `src/composition/graph/port.ts`: `Port<T, L>` con la etiqueta en el tipo y el
       fantasma como **propiedad opcional** (no función: la variancia rompe la maquinaria, research
       R-03), `port()` currificada, `AnyPort`, y `Closable`/`isClosable` movidos desde
       `src/composition/ports.ts`
-- [ ] T004 Crear `src/composition/graph/binding.ts`: `Binding<Provides, Needs>`, `bind(port, deps,
+- [x] T004 Crear `src/composition/graph/binding.ts`: `Binding<Provides, Needs>`, `bind(port, deps,
 build)` con los tipos del builder inferidos de `deps`, y `derive(vista, fuente)` con
       `S extends T`
-- [ ] T005 Crear `src/composition/graph/module.ts`: `CompositionModule` (technologies / exposes /
+- [x] T005 Crear `src/composition/graph/module.ts`: `CompositionModule` (technologies / exposes /
       serves), `technology(ports, bindings)` con `Unserved<…>`, `.with(tecnología)` tipado por las
       claves del propio módulo, y `operations()` / `handler(deps, build)` que inyecta el
       `operationId` **desde la clave** (FR-022)
-- [ ] T006 Crear `src/composition/graph/compose.ts`: `compose`/`deployment` con `Missing<…>` y
+- [x] T006 Crear `src/composition/graph/compose.ts`: `compose`/`deployment` con `Missing<…>` y
       `Unwired<…>`, resolución perezosa memorizada por presencia (`Map.has`, no `!== undefined`),
       `resolveAll()`, `ports`, `closables` en orden de creación, y detección de ciclo que nombra el
       ciclo completo. Los alias `ProvidesOf`/`NeedsOf` van con parámetro desnudo para que el
       condicional distribuya (research R-04)
-- [ ] T007 Crear `src/composition/graph/index.ts` con la API pública de la biblioteca
-- [ ] T008 Pruebas de la biblioteca en `tests/unit/composition/graph.test.ts`: misma instancia para
+- [x] T007 Crear `src/composition/graph/index.ts` con la API pública de la biblioteca
+- [x] T008 Pruebas de la biblioteca en `tests/unit/composition/graph.test.ts`: misma instancia para
       dos consumidores, una sola construcción, vista derivada idéntica a su fuente, orden de la
       lista irrelevante, ciclo nombrado, `closables` en orden de creación, `resolveAll` construye lo
       que nadie consume
-- [ ] T009 [P] Fixture `tests/typecheck/fixtures/graph-missing-provider.ts` + su caso: `TS2345` con
+- [x] T009 [P] Fixture `tests/typecheck/fixtures/graph-missing-provider.ts` + su caso: `TS2345` con
       `Missing<"…">`
-- [ ] T010 [P] Fixture `tests/typecheck/fixtures/graph-technology-partial.ts` + su caso: `TS2345`
+- [x] T010 [P] Fixture `tests/typecheck/fixtures/graph-technology-partial.ts` + su caso: `TS2345`
       con `Unserved<"…">`
-- [ ] T011 [P] Fixture `tests/typecheck/fixtures/graph-derive-foreign.ts` + su caso: la fuente no
+- [x] T011 [P] Fixture `tests/typecheck/fixtures/graph-derive-foreign.ts` + su caso: la fuente no
       satisface la vista
-- [ ] T012 [P] Fixture `tests/typecheck/fixtures/graph-operation-unwired.ts` + su caso: `TS2345` con
+- [x] T012 [P] Fixture `tests/typecheck/fixtures/graph-operation-unwired.ts` + su caso: `TS2345` con
       `Unwired<"…">`
 
 **Checkpoint**: la biblioteca compila, sus pruebas pasan y los cuatro casos fallan como se espera.
