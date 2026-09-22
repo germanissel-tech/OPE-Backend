@@ -11,8 +11,11 @@ import {
   readTreatmentDefaults,
 } from "../../src/application/configuration/index.js";
 import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { localDeployment } from "../../src/composition/deployments/local.js";
 import { withoutSchemaReference } from "../../src/composition/env.js";
-import { localProfile } from "../../src/composition/profiles/local.js";
+import { instantiate, replace, type AnyPort, type Override } from "../../src/composition/graph/index.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
+import { RELEASE_PORTS } from "../../src/composition/release.js";
 import { Experiment, Experiments, type ExperimentStatus } from "../../src/domain/experiment/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
@@ -21,7 +24,6 @@ import { TEST_TARGET_SAMPLE } from "./experiments.js";
 import type { MerchantSeed } from "../../src/application/merchant/index.js";
 import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { AppConfig, MerchantConfig, ReleaseLevels } from "../../src/composition/config.js";
-import type { Ports } from "../../src/composition/ports.js";
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from "fastify";
 
 /** A merchant as a test writes it: the shape of OPE_MERCHANTS, built into entities by `configured`. */
@@ -187,33 +189,33 @@ export function fixedClock(at: string | Date = NOW): Clock {
   return { now: () => date };
 }
 
-/** Starts the whole app; silent logger unless `ports.logger` says otherwise. */
+/** Starts the whole app; silent logger unless a replacement says otherwise. */
 export async function startTestApp(
   overrides: BootstrapOverrides = {},
   config: TestConfig = {},
 ): Promise<App> {
   return bootstrap(testConfig(config), {
     ...overrides,
-    ports: { logger: silentLogger(), ...overrides.ports },
+    ports: [replace(LoggerPort, silentLogger()), ...(overrides.ports ?? [])],
   });
 }
 
-/** What a test may replace for the next test of a shared app: ports, the merchant configuration. */
+/** What a test may replace for the next test of a shared app: components, the merchant configuration. */
 export interface PortsReset {
-  ports?: Partial<Ports>;
+  ports?: readonly Override[];
   config?: TestConfig;
 }
 
 export interface SharedApp {
   app: FastifyInstance;
-  /** The ports of the current test; they delegate to the ones the last reset built. */
-  ports: Ports;
-  /** Fresh in-memory ports for the next test — with other overrides or merchants when given — while the server stays. */
+  /** The component of the current test: it delegates to the graph the last reset built. */
+  resolve: App["resolve"];
+  /** A fresh graph for the next test — with other replacements or merchants — while the server stays. */
   resetPorts(over?: PortsReset): Promise<void>;
   close(): Promise<void>;
 }
 
-/** An object whose members are read from `current()` on every access: the ports a reset replaces. */
+/** An object whose members are read from `current()` on every access: what a reset replaces. */
 function delegating<T extends object>(current: () => T): T {
   return new Proxy({} as T, {
     get(_target, property) {
@@ -224,36 +226,46 @@ function delegating<T extends object>(current: () => T): T {
   });
 }
 
+/** What comes from the release is not rebuilt between tests, and is read as it is. */
+const fromTheRelease = (port: AnyPort): boolean => RELEASE_PORTS.some((release) => release === port);
+
 /**
- * The server built once for a file; `resetPorts()` before each test rebuilds the in-memory ports
- * (ledgers, dedup, session and visitor state, the merchant and policy directories) behind the
- * same use cases. The clock is fixed at `NOW` and the logger silent unless `overrides.ports`
- * says otherwise; the logger is the one thing a reset keeps, because Fastify's request log is
- * bound to it when the server is built (a test that captures logs starts its own app).
+ * The server built once for a file; `resetPorts()` before each test rebuilds the in-memory
+ * components (ledgers, dedup, session and visitor state, the merchant and policy directories)
+ * behind the same use cases. The clock is fixed at `NOW` and the logger silent unless a
+ * replacement says otherwise; the logger is the one thing a reset keeps, because Fastify's request
+ * log is bound to it when the server is built (a test that captures logs starts its own app).
  */
 export async function sharedTestApp(
   overrides: BootstrapOverrides = {},
   config: TestConfig = {},
 ): Promise<SharedApp> {
-  const profile = overrides.profile ?? localProfile;
-  const logger = overrides.ports?.logger ?? silentLogger();
-  const build = (over: PortsReset = {}): Ports =>
-    profile(testConfig(over.config ?? config), {
-      clock: fixedClock(),
-      ...overrides.ports,
-      ...over.ports,
-      logger,
-    }).ports;
+  const logger = silentLogger();
+  const build = (over: PortsReset = {}): ReturnType<typeof instantiate> => {
+    const graph = instantiate(localDeployment(testConfig(over.config ?? config)), [
+      replace(ClockPort, fixedClock()),
+      ...(overrides.ports ?? []),
+      ...(over.ports ?? []),
+      replace(LoggerPort, logger),
+    ]);
+    graph.resolveAll();
+    return graph;
+  };
   let current = build();
-  const entries = (Object.keys(current) as (keyof Ports)[]).map((key) => [
-    key,
-    key === "logger" ? logger : delegating(() => current[key]),
-  ]);
-  const ports = Object.fromEntries(entries) as unknown as Ports;
-  const app = await bootstrap(testConfig(config), { ...overrides, ports });
+  // Only what a technology serves is replaced: what a module composes out of it (a service, the
+  // decorators) the server builds for itself, over these, so a reset reaches it too.
+  const shared = localDeployment(testConfig(config))
+    .technologyPorts.filter((port) => !fromTheRelease(port))
+    .map((port) =>
+      replace(
+        port,
+        delegating(() => current.resolve(port) as object),
+      ),
+    );
+  const app = await bootstrap(testConfig(config), { ...overrides, ports: shared });
   return {
     app: app.app,
-    ports,
+    resolve: app.resolve,
     resetPorts: async (over) => {
       current = build(over);
       await importSeed(testConfig(over?.config ?? config), current);

@@ -3,6 +3,8 @@
 // the assertion and keep the report (specs/004-protocolo-sdk-ingesta/plan.md).
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../helpers/experiments.js";
 import {
@@ -25,7 +27,7 @@ const P95_BUDGET_MS = 50;
 
 let app: App;
 beforeAll(async () => {
-  app = await startTestApp({ ports: { clock: fixedClock() } });
+  app = await startTestApp({ ports: [replace(ClockPort, fixedClock())] });
 });
 afterAll(async () => {
   await app.close();
@@ -115,7 +117,7 @@ describe("latency of POST /v1/events (local profile)", () => {
       seed: "seed-lat",
     });
     const armApp = await startTestApp(
-      { ports: { clock: fixedClock() } },
+      { ports: [replace(ClockPort, fixedClock())] },
       {
         merchants: [
           {

@@ -3,6 +3,9 @@
 // corrective version restarts the window — and closes for good; at most one open per merchant;
 // the kill switch never touches it; nothing crosses merchants.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -46,7 +49,7 @@ const merchantBWithHoldout: MerchantSpec = { ...merchantB, declared: {} };
 let app: SharedApp;
 beforeAll(async () => {
   app = await sharedTestApp(
-    { ports: { clock: fixedClock(NOW) } },
+    { ports: [replace(ClockPort, fixedClock(NOW))] },
     { merchants: [merchantA, merchantBWithHoldout] },
   );
 });
@@ -92,7 +95,8 @@ async function decide(visitorId = "vis_00000001"): Promise<IngestResult> {
   expect(res.statusCode).toBe(202);
   return json(res) as IngestResult;
 }
-const recorded = (decisionId: string) => app.ports.decisions.find(asMerchantId(A), asDecisionId(decisionId));
+const recorded = (decisionId: string) =>
+  app.resolve(DecisionLedgerPort).find(asMerchantId(A), asDecisionId(decisionId));
 
 describe("opening an experiment (scenarios 1, 6)", () => {
   it("opens in calibration: 201 with an identifier, the split, the target, the cuts and the opening; never the seed", async () => {
@@ -199,7 +203,7 @@ describe("calibration, activation and the frozen configuration (scenarios 2, 3, 
   it("a corrective version with its reason is accepted, restarts the window, and the log keeps the version, the reason and the restart", async () => {
     // A clock the test moves: the activation and the restart happen at different instants.
     let current = new Date(NOW);
-    await app.resetPorts({ ports: { clock: { now: () => current } } });
+    await app.resetPorts({ ports: [replace(ClockPort, { now: () => current })] });
     const experiment = await opened();
     expect((await transition(experiment.experimentId, "activate")).statusCode).toBe(200);
     const later = new Date(new Date(NOW).getTime() + 60_000);

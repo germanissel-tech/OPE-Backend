@@ -2,7 +2,9 @@
 // with its credential; invariants and idempotency answer with their problem types; the truth
 // is readable right after.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { productTruthOf } from "../../src/composition/modules/catalog.js";
+import { replace } from "../../src/composition/graph/index.js";
+import { ProductTruthPort, CatalogStorePort } from "../../src/composition/modules/catalog.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -27,7 +29,7 @@ const A = asMerchantId("m_a");
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -41,7 +43,7 @@ describe("PUT /v1/catalog", () => {
     const res = await putCatalog(app.app, catalogOf(3, CAPTURED), { platformKey: PLATFORM_A });
     expect(res.statusCode).toBe(201);
     expect(json(res)).toEqual({ products: 3, variants: 3, receivedAt: NOW, observedSyncLevel: 1 });
-    const truth = await productTruthOf(app.ports).lookup(A, asProductId("P2"), asVariantId("P2-M"));
+    const truth = await app.resolve(ProductTruthPort).lookup(A, asProductId("P2"), asVariantId("P2-M"));
     expect(truth).toMatchObject({
       kind: "known",
       variant: { size: "M", available: true },
@@ -50,12 +52,12 @@ describe("PUT /v1/catalog", () => {
   });
 
   it("a store that cannot keep the snapshot → 503 ledger-unavailable with Retry-After, nothing replaced (F-044, ADR-021)", async () => {
-    await app.resetPorts({ ports: { catalog: unavailableCatalogStore() } });
+    await app.resetPorts({ ports: [replace(CatalogStorePort, unavailableCatalogStore())] });
     const res = await putCatalog(app.app, catalogOf(3, CAPTURED), { platformKey: PLATFORM_A });
     expect(res.statusCode).toBe(503);
     expect(res.headers["retry-after"]).toBe("5");
     expect(problemOf(res).type).toBe("urn:ope:problem:ledger-unavailable");
-    expect(await app.ports.catalog.current(A)).toBeUndefined();
+    expect(await app.resolve(CatalogStorePort).current(A)).toBeUndefined();
   });
 
   it("a newer snapshot replaces the whole catalogue: products that no longer come disappear", async () => {
@@ -65,7 +67,7 @@ describe("PUT /v1/catalog", () => {
     });
     expect(res.statusCode).toBe(201);
     expect((json(res) as Summary).products).toBe(1);
-    expect(await productTruthOf(app.ports).lookup(A, asProductId("P3"), asVariantId("P3-M"))).toEqual({
+    expect(await app.resolve(ProductTruthPort).lookup(A, asProductId("P3"), asVariantId("P3-M"))).toEqual({
       kind: "unknown",
       reason: "unknown-product",
     });
@@ -83,7 +85,9 @@ describe("PUT /v1/catalog", () => {
       type: "urn:ope:problem:idempotency-conflict",
       instance: "/v1/catalog",
     });
-    expect(await productTruthOf(app.ports).lookup(A, asProductId("P2"), asVariantId("P2-M"))).toMatchObject({
+    expect(
+      await app.resolve(ProductTruthPort).lookup(A, asProductId("P2"), asVariantId("P2-M")),
+    ).toMatchObject({
       kind: "known",
     });
   });
@@ -95,7 +99,7 @@ describe("PUT /v1/catalog", () => {
     });
     expect(res.statusCode).toBe(201);
     expect(json(res)).toMatchObject({ products: 0, variants: 0 });
-    expect(await productTruthOf(app.ports).lookup(A, asProductId("P1"), asVariantId("P1-M"))).toEqual({
+    expect(await app.resolve(ProductTruthPort).lookup(A, asProductId("P1"), asVariantId("P1-M"))).toEqual({
       kind: "unknown",
       reason: "unknown-product",
     });
@@ -136,7 +140,9 @@ describe("PUT /v1/catalog", () => {
       status: 422,
       instance: "/v1/catalog",
     });
-    expect(await productTruthOf(app.ports).lookup(A, asProductId("P1"), asVariantId("P1-M"))).toMatchObject({
+    expect(
+      await app.resolve(ProductTruthPort).lookup(A, asProductId("P1"), asVariantId("P1-M")),
+    ).toMatchObject({
       kind: "known",
     });
   });
@@ -148,7 +154,9 @@ describe("PUT /v1/catalog", () => {
     });
     expect(res.statusCode).toBe(422);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:catalog-out-of-order" });
-    expect(await productTruthOf(app.ports).lookup(A, asProductId("P2"), asVariantId("P2-M"))).toMatchObject({
+    expect(
+      await app.resolve(ProductTruthPort).lookup(A, asProductId("P2"), asVariantId("P2-M")),
+    ).toMatchObject({
       kind: "known",
     });
   });
@@ -163,7 +171,7 @@ describe("PUT /v1/catalog", () => {
 
   it("the observed level rises to 2 after three receipts five minutes apart", async () => {
     const clock = { at: new Date(NOW), now: (): Date => clock.at };
-    await app.resetPorts({ ports: { clock } });
+    await app.resetPorts({ ports: [replace(ClockPort, clock)] });
     let last;
     for (let i = 0; i < 3; i += 1) {
       clock.at = new Date(new Date(NOW).getTime() + i * 5 * 60_000);

@@ -7,13 +7,18 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
 import { importSeed, type App } from "../../src/composition/bootstrap.js";
 import { readConfig } from "../../src/composition/config.js";
-import { MODULES } from "../../src/composition/modules/index.js";
+import { replace, type Closable } from "../../src/composition/graph/index.js";
+import { AdminLogPort } from "../../src/composition/modules/admin.js";
+import { ExperimentStorePort } from "../../src/composition/modules/experiment.js";
+import { DecisionIdsPort } from "../../src/composition/modules/ledger.js";
+import { MerchantStorePort } from "../../src/composition/modules/merchant.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
 import { fixedClock, startTestApp, testConfig } from "../helpers/test-app.js";
-import type { Ports } from "../../src/composition/ports.js";
-import type { Module } from "../../src/composition/wiring.js";
+import type { DecisionIdGenerator } from "../../src/application/ledger/index.js";
+import type { Clock } from "../../src/application/shared-kernel/index.js";
 import type { Handlers } from "../../src/interface-adapters/http/typed.js";
 
 /** The real contract plus one public operation nobody serves, written next to the temp files. */
@@ -49,14 +54,14 @@ afterEach(async () => {
 describe("bootstrap", () => {
   it("returns the app, the ports and close(); GET /v1/health responds as always", async () => {
     app = await startTestApp();
-    expect(app.ports.clock).toBeDefined();
+    expect(app.resolve(ClockPort)).toBeDefined();
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
     expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.4.0" });
   });
 
   it("a port override replaces the profile one: the fixed clock shows in the response", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock("2026-01-01T00:00:00.000Z") } });
+    app = await startTestApp({ ports: [replace(ClockPort, fixedClock("2026-01-01T00:00:00.000Z"))] });
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(json(res)).toMatchObject({ timestamp: "2026-01-01T00:00:00.000Z" });
   });
@@ -71,12 +76,12 @@ describe("bootstrap", () => {
 
   it("close() closes the server and then the gateways exposing close(), in reverse order", async () => {
     const closed: string[] = [];
-    app = await startTestApp({
-      ports: {
-        clock: { now: () => new Date(), close: () => closed.push("clock") },
-        decisionIds: { next: () => asDecisionId("dec_x"), close: () => closed.push("ids") },
-      } as never,
-    });
+    const clock: Clock & Closable = { now: () => new Date(), close: () => void closed.push("clock") };
+    const ids: DecisionIdGenerator & Closable = {
+      next: () => asDecisionId("dec_x"),
+      close: () => void closed.push("ids"),
+    };
+    app = await startTestApp({ ports: [replace(ClockPort, clock), replace(DecisionIdsPort, ids)] });
     const closing = app;
     app = undefined;
     await closing.close();
@@ -89,21 +94,20 @@ describe("bootstrap", () => {
   it("refuses to start when the contract declares an operation no module wires", async () => {
     const contractPath = withUnwiredOperation("listOrphans");
     await expect(startTestApp({}, { contractPath })).rejects.toThrow(/no module wires: listOrphans\./);
-    const orphans: Module<Ports> = () => ({
-      handlers: { listOrphans: async () => ({ status: 200, body: {} }) } as unknown as Handlers,
-    });
-    app = await startTestApp({ modules: [...MODULES, orphans] }, { contractPath });
+    // A caller may serve what its deployment does not: the handler the contract asks for.
+    const orphans = { listOrphans: () => Promise.resolve({ status: 200, body: {} }) } as unknown as Handlers;
+    app = await startTestApp({ handlers: orphans }, { contractPath });
     expect((await app.app.inject({ method: "GET", url: "/v1/orphans" })).statusCode).toBe(200);
   });
 });
 
 describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => {
   it("an empty store imports OPE_MERCHANTS on behalf of the system operator; a populated one keeps its merchants", async () => {
-    app = await startTestApp({ ports: { clock: fixedClock("2026-09-20T12:00:00.000Z") } });
-    const merchant = await app.ports.merchantStore.get(asMerchantId("m_a"));
+    app = await startTestApp({ ports: [replace(ClockPort, fixedClock("2026-09-20T12:00:00.000Z"))] });
+    const merchant = await app.resolve(MerchantStorePort).get(asMerchantId("m_a"));
     expect(merchant?.status).toBe("active");
     expect(merchant?.createdAt).toEqual(new Date("2026-09-20T12:00:00.000Z"));
-    const log = await app.ports.adminLog.list({ limit: 10 });
+    const log = await app.resolve(AdminLogPort).list({ limit: 10 });
     expect(log.items.map((e) => [e.operation, e.operatorId, e.outcome])).toEqual([
       ["importMerchantConfiguration", "system", "accepted"],
       ["importExperiments", "system", "accepted"],
@@ -112,27 +116,25 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
     ]);
     expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });
     // The experiment of the seed is recorded as active from its opening, judged by the store (feature 017).
-    const experiment = await app.ports.experimentStore.get(
-      asMerchantId("m_a"),
-      asExperimentId("exp_a_000001"),
-    );
+    const experiment = await app
+      .resolve(ExperimentStorePort)
+      .get(asMerchantId("m_a"), asExperimentId("exp_a_000001"));
     expect(experiment?.record()).toMatchObject({
       status: "active",
       openedAt: new Date("2026-09-17T00:00:00.000Z"),
       windowStartedAt: new Date("2026-09-17T00:00:00.000Z"),
     });
     // The seed again: the merchants are kept, and so are their versions and experiments (nothing enters twice).
-    await importSeed(testConfig(), app.ports);
-    const again = await app.ports.adminLog.list({ limit: 10 });
+    await importSeed(testConfig(), app);
+    const again = await app.resolve(AdminLogPort).list({ limit: 10 });
     expect(again.items).toHaveLength(8);
-    expect((await app.ports.experimentStore.listOf(asMerchantId("m_a"), { limit: 10 })).items).toHaveLength(
-      1,
-    );
+    expect(
+      (await app.resolve(ExperimentStorePort).listOf(asMerchantId("m_a"), { limit: 10 })).items,
+    ).toHaveLength(1);
     expect(again.items.filter((e) => e.result !== undefined)).toHaveLength(2);
-    expect((await app.ports.merchantStore.list({ limit: 10 })).items.map((m) => m.merchantId)).toEqual([
-      "m_a",
-      "m_b",
-    ]);
+    expect((await app.resolve(MerchantStorePort).list({ limit: 10 })).items.map((m) => m.merchantId)).toEqual(
+      ["m_a", "m_b"],
+    );
   });
 
   it("a seed the merchant rules reject stops the start naming the field (the configuration judges it first)", () => {

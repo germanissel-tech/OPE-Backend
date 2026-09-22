@@ -3,6 +3,8 @@
 import { Writable } from "node:stream";
 import pino from "pino";
 import { afterEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { pinoLogger } from "../../src/infrastructure/logging/pino-logger.js";
 import { batchOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
@@ -27,7 +29,9 @@ function capturedLogger(): { logger: pino.Logger; lines: () => string[] } {
 describe("privacy in logs", () => {
   it("an ingest request leaves no IP, key, headers or body in the log; it does leave method, url, reqId and merchantId", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
+    app = await startTestApp({
+      ports: [replace(ClockPort, fixedClock()), replace(LoggerPort, pinoLogger(logger))],
+    });
     const batch = batchOf(2, 1, { page: { pageType: "product", productId: "SKU-SECRETO" } });
     const res = await postEvents(app.app, batch, { key: "key-a-1", remoteAddress: "203.0.113.9" });
     expect(res.statusCode).toBe(202);
@@ -51,7 +55,9 @@ describe("privacy in logs", () => {
 
   it("a request rejected by the credential does not log the key or the IP either", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { clock: fixedClock(), logger: pinoLogger(logger) } });
+    app = await startTestApp({
+      ports: [replace(ClockPort, fixedClock()), replace(LoggerPort, pinoLogger(logger))],
+    });
     await postEvents(app.app, batchOf(1), { key: "clave-robada", remoteAddress: "198.51.100.7" });
     const log = lines().join("\n");
     expect(log).not.toContain("clave-robada");
@@ -66,7 +72,7 @@ describe("operational fields in logs", () => {
   it("a handler that throws is logged with its operationId and the error", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({
-      ports: { logger: pinoLogger(logger) },
+      ports: [replace(LoggerPort, pinoLogger(logger))],
       handlers: {
         getHealth: async () => {
           throw new Error("boom");
@@ -82,7 +88,7 @@ describe("operational fields in logs", () => {
 
   it("an error escaping the transport (a hook that throws) is logged with the error, without reaching the response", async () => {
     const { logger, lines } = capturedLogger();
-    app = await startTestApp({ ports: { logger: pinoLogger(logger) } });
+    app = await startTestApp({ ports: [replace(LoggerPort, pinoLogger(logger))] });
     app.app.addHook("onRequest", async () => {
       throw new Error("boom from a hook");
     });
@@ -96,7 +102,7 @@ describe("operational fields in logs", () => {
   it("a response outside the contract is logged with operationId, status and what was declared", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({
-      ports: { logger: pinoLogger(logger) },
+      ports: [replace(LoggerPort, pinoLogger(logger))],
       handlers: { getHealth: async () => ({ status: 200, body: { status: "ok" } }) } as never,
     });
     await app.app.inject({ method: "GET", url: "/v1/health" });
@@ -110,7 +116,7 @@ describe("operational fields in logs", () => {
   it("an undeclared status is logged with the declared ones", async () => {
     const { logger, lines } = capturedLogger();
     app = await startTestApp({
-      ports: { logger: pinoLogger(logger) },
+      ports: [replace(LoggerPort, pinoLogger(logger))],
       handlers: {
         getHealth: async () => ({
           status: 203,

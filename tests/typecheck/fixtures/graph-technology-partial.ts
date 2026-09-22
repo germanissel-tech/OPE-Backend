@@ -7,5 +7,5 @@ const DirectoryPort = port("test.directory")<{ ids: () => string[] }>();
 
 export const partial = technology(
   [StorePort, DirectoryPort],
-  [bind(StorePort, [], () => ({ ids: () => [] }))],
+  [bind(StorePort, {}, () => ({ ids: () => [] }))],
 );

@@ -2,3 +2,4 @@
 // composition wires. Presenters stay internal to the module.
 export * from "./gateways/memory-session-state-store.js";
 export * from "./gateways/memory-visitor-state-store.js";
+export * from "./gateways/state-windows.js";

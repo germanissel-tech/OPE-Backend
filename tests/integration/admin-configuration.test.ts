@@ -3,6 +3,9 @@
 // published for a merchant, what the next decision stamps and obeys, the invariants, and the
 // isolation between merchants.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -46,7 +49,10 @@ const merchantA: MerchantSpec = {
 
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
+  app = await sharedTestApp(
+    { ports: [replace(ClockPort, fixedClock(NOW))] },
+    { merchants: [merchantA, merchantB] },
+  );
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -89,7 +95,8 @@ async function decide(session = "ses_00000001"): Promise<IngestResult> {
   return json(res) as IngestResult;
 }
 
-const recorded = (decisionId: string) => app.ports.decisions.find(asMerchantId(A), asDecisionId(decisionId));
+const recorded = (decisionId: string) =>
+  app.resolve(DecisionLedgerPort).find(asMerchantId(A), asDecisionId(decisionId));
 
 describe("the levels of the release (scenario 4)", () => {
   it("any operator reads the platform configuration and the treatment defaults with their versions; nothing writes them", async () => {
@@ -136,7 +143,9 @@ describe("a merchant without a version (scenario 1)", () => {
     expect(res.statusCode).toBe(202);
     const decision = (json(res) as IngestResult).decision;
     expect(decision.reason).toBe("no-active-experiment");
-    const kept = await app.ports.decisions.find(asMerchantId(id), asDecisionId(decision.decisionId));
+    const kept = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId(id), asDecisionId(decision.decisionId));
     expect(kept?.configuration).toEqual({ platform: "platform-1", defaults: "defaults-1" });
     expect(JSON.stringify(json(res))).not.toMatch(/platform-1|defaults-1/);
   });

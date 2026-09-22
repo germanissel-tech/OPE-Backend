@@ -2,6 +2,10 @@
 // decision plane through HTTP — the first INTERVENE, the reasons of the policy, what the SDK
 // sees and what the ledger keeps, and the evidence chain up to the exposure.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
+import { DecisionLedgerPort, ExposureLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
@@ -39,7 +43,7 @@ const control = merchant(0);
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [treatment] });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] }, { merchants: [treatment] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -83,7 +87,7 @@ const ingest = async (events: Record<string, unknown>[], session = "ses_00000001
 };
 
 const recorded = (decisionId: string) =>
-  app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(decisionId));
+  app.resolve(DecisionLedgerPort).find(asMerchantId("m_a"), asDecisionId(decisionId));
 
 describe("decision plane — user story 1", () => {
   it("1. two size-selector interactions and the size guide → INTERVENE at the size selector; the ledger keeps the reasoning", async () => {
@@ -223,16 +227,14 @@ describe("decision plane — user story 4, the evidence chain", () => {
     expect(again.statusCode).toBe(200);
     expect(json(again)).toMatchObject({ status: "already-recorded" });
     expect(
-      await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
+      await app.resolve(ExposureLedgerPort).find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId)),
     ).toMatchObject({
       decisionId: body.decision.decisionId,
       anchor: "size_selector",
     });
-    const assignment = await app.ports.assignments.find(
-      asMerchantId("m_a"),
-      asExperimentId("exp_a_000001"),
-      asVisitorId("vis_00000001"),
-    );
+    const assignment = await app
+      .resolve(AssignmentLedgerPort)
+      .find(asMerchantId("m_a"), asExperimentId("exp_a_000001"), asVisitorId("vis_00000001"));
     expect(assignment?.arm).toBe("TREATMENT");
   });
 

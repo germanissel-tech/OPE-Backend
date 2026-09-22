@@ -1,19 +1,27 @@
-// system module: service health.
-import { LoggedUseCase, type Clock, type Logger } from "../../application/shared-kernel/index.js";
+// system module: service health. It has no component of its own —nothing here is served by a
+// technology— so it only serves its operation.
 import { GetServiceHealthUseCase } from "../../application/system/index.js";
 import { makeGetHealth } from "../../interface-adapters/system/index.js";
-import type { Module } from "../wiring.js";
+import { compositionModule, handler, technology } from "../graph/index.js";
+import { ContractPort } from "../release.js";
+import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
 
-export interface SystemPorts {
-  clock: Clock;
-  logger: Logger;
-}
-
-export const systemModule: Module<SystemPorts> = ({ ports, contract }) => {
-  const getServiceHealth = new GetServiceHealthUseCase({
-    contract: { version: contract.info.version },
-    clock: ports.clock,
-  });
-  const logged = new LoggedUseCase("getServiceHealth", getServiceHealth, ports);
-  return { handlers: { getHealth: makeGetHealth(logged) } };
-};
+export const systemModule = compositionModule({
+  ports: [],
+  technologies: { stateless: technology([], []) },
+  serves: {
+    handlers: {
+      getHealth: handler(
+        { deco: DecoratorsPort, contract: ContractPort, clock: ClockPort },
+        // The name of the log is the name of the use case, which is not this operationId.
+        (_operation, { deco, contract, clock }) =>
+          makeGetHealth(
+            deco.logged(
+              "getServiceHealth",
+              new GetServiceHealthUseCase({ contract: { version: contract.info.version }, clock }),
+            ),
+          ),
+      ),
+    },
+  },
+});

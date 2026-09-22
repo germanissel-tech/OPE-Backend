@@ -3,6 +3,8 @@
 // decision path (constitution IV); the budget is the same as ingestion's.
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import {
   batchOf,
   fixedClock,
@@ -19,7 +21,7 @@ const P95_BUDGET_MS = 50;
 
 let app: App;
 beforeAll(async () => {
-  app = await startTestApp({ ports: { clock: fixedClock() } });
+  app = await startTestApp({ ports: [replace(ClockPort, fixedClock())] });
   // A known session, so every order goes through the correlation.
   await postEvents(app.app, batchOf(5, 1), { key: "key-a-1" });
 });

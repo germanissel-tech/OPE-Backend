@@ -64,18 +64,6 @@ describe("hardened compiler (tsconfig.json)", () => {
     expectFailure(file, code);
   });
 
-  it("a profile omitting a port of `Ports` does not compile (FR-003 of feature 004)", () => {
-    const r = compile("tsconfig.json", [path.join(fixtures, "ports-incomplete.ts")]);
-    expect(r.status).not.toBe(0);
-    // `Ports` is an intersection of module slices: the compiler names the slice the field is missing from.
-    expect(r.output).toMatch(/TS2322: Type '.*' is not assignable to type 'Ports'/);
-    // One missing field names it; several are listed: either way the slice that requires them is named.
-    expect(r.output).toMatch(
-      /(Property '\w+' is missing .* but required in|is missing the following properties from) type '\w+Ports'/,
-    );
-    expect(r.output).toContain("ports-incomplete.ts");
-  });
-
   // Feature 020 (ADR-033): the four guarantees the graph takes to compile time. What each one says
   // matters as much as that it fails: the message has to name what is missing.
   it.each([

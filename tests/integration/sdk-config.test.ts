@@ -3,6 +3,8 @@
 // kill switch travels with it, the anchors that stop resolving are kept per merchant for the
 // operator, and nothing crosses merchants.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { PlatformConfiguration } from "../../src/domain/configuration/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
@@ -45,7 +47,10 @@ const merchantA: MerchantSpec = {
 
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
+  app = await sharedTestApp(
+    { ports: [replace(ClockPort, fixedClock(NOW))] },
+    { merchants: [merchantA, merchantB] },
+  );
 });
 beforeEach(async () => {
   await app.resetPorts();

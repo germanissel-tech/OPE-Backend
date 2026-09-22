@@ -133,54 +133,54 @@ lo que hoy hereda de otros (FR-010). Los objetos anónimos que hoy hacen de impl
 pasan a gateways con nombre en esta misma fase, porque son el cuerpo del `bind` (habilita la regla de
 forma de US3).
 
-- [ ] T019 [US1] Migrar `src/composition/modules/shared-kernel.ts`: puertos de reloj, logger,
+- [x] T019 [US1] Migrar `src/composition/modules/shared-kernel.ts`: puertos de reloj, logger,
       tolerancia y del puerto de auditoría; expone el servicio de decoradores
       (`logged`/`audited` sobre el `operationId` que `handler` inyecta), que reemplaza a
       `src/composition/modules/audited.ts`
-- [ ] T020 [US1] Migrar `src/composition/modules/system.ts` (sólo sirve `getHealth`)
-- [ ] T021 [US1] Migrar `src/composition/modules/merchant.ts`: el almacén y su vista por `derive`
+- [x] T020 [US1] Migrar `src/composition/modules/system.ts` (sólo sirve `getHealth`)
+- [x] T021 [US1] Migrar `src/composition/modules/merchant.ts`: el almacén y su vista por `derive`
       (se va el cierre `store ??= …`), acuñador, política de rotación; las ocho operaciones de
       administración por `operations()`; la semilla sigue entrando por el mismo caso de uso
-- [ ] T022 [US1] Migrar `src/composition/modules/experiment.ts`: almacén y directorio por `derive`,
+- [x] T022 [US1] Migrar `src/composition/modules/experiment.ts`: almacén y directorio por `derive`,
       acuñador de identificadores, ledger de asignaciones; expone el servicio de asignación; las
       cuatro operaciones
-- [ ] T023 [US1] [P] Migrar `src/composition/modules/ledger.ts` y
+- [x] T023 [US1] [P] Migrar `src/composition/modules/ledger.ts` y
       `src/composition/modules/barrier.ts`; el módulo de barrera deja de devolver un objeto vacío
       (omite `serves`) y el del ledger expone el registrador de decisiones
-- [ ] T024 [US1] [P] Migrar `src/composition/modules/catalog.ts`: declara el puerto de sus políticas
+- [x] T024 [US1] [P] Migrar `src/composition/modules/catalog.ts`: declara el puerto de sus políticas
       (que la configuración enlazará) y expone el servicio de verdad de producto
-- [ ] T025 [US1] Migrar `src/composition/modules/decision.ts`: **deja de heredar** los puertos de
+- [x] T025 [US1] Migrar `src/composition/modules/decision.ts`: **deja de heredar** los puertos de
       experimento, catálogo, barrera y ledger; declara los suyos (estado de sesión y de visitante,
       directorio de políticas) y pide los **servicios ya construidos** de las otras autoridades;
       expone el plano de decisión; omite `serves`
-- [ ] T026 [US1] Migrar `src/composition/modules/ingestion.ts`: su deduplicación y el plano que
+- [x] T026 [US1] Migrar `src/composition/modules/ingestion.ts`: su deduplicación y el plano que
       consume, sin heredar los puertos del plano
-- [ ] T027 [US1] [P] Migrar `src/composition/modules/outcomes.ts` (tres operaciones)
-- [ ] T028 [US1] Migrar `src/composition/modules/configuration.ts`: niveles, almacén y servicio por
+- [x] T027 [US1] [P] Migrar `src/composition/modules/outcomes.ts` (tres operaciones)
+- [x] T028 [US1] Migrar `src/composition/modules/configuration.ts`: niveles, almacén y servicio por
       `derive`/enlace; enlaza los puertos de lectura que declaran decisión, catálogo y experimento
       (el mapa se lo permite); sus cinco operaciones
-- [ ] T029 [US1] Migrar `src/composition/modules/admin.ts`: registro, diagnósticos y la vista que el
+- [x] T029 [US1] Migrar `src/composition/modules/admin.ts`: registro, diagnósticos y la vista que el
       SDK puede ver de la configuración —el adaptador se muda acá desde el módulo de configuración,
       porque `admin` puede ver `configuration` y no al revés—; sus cinco operaciones
-- [ ] T030 [US1] Crear `src/composition/deployments/local.ts` (reemplaza
+- [x] T030 [US1] Crear `src/composition/deployments/local.ts` (reemplaza
       `src/composition/profiles/local.ts`): la lista de módulos con su tecnología, **sin orden
       significativo y sin un solo envoltorio perezoso**
-- [ ] T031 [US1] Reescribir `src/composition/bootstrap.ts` sobre el grafo: `resolveAll()` al
+- [x] T031 [US1] Reescribir `src/composition/bootstrap.ts` sobre el grafo: `resolveAll()` al
       arrancar, cierre en orden inverso de creación, **se conserva** la verificación de cobertura de
       operaciones contra el archivo de contrato (constitución II, research R-06)
-- [ ] T032 [US1] Migrar `tests/helpers/test-app.ts`: reemplazos por puerto (`replace(Port, doble)`),
+- [x] T032 [US1] Migrar `tests/helpers/test-app.ts`: reemplazos por puerto (`replace(Port, doble)`),
       lectura por `resolve(Port)`, y `sharedTestApp` conservando su optimización envolviendo cada
       puerto de `graph.ports` en el proxy delegante (research R-09)
-- [ ] T033 [US1] Migrar los ~49 sitios que pasan `ports: { … }` en `tests/` a reemplazos por puerto
-- [ ] T034 [US1] Migrar las ~27 lecturas `app.ports.<nombre>` en `tests/` a `resolve(Port)`
-- [ ] T035 [US1] Borrar `src/composition/ports.ts`, `src/composition/profile.ts`,
+- [x] T033 [US1] Migrar los ~49 sitios que pasan `ports: { … }` en `tests/` a reemplazos por puerto
+- [x] T034 [US1] Migrar las ~27 lecturas `app.ports.<nombre>` en `tests/` a `resolve(Port)`
+- [x] T035 [US1] Borrar `src/composition/ports.ts`, `src/composition/profile.ts`,
       `src/composition/wiring.ts`, `src/composition/modules/index.ts` y
       `src/composition/modules/audited.ts`, y reescribir las pruebas **del mecanismo reemplazado**
       (`tests/unit/composition/wiring.test.ts`, `profile.test.ts`, el fixture
       `tests/typecheck/fixtures/ports-incomplete.ts`)
-- [ ] T036 [US1] Poner al día lo que nombra los archivos borrados: `knip.json`, `eslint.config.mjs`,
+- [x] T036 [US1] Poner al día lo que nombra los archivos borrados: `knip.json`, `eslint.config.mjs`,
       `tsconfig*.json` y `.dependency-cruiser.cjs` si corresponde; `npm run check:dead-code` en verde
-- [ ] T037 [US1] Suite completa: `npm run format:check && npm run quality && npm run typecheck &&
+- [x] T037 [US1] Suite completa: `npm run format:check && npm run quality && npm run typecheck &&
 npm test`, **sin una sola aserción de comportamiento modificada**
 
 **Checkpoint**: el sistema entero corre sobre el grafo y se comporta igual.

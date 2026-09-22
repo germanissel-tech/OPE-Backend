@@ -1,6 +1,9 @@
 // Feature 017 — Phase 2 (FR-007, FR-008): the first admin path: an operator authenticates with a
 // bearer token before the body is read and reads the admin log, newest first, paginated.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { AdminLogPort } from "../../src/composition/modules/admin.js";
+import { LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { asOperatorId } from "../../src/domain/operator/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -43,7 +46,7 @@ describe("GET /v1/admin/log", () => {
   });
 
   it("an operator reads the log newest first and pages it with the cursor", async () => {
-    for (const n of [1, 2, 3]) await app.ports.adminLog.record(entry(n));
+    for (const n of [1, 2, 3]) await app.resolve(AdminLogPort).record(entry(n));
     const first = await admin(app.app, "GET", "/v1/admin/log?limit=2");
     expect(first.statusCode).toBe(200);
     const page = json(first) as { items: { operation: string; at: string }[]; nextCursor?: string };
@@ -66,14 +69,16 @@ describe("GET /v1/admin/log", () => {
   });
 
   it("an entry carries what the action produced, the code and the reason only when present", async () => {
-    await app.ports.adminLog.record({
+    await app.resolve(AdminLogPort).record({
       ...entry(1),
       operation: "publishMerchantConfiguration",
       result: { configurationVersion: 2, windowRestarted: true },
       reason: "anchor fix",
     });
-    await app.ports.adminLog.record({ ...entry(2), outcome: "rejected", code: "configuration-frozen" });
-    await app.ports.adminLog.record({
+    await app
+      .resolve(AdminLogPort)
+      .record({ ...entry(2), outcome: "rejected", code: "configuration-frozen" });
+    await app.resolve(AdminLogPort).record({
       ...entry(3),
       operation: "activateExperiment",
       result: { experimentId: asExperimentId("exp-2026-10") },
@@ -103,7 +108,7 @@ describe("GET /v1/admin/log", () => {
   });
 
   it("a scoped operator reads the whole log (it is of the platform); a limit above the contract's maximum is 400", async () => {
-    await app.ports.adminLog.record(entry(1));
+    await app.resolve(AdminLogPort).record(entry(1));
     expect((await admin(app.app, "GET", "/v1/admin/log", { as: "ops-a" })).statusCode).toBe(200);
     const res = await admin(app.app, "GET", "/v1/admin/log?limit=1000");
     expect(res.statusCode).toBe(400);
@@ -112,7 +117,7 @@ describe("GET /v1/admin/log", () => {
 
   it("the bearer token never reaches the log; the use case is logged by name", async () => {
     const { logger, entries } = recordingLogger();
-    const own = await startTestApp({ ports: { logger } });
+    const own = await startTestApp({ ports: [replace(LoggerPort, logger)] });
     try {
       await admin(own.app, "GET", "/v1/admin/log");
     } finally {

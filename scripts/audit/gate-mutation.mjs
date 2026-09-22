@@ -11,12 +11,23 @@ const RULES = ["mutation/*"];
 const call = invocation(process.argv.slice(2), { mode: "informative", scopes: ["diff"] });
 if (call.listRules) {
   emitRules(RULES);
+} else if (call.files.length === 0) {
+  // Nothing in scope, nothing to mutate: a full run of Stryker to answer "no findings in no
+  // files" costs minutes (it is what the doctor asks when it probes whether the gate answers).
+  emitFindings([]);
 } else {
   const r = capture(process.execPath, [path.join(repoRoot, "scripts", "mutation-diff.mjs"), "--json"]);
   /** @type {{ findings: { file: string; line?: number; rule: string; message: string; mode?: string }[]; error?: string }} */
   let parsed;
+  // Stryker warns on its own stdout about anything in its config it does not know (the `$comment`
+  // keys that say why each option is there): the answer is the line that parses, not the whole
+  // output.
+  const answer = r.stdout
+    .split(/\r?\n/u)
+    .reverse()
+    .find((line) => line.trimStart().startsWith("{"));
   try {
-    parsed = JSON.parse(r.stdout);
+    parsed = JSON.parse(answer ?? "");
   } catch {
     fail(`mutation-diff.mjs did not answer JSON: ${(r.stderr || r.stdout).split(/\r?\n/u)[0] ?? ""}`);
   }

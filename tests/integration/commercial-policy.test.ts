@@ -2,6 +2,9 @@
 // the commercial policy granting and blocking the incentive, cooldown and fatigue, the
 // abandonment as an amplifier (D-B) and what the ledger keeps versus what the SDK sees.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
@@ -39,7 +42,7 @@ const spec = (over: Partial<MerchantSpec> = {}): MerchantSpec => ({
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [spec()] });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] }, { merchants: [spec()] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -89,7 +92,7 @@ const ingest = async (
 };
 
 const recorded = (decisionId: string) =>
-  app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(decisionId));
+  app.resolve(DecisionLedgerPort).find(asMerchantId("m_a"), asDecisionId(decisionId));
 
 /** price barrier: price read (0.4) + cta (0.2) = 0.6 */
 const priceSignals = (from = 1) => [priceRead(from), cta(from + 1)];

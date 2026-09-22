@@ -10,3 +10,4 @@ export * from "./gateways/config-operator-directory.js";
 export * from "./gateways/memory-admin-log.js";
 export * from "./gateways/memory-anchor-diagnostics-store.js";
 export * from "./gateways/node-token-fingerprinter.js";
+export * from "./gateways/sdk-configuration.js";

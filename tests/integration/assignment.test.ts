@@ -2,6 +2,10 @@
 // assignment is recorded with the first accepted batch, once; CONTROL runs the same pipeline
 // and always resolves NO_OP `control-arm`; the arm never travels as a field.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
+import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../helpers/experiments.js";
@@ -58,7 +62,10 @@ const treatment = visitorIn("TREATMENT");
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [merchantA, merchantB] });
+  app = await sharedTestApp(
+    { ports: [replace(ClockPort, fixedClock(NOW))] },
+    { merchants: [merchantA, merchantB] },
+  );
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -68,7 +75,9 @@ afterAll(async () => {
 });
 const batchFor = (visitorId: string, n: number, from = 1) => batchOf(n, from, { occurredAt: NOW, visitorId });
 const find = (visitorId: string) =>
-  app.ports.assignments.find(asMerchantId("m_a"), asExperimentId(EXPERIMENT_ID), asVisitorId(visitorId));
+  app
+    .resolve(AssignmentLedgerPort)
+    .find(asMerchantId("m_a"), asExperimentId(EXPERIMENT_ID), asVisitorId(visitorId));
 
 describe("assignment (ASSIGNED)", () => {
   it("the first accepted batch records one assignment with merchant, experiment, visitor, arm and the clock's instant", async () => {
@@ -116,20 +125,18 @@ describe("assignment (ASSIGNED)", () => {
     const res = await postEvents(app.app, batchFor(control, 2), { key: KEY });
     const body = json(res) as IngestResult;
     expect(body).toMatchObject({ accepted: 2, decision: { outcome: "NO_OP", reason: "control-arm" } });
-    const decision = await app.ports.decisions.find(
-      asMerchantId("m_a"),
-      asDecisionId(body.decision.decisionId),
-    );
+    const decision = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId));
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "CONTROL" });
   });
 
   it("TREATMENT goes through the decision plane (no signal → barrier-unclear) and records the arm too", async () => {
     const body = json(await postEvents(app.app, batchFor(treatment, 1), { key: KEY })) as IngestResult;
     expect(body.decision.reason).toBe("barrier-unclear");
-    const decision = await app.ports.decisions.find(
-      asMerchantId("m_a"),
-      asDecisionId(body.decision.decisionId),
-    );
+    const decision = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId("m_a"), asDecisionId(body.decision.decisionId));
     expect(decision?.experiment).toEqual({ experimentId: EXPERIMENT_ID, arm: "TREATMENT" });
   });
 
@@ -137,16 +144,13 @@ describe("assignment (ASSIGNED)", () => {
     const body = json(await postEvents(app.app, batchFor(control, 1), { key: "key-b-1" })) as IngestResult;
     expect(body.decision.reason).toBe("no-active-experiment");
     expect(
-      await app.ports.assignments.find(
-        asMerchantId("m_b"),
-        asExperimentId(EXPERIMENT_ID),
-        asVisitorId(control),
-      ),
+      await app
+        .resolve(AssignmentLedgerPort)
+        .find(asMerchantId("m_b"), asExperimentId(EXPERIMENT_ID), asVisitorId(control)),
     ).toBeUndefined();
-    const decision = await app.ports.decisions.find(
-      asMerchantId("m_b"),
-      asDecisionId(body.decision.decisionId),
-    );
+    const decision = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId("m_b"), asDecisionId(body.decision.decisionId));
     expect(decision?.experiment).toBeUndefined();
   });
 

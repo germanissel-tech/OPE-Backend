@@ -14,7 +14,7 @@ const StorePort = port("test.store")<{ ids: () => string[] }>();
 const store = compositionModule({
   ports: [StorePort],
   technologies: {
-    memory: technology([StorePort], [bind(StorePort, [ClockPort], () => ({ ids: () => [] }))]),
+    memory: technology([StorePort], [bind(StorePort, { clock: ClockPort }, () => ({ ids: () => [] }))]),
   },
 });
 

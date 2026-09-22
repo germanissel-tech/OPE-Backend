@@ -1,8 +1,8 @@
 // experiment module (ADR-022, ADR-031; 03 §4.10): the experiments of every merchant — their store,
 // the directory the assignment reads from the same instance (an experiment opened, activated or
-// closed by the administration counts on the next batch), where assignments are recorded, and
-// the administration of experiments. The ingestion module asks it for the arm; the holdout it
-// judges the split against is what the configuration resolves for the merchant.
+// closed by the administration counts on the next batch), where assignments are recorded, and the
+// administration of experiments. It exposes the assignment the decision plane asks for; the
+// holdout its split is judged against is what the configuration resolves for the merchant.
 import {
   ActivateExperimentUseCase,
   CloseExperimentUseCase,
@@ -15,116 +15,137 @@ import {
   type AssignmentService,
   type ExperimentDirectory,
   type ExperimentIdMinter,
+  type ExperimentLookupService,
   type ExperimentStore,
   type HoldoutSource,
   type ImportExperimentsRequest,
   type ImportExperimentsResponse,
 } from "../../application/experiment/index.js";
-import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
-  AuditedUseCase,
-  type AuditTrail,
-  type Clock,
-  type Logger,
-  type UseCase,
-} from "../../application/shared-kernel/index.js";
-import {
-  memoryAssignmentLedger,
-  memoryExperimentStore,
-  nodeExperimentIdMinter,
   makeActivateExperiment,
   makeCloseExperiment,
   makeCreateExperiment,
   makeListExperiments,
+  memoryAssignmentLedger,
+  memoryExperimentStore,
+  nodeExperimentIdMinter,
 } from "../../interface-adapters/experiment/index.js";
-import { auditedWiring } from "./audited.js";
-import type { ConfigurationService } from "../../application/configuration/index.js";
+import { bind, compositionModule, derive, handler, port, technology } from "../graph/index.js";
+import { ScopedMerchantsPort } from "./merchant.js";
+import { ClockPort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
+import type { UseCase } from "../../application/shared-kernel/index.js";
 import type { AdminResult } from "../../domain/admin/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
 import type { DomainError, Result } from "../../domain/shared-kernel/index.js";
-import type { Bindings, Module } from "../wiring.js";
 
-export interface ExperimentPorts {
-  clock: Clock;
-  logger: Logger;
-  /** The directory the assignment reads: served by the same instance as the store. */
-  experiments: ExperimentDirectory;
-  experimentStore: ExperimentStore;
-  experimentIds: ExperimentIdMinter;
-  /** What the merchant keeps out of OPE (level 2 of the configuration, overridden by the merchant). */
-  holdout: HoldoutSource;
-  assignments: AssignmentLedger;
-  merchantStore: MerchantStore;
-  auditTrail: AuditTrail;
-}
+export const ExperimentStorePort = port("experiment.store")<ExperimentStore>();
+/** The directory the assignment reads: the very instance of the store. */
+export const ExperimentDirectoryPort = port("experiment.directory")<ExperimentDirectory>();
+const ExperimentIdsPort = port("experiment.ids")<ExperimentIdMinter>();
+export const AssignmentLedgerPort = port("experiment.assignments")<AssignmentLedger>();
+/** What the merchant keeps out of OPE (level 2, overridden by the merchant): the configuration binds it. */
+export const HoldoutPort = port("experiment.holdout")<HoldoutSource>();
+/** How the administration of one experiment finds it within the scope of its operator. */
+const ExperimentLookupPort = port("experiment.lookup")<ExperimentLookupService>();
+/** What the decision plane asks for: the arm of a visitor. */
+export const AssignmentPort = port("experiment.assignment")<AssignmentService>();
+/** The experiments of the seed enter an empty store through the same use case as the API. */
+export const ImportExperimentsPort =
+  port("experiment.import")<UseCase<ImportExperimentsRequest, ImportExperimentsResponse>>();
 
-/** The experiments in memory (one instance behind both ports), identifiers with the crypto of Node, assignments in memory. */
-export const memoryExperimentPorts = (): Bindings<
-  Pick<ExperimentPorts, "experiments" | "experimentStore" | "experimentIds" | "assignments">
-> => {
-  let store: ReturnType<typeof memoryExperimentStore> | undefined;
-  const shared = (): ReturnType<typeof memoryExperimentStore> => (store ??= memoryExperimentStore());
-  return {
-    experiments: shared,
-    experimentStore: shared,
-    experimentIds: () => nodeExperimentIdMinter,
-    assignments: memoryAssignmentLedger,
-  };
-};
+/** The instance the memory technology builds: it serves both views of the experiments. */
+const MemoryExperimentsPort = port("experiment.memory")<ExperimentStore & ExperimentDirectory>();
 
-/** The holdout of each merchant as its effective configuration resolves it. */
-export const configuredExperimentPorts = (
-  configuration: () => ConfigurationService,
-): Bindings<Pick<ExperimentPorts, "holdout">> => ({
-  holdout: () => ({
-    holdoutShareFor: async (merchantId) =>
-      (await configuration().effectiveFor(merchantId)).values.holdoutShare,
-  }),
-});
+const PORTS = [
+  ExperimentStorePort,
+  ExperimentDirectoryPort,
+  ExperimentIdsPort,
+  AssignmentLedgerPort,
+] as const;
 
-/** The service the ingestion module needs; built here so the wiring of the arm lives with its module. */
-export const assignmentServiceOf = (ports: ExperimentPorts): AssignmentService =>
-  new DefaultAssignmentService(ports);
+/** What the administration of an experiment writes in the audit entry. */
+const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AdminResult | undefined =>
+  r.ok ? { experimentId: r.value.experimentId } : undefined;
 
-/** The experiments the seed declares enter an empty store through the same use case as the API, audited as the system (ADR-031). */
-export const importExperimentsOf = (
-  ports: ExperimentPorts,
-): UseCase<ImportExperimentsRequest, ImportExperimentsResponse> =>
-  new AuditedUseCase(
-    "importExperiments",
-    new ImportExperimentsUseCase({ experiments: ports.experimentStore }),
-    { log: ports.auditTrail, clock: ports.clock },
-  );
-
-export const experimentModule: Module<ExperimentPorts> = ({ ports }) => {
-  const { clock, experimentStore: experiments, experimentIds: minter, holdout } = ports;
-  const { logged, admin } = auditedWiring(ports);
-  const scoped = new DefaultScopedMerchantService({ merchants: ports.merchantStore });
-  const lookup = new DefaultExperimentLookupService({ scoped, experiments });
-  const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AdminResult | undefined =>
-    r.ok ? { experimentId: r.value.experimentId } : undefined;
-  return {
+export const experimentModule = compositionModule({
+  ports: PORTS,
+  technologies: {
+    memory: technology(PORTS, [
+      // One instance, two views: what the administration writes and what the assignment reads.
+      bind(MemoryExperimentsPort, {}, () => memoryExperimentStore()),
+      derive(ExperimentStorePort, MemoryExperimentsPort),
+      derive(ExperimentDirectoryPort, MemoryExperimentsPort),
+      bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
+      bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
+    ]),
+  },
+  exposes: [
+    bind(
+      ExperimentLookupPort,
+      { scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },
+      (deps) => new DefaultExperimentLookupService(deps),
+    ),
+    bind(
+      AssignmentPort,
+      {
+        experiments: ExperimentDirectoryPort,
+        assignments: AssignmentLedgerPort,
+        clock: ClockPort,
+        logger: LoggerPort,
+      },
+      (deps) => new DefaultAssignmentService(deps),
+    ),
+    bind(
+      ImportExperimentsPort,
+      { deco: DecoratorsPort, experiments: ExperimentStorePort },
+      ({ deco, ...deps }) => deco.audited("importExperiments", new ImportExperimentsUseCase(deps)),
+    ),
+  ],
+  serves: {
     handlers: {
-      createExperiment: makeCreateExperiment(
-        admin(
-          "createExperiment",
-          new CreateExperimentUseCase({ scoped, experiments, holdout, minter, clock }),
-          { result: experimentId },
-        ),
+      createExperiment: handler(
+        {
+          deco: DecoratorsPort,
+          scoped: ScopedMerchantsPort,
+          experiments: ExperimentStorePort,
+          holdout: HoldoutPort,
+          minter: ExperimentIdsPort,
+          clock: ClockPort,
+        },
+        (operation, { deco, ...deps }) =>
+          makeCreateExperiment(
+            deco.administered(operation, new CreateExperimentUseCase(deps), { result: experimentId }),
+          ),
       ),
-      listExperiments: makeListExperiments(
-        logged("listExperiments", new ListExperimentsUseCase({ scoped, experiments })),
+      listExperiments: handler(
+        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },
+        (operation, { deco, ...deps }) =>
+          makeListExperiments(deco.logged(operation, new ListExperimentsUseCase(deps))),
       ),
-      activateExperiment: makeActivateExperiment(
-        admin("activateExperiment", new ActivateExperimentUseCase({ lookup, experiments, clock }), {
-          result: experimentId,
-        }),
+      activateExperiment: handler(
+        {
+          deco: DecoratorsPort,
+          lookup: ExperimentLookupPort,
+          experiments: ExperimentStorePort,
+          clock: ClockPort,
+        },
+        (operation, { deco, ...deps }) =>
+          makeActivateExperiment(
+            deco.administered(operation, new ActivateExperimentUseCase(deps), { result: experimentId }),
+          ),
       ),
-      closeExperiment: makeCloseExperiment(
-        admin("closeExperiment", new CloseExperimentUseCase({ lookup, experiments, clock }), {
-          result: experimentId,
-        }),
+      closeExperiment: handler(
+        {
+          deco: DecoratorsPort,
+          lookup: ExperimentLookupPort,
+          experiments: ExperimentStorePort,
+          clock: ClockPort,
+        },
+        (operation, { deco, ...deps }) =>
+          makeCloseExperiment(
+            deco.administered(operation, new CloseExperimentUseCase(deps), { result: experimentId }),
+          ),
       ),
     },
-  };
-};
+  },
+});

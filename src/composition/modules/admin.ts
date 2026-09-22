@@ -1,8 +1,8 @@
-// Admin module (ADR-031): the operators of OPE, the admin log and the anchor diagnostics. It
-// wires the `adminToken` security scheme the way merchant wires the credentials of the SDK and
-// the platform, serves the operations that are of the platform rather than of one merchant, and
-// what the SDK reads and reports of its merchant (01 §3.1.1): its configuration and the anchors
-// that stopped resolving.
+// Admin module (ADR-031, ADR-034): the operators of OPE, the record of what they do and the
+// anchor diagnostics. It owns the log —one instance behind two views: the reads of the
+// administration and the write port of the kernel every module audits through— and serves what
+// the SDK reads and reports of its merchant (01 §3.1.1): its configuration and the anchors that
+// stopped resolving.
 import {
   DefaultAdminTokenResolver,
   GetSdkConfigUseCase,
@@ -16,118 +16,97 @@ import {
   type SdkConfigurationSource,
   type TokenFingerprinter,
 } from "../../application/admin/index.js";
-import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
-  LoggedUseCase,
-  type AuditTrail,
-  type Clock,
-  type Logger,
-  type UseCase,
-} from "../../application/shared-kernel/index.js";
-import {
+  ADMIN_TOKEN_HEADER,
+  ADMIN_TOKEN_SCHEME,
   configOperatorDirectory,
-  memoryAdminLog,
-  memoryAnchorDiagnosticsStore,
-  nodeTokenFingerprinter,
+  makeAdminTokenSecurity,
   makeGetSdkConfig,
   makeListAdminLog,
   makeListAnchorDiagnostics,
   makeListMerchantAdminLog,
   makeReportAnchorDiagnostics,
-  ADMIN_TOKEN_HEADER,
-  ADMIN_TOKEN_SCHEME,
-  makeAdminTokenSecurity,
+  memoryAdminLog,
+  memoryAnchorDiagnosticsStore,
+  nodeTokenFingerprinter,
+  sdkConfigurationOf,
 } from "../../interface-adapters/admin/index.js";
-import { sdkConfigurationOf } from "./configuration.js";
-import type { ConfigurationService } from "../../application/configuration/index.js";
-import type { PlatformConfiguration } from "../../domain/configuration/index.js";
-import type { Operator } from "../../domain/operator/index.js";
-import type { Bindings, Module } from "../wiring.js";
+import { bind, compositionModule, derive, handler, port, technology, uses } from "../graph/index.js";
+import { OperatorsPort, PlatformConfigurationPort } from "../release.js";
+import { ConfigurationServicePort } from "./configuration.js";
+import { ScopedMerchantsPort } from "./merchant.js";
+import { AuditTrailPort, ClockPort, DecoratorsPort } from "./shared-kernel.js";
 
-export interface AdminPorts {
-  clock: Clock;
-  logger: Logger;
-  operators: OperatorDirectory;
-  fingerprints: TokenFingerprinter;
-  adminLog: AdminLog;
-  /** Where every module that audits writes (ADR-034). */
-  auditTrail: AuditTrail;
-  diagnostics: AnchorDiagnosticsStore;
-  /** What the SDK may see of the configuration of its merchant. */
-  sdkConfiguration: SdkConfigurationSource;
-  merchantStore: MerchantStore;
-}
+export const AdminLogPort = port("admin.log")<AdminLog>();
+const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>();
+const OperatorDirectoryPort = port("admin.operators")<OperatorDirectory>();
+const TokenFingerprinterPort = port("admin.fingerprints")<TokenFingerprinter>();
+/** What the SDK may see of the configuration of its merchant. */
+const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
-/** Operators as the configuration lists them; fingerprints with Node's crypto. */
-export const configAdminPorts = (
-  operators: readonly Operator[],
-): Bindings<Pick<AdminPorts, "operators" | "fingerprints">> => ({
-  operators: () => configOperatorDirectory(operators),
-  fingerprints: () => nodeTokenFingerprinter,
-});
+const PORTS = [
+  AdminLogPort,
+  AuditTrailPort,
+  AnchorDiagnosticsPort,
+  OperatorDirectoryPort,
+  TokenFingerprinterPort,
+  SdkConfigurationPort,
+] as const;
 
-/**
- * The log and the diagnostics in memory; how many diagnostics are kept is the platform's (level 1).
- * One instance behind two views: the administration reads the log, and every module that audits
- * writes to the same one through the kernel's port (ADR-034).
- */
-export const memoryAdminPorts = (
-  platform: PlatformConfiguration,
-): Bindings<Pick<AdminPorts, "adminLog" | "auditTrail" | "diagnostics">> => {
-  let log: AdminLog | undefined;
-  const shared = (): AdminLog => (log ??= memoryAdminLog());
-  return {
-    adminLog: shared,
-    auditTrail: shared,
-    diagnostics: () => memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
-  };
-};
-
-/** The SDK view of the configuration, from the resolution the configuration module serves. */
-export const configuredAdminPorts = (
-  configuration: () => ConfigurationService,
-): Bindings<Pick<AdminPorts, "sdkConfiguration">> => ({
-  sdkConfiguration: () => sdkConfigurationOf(configuration()),
-});
-
-export const adminModule: Module<AdminPorts> = ({ ports }) => {
-  const { clock, logger, adminLog, diagnostics } = ports;
-  const logged = <I, O>(operation: string, inner: UseCase<I, O>): UseCase<I, O> =>
-    new LoggedUseCase(operation, inner, { clock, logger });
-  const scoped = new DefaultScopedMerchantService({ merchants: ports.merchantStore });
-  const resolver = new DefaultAdminTokenResolver({
-    operators: ports.operators,
-    fingerprints: ports.fingerprints,
-  });
-  const listAdminLog = new LoggedUseCase("listAdminLog", new ListAdminLogUseCase({ log: adminLog }), {
-    clock,
-    logger,
-  });
-  return {
+export const adminModule = compositionModule({
+  ports: PORTS,
+  technologies: {
+    memory: technology(PORTS, [
+      bind(AdminLogPort, {}, () => memoryAdminLog()),
+      // One instance, two views: what the administration reads and what every module writes.
+      derive(AuditTrailPort, AdminLogPort),
+      bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+        memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+      ),
+      bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
+        configOperatorDirectory(operators),
+      ),
+      bind(TokenFingerprinterPort, {}, () => nodeTokenFingerprinter),
+      bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+        sdkConfigurationOf(configuration),
+      ),
+    ]),
+  },
+  serves: {
     security: {
-      [ADMIN_TOKEN_SCHEME]: {
-        handler: makeAdminTokenSecurity(resolver),
-        header: ADMIN_TOKEN_HEADER,
-        consumer: "server",
-      },
-    },
-    handlers: {
-      listAdminLog: makeListAdminLog(listAdminLog),
-      listMerchantAdminLog: makeListMerchantAdminLog(
-        new LoggedUseCase("listMerchantAdminLog", new ListMerchantAdminLogUseCase({ log: adminLog }), {
-          clock,
-          logger,
+      [ADMIN_TOKEN_SCHEME]: uses(
+        { operators: OperatorDirectoryPort, fingerprints: TokenFingerprinterPort },
+        (deps) => ({
+          handler: makeAdminTokenSecurity(new DefaultAdminTokenResolver(deps)),
+          header: ADMIN_TOKEN_HEADER,
+          consumer: "server",
         }),
       ),
-      getSdkConfig: makeGetSdkConfig(
-        logged("getSdkConfig", new GetSdkConfigUseCase({ configuration: ports.sdkConfiguration })),
+    },
+    handlers: {
+      listAdminLog: handler({ deco: DecoratorsPort, log: AdminLogPort }, (operation, { deco, ...deps }) =>
+        makeListAdminLog(deco.logged(operation, new ListAdminLogUseCase(deps))),
       ),
-      reportAnchorDiagnostics: makeReportAnchorDiagnostics(
-        logged("reportAnchorDiagnostics", new ReportAnchorDiagnosticsUseCase({ diagnostics, clock })),
+      listMerchantAdminLog: handler(
+        { deco: DecoratorsPort, log: AdminLogPort },
+        (operation, { deco, ...deps }) =>
+          makeListMerchantAdminLog(deco.logged(operation, new ListMerchantAdminLogUseCase(deps))),
       ),
-      listAnchorDiagnostics: makeListAnchorDiagnostics(
-        logged("listAnchorDiagnostics", new ListAnchorDiagnosticsUseCase({ scoped, diagnostics })),
+      getSdkConfig: handler(
+        { deco: DecoratorsPort, configuration: SdkConfigurationPort },
+        (operation, { deco, ...deps }) =>
+          makeGetSdkConfig(deco.logged(operation, new GetSdkConfigUseCase(deps))),
+      ),
+      reportAnchorDiagnostics: handler(
+        { deco: DecoratorsPort, diagnostics: AnchorDiagnosticsPort, clock: ClockPort },
+        (operation, { deco, ...deps }) =>
+          makeReportAnchorDiagnostics(deco.logged(operation, new ReportAnchorDiagnosticsUseCase(deps))),
+      ),
+      listAnchorDiagnostics: handler(
+        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, diagnostics: AnchorDiagnosticsPort },
+        (operation, { deco, ...deps }) =>
+          makeListAnchorDiagnostics(deco.logged(operation, new ListAnchorDiagnosticsUseCase(deps))),
       ),
     },
-  };
-};
+  },
+});

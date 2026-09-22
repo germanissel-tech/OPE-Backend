@@ -13,3 +13,5 @@ export * from "./security/platform-key.js";
 export * from "./gateways/memory-merchant-store.js";
 export * from "./gateways/node-credential-minter.js";
 export * from "./gateways/node-message-authenticator.js";
+export * from "./gateways/rotation-policy.js";
+export * from "./gateways/signature-window.js";

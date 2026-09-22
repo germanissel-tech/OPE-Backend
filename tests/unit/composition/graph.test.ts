@@ -10,7 +10,6 @@ import {
   port,
   replace,
   type Deployment,
-  type Serves,
 } from "../../../src/composition/graph/index.js";
 
 interface Store {
@@ -40,20 +39,21 @@ function counting(): { built: string[]; plan: Deployment<string> } {
   const built: string[] = [];
   const plan: Deployment<string> = {
     bindings: [
-      bind(ClockPort, [], () => {
+      bind(ClockPort, {}, () => {
         built.push("clock");
         return { now: () => 0 };
       }),
-      bind(StorePort, [], () => {
+      bind(StorePort, {}, () => {
         built.push("store");
         return memoryStore();
       }),
       derive(DirectoryPort, StorePort),
-      bind(CounterPort, [StorePort, ClockPort], (store, clock) => {
+      bind(CounterPort, { store: StorePort, clock: ClockPort }, ({ store, clock }) => {
         built.push("counter");
         return { n: store.ids().length + clock.now() };
       }),
     ],
+    technologyPorts: [],
     serves: [],
   };
   return { built, plan };
@@ -81,7 +81,11 @@ describe("the graph of one boot (ADR-033)", () => {
 
   it("the order of the bindings does not change the result", () => {
     const { plan } = counting();
-    const reversed: Deployment<string> = { bindings: [...plan.bindings].reverse(), serves: [] };
+    const reversed: Deployment<string> = {
+      bindings: [...plan.bindings].reverse(),
+      technologyPorts: [],
+      serves: [],
+    };
     expect(instantiate(reversed).resolve(CounterPort).n).toBe(0);
   });
 
@@ -96,9 +100,10 @@ describe("the graph of one boot (ADR-033)", () => {
     const BPort = port("test.b")<Counter>();
     const plan: Deployment<string> = {
       bindings: [
-        bind(APort, [BPort], (b) => ({ n: b.n + 1 })),
-        bind(BPort, [APort], (a) => ({ n: a.n + 1 })),
+        bind(APort, { b: BPort }, ({ b }) => ({ n: b.n + 1 })),
+        bind(BPort, { a: APort }, ({ a }) => ({ n: a.n + 1 })),
       ],
+      technologyPorts: [],
       serves: [],
     };
     expect(() => instantiate(plan).resolve(APort)).toThrow(
@@ -107,7 +112,11 @@ describe("the graph of one boot (ADR-033)", () => {
   });
 
   it("a component nobody provides fails naming it", () => {
-    const plan: Deployment<string> = { bindings: [derive(DirectoryPort, StorePort)], serves: [] };
+    const plan: Deployment<string> = {
+      bindings: [derive(DirectoryPort, StorePort)],
+      technologyPorts: [],
+      serves: [],
+    };
     expect(() => instantiate(plan).resolve(DirectoryPort)).toThrow(
       'No provider for "test.store" in this deployment.',
     );
@@ -124,9 +133,10 @@ describe("the graph of one boot (ADR-033)", () => {
     const closed: string[] = [];
     const plan: Deployment<string> = {
       bindings: [
-        bind(ClosablePort, [], () => ({ close: () => void closed.push("bound") })),
-        bind(CounterPort, [ClosablePort], () => ({ n: 0 })),
+        bind(ClosablePort, {}, () => ({ close: () => void closed.push("bound") })),
+        bind(CounterPort, { closable: ClosablePort }, () => ({ n: 0 })),
       ],
+      technologyPorts: [],
       serves: [],
     };
     const graph = instantiate(plan, [replace(ClosablePort, { close: () => void closed.push("override") })]);
@@ -143,24 +153,34 @@ describe("the graph of one boot (ADR-033)", () => {
     expect(graph.ports.map((p) => p.label)).toContain("test.store");
   });
 
-  it("two modules claiming one security scheme is a wiring error", () => {
-    const scheme: Serves = {
-      security: { ingestKey: { deps: [], build: () => ({}) } },
-    };
-    const plan: Deployment<string> = { bindings: [], serves: [scheme, scheme] };
-    expect(() => instantiate(plan).wire()).toThrow('Two modules wire the security scheme "ingestKey".');
+  it.each([
+    [
+      "operation",
+      { handlers: { getHealth: { needs: {}, build: () => undefined } } },
+      'Two modules wire the operation "getHealth".',
+    ],
+    [
+      "security scheme",
+      { security: { ingestKey: { needs: {}, build: () => ({}) } } },
+      'Two modules wire the security scheme "ingestKey".',
+    ],
+    ["CORS policy", { cors: { needs: {}, build: () => ({}) } }, "Two modules declare the CORS policy."],
+  ])("two modules claiming one %s is a wiring error, not a silent override", (_what, serves, message) => {
+    const plan: Deployment<string> = { bindings: [], technologyPorts: [], serves: [serves, serves] };
+    expect(() => instantiate(plan).wire()).toThrow(message);
   });
 
   it("what a module serves is built with the components it named", () => {
     const plan: Deployment<string> = {
-      bindings: [bind(StorePort, [], memoryStore)],
+      bindings: [bind(StorePort, {}, memoryStore)],
+      technologyPorts: [],
       serves: [
         {
           security: {
             ingestKey: {
-              deps: [StorePort],
+              needs: { store: StorePort },
               build: (...args: never[]) => {
-                const [store] = args as unknown as [Store];
+                const [{ store }] = args as unknown as [{ store: Store }];
                 store.put("served");
                 return {};
               },

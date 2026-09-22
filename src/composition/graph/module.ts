@@ -5,8 +5,8 @@
 //
 // The library knows the three shapes the server is wired with (handlers, security schemes, CORS)
 // and nothing about any feature module: those types come from the contract, not from a module.
-import type { Binding, NeedsOf, ProvidesOf } from "./binding.js";
-import type { AnyPort, Label, Values } from "./port.js";
+import type { Binding, ProvidesOf, RequiresOf } from "./binding.js";
+import type { AnyPort, Label, Needs, Resolved } from "./port.js";
 import type { CorsPolicy } from "../../infrastructure/http/cors.js";
 import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
 
@@ -21,10 +21,10 @@ export interface Unserved<L extends string> {
 }
 
 /** The set of bindings with which one technology serves the ports of a module. */
-export interface Technology<Provides extends string, Needs extends string> {
+export interface Technology<Provides extends string, Requires extends string> {
   readonly bindings: readonly Binding[];
   readonly [PROVIDED]?: Provides;
-  readonly [REQUIRED]?: Needs;
+  readonly [REQUIRED]?: Requires;
 }
 
 /**
@@ -39,7 +39,7 @@ export function technology<const P extends readonly AnyPort[], const B extends r
     (Exclude<Label<P[number]>, ProvidesOf<B[number]>> extends never
       ? unknown
       : Unserved<Exclude<Label<P[number]>, ProvidesOf<B[number]>>>),
-): Technology<ProvidesOf<B[number]>, NeedsOf<B[number]>> {
+): Technology<ProvidesOf<B[number]>, RequiresOf<B[number]>> {
   return { bindings };
 }
 
@@ -48,37 +48,37 @@ export function technology<const P extends readonly AnyPort[], const B extends r
  * phantom —the builder itself is stored widened, the way a binding is— so that a recipe written
  * for one operation cannot be put in the slot of another.
  */
-export interface Recipe<T, Needs extends string = string> {
-  readonly deps: readonly AnyPort[];
-  readonly build: (...args: never[]) => unknown;
+export interface Recipe<T, Requires extends string = string> {
+  readonly needs: Needs;
+  readonly build: (resolved: never) => unknown;
   readonly [BUILT]?: T;
-  readonly [REQUIRED]?: Needs;
+  readonly [REQUIRED]?: Requires;
 }
 
 /**
  * A handler: its builder also receives the operationId, which the key of the map gives (FR-022).
  * The stored builder is widened like any other —the instance calls it with the operation first and
- * then the resolved components—; `handler()` below is what types the author's side of it.
+ * then what the recipe needs—; `handler()` below is what types the author's side of it.
  */
-export interface HandlerRecipe<T, Needs extends string = string> {
-  readonly deps: readonly AnyPort[];
+export interface HandlerRecipe<T, Requires extends string = string> {
+  readonly needs: Needs;
   readonly build: (...args: never[]) => unknown;
   readonly [BUILT]?: T;
-  readonly [REQUIRED]?: Needs;
+  readonly [REQUIRED]?: Requires;
 }
 
-export function uses<T, const D extends readonly AnyPort[]>(
-  deps: D,
-  build: (...args: Values<D>) => T,
-): Recipe<T, Label<D[number]>> {
-  return { deps, build };
+export function uses<T, const D extends Needs>(
+  needs: D,
+  build: (resolved: Resolved<D>) => T,
+): Recipe<T, Label<D[keyof D]>> {
+  return { needs, build };
 }
 
-export function handler<T, const D extends readonly AnyPort[]>(
-  deps: D,
-  build: (operation: string, ...args: Values<D>) => T,
-): HandlerRecipe<T, Label<D[number]>> {
-  return { deps, build };
+export function handler<T, const D extends Needs>(
+  needs: D,
+  build: (operation: string, resolved: Resolved<D>) => T,
+): HandlerRecipe<T, Label<D[keyof D]>> {
+  return { needs, build };
 }
 
 /** What a module contributes to the server. The key of a handler is its operationId. */
@@ -96,12 +96,12 @@ export interface ModuleShape {
   readonly serves?: Serves;
 }
 
-type NeedsOfRecipe<R> = R extends Recipe<unknown, infer N> ? N : never;
-type NeedsOfHandler<R> = R extends HandlerRecipe<unknown, infer N> ? N : never;
-type NeedsOfServes<S> = S extends Serves
-  ? | NeedsOfHandler<NonNullable<S["handlers"]>[keyof NonNullable<S["handlers"]>]>
-    | NeedsOfRecipe<NonNullable<S["security"]>[keyof NonNullable<S["security"]>]>
-    | NeedsOfRecipe<S["cors"]>
+type RequiresOfRecipe<R> = R extends Recipe<unknown, infer N> ? N : never;
+type RequiresOfHandler<R> = R extends HandlerRecipe<unknown, infer N> ? N : never;
+type RequiresOfServes<S> = S extends Serves
+  ? | RequiresOfHandler<NonNullable<S["handlers"]>[keyof NonNullable<S["handlers"]>]>
+    | RequiresOfRecipe<NonNullable<S["security"]>[keyof NonNullable<S["security"]>]>
+    | RequiresOfRecipe<S["cors"]>
   : never;
 
 type Exposed<M extends ModuleShape> = M["exposes"] extends readonly Binding[] ? M["exposes"][number] : never;
@@ -111,11 +111,17 @@ type OperationsOf<M extends ModuleShape> = M["serves"] extends Serves
   : never;
 
 /** One module of a deployment, with its technology already chosen. */
-export interface Deployed<Provides extends string, Needs extends string, Operations extends keyof Handlers> {
+export interface Deployed<
+  Provides extends string,
+  Requires extends string,
+  Operations extends keyof Handlers,
+> {
   readonly bindings: readonly Binding[];
+  /** What the chosen technology serves: the leaves of this module, which a test may replace. */
+  readonly technologyPorts: readonly AnyPort[];
   readonly serves: Serves;
   readonly [PROVIDED]?: Provides;
-  readonly [REQUIRED]?: Needs;
+  readonly [REQUIRED]?: Requires;
   readonly [SERVED_OPERATIONS]?: Operations;
 }
 
@@ -125,18 +131,22 @@ export interface CompositionModule<M extends ModuleShape> {
     name: K,
   ): Deployed<
     (Chosen<M, K> extends Technology<infer P, string> ? P : never) | ProvidesOf<Exposed<M>>,
-    | (Chosen<M, K> extends Technology<string, infer N> ? N : never)
-    | NeedsOf<Exposed<M>>
-    | NeedsOfServes<M["serves"]>,
+    | (Chosen<M, K> extends Technology<string, infer R> ? R : never)
+    | RequiresOf<Exposed<M>>
+    | RequiresOfServes<M["serves"]>,
     OperationsOf<M>
   >;
 }
 
 export function compositionModule<const M extends ModuleShape>(shape: M): CompositionModule<M> {
   return {
-    with: (name) => ({
-      bindings: [...(shape.technologies[name]?.bindings ?? []), ...(shape.exposes ?? [])],
-      serves: shape.serves ?? {},
-    }),
+    with: (name) => {
+      const chosen = shape.technologies[name]?.bindings ?? [];
+      return {
+        bindings: [...chosen, ...(shape.exposes ?? [])],
+        technologyPorts: chosen.map((binding) => binding.port),
+        serves: shape.serves ?? {},
+      };
+    },
   };
 }

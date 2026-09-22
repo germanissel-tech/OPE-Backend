@@ -2,6 +2,9 @@
 // order — RETURNED keeping the correlation, idempotent by orderId, rejected when the order is
 // unknown to the merchant or the items were not bought.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
 import { fail, type MerchantId } from "../../src/domain/shared-kernel/index.js";
 import { memoryOrderLedger } from "../../src/interface-adapters/outcomes/gateways/memory-order-ledger.js";
@@ -36,7 +39,7 @@ let now = new Date(NOW);
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: { now: () => now } } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, { now: () => now })] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -45,11 +48,13 @@ afterAll(async () => {
   await app.close();
 });
 
-const find = (orderId: string) => app.ports.orders.find(A, orderId as OrderId);
+const find = (orderId: string) => app.resolve(OrderLedgerPort).find(A, orderId as OrderId);
 
 async function startWithOrder(options: { attributed?: boolean; orders?: OrderLedger } = {}): Promise<void> {
   now = new Date(NOW);
-  await app.resetPorts(options.orders === undefined ? {} : { ports: { orders: options.orders } });
+  await app.resetPorts(
+    options.orders === undefined ? {} : { ports: [replace(OrderLedgerPort, options.orders)] },
+  );
   if (options.attributed)
     await postEvents(
       app.app,

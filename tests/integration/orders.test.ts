@@ -4,6 +4,9 @@
 // incentive it declares is crossed with what the session's decision granted.
 import { Readable } from "node:stream";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { json } from "../helpers/json.js";
 import {
   catalogProductOf,
@@ -48,7 +51,7 @@ const merchantWithMargin: MerchantSpec = {
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -60,7 +63,7 @@ afterAll(async () => {
 /** The ports of the test: an order ledger that is down, other merchants; the server is the file's. */
 function start(options: { merchants?: MerchantSpec[]; ordersDown?: boolean } = {}): Promise<void> {
   return app.resetPorts({
-    ...(options.ordersDown ? { ports: { orders: unavailableOrderLedger() } } : {}),
+    ...(options.ordersDown ? { ports: [replace(OrderLedgerPort, unavailableOrderLedger())] } : {}),
     ...(options.merchants === undefined ? {} : { config: { merchants: options.merchants } }),
   });
   return Promise.resolve();
@@ -107,7 +110,8 @@ async function incentiveSession(): Promise<number> {
   return value ?? 0;
 }
 
-const find = (merchant: MerchantId, orderId: string) => app.ports.orders.find(merchant, orderId as OrderId);
+const find = (merchant: MerchantId, orderId: string) =>
+  app.resolve(OrderLedgerPort).find(merchant, orderId as OrderId);
 
 describe("notifyOrder — user story 1: verified, attributed or pending", () => {
   it("1. an order carrying a known session → 201 ATTRIBUTED_ORDER; the ledger keeps the correlation with the assignment", async () => {
@@ -417,7 +421,9 @@ describe("notifyOrder — the corroboration is seen when the order arrives", () 
   it("logs corroborated: true when the SDK corroborated the order first (FR-032)", async () => {
     // The use-case log is bound to the logger the app was built with: this test builds its own.
     const { logger, entries } = recordingLogger();
-    const logged = await startTestApp({ ports: { clock: fixedClock(NOW), logger } });
+    const logged = await startTestApp({
+      ports: [replace(ClockPort, fixedClock(NOW)), replace(LoggerPort, logger)],
+    });
     try {
       const corroborated = await postCorroboration(
         logged.app,

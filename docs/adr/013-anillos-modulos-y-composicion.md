@@ -60,14 +60,15 @@ controllers (`wireControllers`) de todos los módulos en dos mapas centrales: co
 operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas de la POC
 (constitución I). Se decide:
 
-1. **Un módulo por archivo en `composition/modules/<módulo>.ts`**: declara el slice de puertos
-   que necesita (`XPorts`), instancia sus casos de uso y devuelve lo que sirve
-   (`{ handlers?, security?, cors? }`). `Ports` es la intersección de los slices; un puerto
-   nuevo sin proveer en el perfil sigue sin compilar.
-2. **El root conserva la lista de módulos** (`MODULES` en `composition/modules/index.ts`), nunca
-   la de operaciones: una operación nueva toca sólo el archivo de su módulo; un módulo nuevo es
-   una línea ahí y otra en `CONTEXT_MAP`. `wireModules` falla si dos módulos sirven el mismo
-   `operationId`, el mismo esquema de seguridad o ambos declaran la política CORS.
+1. **Un módulo por archivo en `composition/modules/<módulo>.ts`**: declara los componentes que
+   necesita, instancia sus casos de uso y devuelve lo que sirve (handlers, esquemas de seguridad,
+   política CORS). **Enmendado por ADR-033**: lo que era un slice de puertos resuelto por nombre y
+   una intersección global es hoy un grafo tipado, donde cada componente lo declara una vez su
+   módulo dueño y quien lo necesita lo importa.
+2. **El root conserva la lista de módulos**, nunca la de operaciones: una operación nueva toca
+   sólo el archivo de su módulo; un módulo nuevo es una línea en el despliegue y otra en
+   `CONTEXT_MAP`. Dos módulos que sirven la misma operación, el mismo esquema de seguridad o ambos
+   la política CORS es un error de cableado que falla al arrancar.
 3. **Fail-closed en el arranque** (constitución II): `bootstrap` comprueba que toda operación
    declarada en el contrato tiene handler y **no arranca** si falta alguna (sin modo ni mock,
    ADR-018). El

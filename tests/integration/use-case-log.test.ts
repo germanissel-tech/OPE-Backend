@@ -1,6 +1,8 @@
 // Feature 008, US5 (FR-040; ADR-023): the use cases served by HTTP are wrapped by the logging decorator in
 // composition: one operational entry per execution with name, duration and outcome.
 import { afterEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { batchOf, eventOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
 import { recordingLogger } from "../helpers/unavailable-ledgers.js";
 import type { App } from "../../src/composition/bootstrap.js";
@@ -17,7 +19,7 @@ afterEach(async () => {
 describe("use case log", () => {
   it("an ingestion leaves one entry with the use case name, duration and outcome, and no request data", async () => {
     const { logger, entries } = recordingLogger();
-    app = await startTestApp({ ports: { clock: fixedClock(NOW), logger } });
+    app = await startTestApp({ ports: [replace(ClockPort, fixedClock(NOW)), replace(LoggerPort, logger)] });
     const res = await postEvents(app.app, batchOf(2, 1, { occurredAt: NOW }), { key: KEY });
     expect(res.statusCode).toBe(202);
     const executed = entries.filter((e) => e.message === "use case executed");
@@ -28,7 +30,7 @@ describe("use case log", () => {
 
   it("a rejected batch reports the code of the error", async () => {
     const { logger, entries } = recordingLogger();
-    app = await startTestApp({ ports: { clock: fixedClock(NOW), logger } });
+    app = await startTestApp({ ports: [replace(ClockPort, fixedClock(NOW)), replace(LoggerPort, logger)] });
     const mixed = {
       events: [eventOf(1, { occurredAt: NOW }), eventOf(2, { occurredAt: NOW, visitorId: "vis_00000002" })],
     };

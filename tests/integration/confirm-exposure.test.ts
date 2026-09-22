@@ -1,5 +1,8 @@
 // Feature 004, US4 (FR-030, FR-031, FR-050; ADR-014): POST /v1/exposures end to end.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { DecisionLedgerPort, ExposureLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -19,7 +22,7 @@ const NOW = "2026-09-16T12:00:00.000Z";
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -51,7 +54,7 @@ async function interveneDecision(a: SharedApp, merchantId: string, decisionId: s
     "barrier-size",
     { messageVersionId: "msg-1", anchor: "size_selector" },
   );
-  await a.ports.decisions.record(decision);
+  await a.resolve(DecisionLedgerPort).record(decision);
 }
 
 async function noOpDecisionId(a: SharedApp, key: string): Promise<string> {
@@ -90,15 +93,15 @@ describe("POST /v1/exposures", () => {
     const second = await postExposure(app.app, exposure("dec_intervene1"), { key: "key-a-1" });
     expect(second.statusCode).toBe(200);
     expect(json(second)).toEqual({ decisionId: "dec_intervene1", status: "already-recorded" });
-    expect(await app.ports.exposures.find(asMerchantId("m_a"), asDecisionId("dec_intervene1"))).toMatchObject(
-      {
-        decisionId: "dec_intervene1",
-        anchor: "size_selector",
-        exposedAt: new Date(NOW),
-      },
-    );
     expect(
-      await app.ports.exposures.find(asMerchantId("m_b"), asDecisionId("dec_intervene1")),
+      await app.resolve(ExposureLedgerPort).find(asMerchantId("m_a"), asDecisionId("dec_intervene1")),
+    ).toMatchObject({
+      decisionId: "dec_intervene1",
+      anchor: "size_selector",
+      exposedAt: new Date(NOW),
+    });
+    expect(
+      await app.resolve(ExposureLedgerPort).find(asMerchantId("m_b"), asDecisionId("dec_intervene1")),
     ).toBeUndefined();
   });
 

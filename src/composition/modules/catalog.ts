@@ -1,6 +1,6 @@
-// catalog module (ADR-025): the merchant's catalogue snapshot, what it needs (`CatalogPorts`),
-// how memory serves it (`memoryCatalogPorts`) and what it serves (`upsertCatalogSnapshot`).
-// The product-truth service is built here for whoever decides (feature 011).
+// catalog module (ADR-025): the merchant's catalogue snapshot. It declares the port of its
+// policies —the freshness budgets and the level rules, which the configuration resolves per
+// merchant and binds— and exposes the truth of product the decision plane consults.
 import {
   DefaultProductTruthService,
   UpsertCatalogSnapshotUseCase,
@@ -8,53 +8,44 @@ import {
   type CatalogStore,
   type ProductTruthService,
 } from "../../application/catalog/index.js";
-import {
-  LoggedUseCase,
-  type Clock,
-  type ClockTolerance,
-  type Logger,
-} from "../../application/shared-kernel/index.js";
-import { memoryCatalogStore, makeUpsertCatalogSnapshot } from "../../interface-adapters/catalog/index.js";
-import { catalogPoliciesOf } from "./configuration.js";
-import type { ConfigurationService } from "../../application/configuration/index.js";
-import type { Bindings, Module } from "../wiring.js";
+import { makeUpsertCatalogSnapshot, memoryCatalogStore } from "../../interface-adapters/catalog/index.js";
+import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { ClockPort, ClockTolerancePort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 
-export interface CatalogPorts {
-  clock: Clock;
-  logger: Logger;
-  tolerance: ClockTolerance;
-  catalog: CatalogStore;
-  /** The freshness budgets and the level rules each merchant resolves to (configuration module). */
-  catalogPolicies: CatalogPolicies;
-}
+export const CatalogStorePort = port("catalog.store")<CatalogStore>();
+/** The freshness budgets and the level rules of each merchant; the configuration binds them. */
+export const CatalogPoliciesPort = port("catalog.policies")<CatalogPolicies>();
+/** What the decision plane consults: what is known of a product, and how fresh. */
+export const ProductTruthPort = port("catalog.product-truth")<ProductTruthService>();
 
-export const memoryCatalogPorts: Bindings<Pick<CatalogPorts, "catalog">> = {
-  catalog: memoryCatalogStore,
-};
+const PORTS = [CatalogStorePort] as const;
 
-export const configuredCatalogPorts = (
-  configuration: () => ConfigurationService,
-): Bindings<Pick<CatalogPorts, "catalogPolicies">> => ({
-  catalogPolicies: () => catalogPoliciesOf(configuration()),
+export const catalogModule = compositionModule({
+  ports: PORTS,
+  technologies: {
+    memory: technology(PORTS, [bind(CatalogStorePort, {}, () => memoryCatalogStore())]),
+  },
+  exposes: [
+    bind(
+      ProductTruthPort,
+      { clock: ClockPort, store: CatalogStorePort, policies: CatalogPoliciesPort },
+      (deps) => new DefaultProductTruthService(deps),
+    ),
+  ],
+  serves: {
+    handlers: {
+      upsertCatalogSnapshot: handler(
+        {
+          deco: DecoratorsPort,
+          clock: ClockPort,
+          tolerance: ClockTolerancePort,
+          logger: LoggerPort,
+          store: CatalogStorePort,
+          policies: CatalogPoliciesPort,
+        },
+        (operation, { deco, ...deps }) =>
+          makeUpsertCatalogSnapshot(deco.logged(operation, new UpsertCatalogSnapshotUseCase(deps))),
+      ),
+    },
+  },
 });
-
-/** The truth service the decision plane will receive; built with the module's ports. */
-export const productTruthOf = (ports: CatalogPorts): ProductTruthService =>
-  new DefaultProductTruthService({
-    clock: ports.clock,
-    store: ports.catalog,
-    policies: ports.catalogPolicies,
-  });
-
-export const catalogModule: Module<CatalogPorts> = ({ ports }) => {
-  const { clock, tolerance, logger, catalog, catalogPolicies } = ports;
-  const upsert = new UpsertCatalogSnapshotUseCase({
-    clock,
-    tolerance,
-    store: catalog,
-    policies: catalogPolicies,
-    logger,
-  });
-  const logged = new LoggedUseCase("upsertCatalogSnapshot", upsert, { clock, logger });
-  return { handlers: { upsertCatalogSnapshot: makeUpsertCatalogSnapshot(logged) } };
-};

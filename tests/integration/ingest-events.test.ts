@@ -1,5 +1,8 @@
 // Feature 004, US2 and US3 (FR-011..FR-016, FR-020, FR-021; ADR-014): POST /v1/events end to end.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -19,7 +22,7 @@ const NOW = "2026-09-16T12:00:00.000Z";
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -76,7 +79,9 @@ describe("POST /v1/events", () => {
     // What the ledger keeps: the events enter once, but every batch — this resend too — is decided
     // and its decision recorded (the deduplication is of events, not of decisions; a fact for the
     // persistence feature, F-024 of the audit 014).
-    const decisions = await app.ports.decisions.bySession(asMerchantId("m_a"), asSessionId("ses_00000001"));
+    const decisions = await app
+      .resolve(DecisionLedgerPort)
+      .bySession(asMerchantId("m_a"), asSessionId("ses_00000001"));
     expect(decisions).toHaveLength(2);
     expect(new Set(decisions.map((d) => d.decisionId)).size).toBe(2);
   });
@@ -256,7 +261,7 @@ describe("inline decision (US3)", () => {
       await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
     const id = r.decision.decisionId;
-    const found = await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(id));
+    const found = await app.resolve(DecisionLedgerPort).find(asMerchantId("m_a"), asDecisionId(id));
     expect(found).toMatchObject({
       merchantId: "m_a",
       sessionId: "ses_00000001",
@@ -265,7 +270,7 @@ describe("inline decision (US3)", () => {
       reason: "barrier-unclear",
       decidedAt: new Date(NOW),
     });
-    expect(await app.ports.decisions.find(asMerchantId("m_b"), asDecisionId(id))).toBeUndefined();
+    expect(await app.resolve(DecisionLedgerPort).find(asMerchantId("m_b"), asDecisionId(id))).toBeUndefined();
   });
 
   it("the locale of the page (BCP 47) is recorded with the decision; absent, the record has no locale", async () => {
@@ -277,16 +282,15 @@ describe("inline decision (US3)", () => {
     const res = await postEvents(app.app, localized, { key: "key-a-1" });
     expect(res.statusCode).toBe(202);
     const id = (json(res) as IngestResult).decision.decisionId;
-    expect(await app.ports.decisions.find(asMerchantId("m_a"), asDecisionId(id))).toMatchObject({
+    expect(await app.resolve(DecisionLedgerPort).find(asMerchantId("m_a"), asDecisionId(id))).toMatchObject({
       locale: "es-AR",
     });
     const plain = json(
       await postEvents(app.app, batchOf(1, 2, { occurredAt: NOW }), { key: "key-a-1" }),
     ) as IngestResult;
-    const found = await app.ports.decisions.find(
-      asMerchantId("m_a"),
-      asDecisionId(plain.decision.decisionId),
-    );
+    const found = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId("m_a"), asDecisionId(plain.decision.decisionId));
     expect(found).toBeDefined();
     expect(found?.locale).toBeUndefined();
   });

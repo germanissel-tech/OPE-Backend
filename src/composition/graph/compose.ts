@@ -21,13 +21,15 @@ export interface Unwired<Id extends string> {
 
 type AnyDeployed = Deployed<string, string, keyof Handlers>;
 type ProvidedBy<D> = D extends Deployed<infer P, string, keyof Handlers> ? P : never;
-type NeededBy<D> = D extends Deployed<string, infer N, keyof Handlers> ? N : never;
+type NeededBy<D> = D extends Deployed<string, infer R, keyof Handlers> ? R : never;
 type ServedBy<D> = D extends Deployed<string, string, infer O> ? O : never;
 type Holes<M extends readonly AnyDeployed[]> = Exclude<NeededBy<M[number]>, ProvidedBy<M[number]>>;
 type Unserved<M extends readonly AnyDeployed[]> = Exclude<keyof Handlers, ServedBy<M[number]>> & string;
 
 export interface Deployment<Provides extends string> {
   readonly bindings: readonly Binding[];
+  /** What a technology serves, as opposed to what a module composes out of it. */
+  readonly technologyPorts: readonly AnyPort[];
   readonly serves: readonly Serves[];
   readonly provides?: Provides;
 }
@@ -45,6 +47,7 @@ export function deployment<const M extends readonly AnyDeployed[]>(
   const chosen = modules as readonly AnyDeployed[];
   return {
     bindings: chosen.flatMap((module) => module.bindings),
+    technologyPorts: chosen.flatMap((module) => module.technologyPorts),
     serves: chosen.map((module) => module.serves),
   };
 }
@@ -79,9 +82,9 @@ export interface Instance<Provides extends string> {
   wire: () => Wired;
 }
 
-/** Anything the modules serve: its dependencies and a builder the instance calls with them. */
+/** Anything the modules serve: what it needs and a builder the instance calls with it. */
 interface Cookable {
-  readonly deps: readonly AnyPort[];
+  readonly needs: Readonly<Record<string, AnyPort>>;
   readonly build: (...args: never[]) => unknown;
 }
 
@@ -95,7 +98,7 @@ function tableOf(bindings: readonly Binding[], overrides: readonly Override[]): 
   const table = new Map<AnyPort, Binding>();
   for (const binding of bindings) table.set(binding.port, binding);
   for (const { port, value } of overrides) {
-    table.set(port, { port, deps: [], build: () => value });
+    table.set(port, { port, needs: {}, build: () => value });
   }
   return table;
 }
@@ -108,6 +111,8 @@ export function instantiate<Provides extends string>(
   const built = new Map<AnyPort, unknown>();
   const closables: Closable[] = [];
   const open: string[] = [];
+  const needed = (needs: Readonly<Record<string, AnyPort>>): Record<string, unknown> =>
+    Object.fromEntries(Object.entries(needs).map(([name, target]) => [name, resolve(target)]));
   const resolve = (target: AnyPort): unknown => {
     if (built.has(target)) return built.get(target);
     if (open.includes(target.label)) {
@@ -116,9 +121,8 @@ export function instantiate<Provides extends string>(
     const binding = table.get(target);
     if (!binding) throw new Error(`No provider for "${target.label}" in this deployment.`);
     open.push(target.label);
-    const args = binding.deps.map(resolve);
-    // The only cast of the library: `bind` already checked the builder against its dependencies.
-    const value = (binding.build as (...rest: readonly unknown[]) => unknown)(...args);
+    // The only cast of the library: `bind` already checked the builder against what it needs.
+    const value = (binding.build as (resolved: Record<string, unknown>) => unknown)(needed(binding.needs));
     open.pop();
     built.set(target, value);
     if (isClosable(value)) closables.push(value);
@@ -127,7 +131,7 @@ export function instantiate<Provides extends string>(
   // The same boundary as above: what a recipe builds travels as a phantom, and which type it
   // belongs to is what the slot of `Serves` already checked.
   const cook = (recipe: Cookable, ...first: readonly string[]): unknown =>
-    (recipe.build as (...rest: readonly unknown[]) => unknown)(...first, ...recipe.deps.map(resolve));
+    (recipe.build as (...rest: readonly unknown[]) => unknown)(...first, needed(recipe.needs));
   const handlers: Record<string, unknown> = {};
   const security: Record<string, SecurityScheme> = {};
   let cors: CorsPolicy | undefined;

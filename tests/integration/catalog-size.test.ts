@@ -2,6 +2,8 @@
 // operation. Reported measurement on the local profile; it fails only past a generous budget.
 import { performance } from "node:perf_hooks";
 import { afterEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { catalogProductOf, fixedClock, putCatalog, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
@@ -17,7 +19,7 @@ afterEach(async () => {
 
 describe("catalogue size (informative)", () => {
   it(`accepts ${PRODUCTS} products x ${VARIANTS_PER_PRODUCT} variants in one PUT`, async () => {
-    app = await startTestApp({ ports: { clock: fixedClock(NOW) } });
+    app = await startTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
     const products = Array.from({ length: PRODUCTS }, (_, i) =>
       catalogProductOf(`P${i + 1}`, VARIANTS_PER_PRODUCT),
     );

@@ -1,40 +1,45 @@
-// ingestion module: the event batch. It needs the kernel, its own dedup and the decision plane
-// (decision module); it owns (binds) only the dedup, which shares the profile's clock.
-import { IngestBatchUseCase, type EventDedup } from "../../application/ingestion/index.js";
+// ingestion module: the event batch. It owns its deduplication and declares the plane it asks for
+// a decision —the decision module binds it— so the ingestion knows nothing of the authorities
+// behind that decision (ADR-026).
 import {
-  LoggedUseCase,
-  type Clock,
-  type ClockTolerance,
-  type Logger,
-} from "../../application/shared-kernel/index.js";
-import { memoryEventDedup, makeIngestEvents } from "../../interface-adapters/ingestion/index.js";
-import { decisionPlaneOf, type DecisionPorts } from "./decision.js";
-import type { PlatformConfiguration } from "../../domain/configuration/index.js";
-import type { Bindings, Module } from "../wiring.js";
+  IngestBatchUseCase,
+  type DecisionPlane,
+  type EventDedup,
+} from "../../application/ingestion/index.js";
+import { makeIngestEvents, memoryEventDedup } from "../../interface-adapters/ingestion/index.js";
+import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { PlatformConfigurationPort } from "../release.js";
+import { ClockPort, ClockTolerancePort, DecoratorsPort } from "./shared-kernel.js";
 
-export interface IngestionPorts extends DecisionPorts {
-  clock: Clock;
-  logger: Logger;
-  tolerance: ClockTolerance;
-  eventDedup: EventDedup;
-}
+const EventDedupPort = port("ingestion.dedup")<EventDedup>();
+/** What decides a batch; the decision module binds it. */
+export const DecisionPlanePort = port("ingestion.decision-plane")<DecisionPlane>();
 
-/** Dedup in memory, within the window the platform declares (level 1 of the configuration). */
-export const memoryIngestionPorts = (
-  clock: Clock,
-  platform: PlatformConfiguration,
-): Bindings<Pick<IngestionPorts, "eventDedup">> => ({
-  eventDedup: () => memoryEventDedup(clock, platform.dedupWindow),
+const PORTS = [EventDedupPort] as const;
+
+export const ingestionModule = compositionModule({
+  ports: PORTS,
+  technologies: {
+    memory: technology(PORTS, [
+      bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
+        memoryEventDedup(clock, platform.dedupWindow),
+      ),
+    ]),
+  },
+  serves: {
+    handlers: {
+      ingestEvents: handler(
+        {
+          deco: DecoratorsPort,
+          clock: ClockPort,
+          tolerance: ClockTolerancePort,
+          eventDedup: EventDedupPort,
+          decisionPlane: DecisionPlanePort,
+        },
+        // The name of the log is the name of the use case, which is not this operationId.
+        (_operation, { deco, ...deps }) =>
+          makeIngestEvents(deco.logged("ingestBatch", new IngestBatchUseCase(deps))),
+      ),
+    },
+  },
 });
-
-export const ingestionModule: Module<IngestionPorts> = ({ ports }) => {
-  const { clock, tolerance, logger, eventDedup } = ports;
-  const ingestBatch = new IngestBatchUseCase({
-    clock,
-    tolerance,
-    eventDedup,
-    decisionPlane: decisionPlaneOf(ports),
-  });
-  const logged = new LoggedUseCase("ingestBatch", ingestBatch, { clock, logger });
-  return { handlers: { ingestEvents: makeIngestEvents(logged) } };
-};

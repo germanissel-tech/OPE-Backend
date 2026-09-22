@@ -2,6 +2,10 @@
 // credentials shown once, rotation with grace, kill switch that stops deciding but not measuring,
 // deactivation that keeps the records, scope without revealing existence, and the seed.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
+import { OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asOrderId } from "../../src/domain/outcomes/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -105,7 +109,7 @@ describe("POST /v1/admin/merchants → a merchant is born with its credentials, 
 describe("rotation (scenario 2)", () => {
   it("the new key works at once; the previous one until the grace runs out; then 401; the log names the rotation", async () => {
     const clock = { at: new Date(NOW) };
-    await app.resetPorts({ ports: { clock: { now: () => clock.at } } });
+    await app.resetPorts({ ports: [replace(ClockPort, { now: () => clock.at })] });
     const created = await create();
     const id = created.merchant.merchantId;
     const rotated = json(
@@ -173,11 +177,9 @@ describe("kill switch (scenario 3)", () => {
     expect(events.statusCode).toBe(202);
     expect(json(events)).toMatchObject({ decision: { outcome: "NO_OP", reason: "merchant-off" } });
     expect(
-      await app.ports.assignments.find(
-        asMerchantId("m_a"),
-        asExperimentId("exp_a_000001"),
-        asVisitorId("vis_00000001"),
-      ),
+      await app
+        .resolve(AssignmentLedgerPort)
+        .find(asMerchantId("m_a"), asExperimentId("exp_a_000001"), asVisitorId("vis_00000001")),
     ).toBeUndefined();
     const order = await postOrder(app.app, orderOf("A-1"), { platformKey: "platform-a-1" });
     expect(order.statusCode).toBe(201);
@@ -202,7 +204,7 @@ describe("deactivation (scenario 4)", () => {
       (await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: "key-a-1" })).statusCode,
     ).toBe(401);
     expect((await postOrder(app.app, orderOf("A-2"), { platformKey: "platform-a-1" })).statusCode).toBe(401);
-    expect(await app.ports.orders.find(asMerchantId("m_a"), asOrderId("A-1"))).toBeDefined();
+    expect(await app.resolve(OrderLedgerPort).find(asMerchantId("m_a"), asOrderId("A-1"))).toBeDefined();
     expect((await admin(app.app, "GET", "/v1/admin/merchants/m_a")).statusCode).toBe(200);
     const sw = await admin(app.app, "PUT", "/v1/admin/merchants/m_a/kill-switch", {
       body: { enabled: true },
@@ -275,7 +277,7 @@ describe("the seed (scenario 7)", () => {
 
 describe("the request log never carries a credential", () => {
   it("creating a merchant with a fixed clock keeps the instants stable", async () => {
-    await app.resetPorts({ ports: { clock: fixedClock("2026-09-21T00:00:00.000Z") } });
+    await app.resetPorts({ ports: [replace(ClockPort, fixedClock("2026-09-21T00:00:00.000Z"))] });
     const created = await create(["https://t.example"], false);
     expect(created.merchant.credentials[0]?.issuedAt).toBe("2026-09-21T00:00:00.000Z");
   });

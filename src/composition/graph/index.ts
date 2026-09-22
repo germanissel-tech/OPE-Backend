@@ -25,4 +25,4 @@ export {
   type Technology,
   type Unserved,
 } from "./module.js";
-export { isClosable, port, type AnyPort, type Closable, type Label, type Port, type Served } from "./port.js";
+export { port, type AnyPort, type Closable, type Label, type Port, type Served } from "./port.js";

@@ -2,6 +2,9 @@
 // with a signing secret is served only when the platform signed the bytes it sent within the
 // window; a merchant without one keeps working with the key alone; the catalogue is signed too.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { asOrderId } from "../../src/domain/outcomes/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
@@ -44,7 +47,10 @@ const plain: MerchantSpec = {
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } }, { merchants: [signing, plain] });
+  app = await sharedTestApp(
+    { ports: [replace(ClockPort, fixedClock(NOW))] },
+    { merchants: [signing, plain] },
+  );
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -102,7 +108,7 @@ describe("platform signature — user story 6", () => {
       expect(res.statusCode, name).toBe(401);
       expect(json(res), name).toMatchObject({ type: `urn:ope:problem:${type}`, status: 401 });
     }
-    expect(await app.ports.orders.find(asMerchantId("m_s"), asOrderId("S-1"))).toBeUndefined();
+    expect(await app.resolve(OrderLedgerPort).find(asMerchantId("m_s"), asOrderId("S-1"))).toBeUndefined();
   });
 
   it("3. a rotation: the second secret is accepted too", async () => {
@@ -115,7 +121,7 @@ describe("platform signature — user story 6", () => {
     const replay = await post("/v1/orders", body, headers);
     expect(replay.statusCode).toBe(200);
     expect(json(replay)).toMatchObject({ orderId: "S-1" });
-    expect(await app.ports.orders.find(asMerchantId("m_s"), asOrderId("S-1"))).toMatchObject({
+    expect(await app.resolve(OrderLedgerPort).find(asMerchantId("m_s"), asOrderId("S-1"))).toMatchObject({
       orderId: "S-1",
     });
   });
@@ -149,7 +155,7 @@ describe("platform signature — user story 6", () => {
     // The request log is bound to the logger the app was built with: this test builds its own.
     const { logger, entries } = recordingLogger();
     const logged = await startTestApp(
-      { ports: { clock: fixedClock(NOW), logger } },
+      { ports: [replace(ClockPort, fixedClock(NOW)), replace(LoggerPort, logger)] },
       { merchants: [signing, plain] },
     );
     const headers = signed(body, SECRET, at(NOW));

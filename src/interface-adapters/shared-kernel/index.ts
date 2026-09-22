@@ -2,5 +2,6 @@
 // composition wires. Presenters stay internal to the module.
 export * from "./paging.js";
 export * from "./random-id.js";
+export * from "./clock-tolerance.js";
 export * from "./system-clock.js";
 export * from "./windowed-map.js";

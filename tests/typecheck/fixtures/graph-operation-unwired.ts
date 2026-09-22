@@ -13,7 +13,7 @@ const StorePort = port("test.store")<{ ids: () => string[] }>();
 
 const store = compositionModule({
   ports: [StorePort],
-  technologies: { memory: technology([StorePort], [bind(StorePort, [], () => ({ ids: () => [] }))]) },
+  technologies: { memory: technology([StorePort], [bind(StorePort, {}, () => ({ ids: () => [] }))]) },
 });
 
 export const nothingServed = deployment([store.with("memory")]);

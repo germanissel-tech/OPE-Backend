@@ -1,9 +1,8 @@
-// Configuration module (constitution XI; ADR-031): the three levels and their resolution. What it
-// needs (`ConfigurationPorts`: the levels of the release, the store of the merchant versions and
-// the service that resolves and serves — one instance behind every consumer, so a published
-// version counts on the next request), how the release and memory serve its own ports, what it
-// serves (the administration of the configuration) and the adapters the consumer modules bind
-// to their own read ports (`policySourceOf`, `catalogPoliciesOf`): nobody imports this module.
+// Configuration module (constitution XI; ADR-031): the three levels and their resolution. It owns
+// the levels of the release, the store of the merchant versions and the service that resolves and
+// serves —one instance behind every consumer, so a published version counts on the next request—
+// and it binds the read ports its consumers declare: the policies of the decision plane, the
+// budgets of the catalogue and the holdout of the experiment. Nobody imports it for that.
 import {
   DefaultConfigurationService,
   GetMerchantConfigurationUseCase,
@@ -18,151 +17,145 @@ import {
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
 } from "../../application/configuration/index.js";
-import { DefaultScopedMerchantService, type MerchantStore } from "../../application/merchant/index.js";
 import {
-  AuditedUseCase,
-  type AuditTrail,
-  type Clock,
-  type Logger,
-  type UseCase,
-} from "../../application/shared-kernel/index.js";
-import {
-  memoryConfigurationStore,
-  releaseConfigurationLevels,
+  catalogPoliciesOf,
+  holdoutSourceOf,
   makeGetMerchantConfiguration,
   makeGetPlatformConfiguration,
   makeGetTreatmentDefaults,
   makeListConfigurationVersions,
   makePublishMerchantConfiguration,
+  memoryConfigurationStore,
+  policySourceOf,
+  releaseConfigurationLevels,
 } from "../../interface-adapters/configuration/index.js";
-import { auditedWiring } from "./audited.js";
-import type { SdkConfigurationSource } from "../../application/admin/index.js";
-import type { CatalogPolicies } from "../../application/catalog/index.js";
-import type { PolicySource } from "../../application/decision/index.js";
-import type { ExperimentDirectory, ExperimentStore } from "../../application/experiment/index.js";
-import type { ReleaseLevels } from "../config.js";
-import type { Bindings, Module } from "../wiring.js";
+import { switchAwarePolicyDirectory } from "../adapters/switch-aware-policy-directory.js";
+import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { ReleaseLevelsPort } from "../release.js";
+import { CatalogPoliciesPort } from "./catalog.js";
+import { PolicyDirectoryPort } from "./decision.js";
+import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
+import { MerchantStorePort, ScopedMerchantsPort } from "./merchant.js";
+import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
+import type { UseCase } from "../../application/shared-kernel/index.js";
 
-export interface ConfigurationPorts {
-  clock: Clock;
-  logger: Logger;
-  levels: ConfigurationLevels;
-  configurationStore: ConfigurationStore;
-  /** The resolution, shared by every consumer: what it serves changes when a version is published. */
-  configuration: ConfigurationService;
-  merchantStore: MerchantStore;
-  experiments: ExperimentDirectory;
-  experimentStore: ExperimentStore;
-  auditTrail: AuditTrail;
-}
+const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
+const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
+/** The resolution, shared by every consumer: what it serves changes when a version is published. */
+export const ConfigurationServicePort = port("configuration.service")<ConfigurationService>();
+/** The configuration a merchant declares in the seed becomes its version 1, audited as the system. */
+export const ImportConfigurationPort =
+  port("configuration.import")<
+    UseCase<ImportMerchantConfigurationRequest, ImportMerchantConfigurationResponse>
+  >();
 
-/** The levels of the release from the files the configuration read; the versions in memory; one service over both. */
-export const memoryConfigurationPorts = (
-  release: ReleaseLevels,
-): Bindings<Pick<ConfigurationPorts, "levels" | "configurationStore" | "configuration">> => {
-  let levels: ConfigurationLevels | undefined;
-  let store: ConfigurationStore | undefined;
-  const theLevels = (): ConfigurationLevels => (levels ??= releaseConfigurationLevels(release));
-  const theStore = (): ConfigurationStore => (store ??= memoryConfigurationStore());
-  return {
-    levels: theLevels,
-    configurationStore: theStore,
-    configuration: () => new DefaultConfigurationService({ levels: theLevels(), store: theStore() }),
-  };
-};
+const PORTS = [
+  ConfigurationLevelsPort,
+  ConfigurationStorePort,
+  ConfigurationServicePort,
+  CatalogPoliciesPort,
+  PolicyDirectoryPort,
+  HoldoutPort,
+] as const;
 
-/** What the decision plane reads: the policies, the active barriers and the versions of each merchant. */
-export const policySourceOf = (configuration: ConfigurationService): PolicySource => ({
-  async policySetFor(merchantId) {
-    const effective = await configuration.effectiveFor(merchantId);
-    const { decisionPolicy, commercialPolicy, evidenceProfile, barriers } = effective.values;
-    return {
-      decision: decisionPolicy,
-      commercial: commercialPolicy,
-      profile: evidenceProfile,
-      barriers,
-      versions: effective.versions,
-    };
+export const configurationModule = compositionModule({
+  ports: PORTS,
+  technologies: {
+    memory: technology(PORTS, [
+      bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
+        releaseConfigurationLevels(release),
+      ),
+      bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
+      bind(
+        ConfigurationServicePort,
+        { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
+        (deps) => new DefaultConfigurationService(deps),
+      ),
+      bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+        catalogPoliciesOf(configuration),
+      ),
+      bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+        holdoutSourceOf(configuration),
+      ),
+      bind(
+        PolicyDirectoryPort,
+        { configuration: ConfigurationServicePort, merchants: MerchantStorePort },
+        ({ configuration, merchants }) =>
+          switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
+      ),
+    ]),
   },
-});
-
-/** What the SDK may see of a merchant (01 §3.1.1): versions, surfaces, languages and the anchor map; never a policy. */
-export const sdkConfigurationOf = (configuration: ConfigurationService): SdkConfigurationSource => ({
-  async sdkConfigurationFor(merchantId) {
-    const effective = await configuration.effectiveFor(merchantId);
-    const { surfaces, locales } = effective.values;
-    const anchors = effective.anchors?.record();
-    return {
-      versions: effective.versions,
-      surfaces,
-      locales,
-      ...(anchors === undefined ? {} : { anchors }),
-    };
-  },
-});
-
-/** What the catalogue reads: the freshness budgets and the level rules of each merchant. */
-export const catalogPoliciesOf = (configuration: ConfigurationService): CatalogPolicies => ({
-  freshnessFor: async (merchantId) => (await configuration.effectiveFor(merchantId)).values.freshness,
-  syncLevelRulesFor: async (merchantId) => (await configuration.effectiveFor(merchantId)).values.syncLevel,
-});
-
-/** The configuration the seed declares becomes the version 1 of the merchant, audited as the system (ADR-031). */
-export const importConfigurationOf = (
-  ports: ConfigurationPorts,
-): UseCase<ImportMerchantConfigurationRequest, ImportMerchantConfigurationResponse> =>
-  new AuditedUseCase(
-    "importMerchantConfiguration",
-    new ImportMerchantConfigurationUseCase({
-      store: ports.configurationStore,
-      configuration: ports.configuration,
-      clock: ports.clock,
-    }),
-    { log: ports.auditTrail, clock: ports.clock },
-    {
-      result: (r) =>
-        r.ok && "version" in r.value ? { configurationVersion: r.value.version.version } : undefined,
-    },
-  );
-
-export const configurationModule: Module<ConfigurationPorts> = ({ ports }) => {
-  const { clock, configuration, configurationStore: store, experiments, experimentStore } = ports;
-  const { logged, admin } = auditedWiring(ports);
-  const scoped = new DefaultScopedMerchantService({ merchants: ports.merchantStore });
-  const publish = new PublishMerchantConfigurationUseCase({
-    scoped,
-    store,
-    configuration,
-    experiments,
-    experimentStore,
-    clock,
-  });
-  return {
-    handlers: {
-      publishMerchantConfiguration: makePublishMerchantConfiguration(
-        admin("publishMerchantConfiguration", publish, {
+  exposes: [
+    bind(
+      ImportConfigurationPort,
+      {
+        deco: DecoratorsPort,
+        store: ConfigurationStorePort,
+        configuration: ConfigurationServicePort,
+        clock: ClockPort,
+      },
+      ({ deco, ...deps }) =>
+        deco.audited("importMerchantConfiguration", new ImportMerchantConfigurationUseCase(deps), {
           result: (r) =>
-            r.ok
-              ? { configurationVersion: r.value.version.version, windowRestarted: r.value.windowRestarted }
-              : undefined,
-          reason: (request) => request.reason,
+            r.ok && "version" in r.value ? { configurationVersion: r.value.version.version } : undefined,
         }),
+    ),
+  ],
+  serves: {
+    handlers: {
+      publishMerchantConfiguration: handler(
+        {
+          deco: DecoratorsPort,
+          scoped: ScopedMerchantsPort,
+          store: ConfigurationStorePort,
+          configuration: ConfigurationServicePort,
+          experiments: ExperimentDirectoryPort,
+          experimentStore: ExperimentStorePort,
+          clock: ClockPort,
+        },
+        (operation, { deco, experimentStore, ...deps }) =>
+          makePublishMerchantConfiguration(
+            deco.administered(
+              operation,
+              new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+              {
+                result: (r) =>
+                  r.ok
+                    ? {
+                        configurationVersion: r.value.version.version,
+                        windowRestarted: r.value.windowRestarted,
+                      }
+                    : undefined,
+                reason: (request) => request.reason,
+              },
+            ),
+          ),
       ),
-      getMerchantConfiguration: makeGetMerchantConfiguration(
-        logged(
-          "getMerchantConfiguration",
-          new GetMerchantConfigurationUseCase({ scoped, store, configuration }),
-        ),
+      getMerchantConfiguration: handler(
+        {
+          deco: DecoratorsPort,
+          scoped: ScopedMerchantsPort,
+          store: ConfigurationStorePort,
+          configuration: ConfigurationServicePort,
+        },
+        (operation, { deco, ...deps }) =>
+          makeGetMerchantConfiguration(deco.logged(operation, new GetMerchantConfigurationUseCase(deps))),
       ),
-      listConfigurationVersions: makeListConfigurationVersions(
-        logged("listConfigurationVersions", new ListConfigurationVersionsUseCase({ scoped, store })),
+      listConfigurationVersions: handler(
+        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, store: ConfigurationStorePort },
+        (operation, { deco, ...deps }) =>
+          makeListConfigurationVersions(deco.logged(operation, new ListConfigurationVersionsUseCase(deps))),
       ),
-      getPlatformConfiguration: makeGetPlatformConfiguration(
-        logged("getPlatformConfiguration", new GetPlatformConfigurationUseCase({ configuration })),
+      getPlatformConfiguration: handler(
+        { deco: DecoratorsPort, configuration: ConfigurationServicePort },
+        (operation, { deco, ...deps }) =>
+          makeGetPlatformConfiguration(deco.logged(operation, new GetPlatformConfigurationUseCase(deps))),
       ),
-      getTreatmentDefaults: makeGetTreatmentDefaults(
-        logged("getTreatmentDefaults", new GetTreatmentDefaultsUseCase({ configuration })),
+      getTreatmentDefaults: handler(
+        { deco: DecoratorsPort, configuration: ConfigurationServicePort },
+        (operation, { deco, ...deps }) =>
+          makeGetTreatmentDefaults(deco.logged(operation, new GetTreatmentDefaultsUseCase(deps))),
       ),
     },
-  };
-};
+  },
+});

@@ -2,6 +2,9 @@
 // confirmation page — evidence under the credential's merchant, never an order, never an
 // attribution; joined to the order by identity in whatever order they arrive.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { replace } from "../../src/composition/graph/index.js";
+import { CorroborationLedgerPort, OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { json } from "../helpers/json.js";
 import {
   eventOf,
@@ -36,7 +39,7 @@ const corroboration = (over: Record<string, unknown> = {}): Record<string, unkno
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
 let app: SharedApp;
 beforeAll(async () => {
-  app = await sharedTestApp({ ports: { clock: fixedClock(NOW) } });
+  app = await sharedTestApp({ ports: [replace(ClockPort, fixedClock(NOW))] });
 });
 beforeEach(async () => {
   await app.resetPorts();
@@ -47,12 +50,15 @@ afterAll(async () => {
 
 /** The ports of the test (a corroboration ledger that is down); the server is the file's. */
 function start(options: { down?: boolean } = {}): Promise<void> {
-  return app.resetPorts(options.down ? { ports: { corroborations: unavailableCorroborationLedger() } } : {});
+  return app.resetPorts(
+    options.down ? { ports: [replace(CorroborationLedgerPort, unavailableCorroborationLedger())] } : {},
+  );
 }
 
 const found = (merchant: MerchantId, orderId: string) =>
-  app.ports.corroborations.find(merchant, orderId as OrderId);
-const order = (merchant: MerchantId, orderId: string) => app.ports.orders.find(merchant, orderId as OrderId);
+  app.resolve(CorroborationLedgerPort).find(merchant, orderId as OrderId);
+const order = (merchant: MerchantId, orderId: string) =>
+  app.resolve(OrderLedgerPort).find(merchant, orderId as OrderId);
 
 describe("corroborateOrder — user story 3", () => {
   it("1. before the order: 202, the corroboration is recorded and no order exists", async () => {
