@@ -8,3 +8,4 @@ export * from "./controllers/publish-merchant-configuration.js";
 export * from "./gateways/memory-configuration-store.js";
 export * from "./gateways/release-configuration-levels.js";
 export * from "./gateways/resolved-policies.js";
+export * from "./gateways/switch-aware-policy-directory.js";

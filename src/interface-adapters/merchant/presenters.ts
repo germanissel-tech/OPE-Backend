@@ -16,11 +16,18 @@ type CredentialSummaryDto = components["schemas"]["CredentialSummary"];
 /** Seconds → milliseconds at the edge; the domain works in milliseconds. */
 const MS_PER_SECOND = 1000;
 
-/** The merchant as the contract publishes it: credentials by kind and instant, never their values. */
+/**
+ * The merchant as the contract publishes it: credentials by kind and instant, never their values.
+ *
+ * Which credentials are in force is a rule of the aggregate, and it answers it (ADR-024). The
+ * instant still comes from the clock of the controller and not with the result of the use case
+ * (feature 020, FR-023): the four readings that show a merchant answer with the entity or with a
+ * page of entities, and stamping an instant on each of those responses —including a `Page`— to
+ * spare the controller a dependency it uses for a rule of the domain buys nothing and touches
+ * four response shapes.
+ */
 export function merchantDto(merchant: Merchant, now: Date): MerchantDto {
-  const live = merchant.credentials.filter(
-    (c) => c.expiresAt === undefined || c.expiresAt.getTime() > now.getTime(),
-  );
+  const live = merchant.liveCredentials(now);
   return {
     merchantId: merchant.merchantId,
     status: merchant.status,

@@ -28,8 +28,8 @@ import {
   memoryConfigurationStore,
   policySourceOf,
   releaseConfigurationLevels,
+  switchAwarePolicyDirectory,
 } from "../../interface-adapters/configuration/index.js";
-import { switchAwarePolicyDirectory } from "../adapters/switch-aware-policy-directory.js";
 import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
 import { ReleaseLevelsPort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";

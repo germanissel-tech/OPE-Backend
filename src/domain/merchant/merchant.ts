@@ -143,6 +143,11 @@ export class Merchant implements MerchantRecord {
     return this.credentials.filter((c) => c.kind === kind && isLive(c, now));
   }
 
+  /** Every credential still in force at `now`, whatever its kind: what a reading may show. */
+  liveCredentials(now: Date): Credential[] {
+    return this.credentials.filter((c) => isLive(c, now));
+  }
+
   /** Does a live ingest credential carry this fingerprint? Only a merchant that is not deactivated owns anything. */
   owns(fingerprint: string, now: Date): boolean {
     return (

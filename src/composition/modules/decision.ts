@@ -43,16 +43,13 @@ export const decisionModule = compositionModule({
   technologies: {
     memory: technology(PORTS, [
       bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        visitorWindowOf(platform.visitorWindowMs, platform.dedupWindow.maxIds),
+        visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
       ),
       bind(
         SessionStatePort,
         { clock: ClockPort, platform: PlatformConfigurationPort },
         ({ clock, platform }) =>
-          memorySessionStateStore(
-            clock,
-            sessionWindowOf(platform.sessionWindowMs, platform.dedupWindow.maxIds),
-          ),
+          memorySessionStateStore(clock, sessionWindowOf(platform.sessionWindowMs, platform.identityCap())),
       ),
       bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
         memoryVisitorStateStore(clock, window),

@@ -224,23 +224,23 @@ de una operación aparece una sola vez.
 
 **Por qué va antes de US3**: la regla de forma de US3 exige que ninguna política sea anónima.
 
-- [ ] T043 [US5] Mover la regla del interruptor ("un merchant que el store no conoce está apagado")
+- [x] T043 [US5] Mover la regla del interruptor ("un merchant que el store no conoce está apagado")
       de `src/composition/adapters/switch-aware-policy-directory.ts` a
       `src/application/configuration/services/`, y su prueba desde
       `tests/unit/composition/adapters/` a `tests/unit/application/configuration/`
-- [ ] T044 [US5] Borrar `src/composition/adapters/` y la mención del directorio en
+- [x] T044 [US5] Borrar `src/composition/adapters/` y la mención del directorio en
       `.dependency-cruiser.cjs` y en la documentación de anillos
-- [ ] T045 [US5] Cerrar el repaso de políticas con nombre: que ninguna de las que hoy son objetos
+- [x] T045 [US5] Cerrar el repaso de políticas con nombre: que ninguna de las que hoy son objetos
       anónimos —ventana de firma, gracia de rotación, tolerancia de reloj, ventana de visitante,
       ventana de sesión, holdout— haya quedado en un módulo de composición; todas viven en
       `src/interface-adapters/<módulo>/gateways/` con nombre (FR-020)
-- [ ] T046 [US5] Agregar el lector con nombre del tope de identidades a
+- [x] T046 [US5] Agregar el lector con nombre del tope de identidades a
       `src/domain/configuration/` (devuelve el tope de la deduplicación, ADR-034) y usarlo en los
       tres almacenes en memoria que hoy lo toman de la deduplicación sin decirlo
-- [ ] T047 [US5] Mover a `Merchant` la regla de qué credenciales están vigentes y hacer que el
+- [x] T047 [US5] Mover a `Merchant` la regla de qué credenciales están vigentes y hacer que el
       instante viaje con el resultado del caso de uso, para que los cuatro controllers de
       `src/interface-adapters/merchant/controllers/` dejen de recibir el reloj (FR-023)
-- [ ] T048 [US5] Verificar que el DTO del merchant no cambió: mismas credenciales, mismo orden,
+- [x] T048 [US5] Verificar que el DTO del merchant no cambió: mismas credenciales, mismo orden,
       mismos instantes; las pruebas de esas cuatro operaciones pasan sin tocarse
 
 **Checkpoint**: en el composition root no queda ninguna regla ni ningún valor de política.

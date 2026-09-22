@@ -1,9 +1,9 @@
 // Feature 017 — US1 (FR-005, 01 §14.2): the kill switch of the merchant store rides on the
 // policies the source declares; a merchant the store does not know is off.
 import { describe, expect, it } from "vitest";
-import { switchAwarePolicyDirectory } from "../../../../src/composition/adapters/switch-aware-policy-directory.js";
 import { EMPTY_PROFILE } from "../../../../src/domain/selection/index.js";
 import { asMerchantId, BARRIERS } from "../../../../src/domain/shared-kernel/index.js";
+import { switchAwarePolicyDirectory } from "../../../../src/interface-adapters/configuration/index.js";
 import { testMerchant } from "../../../helpers/merchants.js";
 import { testLevels } from "../../../helpers/test-app.js";
 import type { PolicySet } from "../../../../src/application/decision/index.js";

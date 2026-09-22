@@ -92,6 +92,16 @@ export class PlatformConfiguration {
     return new PlatformConfiguration(record);
   }
 
+  /**
+   * How many identities one instance keeps in memory at most: event ids, sessions and visitors
+   * share it on purpose, because it is a single bound of the process and not three policies
+   * (constitution IV, ADR-034). The day the hot state leaves the process, separating them is a
+   * new field of this level, not a change of shape.
+   */
+  identityCap(): number {
+    return this.dedupWindow.maxIds;
+  }
+
   record(): PlatformConfigurationRecord {
     return {
       version: this.version,
