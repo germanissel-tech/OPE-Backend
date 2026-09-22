@@ -10,12 +10,13 @@ export function sdkConfigurationOf(configuration: ConfigurationService): SdkConf
     async sdkConfigurationFor(merchantId) {
       const effective = await configuration.effectiveFor(merchantId);
       const { surfaces, locales } = effective.values;
-      const anchors = effective.anchors?.record();
+      // A merchant with no anchor map answers with the key undefined, not with the key absent:
+      // the view declares it optional, the DTO drops it, and there is no branch here to get wrong.
       return {
         versions: effective.versions,
         surfaces,
         locales,
-        ...(anchors === undefined ? {} : { anchors }),
+        anchors: effective.anchors?.record(),
       };
     },
   };

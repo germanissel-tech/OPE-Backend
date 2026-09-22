@@ -326,7 +326,7 @@ responde el build.
 - [x] T064 Correr [quickstart.md](./quickstart.md) entero, incluida **la prueba del algodón** (§ 6):
       crear un módulo de juguete, omitir por turno cada uno de los tres pasos y anotar el error
       obtenido en cada caso
-- [ ] T065 Cadena de cierre: `npm run contract:check` (cero diff del contrato y del mapa),
+- [x] T065 Cadena de cierre: `npm run contract:check` (cero diff del contrato y del mapa),
       `npm run test:scoped`, `npm run test:contract`, `npm run release-check` y
       `npm run test:mutation`; ante un sobreviviente, el procedimiento de ADR-016 (describir,
       clasificar, recién después tocar)
