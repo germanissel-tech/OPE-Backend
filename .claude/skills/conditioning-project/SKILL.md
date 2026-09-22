@@ -11,7 +11,8 @@ proyecto citadas, los adaptadores de gate que faltan marcados como pendientes, y
 que dice hasta dónde puede llegar una auditoría hoy. No instala herramientas de calidad ni
 inventa decisiones: detecta lo que hay, pregunta lo que no, y deja escrito lo que falta.
 
-Los scripts se citan como `${SKILL}/scripts/...` (`${SKILL}` es el directorio de esta skill).
+Los scripts se citan como `${SKILL}/scripts/...` (`${SKILL}` es `.claude/skills/conditioning-project`;
+la skill vive en el repositorio, como las de spec-kit, sin instalación global).
 
 ## Checklist
 

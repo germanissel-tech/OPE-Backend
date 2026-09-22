@@ -13,7 +13,7 @@
     "vitest.config.ts",
     "vitest.mutation.config.ts",
     ".dependency-cruiser.cjs",
-    "plugins/*/skills/*/scripts/*.mjs",
+    ".claude/skills/*/scripts/*.mjs",
     "scripts/audit/*.mjs"
   ],
   "project": [
@@ -22,13 +22,13 @@
     "scripts/**/*.mjs",
     "tests/**/*.ts",
     "contracts/rules/functions/*.js",
-    "plugins/**/*.mjs"
+    ".claude/skills/*/scripts/*.mjs"
   ],
   "ignore": [
     "tests/**/fixtures/**",
     "generated/**",
     "tests/lint/fixtures/**",
-    "plugins/**/evals/**",
+    ".claude/skills/*/evals/**",
     "tests/audit/evals/**"
   ],
   "ignoreDependencies": [

@@ -1,16 +1,6 @@
 {
   "fixedColumns": ["Entrada", "Qué es", "Fuente o derivado", "Quién lo lee", "Verificación"],
-  "globalExcludes": [
-    "src",
-    "node_modules",
-    "dist",
-    ".git",
-    ".claude",
-    ".specify",
-    ".github",
-    ".vscode",
-    ".claude-plugin"
-  ],
+  "globalExcludes": ["src", "node_modules", "dist", ".git", ".claude", ".specify", ".github", ".vscode"],
   "directories": [
     {
       "dir": "config",
@@ -48,9 +38,6 @@
     },
     {
       "dir": "specs"
-    },
-    {
-      "dir": "plugins"
     }
   ]
 }

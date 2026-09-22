@@ -12,8 +12,8 @@ repositorio de trabajo (`../01-arquitectura-mvp.md`, `../02-integracion-ecommerc
 
 - **Spec-driven** con [spec-kit](https://github.com/github/spec-kit): `/speckit-specify` →
   `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. Los comandos están en `.claude/skills/`.
-- **Auditoría por método**: la skill `auditing-architecture` del plugin
-  `plugins/auditable-architecture/` (habilitado en `.claude/settings.json`) audita un módulo, un
+- **Auditoría por método**: la skill `auditing-architecture` (`.claude/skills/`, como las de
+  spec-kit; sin instalación global) audita un módulo, un
   directorio o el diff contra `main` guiada por `audit.profile.json` (gates, fuentes de verdad,
   criterios en `docs/auditoria/criterios-diseno.md`, evals en `tests/audit/evals/`); ADR-032.
 - **API-first**: `contracts/openapi.yaml` es la fuente de verdad de toda superficie HTTP; los

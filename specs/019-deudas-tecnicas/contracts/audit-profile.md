@@ -7,7 +7,7 @@ de esto.
 
 ```json
 {
-  "$schema": "./plugins/auditable-architecture/skills/auditing-architecture/scripts/audit-profile.schema.json",
+  "$schema": "./.claude/skills/auditing-architecture/scripts/audit-profile.schema.json",
   "profileVersion": 1,
   "sourceRoot": "src",
   "scopes": {

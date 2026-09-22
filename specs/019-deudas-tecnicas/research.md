@@ -48,6 +48,13 @@ del proyecto en la skill). Descartadas.
 
 ## R-02 — Forma del plugin y cómo lo consume este repo (D-01, D-02)
 
+> **Enmendado el 2026-09-22 (decisión del dueño)**: sin plugin. Las dos skills viven en
+> `.claude/skills/` como las de spec-kit, versionadas con el repositorio y sin instalación
+> global; el mecanismo de plugins de Claude Code registra el marketplace y el plugin en
+> `~/.claude/plugins/` (fuera del repo), que era justo lo que el dueño no quería. Llevar las
+> skills a otro proyecto es copiar los dos directorios. Lo que sigue es la decisión original,
+> conservada como evidencia.
+
 **Decisión**: las dos skills viajan en **un plugin de Claude Code** cuyo fuente vive en este
 repositorio, en `plugins/auditable-architecture/`:
 

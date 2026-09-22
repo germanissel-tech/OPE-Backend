@@ -1,6 +1,6 @@
 {
   "id": "F-001",
-  "file": "plugins/auditable-architecture/skills/auditing-architecture/evals/empty-catch/fixture/src/application/pricing/quote-price.ts",
+  "file": ".claude/skills/auditing-architecture/evals/empty-catch/fixture/src/application/pricing/quote-price.ts",
   "line": 12,
   "rule": {
     "id": "errors-ignored-exception",

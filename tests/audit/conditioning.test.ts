@@ -18,7 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-const skill = path.resolve("plugins/auditable-architecture/skills/conditioning-project");
+const skill = path.resolve(".claude/skills/conditioning-project");
 const EMPTY_REPO = path.resolve("tests/audit/fixtures/empty-repo");
 
 interface Inspection {

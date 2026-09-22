@@ -11,7 +11,7 @@
     "tests",
     "vitest.config.ts",
     "vitest.mutation.config.ts",
-    "plugins/*/skills/*/evals/*/fixture"
+    ".claude/skills/*/evals/*/fixture"
   ],
   "exclude": ["tests/lint/fixtures", "tests/typecheck/fixtures", "tests/architecture/fixtures/shape"]
 }

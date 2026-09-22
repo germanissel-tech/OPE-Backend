@@ -18,8 +18,8 @@ import { repoRoot } from "./lib.mjs";
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
 
 const SCOPE_DIRS = ["src", "tests", "scripts", "contracts", ".github"];
-/** The scripts of the plugin skills (plugins/<plugin>/skills/<skill>/scripts) are code: English. */
-const PLUGINS_DIR = "plugins";
+/** The scripts of the skills (.claude/skills/<skill>/scripts) are code: English; the rest of a skill is documentation. */
+const SKILLS_DIR = ".claude/skills";
 const ROOT_FILES = [
   "eslint.config.mjs",
   ".dependency-cruiser.cjs",
@@ -92,11 +92,10 @@ function isExcluded(relPath, prefixes) {
 function collectFiles(base) {
   if (dirArg !== undefined) return walkFiles(path.resolve(base, dirArg), EXTENSIONS);
   const files = SCOPE_DIRS.flatMap((d) => walkFiles(path.join(base, d), EXTENSIONS));
-  const plugins = path.join(base, PLUGINS_DIR);
-  if (existsSync(plugins)) {
-    for (const file of walkFiles(plugins, EXTENSIONS)) {
-      const parts = rel(base, file).split("/");
-      if (parts[2] === "skills" && parts[4] === "scripts") files.push(file);
+  const skills = path.join(base, SKILLS_DIR);
+  if (existsSync(skills)) {
+    for (const file of walkFiles(skills, EXTENSIONS)) {
+      if (rel(base, file).split("/")[3] === "scripts") files.push(file);
     }
   }
   for (const f of ROOT_FILES) if (existsSync(path.join(base, f))) files.push(path.join(base, f));

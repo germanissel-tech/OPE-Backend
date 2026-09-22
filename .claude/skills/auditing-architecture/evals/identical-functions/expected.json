@@ -1,6 +1,6 @@
 {
   "id": "F-001",
-  "file": "plugins/auditable-architecture/skills/auditing-architecture/evals/identical-functions/fixture/src/domain/pricing/percent.ts",
+  "file": ".claude/skills/auditing-architecture/evals/identical-functions/fixture/src/domain/pricing/percent.ts",
   "line": 8,
   "rule": {
     "id": "dry-identical-functions",

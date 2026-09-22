@@ -14,8 +14,10 @@ los criterios de diseño y las evaluaciones propias— lo dice el **perfil** del
 particular.
 
 Los scripts se citan como `${SKILL}/scripts/...`: `${SKILL}` es el directorio de esta skill
-(dentro del plugin instalado, o `plugins/auditable-architecture/skills/auditing-architecture`
-cuando el plugin vive en el repositorio).
+(`.claude/skills/auditing-architecture`). La skill vive en el repositorio, como las de spec-kit,
+sin instalación global; llevarla a otro proyecto es copiar `.claude/skills/auditing-architecture`
+y `.claude/skills/conditioning-project` (la segunda importa `profile.mjs` de la primera) y
+escribir el perfil de ese proyecto.
 
 ## Checklist
 

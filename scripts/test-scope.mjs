@@ -22,7 +22,6 @@ export const TOOLS_TRIGGERS = [
   "docs/",
   "tests/audit/",
   "tests/docs/",
-  "plugins/",
   "scripts/audit/",
   "audit.profile.json",
   "config/schemas/",

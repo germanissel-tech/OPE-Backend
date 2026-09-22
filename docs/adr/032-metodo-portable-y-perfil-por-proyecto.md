@@ -52,14 +52,17 @@ message }] }`; con `--list-rules` enumera sus reglas; salida distinta de cero = 
   tener viajan con la skill (`requires.json` con la regla que exigen); las que dependen de esta
   arquitectura se quedan en el repo (`tests/audit/evals/`) con sus fixtures. Los criterios de
   diseño del repo viven en `docs/auditoria/criterios-diseno.md`.
-- **Empaquetado**: un plugin de Claude Code (`plugins/auditable-architecture/`, con
-  `.claude-plugin/plugin.json` versionado) cuyo fuente vive en este repositorio y un
-  marketplace mínimo en la raíz. Este repo lo habilita por `.claude/settings.json`; otro
-  proyecto lo instala desde este repo o con `--plugin-dir`. La copia en
-  `.claude/skills/auditing-architecture/` **se reemplaza**: el método existe en un solo lugar y
-  las nueve evaluaciones existentes —con sus `expected.json` sin cambio— son la prueba de que
-  el reemplazo no pierde nada.
-- **Acondicionamiento**: una segunda skill del mismo plugin (`conditioning-project`) inspecciona
+- **Empaquetado**: las dos skills viven en `.claude/skills/` del repositorio, como las de
+  spec-kit —versionadas con el código, sin instalación global ni plugin— y llevarlas a otro
+  proyecto es copiar los dos directorios (`conditioning-project` importa `profile.mjs` de
+  `auditing-architecture`). La copia acoplada de `.claude/skills/auditing-architecture/` **se
+  reemplaza** por la portable en el mismo lugar: el método existe en un solo lugar y las nueve
+  evaluaciones existentes —con sus `expected.json` sin cambio— son la prueba de que el reemplazo
+  no pierde nada. _Enmienda 2026-09-22_: la primera implementación las empaquetó como plugin de
+  Claude Code (`plugins/`, marketplace en la raíz, habilitación por `.claude/settings.json`); el
+  dueño lo rechazó porque el mecanismo de plugins registra el marketplace y el plugin fuera del
+  repositorio (`~/.claude/plugins/`): una instalación global, que era justo lo que no quería.
+- **Acondicionamiento**: una segunda skill (`conditioning-project`) inspecciona
   un repositorio, pregunta sólo lo que no detecta, escribe el perfil y los criterios prellenados
   con lo que la constitución y los ADR ya dicen (`PLACEHOLDER` donde el proyecto no decidió),
   deja pendiente cada gate sin adaptador, y corre un doctor que dice qué está listo, qué falta y
@@ -88,10 +91,12 @@ message }] }`; con `--list-rules` enumera sus reglas; salida distinta de cero = 
   `package.json` ata la skill a Node.
 - **Resolutor de fuente arbitrario (`command`)**: reintroduce código del proyecto en la skill
   por otra vía.
-- **Repositorio propio para el plugin desde el inicio**: la CI de este repo dependería de un
-  checkout externo o de una copia fijada que diverge. Extraerlo cuando madure es mover el
-  directorio y cambiar la fuente del marketplace.
-- **Copia fijada de la skill además del plugin**: dos fuentes del mismo método.
+- **Plugin de Claude Code con marketplace**: implementado y descartado (enmienda 2026-09-22):
+  el fuente vivía en el repo pero la habilitación registraba marketplace y plugin en el
+  directorio global del usuario; una skill en `.claude/skills/` no necesita nada de eso.
+- **Repositorio propio para las skills desde el inicio**: la CI de este repo dependería de un
+  checkout externo o de una copia fijada que diverge.
+- **Copia fijada de la skill además de la portable**: dos fuentes del mismo método.
 - **Un README por carpeta sin prueba**: cinco README divergen en un mes; la prueba es lo que
   hace convención a la convención.
 

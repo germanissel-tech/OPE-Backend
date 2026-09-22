@@ -128,6 +128,7 @@ function gatesOf(root, inspection, answers) {
 function sourcesOf(inspection, gates) {
   const s = inspection.sources;
   const at = (/** @type {string} */ kind, /** @type {string} */ fallback) => s[kind]?.path ?? fallback;
+  /** @type {Record<string, unknown>[]} */
   const sources = [
     {
       kind: "constitution#",
@@ -177,7 +178,7 @@ export function buildProfile(root, inspection, answers) {
     .map(([tool, t]) => ({ tool, gate: t.gate, adapter: `scripts/audit/gate-${t.gate}.mjs` }));
   return {
     $schema:
-      "./plugins/auditable-architecture/skills/auditing-architecture/scripts/audit-profile.schema.json",
+      "./.claude/skills/auditing-architecture/scripts/audit-profile.schema.json",
     profileVersion: 1,
     sourceRoot: inspection.sourceRoot,
     scopes: {

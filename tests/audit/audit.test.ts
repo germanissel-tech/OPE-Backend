@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-const skill = path.resolve("plugins/auditable-architecture/skills/auditing-architecture");
+const skill = path.resolve(".claude/skills/auditing-architecture");
 const profile = JSON.parse(readFileSync("audit.profile.json", "utf8")) as { evals: string };
 /** The repository's evals, with the gate rule that sees the defect, or null when only the cognitive review does. */
 const ownEvals: Record<string, string | null> = {

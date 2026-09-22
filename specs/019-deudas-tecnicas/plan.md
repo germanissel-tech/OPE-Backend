@@ -6,6 +6,9 @@
 
 ## Summary
 
+> **Enmendado el 2026-09-22**: sin plugin. Las skills viven en `.claude/skills/` (decisión del
+> dueño); ver R-02 enmendado y quickstart § "Cambios respecto del plan". El resto del plan vale.
+
 Cinco historias independientes, una fase cada una, en el orden D-06 → D-04 → D-05 → D-01 → D-02
 (R-09). D-06 fija una convención con prueba: todo directorio de primer nivel que no es código
 tiene un README con inventario que una prueba mantiene igual al directorio, más verificaciones
@@ -14,7 +17,7 @@ niveles del release generados desde el contrato en `generated/schemas/`, la semi
 operadores escritos una vez y probados contra sus lectores, descripciones obligatorias en el
 contrato. D-05 le da a `contracts/` su README con la tabla de extensiones `x-*` verificada,
 "cómo agregar", y resuelve `webhooks/` y las cabeceras desactualizadas. D-01 saca la skill de
-auditoría del repo a un plugin de Claude Code (`plugins/auditable-architecture/`) que sólo lee
+auditoría del repo a dos skills portables en `.claude/skills/` (enmienda 2026-09-22: sin plugin) que sólo leen
 un perfil (`audit.profile.json` v1) y adaptadores de gate con protocolo fijo; el repo conserva
 perfil, criterios, evals propias y adaptadores; las nueve evaluaciones dan lo mismo. D-02 agrega
 al plugin la skill de acondicionamiento (inspección, preguntas mínimas, escritura idempotente,

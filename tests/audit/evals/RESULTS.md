@@ -127,9 +127,9 @@ Una corrida.
 
 ## 2026-09-21 — Opus 5, la skill portable sobre el perfil (feature 019, D-01; ADR-032)
 
-La skill salió del repositorio (`plugins/auditable-architecture/`) y audita por
+La skill dejó de estar acoplada al repositorio (vive en `.claude/skills/`, como las de spec-kit) y audita por
 `audit.profile.json`; los nueve `expected.json` no cambiaron. Una corrida del método completo
-sobre cada fixture: gates por el plugin (`run-gates.mjs --dir … --json`, adaptadores de
+sobre cada fixture: gates por la skill (`run-gates.mjs --dir … --json`, adaptadores de
 `scripts/audit/`), lectura del fixture, hallazgo propuesto, `verify-finding.mjs` sobre el perfil
 (nueve verificados) y comparación con `expected.json` (archivo, línea, fuente, severidad).
 
@@ -150,5 +150,5 @@ Notas:
 - Los hallazgos de `arch` ahora traen línea (la del `import` que crea la dependencia); el
   hallazgo cognitivo sigue ubicándose donde está el defecto de diseño (la lista central, la
   elección del gateway), no en el import: la prueba determinista compara `arch` por archivo.
-- Las dos evaluaciones universales del plugin (`identical-functions`, `empty-catch` en su
+- Las dos evaluaciones universales de la skill (`identical-functions`, `empty-catch` en su
   variante `lint:`) corren con este perfil porque `gate-lint --list-rules` lista sus reglas.
