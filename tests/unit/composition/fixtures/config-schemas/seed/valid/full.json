@@ -1,0 +1,32 @@
+{
+  "merchants": [
+    {
+      "merchantId": "m_seed",
+      "ingestKeys": ["ope_ik_seed"],
+      "origins": ["https://shop.example"],
+      "platformKeys": ["ope_pk_seed"],
+      "platformSecrets": ["ope_ps_seed"],
+      "experiments": [
+        {
+          "experimentId": "exp_seed_0001",
+          "treatmentPercent": 50,
+          "seed": "s",
+          "status": "active",
+          "openedAt": "2026-09-17T00:00:00Z",
+          "targetSample": 1000,
+          "cuts": [25, 50]
+        }
+      ],
+      "holdoutPercent": 0,
+      "commercialPolicy": {
+        "version": "c-1",
+        "marginPercent": 40
+      },
+      "evidenceProfile": {
+        "returnsPolicy": true,
+        "fitData": true,
+        "authorizedAttributes": ["material"]
+      }
+    }
+  ]
+}

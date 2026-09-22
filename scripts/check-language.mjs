@@ -18,7 +18,8 @@ import { repoRoot } from "./lib.mjs";
 /** @typedef {{ file: string; line: number; rule: string; message: string }} Finding */
 
 const SCOPE_DIRS = ["src", "tests", "scripts", "contracts", ".github"];
-const SKILL_SCRIPTS = ".claude/skills";
+/** The scripts of the skills (.claude/skills/<skill>/scripts) are code: English; the rest of a skill is documentation. */
+const SKILLS_DIR = ".claude/skills";
 const ROOT_FILES = [
   "eslint.config.mjs",
   ".dependency-cruiser.cjs",
@@ -32,7 +33,14 @@ const ROOT_FILES = [
 const CODE_EXTENSIONS = [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"];
 const TEXT_EXTENSIONS = [".yaml", ".yml", ".json"];
 const EXTENSIONS = [...CODE_EXTENSIONS, ...TEXT_EXTENSIONS];
-const ALWAYS_EXCLUDED = ["scripts/language-denylist.json", "patches/"];
+// The inventory policy names the (Spanish) columns of the documentation README, like the denylist names Spanish words.
+// The evals of the audit cite headings of the (Spanish) documentation in their expected findings.
+const ALWAYS_EXCLUDED = [
+  "scripts/language-denylist.json",
+  "scripts/readme-inventory-policy.json",
+  "patches/",
+  "tests/audit/evals/",
+];
 const SPANISH_CHARS = /[áéíóúñÁÉÍÓÚÑ¿¡]/u;
 // The directive must open the comment: a mention of `lang:es` in prose is not an exception.
 const ALLOW = /^\s*(?:\/\/|#|\/\*+|\*)?\s*lang:es(?:\s*--\s*(\S.*))?/;
@@ -84,10 +92,10 @@ function isExcluded(relPath, prefixes) {
 function collectFiles(base) {
   if (dirArg !== undefined) return walkFiles(path.resolve(base, dirArg), EXTENSIONS);
   const files = SCOPE_DIRS.flatMap((d) => walkFiles(path.join(base, d), EXTENSIONS));
-  const skills = path.join(base, SKILL_SCRIPTS);
+  const skills = path.join(base, SKILLS_DIR);
   if (existsSync(skills)) {
-    for (const skill of walkFiles(skills, EXTENSIONS)) {
-      if (rel(base, skill).split("/")[3] === "scripts") files.push(skill);
+    for (const file of walkFiles(skills, EXTENSIONS)) {
+      if (rel(base, file).split("/")[3] === "scripts") files.push(file);
     }
   }
   for (const f of ROOT_FILES) if (existsSync(path.join(base, f))) files.push(path.join(base, f));

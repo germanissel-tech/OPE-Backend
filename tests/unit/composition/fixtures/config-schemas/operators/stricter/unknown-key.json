@@ -1,0 +1,10 @@
+{
+  "operators": [
+    {
+      "operatorId": "op_seed",
+      "tokenFingerprints": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      "scope": "*",
+      "email": "x"
+    }
+  ]
+}

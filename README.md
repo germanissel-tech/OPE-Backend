@@ -12,6 +12,10 @@ repositorio de trabajo (`../01-arquitectura-mvp.md`, `../02-integracion-ecommerc
 
 - **Spec-driven** con [spec-kit](https://github.com/github/spec-kit): `/speckit-specify` →
   `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. Los comandos están en `.claude/skills/`.
+- **Auditoría por método**: la skill `auditing-architecture` (`.claude/skills/`, como las de
+  spec-kit; sin instalación global) audita un módulo, un
+  directorio o el diff contra `main` guiada por `audit.profile.json` (gates, fuentes de verdad,
+  criterios en `docs/auditoria/criterios-diseno.md`, evals en `tests/audit/evals/`); ADR-032.
 - **API-first**: `contracts/openapi.yaml` es la fuente de verdad de toda superficie HTTP; los
   tipos y validadores se generan desde el contrato. El cambio de contrato precede al código.
 
@@ -82,10 +86,13 @@ npm run dev
 curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/json" -H "X-OPE-Ingest-Key: ope_dev_ingest_key"   -d '{"events":[{"type":"product_viewed","eventId":"evt_00000001","sessionId":"ses_00000001","visitorId":"vis_00000001","occurredAt":"2026-09-16T12:00:00Z","page":{"pageType":"product","productId":"SKU-1"},"device":"mobile"}]}'
 ```
 
-- Contrato: `contracts/` (raíz `openapi.yaml`, `paths/`, `components/`, `examples/`,
-  catálogos `problem-types.yaml` y `no-op-reasons.yaml`). Lo que el código deriva de él vive en
-  `generated/` (`npm run contract:types`: tipos de la API y catálogo de problemas; versionado y
-  verificado por drift) y el cliente tipado para consumidores en `client/` (export `./client`).
+- Cada directorio de primer nivel se explica solo: `config/README.md`, `contracts/README.md`,
+  `generated/README.md`, `patches/README.md`, `scripts/README.md`, `docs/README.md`,
+  `tests/README.md`, `client/README.md`, `specs/README.md` (inventario verificado por
+  `npm run test:tools`, ADR-032).
+- Contrato: `contracts/` (fuente única de la superficie HTTP); lo que el código deriva de él
+  vive en `generated/` (`npm run contract:types`, verificado por drift) y el cliente tipado para
+  consumidores en `client/` (export `./client`).
 - Carga informativa: `npm run build && npm run test:load` (autocannon; `OPE_LOAD_DURATION`,
   `OPE_LOAD_CONNECTIONS`, `OPE_LOAD_VISITORS`). Cifras de referencia en
   `specs/007-asignacion-experimental/quickstart.md`.
@@ -93,7 +100,6 @@ curl -s -X POST http://127.0.0.1:3000/v1/events   -H "content-type: application/
   planeada, con consumidor, esquema de seguridad, feature y fuente (ADR-019, ADR-020);
   `npm run check:api-map` la mantiene coherente con el contrato. La documentación generada
   (`npm run contract:docs`) muestra la superficie planeada.
-- Tipos generados: `generated/api.d.ts` (commiteado, nunca editado a mano; desde la enmienda 2026-09-21 fuera de `src/`).
 - Cliente tipado para SDK y portal: `import { createOpeClient } from "ope-backend/client"`.
 - Reglas del contrato y cómo ampliarlas: `contracts/.spectral.yaml`, `tests/contract-rules/README.md`.
 - Decisiones de arquitectura: `docs/adr/` (citar `ADR-NNN`). Glosario del lenguaje ubicuo:

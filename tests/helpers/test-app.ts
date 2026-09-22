@@ -11,6 +11,7 @@ import {
   readTreatmentDefaults,
 } from "../../src/application/configuration/index.js";
 import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { withoutSchemaReference } from "../../src/composition/env.js";
 import { localProfile } from "../../src/composition/profiles/local.js";
 import { Experiment, Experiments, type ExperimentStatus } from "../../src/domain/experiment/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
@@ -94,7 +95,8 @@ function configured(spec: MerchantSpec): MerchantConfig {
 
 /** The levels of the release as the repository declares them: the tests run under the real files. */
 function releaseLevels(): ReleaseLevels {
-  const read = (file: string): unknown => JSON.parse(readFileSync(path.resolve(file), "utf8"));
+  const read = (file: string): unknown =>
+    withoutSchemaReference(JSON.parse(readFileSync(path.resolve(file), "utf8")));
   const platform = readPlatformConfiguration(read("config/platform.json"));
   const defaults = readTreatmentDefaults(read("config/treatment-defaults.json"));
   if (!platform.ok) throw new Error(`config/platform.json: ${platform.error.message}`);

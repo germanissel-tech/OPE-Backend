@@ -1,9 +1,9 @@
 # Formato de un hallazgo y del reporte
 
-El esquema ejecutable es `scripts/audit-finding.schema.json` (copia de
-`specs/005-auditoria-calidad/contracts/audit-finding.schema.json`); `scripts/verify-finding.mjs`
-lo aplica y además comprueba que el archivo, la línea y la fuente existen. Nada que no pase por
-ahí entra al reporte.
+El esquema ejecutable es `scripts/audit-finding.schema.json`; `scripts/verify-finding.mjs` lo
+aplica y además comprueba que el archivo y la línea existen, que la fuente pertenece a una
+clase que el perfil del proyecto (`audit.profile.json`) declara y resuelve por su resolutor, y
+que la severidad es la que esa clase impone. Nada que no pase por ahí entra al reporte.
 
 ## Contenido
 
@@ -16,32 +16,33 @@ ahí entra al reporte.
 
 ## Campos de un hallazgo
 
-| Campo          | Qué es                                                                                               |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`           | `F-001`, `F-002`… único en el reporte                                                                |
-| `file`         | ruta relativa al repo con `/`; tiene que existir                                                     |
-| `line`         | entera, dentro del archivo                                                                           |
-| `rule.id`      | slug corto del criterio: `srp-one-authority-per-module`, `dip-port-leaks-infrastructure`…            |
-| `rule.source`  | `ADR-NNN` · `constitution#<sección>` · `mvp:<01\|02\|03>#<sección>` (sección DECIDIDA de un documento del MVP) · `spec:<NNN>#<FR-nnn\|SC-nnn>` · `guide#<sección>` · `lint:<regla>` · `arch:<regla>` · `shape:<regla>` · `clarity:<slug>` |
-| `severity`     | `high` · `medium` · `low` — derivada de `rule.source` (tabla siguiente)                              |
-| `evidence`     | el fragmento citado (≤ 20 líneas), no una paráfrasis                                                  |
-| `proposal`     | `{ before, after }`: código, no prosa                                                                |
-| `coveringTest` | qué prueba lo cubriría: nombre y ubicación (`tests/unit/.../x.test.ts: "..."`)                        |
-| `status`       | `proposed` → `confirmed` \| `refuted`; `refuted` lleva `refutation`                                   |
-| `closure`      | opcional; lo escribe la feature que cierra el hallazgo: `{ status: resolved | absorbed-by | rejected, by: <commit | F-NNN | motivo>, feature: NNN }`; `verify-finding` no lo juzga |
+| Campo          | Qué es                                                                                                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `F-001`, `F-002`… único en el reporte                                                                                                                                                                                            |
+| `file`         | ruta relativa al repo con `/`; tiene que existir                                                                                                                                                                                 |
+| `line`         | entera, dentro del archivo                                                                                                                                                                                                       |
+| `rule.id`      | slug corto del criterio: `srp-one-authority-per-module`, `dip-port-leaks-infrastructure`…                                                                                                                                        |
+| `rule.source`  | `<clase><resto>`: la clase es un prefijo que `profile.sources[]` declara (por ejemplo `ADR-`, `constitution#`, `lint:`, `clarity:`) y el resto lo que su resolutor busca (un número de ADR, un encabezado, una regla de un gate) |
+| `severity`     | `high` · `medium` · `low` — la impone la clase de `rule.source` (`profile.sources[].severity`)                                                                                                                                   |
+| `evidence`     | el fragmento citado (≤ 20 líneas), no una paráfrasis                                                                                                                                                                             |
+| `proposal`     | `{ before, after }`: código, no prosa                                                                                                                                                                                            |
+| `coveringTest` | qué prueba lo cubriría: nombre y ubicación (`tests/unit/.../x.test.ts: "..."`)                                                                                                                                                   |
+| `status`       | `proposed` → `confirmed` \| `refuted`; `refuted` lleva `refutation`                                                                                                                                                              |
+| `closure`      | opcional; lo escribe la feature que cierra el hallazgo: `{ status: resolved                                                                                                                                                      | absorbed-by | rejected, by: <commit | F-NNN | motivo>, feature: NNN }`; `verify-finding` no lo juzga |
 
 ## Severidad: la decide la fuente, no el revisor
 
-| `rule.source`              | severidad | significa                                                     |
-| -------------------------- | --------- | ------------------------------------------------------------- |
-| `ADR-NNN`, `constitution#`, `mvp:`, `spec:` | `high`    | viola una decisión registrada, un principio MUST, un DECIDIDO del MVP o un requisito de una spec |
-| `guide#`, `lint:`, `arch:`, `shape:` | `medium`  | viola una convención de la guía o el caso que una regla no ve |
-| `clarity:<slug>`           | `low`     | nombres, legibilidad; sin fuente formal                        |
+Cada clase de fuente lleva su severidad en el perfil del proyecto. La convención que la skill
+recomienda y la de acondicionamiento escribe por defecto:
 
-`verify-finding` rechaza un hallazgo cuya severidad no corresponde a su fuente. Un hallazgo
-`high` sin sección de constitución, ADR, sección DECIDIDA del MVP o `FR`/`SC` citable no es
-`high`: buscar la fuente o bajarlo. Una sección `PROPUESTO` o `ABIERTO` del MVP no es fuente
-de un `high`: lo que la contradice es un riesgo, no un hallazgo.
+| clase de fuente                                                                      | severidad | significa                                                            |
+| ------------------------------------------------------------------------------------ | --------- | -------------------------------------------------------------------- |
+| una decisión registrada (ADR), un principio de la constitución, un requisito citable | `high`    | viola algo que el proyecto decidió y escribió                        |
+| una convención de la guía para agentes, o el caso que una regla de un gate no ve     | `medium`  | viola una convención o extiende una regla                            |
+| claridad (nombres, legibilidad), sin fuente formal                                   | `low`     | mejora sin decisión detrás; `verify-finding` la baja si pretende más |
+
+`verify-finding` rechaza un hallazgo cuya severidad no es la de su clase, y uno cuya clase el
+perfil no declara.
 
 ## Estado global: regla fija
 

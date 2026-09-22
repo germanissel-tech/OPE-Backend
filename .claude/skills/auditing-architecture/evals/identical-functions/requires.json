@@ -1,0 +1,3 @@
+{
+  "gateRule": "sonarjs/no-identical-functions"
+}

@@ -1,0 +1,85 @@
+{
+  "$schema": "./.claude/skills/auditing-architecture/scripts/audit-profile.schema.json",
+  "profileVersion": 1,
+  "sourceRoot": "src",
+  "scopes": {
+    "module": {
+      "roots": ["src/domain/{name}", "src/application/{name}", "src/interface-adapters/{name}"]
+    },
+    "diff": { "base": "origin/main", "include": ["src/"] }
+  },
+  "gates": [
+    { "id": "lint", "mode": "blocking", "run": "node scripts/audit/gate-lint.mjs", "format": "findings-v1" },
+    { "id": "arch", "mode": "blocking", "run": "node scripts/audit/gate-arch.mjs", "format": "findings-v1" },
+    {
+      "id": "shape",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-shape.mjs",
+      "format": "findings-v1"
+    },
+    {
+      "id": "duplication",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-duplication.mjs",
+      "format": "findings-v1"
+    },
+    {
+      "id": "dead-code",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-dead-code.mjs",
+      "format": "findings-v1"
+    },
+    {
+      "id": "language",
+      "mode": "blocking",
+      "run": "node scripts/audit/gate-language.mjs",
+      "format": "findings-v1"
+    },
+    {
+      "id": "mutation",
+      "mode": "informative",
+      "scopes": ["diff"],
+      "run": "node scripts/audit/gate-mutation.mjs",
+      "format": "findings-v1"
+    }
+  ],
+  "sources": [
+    {
+      "kind": "constitution#",
+      "severity": "high",
+      "resolve": { "type": "markdown-heading", "file": ".specify/memory/constitution.md" }
+    },
+    {
+      "kind": "ADR-",
+      "severity": "high",
+      "resolve": { "type": "file-glob", "pattern": "docs/adr/{id}-*.md" }
+    },
+    {
+      "kind": "mvp:",
+      "severity": "high",
+      "resolve": { "type": "markdown-heading", "file": "../{id}-*.md", "dirEnv": "OPE_MVP_DOCS_DIR" }
+    },
+    {
+      "kind": "spec:",
+      "severity": "high",
+      "resolve": {
+        "type": "text-in-file",
+        "file": "specs/{id}-*/spec.md",
+        "contains": "**{ref}**",
+        "refPattern": "^(FR|SC)-[0-9]{3}$"
+      }
+    },
+    {
+      "kind": "guide#",
+      "severity": "medium",
+      "resolve": { "type": "markdown-heading", "file": "CLAUDE.md" }
+    },
+    { "kind": "lint:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "lint" } },
+    { "kind": "arch:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "arch" } },
+    { "kind": "shape:", "severity": "medium", "resolve": { "type": "gate-rule", "gate": "shape" } },
+    { "kind": "clarity:", "severity": "low", "resolve": { "type": "criteria-section" } }
+  ],
+  "criteria": "docs/auditoria/criterios-diseno.md",
+  "evals": "tests/audit/evals",
+  "conditioning": { "answers": {} }
+}

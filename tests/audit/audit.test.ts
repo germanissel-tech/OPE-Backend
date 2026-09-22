@@ -1,15 +1,18 @@
-// Feature 005, US7 (FR-060, FR-064, FR-066): the auditing skill's deterministic half. run-gates reports the
-// known defect of each eval fixture; verify-finding accepts the expected finding and rejects one
-// whose location, source or severity does not hold.
+// Feature 005 US7 (FR-060, FR-064, FR-066), feature 019 D-01 (ADR-032): the auditing skill's
+// deterministic half, now driven by audit.profile.json. run-gates reports the known defect of
+// each eval fixture (the repository's own evals and the universal ones the profile admits);
+// verify-finding accepts the expected finding and rejects one whose location, source or
+// severity does not hold; without a profile, or with one of another version, both say so.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 const skill = path.resolve(".claude/skills/auditing-architecture");
-/** Every eval, with the gate rule that sees its defect, or null when only the cognitive review does. */
-const evals: Record<string, string | null> = {
+const profile = JSON.parse(readFileSync("audit.profile.json", "utf8")) as { evals: string };
+/** The repository's evals, with the gate rule that sees the defect, or null when only the cognitive review does. */
+const ownEvals: Record<string, string | null> = {
   "controller-instantiates-infra": "shape/new-only-in-composition",
   "identical-domain-functions": "lint/sonarjs/no-identical-functions",
   "empty-catch": "lint/sonarjs/no-ignored-exceptions",
@@ -34,8 +37,10 @@ interface Finding {
 }
 interface GateResult {
   gate: string;
+  mode: string;
   status: string;
-  findings: { file: string; line?: number; rule: string }[];
+  reason?: string;
+  findings: { file: string; line: number; rule: string }[];
 }
 
 const tmp = mkdtempSync(path.join(os.tmpdir(), "ope-audit-"));
@@ -47,16 +52,18 @@ function node(
   script: string,
   args: string[],
   env: Record<string, string> = {},
+  cwd = process.cwd(),
 ): { status: number; stdout: string; stderr: string } {
   const r = spawnSync(process.execPath, [path.join(skill, "scripts", script), ...args], {
     encoding: "utf8",
     env: { ...process.env, ...env },
+    cwd,
   });
   return { status: r.status ?? 1, stdout: r.stdout, stderr: r.stderr };
 }
 
-const expectedOf = (name: string): Finding =>
-  JSON.parse(readFileSync(path.join(skill, "evals", name, "expected.json"), "utf8")) as Finding;
+const ownExpected = (name: string): Finding =>
+  JSON.parse(readFileSync(path.join(profile.evals, name, "expected.json"), "utf8")) as Finding;
 
 function verify(findings: Finding[], env: Record<string, string> = {}): Finding[] {
   const file = path.join(tmp, `${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
@@ -65,8 +72,17 @@ function verify(findings: Finding[], env: Record<string, string> = {}): Finding[
   return JSON.parse(r.stdout) as Finding[];
 }
 
-describe("run-gates.mjs on the eval fixtures", () => {
-  for (const [name, gateRule] of Object.entries(evals)) {
+/** The gate rules the expected defect must appear under, at the expected file (and line, except for arch: a dependency is located at its import). */
+function rulesAt(out: { gates: GateResult[] }, expected: Finding): string[] {
+  return out.gates
+    .flatMap((g) => g.findings)
+    .filter((f) => f.file === expected.file && (f.rule.startsWith("arch/") || f.line === expected.line))
+    .map((f) => f.rule)
+    .filter((rule) => rule !== "arch/no-orphans");
+}
+
+describe("run-gates.mjs on the repository's evals", () => {
+  for (const [name, gateRule] of Object.entries(ownEvals)) {
     it(
       gateRule === null
         ? `${name}: no gate sees it (cognitive review only)`
@@ -75,32 +91,108 @@ describe("run-gates.mjs on the eval fixtures", () => {
         const r = node("run-gates.mjs", ["--dir", `tests/audit/fixtures/${name}/src`, "--json"]);
         expect(r.status, r.stderr).toBe(0);
         const out = JSON.parse(r.stdout) as { gates: GateResult[] };
-        const expected = expectedOf(name);
-        // arch findings carry no line (a dependency is file to file): they match on the file alone.
-        // `no-orphans` on a one-file fixture is a scope artifact (nothing imports it), not a defect.
-        const rulesAt = out.gates
-          .flatMap((g) => g.findings)
-          .filter((f) => f.file === expected.file && (f.line === undefined || f.line === expected.line))
-          .map((f) => f.rule)
-          .filter((rule) => rule !== "arch/no-orphans");
-        if (gateRule === null) expect(rulesAt).toEqual([]);
-        else expect(rulesAt).toContain(gateRule);
+        expect(out.gates.filter((g) => g.status === "degraded")).toEqual([]);
+        const rules = rulesAt(out, ownExpected(name));
+        if (gateRule === null) expect(rules).toEqual([]);
+        else expect(rules).toContain(gateRule);
       },
       120_000,
     );
   }
+
+  it("every eval of the profile has its expected.json and README, and every expected file exists", () => {
+    for (const name of readdirSync(profile.evals).filter((d) => !d.endsWith(".md"))) {
+      expect(existsSync(path.join(profile.evals, name, "README.md")), name).toBe(true);
+      expect(existsSync(ownExpected(name).file), name).toBe(true);
+    }
+  });
+});
+
+describe("the universal evals of the plugin, run with this repository's profile", () => {
+  const universal = path.join(skill, "evals");
+  const lintRules = JSON.parse(
+    spawnSync(process.execPath, ["scripts/audit/gate-lint.mjs", "--list-rules"], { encoding: "utf8" }).stdout,
+  ) as { rules: string[] };
+  for (const name of readdirSync(universal)) {
+    const dir = path.join(universal, name);
+    const requires = JSON.parse(readFileSync(path.join(dir, "requires.json"), "utf8")) as {
+      gateRule: string;
+    };
+    const expected = JSON.parse(readFileSync(path.join(dir, "expected.json"), "utf8")) as Finding;
+    it(`${name}: requires ${requires.gateRule}, which this profile lists; the gate reports it and the expected verifies`, () => {
+      expect(lintRules.rules).toContain(requires.gateRule);
+      const r = node("run-gates.mjs", [
+        "--dir",
+        path.relative(process.cwd(), path.join(dir, "fixture", "src")),
+        "--json",
+      ]);
+      expect(r.status, r.stderr).toBe(0);
+      expect(rulesAt(JSON.parse(r.stdout) as { gates: GateResult[] }, expected)).toContain(
+        `lint/${requires.gateRule}`,
+      );
+      const [result] = verify([expected]);
+      expect(result?.verified, result?.reason ?? "").toBe(true);
+    }, 120_000);
+  }
+});
+
+describe("without a usable profile", () => {
+  it("says what is missing and audits nothing", () => {
+    const empty = mkdtempSync(path.join(os.tmpdir(), "ope-no-profile-"));
+    const r = node("run-gates.mjs", ["--dir", ".", "--json"], {}, empty);
+    expect(r.status).toBe(2);
+    expect(r.stdout).toBe("");
+    expect(r.stderr.trim().split(/\r?\n/u)).toEqual([
+      `no audit.profile.json in ${empty}: run the conditioning-project skill to create one`,
+    ]);
+    rmSync(empty, { recursive: true, force: true });
+  });
+
+  it("refuses a profile version it does not understand, naming both versions", () => {
+    const other = mkdtempSync(path.join(os.tmpdir(), "ope-profile-99-"));
+    const current = JSON.parse(readFileSync("audit.profile.json", "utf8")) as { profileVersion: number };
+    writeFileSync(path.join(other, "audit.profile.json"), JSON.stringify({ ...current, profileVersion: 99 }));
+    const r = node("run-gates.mjs", ["--dir", ".", "--json"], {}, other);
+    expect(r.status).toBe(2);
+    expect(r.stderr.trim()).toBe("profile version 99 not supported (this skill understands 1)");
+    const v = node("verify-finding.mjs", ["nothing.json"], {}, other);
+    expect(v.status).toBe(2);
+    rmSync(other, { recursive: true, force: true });
+  });
+
+  it("a gate that fails to run is degraded with its reason; the others still run", () => {
+    const broken = mkdtempSync(path.join(os.tmpdir(), "ope-degraded-"));
+    const current = JSON.parse(readFileSync("audit.profile.json", "utf8")) as { gates: object[] };
+    writeFileSync(path.join(broken, "broken.mjs"), "process.stderr.write('boom');\nprocess.exit(3);\n");
+    writeFileSync(path.join(broken, "silent.mjs"), "console.log(JSON.stringify({ findings: [] }));\n");
+    const run = (script: string) => `${JSON.stringify(process.execPath)} ${script}`;
+    const gates = [
+      { id: "broken", mode: "blocking", run: run("broken.mjs"), format: "findings-v1" },
+      { id: "silent", mode: "informative", run: run("silent.mjs"), format: "findings-v1" },
+    ];
+    writeFileSync(path.join(broken, "audit.profile.json"), JSON.stringify({ ...current, gates }));
+    writeFileSync(path.join(broken, "a.ts"), "export const a = 1;\n");
+    const r = node("run-gates.mjs", ["--dir", ".", "--json"], {}, broken);
+    expect(r.status, r.stderr).toBe(0);
+    const out = JSON.parse(r.stdout) as { gates: GateResult[] };
+    expect(out.gates.map((g) => [g.gate, g.status, g.reason])).toEqual([
+      ["broken", "degraded", "boom"],
+      ["silent", "pass", undefined],
+    ]);
+    rmSync(broken, { recursive: true, force: true });
+  });
 });
 
 describe("verify-finding.mjs", () => {
-  it("accepts every expected.json of the evals", () => {
-    for (const name of Object.keys(evals)) {
-      const [result] = verify([expectedOf(name)]);
+  it("accepts every expected.json of the repository's evals", () => {
+    for (const name of Object.keys(ownEvals)) {
+      const [result] = verify([ownExpected(name)]);
       expect(result?.verified, `${name}: ${result?.reason ?? ""}`).toBe(true);
     }
   });
 
   it("rejects a line beyond the file, a nonexistent file and an unknown ADR", () => {
-    const base = expectedOf("empty-catch");
+    const base = ownExpected("empty-catch");
     const results = verify([
       { ...base, id: "F-001", line: 9999 },
       { ...base, id: "F-002", file: "src/nope.ts" },
@@ -112,20 +204,23 @@ describe("verify-finding.mjs", () => {
     expect(results[2]?.reason).toContain("docs/adr/999-*.md");
   });
 
-  it("rejects an unknown lint rule and a severity that does not match the source", () => {
-    const base = expectedOf("empty-catch");
+  it("rejects an unknown lint rule, a severity that does not match the source and a source kind the profile does not declare", () => {
+    const base = ownExpected("empty-catch");
     const results = verify([
-      { ...base, id: "F-001", rule: { id: "x", source: "lint:no-such-rule" } },
+      { ...base, id: "F-001", rule: { id: "x", source: "lint:no-such-rule" }, severity: "medium" },
       { ...base, id: "F-002", rule: { id: "x", source: "ADR-013" }, severity: "low" },
+      { ...base, id: "F-003", rule: { id: "x", source: "vibe:whatever" }, severity: "low" },
     ]);
     expect(results[0]?.verified).toBe(false);
     expect(results[0]?.reason).toContain("no-such-rule");
     expect(results[1]?.verified).toBe(false);
-    expect(results[1]?.reason).toContain("schema");
+    expect(results[1]?.reason).toContain("severity: must be high");
+    expect(results[2]?.verified).toBe(false);
+    expect(results[2]?.reason).toContain("not declared in profile");
   });
 
   it("accepts an optional closure and rejects a closure status outside the catalogue", () => {
-    const base = expectedOf("empty-catch");
+    const base = ownExpected("empty-catch");
     const results = verify([
       { ...base, id: "F-001", closure: { status: "resolved", by: "abc1234", feature: "015" } },
       {
@@ -141,8 +236,8 @@ describe("verify-finding.mjs", () => {
     expect(results[2]?.reason).toContain("schema");
   });
 
-  it("resolves constitution, guide and arch sources, and always accepts clarity", () => {
-    const base = expectedOf("empty-catch");
+  it("resolves constitution, guide, arch and shape sources by the profile, and always accepts clarity", () => {
+    const base = ownExpected("empty-catch");
     const results = verify([
       { ...base, id: "F-001", rule: { id: "x", source: "constitution#II. Fail-closed" }, severity: "high" },
       { ...base, id: "F-002", rule: { id: "x", source: "guide#Convenciones" }, severity: "medium" },
@@ -155,13 +250,14 @@ describe("verify-finding.mjs", () => {
         severity: "medium",
       },
       { ...base, id: "F-006", rule: { id: "x", source: "shape:no-such-rule" }, severity: "medium" },
+      { ...base, id: "F-007", rule: { id: "x", source: "arch:context-map:merchant" }, severity: "medium" },
     ]);
-    expect(results.map((r) => r.verified)).toEqual([true, true, true, true, true, false]);
+    expect(results.map((r) => r.verified)).toEqual([true, true, true, true, true, false, true]);
   });
 
   // Feature 014: functional findings cite a DECIDED section of an MVP document or an FR/SC of a spec.
   it("resolves mvp: sources against the MVP documents' headings and spec: sources against FR/SC; both are high", () => {
-    const base = expectedOf("empty-catch");
+    const base = ownExpected("empty-catch");
     const docs = { OPE_MVP_DOCS_DIR: path.resolve("tests/audit/fixtures/mvp-docs") };
     const results = verify(
       [
@@ -190,9 +286,9 @@ describe("verify-finding.mjs", () => {
     ]);
     expect(results[2]?.reason).toContain("no heading of 01-arquitectura-mvp.md");
     expect(results[3]?.reason).toContain("02-*.md is not readable");
-    expect(results[4]?.reason).toContain("schema");
+    expect(results[4]?.reason).toContain("severity: must be high");
     expect(results[6]?.reason).toContain("does not declare SC-999");
-    expect(results[7]?.reason).toContain("specs/999-*/ does not exist");
-    expect(results[8]?.reason).toContain("schema");
+    expect(results[7]?.reason).toContain("specs/999-*/spec.md does not exist");
+    expect(results[8]?.reason).toContain("does not match");
   });
 });

@@ -1,4 +1,5 @@
 {
+  "$schema": "../generated/schemas/platform-configuration.schema.json",
   "version": "platform-1",
   "dedupWindow": { "ttlMs": 86400000, "maxIds": 100000 },
   "clockSkewToleranceMs": 300000,

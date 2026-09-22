@@ -84,6 +84,8 @@ const DEFAULT_TOOLING = [
   "contracts/rules",
   "scripts",
   ".github",
+  ".claude/skills",
+  "audit.profile.json",
 ].join(",");
 const tooling = (argString(args, "tooling") ?? DEFAULT_TOOLING)
   .split(",")

@@ -9,9 +9,11 @@ import {
   readPlatformConfiguration,
   readTreatmentDefaults,
 } from "../../../../src/application/configuration/index.js";
+import { withoutSchemaReference } from "../../../../src/composition/env.js";
 
+// The files name their schema (`$schema`, D-04 of feature 019); the readers never see the key.
 const read = (file: string): Record<string, unknown> =>
-  JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+  withoutSchemaReference(JSON.parse(readFileSync(file, "utf8"))) as Record<string, unknown>;
 const platform = () => read("config/platform.json");
 const defaults = () => read("config/treatment-defaults.json");
 

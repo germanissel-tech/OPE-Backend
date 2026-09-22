@@ -1,0 +1,165 @@
+// Feature 019, D-04 (ADR-032): every file of config/ names its JSON Schema and validates
+// against it; the seed and the operators schemas (hand-written) agree with their readers on
+// every fixture, except where the schema carries the contract's shape ahead of the reader
+// (`stricter/`, documented in config/README.md). The levels' schemas are generated from the
+// contract (contract:types) and checked for drift elsewhere.
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
+import ajvFormats from "ajv-formats";
+import { describe, expect, it } from "vitest";
+import { readMerchants } from "../../../src/composition/merchants-config.js";
+import { readOperators } from "../../../src/composition/operators-config.js";
+
+const CONFIG_FILES = [
+  "config/platform.json",
+  "config/treatment-defaults.json",
+  "config/dev-merchants.json",
+  "config/dev-operators.json",
+];
+const FIXTURES = path.resolve("tests/unit/composition/fixtures/config-schemas");
+
+/** Ajv with every schema of the repository registered under its file URL, so relative `$ref`s resolve. */
+function ajv(): Ajv2020 {
+  const instance = new Ajv2020({ strict: true, allErrors: true });
+  // ajv-formats is CommonJS: under ESM the callable is in `.default`.
+  ajvFormats.default(instance);
+  for (const dir of ["generated/schemas", "config/schemas"]) {
+    for (const name of readdirSync(dir).filter((f) => f.endsWith(".schema.json"))) {
+      const file = path.resolve(dir, name);
+      instance.addSchema(JSON.parse(readFileSync(file, "utf8")) as object, pathToFileURL(file).href);
+    }
+  }
+  return instance;
+}
+
+function validatorFor(instance: Ajv2020, schemaFile: string): ValidateFunction {
+  const validate = instance.getSchema(pathToFileURL(path.resolve(schemaFile)).href);
+  if (!validate) throw new Error(`schema not registered: ${schemaFile}`);
+  return validate;
+}
+
+/** The `$schema` a config file names, resolved from the file's directory. */
+function schemaOf(configFile: string): string {
+  const parsed = JSON.parse(readFileSync(configFile, "utf8")) as { $schema?: string };
+  if (typeof parsed.$schema !== "string") throw new Error(`${configFile}: no $schema`);
+  return path.resolve(path.dirname(configFile), parsed.$schema);
+}
+
+/** The verdict of a reader on a JSON document: accepted, or the error it stops the start with. */
+function readerVerdict(
+  read: (raw: string) => unknown,
+  raw: string,
+): { ok: true } | { ok: false; error: string } {
+  try {
+    read(raw);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+const readSeed = (raw: string): unknown => readMerchants({ OPE_MERCHANTS: raw }, () => "");
+const readOps = (raw: string): unknown => readOperators({ OPE_ADMIN_OPERATORS: raw }, () => "");
+
+describe("config/ files against their schemas", () => {
+  const instance = ajv();
+  for (const file of CONFIG_FILES) {
+    it(`${file} names its schema and validates against it`, () => {
+      const validate = validatorFor(instance, schemaOf(file));
+      const ok = validate(JSON.parse(readFileSync(file, "utf8")));
+      expect(validate.errors ?? []).toEqual([]);
+      expect(ok).toBe(true);
+    });
+  }
+
+  it("every property of the generated schemas carries the description of the contract (ope-property-description)", () => {
+    const undescribed: string[] = [];
+    const walk = (node: unknown, where: string): void => {
+      if (Array.isArray(node)) {
+        node.forEach((item, i) => {
+          walk(item, `${where}[${i}]`);
+        });
+        return;
+      }
+      if (typeof node !== "object" || node === null) return;
+      const record = node as Record<string, unknown>;
+      const properties = record["properties"];
+      if (typeof properties === "object" && properties !== null) {
+        for (const [name, property] of Object.entries(properties as Record<string, unknown>)) {
+          const p = property as Record<string, unknown>;
+          if (p["description"] === undefined && p["$ref"] === undefined) undescribed.push(`${where}.${name}`);
+        }
+      }
+      for (const [key, value] of Object.entries(record)) walk(value, `${where}.${key}`);
+    };
+    for (const name of readdirSync("generated/schemas")) {
+      walk(JSON.parse(readFileSync(path.join("generated/schemas", name), "utf8")), name);
+    }
+    expect(undescribed).toEqual([]);
+  });
+
+  it("the generated schemas carry the header of a generated file and the $schema property", () => {
+    for (const name of readdirSync("generated/schemas")) {
+      const schema = JSON.parse(readFileSync(path.join("generated/schemas", name), "utf8")) as {
+        $comment?: string;
+        properties?: Record<string, unknown>;
+      };
+      expect(schema.$comment).toMatch(/^GENERATED by scripts\/contract-schemas-lib\.mjs from /u);
+      expect(schema.properties?.["$schema"]).toBeDefined();
+    }
+  });
+});
+
+describe("the seed and the operators schemas agree with their readers", () => {
+  const instance = ajv();
+  const cases: { dir: string; schema: string; read: (raw: string) => unknown }[] = [
+    { dir: "seed", schema: "config/schemas/merchants-seed.schema.json", read: readSeed },
+    { dir: "operators", schema: "config/schemas/operators.schema.json", read: readOps },
+  ];
+  for (const { dir, schema, read } of cases) {
+    const validate = validatorFor(instance, schema);
+    const fixturesIn = (kind: string) =>
+      readdirSync(path.join(FIXTURES, dir, kind))
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => [f, readFileSync(path.join(FIXTURES, dir, kind, f), "utf8")] as const);
+
+    it(`${dir}: every valid fixture passes the schema and the reader`, () => {
+      const problems: string[] = [];
+      for (const [name, raw] of fixturesIn("valid")) {
+        if (!validate(JSON.parse(raw)))
+          problems.push(`${name}: schema rejects (${JSON.stringify(validate.errors)})`);
+        const verdict = readerVerdict(read, raw);
+        if (!verdict.ok) problems.push(`${name}: reader rejects (${verdict.error})`);
+      }
+      expect(problems).toEqual([]);
+    });
+
+    it(`${dir}: every invalid fixture is rejected by the schema and by the reader`, () => {
+      const problems: string[] = [];
+      for (const [name, raw] of fixturesIn("invalid")) {
+        if (validate(JSON.parse(raw))) problems.push(`${name}: schema accepts`);
+        if (readerVerdict(read, raw).ok) problems.push(`${name}: reader accepts`);
+      }
+      expect(problems).toEqual([]);
+    });
+
+    it(`${dir}: the stricter fixtures are rejected by the schema (the contract's shape) and accepted by the reader`, () => {
+      const problems: string[] = [];
+      for (const [name, raw] of fixturesIn("stricter")) {
+        if (validate(JSON.parse(raw))) problems.push(`${name}: schema accepts`);
+        const verdict = readerVerdict(read, raw);
+        if (!verdict.ok) problems.push(`${name}: reader rejects too (${verdict.error}): move it to invalid/`);
+      }
+      expect(problems).toEqual([]);
+    });
+  }
+
+  it("the readers accept the bare array as well as the object of the schema", () => {
+    expect(readerVerdict(readSeed, "[]")).toEqual({ ok: true });
+    expect(readerVerdict(readOps, "[]")).toEqual({ ok: true });
+    expect(readerVerdict(readSeed, '{"$schema":"x","merchants":[]}')).toEqual({ ok: true });
+    expect(readerVerdict(readOps, '{"$schema":"x","operators":[]}')).toEqual({ ok: true });
+  });
+});

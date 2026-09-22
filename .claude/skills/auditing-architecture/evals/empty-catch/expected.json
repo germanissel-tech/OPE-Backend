@@ -1,9 +1,12 @@
 {
   "id": "F-001",
-  "file": "tests/audit/fixtures/empty-catch/src/application/pricing/quote-price.ts",
+  "file": ".claude/skills/auditing-architecture/evals/empty-catch/fixture/src/application/pricing/quote-price.ts",
   "line": 12,
-  "rule": { "id": "errors-ignored-exception-is-silent-no-op", "source": "constitution#II. Fail-closed" },
-  "severity": "high",
+  "rule": {
+    "id": "errors-ignored-exception",
+    "source": "lint:sonarjs/no-ignored-exceptions"
+  },
+  "severity": "medium",
   "evidence": "} catch (err) {}",
   "proposal": {
     "before": "} catch (err) {}\n    return price;",

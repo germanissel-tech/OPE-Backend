@@ -1,11 +1,13 @@
 // contract:types:check — fails if any generated artefact (generated/api.d.ts,
-// generated/problem-types.{js,d.ts}) differs from its regeneration (FR-031; feature 018).
+// generated/problem-types.{js,d.ts}, generated/schemas/*.schema.json) differs from its regeneration
+// (FR-031; feature 018; feature 019 D-04).
 import { existsSync, readFileSync } from "node:fs";
 import {
   generateProblemTypes,
   generatedProblemTypesDts,
   generatedProblemTypesJs,
 } from "./contract-problem-types-lib.mjs";
+import { generateConfigSchemas } from "./contract-schemas-lib.mjs";
 import { generateTypes } from "./contract-types-lib.mjs";
 import { generatedTypesPath } from "./lib.mjs";
 
@@ -18,6 +20,7 @@ const artefacts = [
   [generatedTypesPath, await generateTypes()],
   [generatedProblemTypesJs, js],
   [generatedProblemTypesDts, dts],
+  ...generateConfigSchemas(),
 ];
 const outdated = artefacts.filter(([file, expected]) => current(file) !== expected);
 if (outdated.length > 0) {

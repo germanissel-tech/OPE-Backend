@@ -292,6 +292,16 @@ export function noRawControlCharacters(root) {
   return out;
 }
 
+/** The names of the shape rules, as `shape:<rule>` citations and the audit adapter list them. */
+export const SHAPE_RULES = [
+  "max-file-lines",
+  "one-controller-per-operation",
+  "new-only-in-composition",
+  "no-computed-dynamic-import",
+  "no-config-branch-in-root",
+  "no-raw-control-characters",
+];
+
 /**
  * All five rules on one root, as gate findings.
  * @param {string} root

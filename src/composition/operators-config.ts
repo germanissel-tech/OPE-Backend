@@ -5,6 +5,7 @@ import path from "node:path";
 import { asOperatorId, EVERY_MERCHANT, Operator, type OperatorScope } from "../domain/operator/index.js";
 import { asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
 import { ConfigError, type OperatorField } from "./config-error.js";
+import { listOf } from "./env.js";
 
 const NOT_AN_OBJECT = "is not an object";
 const OPERATORS_VARIABLE = "OPE_ADMIN_OPERATORS";
@@ -45,8 +46,9 @@ function parseOperators(raw: string): Operator[] {
       `is not valid JSON (${err instanceof Error ? err.message : String(err)})`,
     );
   }
-  if (!Array.isArray(parsed)) throw new ConfigError(OPERATORS_VARIABLE, "must be a JSON array of operators");
-  return parsed.map((item: unknown, i) => parseOperator(item, `operators[${i}]`));
+  const operators = listOf(parsed, "operators");
+  if (operators === undefined) throw new ConfigError(OPERATORS_VARIABLE, "must be a JSON array of operators");
+  return operators.map((item: unknown, i) => parseOperator(item, `operators[${i}]`));
 }
 
 function parseOperator(item: unknown, at: OperatorField): Operator {

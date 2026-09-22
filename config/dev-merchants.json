@@ -1,29 +1,32 @@
-[
-  {
-    "merchantId": "dev-merchant",
-    "ingestKeys": ["ope_dev_ingest_key"],
-    "platformKeys": ["ope_dev_platform_key"],
-    "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
-    "experiments": [
-      {
-        "experimentId": "exp_dev_000001",
-        "treatmentPercent": 100,
-        "seed": "dev-seed",
-        "status": "active",
-        "openedAt": "2026-09-17T00:00:00Z",
-        "targetSample": 1000
-      }
-    ],
-    "evidenceProfile": {
-      "returnsPolicy": true,
-      "fitData": true,
-      "authorizedAttributes": ["material"]
-    },
-    "commercialPolicy": {
-      "version": "dev-commercial-1",
-      "marginPercent": 40
-    },
-    "platformSecrets": ["ope_dev_platform_secret"],
-    "holdoutPercent": 0
-  }
-]
+{
+  "$schema": "./schemas/merchants-seed.schema.json",
+  "merchants": [
+    {
+      "merchantId": "dev-merchant",
+      "ingestKeys": ["ope_dev_ingest_key"],
+      "platformKeys": ["ope_dev_platform_key"],
+      "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+      "experiments": [
+        {
+          "experimentId": "exp_dev_000001",
+          "treatmentPercent": 100,
+          "seed": "dev-seed",
+          "status": "active",
+          "openedAt": "2026-09-17T00:00:00Z",
+          "targetSample": 1000
+        }
+      ],
+      "evidenceProfile": {
+        "returnsPolicy": true,
+        "fitData": true,
+        "authorizedAttributes": ["material"]
+      },
+      "commercialPolicy": {
+        "version": "dev-commercial-1",
+        "marginPercent": 40
+      },
+      "platformSecrets": ["ope_dev_platform_secret"],
+      "holdoutPercent": 0
+    }
+  ]
+}

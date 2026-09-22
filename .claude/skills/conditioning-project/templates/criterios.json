@@ -1,0 +1,43 @@
+{
+  "$comment": "The text of the criteria document (the documentation language, Spanish): titles and the keywords that find each criterion's source in a constitution heading or an ADR title, the section lines with their placeholders, and the lines of the gates section. write-profile.mjs fills criterios-diseno.template.md with it.",
+  "criteria": [
+    {
+      "title": "SRP — una responsabilidad por módulo",
+      "keywords": ["autoridad", "responsabilidad", "single responsibility", "módulo", "module"]
+    },
+    { "title": "OCP — agregar sin tocar", "keywords": ["extensi", "open", "catálogo", "vocabulario"] },
+    {
+      "title": "LSP — implementaciones intercambiables",
+      "keywords": ["puerto", "port", "perfil", "profile", "adaptador"]
+    },
+    { "title": "ISP — puertos por consumidor", "keywords": ["puerto", "port", "interfaz", "interface"] },
+    {
+      "title": "DIP — hacia adentro, por puertos",
+      "keywords": ["anillo", "capa", "layer", "dependencia", "dependency", "puerto"]
+    },
+    {
+      "title": "DRY — conocimiento, no texto",
+      "keywords": ["duplica", "réplica", "fuente de verdad", "single source"]
+    },
+    {
+      "title": "Claridad — nombres con intención",
+      "keywords": ["glosario", "lenguaje ubicuo", "nombre", "naming", "idioma"]
+    },
+    {
+      "title": "Errores — explícitos y trazables",
+      "keywords": ["error", "fail", "fallo", "trazab", "traceab"]
+    }
+  ],
+  "section": {
+    "definition": "- **Definición acá**: PLACEHOLDER — qué significa este principio en este proyecto.",
+    "source": "- **Fuente**: {{SOURCE}}.",
+    "sourceMissing": "PLACEHOLDER — ninguna sección de la constitución ni ADR nombra este criterio; decidirlo y citarlo",
+    "violates": "- **Viola**: PLACEHOLDER — un ejemplo concreto de este proyecto.",
+    "complies": "- **Cumple**: PLACEHOLDER — cómo se ve cumplido acá.",
+    "gate": "- **Lo ve un gate**: PLACEHOLDER — cuál, o ninguno (entonces es de la revisión cognitiva)."
+  },
+  "gates": {
+    "none": "PLACEHOLDER — ningún gate con adaptador; la auditoría no puede rechazar por gates hasta que exista uno.",
+    "each": "- `{{ID}}` ({{MODE}}): PLACEHOLDER — qué ve y qué no."
+  }
+}

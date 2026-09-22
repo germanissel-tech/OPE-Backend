@@ -10,6 +10,7 @@ import {
   readPlatformConfiguration,
   readTreatmentDefaults,
 } from "../../../src/application/configuration/index.js";
+import { withoutSchemaReference } from "../../../src/composition/env.js";
 import { FactContext, Signals } from "../../../src/domain/barrier/index.js";
 import { SURFACES, SYNC_MODES } from "../../../src/domain/configuration/index.js";
 import { CANDIDATES } from "../../../src/domain/selection/index.js";
@@ -19,7 +20,7 @@ import { testLevels } from "../../helpers/test-app.js";
 
 const PLATFORM = "config/platform.json";
 const DEFAULTS = "config/treatment-defaults.json";
-const read = (file: string): unknown => JSON.parse(readFileSync(file, "utf8"));
+const read = (file: string): unknown => withoutSchemaReference(JSON.parse(readFileSync(file, "utf8")));
 const platform = () => testLevels().platform;
 const defaults = () => testLevels().defaults;
 

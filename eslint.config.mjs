@@ -110,6 +110,7 @@ export default tseslint.config(
       "tests/lint/fixtures/**",
       "tests/typecheck/fixtures/**",
       "tests/audit/fixtures/**",
+      ".claude/skills/*/evals/**/fixture/**",
       "patches/**",
       "reports/**",
       ".stryker-tmp/**",

@@ -9,6 +9,7 @@ const NOT_SUITES = ["**/node_modules/**", "**/fixtures/**"];
 /** The tests that run whole toolchains. */
 export const TOOL_SUITES = [
   "tests/audit/**/*.test.ts",
+  "tests/docs/**/*.test.ts",
   "tests/governance/quality.test.ts",
   "tests/unit/contract-docs.test.ts",
 ];

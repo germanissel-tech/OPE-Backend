@@ -1,14 +1,15 @@
-# Eval: empty-catch
+# Eval universal: empty-catch
 
-Fixture: `tests/audit/fixtures/empty-catch/src`.
+Fixture: `fixture/src/application/pricing/quote-price.ts`.
 
 **Defecto**: un caso de uso traga el error de su puerto y devuelve `undefined`.
 
-**Lo ve un gate**: sí — `lint:sonarjs/no-ignored-exceptions`.
+**Lo ve un gate**: sí — `sonarjs/no-ignored-exceptions` del lint (`requires.json`).
 
-**Qué agrega la revisión cognitiva**: el `undefined` es un `NO_OP` sin motivo (constitución II):
-la propuesta es un resultado `{ ok: false, reason }` con el motivo en el catálogo de
-`contracts/no-op-reasons.yaml`, y la prueba que lo exige.
+**Qué agrega la revisión cognitiva**: el resultado explícito con motivo en lugar del
+`undefined`, y la prueba que lo exige.
 
-**Esperado**: `expected.json` (fuente `constitution#II`, severidad `high`: el gate ve el `catch`
-vacío, la revisión ve el `NO_OP` sin motivo, que es lo que la constitución prohíbe).
+**Esperado**: `expected.json` con la fuente del gate (`lint:sonarjs/no-ignored-exceptions`).
+Un proyecto cuya constitución prohíba el silencio (un principio "fail-closed") eleva la fuente a
+esa sección en su propia evaluación: eso es lo que la revisión cognitiva aporta y lo que la
+universal no puede asumir.

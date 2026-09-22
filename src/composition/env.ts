@@ -22,3 +22,21 @@ export function text(env: NodeJS.ProcessEnv, name: Variable): string | undefined
   const value = env[name]?.trim();
   return value === undefined || value === "" ? undefined : value;
 }
+
+/** A file may name its JSON Schema (`$schema`, for the editor); the readers are closed-shape and never see it. */
+export function withoutSchemaReference(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+  const rest = { ...(value as Record<string, unknown>) };
+  delete rest["$schema"];
+  return rest;
+}
+
+/**
+ * A list of entries as a file or a variable declares it: the bare array, or the object of the
+ * schema (`{ "$schema": …, "<key>": [...] }`). Anything else is not a list.
+ */
+export function listOf(value: unknown, key: string): unknown[] | undefined {
+  if (Array.isArray(value)) return value as unknown[];
+  const entries: unknown = typeof value === "object" && value !== null ? Reflect.get(value, key) : undefined;
+  return Array.isArray(entries) ? (entries as unknown[]) : undefined;
+}

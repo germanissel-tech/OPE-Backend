@@ -1,0 +1,20 @@
+{
+  "merchants": [
+    {
+      "merchantId": "m_seed",
+      "ingestKeys": ["ope_ik_seed"],
+      "origins": ["https://shop.example"],
+      "experiments": [
+        {
+          "experimentId": "exp_seed_0001",
+          "treatmentPercent": 50,
+          "seed": "s",
+          "status": "active",
+          "openedAt": "2026-09-17T00:00:00Z",
+          "targetSample": 1000,
+          "cuts": [150]
+        }
+      ]
+    }
+  ]
+}
