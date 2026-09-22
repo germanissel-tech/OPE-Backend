@@ -97,7 +97,10 @@ const memory = technology(MERCHANT_PORTS, [bind(MerchantStorePort, [], …), der
 **Invariantes**
 
 - Sirve **todos** los puertos que el módulo declara, o no compila (`Unserved<…>`).
-- No sirve puertos de otro módulo: los de otro se piden, no se proveen.
+- Puede servir un puerto **declarado por otro módulo** cuando el mapa de contextos permite verlo:
+  es el idioma vigente del repositorio —el consumidor declara su puerto de lectura y quien puede
+  resolverlo lo enlaza— y es lo que hace que la configuración sirva la política de la decisión, los
+  presupuestos del catálogo y el holdout del experimento sin que ninguno de los tres la importe.
 - Un módulo puede tener varias (`memory`, mañana `postgres`); el despliegue elige una.
 
 ## 6. Módulo de composición
