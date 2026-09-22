@@ -2,9 +2,8 @@
 // up by fingerprint at the instant of the request; expired or deactivated resolves to nobody.
 import { Unauthorized, type Merchant } from "../../../domain/merchant/index.js";
 import { fail, ok, type Result } from "../../../domain/shared-kernel/index.js";
+import { type CredentialMinter, type MerchantDirectory } from "../../merchant/index.js";
 import type { Clock } from "../../shared-kernel/index.js";
-import type { CredentialMinter } from "../ports/credential-minter.js";
-import type { MerchantDirectory } from "../ports/merchant-directory.js";
 
 export type PlatformKeyResolution = Result<Merchant, Unauthorized>;
 

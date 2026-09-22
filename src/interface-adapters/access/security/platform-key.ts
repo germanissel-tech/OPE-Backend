@@ -5,7 +5,7 @@
 import { CONSUMER_CAPABILITIES } from "../../http/security/capabilities.js";
 import { header } from "../../http/security/headers.js";
 import { SecurityError, type SecurityHandler } from "../../http/typed.js";
-import type { PlatformKeyResolver, PlatformSignatureVerifier } from "../../../application/merchant/index.js";
+import type { PlatformKeyResolver, PlatformSignatureVerifier } from "../../../application/access/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
 import type { Merchant } from "../../../domain/merchant/index.js";
 

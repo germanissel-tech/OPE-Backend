@@ -257,23 +257,23 @@ pruebas de autenticación, autorización, firma y alcance pasan sin cambiar una 
 El módulo se llama `access` (research R-10: un módulo `security` daría
 `interface-adapters/security/security/`).
 
-- [ ] T049 [US4] Crear `src/application/access/` con los cuatro resolvedores movidos
+- [x] T049 [US4] Crear `src/application/access/` con los cuatro resolvedores movidos
       (`ingest-key`, `platform-key`, `platform-signature` desde `application/merchant/services/` y
       `admin-token` desde `application/admin/services/`), los puertos de firma, HMAC, directorio de
       operadores y huellas, y su `index.ts`
-- [ ] T050 [US4] Crear `src/interface-adapters/access/` con los tres security handlers movidos
+- [x] T050 [US4] Crear `src/interface-adapters/access/` con los tres security handlers movidos
       (`security/`), los gateways de HMAC, huellas, directorio de operadores, ventana de firma y
       gracia de rotación (`gateways/`), y su `index.ts`
-- [ ] T051 [US4] Crear `src/composition/modules/access.ts`: los tres esquemas del contrato con sus
+- [x] T051 [US4] Crear `src/composition/modules/access.ts`: los tres esquemas del contrato con sus
       headers y consumidores, los resolvedores y las políticas de seguridad del nivel de plataforma;
       consume del módulo de merchants **sólo la vista de lectura** del directorio
-- [ ] T052 [US4] Dejar `src/composition/modules/merchant.ts` sin ningún esquema de seguridad ni
+- [x] T052 [US4] Dejar `src/composition/modules/merchant.ts` sin ningún esquema de seguridad ni
       política de firma o rotación —conserva el agregado, su administración y la política de CORS—,
       y `src/composition/modules/admin.ts` con el registro, los diagnósticos y la vista del SDK
-- [ ] T053 [US4] Agregar `access` a `CONTEXT_MAP` (`shared-kernel`, `operator`, `merchant`) con su
+- [x] T053 [US4] Agregar `access` a `CONTEXT_MAP` (`shared-kernel`, `operator`, `merchant`) con su
       fixture, y verificar que la dirección nunca se invierte: nadie importa `access` desde
       `merchant`
-- [ ] T054 [US4] `npm run arch`, `npm run check:dead-code` y las pruebas de seguridad existentes en
+- [x] T054 [US4] `npm run arch`, `npm run check:dead-code` y las pruebas de seguridad existentes en
       verde **sin cambiar una aserción**: 401/403, firma, ventana, alcance del operador y CORS
 
 **Checkpoint**: "cómo se autentica cada consumidor" se lee en un módulo.

@@ -4,7 +4,6 @@
 // the SDK reads and reports of its merchant (01 §3.1.1): its configuration and the anchors that
 // stopped resolving.
 import {
-  DefaultAdminTokenResolver,
   GetSdkConfigUseCase,
   ListAdminLogUseCase,
   ListAnchorDiagnosticsUseCase,
@@ -12,15 +11,9 @@ import {
   ReportAnchorDiagnosticsUseCase,
   type AdminLog,
   type AnchorDiagnosticsStore,
-  type OperatorDirectory,
   type SdkConfigurationSource,
-  type TokenFingerprinter,
 } from "../../application/admin/index.js";
 import {
-  ADMIN_TOKEN_HEADER,
-  ADMIN_TOKEN_SCHEME,
-  configOperatorDirectory,
-  makeAdminTokenSecurity,
   makeGetSdkConfig,
   makeListAdminLog,
   makeListAnchorDiagnostics,
@@ -28,30 +21,20 @@ import {
   makeReportAnchorDiagnostics,
   memoryAdminLog,
   memoryAnchorDiagnosticsStore,
-  nodeTokenFingerprinter,
   sdkConfigurationOf,
 } from "../../interface-adapters/admin/index.js";
-import { bind, compositionModule, derive, handler, port, technology, uses } from "../graph/index.js";
-import { OperatorsPort, PlatformConfigurationPort } from "../release.js";
+import { bind, compositionModule, derive, handler, port, technology } from "../graph/index.js";
+import { PlatformConfigurationPort } from "../release.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantsPort } from "./merchant.js";
 import { AuditTrailPort, ClockPort, DecoratorsPort } from "./shared-kernel.js";
 
 export const AdminLogPort = port("admin.log")<AdminLog>();
 const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>();
-const OperatorDirectoryPort = port("admin.operators")<OperatorDirectory>();
-const TokenFingerprinterPort = port("admin.fingerprints")<TokenFingerprinter>();
 /** What the SDK may see of the configuration of its merchant. */
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
-const PORTS = [
-  AdminLogPort,
-  AuditTrailPort,
-  AnchorDiagnosticsPort,
-  OperatorDirectoryPort,
-  TokenFingerprinterPort,
-  SdkConfigurationPort,
-] as const;
+const PORTS = [AdminLogPort, AuditTrailPort, AnchorDiagnosticsPort, SdkConfigurationPort] as const;
 
 export const adminModule = compositionModule({
   ports: PORTS,
@@ -63,26 +46,12 @@ export const adminModule = compositionModule({
       bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
         memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
       ),
-      bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
-        configOperatorDirectory(operators),
-      ),
-      bind(TokenFingerprinterPort, {}, () => nodeTokenFingerprinter),
       bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
         sdkConfigurationOf(configuration),
       ),
     ]),
   },
   serves: {
-    security: {
-      [ADMIN_TOKEN_SCHEME]: uses(
-        { operators: OperatorDirectoryPort, fingerprints: TokenFingerprinterPort },
-        (deps) => ({
-          handler: makeAdminTokenSecurity(new DefaultAdminTokenResolver(deps)),
-          header: ADMIN_TOKEN_HEADER,
-          consumer: "server",
-        }),
-      ),
-    },
     handlers: {
       listAdminLog: handler({ deco: DecoratorsPort, log: AdminLogPort }, (operation, { deco, ...deps }) =>
         makeListAdminLog(deco.logged(operation, new ListAdminLogUseCase(deps))),

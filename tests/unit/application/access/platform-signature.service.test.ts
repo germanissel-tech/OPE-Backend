@@ -6,8 +6,8 @@ import {
   DefaultPlatformSignatureVerifier,
   type MessageAuthenticator,
   type SignedRequest,
-} from "../../../../src/application/merchant/index.js";
-import { nodeMessageAuthenticator } from "../../../../src/interface-adapters/merchant/gateways/node-message-authenticator.js";
+} from "../../../../src/application/access/index.js";
+import { nodeMessageAuthenticator } from "../../../../src/interface-adapters/access/index.js";
 import { testMerchant } from "../../../helpers/merchants.js";
 import { TEST_SIGNATURE_WINDOW } from "../../../helpers/platform.js";
 import type { Merchant } from "../../../../src/domain/merchant/index.js";

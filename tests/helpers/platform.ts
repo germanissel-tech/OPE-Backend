@@ -2,9 +2,9 @@
 // (feature 017, constitution XI): what the release declares, read once through the same
 // readers the composition uses, served through the ports the consumers declare.
 import { testLevels } from "./test-app.js";
+import type { SignatureWindow } from "../../src/application/access/index.js";
 import type { CatalogPolicies } from "../../src/application/catalog/index.js";
 import type { VisitorWindow } from "../../src/application/decision/index.js";
-import type { SignatureWindow } from "../../src/application/merchant/index.js";
 import type { ClockTolerance } from "../../src/application/shared-kernel/index.js";
 import type { ConfigurationVersions } from "../../src/domain/shared-kernel/index.js";
 

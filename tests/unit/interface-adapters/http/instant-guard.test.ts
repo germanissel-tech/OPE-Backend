@@ -2,10 +2,10 @@
 // contract validated the format; the domain never sees NaN). Exercised directly on the
 // controllers because no request passes the contract with such a value.
 import { describe, expect, it } from "vitest";
+import { INGEST_KEY_SCHEME } from "../../../../src/interface-adapters/access/index.js";
 import { makeUpsertCatalogSnapshot } from "../../../../src/interface-adapters/catalog/controllers/upsert-catalog-snapshot.js";
 import { makeIngestEvents } from "../../../../src/interface-adapters/ingestion/controllers/ingest-events.js";
 import { makeConfirmExposureHandler } from "../../../../src/interface-adapters/ledger/controllers/confirm-exposure.js";
-import { INGEST_KEY_SCHEME } from "../../../../src/interface-adapters/merchant/security/ingest-key.js";
 import { makeCorroborateOrder } from "../../../../src/interface-adapters/outcomes/controllers/corroborate-order.js";
 import { makeNotifyOrder } from "../../../../src/interface-adapters/outcomes/controllers/notify-order.js";
 import { makeNotifyReturn } from "../../../../src/interface-adapters/outcomes/controllers/notify-return.js";

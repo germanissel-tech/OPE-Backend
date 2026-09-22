@@ -3,9 +3,8 @@
 // request: a rotated key that ran out of grace, or a deactivated merchant, is unauthorized.
 import { OriginNotAllowed, Unauthorized, type Merchant } from "../../../domain/merchant/index.js";
 import { fail, ok, type Result } from "../../../domain/shared-kernel/index.js";
+import { type CredentialMinter, type MerchantDirectory } from "../../merchant/index.js";
 import type { Clock } from "../../shared-kernel/index.js";
-import type { CredentialMinter } from "../ports/credential-minter.js";
-import type { MerchantDirectory } from "../ports/merchant-directory.js";
 
 export type IngestKeyResolution = Result<Merchant, Unauthorized | OriginNotAllowed>;
 

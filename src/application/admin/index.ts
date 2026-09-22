@@ -1,15 +1,7 @@
 // Public API of the admin module (application).
-export type { OperatorDirectory } from "./ports/operator-directory.js";
-export type { TokenFingerprinter } from "./ports/token-fingerprinter.js";
 export type { AdminLog } from "./ports/admin-log.js";
 export type { AnchorDiagnosticsStore } from "./ports/anchor-diagnostics-store.js";
 export type { SdkConfigurationSource, SdkConfigurationView } from "./ports/sdk-configuration-source.js";
-export { DefaultAdminTokenResolver } from "./services/admin-token.service.js";
-export type {
-  AdminTokenResolution,
-  AdminTokenResolver,
-  AdminTokenResolverDependencies,
-} from "./services/admin-token.service.js";
 export { ListAdminLogUseCase } from "./use-cases/list-admin-log.use-case.js";
 export { ListMerchantAdminLogUseCase } from "./use-cases/list-merchant-admin-log.use-case.js";
 export type {

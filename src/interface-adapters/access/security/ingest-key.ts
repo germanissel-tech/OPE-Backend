@@ -4,7 +4,7 @@
 import { CONSUMER_CAPABILITIES } from "../../http/security/capabilities.js";
 import { header } from "../../http/security/headers.js";
 import { SecurityError, type SecurityHandler } from "../../http/typed.js";
-import type { IngestKeyResolver } from "../../../application/merchant/index.js";
+import type { IngestKeyResolver } from "../../../application/access/index.js";
 import type { MerchantPrincipal } from "../../http/security/principal.js";
 
 export const INGEST_KEY_SCHEME = "ingestKey";

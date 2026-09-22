@@ -68,6 +68,10 @@ const CONTEXT_MAP = {
     "barrier",
   ],
   admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
+  // Feature 020 (ADR-034): access owns the three schemes, their resolvers and the policies of the
+  // platform level they depend on. It reads the merchant directory and never writes to it: that
+  // direction is what keeps the merchant module with a single reason to change.
+  access: ["shared-kernel", "operator", "merchant"],
 };
 
 /**

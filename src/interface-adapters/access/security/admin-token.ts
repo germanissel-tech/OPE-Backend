@@ -5,7 +5,7 @@
 import { CONSUMER_CAPABILITIES } from "../../http/security/capabilities.js";
 import { header } from "../../http/security/headers.js";
 import { SecurityError, type SecurityHandler } from "../../http/typed.js";
-import type { AdminTokenResolver } from "../../../application/admin/index.js";
+import type { AdminTokenResolver } from "../../../application/access/index.js";
 import type { OperatorPrincipal } from "../../http/security/principal.js";
 
 export const ADMIN_TOKEN_SCHEME = "adminToken";

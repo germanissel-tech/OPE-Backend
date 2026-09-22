@@ -7,6 +7,7 @@
 // order only fixes the order of creation that the shutdown reverses. Adding a module is one line
 // here; forgetting it does not compile.
 import { deployment } from "../graph/index.js";
+import { accessModule } from "../modules/access.js";
 import { adminModule } from "../modules/admin.js";
 import { barrierModule } from "../modules/barrier.js";
 import { catalogModule } from "../modules/catalog.js";
@@ -28,6 +29,7 @@ export const localDeployment = (config: AppConfig) =>
     kernelModule.with("system"),
     systemModule.with("stateless"),
     merchantModule.with("memory"),
+    accessModule.with("platform"),
     experimentModule.with("memory"),
     ledgerModule.with("memory"),
     catalogModule.with("memory"),

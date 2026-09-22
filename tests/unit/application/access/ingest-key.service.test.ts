@@ -1,10 +1,8 @@
 // Authentication is a service the security adapter consults, not a use case (ADR-023): the
 // credential resolves the merchant and the origin, if present, must be one of theirs.
 import { describe, expect, it } from "vitest";
-import {
-  DefaultIngestKeyResolver,
-  type MerchantDirectory,
-} from "../../../../src/application/merchant/index.js";
+import { DefaultIngestKeyResolver } from "../../../../src/application/access/index.js";
+import { type MerchantDirectory } from "../../../../src/application/merchant/index.js";
 import { OriginNotAllowed, Unauthorized } from "../../../../src/domain/merchant/index.js";
 import { fakeMinter, TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 

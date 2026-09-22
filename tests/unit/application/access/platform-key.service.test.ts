@@ -1,9 +1,7 @@
 // ADR-025: the platform credential resolves the merchant; nothing else is checked (no browser).
 import { describe, expect, it } from "vitest";
-import {
-  DefaultPlatformKeyResolver,
-  type MerchantDirectory,
-} from "../../../../src/application/merchant/index.js";
+import { DefaultPlatformKeyResolver } from "../../../../src/application/access/index.js";
+import { type MerchantDirectory } from "../../../../src/application/merchant/index.js";
 import { Unauthorized } from "../../../../src/domain/merchant/index.js";
 import { fakeMinter, TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 

@@ -9,12 +9,14 @@ import {
   OperatorUnknown,
 } from "../../../../src/domain/operator/index.js";
 import { fail, ok } from "../../../../src/domain/shared-kernel/index.js";
-import { makeAdminTokenSecurity } from "../../../../src/interface-adapters/admin/security/admin-token.js";
+import {
+  makeAdminTokenSecurity,
+  makeIngestKeySecurity,
+  makePlatformKeySecurity,
+} from "../../../../src/interface-adapters/access/index.js";
 import { CONSUMER_CAPABILITIES } from "../../../../src/interface-adapters/http/security/capabilities.js";
 import { merchantOf, operatorOf } from "../../../../src/interface-adapters/http/security/principal.js";
 import { SecurityError } from "../../../../src/interface-adapters/http/typed.js";
-import { makeIngestKeySecurity } from "../../../../src/interface-adapters/merchant/security/ingest-key.js";
-import { makePlatformKeySecurity } from "../../../../src/interface-adapters/merchant/security/platform-key.js";
 import { testMerchant } from "../../../helpers/merchants.js";
 
 const merchant = testMerchant({ ingestKeys: ["k"], platformKeys: ["p"] });
