@@ -622,6 +622,15 @@ directorios y escribir su perfil (`conditioning-project` lo hace).
   `NodeJS.Signals`) el literal se queda: el compilador es la constante.
 - `NO_OP` es un resultado válido con motivo, nunca una excepción. Un error de negocio es un
   `DomainError` devuelto en un `Result`, nunca lanzado (ADR-023).
+- **Un comentario explica lo que el código no puede decir por sí mismo.** Donde el código es una
+  regla de negocio, el comentario dice la regla y su fuente (`01 §8`, `ADR-026`). Donde el código
+  es un **truco** —un tipo condicional, la varianza de una posición, un `as`, un orden de ramas o
+  de líneas que importa— el comentario explica **el mecanismo** y por qué la versión obvia está
+  mal: eso es justo lo que el lector no puede reconstruir mirando el código, y lo que hace que
+  alguien lo "simplifique" y lo rompa en silencio (`Everything<U>`, `IsUnion`,
+  `[Names<M>] extends [never]` y el fantasma de `Port` en `composition/graph/`). Un comentario que
+  repite el nombre de lo que comenta, o que sólo justifica la decisión sin decir qué pasa, sobra:
+  la decisión va al ADR. Ningún gate lo verifica; lo verifica la revisión.
 - Marcar afirmaciones como `DECIDIDO` / `PROPUESTO` / `ABIERTO` y estado del sistema como
   **BUILT / CONNECTED / ACTIVE / TESTED**. No afirmar que algo funciona sin prueba ejecutable.
 - Commits: conventional commits, en español, un cambio por commit. No commitear sin que las
