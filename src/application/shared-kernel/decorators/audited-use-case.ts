@@ -71,6 +71,17 @@ export class AuditedUseCase<Request extends AdminRequest, Response> implements U
   }
 
   async execute(request: Request): Promise<Response> {
+    // Before anything happens, not after: an administration action that cannot be audited does
+    // not happen (ADR-034, amended 2026-09-23). Answering afterwards would tell the operator that
+    // something did not happen when it did — and a rotation would leave behind a credential
+    // nobody knows, because its value travelled in the response that was thrown away.
+    //
+    // What stays open is the trail failing *during* the action; that closes with the transaction
+    // of the persistence milestone, and the requirement is written there.
+    const writable = await this.#deps.log.writable();
+    // Every audited operation already answers `store-unavailable`, so the failure fits its own
+    // response; what the compiler cannot see is that `Response` is that Result.
+    if (!writable.ok) return writable as Response;
     const response = await this.#inner.execute(request);
     const error = errorOf(response);
     const outcome = outcomeOf(error);

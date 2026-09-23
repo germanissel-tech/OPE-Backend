@@ -18,6 +18,10 @@ export function memoryAdminLog(): AdminLog {
       entries.push({ ...entry, operatorId: asOperatorId(entry.operatorId) });
       return Promise.resolve(ok(undefined));
     },
+    // In memory there is nothing that can refuse a write; a durable store answers for itself.
+    writable() {
+      return Promise.resolve(ok(undefined));
+    },
     list(query) {
       return Promise.resolve(pageOf(newestFirst(), query));
     },

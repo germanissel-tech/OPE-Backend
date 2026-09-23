@@ -161,29 +161,29 @@ sistema no cambió.
 
 **Depende de**: nada de US1/US2. Puede hacerse en paralelo.
 
-- [ ] T030 [US3] Verificación previa en
+- [x] T030 [US3] Verificación previa en
       `src/application/shared-kernel/decorators/audited-use-case.ts`: preguntar al registro si
       acepta escrituras **antes** de invocar el caso de uso; si no, devolver el fallo sin ejecutar.
       Dejar en el comentario por qué es antes y no después (fallar después le diría al operador que
       no pasó algo que sí pasó; en una rotación deja una credencial que nadie conoce).
-- [ ] T031 [US3] Ampliar el puerto `AuditTrail`
+- [x] T031 [US3] Ampliar el puerto `AuditTrail`
       (`src/application/shared-kernel/ports/audit-trail.ts`) con la consulta de disponibilidad, e
       implementarla en el gateway del registro
       (`src/interface-adapters/admin/gateways/memory-admin-log.ts`).
-- [ ] T032 [US3] Asegurar que el fallo llega a HTTP como `503 store-unavailable` por el camino que
+- [x] T032 [US3] Asegurar que el fallo llega a HTTP como `503 store-unavailable` por el camino que
       ya existe (`toProblem`), **sin tocar el contrato**: los catorce paths de administración ya
       declaran `503` y el slug ya está en el catálogo.
-- [ ] T033 [P] [US3] Prueba de integración: crear un merchant con el registro caído ⇒ `503` **y el
+- [x] T033 [P] [US3] Prueba de integración: crear un merchant con el registro caído ⇒ `503` **y el
       merchant no existe**.
-- [ ] T034 [P] [US3] Prueba de integración: rotar una credencial con el registro caído ⇒ `503` **y
+- [x] T034 [P] [US3] Prueba de integración: rotar una credencial con el registro caído ⇒ `503` **y
       la credencial anterior sigue vigente; no se acuñó ninguna**.
-- [ ] T035 [P] [US3] Prueba de integración: cambiar el interruptor con el registro caído ⇒ `503`
+- [x] T035 [P] [US3] Prueba de integración: cambiar el interruptor con el registro caído ⇒ `503`
       **y el interruptor quedó como estaba**.
-- [ ] T036 [P] [US3] Prueba de integración: con el registro caído, la ingesta, el catálogo y las
+- [x] T036 [P] [US3] Prueba de integración: con el registro caído, la ingesta, el catálogo y las
       órdenes responden lo de siempre.
-- [ ] T037 [US3] Verificar que la segunda aserción de T033–T035 (el estado no cambió) **falla** con
+- [x] T037 [US3] Verificar que la segunda aserción de T033–T035 (el estado no cambió) **falla** con
       una implementación que verifica después de actuar. Sin eso, la prueba no prueba la decisión.
-- [ ] T038 [US3] Actualizar `tests/unit/application/shared-kernel/audited-use-case.test.ts` con el
+- [x] T038 [US3] Actualizar `tests/unit/application/shared-kernel/audited-use-case.test.ts` con el
       caso del registro no disponible.
 
 **Checkpoint**: el registro de administración deja de poder perder una acción en silencio.

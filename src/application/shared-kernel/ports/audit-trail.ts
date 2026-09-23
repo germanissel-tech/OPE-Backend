@@ -6,4 +6,11 @@ import type { AuditEntry, Result, StoreUnavailable } from "../../../domain/share
 
 export interface AuditTrail {
   record(entry: AuditEntry): Promise<Result<undefined, StoreUnavailable>>;
+  /**
+   * Whether the trail can be written to right now. An administration action that cannot be
+   * audited does not happen (ADR-034, amended 2026-09-23), and the only honest moment to
+   * find out is **before** it runs: answering afterwards would tell the operator that something
+   * did not happen when it did.
+   */
+  writable(): Promise<Result<undefined, StoreUnavailable>>;
 }

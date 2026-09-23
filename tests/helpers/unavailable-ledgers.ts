@@ -1,17 +1,55 @@
 // Ledgers that return LedgerUnavailable (ADR-021): the memory implementations never do, so the
 // degradation path is exercised with these fakes injected as port overrides.
 import { LedgerUnavailable } from "../../src/domain/ledger/index.js";
-import { fail } from "../../src/domain/shared-kernel/index.js";
+import { asOperatorId } from "../../src/domain/operator/index.js";
+import { fail, ok, StoreUnavailable } from "../../src/domain/shared-kernel/index.js";
+import { pageOf } from "../../src/interface-adapters/shared-kernel/index.js";
+import type { AdminLog } from "../../src/application/admin/index.js";
 import type { CatalogStore } from "../../src/application/catalog/index.js";
 import type { AssignmentLedger } from "../../src/application/experiment/index.js";
 import type { DecisionLedger, ExposureLedger } from "../../src/application/ledger/index.js";
 import type { CorroborationLedger, OrderLedger } from "../../src/application/outcomes/index.js";
+import type { AdminEntry } from "../../src/domain/admin/index.js";
 
 const unavailable = () => Promise.resolve(fail(new LedgerUnavailable()));
 
 const nothing = () => Promise.resolve(undefined);
 
 const none = () => Promise.resolve([]);
+
+/**
+ * An administration log that accepts nothing (feature 021). What the tests around it prove is not
+ * the response code but the **order**: the action must not have happened. `record` refuses too, so
+ * an implementation that asks after acting instead of before is caught here.
+ */
+export const unavailableAdminLog = (): AdminLog => refusingAdminLog(true).log;
+
+/**
+ * A log that can be switched off after the boot. The seed of the boot is an administration action
+ * too, so a server whose log refuses from the start never finishes starting; a test about what the
+ * **server** answers needs one that starts writable.
+ */
+export function refusingAdminLog(refusing = false): { log: AdminLog; refuse: () => void } {
+  const entries: AdminEntry[] = [];
+  let off = refusing;
+  const refused = () => Promise.resolve(fail(new StoreUnavailable()));
+  return {
+    refuse: () => {
+      off = true;
+    },
+    log: {
+      writable: () => (off ? refused() : Promise.resolve(ok(undefined))),
+      record: (entry) => {
+        if (off) return refused();
+        entries.push({ ...entry, operatorId: asOperatorId(entry.operatorId) });
+        return Promise.resolve(ok(undefined));
+      },
+      list: (query) => Promise.resolve(pageOf([...entries].reverse(), query)),
+      listOf: (merchantId, query) =>
+        Promise.resolve(pageOf(entries.filter((e) => e.merchantId === merchantId).reverse(), query)),
+    },
+  };
+}
 
 export const unavailableDecisionLedger = (): DecisionLedger => ({
   record: unavailable,
