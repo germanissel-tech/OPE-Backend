@@ -16,6 +16,8 @@ export class OperatorUnknown extends DomainError {
 export class MerchantOutOfScope extends DomainError {
   readonly code = "merchant-out-of-scope" as const;
   readonly module = MODULE;
+  /** What the administration entry records: denied by scope, not rejected by a rule. */
+  override readonly audit = "denied" as const;
   constructor() {
     super("The merchant is outside the operator's scope.");
   }

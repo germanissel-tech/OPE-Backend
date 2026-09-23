@@ -11,6 +11,13 @@ export abstract class DomainError extends Error {
   abstract readonly code: string;
   /** The module that emits it: the folder of its `errors.ts`, as `ope/domain-error-shape` verifies. */
   abstract readonly module: string;
+  /**
+   * How an administration entry records this error when it is the reason an action did not
+   * happen. Only an error that **denies** says so; anything else is a rejection, which is the
+   * conservative reading. The kernel used to decide this by comparing the code against a literal
+   * of another module it cannot even import — so now the owner of the rule declares it.
+   */
+  readonly audit: "denied" | undefined = undefined;
   readonly details: SafeDetails;
 
   constructor(message: string, details: SafeDetails = {}) {

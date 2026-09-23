@@ -199,14 +199,14 @@ texto en el `shared-kernel`.
 
 **Depende de**: nada. Puede hacerse en paralelo.
 
-- [ ] T039 [US4] Que `MerchantOutOfScope` (`src/domain/operator/errors.ts`) declare que deniega.
-- [ ] T040 [US4] Verificar que `ope/domain-error-shape` acepta el miembro nuevo. Si lo rechaza,
+- [x] T039 [US4] Que `MerchantOutOfScope` (`src/domain/operator/errors.ts`) declare que deniega.
+- [x] T040 [US4] Verificar que `ope/domain-error-shape` acepta el miembro nuevo. Si lo rechaza,
       ampliar la regla en `scripts/lint/domain-error-shape.mjs` **con su fixture** en
       `tests/lint/fixtures/as-src/`.
-- [ ] T041 [US4] Leer esa declaración en
+- [x] T041 [US4] Leer esa declaración en
       `src/application/shared-kernel/decorators/audited-use-case.ts` y borrar el literal
       `"merchant-out-of-scope"`; el resultado por defecto es `rejected`.
-- [ ] T042 [US4] Verificar: `grep -rn '"merchant-out-of-scope"' src/application/shared-kernel/` da
+- [x] T042 [US4] Verificar: `grep -rn '"merchant-out-of-scope"' src/application/shared-kernel/` da
       cero, y `tests/unit/application/shared-kernel/audited-use-case.test.ts` —que importa el
       `MerchantOutOfScope` real— pasa sin cambios.
 
@@ -216,7 +216,7 @@ texto en el `shared-kernel`.
 
 ## Phase 7: Cierre y documentación
 
-- [ ] T043 Retirar `UseCaseDecorators` y `DecoratorsPort` de
+- [x] T043 Retirar `UseCaseDecorators` y `DecoratorsPort` de
       `src/composition/modules/shared-kernel.ts`, ya sin consumidores. Verificar con
       `npm run check:dead-code` y `npm run check:ports-bound`.
 - [ ] T044 Decidir y escribir la decisión: ADR nuevo, o enmienda de ADR-023 (forma de los casos de

@@ -38,8 +38,6 @@ export interface AuditedUseCaseReaders<Request, Response> {
   merchantId?: (response: Response) => MerchantId | undefined;
 }
 
-const OUT_OF_SCOPE = "merchant-out-of-scope";
-
 /** The failed Result's error, or undefined for a success or a response that is not a Result. */
 function errorOf(response: unknown): DomainError | undefined {
   const error: unknown =
@@ -49,7 +47,8 @@ function errorOf(response: unknown): DomainError | undefined {
 
 function outcomeOf(error: DomainError | undefined): AuditOutcome {
   if (error === undefined) return "accepted";
-  return error.code === OUT_OF_SCOPE ? "denied" : "rejected";
+  // The error says whether it denies; everything else is a rejection.
+  return error.audit ?? "rejected";
 }
 
 export class AuditedUseCase<Request extends AdminRequest, Response> implements UseCase<Request, Response> {
