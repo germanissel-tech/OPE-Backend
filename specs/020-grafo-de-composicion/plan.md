@@ -129,7 +129,7 @@ src/composition/
 ├── graph/                     # NUEVO — la biblioteca (nada de dominio acá)
 │   ├── port.ts                # Port, port(), AnyPort, Closable
 │   ├── binding.ts             # bind(), bindAll(), Binding
-│   ├── module.ts              # compositionModule() (provides/assembles/serves), handler(), uses()
+│   ├── module.ts              # compositionModule() (provides/assembles/serves), handler(), from()
 │   ├── compose.ts             # deployment(), instantiate(), Missing/Unwired
 │   └── index.ts
 ├── modules/                   # 14 módulos: cada uno provides / assembles / serves

@@ -94,6 +94,20 @@ serves: {
   El nombre del **log** es el del caso de uso, que a veces no es el de la operación.
 - Un módulo que no sirve nada **omite la clave**.
 
+Lo demás que un módulo sirve —los esquemas de seguridad y la política de CORS— no recibe
+`operationId` y se arma con `from`:
+
+```ts
+serves: {
+  cors: from({ merchants: MerchantDirectoryPort }, ({ merchants }) => merchants),
+  security: {
+    [INGEST_KEY_SCHEME]: from({ merchants: MerchantDirectoryPort, … }, (deps) => ({ … })),
+  },
+},
+```
+
+La clave dice **qué** es; `from` dice **de dónde sale**. Es la misma convención que `handler`.
+
 ## 5. Componer el despliegue
 
 ```ts

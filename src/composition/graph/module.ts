@@ -43,7 +43,12 @@ export interface HandlerRecipe<T, Requires extends string = string> {
   readonly [REQUIRED]?: Requires;
 }
 
-export function uses<T, const D extends Needs>(
+/**
+ * What the key of the slot says it is, built **from** these components: the key names the thing
+ * (`cors`, the name of a security scheme) and this names where it comes from, the way `handler()`
+ * does for an operation.
+ */
+export function from<T, const D extends Needs>(
   needs: D,
   build: (resolved: Resolved<D>) => T,
 ): Recipe<T, Label<D[keyof D]>> {

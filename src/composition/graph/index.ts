@@ -14,8 +14,8 @@ export {
 } from "./compose.js";
 export {
   compositionModule,
+  from,
   handler,
-  uses,
   type ChooseATechnology,
   type CompositionModule,
   type Deployed,

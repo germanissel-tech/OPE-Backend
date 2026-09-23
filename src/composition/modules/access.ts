@@ -32,7 +32,7 @@ import {
   rotationPolicyOf,
   signatureWindowOf,
 } from "../../interface-adapters/access/index.js";
-import { bind, compositionModule, port, uses } from "../graph/index.js";
+import { bind, compositionModule, from, port } from "../graph/index.js";
 import { OperatorsPort, PlatformConfigurationPort } from "../release.js";
 import { CredentialMinterPort, MerchantDirectoryPort, RotationPolicyPort } from "./merchant.js";
 import { ClockPort } from "./shared-kernel.js";
@@ -62,9 +62,9 @@ export const accessModule = compositionModule({
   serves: {
     // Which origins may reach a merchant from a page is also a question of access: the directory
     // answers it, and CORS derives the headers of the browser schemes from what is wired here.
-    cors: uses({ merchants: MerchantDirectoryPort }, ({ merchants }) => merchants),
+    cors: from({ merchants: MerchantDirectoryPort }, ({ merchants }) => merchants),
     security: {
-      [INGEST_KEY_SCHEME]: uses(
+      [INGEST_KEY_SCHEME]: from(
         { merchants: MerchantDirectoryPort, minter: CredentialMinterPort, clock: ClockPort },
         (deps) => ({
           handler: makeIngestKeySecurity(new DefaultIngestKeyResolver(deps)),
@@ -72,7 +72,7 @@ export const accessModule = compositionModule({
           consumer: "browser",
         }),
       ),
-      [PLATFORM_KEY_SCHEME]: uses(
+      [PLATFORM_KEY_SCHEME]: from(
         {
           merchants: MerchantDirectoryPort,
           minter: CredentialMinterPort,
@@ -90,7 +90,7 @@ export const accessModule = compositionModule({
           consumer: "server",
         }),
       ),
-      [ADMIN_TOKEN_SCHEME]: uses(
+      [ADMIN_TOKEN_SCHEME]: from(
         { operators: OperatorDirectoryPort, fingerprints: TokenFingerprinterPort },
         (deps) => ({
           handler: makeAdminTokenSecurity(new DefaultAdminTokenResolver(deps)),
