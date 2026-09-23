@@ -7,6 +7,12 @@ import type { ProblemSlug } from "./problem-details.js";
 /** The types the contract generates (`npm run contract:types`): the modules of the ring read them from here. */
 export type { components, operations } from "#generated/api.js";
 
+/**
+ * Which operations the contract orders to be audited (feature 021). Derived from the contract, so
+ * nobody chooses it; the composition graph reads it from here, the way it reads `operations`.
+ */
+export type { AuditedOperation } from "#generated/audited-operations.js";
+
 /** Minimal shape of an operation as openapi-typescript generates it. */
 export interface OperationShape {
   parameters: { query?: unknown; header?: unknown; path?: unknown; cookie?: unknown };

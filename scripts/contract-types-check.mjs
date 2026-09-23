@@ -1,7 +1,12 @@
 // contract:types:check — fails if any generated artefact (generated/api.d.ts,
-// generated/problem-types.{js,d.ts}, generated/schemas/*.schema.json) differs from its regeneration
-// (FR-031; feature 018; feature 019 D-04).
+// generated/problem-types.{js,d.ts}, generated/audited-operations.d.ts,
+// generated/schemas/*.schema.json) differs from its regeneration (FR-031; feature 018; feature
+// 019 D-04; feature 021).
 import { existsSync, readFileSync } from "node:fs";
+import {
+  generateAuditedOperations,
+  generatedAuditedOperationsDts,
+} from "./contract-audited-operations-lib.mjs";
 import {
   generateProblemTypes,
   generatedProblemTypesDts,
@@ -20,6 +25,7 @@ const artefacts = [
   [generatedTypesPath, await generateTypes()],
   [generatedProblemTypesJs, js],
   [generatedProblemTypesDts, dts],
+  [generatedAuditedOperationsDts, generateAuditedOperations()],
   ...generateConfigSchemas(),
 ];
 const outdated = artefacts.filter(([file, expected]) => current(file) !== expected);

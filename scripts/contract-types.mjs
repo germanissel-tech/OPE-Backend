@@ -1,9 +1,14 @@
 // contract:types — generates what the server reads of the contract, outside src/ (FR-030;
-// feature 018): generated/api.d.ts from the bundle and generated/problem-types.{js,d.ts} from
-// contracts/problem-types.yaml, and generated/schemas/*.schema.json (the configuration files)
-// from the bundle. Deterministic: fixed options and LF line endings.
+// feature 018): generated/api.d.ts from the bundle, generated/problem-types.{js,d.ts} from
+// contracts/problem-types.yaml, generated/audited-operations.d.ts from the bundle and the map
+// (feature 021), and generated/schemas/*.schema.json (the configuration files) from the bundle.
+// Deterministic: fixed options and LF line endings.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import {
+  generateAuditedOperations,
+  generatedAuditedOperationsDts,
+} from "./contract-audited-operations-lib.mjs";
 import {
   generateProblemTypes,
   generatedProblemTypesDts,
@@ -22,6 +27,9 @@ mkdirSync(path.dirname(generatedProblemTypesJs), { recursive: true });
 writeFileSync(generatedProblemTypesJs, js, "utf8");
 writeFileSync(generatedProblemTypesDts, dts, "utf8");
 console.log(`Problem types generated at ${generatedProblemTypesJs} (+ .d.ts)`);
+mkdirSync(path.dirname(generatedAuditedOperationsDts), { recursive: true });
+writeFileSync(generatedAuditedOperationsDts, generateAuditedOperations(), "utf8");
+console.log(`Audited operations generated at ${generatedAuditedOperationsDts}`);
 for (const [file, content] of generateConfigSchemas()) {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, content, "utf8");

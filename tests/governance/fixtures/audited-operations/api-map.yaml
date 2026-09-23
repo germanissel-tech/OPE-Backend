@@ -1,0 +1,19 @@
+consumers:
+  public:
+    securityScheme: null
+    tags:
+      - system
+    capabilities: []
+  sdk:
+    securityScheme: ingestKey
+    tags:
+      - ingest
+    capabilities:
+      - events:write
+  admin:
+    securityScheme: adminToken
+    tags:
+      - admin
+    capabilities:
+      - merchants:read
+      - merchants:write
