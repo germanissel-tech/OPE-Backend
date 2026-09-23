@@ -6,7 +6,7 @@ import { bind, compositionModule, deployment, port } from "../../../src/composit
 const StorePort = port("test.store")<{ ids: () => string[] }>();
 
 const store = compositionModule({
-  provides: { memory: [bind(StorePort, {}, () => ({ ids: () => [] }))] },
+  provides: [bind(StorePort, {}, () => ({ ids: () => [] }))],
 });
 
 export const nothingServed = deployment([store]);

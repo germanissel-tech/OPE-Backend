@@ -27,14 +27,12 @@ export const DecisionIdsPort = port("ledger.decision-ids")<DecisionIdGenerator>(
 export const DecisionRecorderPort = port("ledger.recorder")<DecisionRecorder>();
 
 export const ledgerModule = compositionModule({
-  provides: {
-    memory: [
-      bind(DecisionLedgerPort, {}, () => memoryDecisionLedger()),
-      bind(ExposureLedgerPort, {}, () => memoryExposureLedger()),
-      bind(DecisionIdsPort, {}, () => randomDecisionIds),
-    ],
-  },
-  exposes: [
+  provides: [
+    bind(DecisionLedgerPort, {}, () => memoryDecisionLedger()),
+    bind(ExposureLedgerPort, {}, () => memoryExposureLedger()),
+    bind(DecisionIdsPort, {}, () => randomDecisionIds),
+  ],
+  assembles: [
     bind(
       DecisionRecorderPort,
       { decisions: DecisionLedgerPort, decisionIds: DecisionIdsPort, logger: LoggerPort },

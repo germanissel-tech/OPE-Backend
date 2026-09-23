@@ -50,32 +50,29 @@ export const ImportConfigurationPort =
   >();
 
 export const configurationModule = compositionModule({
-  provides: {
-    memory: [
-      bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
-        releaseConfigurationLevels(release),
-      ),
-      bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
-      bind(
-        ConfigurationServicePort,
-        { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
-        (deps) => new DefaultConfigurationService(deps),
-      ),
-      bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-        catalogPoliciesOf(configuration),
-      ),
-      bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-        holdoutSourceOf(configuration),
-      ),
-      bind(
-        PolicyDirectoryPort,
-        { configuration: ConfigurationServicePort, merchants: MerchantStorePort },
-        ({ configuration, merchants }) =>
-          switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
-      ),
-    ],
-  },
-  exposes: [
+  provides: [
+    bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
+      releaseConfigurationLevels(release),
+    ),
+    bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
+    bind(
+      ConfigurationServicePort,
+      { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
+      (deps) => new DefaultConfigurationService(deps),
+    ),
+    bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+      catalogPoliciesOf(configuration),
+    ),
+    bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+      holdoutSourceOf(configuration),
+    ),
+    bind(
+      PolicyDirectoryPort,
+      { configuration: ConfigurationServicePort, merchants: MerchantStorePort },
+      ({ configuration, merchants }) => switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
+    ),
+  ],
+  assembles: [
     bind(
       ImportConfigurationPort,
       {

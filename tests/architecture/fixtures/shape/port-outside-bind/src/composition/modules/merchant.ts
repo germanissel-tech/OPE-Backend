@@ -6,9 +6,7 @@ import { MemoryMerchantStore, memoryMerchantStore } from "../../interface-adapte
 export const rotation = (): RotationPolicy => ({ maxGraceMs: () => Promise.resolve(0) });
 
 export const merchantModule = compositionModule({
-  provides: {
-    memory: [bind(MerchantStorePort, {}, () => memoryMerchantStore())],
-  },
+  provides: [bind(MerchantStorePort, {}, () => memoryMerchantStore())],
   serves: {
     handlers: {
       getMerchant: handler({}, () => new MemoryMerchantStore()),

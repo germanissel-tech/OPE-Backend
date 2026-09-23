@@ -74,18 +74,20 @@ bind(ScopedMerchantsPort, { merchants: MerchantStorePort }, (deps) => new Defaul
 
 Dice **exactamente tres** cosas, todas opcionales (FR-008, FR-009):
 
-| Parte      | Qué lleva                                                                          | Quién la consume |
-| ---------- | ---------------------------------------------------------------------------------- | ---------------- |
-| `provides` | Sus componentes, una tabla de enlaces por tecnología                               | el despliegue    |
-| `exposes`  | Lo que arma con ellos, igual en todo despliegue                                    | otros módulos    |
-| `serves`   | Lo que aporta al servidor: handlers por `operationId`, esquemas de seguridad, CORS | el servidor      |
+| Parte       | Qué lleva                                                                          | Quién la consume |
+| ----------- | ---------------------------------------------------------------------------------- | ---------------- |
+| `provides`  | Sus componentes: la lista de enlaces, o una tabla por tecnología si hay más de una | el despliegue    |
+| `assembles` | Lo que arma con ellos, igual en todo despliegue                                    | otros módulos    |
+| `serves`    | Lo que aporta al servidor: handlers por `operationId`, esquemas de seguridad, CORS | el servidor      |
 
 **Invariantes**
 
 - Lo que **necesita** no es una cuarta clave: son sus `import` y los nombres de sus enlaces. Una
   lista escrita a mano puede quedar vieja y mentir; un import no, y el mapa de contextos lo juzga.
+- Mientras haya **una sola manera** de servir sus componentes no hay tecnología que nombrar:
+  `provides` es la lista de enlaces. La clave aparece el día que hay algo que elegir.
 - Todas sus tecnologías proveen **lo mismo**; la que se aparta no compila y el error nombra lo que
-  le falta (`TechnologiesDisagree<…>`). Con una sola tecnología no hay nada que verificar.
+  le falta (`TechnologiesDisagree<…>`).
 - Un módulo que no sirve operaciones **omite** `serves`; no existe ceremonia vacía para figurar en
   una lista.
 - Un módulo declara **sólo sus propias necesidades**: consume de otro servicios ya construidos,
@@ -107,7 +109,8 @@ construcción y no por un cierre. Antes esto era un puerto de relleno más dos d
 ## 6. Tecnología
 
 Una clave de `provides`: el conjunto de enlaces con que **una** manera de servir cubre los
-componentes del módulo (`memory` hoy; `postgres` cuando llegue).
+componentes del módulo. **Hoy ningún módulo tiene dos**, así que ninguno la nombra; la tabla
+aparece con la segunda (`memory` y `postgres`, cuando llegue la persistencia).
 
 **Invariantes**
 
@@ -116,7 +119,7 @@ componentes del módulo (`memory` hoy; `postgres` cuando llegue).
   resolverlo lo enlaza— y es lo que hace que la configuración sirva la política de la decisión,
   los presupuestos del catálogo y el holdout del experimento sin que ninguno de los tres la
   importe.
-- Un módulo con una sola tecnología no la nombra en el despliegue: no hay nada que decidir.
+- Un módulo con una sola manera de servirse no la nombra en ningún lado: no hay nada que decidir.
 
 ## 7. Despliegue (`deployment([...])`)
 

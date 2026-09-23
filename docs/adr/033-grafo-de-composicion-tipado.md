@@ -52,10 +52,12 @@ El cableado es un **grafo tipado**, con inyección de dependencias manual y sin 
    con un cierre.
 5. **Un ciclo entre proveedores falla al arrancar nombrando el ciclo.** El tipo no puede impedirlo
    de forma practicable; queda como falla de arranque con prueba.
-6. **Un módulo de composición dice tres cosas**: lo que **provee** (sus componentes, una tabla de
-   enlaces por tecnología), lo que **expone** (lo que arma con ellos, igual en todo despliegue) y lo
-   que **sirve** al servidor. Todo opcional: un módulo que no sirve ninguna operación omite esa
-   parte. Lo que **necesita** no se declara como lista: son sus imports y los nombres de sus
+6. **Un módulo de composición dice tres cosas**: lo que **provee** (sus componentes: la lista de
+   enlaces cuando hay una sola manera de servirlos, una tabla por tecnología cuando hay más de
+   una), lo que **arma** con ellos (igual en todo despliegue) y lo que **sirve** al servidor. Todo
+   opcional: un módulo que no sirve ninguna operación omite esa parte. **No hay nombre de
+   tecnología que inventar hasta que haya algo que elegir**: `memory` como única clave era una
+   pregunta sin alternativa. Lo que **necesita** no se declara como lista: son sus imports y los nombres de sus
    enlaces, porque una lista escrita a mano puede quedar vieja y un import no. Una regla de forma
    reporta cualquier otra exportación.
 7. **Un despliegue es una lista sin orden significativo** de módulos. Es la única lista:
@@ -75,8 +77,8 @@ El cableado es un **grafo tipado**, con inyección de dependencias manual y sin 
 - Agregar un módulo toca tres archivos —el suyo, el del despliegue y el mapa de contextos— y
   olvidarse de cualquiera falla en compilación o en la verificación de arquitectura, nunca en
   ejecución.
-- Agregar una tecnología (la persistencia, cuando llegue) es una tabla de enlaces junto a la de
-  memoria y una línea del despliegue; ningún consumidor cambia. Refuerza la constitución X.
+- Agregar una tecnología (la persistencia, cuando llegue) es pasar la lista de enlaces a una tabla
+  de dos claves y nombrar una en el despliegue; ningún consumidor cambia. Refuerza la constitución X.
 - Los mensajes de error del compilador son largos. Se mitigan con alias con nombre que aparecen
   literalmente en el mensaje y con pruebas de tipos que fijan el texto esperado.
 - Los únicos `as` de la biblioteca están en un mismo borde, comentado: el que separa una lista

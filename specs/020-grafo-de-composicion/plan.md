@@ -129,10 +129,10 @@ src/composition/
 ├── graph/                     # NUEVO — la biblioteca (nada de dominio acá)
 │   ├── port.ts                # Port, port(), AnyPort, Closable
 │   ├── binding.ts             # bind(), bindAll(), Binding
-│   ├── module.ts              # compositionModule() (provides/exposes/serves), handler(), uses()
+│   ├── module.ts              # compositionModule() (provides/assembles/serves), handler(), uses()
 │   ├── compose.ts             # deployment(), instantiate(), Missing/Unwired
 │   └── index.ts
-├── modules/                   # 14 módulos: cada uno provides / exposes / serves
+├── modules/                   # 14 módulos: cada uno provides / assembles / serves
 │   ├── access.ts              # NUEVO — los tres esquemas, resolvedores y políticas de firma
 │   ├── admin.ts  barrier.ts  catalog.ts  configuration.ts  decision.ts  experiment.ts
 │   ├── ingestion.ts  ledger.ts  merchant.ts  outcomes.ts  shared-kernel.ts  system.ts

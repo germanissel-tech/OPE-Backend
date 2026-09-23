@@ -22,12 +22,10 @@ export const OrderLedgerPort = port("outcomes.orders")<OrderLedger>();
 export const CorroborationLedgerPort = port("outcomes.corroborations")<CorroborationLedger>();
 
 export const outcomesModule = compositionModule({
-  provides: {
-    memory: [
-      bind(OrderLedgerPort, {}, () => memoryOrderLedger()),
-      bind(CorroborationLedgerPort, {}, () => memoryCorroborationLedger()),
-    ],
-  },
+  provides: [
+    bind(OrderLedgerPort, {}, () => memoryOrderLedger()),
+    bind(CorroborationLedgerPort, {}, () => memoryCorroborationLedger()),
+  ],
   serves: {
     handlers: {
       notifyOrder: handler(

@@ -10,13 +10,11 @@ import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
 const ContractInfoPort = port("system.contract-info")<ContractInfo>();
 
 export const systemModule = compositionModule({
-  provides: {
-    contract: [
-      bind(ContractInfoPort, { contract: ContractPort }, ({ contract }) =>
-        contractInfoOf(contract.info.version),
-      ),
-    ],
-  },
+  provides: [
+    bind(ContractInfoPort, { contract: ContractPort }, ({ contract }) =>
+      contractInfoOf(contract.info.version),
+    ),
+  ],
   serves: {
     handlers: {
       getHealth: handler(

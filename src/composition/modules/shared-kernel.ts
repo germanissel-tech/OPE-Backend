@@ -50,17 +50,14 @@ export const AuditTrailPort = port("kernel.audit-trail")<AuditTrail>();
 export const DecoratorsPort = port("kernel.decorators")<UseCaseDecorators>();
 
 export const kernelModule = compositionModule({
-  provides: {
-    /** The system clock and pino to stdout; tests replace both by port. */
-    system: [
-      bind(ClockPort, {}, () => systemClock),
-      bind(LoggerPort, {}, () => pinoLogger()),
-      bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
-      ),
-    ],
-  },
-  exposes: [
+  provides: [
+    bind(ClockPort, {}, () => systemClock),
+    bind(LoggerPort, {}, () => pinoLogger()),
+    bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
+    ),
+  ],
+  assembles: [
     bind(
       DecoratorsPort,
       { clock: ClockPort, logger: LoggerPort, log: AuditTrailPort },

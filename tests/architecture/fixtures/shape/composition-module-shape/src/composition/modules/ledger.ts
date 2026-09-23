@@ -7,5 +7,5 @@ export function decisionRecorderOf(ports: LedgerPorts): DecisionRecorder {
 }
 
 export const ledgerModule = compositionModule({
-  ports: [DecisionLedgerPort],
+  provides: [bind(DecisionLedgerPort, {}, () => memoryDecisionLedger())],
 });

@@ -60,7 +60,7 @@ nombrando el archivo y la línea).
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | `src/composition/modules/*.ts` | Un `new X(...)` de algo importado de `interface-adapters/` o `infrastructure/` **fuera** del builder de un `bind`. |
 | `src/composition/modules/*.ts` | Un objeto literal con métodos usado como valor de un puerto fuera del builder de un `bind`.                        |
-| `serves` y `exposes`           | Allí sólo se instancian casos de uso y servicios de `application/`, con valores obtenidos del grafo.               |
+| `serves` y `assembles`         | Allí sólo se instancian casos de uso y servicios de `application/`, con valores obtenidos del grafo.               |
 
 **Fixture**: `tests/architecture/fixtures/shape/port-outside-bind/src/composition/modules/x.ts`.
 

@@ -57,15 +57,13 @@ const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AuditRes
   r.ok ? { experimentId: r.value.experimentId } : undefined;
 
 export const experimentModule = compositionModule({
-  provides: {
-    memory: [
-      // One instance, two views: what the administration writes and what the assignment reads.
-      bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
-      bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
-      bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
-    ],
-  },
-  exposes: [
+  provides: [
+    // One instance, two views: what the administration writes and what the assignment reads.
+    bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
+    bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
+    bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
+  ],
+  assembles: [
     bind(
       ExperimentLookupPort,
       { scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },

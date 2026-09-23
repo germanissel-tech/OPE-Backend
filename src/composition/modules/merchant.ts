@@ -57,15 +57,13 @@ export const ImportMerchantsPort =
   port("merchant.import")<UseCase<ImportMerchantsRequest, ImportMerchantsResponse>>();
 
 export const merchantModule = compositionModule({
-  provides: {
-    memory: [
-      // One instance, two views: what the administration writes and what the access module
-      // reads. The store in memory satisfies both, so it is bound once for the two.
-      bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
-      bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
-    ],
-  },
-  exposes: [
+  provides: [
+    // One instance, two views: what the administration writes and what the access module
+    // reads. The store in memory satisfies both, so it is bound once for the two.
+    bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
+    bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
+  ],
+  assembles: [
     bind(
       ScopedMerchantsPort,
       { merchants: MerchantStorePort },

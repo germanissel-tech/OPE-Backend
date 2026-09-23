@@ -90,7 +90,7 @@ clasificar, recién después tocar).
 
 La medida de SC-001. Con la feature terminada, agregar un módulo tiene que tocar **tres** archivos:
 
-1. `src/composition/modules/<módulo>.ts` — sus puertos, su tabla por tecnología, lo que expone y lo
+1. `src/composition/modules/<módulo>.ts` — sus puertos, sus enlaces, lo que arma con ellos y lo
    que sirve;
 2. `src/composition/deployments/local.ts` — una línea;
 3. `.dependency-cruiser.cjs` — una entrada en `CONTEXT_MAP`.

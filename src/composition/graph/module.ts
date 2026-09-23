@@ -1,8 +1,8 @@
-// A module of composition exports exactly three things (ADR-033): what it **provides** (its
-// components, one table per technology; the deployment picks one), what it **exposes** to other
-// modules (built out of the former, the same in every deployment) and what it **serves** to the
-// server. All three are optional: a module that serves no operation omits that part instead of
-// returning an empty object to appear in a list.
+// A module of composition says exactly three things (ADR-033): what it **provides** (its
+// components; a list when it is served in one way, a table per technology when there is something
+// to choose), what it **assembles** out of those (the same in every deployment) and what it
+// **serves** to the server. All three are optional: a module that serves no operation omits that
+// part instead of returning an empty object to appear in a list.
 //
 // What it *needs* is not a list: it is the ports it imports and names inside its builders. A list
 // written by hand can go stale and lie; an import cannot, and the context map judges it.
@@ -65,10 +65,14 @@ export interface Serves {
 }
 
 export interface ModuleShape {
-  /** Its components, one table of bindings per technology; every table serves the same ports. */
-  readonly provides?: Readonly<Record<string, readonly Binding[]>>;
-  /** What it builds out of those, the same in every deployment. */
-  readonly exposes?: readonly Binding[];
+  /**
+   * Its components. A module served in one way lists its bindings; one that can be served in
+   * several groups them by technology, and then every table has to provide the same components.
+   * There is no name to invent until there is something to choose.
+   */
+  readonly provides?: readonly Binding[] | Readonly<Record<string, readonly Binding[]>>;
+  /** What it assembles out of those, the same in every deployment. */
+  readonly assembles?: readonly Binding[];
   /** What it contributes to the server. */
   readonly serves?: Serves;
 }
@@ -84,15 +88,29 @@ export interface ChooseATechnology<Names extends string> {
 }
 
 type Tables = Readonly<Record<string, readonly Binding[]>>;
-type Names<M extends ModuleShape> = M["provides"] extends Tables ? keyof M["provides"] & string : never;
+
+/** The technologies a module declares; none when it is served in one way only. */
+type Names<M extends ModuleShape> = M["provides"] extends readonly Binding[]
+  ? never
+  : M["provides"] extends Tables
+    ? keyof M["provides"] & string
+    : never;
+
+/** What it provides with no technology to choose. */
+type OneWay<M extends ModuleShape> = M["provides"] extends readonly Binding[] ? M["provides"][number] : never;
+
+/** What one of its technologies provides. */
 type Bindings<M extends ModuleShape, K extends Names<M>> = M["provides"] extends Tables
   ? M["provides"][K] extends readonly (infer B)[]
     ? B
     : never
   : never;
-type Exposed<M extends ModuleShape> = M["exposes"] extends readonly Binding[] ? M["exposes"][number] : never;
 
-/** `"memory"` is not a union; `"memory" | "postgres"` is. */
+type Assembled<M extends ModuleShape> = M["assembles"] extends readonly Binding[]
+  ? M["assembles"][number]
+  : never;
+
+/** `"memory"` is not a union; `"memory" | "postgres"` is; no technology at all is neither. */
 type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
 /** Every label some technology of the module provides. */
@@ -130,8 +148,8 @@ export interface Deployed<
 }
 
 type Chosen<M extends ModuleShape, K extends Names<M>> = Deployed<
-  ProvidesOf<Bindings<M, K>> | ProvidesOf<Exposed<M>>,
-  RequiresOf<Bindings<M, K>> | RequiresOf<Exposed<M>> | RequiresOfServes<M["serves"]>,
+  ProvidesOf<Bindings<M, K> | OneWay<M> | Assembled<M>>,
+  RequiresOf<Bindings<M, K> | OneWay<M> | Assembled<M>> | RequiresOfServes<M["serves"]>,
   OperationsOf<M>
 >;
 
@@ -140,9 +158,11 @@ type Chosen<M extends ModuleShape, K extends Names<M>> = Deployed<
  * the deployment takes it as it is; when it declares more than one technology, the deployment has
  * to name which one and the compiler asks for it. The question appears the day it exists.
  */
-export type CompositionModule<M extends ModuleShape> = (IsUnion<Names<M>> extends true
-  ? ChooseATechnology<Names<M>>
-  : Chosen<M, Names<M>>) & {
+export type CompositionModule<M extends ModuleShape> = ([Names<M>] extends [never]
+  ? Chosen<M, never>
+  : IsUnion<Names<M>> extends true
+    ? ChooseATechnology<Names<M>>
+    : Chosen<M, Names<M>>) & {
   with<K extends Names<M>>(name: K): Chosen<M, K>;
 };
 
@@ -150,11 +170,13 @@ export function compositionModule<const M extends ModuleShape>(
   shape: M & (Divergence<M> extends never ? unknown : TechnologiesDisagree<Divergence<M>>),
 ): CompositionModule<M> {
   const declared: ModuleShape = shape;
-  const technologies = declared.provides ?? {};
+  const provides = declared.provides ?? [];
+  // One way of being served is a list; several are a table with a name each.
+  const technologies: Tables = Array.isArray(provides) ? { "": provides } : (provides as Tables);
   const chosen = (name: string): Deployed<string, string, keyof Handlers> => {
     const bindings = technologies[name] ?? [];
     return {
-      bindings: [...bindings, ...(declared.exposes ?? [])],
+      bindings: [...bindings, ...(declared.assembles ?? [])],
       provided: bindings.flatMap((binding) => binding.ports),
       serves: declared.serves ?? {},
     };

@@ -6,9 +6,7 @@ const ClockPort = port("test.clock")<{ now: () => Date }>();
 const StorePort = port("test.store")<{ ids: () => string[] }>();
 
 const store = compositionModule({
-  provides: {
-    memory: [bind(StorePort, { clock: ClockPort }, () => ({ ids: () => [] }))],
-  },
+  provides: [bind(StorePort, { clock: ClockPort }, () => ({ ids: () => [] }))],
 });
 
 export const incomplete = deployment([store]);

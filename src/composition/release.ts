@@ -20,12 +20,10 @@ export const OperatorsPort = port("release.operators")<readonly Operator[]>();
 
 export const releaseComponents = (config: AppConfig) =>
   compositionModule({
-    provides: {
-      process: [
-        bind(ContractPort, {}, () => loadContract(config.contractPath)),
-        bind(ReleaseLevelsPort, {}, () => config.levels),
-        bind(PlatformConfigurationPort, { levels: ReleaseLevelsPort }, ({ levels }) => levels.platform),
-        bind(OperatorsPort, {}, () => config.operators),
-      ],
-    },
+    provides: [
+      bind(ContractPort, {}, () => loadContract(config.contractPath)),
+      bind(ReleaseLevelsPort, {}, () => config.levels),
+      bind(PlatformConfigurationPort, { levels: ReleaseLevelsPort }, ({ levels }) => levels.platform),
+      bind(OperatorsPort, {}, () => config.operators),
+    ],
   });

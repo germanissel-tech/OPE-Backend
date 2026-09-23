@@ -46,22 +46,19 @@ const OperatorDirectoryPort = port("access.operators")<OperatorDirectory>();
 const TokenFingerprinterPort = port("access.fingerprints")<TokenFingerprinter>();
 
 export const accessModule = compositionModule({
-  provides: {
-    /** The crypto of Node, the operators of the release and the two policies of the platform. */
-    platform: [
-      bind(MessageAuthenticatorPort, {}, () => nodeMessageAuthenticator),
-      bind(TokenFingerprinterPort, {}, () => nodeTokenFingerprinter),
-      bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
-        configOperatorDirectory(operators),
-      ),
-      bind(SignatureWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        signatureWindowOf(platform.signatureWindowMs),
-      ),
-      bind(RotationPolicyPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        rotationPolicyOf(platform.rotationGraceMaxMs),
-      ),
-    ],
-  },
+  provides: [
+    bind(MessageAuthenticatorPort, {}, () => nodeMessageAuthenticator),
+    bind(TokenFingerprinterPort, {}, () => nodeTokenFingerprinter),
+    bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
+      configOperatorDirectory(operators),
+    ),
+    bind(SignatureWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      signatureWindowOf(platform.signatureWindowMs),
+    ),
+    bind(RotationPolicyPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      rotationPolicyOf(platform.rotationGraceMaxMs),
+    ),
+  ],
   serves: {
     // Which origins may reach a merchant from a page is also a question of access: the directory
     // answers it, and CORS derives the headers of the browser schemes from what is wired here.

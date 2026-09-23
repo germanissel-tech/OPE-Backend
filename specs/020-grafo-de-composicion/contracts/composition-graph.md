@@ -45,15 +45,13 @@ bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStor
 
 ```ts
 export const merchantModule = compositionModule({
-  // Lo que provee: sus componentes, una tabla por tecnología.
-  provides: {
-    memory: [
-      bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
-      bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
-    ],
-  },
-  // Lo que expone: lo que arma con eso, igual en todo despliegue.
-  exposes: [bind(ScopedMerchantsPort, { merchants: MerchantStorePort }, (d) => new DefaultScopedMerchantService(d))],
+  // Lo que provee: sus componentes.
+  provides: [
+    bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
+    bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
+  ],
+  // Lo que arma con eso, igual en todo despliegue.
+  assembles: [bind(ScopedMerchantsPort, { merchants: MerchantStorePort }, (d) => new DefaultScopedMerchantService(d))],
   // Lo que sirve al servidor.
   serves: { handlers: { … }, security: { … }, cors: … },
 });
@@ -62,6 +60,16 @@ export const merchantModule = compositionModule({
 Lo que **necesita** no es una cuarta clave: son los `import` del encabezado y los nombres de cada
 `bind`. Una lista escrita a mano puede quedar vieja y mentir; un import no, y el mapa de contextos
 lo juzga.
+
+**La tecnología sólo se nombra cuando hay algo que elegir.** El día que la persistencia llegue,
+`provides` pasa a ser una tabla y el despliegue nombra una clave:
+
+```ts
+provides: {
+  memory: [bind(DecisionLedgerPort, {}, () => memoryDecisionLedger())],
+  postgres: [bind(DecisionLedgerPort, { pool: PoolPort }, ({ pool }) => postgresDecisionLedger(pool))],
+},
+```
 
 Si un módulo declara dos tecnologías y una no provee lo que la otra sí:
 

@@ -16,13 +16,11 @@ const EventDedupPort = port("ingestion.dedup")<EventDedup>();
 export const DecisionPlanePort = port("ingestion.decision-plane")<DecisionPlane>();
 
 export const ingestionModule = compositionModule({
-  provides: {
-    memory: [
-      bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
-        memoryEventDedup(clock, platform.dedupWindow),
-      ),
-    ],
-  },
+  provides: [
+    bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
+      memoryEventDedup(clock, platform.dedupWindow),
+    ),
+  ],
   serves: {
     handlers: {
       ingestEvents: handler(

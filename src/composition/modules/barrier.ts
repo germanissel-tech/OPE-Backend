@@ -7,7 +7,5 @@ import { bind, compositionModule, port } from "../graph/index.js";
 export const BarrierInferencePort = port("barrier.inference")<BarrierInference>();
 
 export const barrierModule = compositionModule({
-  provides: {
-    rules: [bind(BarrierInferencePort, {}, () => new RuleBasedBarrierInference())],
-  },
+  provides: [bind(BarrierInferencePort, {}, () => new RuleBasedBarrierInference())],
 });

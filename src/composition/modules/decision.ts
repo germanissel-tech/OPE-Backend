@@ -37,23 +37,18 @@ export const PolicyDirectoryPort = port("decision.policies")<PolicyDirectory>();
 const DecisionStatePort = port("decision.state")<StateService>();
 
 export const decisionModule = compositionModule({
-  provides: {
-    memory: [
-      bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
-      ),
-      bind(
-        SessionStatePort,
-        { clock: ClockPort, platform: PlatformConfigurationPort },
-        ({ clock, platform }) =>
-          memorySessionStateStore(clock, sessionWindowOf(platform.sessionWindowMs, platform.identityCap())),
-      ),
-      bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
-        memoryVisitorStateStore(clock, window),
-      ),
-    ],
-  },
-  exposes: [
+  provides: [
+    bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
+    ),
+    bind(SessionStatePort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
+      memorySessionStateStore(clock, sessionWindowOf(platform.sessionWindowMs, platform.identityCap())),
+    ),
+    bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
+      memoryVisitorStateStore(clock, window),
+    ),
+  ],
+  assembles: [
     bind(
       DecisionStatePort,
       { sessions: SessionStatePort, visitors: VisitorStatePort, visitorWindow: VisitorWindowPort },

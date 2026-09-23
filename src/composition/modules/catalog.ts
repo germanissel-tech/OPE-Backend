@@ -19,10 +19,8 @@ export const CatalogPoliciesPort = port("catalog.policies")<CatalogPolicies>();
 export const ProductTruthPort = port("catalog.product-truth")<ProductTruthService>();
 
 export const catalogModule = compositionModule({
-  provides: {
-    memory: [bind(CatalogStorePort, {}, () => memoryCatalogStore())],
-  },
-  exposes: [
+  provides: [bind(CatalogStorePort, {}, () => memoryCatalogStore())],
+  assembles: [
     bind(
       ProductTruthPort,
       { clock: ClockPort, store: CatalogStorePort, policies: CatalogPoliciesPort },

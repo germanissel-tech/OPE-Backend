@@ -46,8 +46,9 @@ Dentro de una feature que toca HTTP, el orden es:
    `src/interface-adapters/<módulo>/index.ts`, y
    cableado en `src/composition/modules/<módulo>.ts`: el módulo declara sus componentes como
    constantes con `port("<módulo>.<qué>")<Tipo>()` y dice **tres** cosas —`provides` (sus
-   componentes, una tabla por tecnología), `exposes` (lo que arma con ellos, igual en todo
-   despliegue) y `serves` (handlers por `operationId`, esquemas de seguridad, CORS)—; los casos de
+   componentes: la lista de enlaces, o una tabla por tecnología si hay más de una manera de
+   servirlos), `assembles` (lo que arma con ellos, igual en todo despliegue) y `serves` (handlers
+   por `operationId`, esquemas de seguridad, CORS)—; los casos de
    uso se instancian con `new` dentro de los builders, envueltos por los decoradores del kernel.
    Lo que **necesita** no es una lista: son los `import` y los nombres del `bind`. Un módulo nuevo
    son tres archivos: el suyo, una línea en `deployments/local.ts` y otra en `CONTEXT_MAP`;
@@ -138,9 +139,10 @@ cada componente lo declara **una vez** su módulo dueño como una constante expo
 ledger.decisions")<DecisionLedger>()`— y quien lo necesita la importa: **no hay resolución por
 texto**, y por eso el mapa de contextos también rige entre módulos de composición. Cada
 `src/composition/modules/<módulo>.ts` exporta tres cosas y nada más (regla de forma
-`composition-module-shape`): `technologies` (una tabla de enlaces por tecnología de sus puertos;
-`memory` hoy, `postgres` cuando llegue), `exposes` (lo que otros módulos consumen, igual en todo
-despliegue) y `serves` (handlers por `operationId`, esquemas de seguridad, CORS). Todo opcional.
+`composition-module-shape`): `provides` (sus componentes, la lista de enlaces; y **sólo** si hay
+más de una manera de servirlos, una tabla por tecnología —no hay nombre que inventar hasta que
+haya algo que elegir—), `assembles` (lo que arma con ellos, igual en todo despliegue) y `serves`
+(handlers por `operationId`, esquemas de seguridad, CORS). Todo opcional.
 
 Un enlace declara lo que necesita **por nombre**: `bind(Puerto, { clock: ClockPort }, ({ clock })
 => …)`; `bindAll([Store, Directory], …)` es "una instancia, varias vistas" —se construye una vez y

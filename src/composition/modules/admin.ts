@@ -35,19 +35,17 @@ const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>(
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
 export const adminModule = compositionModule({
-  provides: {
-    memory: [
-      // One instance, two views: what the administration reads and what every module writes
-      // through the kernel's port (ADR-034).
-      bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
-      bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-        memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
-      ),
-      bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-        sdkConfigurationOf(configuration),
-      ),
-    ],
-  },
+  provides: [
+    // One instance, two views: what the administration reads and what every module writes
+    // through the kernel's port (ADR-034).
+    bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
+    bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+    ),
+    bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+      sdkConfigurationOf(configuration),
+    ),
+  ],
   serves: {
     handlers: {
       listAdminLog: handler({ deco: DecoratorsPort, log: AdminLogPort }, (operation, { deco, ...deps }) =>

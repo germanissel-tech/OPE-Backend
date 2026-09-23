@@ -123,26 +123,35 @@ tampoco impide escribirlo mal. La spec pide compilación (FR-002, FR-003, FR-013
 
 ## R-05 — Tablas por tecnología y la lista del despliegue
 
-**Decisión**: el módulo declara sus puertos y **una tabla de enlaces por tecnología**; el
-despliegue elige una por módulo con una clave tipada del propio módulo:
+**Decisión**: el módulo declara sus componentes y **la lista de enlaces que los sirve**. Una tabla
+por tecnología aparece **sólo** cuando hay más de una manera de servirlos, y entonces el despliegue
+elige una con una clave tipada del propio módulo:
 
 ```ts
 export const localDeployment = deployment([
-  kernel.with("system"),
-  merchant.with("memory"),
-  ledger.with("memory"),
-  // mañana: ledger.with("postgres")
+  kernelModule,
+  merchantModule,
+  ledgerModule, // mañana, con dos tecnologías: ledgerModule.with("postgres")
 ]);
 ```
 
-`with` está tipado `<K extends keyof this["technologies"]>`: un nombre inexistente no compila, y no
-es resolución por texto (es una clave de un registro cerrado que el compilador verifica). La lista
-**no tiene orden significativo**: `compose` resuelve por dependencia. Desaparecen `ports.ts` (la
-intersección de trece slices), `modules/index.ts` (la lista `MODULES`) y `profile.ts` (el
-`binder`): la lista del despliegue es la única lista.
+**Enmendado el 2026-09-22** (challenge del dueño, después de la entrega): la primera versión pedía
+la tabla siempre, con `memory` como única clave en los catorce módulos. Era una pregunta sin
+alternativa: nombraba una elección que no existía y obligaba a leer una clave para llegar a los
+enlaces. No hay nombre de tecnología que inventar hasta que haya algo que elegir, y el día que lo
+haya la tabla vuelve con las dos claves y el compilador pide la elección (`ChooseATechnology<…>`).
+Por el mismo motivo `exposes` pasó a llamarse `assembles`: dice lo que el módulo **hace** con sus
+componentes, no una dirección.
 
-`technology(ports, bindings)` no compila si la tabla no sirve alguno de los puertos que el módulo
-declara (`Unserved<…>`, FR-003, probado en R-04).
+`with` está tipado `<K extends Names<M>>`: un nombre inexistente no compila, y no es resolución por
+texto (es una clave de un registro cerrado que el compilador verifica). Con una sola manera de
+servirse, `Names<M>` es `never` y el módulo entra al despliegue tal cual. La lista **no tiene orden
+significativo**: la resolución va por dependencia. Desaparecen `ports.ts` (la intersección de trece
+slices), `modules/index.ts` (la lista `MODULES`) y `profile.ts` (el `binder`): la lista del
+despliegue es la única lista.
+
+Las tecnologías de un módulo tienen que proveer **lo mismo**; la que se aparta no compila y el
+error la nombra (`TechnologiesDisagree<…>`, FR-003, probado en R-04).
 
 ## R-06 — Cobertura de operaciones: en compilación **y** al arrancar
 
@@ -292,7 +301,7 @@ implementaciones de puerto que esquivan el anillo de adaptadores.
 `visitorWindowOf(platform)`, `sessionWindowOf(platform)`, `holdoutSourceOf(configuration)`), y una
 **regla de forma nueva** las mantiene ahí: en `composition/modules/*.ts` un `new` de
 `interface-adapters/`/`infrastructure/` y todo objeto literal que haga de implementación de puerto
-sólo pueden aparecer **dentro del builder de un `bind`**; `exposes` y `serves` sólo instancian casos
+sólo pueden aparecer **dentro del builder de un `bind`**; `assembles` y `serves` sólo instancian casos
 de uso y servicios de `application/` (FR-015, FR-016). Fixture propio, como las otras seis reglas de
 forma.
 
