@@ -129,3 +129,32 @@ La ventana en que el registro se cae **durante** una acción: la acción ocurre 
 constancia. No se cierra acá, está documentada en ADR-034 y su cierre es requisito del hito
 `persistence-and-resilience`, donde habrá transacción. Hoy el registro vive en memoria y la ventana
 es teórica.
+
+---
+
+## Estado al cierre de la implementación (2026-09-23)
+
+Histórico y fechado, como pide la convención de documentación viva.
+
+| Verificación                                              | Resultado                                |
+| --------------------------------------------------------- | ---------------------------------------- |
+| `deco` / `DecoratorsPort` en `src/composition/modules/`   | 0                                        |
+| `logged(` / `administered(` en `src/composition/modules/` | 0                                        |
+| `handler(` en `src/composition/`                          | 0                                        |
+| Operaciones que el contrato manda auditar                 | 10, las mismas que estaban a mano        |
+| Fixture `serves-cannot-audit.ts`                          | falla con `CannotAudit<"setKillSwitch">` |
+| `"merchant-out-of-scope"` en el `shared-kernel`           | 0                                        |
+| `contract:diff`                                           | sin cambios                              |
+| `npm test` (`fast`)                                       | 1293                                     |
+| `test:tools`                                              | 58                                       |
+| `quality`                                                 | 7 gates                                  |
+
+**Aserciones de comportamiento preexistentes modificadas: ninguna.** Las nuevas son las de US2
+(el fixture de tipos) y US3 (las cuatro del registro caído más la del arranque).
+
+### Lo que la implementación agregó al alcance
+
+La semilla del arranque es una acción administrativa, así que un servidor cuyo registro rechaza
+escrituras **no termina de arrancar**. Es la misma decisión un paso antes y es fail-closed —sin
+semilla no hay merchants y nadie autentica—, pero es comportamiento nuevo que la spec no había
+previsto, y tiene su propia aserción en `tests/integration/admin-log-unavailable.test.ts`.

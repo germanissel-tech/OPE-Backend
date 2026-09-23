@@ -219,19 +219,19 @@ texto en el `shared-kernel`.
 - [x] T043 Retirar `UseCaseDecorators` y `DecoratorsPort` de
       `src/composition/modules/shared-kernel.ts`, ya sin consumidores. Verificar con
       `npm run check:dead-code` y `npm run check:ports-bound`.
-- [ ] T044 Decidir y escribir la decisión: ADR nuevo, o enmienda de ADR-023 (forma de los casos de
+- [x] T044 Decidir y escribir la decisión: ADR nuevo, o enmienda de ADR-023 (forma de los casos de
       uso y sus decoradores) o de ADR-033 (el grafo). Lo decide quien implementa, con el diseño en
       la mano; tiene que quedar registrado qué se descartó y por qué (el borde HTTP, la escritura
       en dos fases, el gate `check:*`).
-- [ ] T045 [P] Actualizar `CLAUDE.md`: la sección de decoradores del kernel, la forma de declarar
+- [x] T045 [P] Actualizar `CLAUDE.md`: la sección de decoradores del kernel, la forma de declarar
       una operación en un módulo de composición y la tabla de comandos si `contract:types` cambia
       de descripción.
-- [ ] T046 [P] Actualizar `contracts/README.md` si la derivación cambia lo que se dice del mapa.
-- [ ] T047 Correr el quickstart entero ([quickstart.md](./quickstart.md)) y dejar la tabla de
+- [x] T046 [P] Actualizar `contracts/README.md` si la derivación cambia lo que se dice del mapa.
+- [x] T047 Correr el quickstart entero ([quickstart.md](./quickstart.md)) y dejar la tabla de
       estado fechada.
-- [ ] T048 Cadena completa como CI: `format:check`, `quality` (7 gates), `typecheck`, `test`,
+- [x] T048 Cadena completa como CI: `format:check`, `quality` (7 gates), `typecheck`, `test`,
       `test:tools`, `contract:check` (**cero diff**), `test:contract`, `release-check`.
-- [ ] T049 `npm run test:mutation` en verde sobre las líneas cambiadas. Ante un superviviente,
+- [x] T049 `npm run test:mutation` en verde sobre las líneas cambiadas. Ante un superviviente,
       clasificarlo antes de tocar nada (ADR-016) y confirmar con `-- --files <archivo>`.
 
 ---

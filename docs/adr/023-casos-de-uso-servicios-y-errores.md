@@ -62,6 +62,37 @@ reconocible y verificada por herramienta (ADR-016), sin conversiones de tipo en 
    `use-cases-no-use-cases`, `services-no-use-cases`, `problem-translation-only-in-http`.
    Cada una con fixture que la viola.
 
+### Enmienda (2026-09-23) — la preocupación transversal no se elige: la deriva el contrato
+
+Los decoradores se aplicaban a mano, handler por handler: `logged` o `administered`, 29 veces.
+Cruzada contra el contrato, esa elección coincidía **29 de 29** con una regla que ya estaba
+escrita ahí —se audita si y sólo si el consumidor es `admin` y la capacidad no es de lectura—, y
+ninguna regla la verificaba: escribir `logged` donde iba `administered` compilaba, pasaba los siete
+gates y pasaba las pruebas, y esa operación dejaba de auditarse en silencio. Para un registro que
+es requisito (01 §14.2) es el peor modo de falla.
+
+Se decide:
+
+1. **La regla la deriva `contract:types`** a `generated/audited-operations.{js,d.ts}`, del bundle
+   y del mapa. No es una réplica que pueda divergir: si el contrato cambia, el tipo cambia.
+2. **El módulo declara el caso de uso y el controller, y nada más** (`served()`). La biblioteca del
+   grafo envuelve; el controller recibe el caso de uso **ya envuelto**, así que no hay forma de
+   saltear la decoración. `UseCaseDecorators` —una bolsa de tres funciones declarada en el
+   composition root, de la que dependían los 29 handlers— desaparece.
+3. **Lo que queda enforzable, lo enforza el compilador.** Derivada la elección no hay nada que
+   olvidar; lo que la plataforma no puede verificar sola es que el caso de uso sirva para auditar,
+   porque la entrada necesita el operador. Una operación que el contrato manda auditar servida por
+   un caso de uso cuyo request no lo lleva no compila (`CannotAudit<"…">`), con su fixture de tipos.
+4. **Cómo se registra un error lo declara el error**, no el kernel comparando texto un código de
+   otro módulo que no puede ni importar.
+
+Se evaluó y se descartó un gate `check:*` que verificara la elección a mano: la garantía
+estructural es más fuerte que un script, y el script se habría borrado en el mismo ciclo.
+
+La semilla del arranque no entra por acá —no son operaciones del contrato, no tienen consumidor ni
+capacidades— y se declara explícitamente por el componente `kernel.audit`. Inventarle un consumidor
+para que entrara por el mismo camino habría sido mentirle al contrato por simetría.
+
 ## Consecuencias
 
 - Precisión (2026-09-18): `DomainError.module` es `string`, no una unión `ModuleName` mantenida
