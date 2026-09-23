@@ -8,14 +8,14 @@ import {
   CloseExperimentUseCase,
   CreateExperimentUseCase,
   DefaultAssignmentService,
-  DefaultExperimentLookupService,
+  DefaultScopedExperimentService,
   ImportExperimentsUseCase,
   ListExperimentsUseCase,
   type AssignmentLedger,
   type AssignmentService,
   type ExperimentDirectory,
   type ExperimentIdMinter,
-  type ExperimentLookupService,
+  type ScopedExperimentService,
   type ExperimentStore,
   type HoldoutSource,
   type ImportExperimentsRequest,
@@ -45,7 +45,7 @@ export const AssignmentLedgerPort = port("experiment.assignments")<AssignmentLed
 /** What the merchant keeps out of OPE (level 2, overridden by the merchant): the configuration binds it. */
 export const HoldoutPort = port("experiment.holdout")<HoldoutSource>();
 /** How the administration of one experiment finds it within the scope of its operator. */
-const ExperimentLookupPort = port("experiment.lookup")<ExperimentLookupService>();
+const ScopedExperimentsPort = port("experiment.scoped")<ScopedExperimentService>();
 /** What the decision plane asks for: the arm of a visitor. */
 export const AssignmentPort = port("experiment.assignment")<AssignmentService>();
 /** The experiments of the seed enter an empty store through the same use case as the API. */
@@ -65,9 +65,9 @@ export const experimentModule = compositionModule({
   ],
   assembles: [
     bind(
-      ExperimentLookupPort,
+      ScopedExperimentsPort,
       { scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },
-      (deps) => new DefaultExperimentLookupService(deps),
+      (deps) => new DefaultScopedExperimentService(deps),
     ),
     bind(
       AssignmentPort,
@@ -109,7 +109,7 @@ export const experimentModule = compositionModule({
       activateExperiment: handler(
         {
           deco: DecoratorsPort,
-          lookup: ExperimentLookupPort,
+          scoped: ScopedExperimentsPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },
@@ -121,7 +121,7 @@ export const experimentModule = compositionModule({
       closeExperiment: handler(
         {
           deco: DecoratorsPort,
-          lookup: ExperimentLookupPort,
+          scoped: ScopedExperimentsPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },

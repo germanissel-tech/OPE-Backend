@@ -13,9 +13,9 @@ import type { Operator } from "../../../domain/operator/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { ExperimentStore } from "../ports/experiment-store.js";
 import type {
-  ExperimentLookupError,
-  ExperimentLookupService,
-} from "../services/experiment-lookup.service.js";
+  ScopedExperimentError,
+  ScopedExperimentService,
+} from "../services/scoped-experiment.service.js";
 
 export interface CloseExperimentRequest {
   actor: Operator;
@@ -23,10 +23,10 @@ export interface CloseExperimentRequest {
   experimentId: ExperimentId;
 }
 
-export type CloseExperimentResponse = Result<Experiment, ExperimentLookupError | StoreUnavailable>;
+export type CloseExperimentResponse = Result<Experiment, ScopedExperimentError | StoreUnavailable>;
 
 export interface CloseExperimentDependencies {
-  lookup: ExperimentLookupService;
+  scoped: ScopedExperimentService;
   experiments: ExperimentStore;
   clock: Clock;
 }
@@ -39,8 +39,8 @@ export class CloseExperimentUseCase implements UseCase<CloseExperimentRequest, C
   }
 
   async execute(request: CloseExperimentRequest): Promise<CloseExperimentResponse> {
-    const { lookup, experiments, clock } = this.#deps;
-    const found = await lookup.find(request.actor, request.merchantId, request.experimentId);
+    const { scoped, experiments, clock } = this.#deps;
+    const found = await scoped.find(request.actor, request.merchantId, request.experimentId);
     if (!found.ok) return found;
     const closed = found.value.closed(clock.now());
     return closed === found.value ? ok(found.value) : experiments.update(closed);

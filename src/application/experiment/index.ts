@@ -5,12 +5,12 @@ export type { ExperimentStore } from "./ports/experiment-store.js";
 export type { HoldoutSource } from "./ports/holdout-source.js";
 export type { ExperimentIdMinter } from "./ports/experiment-id-minter.js";
 export { DefaultAssignmentService } from "./services/assignment.service.js";
-export { DefaultExperimentLookupService } from "./services/experiment-lookup.service.js";
+export { DefaultScopedExperimentService } from "./services/scoped-experiment.service.js";
 export type {
-  ExperimentLookupError,
-  ExperimentLookupService,
-  ExperimentLookupServiceDependencies,
-} from "./services/experiment-lookup.service.js";
+  ScopedExperimentError,
+  ScopedExperimentService,
+  ScopedExperimentServiceDependencies,
+} from "./services/scoped-experiment.service.js";
 export type {
   AssignmentResult,
   AssignmentService,

@@ -1,6 +1,8 @@
-// Application service: an experiment of a merchant within the scope of the operator — the scope
-// and the existence of the merchant first (403 and 404 alike for what the operator does not
-// reach), then the experiment. Shared by every transition, so it is a service, not a use case
+// Application service: an experiment of a merchant within the scope of the operator. It is the
+// scoped merchant of the merchant module plus one step — the scope and the existence of the
+// merchant first (403 and 404 alike for what the operator does not reach), then the experiment —
+// so it is named after the same condition and not after the fetch: reading the experiment store
+// straight would skip the scope. Shared by every transition, so it is a service, not a use case
 // (ADR-023).
 import { ExperimentNotFound, type Experiment } from "../../../domain/experiment/index.js";
 import {
@@ -15,25 +17,25 @@ import type { MerchantOutOfScope, Operator } from "../../../domain/operator/inde
 import type { ScopedMerchantService } from "../../merchant/index.js";
 import type { ExperimentStore } from "../ports/experiment-store.js";
 
-export type ExperimentLookupError = MerchantOutOfScope | MerchantNotFound | ExperimentNotFound;
+export type ScopedExperimentError = MerchantOutOfScope | MerchantNotFound | ExperimentNotFound;
 
-export interface ExperimentLookupService {
+export interface ScopedExperimentService {
   find(
     actor: Operator,
     merchantId: MerchantId,
     experimentId: ExperimentId,
-  ): Promise<Result<Experiment, ExperimentLookupError>>;
+  ): Promise<Result<Experiment, ScopedExperimentError>>;
 }
 
-export interface ExperimentLookupServiceDependencies {
+export interface ScopedExperimentServiceDependencies {
   scoped: ScopedMerchantService;
   experiments: ExperimentStore;
 }
 
-export class DefaultExperimentLookupService implements ExperimentLookupService {
-  readonly #deps: ExperimentLookupServiceDependencies;
+export class DefaultScopedExperimentService implements ScopedExperimentService {
+  readonly #deps: ScopedExperimentServiceDependencies;
 
-  constructor(deps: ExperimentLookupServiceDependencies) {
+  constructor(deps: ScopedExperimentServiceDependencies) {
     this.#deps = deps;
   }
 
@@ -41,7 +43,7 @@ export class DefaultExperimentLookupService implements ExperimentLookupService {
     actor: Operator,
     merchantId: MerchantId,
     experimentId: ExperimentId,
-  ): Promise<Result<Experiment, ExperimentLookupError>> {
+  ): Promise<Result<Experiment, ScopedExperimentError>> {
     const found = await this.#deps.scoped.find(actor, merchantId);
     if (!found.ok) return found;
     const experiment = await this.#deps.experiments.get(merchantId, experimentId);

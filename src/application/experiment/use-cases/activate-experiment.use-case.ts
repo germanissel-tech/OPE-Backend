@@ -13,9 +13,9 @@ import type { Operator } from "../../../domain/operator/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { ExperimentStore } from "../ports/experiment-store.js";
 import type {
-  ExperimentLookupError,
-  ExperimentLookupService,
-} from "../services/experiment-lookup.service.js";
+  ScopedExperimentError,
+  ScopedExperimentService,
+} from "../services/scoped-experiment.service.js";
 
 export interface ActivateExperimentRequest {
   actor: Operator;
@@ -25,11 +25,11 @@ export interface ActivateExperimentRequest {
 
 export type ActivateExperimentResponse = Result<
   Experiment,
-  ExperimentLookupError | ExperimentNotOpen | StoreUnavailable
+  ScopedExperimentError | ExperimentNotOpen | StoreUnavailable
 >;
 
 export interface ActivateExperimentDependencies {
-  lookup: ExperimentLookupService;
+  scoped: ScopedExperimentService;
   experiments: ExperimentStore;
   clock: Clock;
 }
@@ -45,8 +45,8 @@ export class ActivateExperimentUseCase implements UseCase<
   }
 
   async execute(request: ActivateExperimentRequest): Promise<ActivateExperimentResponse> {
-    const { lookup, experiments, clock } = this.#deps;
-    const found = await lookup.find(request.actor, request.merchantId, request.experimentId);
+    const { scoped, experiments, clock } = this.#deps;
+    const found = await scoped.find(request.actor, request.merchantId, request.experimentId);
     if (!found.ok) return found;
     const activated = found.value.activated(clock.now());
     if (!activated.ok) return activated;

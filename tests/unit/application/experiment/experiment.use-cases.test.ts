@@ -6,7 +6,7 @@ import {
   ActivateExperimentUseCase,
   CloseExperimentUseCase,
   CreateExperimentUseCase,
-  DefaultExperimentLookupService,
+  DefaultScopedExperimentService,
   ImportExperimentsUseCase,
   ListExperimentsUseCase,
   type ExperimentStore,
@@ -48,15 +48,15 @@ async function subject(options: { holdoutShare?: number; store?: ExperimentStore
     mintExperimentId: () => Promise.resolve(asExperimentId(`exp_${String(++minted).padStart(8, "0")}`)),
   };
   const holdout = { holdoutShareFor: () => Promise.resolve(options.holdoutShare ?? 0) };
-  const lookup = new DefaultExperimentLookupService({ scoped, experiments });
+  const scopedExperiment = new DefaultScopedExperimentService({ scoped, experiments });
   return {
     experiments,
     tick: (at: Date) => {
       now = at;
     },
     create: new CreateExperimentUseCase({ scoped, experiments, holdout, minter, clock }),
-    activate: new ActivateExperimentUseCase({ lookup, experiments, clock }),
-    close: new CloseExperimentUseCase({ lookup, experiments, clock }),
+    activate: new ActivateExperimentUseCase({ scoped: scopedExperiment, experiments, clock }),
+    close: new CloseExperimentUseCase({ scoped: scopedExperiment, experiments, clock }),
     list: new ListExperimentsUseCase({ scoped, experiments }),
     import: new ImportExperimentsUseCase({ experiments }),
   };
