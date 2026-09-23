@@ -2,7 +2,13 @@
 // `OPE_ADMIN_OPERATORS_FILE`. Only the shape is parsed here; the rules are the Operator's, and a
 // rejected one stops the start naming the field. The tokens never appear: only their fingerprints.
 import path from "node:path";
-import { asOperatorId, EVERY_MERCHANT, Operator, type OperatorScope } from "../domain/operator/index.js";
+import {
+  asOperatorId,
+  EVERY_MERCHANT,
+  Operator,
+  type OperatorError,
+  type OperatorScope,
+} from "../domain/operator/index.js";
 import { asMerchantId, type DomainError } from "../domain/shared-kernel/index.js";
 import { ConfigError, type OperatorField } from "./config-error.js";
 import { listOf } from "./env.js";
@@ -14,7 +20,7 @@ const OPERATORS_VARIABLE = "OPE_ADMIN_OPERATORS";
 const FIELD_BY_CODE: Readonly<Record<string, string>> = {
   "invalid-operator-tokens": ".tokenFingerprints",
   "invalid-operator-scope": ".scope",
-};
+} satisfies Readonly<Partial<Record<OperatorError["code"], string>>>;
 
 function rejected(at: OperatorField, error: DomainError): ConfigError {
   const position = error.details["index"];

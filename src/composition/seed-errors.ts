@@ -2,6 +2,8 @@
 // (ADR-024): the rule is the domain's; the location is the configuration's.
 import { ConfigError, type MerchantField } from "./config-error.js";
 import type { MerchantSeed } from "../application/merchant/index.js";
+import type { ExperimentError, ExperimentSetError } from "../domain/experiment/index.js";
+import type { MerchantError } from "../domain/merchant/index.js";
 import type { DomainError } from "../domain/shared-kernel/index.js";
 
 /**
@@ -39,7 +41,15 @@ type ConfiguredField =
   | ".targetSample"
   | ".cuts";
 
-/** Which configured field each domain error points at (`[index]` is appended when the error names one). */
+/** The errors the factories of a seed can return: the codes this file is allowed to name. */
+type SeedCode = MerchantError["code"] | ExperimentError["code"] | ExperimentSetError["code"];
+
+/**
+ * Which configured field each domain error points at (`[index]` is appended when the error names
+ * one). The annotation keeps the lookup by a plain `code`; `satisfies` is what checks the keys:
+ * a code renamed in its module stops compiling here instead of falling through to `?? ""` and
+ * naming the wrong field.
+ */
 const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "invalid-treatment-share": ".treatmentPercent",
   "invalid-seed": ".seed",
@@ -54,4 +64,4 @@ const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "duplicate-experiment-id": ".experiments",
   "invalid-target-sample": ".targetSample",
   "invalid-experiment-cuts": ".cuts",
-};
+} satisfies Readonly<Partial<Record<SeedCode, ConfiguredField>>>;
