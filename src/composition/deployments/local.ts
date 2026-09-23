@@ -6,6 +6,9 @@
 // The list has no significant order: what is resolved first is decided by dependency, and the
 // order only fixes the order of creation that the shutdown reverses. Adding a module is one line
 // here; forgetting it does not compile.
+//
+// A module names its technology only when it declares more than one: with a single way of serving
+// it there is nothing to decide, and the compiler asks the question the day it exists.
 import { deployment } from "../graph/index.js";
 import { accessModule } from "../modules/access.js";
 import { adminModule } from "../modules/admin.js";
@@ -26,17 +29,17 @@ import type { AppConfig } from "../config.js";
 export const localDeployment = (config: AppConfig) =>
   deployment([
     releaseComponents(config),
-    kernelModule.with("system"),
-    systemModule.with("contract"),
-    merchantModule.with("memory"),
-    accessModule.with("platform"),
-    experimentModule.with("memory"),
-    ledgerModule.with("memory"),
-    catalogModule.with("memory"),
-    barrierModule.with("rules"),
-    decisionModule.with("memory"),
-    ingestionModule.with("memory"),
-    outcomesModule.with("memory"),
-    configurationModule.with("memory"),
-    adminModule.with("memory"),
+    kernelModule,
+    systemModule,
+    merchantModule,
+    accessModule,
+    experimentModule,
+    ledgerModule,
+    catalogModule,
+    barrierModule,
+    decisionModule,
+    ingestionModule,
+    outcomesModule,
+    configurationModule,
+    adminModule,
   ]);

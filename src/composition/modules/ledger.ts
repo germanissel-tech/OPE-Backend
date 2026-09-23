@@ -16,7 +16,7 @@ import {
   memoryExposureLedger,
   randomDecisionIds,
 } from "../../interface-adapters/ledger/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 
 export const DecisionLedgerPort = port("ledger.decisions")<DecisionLedger>();
@@ -26,16 +26,13 @@ export const DecisionIdsPort = port("ledger.decision-ids")<DecisionIdGenerator>(
 /** What the decision plane records with; built here so the wiring of the ledger lives with it. */
 export const DecisionRecorderPort = port("ledger.recorder")<DecisionRecorder>();
 
-const PORTS = [DecisionLedgerPort, ExposureLedgerPort, DecisionIdsPort] as const;
-
 export const ledgerModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       bind(DecisionLedgerPort, {}, () => memoryDecisionLedger()),
       bind(ExposureLedgerPort, {}, () => memoryExposureLedger()),
       bind(DecisionIdsPort, {}, () => randomDecisionIds),
-    ]),
+    ],
   },
   exposes: [
     bind(

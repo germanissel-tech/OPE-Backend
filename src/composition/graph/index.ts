@@ -1,6 +1,6 @@
 // The composition graph (ADR-033): what a module of composition uses to declare its components,
 // bind them, expose services, serve operations, and what a deployment uses to compose the lot.
-export { bind, derive, type Binding } from "./binding.js";
+export { bind, bindAll, type Binding } from "./binding.js";
 export {
   deployment,
   instantiate,
@@ -15,14 +15,13 @@ export {
 export {
   compositionModule,
   handler,
-  technology,
   uses,
+  type ChooseATechnology,
   type CompositionModule,
   type Deployed,
   type HandlerRecipe,
   type Recipe,
   type Serves,
-  type Technology,
-  type Unserved,
+  type TechnologiesDisagree,
 } from "./module.js";
 export { port, type AnyPort, type Closable, type Label, type Port, type Served } from "./port.js";

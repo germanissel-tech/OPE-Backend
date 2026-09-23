@@ -18,7 +18,7 @@ import {
   sessionWindowOf,
   visitorWindowOf,
 } from "../../interface-adapters/decision/index.js";
-import { bind, compositionModule, port, technology } from "../graph/index.js";
+import { bind, compositionModule, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 import { BarrierInferencePort } from "./barrier.js";
 import { ProductTruthPort } from "./catalog.js";
@@ -36,12 +36,9 @@ export const PolicyDirectoryPort = port("decision.policies")<PolicyDirectory>();
 /** Session and visitor state as one authority. */
 const DecisionStatePort = port("decision.state")<StateService>();
 
-const PORTS = [SessionStatePort, VisitorStatePort, VisitorWindowPort] as const;
-
 export const decisionModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
         visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
       ),
@@ -54,7 +51,7 @@ export const decisionModule = compositionModule({
       bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
         memoryVisitorStateStore(clock, window),
       ),
-    ]),
+    ],
   },
   exposes: [
     bind(

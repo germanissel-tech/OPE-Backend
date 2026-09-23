@@ -23,7 +23,7 @@ import {
   memoryAnchorDiagnosticsStore,
   sdkConfigurationOf,
 } from "../../interface-adapters/admin/index.js";
-import { bind, compositionModule, derive, handler, port, technology } from "../graph/index.js";
+import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantsPort } from "./merchant.js";
@@ -34,22 +34,19 @@ const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>(
 /** What the SDK may see of the configuration of its merchant. */
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
-const PORTS = [AdminLogPort, AuditTrailPort, AnchorDiagnosticsPort, SdkConfigurationPort] as const;
-
 export const adminModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
-      bind(AdminLogPort, {}, () => memoryAdminLog()),
-      // One instance, two views: what the administration reads and what every module writes.
-      derive(AuditTrailPort, AdminLogPort),
+  provides: {
+    memory: [
+      // One instance, two views: what the administration reads and what every module writes
+      // through the kernel's port (ADR-034).
+      bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
       bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
         memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
       ),
       bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
         sdkConfigurationOf(configuration),
       ),
-    ]),
+    ],
   },
   serves: {
     handlers: {

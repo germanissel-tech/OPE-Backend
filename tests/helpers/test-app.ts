@@ -15,7 +15,7 @@ import { localDeployment } from "../../src/composition/deployments/local.js";
 import { withoutSchemaReference } from "../../src/composition/env.js";
 import { instantiate, replace, type AnyPort, type Override } from "../../src/composition/graph/index.js";
 import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
-import { RELEASE_PORTS } from "../../src/composition/release.js";
+import { releaseComponents } from "../../src/composition/release.js";
 import { Experiment, Experiments, type ExperimentStatus } from "../../src/domain/experiment/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../src/domain/operator/index.js";
 import { asExperimentId, asMerchantId } from "../../src/domain/shared-kernel/index.js";
@@ -227,7 +227,8 @@ function delegating<T extends object>(current: () => T): T {
 }
 
 /** What comes from the release is not rebuilt between tests, and is read as it is. */
-const fromTheRelease = (port: AnyPort): boolean => RELEASE_PORTS.some((release) => release === port);
+const fromTheRelease = (config: TestConfig): ReadonlySet<AnyPort> =>
+  new Set(releaseComponents(testConfig(config)).provided);
 
 /**
  * The server built once for a file; `resetPorts()` before each test rebuilds the in-memory
@@ -254,8 +255,9 @@ export async function sharedTestApp(
   let current = build();
   // Only what a technology serves is replaced: what a module composes out of it (a service, the
   // decorators) the server builds for itself, over these, so a reset reaches it too.
+  const release = fromTheRelease(config);
   const shared = localDeployment(testConfig(config))
-    .technologyPorts.filter((port) => !fromTheRelease(port))
+    .providedPorts.filter((port) => !release.has(port))
     .map((port) =>
       replace(
         port,

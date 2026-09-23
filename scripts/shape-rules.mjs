@@ -338,8 +338,8 @@ export function compositionModuleShape(root) {
   return out;
 }
 
-/** Where a component is built: the builder of a `bind` (or the derivation of a view). */
-const BUILDERS = ["bind", "derive"];
+/** Where a component is built: the builder of a binding, of one port or of several. */
+const BUILDERS = ["bind", "bindAll"];
 
 /**
  * Is this node inside the builder of a binding? What a module serves or exposes may instantiate

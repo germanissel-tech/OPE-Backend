@@ -52,11 +52,17 @@ El cableado es un **grafo tipado**, con inyección de dependencias manual y sin 
    con un cierre.
 5. **Un ciclo entre proveedores falla al arrancar nombrando el ciclo.** El tipo no puede impedirlo
    de forma practicable; queda como falla de arranque con prueba.
-6. **Un módulo de composición exporta tres cosas**: sus tablas de enlaces por tecnología, lo que
-   expone a otros módulos y lo que sirve al servidor. Todo opcional: un módulo que no sirve ninguna
-   operación omite esa parte. Una regla de forma reporta cualquier otra exportación.
-7. **Un despliegue es una lista sin orden significativo** de módulos con la tecnología elegida para
-   cada uno. Es la única lista: desaparecen la intersección global de puertos y la lista de módulos.
+6. **Un módulo de composición dice tres cosas**: lo que **provee** (sus componentes, una tabla de
+   enlaces por tecnología), lo que **expone** (lo que arma con ellos, igual en todo despliegue) y lo
+   que **sirve** al servidor. Todo opcional: un módulo que no sirve ninguna operación omite esa
+   parte. Lo que **necesita** no se declara como lista: son sus imports y los nombres de sus
+   enlaces, porque una lista escrita a mano puede quedar vieja y un import no. Una regla de forma
+   reporta cualquier otra exportación.
+7. **Un despliegue es una lista sin orden significativo** de módulos. Es la única lista:
+   desaparecen la intersección global de puertos y la lista de módulos. Un módulo nombra su
+   tecnología sólo cuando declara más de una: con una sola no hay decisión, y el compilador hace la
+   pregunta el día que existe. Las tecnologías de un módulo tienen que proveer lo mismo, y la que
+   se aparta se reporta con lo que le falta.
 8. **La verificación de cobertura de operaciones al arrancar se conserva** (constitución II): el
    compilador ve el tipo generado del contrato, no el archivo de contrato que el proceso carga, que
    puede declarar más operaciones que el binario conoce.

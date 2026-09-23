@@ -3,7 +3,7 @@
 // composition that is a function of the configuration, so the fourteen modules are plain values
 // and a deployment is a list. Nothing here decides behaviour: it reads fields and hands them on.
 import { loadContract } from "../infrastructure/http/load-contract.js";
-import { bind, compositionModule, port, technology } from "./graph/index.js";
+import { bind, compositionModule, port } from "./graph/index.js";
 import type { AppConfig, ReleaseLevels } from "./config.js";
 import type { PlatformConfiguration } from "../domain/configuration/index.js";
 import type { Operator } from "../domain/operator/index.js";
@@ -18,23 +18,14 @@ export const ReleaseLevelsPort = port("release.levels")<ReleaseLevels>();
 /** The operators of the platform, as the configuration lists them. */
 export const OperatorsPort = port("release.operators")<readonly Operator[]>();
 
-/** What comes from outside the graph: a test rebuilds the rest around these. */
-export const RELEASE_PORTS = [
-  ContractPort,
-  PlatformConfigurationPort,
-  ReleaseLevelsPort,
-  OperatorsPort,
-] as const;
-
 export const releaseComponents = (config: AppConfig) =>
   compositionModule({
-    ports: RELEASE_PORTS,
-    technologies: {
-      process: technology(RELEASE_PORTS, [
+    provides: {
+      process: [
         bind(ContractPort, {}, () => loadContract(config.contractPath)),
         bind(ReleaseLevelsPort, {}, () => config.levels),
         bind(PlatformConfigurationPort, { levels: ReleaseLevelsPort }, ({ levels }) => levels.platform),
         bind(OperatorsPort, {}, () => config.operators),
-      ]),
+      ],
     },
-  }).with("process");
+  });

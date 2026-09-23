@@ -64,18 +64,17 @@ describe("hardened compiler (tsconfig.json)", () => {
     expectFailure(file, code);
   });
 
-  // Feature 020 (ADR-033): the four guarantees the graph takes to compile time. What each one says
+  // Feature 020 (ADR-033): the guarantees the graph takes to compile time. What each one says
   // matters as much as that it fails: the message has to name what is missing.
   it.each([
-    ["graph-missing-provider.ts", 'Missing<"test.clock">'],
-    ["graph-technology-partial.ts", 'Unserved<"test.directory">'],
-    ["graph-operation-unwired.ts", "Unwired<"],
-  ])("%s does not compile and names %s", (file, fragment) => {
-    expectFailure(file, "TS2345", [fragment]);
-  });
-
-  it("a view derived from an instance that does not satisfy it does not compile", () => {
-    expectFailure("graph-derive-foreign.ts", "TS2379", ["test.clock"]);
+    ["graph-missing-provider.ts", "TS2345", 'Missing<"test.clock">'],
+    ["graph-technologies-disagree.ts", "TS2345", 'TechnologiesDisagree<"test.directory">'],
+    ["graph-technology-unchosen.ts", "TS2322", "ChooseATechnology"],
+    ["graph-operation-unwired.ts", "TS2345", "Unwired<"],
+    // One instance behind several ports has to satisfy all of them.
+    ["graph-bindall-mismatch.ts", "TS2322", "Property 'now' is missing"],
+  ])("%s does not compile (%s) and names %s", (file, code, fragment) => {
+    expectFailure(file, code, [fragment]);
   });
 
   it("valid.ts compila", () => {

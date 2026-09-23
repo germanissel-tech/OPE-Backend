@@ -34,7 +34,7 @@ import {
   memoryMerchantStore,
   nodeCredentialMinter,
 } from "../../interface-adapters/merchant/index.js";
-import { bind, compositionModule, derive, handler, port, technology } from "../graph/index.js";
+import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
 import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
@@ -56,22 +56,14 @@ const RotateCredentialPort =
 export const ImportMerchantsPort =
   port("merchant.import")<UseCase<ImportMerchantsRequest, ImportMerchantsResponse>>();
 
-/** The instance the memory technology builds: it serves both views of the merchants. */
-const MemoryMerchantsPort = port("merchant.memory")<MerchantStore & MerchantDirectory>();
-
-const PORTS = [MerchantStorePort, MerchantDirectoryPort, CredentialMinterPort] as const;
-
 export const merchantModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       // One instance, two views: what the administration writes and what the access module
-      // reads. The memory store satisfies both, and both are derived from it.
-      bind(MemoryMerchantsPort, {}, () => memoryMerchantStore()),
-      derive(MerchantStorePort, MemoryMerchantsPort),
-      derive(MerchantDirectoryPort, MemoryMerchantsPort),
+      // reads. The store in memory satisfies both, so it is bound once for the two.
+      bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
       bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
-    ]),
+    ],
   },
   exposes: [
     bind(

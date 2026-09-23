@@ -28,8 +28,8 @@ type Unserved<M extends readonly AnyDeployed[]> = Exclude<keyof Handlers, Served
 
 export interface Deployment<Provides extends string> {
   readonly bindings: readonly Binding[];
-  /** What a technology serves, as opposed to what a module composes out of it. */
-  readonly technologyPorts: readonly AnyPort[];
+  /** What a technology provides, as opposed to what a module builds out of it. */
+  readonly providedPorts: readonly AnyPort[];
   readonly serves: readonly Serves[];
   readonly provides?: Provides;
 }
@@ -47,7 +47,7 @@ export function deployment<const M extends readonly AnyDeployed[]>(
   const chosen = modules as readonly AnyDeployed[];
   return {
     bindings: chosen.flatMap((module) => module.bindings),
-    technologyPorts: chosen.flatMap((module) => module.technologyPorts),
+    providedPorts: chosen.flatMap((module) => module.provided),
     serves: chosen.map((module) => module.serves),
   };
 }
@@ -96,9 +96,11 @@ function claim<T>(target: Record<string, T>, key: string, value: T, what: string
 
 function tableOf(bindings: readonly Binding[], overrides: readonly Override[]): Map<AnyPort, Binding> {
   const table = new Map<AnyPort, Binding>();
-  for (const binding of bindings) table.set(binding.port, binding);
+  for (const binding of bindings) {
+    for (const port of binding.ports) table.set(port, binding);
+  }
   for (const { port, value } of overrides) {
-    table.set(port, { port, needs: {}, build: () => value });
+    table.set(port, { ports: [port], needs: {}, build: () => value });
   }
   return table;
 }
@@ -108,23 +110,25 @@ export function instantiate<Provides extends string>(
   overrides: readonly Override[] = [],
 ): Instance<Provides> {
   const table = tableOf(plan.bindings, overrides);
-  const built = new Map<AnyPort, unknown>();
+  // Memoised per binding, not per port: an instance that satisfies several views is built once,
+  // and every port of its binding answers with that same object.
+  const built = new Map<Binding, unknown>();
   const closables: Closable[] = [];
   const open: string[] = [];
   const needed = (needs: Readonly<Record<string, AnyPort>>): Record<string, unknown> =>
     Object.fromEntries(Object.entries(needs).map(([name, target]) => [name, resolve(target)]));
   const resolve = (target: AnyPort): unknown => {
-    if (built.has(target)) return built.get(target);
+    const binding = table.get(target);
+    if (!binding) throw new Error(`No provider for "${target.label}" in this deployment.`);
+    if (built.has(binding)) return built.get(binding);
     if (open.includes(target.label)) {
       throw new Error(`Cycle in the composition graph: ${[...open, target.label].join(" -> ")}.`);
     }
-    const binding = table.get(target);
-    if (!binding) throw new Error(`No provider for "${target.label}" in this deployment.`);
     open.push(target.label);
     // The only cast of the library: `bind` already checked the builder against what it needs.
     const value = (binding.build as (resolved: Record<string, unknown>) => unknown)(needed(binding.needs));
     open.pop();
-    built.set(target, value);
+    built.set(binding, value);
     if (isClosable(value)) closables.push(value);
     return value;
   };
@@ -150,7 +154,9 @@ export function instantiate<Provides extends string>(
   return {
     resolve: <T, L extends Provides>(target: Port<T, L>): T => resolve(target) as T,
     resolveAll: () => {
-      for (const binding of plan.bindings) resolve(binding.port);
+      for (const binding of plan.bindings) {
+        for (const port of binding.ports) resolve(port);
+      }
     },
     ports: [...table.keys()],
     closables,

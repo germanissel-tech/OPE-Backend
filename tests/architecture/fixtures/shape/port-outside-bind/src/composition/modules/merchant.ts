@@ -6,9 +6,8 @@ import { MemoryMerchantStore, memoryMerchantStore } from "../../interface-adapte
 export const rotation = (): RotationPolicy => ({ maxGraceMs: () => Promise.resolve(0) });
 
 export const merchantModule = compositionModule({
-  ports: [MerchantStorePort],
-  technologies: {
-    memory: technology(PORTS, [bind(MerchantStorePort, {}, () => memoryMerchantStore())]),
+  provides: {
+    memory: [bind(MerchantStorePort, {}, () => memoryMerchantStore())],
   },
   serves: {
     handlers: {

@@ -116,7 +116,7 @@ describe("shape of the rings", () => {
     expect(portImplementationsOnlyInBind(src)).toEqual([]);
     expect(portImplementationsOnlyInBind(fixture("port-outside-bind"))).toEqual([
       "composition/modules/merchant.ts:6: writes an implementation outside the builder of a binding",
-      "composition/modules/merchant.ts:15: builds MemoryMerchantStore outside the builder of a binding",
+      "composition/modules/merchant.ts:14: builds MemoryMerchantStore outside the builder of a binding",
     ]);
   });
 

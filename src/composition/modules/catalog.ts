@@ -9,7 +9,7 @@ import {
   type ProductTruthService,
 } from "../../application/catalog/index.js";
 import { makeUpsertCatalogSnapshot, memoryCatalogStore } from "../../interface-adapters/catalog/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { ClockPort, ClockTolerancePort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 
 export const CatalogStorePort = port("catalog.store")<CatalogStore>();
@@ -18,12 +18,9 @@ export const CatalogPoliciesPort = port("catalog.policies")<CatalogPolicies>();
 /** What the decision plane consults: what is known of a product, and how fresh. */
 export const ProductTruthPort = port("catalog.product-truth")<ProductTruthService>();
 
-const PORTS = [CatalogStorePort] as const;
-
 export const catalogModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [bind(CatalogStorePort, {}, () => memoryCatalogStore())]),
+  provides: {
+    memory: [bind(CatalogStorePort, {}, () => memoryCatalogStore())],
   },
   exposes: [
     bind(

@@ -44,12 +44,14 @@ Dentro de una feature que toca HTTP, el orden es:
    security handler en `<módulo>/security/`), gateway del puerto en
    `src/interface-adapters/<módulo>/gateways/`, todo exportado por
    `src/interface-adapters/<módulo>/index.ts`, y
-   cableado en `src/composition/modules/<módulo>.ts` (el módulo declara sus componentes como
-   constantes con `port("<módulo>.<qué>")<Tipo>()`, su tabla de enlaces por tecnología, lo que
-   expone a otros módulos y lo que sirve; los casos de uso se instancian con `new` dentro de los
-   builders, envueltos por los decoradores del kernel; el despliegue en `deployments/local.ts`
-   elige una tecnología por módulo). Un módulo nuevo son tres archivos: el suyo, una línea en el
-   despliegue y otra en `CONTEXT_MAP`; olvidarse de cualquiera falla en compilación o en `arch`.
+   cableado en `src/composition/modules/<módulo>.ts`: el módulo declara sus componentes como
+   constantes con `port("<módulo>.<qué>")<Tipo>()` y dice **tres** cosas —`provides` (sus
+   componentes, una tabla por tecnología), `exposes` (lo que arma con ellos, igual en todo
+   despliegue) y `serves` (handlers por `operationId`, esquemas de seguridad, CORS)—; los casos de
+   uso se instancian con `new` dentro de los builders, envueltos por los decoradores del kernel.
+   Lo que **necesita** no es una lista: son los `import` y los nombres del `bind`. Un módulo nuevo
+   son tres archivos: el suyo, una línea en `deployments/local.ts` y otra en `CONTEXT_MAP`;
+   olvidarse de cualquiera falla en compilación, en `arch` o en `npm test`.
    `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
    que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
 5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
@@ -141,11 +143,14 @@ texto**, y por eso el mapa de contextos también rige entre módulos de composic
 despliegue) y `serves` (handlers por `operationId`, esquemas de seguridad, CORS). Todo opcional.
 
 Un enlace declara lo que necesita **por nombre**: `bind(Puerto, { clock: ClockPort }, ({ clock })
-=> …)`; `derive(Vista, Fuente)` dice "una instancia, dos vistas". El despliegue
-(`deployments/local.ts`) es una lista sin orden significativo: `merchantModule.with("memory")`.
-**No compilan**: un requisito sin proveedor (`Missing<…>`), una tabla que no sirve un puerto de su
-módulo (`Unserved<…>`), una vista derivada de otra instancia, y un despliegue que no cubre las
-operaciones del contrato (`Unwired<…>`). La resolución es perezosa y memorizada —una instancia por
+=> …)`; `bindAll([Store, Directory], …)` es "una instancia, varias vistas" —se construye una vez y
+los dos puertos responden con el mismo objeto—. El despliegue (`deployments/local.ts`) es una
+lista sin orden significativo, y un módulo nombra su tecnología **sólo si declara más de una**
+(`ledgerModule.with("postgres")`): con una sola no hay nada que decidir.
+**No compilan**: un requisito sin proveedor (`Missing<…>`), dos tecnologías de un módulo que no
+proveen lo mismo (`TechnologiesDisagree<…>`), un módulo con varias tecnologías que entra al
+despliegue sin elegir (`ChooseATechnology<…>`), una instancia que no satisface todas sus vistas, y
+un despliegue que no cubre las operaciones del contrato (`Unwired<…>`). La resolución es perezosa y memorizada —una instancia por
 arranque, sin nada global ni estático— y un ciclo falla al arrancar nombrándolo.
 `instantiate(plan, [replace(Puerto, doble)])` es lo que una prueba reemplaza.
 `bootstrap(config, { deployment?, ports?, handlers? })` devuelve `{ app, resolve, close }`; el

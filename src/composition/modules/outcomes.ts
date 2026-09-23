@@ -14,22 +14,19 @@ import {
   memoryCorroborationLedger,
   memoryOrderLedger,
 } from "../../interface-adapters/outcomes/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { DecisionLedgerPort } from "./ledger.js";
 import { ClockPort, ClockTolerancePort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 
 export const OrderLedgerPort = port("outcomes.orders")<OrderLedger>();
 export const CorroborationLedgerPort = port("outcomes.corroborations")<CorroborationLedger>();
 
-const PORTS = [OrderLedgerPort, CorroborationLedgerPort] as const;
-
 export const outcomesModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       bind(OrderLedgerPort, {}, () => memoryOrderLedger()),
       bind(CorroborationLedgerPort, {}, () => memoryCorroborationLedger()),
-    ]),
+    ],
   },
   serves: {
     handlers: {

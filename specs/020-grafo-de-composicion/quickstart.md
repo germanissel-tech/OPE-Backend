@@ -18,12 +18,13 @@ Los cuatro casos viven en `tests/typecheck/fixtures/` y los corre `npm test`
 (`tests/typecheck/typecheck.test.ts`), que compila cada fixture con un tsconfig temporal y afirma el
 código y el texto del error.
 
-| Fixture                       | Tiene que fallar con                                  |
-| ----------------------------- | ----------------------------------------------------- |
-| `graph-missing-provider.ts`   | `TS2345` … `Missing<"clock">`                         |
-| `graph-technology-partial.ts` | `TS2345` … `Unserved<"merchant.directory">`           |
-| `graph-derive-foreign.ts`     | `TS2379` (el tipo de la fuente no satisface la vista) |
-| `graph-operation-unwired.ts`  | `TS2345` … `Unwired<"…">`                             |
+| Fixture                          | Tiene que fallar con                                   |
+| -------------------------------- | ------------------------------------------------------ |
+| `graph-missing-provider.ts`      | `TS2345` … `Missing<"clock">`                          |
+| `graph-technologies-disagree.ts` | `TS2345` … `TechnologiesDisagree<"test.directory">`    |
+| `graph-technology-unchosen.ts`   | `TS2322` … `ChooseATechnology<…>`                      |
+| `graph-bindall-mismatch.ts`      | `TS2322` (la instancia no satisface una de las vistas) |
+| `graph-operation-unwired.ts`     | `TS2345` … `Unwired<"…">`                              |
 
 Y el positivo, sobre el código real:
 
@@ -96,11 +97,11 @@ La medida de SC-001. Con la feature terminada, agregar un módulo tiene que toca
 
 Y olvidarse de cualquiera de los tres tiene que fallar **antes de ejecutar**:
 
-| Olvido                           | Quién lo atrapa                                   |
-| -------------------------------- | ------------------------------------------------- |
-| La línea del despliegue          | `typecheck` (`Missing<…>` o `Unwired<…>`)         |
-| Un puerto sin enlace             | `typecheck` (`Unserved<…>`) o `check:ports-bound` |
-| La entrada del mapa de contextos | `npm run arch`                                    |
+| Olvido                           | Quién lo atrapa                                                    |
+| -------------------------------- | ------------------------------------------------------------------ |
+| La línea del despliegue          | `typecheck` (`Missing<…>` o `Unwired<…>`)                          |
+| Un puerto sin enlace             | `check:ports-bound`, y `typecheck` si otra tecnología sí lo provee |
+| La entrada del mapa de contextos | `npm run arch`                                                     |
 
 ### La prueba del algodón, corrida (2026-09-22)
 
@@ -108,7 +109,7 @@ Con un módulo de juguete y un puerto de aplicación de juguete, omitiendo cada 
 
 | Lo que se omitió                                    | Qué falló, y cómo                                                   |
 | --------------------------------------------------- | ------------------------------------------------------------------- |
-| Enlazar un puerto en la tabla de su tecnología      | `typecheck`: `Unserved<"toy.thing">`                                |
+| Enlazar un puerto en la tabla de su tecnología      | `check:ports-bound`, que lo nombra con archivo y línea              |
 | La línea del despliegue de un módulo que sirve algo | `typecheck`: `Unwired<"getHealth">`                                 |
 | Enlazar en el grafo un puerto de `application/`     | `check:ports-bound`: lo nombra con su archivo y su línea            |
 | La entrada del mapa de contextos                    | `npm test` (arquitectura): el módulo aparece sin entrada en el mapa |

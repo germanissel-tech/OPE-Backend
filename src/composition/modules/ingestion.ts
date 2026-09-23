@@ -7,7 +7,7 @@ import {
   type EventDedup,
 } from "../../application/ingestion/index.js";
 import { makeIngestEvents, memoryEventDedup } from "../../interface-adapters/ingestion/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 import { ClockPort, ClockTolerancePort, DecoratorsPort } from "./shared-kernel.js";
 
@@ -15,16 +15,13 @@ const EventDedupPort = port("ingestion.dedup")<EventDedup>();
 /** What decides a batch; the decision module binds it. */
 export const DecisionPlanePort = port("ingestion.decision-plane")<DecisionPlane>();
 
-const PORTS = [EventDedupPort] as const;
-
 export const ingestionModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
         memoryEventDedup(clock, platform.dedupWindow),
       ),
-    ]),
+    ],
   },
   serves: {
     handlers: {

@@ -17,7 +17,7 @@ import {
 } from "../../application/shared-kernel/index.js";
 import { pinoLogger } from "../../infrastructure/logging/pino-logger.js";
 import { clockToleranceOf, systemClock } from "../../interface-adapters/shared-kernel/index.js";
-import { bind, compositionModule, port, technology } from "../graph/index.js";
+import { bind, compositionModule, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 
 /** What the composition wraps a use case with. The name of the log is the name of the use case. */
@@ -49,19 +49,16 @@ export const ClockTolerancePort = port("kernel.tolerance")<ClockTolerance>();
 export const AuditTrailPort = port("kernel.audit-trail")<AuditTrail>();
 export const DecoratorsPort = port("kernel.decorators")<UseCaseDecorators>();
 
-const PORTS = [ClockPort, LoggerPort, ClockTolerancePort] as const;
-
 export const kernelModule = compositionModule({
-  ports: PORTS,
-  technologies: {
+  provides: {
     /** The system clock and pino to stdout; tests replace both by port. */
-    system: technology(PORTS, [
+    system: [
       bind(ClockPort, {}, () => systemClock),
       bind(LoggerPort, {}, () => pinoLogger()),
       bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
         clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
       ),
-    ]),
+    ],
   },
   exposes: [
     bind(

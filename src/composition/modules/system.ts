@@ -3,22 +3,19 @@
 // thing the use case needs to know about it.
 import { GetServiceHealthUseCase, type ContractInfo } from "../../application/system/index.js";
 import { contractInfoOf, makeGetHealth } from "../../interface-adapters/system/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { ContractPort } from "../release.js";
 import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
 
 const ContractInfoPort = port("system.contract-info")<ContractInfo>();
 
-const PORTS = [ContractInfoPort] as const;
-
 export const systemModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    contract: technology(PORTS, [
+  provides: {
+    contract: [
       bind(ContractInfoPort, { contract: ContractPort }, ({ contract }) =>
         contractInfoOf(contract.info.version),
       ),
-    ]),
+    ],
   },
   serves: {
     handlers: {

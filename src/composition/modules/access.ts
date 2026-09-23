@@ -32,7 +32,7 @@ import {
   rotationPolicyOf,
   signatureWindowOf,
 } from "../../interface-adapters/access/index.js";
-import { bind, compositionModule, port, technology, uses } from "../graph/index.js";
+import { bind, compositionModule, port, uses } from "../graph/index.js";
 import { OperatorsPort, PlatformConfigurationPort } from "../release.js";
 import { CredentialMinterPort, MerchantDirectoryPort, RotationPolicyPort } from "./merchant.js";
 import { ClockPort } from "./shared-kernel.js";
@@ -45,19 +45,10 @@ const SignatureWindowPort = port("access.signature-window")<SignatureWindow>();
 const OperatorDirectoryPort = port("access.operators")<OperatorDirectory>();
 const TokenFingerprinterPort = port("access.fingerprints")<TokenFingerprinter>();
 
-const PORTS = [
-  MessageAuthenticatorPort,
-  SignatureWindowPort,
-  OperatorDirectoryPort,
-  TokenFingerprinterPort,
-  RotationPolicyPort,
-] as const;
-
 export const accessModule = compositionModule({
-  ports: PORTS,
-  technologies: {
+  provides: {
     /** The crypto of Node, the operators of the release and the two policies of the platform. */
-    platform: technology(PORTS, [
+    platform: [
       bind(MessageAuthenticatorPort, {}, () => nodeMessageAuthenticator),
       bind(TokenFingerprinterPort, {}, () => nodeTokenFingerprinter),
       bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
@@ -69,7 +60,7 @@ export const accessModule = compositionModule({
       bind(RotationPolicyPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
         rotationPolicyOf(platform.rotationGraceMaxMs),
       ),
-    ]),
+    ],
   },
   serves: {
     // Which origins may reach a merchant from a page is also a question of access: the directory

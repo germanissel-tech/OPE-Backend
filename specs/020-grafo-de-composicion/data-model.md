@@ -43,94 +43,88 @@ export const MerchantStorePort = port("merchant.store")<MerchantStore>();
 - La etiqueta lleva el prefijo del módulo dueño (`merchant.store`, `ledger.decisions`): no es una
   regla del compilador, es la convención que hace legibles los mensajes.
 
-## 3. Enlace (`Binding<Provides, Needs>`)
+## 3. Enlace
 
-Cómo se construye un componente: qué puerto sirve, de qué puertos depende y el constructor.
+Cómo se construye un componente: qué puertos sirve, de qué componentes depende y el constructor.
 
 ```ts
-bind(MerchantStorePort, [], () => memoryMerchantStore());
-bind(
-  ScopedMerchantsPort,
-  [MerchantStorePort],
-  (merchants) => new DefaultScopedMerchantService({ merchants }),
-);
+bind(MerchantStorePort, {}, () => memoryMerchantStore());
+bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore());
+bind(ScopedMerchantsPort, { merchants: MerchantStorePort }, (deps) => new DefaultScopedMerchantService(deps));
 ```
 
-| Campo   | Qué es                                                                           |
-| ------- | -------------------------------------------------------------------------------- |
-| `port`  | El puerto que sirve; de él sale `Provides` (su etiqueta) en el tipo.             |
-| `deps`  | Los puertos que necesita; de ellos sale `Needs` (la unión de sus etiquetas).     |
-| `build` | Recibe los valores de `deps`, **en ese orden y con esos tipos**, y devuelve `T`. |
-| `kind`  | `bind` o `derive`.                                                               |
+| Campo   | Qué es                                                                               |
+| ------- | ------------------------------------------------------------------------------------ |
+| `ports` | Los puertos que sirve; más de uno cuando una instancia satisface varias vistas.      |
+| `needs` | Lo que necesita, **por nombre**; de ahí sale lo que el despliegue tiene que proveer. |
+| `build` | Recibe un objeto con esos mismos nombres y sus tipos, y devuelve el componente.      |
 
 **Invariantes**
 
-- Los parámetros del constructor los infiere el compilador de `deps`: un orden equivocado o un tipo
-  que no corresponde no compila.
+- Los tipos del constructor los infiere el compilador de lo que el enlace declara necesitar: un
+  nombre que sobra o falta no compila, y nada depende de un orden.
 - Un enlace no puede construir nada que no haya pedido: no hay acceso al grafo desde el builder.
+- Un enlace con varios puertos se resuelve **una vez**: los dos puertos responden con el mismo
+  objeto, y el valor tiene que satisfacer a todos (si no, no compila).
+- Un reemplazo es de un componente, no de un enlace: reemplazar una vista no reemplaza la otra.
 - Sólo dentro de un builder puede instanciarse un adaptador o escribirse un objeto que haga de
-  implementación de puerto (regla de forma nueva, FR-015).
+  implementación de puerto (regla de forma, FR-015).
 
-## 4. Vista derivada (`derive(Vista, Fuente)`)
+## 4. Módulo de composición
 
-Un componente que **es** otro visto por una interfaz más angosta.
+Dice **exactamente tres** cosas, todas opcionales (FR-008, FR-009):
 
-```ts
-derive(MerchantDirectoryPort, MerchantStorePort); // la misma instancia, dos vistas
-```
-
-**Invariantes**
-
-- `Fuente` satisface `Vista` (`S extends T`), o no compila.
-- Resolver la vista devuelve **el objeto** que resolvió la fuente (identidad, no copia).
-- Una vista no puede enlazarse por separado con `bind`: sería otra instancia (hoy es lo que evitan a
-  mano los cierres `store ??= …` de merchant, experiment y configuration).
-
-## 5. Tabla por tecnología (`technology(puertos, enlaces)`)
-
-El conjunto de enlaces con que **una** tecnología sirve los puertos de un módulo.
-
-```ts
-const memory = technology(MERCHANT_PORTS, [bind(MerchantStorePort, [], …), derive(MerchantDirectoryPort, MerchantStorePort)]);
-```
+| Parte      | Qué lleva                                                                          | Quién la consume |
+| ---------- | ---------------------------------------------------------------------------------- | ---------------- |
+| `provides` | Sus componentes, una tabla de enlaces por tecnología                               | el despliegue    |
+| `exposes`  | Lo que arma con ellos, igual en todo despliegue                                    | otros módulos    |
+| `serves`   | Lo que aporta al servidor: handlers por `operationId`, esquemas de seguridad, CORS | el servidor      |
 
 **Invariantes**
 
-- Sirve **todos** los puertos que el módulo declara, o no compila (`Unserved<…>`).
-- Puede servir un puerto **declarado por otro módulo** cuando el mapa de contextos permite verlo:
+- Lo que **necesita** no es una cuarta clave: son sus `import` y los nombres de sus enlaces. Una
+  lista escrita a mano puede quedar vieja y mentir; un import no, y el mapa de contextos lo juzga.
+- Todas sus tecnologías proveen **lo mismo**; la que se aparta no compila y el error nombra lo que
+  le falta (`TechnologiesDisagree<…>`). Con una sola tecnología no hay nada que verificar.
+- Un módulo que no sirve operaciones **omite** `serves`; no existe ceremonia vacía para figurar en
+  una lista.
+- Un módulo declara **sólo sus propias necesidades**: consume de otro servicios ya construidos,
+  nunca sus componentes internos (FR-010).
+- Lo que un módulo importa de otro lo juzga `CONTEXT_MAP`, también en `src/composition/modules/`.
+- En `serves`, el `operationId` es **la clave**: el nombre viaja una sola vez (FR-022).
+
+## 5. Vista compartida
+
+Un componente que satisface varias interfaces se enlaza una vez para todas:
+
+```ts
+bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore());
+```
+
+Lo que la administración escribe y lo que el acceso lee son **la misma instancia**, por
+construcción y no por un cierre. Antes esto era un puerto de relleno más dos derivaciones.
+
+## 6. Tecnología
+
+Una clave de `provides`: el conjunto de enlaces con que **una** manera de servir cubre los
+componentes del módulo (`memory` hoy; `postgres` cuando llegue).
+
+**Invariantes**
+
+- Puede proveer un puerto **declarado por otro módulo** cuando el mapa de contextos permite verlo:
   es el idioma vigente del repositorio —el consumidor declara su puerto de lectura y quien puede
-  resolverlo lo enlaza— y es lo que hace que la configuración sirva la política de la decisión, los
-  presupuestos del catálogo y el holdout del experimento sin que ninguno de los tres la importe.
-- Un módulo puede tener varias (`memory`, mañana `postgres`); el despliegue elige una.
-
-## 6. Módulo de composición
-
-Exporta **exactamente tres cosas**, todas opcionales (FR-008, FR-009):
-
-| Parte          | Qué lleva                                                                          | Quién la consume |
-| -------------- | ---------------------------------------------------------------------------------- | ---------------- |
-| `technologies` | Una tabla por tecnología de sus propios puertos                                    | el despliegue    |
-| `exposes`      | Los servicios que otros módulos pueden consumir, iguales en todo despliegue        | otros módulos    |
-| `serves`       | Lo que aporta al servidor: handlers por `operationId`, esquemas de seguridad, CORS | el servidor      |
-
-**Invariantes**
-
-- Un módulo que no sirve operaciones **omite** `serves`; no existe `() => ({})` para figurar en una
-  lista (hoy lo hacen `decisionModule` y `barrierModule`).
-- Un módulo declara **sólo sus propias necesidades**: consume de otro módulo servicios ya
-  construidos, nunca sus puertos internos (FR-010; hoy `DecisionPorts extends ExperimentPorts,
-CatalogPorts, BarrierPorts, Pick<LedgerPorts, …>`).
-- Lo que un módulo importa de otro lo juzga `CONTEXT_MAP`, ahora también en
-  `src/composition/modules/` (FR-011).
-- En `serves`, el `operationId` es **la clave**: el nombre viaja una sola vez y de ahí lo toman el
-  log y la auditoría (FR-022).
+  resolverlo lo enlaza— y es lo que hace que la configuración sirva la política de la decisión,
+  los presupuestos del catálogo y el holdout del experimento sin que ninguno de los tres la
+  importe.
+- Un módulo con una sola tecnología no la nombra en el despliegue: no hay nada que decidir.
 
 ## 7. Despliegue (`deployment([...])`)
 
-La lista de módulos con la tecnología elegida para cada uno. **La única lista.**
+La lista de módulos. **La única lista.**
 
 ```ts
-export const localDeployment = deployment([kernel.with("system"), merchant.with("memory"), …]);
+export const localDeployment = (config: AppConfig) =>
+  deployment([releaseComponents(config), kernelModule, merchantModule, ledgerModule, …]);
 ```
 
 **Invariantes**
@@ -138,8 +132,9 @@ export const localDeployment = deployment([kernel.with("system"), merchant.with(
 - **Sin orden significativo**: reordenar no cambia el resultado (FR-004). El orden sólo fija el
   orden de creación y, por lo tanto, el inverso de cierre.
 - No compila si algún requisito queda sin proveedor (`Missing<…>`, FR-002).
+- No compila si un módulo con varias tecnologías entra sin elegir una (`ChooseATechnology<…>`).
 - No compila si la unión de los `serves` no cubre `keyof operations` (`Unwired<…>`, FR-013).
-- Ningún envoltorio perezoso: una dependencia cruzada es un puerto pedido, no un `() => …`.
+- Ningún envoltorio perezoso: una dependencia cruzada es un componente pedido, no un `() => …`.
 
 ## 8. Grafo resuelto (`Graph`)
 
@@ -157,7 +152,7 @@ Lo que `deployment(...)` produce al arrancar.
 | Situación                                                    | Cuándo se ve    | Qué dice                                         |
 | ------------------------------------------------------------ | --------------- | ------------------------------------------------ |
 | Requisito sin proveedor                                      | **compilación** | `Missing<"clock">`                               |
-| Tabla de tecnología incompleta                               | **compilación** | `Unserved<"merchant.directory">`                 |
+| Dos tecnologías de un módulo que no proveen lo mismo         | **compilación** | `TechnologiesDisagree<"merchant.directory">`     |
 | Vista derivada de una instancia ajena                        | **compilación** | el tipo de la fuente no satisface el de la vista |
 | Operación del contrato sin handler                           | **compilación** | `Unwired<"getMerchant">`                         |
 | Ciclo entre proveedores                                      | arranque        | `Cycle in the composition graph: a -> b -> a.`   |

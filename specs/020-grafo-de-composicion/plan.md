@@ -12,7 +12,7 @@ cableado deja de ser tres listas paralelas escritas a mano —la intersección d
 ser **un grafo tipado**: un puerto es una constante que su módulo dueño declara una vez y los demás
 importan; cada enlace declara de qué depende; el despliegue no compila si falta un proveedor
 (`Missing<"clock">`), si una tabla de tecnología no sirve uno de sus puertos
-(`Unserved<"merchant.directory">`), si una vista derivada se enlaza a otra instancia o si una
+(`TechnologiesDisagree<…>`), si una instancia no satisface todas sus vistas o si una
 operación del contrato se queda sin handler (`Unwired<"getMerchant">`). Los cuatro mensajes están
 **probados con el compilador del repositorio** antes de escribir este plan (research R-04). La
 resolución es perezosa y memorizada —una instancia por arranque, sin nada global ni estático— y un
@@ -128,9 +128,9 @@ specs/020-grafo-de-composicion/
 src/composition/
 ├── graph/                     # NUEVO — la biblioteca (nada de dominio acá)
 │   ├── port.ts                # Port, port(), AnyPort, Closable
-│   ├── binding.ts             # bind(), derive(), Binding
-│   ├── module.ts              # CompositionModule, technology(), operations()
-│   ├── compose.ts             # compose(), deployment(), Graph, Missing/Unserved/Unwired
+│   ├── binding.ts             # bind(), bindAll(), Binding
+│   ├── module.ts              # compositionModule() (provides/exposes/serves), handler(), uses()
+│   ├── compose.ts             # deployment(), instantiate(), Missing/Unwired
 │   └── index.ts
 ├── modules/                   # 14 módulos: cada uno provides / exposes / serves
 │   ├── access.ts              # NUEVO — los tres esquemas, resolvedores y políticas de firma
@@ -175,14 +175,14 @@ adaptadores, y (d) la desaparición de `composition/adapters/`.
 
 ## Complexity Tracking
 
-| Violación / complejidad agregada                                           | Por qué se necesita                                                                                                                                         | Alternativa más simple, y por qué se descarta                                                                                                                    |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Maquinaria de tipos (`Missing`, `Unserved`, `Unwired`, tipos fantasma)     | Es **lo que compra la feature**: sin requisitos en el tipo, el olvido sigue apareciendo como `undefined` en ejecución (SC-003).                             | Verificar al arrancar (lo de hoy): no impide escribir mal el despliegue, sólo lo detecta cuando el proceso corre, y no cubre las pruebas que no arrancan la app. |
-| Mensajes de error del compilador largos                                    | Efecto inevitable de llevar la cobertura al tipo.                                                                                                           | Se mitiga con alias con nombre (`Missing<…>` aparece literal en el mensaje, probado) y con fixtures de tipo que fijan el texto esperado.                         |
-| Un módulo más (`access`) y una entrada más en `CONTEXT_MAP`                | La seguridad tenía tres dueños parciales; el módulo de merchants tenía dos motivos de cambio (SRP).                                                         | Dejar la seguridad repartida: es justo el defecto que la historia 4 cierra.                                                                                      |
-| Un gate más en la cadena de calidad (`check:ports-bound`)                  | Hoy nadie verifica que una abstracción declarada esté enlazada; knip sólo informa tipos sin uso.                                                            | Confiar en la revisión: la spec lo rechaza explícitamente (FR-014, "no depende de la disciplina de quien escribió el módulo").                                   |
-| Un cast dentro de la biblioteca (`build as (...a: unknown[]) => unknown`)  | El borde entre una lista heterogénea de enlaces y sus builders tipados; `bind` ya verificó los parámetros.                                                  | Sin cast haría falta `any` (prohibido) o una unión gigante. Queda **uno**, comentado, en un archivo de ~30 líneas y cubierto por las pruebas de la biblioteca.   |
-| El tope de memoria compartido se resuelve con decisión, no con campo nuevo | El nivel de plataforma se **publica** por el contrato con `additionalProperties: false`; un campo nuevo sería diff del contrato y SC-007 exige cero (R-15). | Agregar `sessionCap`/`visitorCap`: rompe el criterio de aceptación de esta misma feature. Queda nombrado (`identityCap()`) y registrado en ADR-034.              |
+| Violación / complejidad agregada                                                   | Por qué se necesita                                                                                                                                         | Alternativa más simple, y por qué se descarta                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Maquinaria de tipos (`Missing`, `Unwired`, `TechnologiesDisagree`, tipos fantasma) | Es **lo que compra la feature**: sin requisitos en el tipo, el olvido sigue apareciendo como `undefined` en ejecución (SC-003).                             | Verificar al arrancar (lo de hoy): no impide escribir mal el despliegue, sólo lo detecta cuando el proceso corre, y no cubre las pruebas que no arrancan la app. |
+| Mensajes de error del compilador largos                                            | Efecto inevitable de llevar la cobertura al tipo.                                                                                                           | Se mitiga con alias con nombre (`Missing<…>` aparece literal en el mensaje, probado) y con fixtures de tipo que fijan el texto esperado.                         |
+| Un módulo más (`access`) y una entrada más en `CONTEXT_MAP`                        | La seguridad tenía tres dueños parciales; el módulo de merchants tenía dos motivos de cambio (SRP).                                                         | Dejar la seguridad repartida: es justo el defecto que la historia 4 cierra.                                                                                      |
+| Un gate más en la cadena de calidad (`check:ports-bound`)                          | Hoy nadie verifica que una abstracción declarada esté enlazada; knip sólo informa tipos sin uso.                                                            | Confiar en la revisión: la spec lo rechaza explícitamente (FR-014, "no depende de la disciplina de quien escribió el módulo").                                   |
+| Un cast dentro de la biblioteca (`build as (...a: unknown[]) => unknown`)          | El borde entre una lista heterogénea de enlaces y sus builders tipados; `bind` ya verificó los parámetros.                                                  | Sin cast haría falta `any` (prohibido) o una unión gigante. Queda **uno**, comentado, en un archivo de ~30 líneas y cubierto por las pruebas de la biblioteca.   |
+| El tope de memoria compartido se resuelve con decisión, no con campo nuevo         | El nivel de plataforma se **publica** por el contrato con `additionalProperties: false`; un campo nuevo sería diff del contrato y SC-007 exige cero (R-15). | Agregar `sessionCap`/`visitorCap`: rompe el criterio de aceptación de esta misma feature. Queda nombrado (`identityCap()`) y registrado en ADR-034.              |
 
 ### Desviación declarada respecto de la spec
 

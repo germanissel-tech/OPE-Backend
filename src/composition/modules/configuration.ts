@@ -30,7 +30,7 @@ import {
   releaseConfigurationLevels,
   switchAwarePolicyDirectory,
 } from "../../interface-adapters/configuration/index.js";
-import { bind, compositionModule, handler, port, technology } from "../graph/index.js";
+import { bind, compositionModule, handler, port } from "../graph/index.js";
 import { ReleaseLevelsPort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
@@ -49,19 +49,9 @@ export const ImportConfigurationPort =
     UseCase<ImportMerchantConfigurationRequest, ImportMerchantConfigurationResponse>
   >();
 
-const PORTS = [
-  ConfigurationLevelsPort,
-  ConfigurationStorePort,
-  ConfigurationServicePort,
-  CatalogPoliciesPort,
-  PolicyDirectoryPort,
-  HoldoutPort,
-] as const;
-
 export const configurationModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
         releaseConfigurationLevels(release),
       ),
@@ -83,7 +73,7 @@ export const configurationModule = compositionModule({
         ({ configuration, merchants }) =>
           switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
       ),
-    ]),
+    ],
   },
   exposes: [
     bind(

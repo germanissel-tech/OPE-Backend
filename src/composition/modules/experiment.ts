@@ -30,7 +30,7 @@ import {
   memoryExperimentStore,
   nodeExperimentIdMinter,
 } from "../../interface-adapters/experiment/index.js";
-import { bind, compositionModule, derive, handler, port, technology } from "../graph/index.js";
+import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
 import { ScopedMerchantsPort } from "./merchant.js";
 import { ClockPort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
@@ -52,31 +52,18 @@ export const AssignmentPort = port("experiment.assignment")<AssignmentService>()
 export const ImportExperimentsPort =
   port("experiment.import")<UseCase<ImportExperimentsRequest, ImportExperimentsResponse>>();
 
-/** The instance the memory technology builds: it serves both views of the experiments. */
-const MemoryExperimentsPort = port("experiment.memory")<ExperimentStore & ExperimentDirectory>();
-
-const PORTS = [
-  ExperimentStorePort,
-  ExperimentDirectoryPort,
-  ExperimentIdsPort,
-  AssignmentLedgerPort,
-] as const;
-
 /** What the administration of an experiment writes in the audit entry. */
 const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AuditResult | undefined =>
   r.ok ? { experimentId: r.value.experimentId } : undefined;
 
 export const experimentModule = compositionModule({
-  ports: PORTS,
-  technologies: {
-    memory: technology(PORTS, [
+  provides: {
+    memory: [
       // One instance, two views: what the administration writes and what the assignment reads.
-      bind(MemoryExperimentsPort, {}, () => memoryExperimentStore()),
-      derive(ExperimentStorePort, MemoryExperimentsPort),
-      derive(ExperimentDirectoryPort, MemoryExperimentsPort),
+      bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
       bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
       bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
-    ]),
+    ],
   },
   exposes: [
     bind(
