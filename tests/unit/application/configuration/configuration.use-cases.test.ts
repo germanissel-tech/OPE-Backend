@@ -5,14 +5,14 @@
 // merchant has none.
 import { describe, expect, it } from "vitest";
 import {
-  DefaultConfigurationService,
+  Configurations,
   GetMerchantConfigurationUseCase,
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
   PublishMerchantConfigurationUseCase,
   type ConfigurationStore,
 } from "../../../../src/application/configuration/index.js";
-import { DefaultScopedMerchantService } from "../../../../src/application/merchant/index.js";
+import { ScopedMerchants } from "../../../../src/application/merchant/index.js";
 import { MerchantConfigurationVersion } from "../../../../src/domain/configuration/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
@@ -44,7 +44,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
     },
     versionsOf: (m, q) => inner.versionsOf(m, q),
   };
-  const configuration = new DefaultConfigurationService({
+  const configuration = new Configurations({
     levels: {
       platform: () => Promise.resolve(levels.platform),
       defaults: () => Promise.resolve(levels.defaults),
@@ -52,7 +52,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
     store,
   });
   const merchants = memoryMerchantStore();
-  const scoped = new DefaultScopedMerchantService({ merchants });
+  const scoped = new ScopedMerchants({ merchants });
   const experimentStore = memoryExperimentStore();
   const experiment = testExperiment({
     treatmentShare: 1,
@@ -84,7 +84,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
   };
 }
 
-describe("DefaultConfigurationService", () => {
+describe("Configurations", () => {
   it("resolves a merchant once from the store and serves the same effective configuration from memory until a version is applied", async () => {
     const { configuration, calls, merchants, publish } = subject();
     await merchants.create(testMerchant({ merchantId: "m_a" }));

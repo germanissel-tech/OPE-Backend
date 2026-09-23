@@ -6,12 +6,12 @@ import {
   ActivateExperimentUseCase,
   CloseExperimentUseCase,
   CreateExperimentUseCase,
-  DefaultScopedExperimentService,
+  ScopedExperiments,
   ImportExperimentsUseCase,
   ListExperimentsUseCase,
   type ExperimentStore,
 } from "../../../../src/application/experiment/index.js";
-import { DefaultScopedMerchantService } from "../../../../src/application/merchant/index.js";
+import { ScopedMerchants } from "../../../../src/application/merchant/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import {
   asExperimentId,
@@ -41,14 +41,14 @@ async function subject(options: { holdoutShare?: number; store?: ExperimentStore
   const clock = { now: () => now };
   const merchants = memoryMerchantStore();
   await merchants.create(testMerchant({ merchantId: "m_a" }));
-  const scoped = new DefaultScopedMerchantService({ merchants });
+  const scoped = new ScopedMerchants({ merchants });
   const experiments = options.store ?? memoryExperimentStore();
   let minted = 0;
   const minter = {
     mintExperimentId: () => Promise.resolve(asExperimentId(`exp_${String(++minted).padStart(8, "0")}`)),
   };
   const holdout = { holdoutShareFor: () => Promise.resolve(options.holdoutShare ?? 0) };
-  const scopedExperiment = new DefaultScopedExperimentService({ scoped, experiments });
+  const scopedExperiment = new ScopedExperiments({ scoped, experiments });
   return {
     experiments,
     tick: (at: Date) => {

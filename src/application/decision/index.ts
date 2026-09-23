@@ -3,7 +3,7 @@
 export type { MerchantPolicies, PolicyDirectory, PolicySet, PolicySource } from "./ports/policy-directory.js";
 export type { SessionStateStore, SessionWindow } from "./ports/session-state-store.js";
 export type { VisitorStateStore, VisitorWindow } from "./ports/visitor-state-store.js";
-export { DefaultStateService } from "./services/state.service.js";
+export { States } from "./services/state.service.js";
 export type {
   Remembered,
   StateService,

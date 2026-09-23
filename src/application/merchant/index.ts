@@ -3,7 +3,7 @@ export type { MerchantDirectory } from "./ports/merchant-directory.js";
 export type { MerchantStore } from "./ports/merchant-store.js";
 export type { CredentialMinter, MintedCredential } from "./ports/credential-minter.js";
 export type { RotationPolicy } from "./ports/rotation-policy.js";
-export { DefaultScopedMerchantService } from "./services/scoped-merchant.service.js";
+export { ScopedMerchants } from "./services/scoped-merchant.service.js";
 export type {
   ScopedMerchant,
   ScopedMerchantService,

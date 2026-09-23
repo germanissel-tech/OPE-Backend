@@ -2,7 +2,7 @@
 // remembered; since feature 017 it applies the visitor window of the platform (level 1) when it
 // counts the interventions a visitor received and when it records one.
 import { describe, expect, it } from "vitest";
-import { DefaultStateService } from "../../../../src/application/decision/index.js";
+import { States } from "../../../../src/application/decision/index.js";
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { SessionState } from "../../../../src/domain/decision/index.js";
 import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
@@ -23,7 +23,7 @@ const whose = {
 function subject() {
   const clock = { now: () => now };
   const window = testVisitorWindow();
-  const service = new DefaultStateService({
+  const service = new States({
     sessions: memorySessionStateStore(clock, { ttlMs: window.ttlMs, maxSessions: 100 }),
     visitors: memoryVisitorStateStore(clock, window),
     visitorWindow: window,
@@ -31,7 +31,7 @@ function subject() {
   return { service, window };
 }
 
-describe("DefaultStateService", () => {
+describe("States", () => {
   it("recalls empty state for an unknown session and visitor", async () => {
     const { service } = subject();
     const { session, visitor, visitorInterventions } = await service.recall(whose, now);

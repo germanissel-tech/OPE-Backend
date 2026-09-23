@@ -11,7 +11,7 @@ export {
 export { readPlatformConfiguration } from "./input/platform.js";
 export type { ConfiguredFact } from "./input/condition.js";
 export type { ShapeResult } from "./input/shape.js";
-export { DefaultConfigurationService } from "./services/configuration.service.js";
+export { Configurations } from "./services/configuration.service.js";
 export type {
   ConfigurationService,
   ConfigurationServiceDependencies,

@@ -6,7 +6,7 @@
 import {
   CreateMerchantUseCase,
   DeactivateMerchantUseCase,
-  DefaultScopedMerchantService,
+  ScopedMerchants,
   GetMerchantUseCase,
   ImportMerchantsUseCase,
   ListMerchantsUseCase,
@@ -48,7 +48,7 @@ export const CredentialMinterPort = port("merchant.minter")<CredentialMinter>();
  */
 export const RotationPolicyPort = port("merchant.rotation")<RotationPolicy>();
 /** How any administration reaches a merchant within the scope of its operator. */
-export const ScopedMerchantsPort = port("merchant.scoped")<ScopedMerchantService>();
+export const ScopedMerchantPort = port("merchant.scoped")<ScopedMerchantService>();
 /** One rotation for the three credentials; each operation audits it under its own name. */
 const RotateCredentialPort =
   port("merchant.rotate")<UseCase<RotateCredentialRequest, RotateCredentialResult>>();
@@ -64,15 +64,11 @@ export const merchantModule = compositionModule({
     bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
   ],
   assembles: [
-    bind(
-      ScopedMerchantsPort,
-      { merchants: MerchantStorePort },
-      (deps) => new DefaultScopedMerchantService(deps),
-    ),
+    bind(ScopedMerchantPort, { merchants: MerchantStorePort }, (deps) => new ScopedMerchants(deps)),
     bind(
       RotateCredentialPort,
       {
-        scoped: ScopedMerchantsPort,
+        scoped: ScopedMerchantPort,
         merchants: MerchantStorePort,
         minter: CredentialMinterPort,
         rotation: RotationPolicyPort,
@@ -99,7 +95,7 @@ export const merchantModule = compositionModule({
           makeListMerchants(deco.logged(operation, new ListMerchantsUseCase({ merchants })), clock),
       ),
       getMerchant: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, clock: ClockPort },
+        { deco: DecoratorsPort, scoped: ScopedMerchantPort, clock: ClockPort },
         (operation, { deco, scoped, clock }) =>
           makeGetMerchant(deco.logged(operation, new GetMerchantUseCase({ scoped })), clock),
       ),
@@ -121,7 +117,7 @@ export const merchantModule = compositionModule({
       deactivateMerchant: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedMerchantsPort,
+          scoped: ScopedMerchantPort,
           merchants: MerchantStorePort,
           clock: ClockPort,
         },
@@ -129,7 +125,7 @@ export const merchantModule = compositionModule({
           makeDeactivateMerchant(deco.administered(operation, new DeactivateMerchantUseCase(deps)), clock),
       ),
       setKillSwitch: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, merchants: MerchantStorePort },
+        { deco: DecoratorsPort, scoped: ScopedMerchantPort, merchants: MerchantStorePort },
         (operation, { deco, ...deps }) =>
           makeSetKillSwitch(deco.administered(operation, new SetKillSwitchUseCase(deps))),
       ),

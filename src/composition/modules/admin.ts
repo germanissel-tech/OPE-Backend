@@ -26,7 +26,7 @@ import {
 import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 import { ConfigurationServicePort } from "./configuration.js";
-import { ScopedMerchantsPort } from "./merchant.js";
+import { ScopedMerchantPort } from "./merchant.js";
 import { AuditTrailPort, ClockPort, DecoratorsPort } from "./shared-kernel.js";
 
 export const AdminLogPort = port("admin.log")<AdminLog>();
@@ -67,7 +67,7 @@ export const adminModule = compositionModule({
           makeReportAnchorDiagnostics(deco.logged(operation, new ReportAnchorDiagnosticsUseCase(deps))),
       ),
       listAnchorDiagnostics: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, diagnostics: AnchorDiagnosticsPort },
+        { deco: DecoratorsPort, scoped: ScopedMerchantPort, diagnostics: AnchorDiagnosticsPort },
         (operation, { deco, ...deps }) =>
           makeListAnchorDiagnostics(deco.logged(operation, new ListAnchorDiagnosticsUseCase(deps))),
       ),

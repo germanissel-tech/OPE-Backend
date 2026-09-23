@@ -1,10 +1,7 @@
 // Feature 007, US2 (FR-010..FR-013; ADR-022): the assignment is resolved once per visitor and experiment,
 // recorded when it happens, stable afterwards, and fails closed when the ledger is unavailable.
 import { describe, expect, it } from "vitest";
-import {
-  DefaultAssignmentService,
-  type AssignmentLedger,
-} from "../../../../src/application/experiment/index.js";
+import { Assignments, type AssignmentLedger } from "../../../../src/application/experiment/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, asVisitorId, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
@@ -33,7 +30,7 @@ function fakeLedger(initial: Assignment[] = [], unavailable = false) {
 
 const deps = (ledger: AssignmentLedger, active: Experiment | null = experiment) => {
   const { logger, entries } = recordingLogger();
-  const service = new DefaultAssignmentService({
+  const service = new Assignments({
     experiments: { activeFor: () => Promise.resolve(active ?? undefined) },
     assignments: ledger,
     clock: { now: () => NOW },

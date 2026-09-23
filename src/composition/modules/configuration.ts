@@ -4,7 +4,7 @@
 // and it binds the read ports its consumers declare: the policies of the decision plane, the
 // budgets of the catalogue and the holdout of the experiment. Nobody imports it for that.
 import {
-  DefaultConfigurationService,
+  Configurations,
   GetMerchantConfigurationUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
@@ -35,7 +35,7 @@ import { ReleaseLevelsPort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
-import { MerchantStorePort, ScopedMerchantsPort } from "./merchant.js";
+import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
@@ -58,7 +58,7 @@ export const configurationModule = compositionModule({
     bind(
       ConfigurationServicePort,
       { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
-      (deps) => new DefaultConfigurationService(deps),
+      (deps) => new Configurations(deps),
     ),
     bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
       catalogPoliciesOf(configuration),
@@ -93,7 +93,7 @@ export const configurationModule = compositionModule({
       publishMerchantConfiguration: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedMerchantsPort,
+          scoped: ScopedMerchantPort,
           store: ConfigurationStorePort,
           configuration: ConfigurationServicePort,
           experiments: ExperimentDirectoryPort,
@@ -121,7 +121,7 @@ export const configurationModule = compositionModule({
       getMerchantConfiguration: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedMerchantsPort,
+          scoped: ScopedMerchantPort,
           store: ConfigurationStorePort,
           configuration: ConfigurationServicePort,
         },
@@ -129,7 +129,7 @@ export const configurationModule = compositionModule({
           makeGetMerchantConfiguration(deco.logged(operation, new GetMerchantConfigurationUseCase(deps))),
       ),
       listConfigurationVersions: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, store: ConfigurationStorePort },
+        { deco: DecoratorsPort, scoped: ScopedMerchantPort, store: ConfigurationStorePort },
         (operation, { deco, ...deps }) =>
           makeListConfigurationVersions(deco.logged(operation, new ListConfigurationVersionsUseCase(deps))),
       ),

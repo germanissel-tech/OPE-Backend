@@ -4,8 +4,8 @@ export type { ExperimentDirectory } from "./ports/experiment-directory.js";
 export type { ExperimentStore } from "./ports/experiment-store.js";
 export type { HoldoutSource } from "./ports/holdout-source.js";
 export type { ExperimentIdMinter } from "./ports/experiment-id-minter.js";
-export { DefaultAssignmentService } from "./services/assignment.service.js";
-export { DefaultScopedExperimentService } from "./services/scoped-experiment.service.js";
+export { Assignments } from "./services/assignment.service.js";
+export { ScopedExperiments } from "./services/scoped-experiment.service.js";
 export type {
   ScopedExperimentError,
   ScopedExperimentService,

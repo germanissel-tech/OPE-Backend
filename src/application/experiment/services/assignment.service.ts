@@ -36,7 +36,7 @@ export interface AssignmentServiceDependencies {
   logger: Logger;
 }
 
-export class DefaultAssignmentService implements AssignmentService {
+export class Assignments implements AssignmentService {
   readonly #deps: AssignmentServiceDependencies;
 
   constructor(deps: AssignmentServiceDependencies) {

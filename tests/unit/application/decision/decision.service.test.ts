@@ -6,10 +6,10 @@ import {
   RuleBasedBarrierInference,
   type BarrierInference,
 } from "../../../../src/application/barrier/index.js";
-import { DefaultProductTruthService, type CatalogStore } from "../../../../src/application/catalog/index.js";
+import { ProductTruths, type CatalogStore } from "../../../../src/application/catalog/index.js";
 import {
   DecisionService,
-  DefaultStateService,
+  States,
   type SessionStateStore,
   type VisitorStateStore,
 } from "../../../../src/application/decision/index.js";
@@ -196,13 +196,13 @@ function subject(options: Options = {}) {
           enabled: options.enabled ?? true,
         }),
     },
-    state: new DefaultStateService({
+    state: new States({
       sessions: sessionStore,
       visitors: visitorStore,
       visitorWindow: testVisitorWindow(),
     }),
     inference,
-    truth: new DefaultProductTruthService({
+    truth: new ProductTruths({
       clock: { now: () => NOW },
       store,
       policies: TEST_CATALOG_POLICIES,

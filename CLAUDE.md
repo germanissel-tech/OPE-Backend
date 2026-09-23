@@ -191,8 +191,13 @@ operador `system`) sólo si el merchant no tiene versiones. No hay servidor mock
   **seis como máximo** (`ope/dependencies-are-interfaces`). Superarlo se resuelve extrayendo un
   servicio, no relajando el límite.
 - Un caso de uso **nunca** importa ni invoca a otro caso de uso (`use-cases-no-use-cases`). Lo
-  compartido que necesita puertos es una interfaz `*Service` con implementación
-  `Default*Service` en `services/` (la asignación: `AssignmentService`); un servicio no importa
+  compartido que necesita puertos es una interfaz `*Service` en `services/` —el rol del que
+  depende el consumidor (`AssignmentService`, `ScopedMerchantService`)— y su implementación lleva
+  el **plural de lo que responde** (`Assignments`, `ScopedMerchants`, `ProductTruths`), nunca un
+  prefijo vacío: `Default` no distinguía nada porque no hay nada que distinguir —hay una sola
+  implementación y ningún mecanismo que nombrar—, y qué clase se enlaza se lee en
+  `composition/modules/<módulo>.ts`. Cuando haya dos, la segunda se nombra por su mecanismo, como
+  los gateways (`RuleBasedBarrierInference`, `memoryMerchantStore`). Un servicio no importa
   casos de uso (`services-no-use-cases`). Autenticación y autorización tampoco son casos de
   uso: son servicios (`IngestKeyResolver`) que el security handler consulta antes de validar el
   body y antes de cualquier caso de uso; un caso de uso recibe el merchant resuelto, nunca la

@@ -16,7 +16,7 @@ export interface ScopedMerchantServiceDependencies {
   merchants: MerchantStore;
 }
 
-export class DefaultScopedMerchantService implements ScopedMerchantService {
+export class ScopedMerchants implements ScopedMerchantService {
   readonly #deps: ScopedMerchantServiceDependencies;
 
   constructor(deps: ScopedMerchantServiceDependencies) {

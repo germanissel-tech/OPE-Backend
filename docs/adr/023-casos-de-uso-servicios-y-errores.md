@@ -27,9 +27,14 @@ reconocible y verificada por herramienta (ADR-016), sin conversiones de tipo en 
    (puertos, servicios, `Clock`, `IdGenerator`, `Logger`), con un máximo de **seis**. Un caso
    de uso **nunca** importa ni invoca a otro caso de uso.
 2. **Servicios de aplicación**: la lógica compartida que necesita puertos es una interfaz
-   `*Service` con implementación `Default*Service` en `application/<módulo>/services/`,
-   inyectada por interfaz. Un servicio puede usar otros servicios; no importa casos de uso.
-   El primero es `AssignmentService` (ADR-022).
+   `*Service` en `application/<módulo>/services/`, inyectada por interfaz. Un servicio puede usar
+   otros servicios; no importa casos de uso. El primero es `AssignmentService` (ADR-022).
+   - Enmienda (2026-09-22): la implementación se llamaba `Default*Service`. `Default` no
+     distinguía nada —hay una sola implementación de cada servicio y ningún mecanismo que
+     nombrar— y qué clase se enlaza ya se lee en `composition/modules/`. Ahora la clase lleva el
+     **plural de lo que el servicio responde** (`AssignmentService` ⇒ `Assignments`,
+     `ScopedMerchantService` ⇒ `ScopedMerchants`); la segunda implementación, si llega, se nombra
+     por su mecanismo como los gateways (`RuleBasedBarrierInference`).
    - Precisión (2026-09-18): **autenticación y autorización no son casos de uso**. Resolver una
      credencial (`IngestKeyResolver`, y los que traigan `portalSession`, `adminToken` y las
      capacidades) es una política que el adaptador de seguridad consulta **antes** de validar el

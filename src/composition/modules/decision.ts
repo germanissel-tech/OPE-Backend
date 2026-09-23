@@ -5,7 +5,7 @@
 // serves no operation of its own: what it builds is the plane the ingestion asks for a decision.
 import {
   DecisionService,
-  DefaultStateService,
+  States,
   type PolicyDirectory,
   type SessionStateStore,
   type StateService,
@@ -52,7 +52,7 @@ export const decisionModule = compositionModule({
     bind(
       DecisionStatePort,
       { sessions: SessionStatePort, visitors: VisitorStatePort, visitorWindow: VisitorWindowPort },
-      (deps) => new DefaultStateService(deps),
+      (deps) => new States(deps),
     ),
     bind(
       DecisionPlanePort,

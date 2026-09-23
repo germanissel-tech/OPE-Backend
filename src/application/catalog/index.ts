@@ -1,7 +1,7 @@
 // Public API of the catalogue module (application).
 export type { CatalogReplaceResult, CatalogStore } from "./ports/catalog-store.js";
 export type { CatalogPolicies } from "./ports/catalog-policies.js";
-export { DefaultProductTruthService } from "./services/product-truth.service.js";
+export { ProductTruths } from "./services/product-truth.service.js";
 export type {
   Freshness,
   ProductTruth,

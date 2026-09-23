@@ -35,7 +35,7 @@ export interface ProductTruthServiceDependencies {
   policies: CatalogPolicies;
 }
 
-export class DefaultProductTruthService implements ProductTruthService {
+export class ProductTruths implements ProductTruthService {
   readonly #deps: ProductTruthServiceDependencies;
 
   constructor(deps: ProductTruthServiceDependencies) {

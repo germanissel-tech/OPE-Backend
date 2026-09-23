@@ -36,7 +36,7 @@ interface Levels {
   defaults: TreatmentDefaults;
 }
 
-export class DefaultConfigurationService implements ConfigurationService {
+export class Configurations implements ConfigurationService {
   readonly #deps: ConfigurationServiceDependencies;
   readonly #effective = new Map<MerchantId, EffectiveConfiguration>();
   #levels: Promise<Levels> | undefined;

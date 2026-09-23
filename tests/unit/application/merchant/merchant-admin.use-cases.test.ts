@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   CreateMerchantUseCase,
   DeactivateMerchantUseCase,
-  DefaultScopedMerchantService,
+  ScopedMerchants,
   GetMerchantUseCase,
   ImportMerchantsUseCase,
   ListMerchantsUseCase,
@@ -34,7 +34,7 @@ const rotation = { maxGraceMs: () => Promise.resolve(HOUR) };
 
 function subject() {
   const store = memoryMerchantStore();
-  const scoped = new DefaultScopedMerchantService({ merchants: store });
+  const scoped = new ScopedMerchants({ merchants: store });
   return {
     store,
     create: new CreateMerchantUseCase({ merchants: store, minter: fakeMinter, clock }),

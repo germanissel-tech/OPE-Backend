@@ -39,7 +39,7 @@ export interface StateServiceDependencies {
   visitorWindow: VisitorWindow;
 }
 
-export class DefaultStateService implements StateService {
+export class States implements StateService {
   readonly #deps: StateServiceDependencies;
 
   constructor(deps: StateServiceDependencies) {

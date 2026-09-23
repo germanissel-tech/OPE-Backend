@@ -32,7 +32,7 @@ export interface ScopedExperimentServiceDependencies {
   experiments: ExperimentStore;
 }
 
-export class DefaultScopedExperimentService implements ScopedExperimentService {
+export class ScopedExperiments implements ScopedExperimentService {
   readonly #deps: ScopedExperimentServiceDependencies;
 
   constructor(deps: ScopedExperimentServiceDependencies) {

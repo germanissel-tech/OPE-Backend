@@ -2,7 +2,7 @@
 // policies —the freshness budgets and the level rules, which the configuration resolves per
 // merchant and binds— and exposes the truth of product the decision plane consults.
 import {
-  DefaultProductTruthService,
+  ProductTruths,
   UpsertCatalogSnapshotUseCase,
   type CatalogPolicies,
   type CatalogStore,
@@ -24,7 +24,7 @@ export const catalogModule = compositionModule({
     bind(
       ProductTruthPort,
       { clock: ClockPort, store: CatalogStorePort, policies: CatalogPoliciesPort },
-      (deps) => new DefaultProductTruthService(deps),
+      (deps) => new ProductTruths(deps),
     ),
   ],
   serves: {

@@ -7,8 +7,8 @@ import {
   ActivateExperimentUseCase,
   CloseExperimentUseCase,
   CreateExperimentUseCase,
-  DefaultAssignmentService,
-  DefaultScopedExperimentService,
+  Assignments,
+  ScopedExperiments,
   ImportExperimentsUseCase,
   ListExperimentsUseCase,
   type AssignmentLedger,
@@ -31,7 +31,7 @@ import {
   nodeExperimentIdMinter,
 } from "../../interface-adapters/experiment/index.js";
 import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
-import { ScopedMerchantsPort } from "./merchant.js";
+import { ScopedMerchantPort } from "./merchant.js";
 import { ClockPort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
@@ -45,7 +45,7 @@ export const AssignmentLedgerPort = port("experiment.assignments")<AssignmentLed
 /** What the merchant keeps out of OPE (level 2, overridden by the merchant): the configuration binds it. */
 export const HoldoutPort = port("experiment.holdout")<HoldoutSource>();
 /** How the administration of one experiment finds it within the scope of its operator. */
-const ScopedExperimentsPort = port("experiment.scoped")<ScopedExperimentService>();
+const ScopedExperimentPort = port("experiment.scoped")<ScopedExperimentService>();
 /** What the decision plane asks for: the arm of a visitor. */
 export const AssignmentPort = port("experiment.assignment")<AssignmentService>();
 /** The experiments of the seed enter an empty store through the same use case as the API. */
@@ -65,9 +65,9 @@ export const experimentModule = compositionModule({
   ],
   assembles: [
     bind(
-      ScopedExperimentsPort,
-      { scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },
-      (deps) => new DefaultScopedExperimentService(deps),
+      ScopedExperimentPort,
+      { scoped: ScopedMerchantPort, experiments: ExperimentStorePort },
+      (deps) => new ScopedExperiments(deps),
     ),
     bind(
       AssignmentPort,
@@ -77,7 +77,7 @@ export const experimentModule = compositionModule({
         clock: ClockPort,
         logger: LoggerPort,
       },
-      (deps) => new DefaultAssignmentService(deps),
+      (deps) => new Assignments(deps),
     ),
     bind(
       ImportExperimentsPort,
@@ -90,7 +90,7 @@ export const experimentModule = compositionModule({
       createExperiment: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedMerchantsPort,
+          scoped: ScopedMerchantPort,
           experiments: ExperimentStorePort,
           holdout: HoldoutPort,
           minter: ExperimentIdsPort,
@@ -102,14 +102,14 @@ export const experimentModule = compositionModule({
           ),
       ),
       listExperiments: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantsPort, experiments: ExperimentStorePort },
+        { deco: DecoratorsPort, scoped: ScopedMerchantPort, experiments: ExperimentStorePort },
         (operation, { deco, ...deps }) =>
           makeListExperiments(deco.logged(operation, new ListExperimentsUseCase(deps))),
       ),
       activateExperiment: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedExperimentsPort,
+          scoped: ScopedExperimentPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },
@@ -121,7 +121,7 @@ export const experimentModule = compositionModule({
       closeExperiment: handler(
         {
           deco: DecoratorsPort,
-          scoped: ScopedExperimentsPort,
+          scoped: ScopedExperimentPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },

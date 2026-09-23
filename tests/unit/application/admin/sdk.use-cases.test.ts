@@ -9,7 +9,7 @@ import {
   type AnchorDiagnosticsStore,
   type SdkConfigurationView,
 } from "../../../../src/application/admin/index.js";
-import { DefaultScopedMerchantService } from "../../../../src/application/merchant/index.js";
+import { ScopedMerchants } from "../../../../src/application/merchant/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId, fail, StoreUnavailable } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryAnchorDiagnosticsStore } from "../../../../src/interface-adapters/admin/gateways/memory-anchor-diagnostics-store.js";
@@ -110,7 +110,7 @@ describe("ListAnchorDiagnosticsUseCase", () => {
     const diagnostics = memoryAnchorDiagnosticsStore(10);
     await diagnostics.upsert({ merchantId: A, anchor: "price", pageType: "product", lastSeenAt: TEST_NOW });
     const useCase = new ListAnchorDiagnosticsUseCase({
-      scoped: new DefaultScopedMerchantService({ merchants }),
+      scoped: new ScopedMerchants({ merchants }),
       diagnostics,
     });
     const all = Operator.rehydrate({

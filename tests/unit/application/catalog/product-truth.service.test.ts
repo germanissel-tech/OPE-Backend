@@ -1,6 +1,6 @@
 // Feature 010, US2 (FR-005, FR-006; 01 §8; ADR-025): truth per class of datum, fail-closed with a reason.
 import { describe, expect, it } from "vitest";
-import { DefaultProductTruthService, type CatalogStore } from "../../../../src/application/catalog/index.js";
+import { ProductTruths, type CatalogStore } from "../../../../src/application/catalog/index.js";
 import {
   asProductId,
   asVariantId,
@@ -39,7 +39,7 @@ function service(snapshot: CatalogSnapshot | undefined, now: Date, receipts: Dat
     replace: () => Promise.resolve(ok(undefined)),
     receipts: () => Promise.resolve(receipts),
   };
-  return new DefaultProductTruthService({
+  return new ProductTruths({
     clock: { now: () => now },
     store,
     policies: TEST_CATALOG_POLICIES,
@@ -61,7 +61,7 @@ describe("freshness budget (01 §8; level 2 of the configuration)", () => {
   });
 });
 
-describe("DefaultProductTruthService.lookup", () => {
+describe("ProductTruths.lookup", () => {
   it("5 minutes after the capture: known, catalogue and stock/price fresh, availability as recorded", async () => {
     const truth = await service(snapshot, at(5 * MIN)).lookup(A, P1, V);
     expect(truth).toMatchObject({
