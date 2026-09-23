@@ -73,6 +73,8 @@ describe("hardened compiler (tsconfig.json)", () => {
     ["graph-operation-unwired.ts", "TS2345", "Unwired<"],
     // One instance behind several ports has to satisfy all of them.
     ["graph-bindall-mismatch.ts", "TS2322", "Property 'now' is missing"],
+    // Feature 021 (FR-007): the one way left to get an audited operation wrong.
+    ["serves-cannot-audit.ts", "TS2345", 'CannotAudit<"setKillSwitch">'],
   ])("%s does not compile (%s) and names %s", (file, code, fragment) => {
     expectFailure(file, code, [fragment]);
   });

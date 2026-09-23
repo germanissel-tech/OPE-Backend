@@ -11,9 +11,9 @@
 // and nothing about any feature module: those types come from the contract, not from a module.
 import type { Binding, ProvidesOf, RequiresOf } from "./binding.js";
 import type { AnyPort, Label, Needs, Resolved } from "./port.js";
-import type { AuditedUseCaseReaders, UseCase } from "../../application/shared-kernel/index.js";
+import type { AdminRequest, AuditedUseCaseReaders, UseCase } from "../../application/shared-kernel/index.js";
 import type { CorsPolicy } from "../../infrastructure/http/cors.js";
-import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
+import type { AuditedOperation, Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
 
 declare const PROVIDED: unique symbol;
 declare const REQUIRED: unique symbol;
@@ -122,6 +122,14 @@ export interface TechnologiesDisagree<L extends string> {
   readonly notServedByEveryTechnology: L;
 }
 
+/**
+ * What an operation the contract orders audited is served by when its use case cannot be audited:
+ * the entry needs the operator, and the use case reaching it carries no request that has one.
+ */
+export interface CannotAudit<Id extends string> {
+  readonly cannotAuditWithoutAnOperator: Id;
+}
+
 /** What a deployment has to say when a module can be served in more than one way. */
 export interface ChooseATechnology<Names extends string> {
   readonly chooseOneTechnology: Names;
@@ -185,6 +193,24 @@ type RequiresOfServes<S> = S extends Serves
     | RequiresOfRecipe<NonNullable<S["security"]>[keyof NonNullable<S["security"]>]>
     | RequiresOfRecipe<S["cors"]>
   : never;
+/** What the use case of a served operation takes as its request. */
+type RequestOf<R> = R extends ServedRecipe<unknown, string, infer I> ? I : never;
+
+/**
+ * The operations of a module that the contract orders audited and whose use case cannot be
+ * audited. The mapped type answers per operation and indexing folds the answers into one union,
+ * the same idiom  uses;  for the ones that are fine leaves only the offenders.
+ */
+type Unauditable<M extends ModuleShape> = M["serves"] extends Serves
+  ? {
+      [Id in keyof NonNullable<M["serves"]["handlers"]> & string]: Id extends AuditedOperation
+        ? RequestOf<NonNullable<M["serves"]["handlers"]>[Id]> extends AdminRequest
+          ? never
+          : Id
+        : never;
+    }[keyof NonNullable<M["serves"]["handlers"]> & string]
+  : never;
+
 type OperationsOf<M extends ModuleShape> = M["serves"] extends Serves
   ? keyof NonNullable<M["serves"]["handlers"]> & keyof Handlers
   : never;
@@ -231,7 +257,9 @@ export type CompositionModule<M extends ModuleShape> = ([Names<M>] extends [neve
 };
 
 export function compositionModule<const M extends ModuleShape>(
-  shape: M & (Divergence<M> extends never ? unknown : TechnologiesDisagree<Divergence<M>>),
+  shape: M &
+    (Divergence<M> extends never ? unknown : TechnologiesDisagree<Divergence<M>>) &
+    (Unauditable<M> extends never ? unknown : CannotAudit<Unauditable<M>>),
 ): CompositionModule<M> {
   const declared: ModuleShape = shape;
   const provides = declared.provides ?? [];

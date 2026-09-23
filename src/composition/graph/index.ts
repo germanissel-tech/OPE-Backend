@@ -16,6 +16,7 @@ export {
   compositionModule,
   from,
   served,
+  type CannotAudit,
   type ChooseATechnology,
   type CompositionModule,
   type Decorated,

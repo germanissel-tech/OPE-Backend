@@ -134,17 +134,17 @@ compila sin excepciones.
 
 **Depende de**: US1 (la forma tiene que existir).
 
-- [ ] T025 [US2] Tipar el rechazo en `src/composition/graph/module.ts`: la ranura de una operación
+- [x] T025 [US2] Tipar el rechazo en `src/composition/graph/module.ts`: la ranura de una operación
       que el tipo generado marca como auditada sólo acepta un caso de uso cuyo request lleve
       operador; el alias con nombre aparece literalmente en el mensaje del compilador (como
       `Missing<…>` y `Unwired<…>` de la 020).
-- [ ] T026 [US2] Escribir el fixture en `tests/typecheck/fixtures/serves-cannot-audit.ts`: una
+- [x] T026 [US2] Escribir el fixture en `tests/typecheck/fixtures/serves-cannot-audit.ts`: una
       operación administrativa de escritura servida por un caso de uso sin operador en el request.
-- [ ] T027 [US2] Registrarlo en la tabla de `tests/typecheck/typecheck.test.ts` con su código de
+- [x] T027 [US2] Registrarlo en la tabla de `tests/typecheck/typecheck.test.ts` con su código de
       error y el fragmento del mensaje, junto a `graph-missing-provider.ts`.
-- [ ] T028 [US2] Verificar que una operación administrativa **de lectura** declarada sin auditoría
+- [x] T028 [US2] Verificar que una operación administrativa **de lectura** declarada sin auditoría
       sigue compilando: auditar una lectura no es obligatorio (escenario 3 de US2).
-- [ ] T029 [US2] `npm run typecheck` y `npm run lint` en verde, `Lint exceptions: 0`, sin ninguna
+- [x] T029 [US2] `npm run typecheck` y `npm run lint` en verde, `Lint exceptions: 0`, sin ninguna
       supresión agregada.
 
 **Checkpoint**: la garantía que hoy no existe queda en compilación.
