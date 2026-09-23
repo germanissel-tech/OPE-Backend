@@ -30,9 +30,9 @@ import {
   memoryExperimentStore,
   nodeExperimentIdMinter,
 } from "../../interface-adapters/experiment/index.js";
-import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
+import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { ScopedMerchantPort } from "./merchant.js";
-import { ClockPort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
+import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 import type { Experiment } from "../../domain/experiment/index.js";
 import type { AuditResult, DomainError, Result } from "../../domain/shared-kernel/index.js";
@@ -81,54 +81,48 @@ export const experimentModule = compositionModule({
     ),
     bind(
       ImportExperimentsPort,
-      { deco: DecoratorsPort, experiments: ExperimentStorePort },
-      ({ deco, ...deps }) => deco.audited("importExperiments", new ImportExperimentsUseCase(deps)),
+      { audit: AuditPort, experiments: ExperimentStorePort },
+      ({ audit, ...deps }) => audit("importExperiments", new ImportExperimentsUseCase(deps)),
     ),
   ],
   serves: {
     handlers: {
-      createExperiment: handler(
+      createExperiment: served(
         {
-          deco: DecoratorsPort,
           scoped: ScopedMerchantPort,
           experiments: ExperimentStorePort,
           holdout: HoldoutPort,
           minter: ExperimentIdsPort,
           clock: ClockPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeCreateExperiment(
-            deco.administered(operation, new CreateExperimentUseCase(deps), { result: experimentId }),
-          ),
+        { name: "createExperiment", build: (deps) => new CreateExperimentUseCase(deps) },
+        (useCase) => makeCreateExperiment(useCase),
+        { result: experimentId },
       ),
-      listExperiments: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantPort, experiments: ExperimentStorePort },
-        (operation, { deco, ...deps }) =>
-          makeListExperiments(deco.logged(operation, new ListExperimentsUseCase(deps))),
+      listExperiments: served(
+        { scoped: ScopedMerchantPort, experiments: ExperimentStorePort },
+        { name: "listExperiments", build: (deps) => new ListExperimentsUseCase(deps) },
+        (useCase) => makeListExperiments(useCase),
       ),
-      activateExperiment: handler(
+      activateExperiment: served(
         {
-          deco: DecoratorsPort,
           scoped: ScopedExperimentPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeActivateExperiment(
-            deco.administered(operation, new ActivateExperimentUseCase(deps), { result: experimentId }),
-          ),
+        { name: "activateExperiment", build: (deps) => new ActivateExperimentUseCase(deps) },
+        (useCase) => makeActivateExperiment(useCase),
+        { result: experimentId },
       ),
-      closeExperiment: handler(
+      closeExperiment: served(
         {
-          deco: DecoratorsPort,
           scoped: ScopedExperimentPort,
           experiments: ExperimentStorePort,
           clock: ClockPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeCloseExperiment(
-            deco.administered(operation, new CloseExperimentUseCase(deps), { result: experimentId }),
-          ),
+        { name: "closeExperiment", build: (deps) => new CloseExperimentUseCase(deps) },
+        (useCase) => makeCloseExperiment(useCase),
+        { result: experimentId },
       ),
     },
   },

@@ -23,11 +23,11 @@ import {
   memoryAnchorDiagnosticsStore,
   sdkConfigurationOf,
 } from "../../interface-adapters/admin/index.js";
-import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
+import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantPort } from "./merchant.js";
-import { AuditTrailPort, ClockPort, DecoratorsPort } from "./shared-kernel.js";
+import { AuditTrailPort, ClockPort } from "./shared-kernel.js";
 
 export const AdminLogPort = port("admin.log")<AdminLog>();
 const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>();
@@ -48,28 +48,30 @@ export const adminModule = compositionModule({
   ],
   serves: {
     handlers: {
-      listAdminLog: handler({ deco: DecoratorsPort, log: AdminLogPort }, (operation, { deco, ...deps }) =>
-        makeListAdminLog(deco.logged(operation, new ListAdminLogUseCase(deps))),
+      listAdminLog: served(
+        { log: AdminLogPort },
+        { name: "listAdminLog", build: (deps) => new ListAdminLogUseCase(deps) },
+        (useCase) => makeListAdminLog(useCase),
       ),
-      listMerchantAdminLog: handler(
-        { deco: DecoratorsPort, log: AdminLogPort },
-        (operation, { deco, ...deps }) =>
-          makeListMerchantAdminLog(deco.logged(operation, new ListMerchantAdminLogUseCase(deps))),
+      listMerchantAdminLog: served(
+        { log: AdminLogPort },
+        { name: "listMerchantAdminLog", build: (deps) => new ListMerchantAdminLogUseCase(deps) },
+        (useCase) => makeListMerchantAdminLog(useCase),
       ),
-      getSdkConfig: handler(
-        { deco: DecoratorsPort, configuration: SdkConfigurationPort },
-        (operation, { deco, ...deps }) =>
-          makeGetSdkConfig(deco.logged(operation, new GetSdkConfigUseCase(deps))),
+      getSdkConfig: served(
+        { configuration: SdkConfigurationPort },
+        { name: "getSdkConfig", build: (deps) => new GetSdkConfigUseCase(deps) },
+        (useCase) => makeGetSdkConfig(useCase),
       ),
-      reportAnchorDiagnostics: handler(
-        { deco: DecoratorsPort, diagnostics: AnchorDiagnosticsPort, clock: ClockPort },
-        (operation, { deco, ...deps }) =>
-          makeReportAnchorDiagnostics(deco.logged(operation, new ReportAnchorDiagnosticsUseCase(deps))),
+      reportAnchorDiagnostics: served(
+        { diagnostics: AnchorDiagnosticsPort, clock: ClockPort },
+        { name: "reportAnchorDiagnostics", build: (deps) => new ReportAnchorDiagnosticsUseCase(deps) },
+        (useCase) => makeReportAnchorDiagnostics(useCase),
       ),
-      listAnchorDiagnostics: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantPort, diagnostics: AnchorDiagnosticsPort },
-        (operation, { deco, ...deps }) =>
-          makeListAnchorDiagnostics(deco.logged(operation, new ListAnchorDiagnosticsUseCase(deps))),
+      listAnchorDiagnostics: served(
+        { scoped: ScopedMerchantPort, diagnostics: AnchorDiagnosticsPort },
+        { name: "listAnchorDiagnostics", build: (deps) => new ListAnchorDiagnosticsUseCase(deps) },
+        (useCase) => makeListAnchorDiagnostics(useCase),
       ),
     },
   },

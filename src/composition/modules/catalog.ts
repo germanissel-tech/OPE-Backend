@@ -9,8 +9,8 @@ import {
   type ProductTruthService,
 } from "../../application/catalog/index.js";
 import { makeUpsertCatalogSnapshot, memoryCatalogStore } from "../../interface-adapters/catalog/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
-import { ClockPort, ClockTolerancePort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
+import { bind, compositionModule, served, port } from "../graph/index.js";
+import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
 export const CatalogStorePort = port("catalog.store")<CatalogStore>();
 /** The freshness budgets and the level rules of each merchant; the configuration binds them. */
@@ -29,17 +29,16 @@ export const catalogModule = compositionModule({
   ],
   serves: {
     handlers: {
-      upsertCatalogSnapshot: handler(
+      upsertCatalogSnapshot: served(
         {
-          deco: DecoratorsPort,
           clock: ClockPort,
           tolerance: ClockTolerancePort,
           logger: LoggerPort,
           store: CatalogStorePort,
           policies: CatalogPoliciesPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeUpsertCatalogSnapshot(deco.logged(operation, new UpsertCatalogSnapshotUseCase(deps))),
+        { name: "upsertCatalogSnapshot", build: (deps) => new UpsertCatalogSnapshotUseCase(deps) },
+        (useCase) => makeUpsertCatalogSnapshot(useCase),
       ),
     },
   },

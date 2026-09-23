@@ -338,8 +338,12 @@ export function compositionModuleShape(root) {
   return out;
 }
 
-/** Where a component is built: the builder of a binding, of one port or of several. */
-const BUILDERS = ["bind", "bindAll"];
+/**
+ * Where a component is built: the builder of a binding —of one port or of several— or of what a
+ * module serves.  is a builder too: what it returns is built from what the graph resolved,
+ * which is exactly the condition this rule is after.
+ */
+const BUILDERS = ["bind", "bindAll", "from"];
 
 /**
  * Is this node inside the builder of a binding? What a module serves or exposes may instantiate

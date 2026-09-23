@@ -30,13 +30,13 @@ import {
   releaseConfigurationLevels,
   switchAwarePolicyDirectory,
 } from "../../interface-adapters/configuration/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
+import { bind, compositionModule, served, port } from "../graph/index.js";
 import { ReleaseLevelsPort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
-import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
+import { AuditPort, ClockPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
@@ -76,13 +76,13 @@ export const configurationModule = compositionModule({
     bind(
       ImportConfigurationPort,
       {
-        deco: DecoratorsPort,
+        audit: AuditPort,
         store: ConfigurationStorePort,
         configuration: ConfigurationServicePort,
         clock: ClockPort,
       },
-      ({ deco, ...deps }) =>
-        deco.audited("importMerchantConfiguration", new ImportMerchantConfigurationUseCase(deps), {
+      ({ audit, ...deps }) =>
+        audit("importMerchantConfiguration", new ImportMerchantConfigurationUseCase(deps), {
           result: (r) =>
             r.ok && "version" in r.value ? { configurationVersion: r.value.version.version } : undefined,
         }),
@@ -90,9 +90,8 @@ export const configurationModule = compositionModule({
   ],
   serves: {
     handlers: {
-      publishMerchantConfiguration: handler(
+      publishMerchantConfiguration: served(
         {
-          deco: DecoratorsPort,
           scoped: ScopedMerchantPort,
           store: ConfigurationStorePort,
           configuration: ConfigurationServicePort,
@@ -100,48 +99,46 @@ export const configurationModule = compositionModule({
           experimentStore: ExperimentStorePort,
           clock: ClockPort,
         },
-        (operation, { deco, experimentStore, ...deps }) =>
-          makePublishMerchantConfiguration(
-            deco.administered(
-              operation,
-              new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
-              {
-                result: (r) =>
-                  r.ok
-                    ? {
-                        configurationVersion: r.value.version.version,
-                        windowRestarted: r.value.windowRestarted,
-                      }
-                    : undefined,
-                reason: (request) => request.reason,
-              },
-            ),
-          ),
-      ),
-      getMerchantConfiguration: handler(
         {
-          deco: DecoratorsPort,
+          name: "publishMerchantConfiguration",
+          build: ({ experimentStore, ...deps }) =>
+            new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+        },
+        (useCase) => makePublishMerchantConfiguration(useCase),
+        {
+          result: (r) =>
+            r.ok
+              ? {
+                  configurationVersion: r.value.version.version,
+                  windowRestarted: r.value.windowRestarted,
+                }
+              : undefined,
+          reason: (request) => request.reason,
+        },
+      ),
+      getMerchantConfiguration: served(
+        {
           scoped: ScopedMerchantPort,
           store: ConfigurationStorePort,
           configuration: ConfigurationServicePort,
         },
-        (operation, { deco, ...deps }) =>
-          makeGetMerchantConfiguration(deco.logged(operation, new GetMerchantConfigurationUseCase(deps))),
+        { name: "getMerchantConfiguration", build: (deps) => new GetMerchantConfigurationUseCase(deps) },
+        (useCase) => makeGetMerchantConfiguration(useCase),
       ),
-      listConfigurationVersions: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantPort, store: ConfigurationStorePort },
-        (operation, { deco, ...deps }) =>
-          makeListConfigurationVersions(deco.logged(operation, new ListConfigurationVersionsUseCase(deps))),
+      listConfigurationVersions: served(
+        { scoped: ScopedMerchantPort, store: ConfigurationStorePort },
+        { name: "listConfigurationVersions", build: (deps) => new ListConfigurationVersionsUseCase(deps) },
+        (useCase) => makeListConfigurationVersions(useCase),
       ),
-      getPlatformConfiguration: handler(
-        { deco: DecoratorsPort, configuration: ConfigurationServicePort },
-        (operation, { deco, ...deps }) =>
-          makeGetPlatformConfiguration(deco.logged(operation, new GetPlatformConfigurationUseCase(deps))),
+      getPlatformConfiguration: served(
+        { configuration: ConfigurationServicePort },
+        { name: "getPlatformConfiguration", build: (deps) => new GetPlatformConfigurationUseCase(deps) },
+        (useCase) => makeGetPlatformConfiguration(useCase),
       ),
-      getTreatmentDefaults: handler(
-        { deco: DecoratorsPort, configuration: ConfigurationServicePort },
-        (operation, { deco, ...deps }) =>
-          makeGetTreatmentDefaults(deco.logged(operation, new GetTreatmentDefaultsUseCase(deps))),
+      getTreatmentDefaults: served(
+        { configuration: ConfigurationServicePort },
+        { name: "getTreatmentDefaults", build: (deps) => new GetTreatmentDefaultsUseCase(deps) },
+        (useCase) => makeGetTreatmentDefaults(useCase),
       ),
     },
   },

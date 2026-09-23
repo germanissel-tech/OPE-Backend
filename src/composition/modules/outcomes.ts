@@ -14,9 +14,9 @@ import {
   memoryCorroborationLedger,
   memoryOrderLedger,
 } from "../../interface-adapters/outcomes/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
+import { bind, compositionModule, served, port } from "../graph/index.js";
 import { DecisionLedgerPort } from "./ledger.js";
-import { ClockPort, ClockTolerancePort, DecoratorsPort, LoggerPort } from "./shared-kernel.js";
+import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
 export const OrderLedgerPort = port("outcomes.orders")<OrderLedger>();
 export const CorroborationLedgerPort = port("outcomes.corroborations")<CorroborationLedger>();
@@ -28,9 +28,8 @@ export const outcomesModule = compositionModule({
   ],
   serves: {
     handlers: {
-      notifyOrder: handler(
+      notifyOrder: served(
         {
-          deco: DecoratorsPort,
           clock: ClockPort,
           tolerance: ClockTolerancePort,
           logger: LoggerPort,
@@ -38,23 +37,22 @@ export const outcomesModule = compositionModule({
           decisions: DecisionLedgerPort,
           corroborations: CorroborationLedgerPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeNotifyOrder(deco.logged(operation, new NotifyOrderUseCase(deps))),
+        { name: "notifyOrder", build: (deps) => new NotifyOrderUseCase(deps) },
+        (useCase) => makeNotifyOrder(useCase),
       ),
-      corroborateOrder: handler(
+      corroborateOrder: served(
         {
-          deco: DecoratorsPort,
           clock: ClockPort,
           tolerance: ClockTolerancePort,
           corroborations: CorroborationLedgerPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeCorroborateOrder(deco.logged(operation, new CorroborateOrderUseCase(deps))),
+        { name: "corroborateOrder", build: (deps) => new CorroborateOrderUseCase(deps) },
+        (useCase) => makeCorroborateOrder(useCase),
       ),
-      notifyReturn: handler(
-        { deco: DecoratorsPort, clock: ClockPort, orders: OrderLedgerPort },
-        (operation, { deco, ...deps }) =>
-          makeNotifyReturn(deco.logged(operation, new NotifyReturnUseCase(deps))),
+      notifyReturn: served(
+        { clock: ClockPort, orders: OrderLedgerPort },
+        { name: "notifyReturn", build: (deps) => new NotifyReturnUseCase(deps) },
+        (useCase) => makeNotifyReturn(useCase),
       ),
     },
   },

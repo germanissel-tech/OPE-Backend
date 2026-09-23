@@ -171,7 +171,15 @@ describe("the graph of one boot (ADR-033)", () => {
   it.each([
     [
       "operation",
-      { handlers: { getHealth: { needs: {}, build: () => undefined } } },
+      {
+        handlers: {
+          getHealth: {
+            needs: {},
+            useCase: { name: "getServiceHealth", build: () => undefined },
+            controller: () => undefined,
+          },
+        },
+      },
       'Two modules wire the operation "getHealth".',
     ],
     [
@@ -181,7 +189,14 @@ describe("the graph of one boot (ADR-033)", () => {
     ],
     ["CORS policy", { cors: { needs: {}, build: () => ({}) } }, "Two modules declare the CORS policy."],
   ])("two modules claiming one %s is a wiring error, not a silent override", (_what, serves, message) => {
-    const plan: Deployment<string> = { bindings: [], providedPorts: [], serves: [serves, serves] };
+    // The decoration is declared once, by a module of its own: what is claimed twice here is the
+    // handler, the scheme or the policy.
+    const decoration = { decoration: { needs: {}, build: () => ({ wrap: (useCase: unknown) => useCase }) } };
+    const plan: Deployment<string> = {
+      bindings: [],
+      providedPorts: [],
+      serves: [decoration, serves, serves],
+    };
     expect(() => instantiate(plan).wire()).toThrow(message);
   });
 

@@ -79,45 +79,45 @@ aserción de comportamiento.
 
 ### Implementación
 
-- [ ] T009 [US1] Implementar `served()` en `src/composition/graph/module.ts` según
+- [x] T009 [US1] Implementar `served()` en `src/composition/graph/module.ts` según
       [contracts/serving-an-operation.md](./contracts/serving-an-operation.md): lo que necesita, el
       caso de uso (nombre + construcción), el controller y las lecturas de auditoría opcionales.
       **Cuatro parámetros es el límite del lint**; si hace falta un quinto, agrupar con nombres.
       Convive con `handler()` mientras dura la conversión.
-- [ ] T010 [US1] Aplicar los decoradores en la instanciación (`src/composition/graph/compose.ts`):
+- [x] T010 [US1] Aplicar los decoradores en la instanciación (`src/composition/graph/compose.ts`):
       el caso de uso se envuelve con el log siempre y con el registro cuando el tipo generado lo
       manda; el controller recibe el caso de uso ya envuelto. El reloj, el logger y el registro se
       resuelven por `ClockPort`, `LoggerPort` y `AuditTrailPort`.
-- [ ] T011 [US1] Exportar `served` desde `src/composition/graph/index.ts`.
+- [x] T011 [US1] Exportar `served` desde `src/composition/graph/index.ts`.
 
 ### Conversión de los 29 handlers (todos dependen de T009–T011; entre sí son independientes)
 
-- [ ] T012 [P] [US1] `src/composition/modules/merchant.ts` — 8 handlers, 6 auditados (incluidas las
+- [x] T012 [P] [US1] `src/composition/modules/merchant.ts` — 8 handlers, 6 auditados (incluidas las
       tres rotaciones, que toman su caso de uso de `RotateCredentialPort`, y `createMerchant`, que
       declara de dónde sale el merchant que creó).
-- [ ] T013 [P] [US1] `src/composition/modules/admin.ts` — 5 handlers, ninguno auditado.
-- [ ] T014 [P] [US1] `src/composition/modules/configuration.ts` — 5 handlers, 1 auditado
+- [x] T013 [P] [US1] `src/composition/modules/admin.ts` — 5 handlers, ninguno auditado.
+- [x] T014 [P] [US1] `src/composition/modules/configuration.ts` — 5 handlers, 1 auditado
       (`publishMerchantConfiguration`, que declara el motivo y la versión).
-- [ ] T015 [P] [US1] `src/composition/modules/experiment.ts` — 4 handlers, 3 auditados (los tres
+- [x] T015 [P] [US1] `src/composition/modules/experiment.ts` — 4 handlers, 3 auditados (los tres
       declaran el experimento que produjeron).
-- [ ] T016 [P] [US1] `src/composition/modules/outcomes.ts` — 3 handlers.
-- [ ] T017 [P] [US1] `src/composition/modules/ingestion.ts` — 1 handler; **el nombre del log es
+- [x] T016 [P] [US1] `src/composition/modules/outcomes.ts` — 3 handlers.
+- [x] T017 [P] [US1] `src/composition/modules/ingestion.ts` — 1 handler; **el nombre del log es
       `ingestBatch`**, no el `operationId`.
-- [ ] T018 [P] [US1] `src/composition/modules/system.ts` — 1 handler; **el nombre del log es
+- [x] T018 [P] [US1] `src/composition/modules/system.ts` — 1 handler; **el nombre del log es
       `getServiceHealth`**, no el `operationId`.
-- [ ] T019 [P] [US1] `src/composition/modules/ledger.ts` — 1 handler.
-- [ ] T020 [P] [US1] `src/composition/modules/catalog.ts` — 1 handler.
+- [x] T019 [P] [US1] `src/composition/modules/ledger.ts` — 1 handler.
+- [x] T020 [P] [US1] `src/composition/modules/catalog.ts` — 1 handler.
 
 ### Cierre de la historia
 
-- [ ] T021 [US1] Retirar `handler()` de `src/composition/graph/module.ts` y de su `index.ts`, ya
+- [x] T021 [US1] Retirar `handler()` de `src/composition/graph/module.ts` y de su `index.ts`, ya
       sin consumidores.
-- [ ] T022 [US1] Actualizar `tests/unit/composition/graph.test.ts`: la forma nueva, y que el
+- [x] T022 [US1] Actualizar `tests/unit/composition/graph.test.ts`: la forma nueva, y que el
       controller recibe el caso de uso envuelto.
-- [ ] T023 [US1] Verificar comportamiento idéntico sin tocar aserciones preexistentes:
+- [x] T023 [US1] Verificar comportamiento idéntico sin tocar aserciones preexistentes:
       `npx vitest run --project fast tests/integration/use-case-log.test.ts` (afirma
       `useCase: "ingestBatch"`) y las pruebas del registro de administración.
-- [ ] T024 [US1] Verificar los criterios mecánicos: `grep -rn "deco\|DecoratorsPort" src/composition/modules/`
+- [x] T024 [US1] Verificar los criterios mecánicos: `grep -rn "deco\|DecoratorsPort" src/composition/modules/`
       y `grep -rn "logged(\|administered(" src/composition/modules/` dan cero.
 
 **Checkpoint**: nadie elige la preocupación transversal y nada cambió de comportamiento.

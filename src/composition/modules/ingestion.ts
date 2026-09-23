@@ -7,9 +7,9 @@ import {
   type EventDedup,
 } from "../../application/ingestion/index.js";
 import { makeIngestEvents, memoryEventDedup } from "../../interface-adapters/ingestion/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
+import { bind, compositionModule, served, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
-import { ClockPort, ClockTolerancePort, DecoratorsPort } from "./shared-kernel.js";
+import { ClockPort, ClockTolerancePort } from "./shared-kernel.js";
 
 const EventDedupPort = port("ingestion.dedup")<EventDedup>();
 /** What decides a batch; the decision module binds it. */
@@ -23,17 +23,16 @@ export const ingestionModule = compositionModule({
   ],
   serves: {
     handlers: {
-      ingestEvents: handler(
+      ingestEvents: served(
         {
-          deco: DecoratorsPort,
           clock: ClockPort,
           tolerance: ClockTolerancePort,
           eventDedup: EventDedupPort,
           decisionPlane: DecisionPlanePort,
         },
         // The name of the log is the name of the use case, which is not this operationId.
-        (_operation, { deco, ...deps }) =>
-          makeIngestEvents(deco.logged("ingestBatch", new IngestBatchUseCase(deps))),
+        { name: "ingestBatch", build: (deps) => new IngestBatchUseCase(deps) },
+        (useCase) => makeIngestEvents(useCase),
       ),
     },
   },

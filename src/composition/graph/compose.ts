@@ -3,11 +3,19 @@
 // provider or if an operation the contract declares is left without a handler. Instantiating it
 // builds a graph of that boot: lazy, memoised, one instance per component, nothing global and
 // nothing static, so two boots (two tests) never see each other.
+import {
+  AUDITED_OPERATIONS,
+  type Handlers,
+  type SecurityScheme,
+} from "../../interface-adapters/http/typed.js";
 import { isClosable, type AnyPort, type Closable, type Port } from "./port.js";
 import type { Binding } from "./binding.js";
-import type { Deployed, Serves } from "./module.js";
+import type { Decoration, Deployed, ServedRecipe, Serves } from "./module.js";
+import type { AuditedUseCaseReaders, UseCase } from "../../application/shared-kernel/index.js";
 import type { CorsPolicy } from "../../infrastructure/http/cors.js";
-import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
+
+/** The contract says which operations leave an entry in the administration log; nobody else does. */
+const AUDITED = new Set<string>(AUDITED_OPERATIONS);
 
 /** What a deployment with a hole reports: the labels nobody provides. */
 export interface Missing<L extends string> {
@@ -94,6 +102,42 @@ interface Cookable {
   readonly build: (...args: never[]) => unknown;
 }
 
+/**
+ * The decoration of a deployment: any of its modules may declare it, every handler needs it, so it
+ * is resolved before the first one and never waits for its turn in the list.
+ */
+function decorationOf(all: readonly Serves[], cook: (recipe: Cookable) => unknown): Decoration | undefined {
+  const declared = all.map((serves) => serves.decoration).filter((recipe) => recipe !== undefined);
+  if (declared.length > 1) throw new Error("Two modules declare the decoration.");
+  const only = declared[0];
+  // A deployment that serves no operation needs none; one that serves any is refused below.
+  return only === undefined ? undefined : (cook(only) as Decoration);
+}
+
+/**
+ * One operation: its use case built from what it named, wrapped as the platform wraps every use
+ * case it serves, and its controller, which only ever sees the wrapped one.
+ */
+function servedOperation(
+  recipe: ServedRecipe<unknown>,
+  id: string,
+  decoration: Decoration | undefined,
+  needed: (needs: Readonly<Record<string, AnyPort>>) => Record<string, unknown>,
+): unknown {
+  if (!decoration) throw new Error("No module of this deployment declares the decoration.");
+  const resolved = needed(recipe.needs);
+  const built = (recipe.useCase.build as (r: Record<string, unknown>) => UseCase<never, never>)(resolved);
+  const wrapped = decoration.wrap(built, {
+    name: recipe.useCase.name,
+    operation: id,
+    audited: AUDITED.has(id),
+    ...(recipe.readers === undefined
+      ? {}
+      : { readers: recipe.readers as AuditedUseCaseReaders<never, never> }),
+  });
+  return (recipe.controller as (u: unknown, r: Record<string, unknown>) => unknown)(wrapped, resolved);
+}
+
 /** Writes one key refusing to overwrite: two modules claiming one is a wiring error. */
 function claim<T>(target: Record<string, T>, key: string, value: T, what: string): void {
   if (key in target) throw new Error(`Two modules wire the ${what} "${key}".`);
@@ -145,9 +189,9 @@ export function instantiate<Provides extends string>(
   const handlers: Record<string, unknown> = {};
   const security: Record<string, SecurityScheme> = {};
   let cors: CorsPolicy | undefined;
-  const serve = (serves: Serves): void => {
+  const serve = (serves: Serves, decoration: Decoration | undefined): void => {
     for (const [id, recipe] of Object.entries(serves.handlers ?? {})) {
-      claim(handlers, id, cook(recipe, id), "operation");
+      claim(handlers, id, servedOperation(recipe, id, decoration, needed), "operation");
     }
     for (const [name, recipe] of Object.entries(serves.security ?? {})) {
       claim(security, name, cook(recipe) as SecurityScheme, "security scheme");
@@ -167,7 +211,8 @@ export function instantiate<Provides extends string>(
     ports: [...table.keys()],
     closables,
     wire: (): Wired => {
-      for (const serves of plan.serves) serve(serves);
+      const decoration = decorationOf(plan.serves, cook);
+      for (const serves of plan.serves) serve(serves, decoration);
       return { handlers, security, ...(cors ? { cors } : {}) };
     },
   };

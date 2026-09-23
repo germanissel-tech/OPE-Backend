@@ -34,8 +34,8 @@ import {
   memoryMerchantStore,
   nodeCredentialMinter,
 } from "../../interface-adapters/merchant/index.js";
-import { bind, bindAll, compositionModule, handler, port } from "../graph/index.js";
-import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
+import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
+import { AuditPort, ClockPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
 export const MerchantStorePort = port("merchant.store")<MerchantStore>();
@@ -79,67 +79,67 @@ export const merchantModule = compositionModule({
     bind(
       ImportMerchantsPort,
       {
-        deco: DecoratorsPort,
+        audit: AuditPort,
         merchants: MerchantStorePort,
         minter: CredentialMinterPort,
         clock: ClockPort,
       },
-      ({ deco, ...deps }) => deco.audited("importMerchants", new ImportMerchantsUseCase(deps)),
+      ({ audit, ...deps }) => audit("importMerchants", new ImportMerchantsUseCase(deps)),
     ),
   ],
   serves: {
     handlers: {
-      listMerchants: handler(
-        { deco: DecoratorsPort, merchants: MerchantStorePort, clock: ClockPort },
-        (operation, { deco, merchants, clock }) =>
-          makeListMerchants(deco.logged(operation, new ListMerchantsUseCase({ merchants })), clock),
+      listMerchants: served(
+        { merchants: MerchantStorePort, clock: ClockPort },
+        { name: "listMerchants", build: ({ merchants }) => new ListMerchantsUseCase({ merchants }) },
+        (useCase, { clock }) => makeListMerchants(useCase, clock),
       ),
-      getMerchant: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantPort, clock: ClockPort },
-        (operation, { deco, scoped, clock }) =>
-          makeGetMerchant(deco.logged(operation, new GetMerchantUseCase({ scoped })), clock),
+      getMerchant: served(
+        { scoped: ScopedMerchantPort, clock: ClockPort },
+        { name: "getMerchant", build: ({ scoped }) => new GetMerchantUseCase({ scoped }) },
+        (useCase, { clock }) => makeGetMerchant(useCase, clock),
       ),
-      createMerchant: handler(
+      createMerchant: served(
         {
-          deco: DecoratorsPort,
           merchants: MerchantStorePort,
           minter: CredentialMinterPort,
           clock: ClockPort,
         },
-        (operation, { deco, ...deps }) =>
-          makeCreateMerchant(
-            deco.administered(operation, new CreateMerchantUseCase(deps), {
-              merchantId: (r) => (r.ok ? r.value.merchant.merchantId : undefined),
-            }),
-            deps.clock,
-          ),
+        { name: "createMerchant", build: (deps) => new CreateMerchantUseCase(deps) },
+        (useCase, { clock }) => makeCreateMerchant(useCase, clock),
+        { merchantId: (r) => (r.ok ? r.value.merchant.merchantId : undefined) },
       ),
-      deactivateMerchant: handler(
+      deactivateMerchant: served(
         {
-          deco: DecoratorsPort,
           scoped: ScopedMerchantPort,
           merchants: MerchantStorePort,
           clock: ClockPort,
         },
-        (operation, { deco, clock, ...deps }) =>
-          makeDeactivateMerchant(deco.administered(operation, new DeactivateMerchantUseCase(deps)), clock),
+        { name: "deactivateMerchant", build: (deps) => new DeactivateMerchantUseCase(deps) },
+        (useCase, { clock }) => makeDeactivateMerchant(useCase, clock),
       ),
-      setKillSwitch: handler(
-        { deco: DecoratorsPort, scoped: ScopedMerchantPort, merchants: MerchantStorePort },
-        (operation, { deco, ...deps }) =>
-          makeSetKillSwitch(deco.administered(operation, new SetKillSwitchUseCase(deps))),
+      setKillSwitch: served(
+        { scoped: ScopedMerchantPort, merchants: MerchantStorePort },
+        { name: "setKillSwitch", build: (deps) => new SetKillSwitchUseCase(deps) },
+        (useCase) => makeSetKillSwitch(useCase),
       ),
-      rotateIngestKey: handler(
-        { deco: DecoratorsPort, rotate: RotateCredentialPort },
-        (operation, { deco, rotate }) => makeRotateIngestKey(deco.administered(operation, rotate)),
+      rotateIngestKey: served(
+        { rotate: RotateCredentialPort },
+        // The three rotations share one use case; each audits it under its own operation.
+        { name: "rotateIngestKey", build: ({ rotate }) => rotate },
+        (useCase) => makeRotateIngestKey(useCase),
       ),
-      rotatePlatformKey: handler(
-        { deco: DecoratorsPort, rotate: RotateCredentialPort },
-        (operation, { deco, rotate }) => makeRotatePlatformKey(deco.administered(operation, rotate)),
+      rotatePlatformKey: served(
+        { rotate: RotateCredentialPort },
+        // The three rotations share one use case; each audits it under its own operation.
+        { name: "rotatePlatformKey", build: ({ rotate }) => rotate },
+        (useCase) => makeRotatePlatformKey(useCase),
       ),
-      rotatePlatformSecret: handler(
-        { deco: DecoratorsPort, rotate: RotateCredentialPort },
-        (operation, { deco, rotate }) => makeRotatePlatformSecret(deco.administered(operation, rotate)),
+      rotatePlatformSecret: served(
+        { rotate: RotateCredentialPort },
+        // The three rotations share one use case; each audits it under its own operation.
+        { name: "rotatePlatformSecret", build: ({ rotate }) => rotate },
+        (useCase) => makeRotatePlatformSecret(useCase),
       ),
     },
   },

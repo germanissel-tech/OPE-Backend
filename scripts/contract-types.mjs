@@ -8,6 +8,7 @@ import path from "node:path";
 import {
   generateAuditedOperations,
   generatedAuditedOperationsDts,
+  generatedAuditedOperationsJs,
 } from "./contract-audited-operations-lib.mjs";
 import {
   generateProblemTypes,
@@ -27,9 +28,11 @@ mkdirSync(path.dirname(generatedProblemTypesJs), { recursive: true });
 writeFileSync(generatedProblemTypesJs, js, "utf8");
 writeFileSync(generatedProblemTypesDts, dts, "utf8");
 console.log(`Problem types generated at ${generatedProblemTypesJs} (+ .d.ts)`);
-mkdirSync(path.dirname(generatedAuditedOperationsDts), { recursive: true });
-writeFileSync(generatedAuditedOperationsDts, generateAuditedOperations(), "utf8");
-console.log(`Audited operations generated at ${generatedAuditedOperationsDts}`);
+const audited = generateAuditedOperations();
+mkdirSync(path.dirname(generatedAuditedOperationsJs), { recursive: true });
+writeFileSync(generatedAuditedOperationsJs, audited.js, "utf8");
+writeFileSync(generatedAuditedOperationsDts, audited.dts, "utf8");
+console.log(`Audited operations generated at ${generatedAuditedOperationsJs} (+ .d.ts)`);
 for (const [file, content] of generateConfigSchemas()) {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, content, "utf8");

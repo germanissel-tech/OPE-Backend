@@ -16,8 +16,8 @@ import {
   memoryExposureLedger,
   randomDecisionIds,
 } from "../../interface-adapters/ledger/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
-import { DecoratorsPort, LoggerPort } from "./shared-kernel.js";
+import { bind, compositionModule, served, port } from "../graph/index.js";
+import { LoggerPort } from "./shared-kernel.js";
 
 export const DecisionLedgerPort = port("ledger.decisions")<DecisionLedger>();
 export const ExposureLedgerPort = port("ledger.exposures")<ExposureLedger>();
@@ -41,10 +41,10 @@ export const ledgerModule = compositionModule({
   ],
   serves: {
     handlers: {
-      confirmExposure: handler(
-        { deco: DecoratorsPort, decisions: DecisionLedgerPort, exposures: ExposureLedgerPort },
-        (operation, { deco, ...deps }) =>
-          makeConfirmExposureHandler(deco.logged(operation, new ConfirmExposureUseCase(deps))),
+      confirmExposure: served(
+        { decisions: DecisionLedgerPort, exposures: ExposureLedgerPort },
+        { name: "confirmExposure", build: (deps) => new ConfirmExposureUseCase(deps) },
+        (useCase) => makeConfirmExposureHandler(useCase),
       ),
     },
   },

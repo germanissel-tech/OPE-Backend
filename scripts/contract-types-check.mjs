@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   generateAuditedOperations,
   generatedAuditedOperationsDts,
+  generatedAuditedOperationsJs,
 } from "./contract-audited-operations-lib.mjs";
 import {
   generateProblemTypes,
@@ -20,12 +21,14 @@ import { generatedTypesPath } from "./lib.mjs";
 const current = (file) => (existsSync(file) ? readFileSync(file, "utf8").replace(/\r\n/g, "\n") : "");
 
 const { js, dts } = generateProblemTypes();
+const audited = generateAuditedOperations();
 /** @type {[string, string][]} */
 const artefacts = [
   [generatedTypesPath, await generateTypes()],
   [generatedProblemTypesJs, js],
   [generatedProblemTypesDts, dts],
-  [generatedAuditedOperationsDts, generateAuditedOperations()],
+  [generatedAuditedOperationsJs, audited.js],
+  [generatedAuditedOperationsDts, audited.dts],
   ...generateConfigSchemas(),
 ];
 const outdated = artefacts.filter(([file, expected]) => current(file) !== expected);

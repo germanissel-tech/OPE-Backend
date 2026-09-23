@@ -7,17 +7,15 @@
  * administration and the operation asks for something that is not only a read. Nobody
  * chooses this; changing it means changing the contract.
  */
-export type AuditedOperation =
-  | "createMerchant"
-  | "deactivateMerchant"
-  | "rotateIngestKey"
-  | "rotatePlatformKey"
-  | "rotatePlatformSecret"
-  | "setKillSwitch"
-  | "publishMerchantConfiguration"
-  | "createExperiment"
-  | "activateExperiment"
-  | "closeExperiment";
-
-/** The same list, for the composition to read while it wires. */
-export declare const AUDITED_OPERATIONS: readonly AuditedOperation[];
+export const AUDITED_OPERATIONS = Object.freeze([
+  "createMerchant",
+  "deactivateMerchant",
+  "rotateIngestKey",
+  "rotatePlatformKey",
+  "rotatePlatformSecret",
+  "setKillSwitch",
+  "publishMerchantConfiguration",
+  "createExperiment",
+  "activateExperiment",
+  "closeExperiment",
+]);

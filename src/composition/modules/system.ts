@@ -3,9 +3,9 @@
 // thing the use case needs to know about it.
 import { GetServiceHealthUseCase, type ContractInfo } from "../../application/system/index.js";
 import { contractInfoOf, makeGetHealth } from "../../interface-adapters/system/index.js";
-import { bind, compositionModule, handler, port } from "../graph/index.js";
+import { bind, compositionModule, port, served } from "../graph/index.js";
 import { ContractPort } from "../release.js";
-import { ClockPort, DecoratorsPort } from "./shared-kernel.js";
+import { ClockPort } from "./shared-kernel.js";
 
 const ContractInfoPort = port("system.contract-info")<ContractInfo>();
 
@@ -17,11 +17,11 @@ export const systemModule = compositionModule({
   ],
   serves: {
     handlers: {
-      getHealth: handler(
-        { deco: DecoratorsPort, contract: ContractInfoPort, clock: ClockPort },
+      getHealth: served(
+        { contract: ContractInfoPort, clock: ClockPort },
         // The name of the log is the name of the use case, which is not this operationId.
-        (_operation, { deco, ...deps }) =>
-          makeGetHealth(deco.logged("getServiceHealth", new GetServiceHealthUseCase(deps))),
+        { name: "getServiceHealth", build: (deps) => new GetServiceHealthUseCase(deps) },
+        (useCase) => makeGetHealth(useCase),
       ),
     },
   },

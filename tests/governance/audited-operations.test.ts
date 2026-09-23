@@ -10,7 +10,7 @@ import { stringify } from "yaml";
 /** What the generator exports; the script is JavaScript, so its shape is declared here. */
 interface Generator {
   readAuditedOperations: (bundle: string, map: string) => string[];
-  renderAuditedOperations: (audited: string[]) => string;
+  renderAuditedOperations: (audited: string[]) => { js: string; dts: string };
 }
 
 let readAuditedOperations: Generator["readAuditedOperations"];
@@ -88,13 +88,14 @@ describe("which operations the contract orders to be audited", () => {
     expect(audited).not.toContain("getHealth");
   });
 
-  it("the declaration is the union of what was derived, in the order of the bundle", () => {
-    expect(renderAuditedOperations(audited)).toContain(
-      'export type AuditedOperation =\n  | "createMerchant";',
-    );
+  it("the same fact travels as a type and as a value, in the order of the bundle", () => {
+    const { js, dts } = renderAuditedOperations(audited);
+    expect(dts).toContain('export type AuditedOperation =\n  | "createMerchant";');
+    // The composition reads the value while it wires; the compiler reads the type.
+    expect(js).toContain('export const AUDITED_OPERATIONS = Object.freeze([\n  "createMerchant",\n]);');
   });
 
   it("with nothing to audit the declaration is `never`, and still compiles", () => {
-    expect(renderAuditedOperations([])).toContain("export type AuditedOperation = never;");
+    expect(renderAuditedOperations([]).dts).toContain("export type AuditedOperation = never;");
   });
 });

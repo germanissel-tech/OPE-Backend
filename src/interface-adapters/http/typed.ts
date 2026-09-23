@@ -12,6 +12,7 @@ export type { components, operations } from "#generated/api.js";
  * nobody chooses it; the composition graph reads it from here, the way it reads `operations`.
  */
 export type { AuditedOperation } from "#generated/audited-operations.js";
+export { AUDITED_OPERATIONS } from "#generated/audited-operations.js";
 
 /** Minimal shape of an operation as openapi-typescript generates it. */
 export interface OperationShape {

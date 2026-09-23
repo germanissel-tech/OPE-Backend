@@ -11,6 +11,7 @@
 // and nothing about any feature module: those types come from the contract, not from a module.
 import type { Binding, ProvidesOf, RequiresOf } from "./binding.js";
 import type { AnyPort, Label, Needs, Resolved } from "./port.js";
+import type { AuditedUseCaseReaders, UseCase } from "../../application/shared-kernel/index.js";
 import type { CorsPolicy } from "../../infrastructure/http/cors.js";
 import type { Handlers, SecurityScheme } from "../../interface-adapters/http/typed.js";
 
@@ -18,6 +19,7 @@ declare const PROVIDED: unique symbol;
 declare const REQUIRED: unique symbol;
 declare const SERVED_OPERATIONS: unique symbol;
 declare const BUILT: unique symbol;
+declare const REQUEST: unique symbol;
 
 /**
  * Something a module serves, built from the components it names. What it builds travels as a
@@ -32,20 +34,8 @@ export interface Recipe<T, Requires extends string = string> {
 }
 
 /**
- * A handler: its builder also receives the operationId, which the key of the map gives (FR-022).
- * The stored builder is widened like any other —the instance calls it with the operation first and
- * then what the recipe needs—; `handler()` below is what types the author's side of it.
- */
-export interface HandlerRecipe<T, Requires extends string = string> {
-  readonly needs: Needs;
-  readonly build: (...args: never[]) => unknown;
-  readonly [BUILT]?: T;
-  readonly [REQUIRED]?: Requires;
-}
-
-/**
  * What the key of the slot says it is, built **from** these components: the key names the thing
- * (`cors`, the name of a security scheme) and this names where it comes from, the way `handler()`
+ * (`cors`, the name of a security scheme) and this names where it comes from, the way `served()`
  * does for an operation.
  */
 export function from<T, const D extends Needs>(
@@ -55,18 +45,63 @@ export function from<T, const D extends Needs>(
   return { needs, build };
 }
 
-export function handler<T, const D extends Needs>(
+/**
+ * How a use case reaches the server: the name the operational log prints —the name of the **use
+ * case**, which in two operations is not the operationId— and, when the contract orders the
+ * operation audited, what the administration entry reads from the request and the response.
+ * Nothing here says *whether* it is audited: that the contract decides.
+ */
+export interface Decorated<Request, Response> {
+  readonly name: string;
+  readonly operation: string;
+  readonly audited: boolean;
+  readonly readers?: AuditedUseCaseReaders<Request, Response> | undefined;
+}
+
+/**
+ * What wraps every use case the server runs. The library knows the shape and nothing else: the
+ * clock, the logger and the audit trail belong to the kernel, which is the module that provides
+ * this. So no handler asks for them, and no handler chooses.
+ */
+export interface Decoration {
+  wrap: <Request, Response>(
+    useCase: UseCase<Request, Response>,
+    how: Decorated<Request, Response>,
+  ) => UseCase<Request, Response>;
+}
+
+/**
+ * One operation served: what it needs, the use case that resolves it and the controller that
+ * translates it. The controller receives the use case **already wrapped**. The request of the use
+ * case travels as a phantom so that an operation the contract orders audited cannot be served by
+ * a use case that carries no operator.
+ */
+export interface ServedRecipe<T, Requires extends string = string, Request = unknown> {
+  readonly needs: Needs;
+  readonly useCase: { readonly name: string; readonly build: (resolved: never) => unknown };
+  readonly controller: (...args: never[]) => unknown;
+  readonly readers?: unknown;
+  readonly [BUILT]?: T;
+  readonly [REQUIRED]?: Requires;
+  readonly [REQUEST]?: Request;
+}
+
+export function served<Request, Response, T, const D extends Needs>(
   needs: D,
-  build: (operation: string, resolved: Resolved<D>) => T,
-): HandlerRecipe<T, Label<D[keyof D]>> {
-  return { needs, build };
+  useCase: { name: string; build: (resolved: Resolved<D>) => UseCase<Request, Response> },
+  controller: (useCase: UseCase<Request, Response>, resolved: Resolved<D>) => T,
+  readers?: AuditedUseCaseReaders<Request, Response>,
+): ServedRecipe<T, Label<D[keyof D]>, Request> {
+  return { needs, useCase, controller, ...(readers === undefined ? {} : { readers }) };
 }
 
 /** What a module contributes to the server. The key of a handler is its operationId. */
 export interface Serves {
-  readonly handlers?: { readonly [Id in keyof Handlers]?: HandlerRecipe<NonNullable<Handlers[Id]>> };
+  readonly handlers?: { readonly [Id in keyof Handlers]?: ServedRecipe<NonNullable<Handlers[Id]>> };
   readonly security?: Readonly<Record<string, Recipe<SecurityScheme>>>;
   readonly cors?: Recipe<CorsPolicy>;
+  /** What wraps every use case the server runs; exactly one module of a deployment declares it. */
+  readonly decoration?: Recipe<Decoration>;
 }
 
 export interface ModuleShape {
@@ -144,9 +179,9 @@ type Divergence<M extends ModuleShape> = {
 // parameter so a union of recipes yields a union of labels; `X[keyof X]` is again the union of the
 // values of a record — every handler of the map, every security scheme of the map.
 type RequiresOfRecipe<R> = R extends Recipe<unknown, infer N> ? N : never;
-type RequiresOfHandler<R> = R extends HandlerRecipe<unknown, infer N> ? N : never;
+type RequiresOfServed<R> = R extends ServedRecipe<unknown, infer N> ? N : never;
 type RequiresOfServes<S> = S extends Serves
-  ? | RequiresOfHandler<NonNullable<S["handlers"]>[keyof NonNullable<S["handlers"]>]>
+  ? | RequiresOfServed<NonNullable<S["handlers"]>[keyof NonNullable<S["handlers"]>]>
     | RequiresOfRecipe<NonNullable<S["security"]>[keyof NonNullable<S["security"]>]>
     | RequiresOfRecipe<S["cors"]>
   : never;
