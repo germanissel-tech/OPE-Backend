@@ -22,8 +22,8 @@ consumers:
       - admin
     capabilities:
       - flags:write
-features:
-  "010": Configuration
+roadmap:
+  flags: Merchant flags
 operations:
   - operationId: getHealth
     method: get
@@ -72,7 +72,7 @@ operations:
     tag: admin
     capabilities:
       - flags:write
-    feature: "010"
+    roadmap: flags
     status: planned
     source: constitucion#I
   - operationId: listThings

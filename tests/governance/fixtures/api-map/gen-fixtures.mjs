@@ -17,13 +17,13 @@ const validMap = () => ({
     portal: { securityScheme: "portalSession", tags: ["portal"], capabilities: ["ledger:read"] },
     admin: { securityScheme: "adminToken", tags: ["admin"], capabilities: ["flags:write"] },
   },
-  features: { "010": "Configuration" },
+  roadmap: { flags: "Merchant flags" },
   operations: [
     op("getHealth", "get", "/v1/health", "public", "system", [], "001", "built", "constitucion#I"),
     op("ingestEvents", "post", "/v1/events", "sdk", "ingest", ["events:write"], "004", "built", "mvp:01-x.md#Intro"),
     op("listOldThings", "get", "/v1/old-things", "sdk", "ingest", ["events:write"], "004", "deprecated", "constitucion#I"),
     { ...op("listGone", "get", "/v1/gone", "sdk", "ingest", ["events:write"], "001", "retired", "constitucion#I"), retiredIn: "1.0.0" },
-    op("putFlags", "put", "/v1/admin/merchants/{merchantId}/flags", "admin", "admin", ["flags:write"], "010", "planned", "constitucion#I"),
+    planned("putFlags", "put", "/v1/admin/merchants/{merchantId}/flags", "admin", "admin", ["flags:write"], "flags", "constitucion#I"),
   ],
 });
 
@@ -34,6 +34,17 @@ const validMap = () => ({
  */
 function op(operationId, method, p, consumer, tag, capabilities, feature, status, source) {
   return { operationId, method, path: p, consumer, tag, capabilities, feature, status, source };
+}
+
+/**
+ * A planned operation names the roadmap item that will bring it, never a feature: it has no
+ * specs/ directory yet.
+ * @param {string} operationId @param {string} method @param {string} p @param {string} consumer
+ * @param {string} tag @param {string[]} capabilities @param {string} roadmap @param {string} source
+ * @returns {Doc}
+ */
+function planned(operationId, method, p, consumer, tag, capabilities, roadmap, source) {
+  return { operationId, method, path: p, consumer, tag, capabilities, roadmap, status: "planned", source };
 }
 
 /** @returns {Doc} */
@@ -104,16 +115,25 @@ const cases = {
     writeFileSync(path.join(dir, "securitySchemes", "adminToken.yaml"), "description: no type here\n");
   },
   "feature-unknown": (m) => {
-    m.operations[4].feature = "099";
+    m.operations[1].feature = "099";
+  },
+  "roadmap-unknown": (m) => {
+    m.operations[4].roadmap = "nowhere";
+  },
+  "planned-with-feature": (m) => {
+    m.operations[4].feature = "004";
+  },
+  "built-with-roadmap": (m) => {
+    m.operations[1].roadmap = "flags";
   },
   "source-broken": (m) => {
     m.operations[4].source = "constitucion#Nowhere";
   },
   "duplicate-operation-id": (m) => {
-    m.operations.push(op("putFlags", "put", "/v1/admin/merchants/{merchantId}/other", "admin", "admin", ["flags:write"], "010", "planned", "constitucion#I"));
+    m.operations.push(planned("putFlags", "put", "/v1/admin/merchants/{merchantId}/other", "admin", "admin", ["flags:write"], "flags", "constitucion#I"));
   },
   "duplicate-method-path": (m) => {
-    m.operations.push(op("putFlagsAgain", "put", "/v1/admin/merchants/{merchantId}/flags", "admin", "admin", ["flags:write"], "010", "planned", "constitucion#I"));
+    m.operations.push(planned("putFlagsAgain", "put", "/v1/admin/merchants/{merchantId}/flags", "admin", "admin", ["flags:write"], "flags", "constitucion#I"));
   },
   "status-unknown": (m) => {
     m.operations[4].status = "someday";
@@ -131,7 +151,7 @@ const cases = {
     delete m.operations[3].retiredIn;
   },
   "merchant-id-outside-admin": (m) => {
-    m.operations.push(op("listDecisions", "get", "/v1/portal/{merchantId}/decisions", "portal", "portal", ["ledger:read"], "010", "planned", "constitucion#I"));
+    m.operations.push(planned("listDecisions", "get", "/v1/portal/{merchantId}/decisions", "portal", "portal", ["ledger:read"], "flags", "constitucion#I"));
   },
   "public-with-security": (_m, b) => {
     b.paths["/v1/health"].get.security = [{ ingestKey: [] }];

@@ -47,4 +47,12 @@ contaría quitar una como cambio incompatible (research R-01).
 - API-first deja de ser una intención: el mapa es la única puerta y el chequeo la cuida.
 - El paso 0 del flujo HTTP en `CLAUDE.md` es "la operación existe en el mapa como `planned`".
 - Un integrador ve, en un solo documento, qué existe hoy, qué viene y con qué feature.
-- El roadmap (`features:` del mapa) queda versionado con el contrato y se verifica.
+- El roadmap (`roadmap:` del mapa) queda versionado con el contrato y se verifica.
+  - Enmienda (2026-09-23): se llamaba `features:` y sus claves eran números de tres dígitos,
+    los mismos que los de `specs/`. Coincidieron hasta la 017 y divergieron después —en el mapa
+    `020` era el catálogo de mensajes; en `specs/`, el grafo de composición— y el gate aceptaba
+    una cita si resolvía en **cualquiera** de los dos, así que un número no decía cuál. Ahora son
+    dos espacios de nombres que no se mezclan: una operación construida nombra la feature que la
+    construyó (`feature: "017"`, con su directorio en `specs/`) y una planeada nombra el hito que
+    la va a traer (`roadmap: message-catalogue`, una clave en minúsculas que nunca puede
+    confundirse con un número). El campo dice de cuál se habla.

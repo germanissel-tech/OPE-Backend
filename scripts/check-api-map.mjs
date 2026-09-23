@@ -2,14 +2,14 @@
 //
 //   node scripts/check-api-map.mjs [--map f] [--bundle f] [--constitution f] [--mvp-docs d] [--specs d] [--schemes d]
 //
-// 1. Shape of the map: consumers (scheme file, tags, capabilities), features, operations.
+// 1. Shape of the map: consumers (scheme file, tags, capabilities), roadmap, operations.
 // 2. Both directions: every operation of the bundle has an entry; every built/deprecated entry
 //    has its operation, with the same method, path, tag, security and capabilities; planned
 //    and retired entries are absent from the bundle.
 // 3. Consistency: tag within the consumer, capabilities within the consumer's vocabulary,
 //    `{merchantId}` in the path only under admin (constitution V, ADR-020), public ⇒ no
-//    security and no capabilities, feature known, source verifiable, no duplicates, lifecycle
-//    flags coherent (deprecated ⇔ `deprecated: true`; retired ⇒ `retiredIn`).
+//    security and no capabilities, feature or roadmap item known, source verifiable, no
+//    duplicates, lifecycle flags coherent (deprecated ⇔ `deprecated: true`; retired ⇒ `retiredIn`).
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import {
@@ -39,10 +39,12 @@ const schemesDir = path.resolve(
   argString(args, "schemes") ?? path.join(repoRoot, "contracts", "components", "securitySchemes"),
 );
 
-const STATUSES = ["planned", "built", "deprecated", "retired"];
+const PLANNED = "planned";
+const STATUSES = [PLANNED, "built", "deprecated", "retired"];
 const IN_CONTRACT = ["built", "deprecated"];
 const CAPABILITY = /^[a-z][a-z-]*:[a-z][a-z-]*$/;
 const FEATURE = /^\d{3}$/;
+const ROADMAP_ITEM = /^[a-z][a-z0-9-]*$/;
 
 /** @type {string[]} */
 const problems = [];
@@ -132,10 +134,13 @@ for (const [name, raw] of Object.entries(isRecord(consumersRaw) ? consumersRaw :
   consumers.set(name, { scheme, tags, capabilities });
 }
 
-// --- Features ---------------------------------------------------------------------------
-const featuresRaw = prop(map, "features");
+// --- Features and roadmap ---------------------------------------------------------------
+// Two namespaces, never mixed: `feature` is a directory under specs/, `roadmap` a milestone of
+// the map. Before, either one answered for a citation, so a three-digit number could mean the
+// spec or the milestone and nobody could tell which.
+const roadmapRaw = prop(map, "roadmap");
 /** @type {Set<string>} */
-const roadmap = new Set(Object.keys(isRecord(featuresRaw) ? featuresRaw : {}));
+const roadmap = new Set(Object.keys(isRecord(roadmapRaw) ? roadmapRaw : {}));
 /** @type {Set<string>} */
 const specFeatures = new Set(
   exists(specsDir)
@@ -246,17 +251,43 @@ function checkConsumer(o) {
 }
 
 /**
+ * A planned operation names the milestone that will bring it, and nothing else: it has no spec
+ * yet, so a three-digit number here would be a promise about a directory that does not exist.
+ * @param {Record<string, unknown>} entry
+ * @param {MapOp} o
+ */
+function checkRoadmapItem(entry, o) {
+  if (entry["feature"] !== undefined) {
+    problems.push(`${o.where}: planned, so it names a roadmap item, not a feature`);
+  }
+  const item = String(entry["roadmap"] ?? "");
+  if (!ROADMAP_ITEM.test(item)) problems.push(`${o.where}: roadmap "${item}" is not a lowercase slug`);
+  else if (!roadmap.has(item)) problems.push(`${o.where}: roadmap ${item} is not an item of the map`);
+}
+
+/**
+ * Anything already in the contract names the specs/NNN-* feature that built it.
+ * @param {Record<string, unknown>} entry
+ * @param {MapOp} o
+ */
+function checkSpecFeature(entry, o) {
+  if (entry["roadmap"] !== undefined) {
+    problems.push(`${o.where}: ${o.status}, so it names a feature, not a roadmap item`);
+  }
+  const feature = String(entry["feature"] ?? "");
+  if (!FEATURE.test(feature)) problems.push(`${o.where}: feature "${feature}" is not a three-digit number`);
+  else if (!specFeatures.has(feature)) {
+    problems.push(`${o.where}: feature ${feature} has no specs/${feature}-* directory`);
+  }
+}
+
+/**
  * @param {Record<string, unknown>} entry
  * @param {MapOp} o
  */
 function checkFeatureAndSource(entry, o) {
-  const feature = String(entry["feature"] ?? "");
-  if (!FEATURE.test(feature)) problems.push(`${o.where}: feature "${feature}" is not a three-digit number`);
-  else if (!specFeatures.has(feature) && !roadmap.has(feature)) {
-    problems.push(
-      `${o.where}: feature ${feature} has neither a specs/${feature}-* directory nor a features entry in the map`,
-    );
-  }
+  if (o.status === PLANNED) checkRoadmapItem(entry, o);
+  else checkSpecFeature(entry, o);
   const source = entry["source"];
   if (typeof source !== "string" || source === "") {
     problems.push(`${o.where}: source is missing`);

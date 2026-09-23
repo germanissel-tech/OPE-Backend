@@ -1,0 +1,4 @@
+type: apiKey
+in: header
+name: X-OPE-Ingest-Key
+description: Public key of the merchant.

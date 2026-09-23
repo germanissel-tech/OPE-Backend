@@ -23,7 +23,8 @@ Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
 Dentro de una feature que toca HTTP, el orden es:
 
 0. La operación existe en `contracts/api-map.yaml` como `planned`, con consumidor, tag,
-   capacidades, feature y fuente (ADR-019). Nada entra al contrato sin estar antes en el mapa:
+   capacidades, hito del roadmap (`roadmap: <slug>`; la `feature: "NNN"` de `specs/` la toma al
+   pasar a `built`) y fuente (ADR-019). Nada entra al contrato sin estar antes en el mapa:
    `check:api-map` compara los dos en ambos sentidos. Construirla es pasarla a `built` y, si es
    la primera de su consumidor, referenciar su esquema de seguridad desde la raíz.
 1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`). La raíz `openapi.yaml` no
@@ -85,7 +86,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:identifiers`                       | Todo identificador citado entre comillas de código en constitución, ADR y glosario existe en el contrato, sus catálogos, `src/` o el tooling; allowlist con motivo en `scripts/identifiers-allowlist.json`                                                                     |
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                                       |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                             |
-| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, features, fuentes, ciclo de vida                                                                                                                                                        |
+| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, feature (construida) u hito del roadmap (planeada), fuentes, ciclo de vida                                                                                                              |
 | `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                                                                                                                                                      |
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                                                                                                                                                              |
 | `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                                                                                                                                                               |
@@ -367,8 +368,8 @@ Acá queda lo normativo:
   `subscribe` (OPE consume su cola)— y los tres entran por el mismo puerto; los adaptadores
   viven en OPE, desacoplados del núcleo, y agregar una plataforma es agregar un adaptador. Los
   modos `pull`/`subscribe`, el refresco parcial de stock/precio, el planificador, el consumidor
-  y los adaptadores Magento 2 y de prueba son la feature "Platform port, per-flow sync strategy
-  and adapters" del mapa (`contracts/api-map.yaml`). Todo Constitution Check evalúa los once
+  y los adaptadores Magento 2 y de prueba son el hito `platform-port` del roadmap del mapa
+  (`contracts/api-map.yaml`). Todo Constitution Check evalúa los once
   principios y cita la versión de la constitución.
 - **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
   `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,

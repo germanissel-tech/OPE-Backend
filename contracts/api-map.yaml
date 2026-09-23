@@ -6,8 +6,10 @@
 # consumers: who calls the API. The tag of an operation fixes its consumer; the consumer fixes
 #   its security scheme (a file under components/securitySchemes/, referenced from the root only
 #   once an operation uses it) and the closed vocabulary of capabilities (ADR-020).
-# features: the roadmap; every operation names the feature that builds it. Features with a
-#   directory under specs/ are verified against it; the rest against this list.
+# roadmap: the product milestones that have no specs/ directory yet. Two namespaces that must
+#   never be mixed: a built operation names the specs/NNN-* feature that built it (`feature`), a
+#   planned one names the milestone that will bring it (`roadmap`). The field says which one it
+#   is, so a three-digit number always means a directory under specs/.
 # operations: status is one of planned | built | deprecated | retired.
 consumers:
   public:
@@ -41,20 +43,12 @@ consumers:
         log:read,
         messages:publish,
       ]
-features:
-  "010": Catalogue and stock
-  "011": Decision plane I — barrier and evidence
-  "012": Decision plane II — quality gate and policy
-  "013": Outcomes — orders, returns, browser corroboration
-  "014": Integral engineering audit (read-only)
-  "015": Audit findings — corrections
-  "016": Alignment with the MVP base documents — evidence-chain vocabulary in the contract, page locale, identifier gate, roadmap and governance texts (docs/auditoria/2026-09-20-evaluacion-docs-base-vs-repo.md)
-  "017": Configuration, flags, kill switch and administration — three levels (platform, treatment defaults, merchant; constitution XI), per-flow sync strategy and freshness budgets as merchant data, merchant locales, versioned configuration stamped on every decision, calibration then freeze (D-G)
-  "018": Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity (audit 014 F-043, F-045, F-046)
-  "019": Platform port, per-flow sync strategy and adapters — the four operations of constitution X (fetchCatalog, fetchStockAndPrice, onOrderConfirmed, onReturnRegistered); push / pull / subscribe per flow negotiated per merchant; partial stock-and-price refresh with a per-item instant; scheduler and queue consumer outside the decision path; Magento 2 adapter and test adapter; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6); preceded by the documentary verification of Magento 2 and VTEX
-  "020": Message catalogue — curated, versioned texts per family and locale; message-unavailable when the page locale has no text and no declared fallback
-  "021": ITT analysis and merchant portal — health always visible, results only at pre-registered cuts (D-F); NOT_AVAILABLE as a first-class value
-  "022": Observability and end-to-end — critical-path latency by percentile, NO_OP rate and reasons, catalogue ingest health, correlation completeness
+roadmap:
+  persistence-and-resilience: Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity (audit 014 F-043, F-045, F-046)
+  platform-port: Platform port, per-flow sync strategy and adapters — the four operations of constitution X (fetchCatalog, fetchStockAndPrice, onOrderConfirmed, onReturnRegistered); push / pull / subscribe per flow negotiated per merchant; partial stock-and-price refresh with a per-item instant; scheduler and queue consumer outside the decision path; Magento 2 adapter and test adapter; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6); preceded by the documentary verification of Magento 2 and VTEX
+  message-catalogue: Message catalogue — curated, versioned texts per family and locale; message-unavailable when the page locale has no text and no declared fallback
+  itt-and-portal: ITT analysis and merchant portal — health always visible, results only at pre-registered cuts (D-F); NOT_AVAILABLE as a first-class value
+  observability: Observability and end-to-end — critical-path latency by percentile, NO_OP rate and reasons, catalogue ingest health, correlation completeness
 operations:
   - operationId: getHealth
     method: get
@@ -143,7 +137,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "021"
+    roadmap: itt-and-portal
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.3
   - operationId: getAccumulationStatus
@@ -152,7 +146,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [results:read]
-    feature: "021"
+    roadmap: itt-and-portal
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listDecisions
@@ -161,7 +155,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "021"
+    roadmap: itt-and-portal
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listExposures
@@ -170,7 +164,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "021"
+    roadmap: itt-and-portal
     status: planned
     source: mvp:01-arquitectura-mvp.md#5.7
   - operationId: listOrders
@@ -179,7 +173,7 @@ operations:
     consumer: portal
     tag: portal
     capabilities: [ledger:read]
-    feature: "021"
+    roadmap: itt-and-portal
     status: planned
     source: mvp:02-integracion-ecommerce.md#5.2
   - operationId: listMerchants
@@ -368,6 +362,6 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [messages:publish]
-    feature: "020"
+    roadmap: message-catalogue
     status: planned
     source: mvp:03-alcance-mvp.md#4.4
