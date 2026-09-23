@@ -85,9 +85,41 @@ No se agrega un campo por almacén: el nivel de plataforma se publica por el con
 día que el estado caliente salga del proceso, separarlos es un campo nuevo del nivel de plataforma y
 su bump de versión, no un cambio de forma.
 
+### Enmienda (2026-09-23) — una acción que no se pudo auditar no se hace
+
+Decisión del dueño. `AuditTrail.record` devuelve `Result<undefined, StoreUnavailable>` y el
+decorador **descartaba** ese resultado: si el registro no se podía escribir, la operación del
+operador se completaba igual y no quedaba constancia, en silencio. Eso se termina: una acción
+administrativa que no se puede auditar **falla**.
+
+Lo que la decisión obliga a resolver es el **orden**, no el código de error. Hoy la auditoría se
+escribe después de ejecutar, así que al enterarse de la falla la acción ya ocurrió: devolver `503`
+ahí le dice al operador que no pasó algo que sí pasó. En una rotación es peor que no fallar — la
+credencial nueva ya se acuñó y su valor viajaba en la respuesta descartada, de modo que el merchant
+queda con una credencial que nadie conoce. Fallar significa **fallar antes de actuar**.
+
+Se adopta, en dos tiempos:
+
+1. **Ahora**: el decorador verifica que el registro acepte escrituras **antes** de ejecutar; si no,
+   la operación responde `503 store-unavailable` y nada ocurre. No hace falta tocar el contrato:
+   los catorce paths de administración ya declaran `503` y el slug ya está en el catálogo. Esto
+   **reduce** la ventana a la duración de la acción; no la cierra, y se documenta así. Mientras el
+   registro sea un almacén en memoria la ventana es teórica.
+2. **Con la persistencia** (hito `persistence-and-resilience` del roadmap, donde queda escrito el
+   requisito): la entrada de administración **commitea con la acción que registra**. Ahí la ventana
+   se cierra y la verificación previa del punto 1 sobra.
+
+Descartada: escribir el intento antes y completarlo después. Es correcta en principio —la entrada
+que queda "intentada" es el registro forense que uno quiere— pero su escritura en dos fases existe
+sólo porque falta la transacción que el hito de persistencia va a traer, y cuesta un valor más en
+`AdminOutcome`, que es un enum cerrado del contrato, más un estado en `AdminEntry`, más una
+operación de cierre en el puerto, más decidir qué muestran las dos lecturas paginadas de una
+entrada pendiente. Construirla hoy es construir lo que la transacción vuelve innecesario.
+
 ## Consecuencias
 
 - "Cómo se autentica cada consumidor" se revisa leyendo un módulo.
+- Una acción administrativa que el registro no pudo aceptar no ocurre, y el operador se entera.
 - El módulo de merchants queda con un solo motivo de cambio: el agregado y su administración.
 - El mapa de contextos pasa sin excepciones, también entre módulos de composición (ADR-033).
 - Ningún comportamiento observable cambia: los mismos esquemas, los mismos códigos de error, las

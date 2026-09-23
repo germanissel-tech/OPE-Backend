@@ -44,7 +44,7 @@ consumers:
         messages:publish,
       ]
 roadmap:
-  persistence-and-resilience: Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity (audit 014 F-043, F-045, F-046)
+  persistence-and-resilience: Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity; the administration entry commits with the action it records, which closes the window ADR-034 leaves open (audit 014 F-043, F-045, F-046; ADR-034)
   platform-port: Platform port, per-flow sync strategy and adapters — the four operations of constitution X (fetchCatalog, fetchStockAndPrice, onOrderConfirmed, onReturnRegistered); push / pull / subscribe per flow negotiated per merchant; partial stock-and-price refresh with a per-item instant; scheduler and queue consumer outside the decision path; Magento 2 adapter and test adapter; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6); preceded by the documentary verification of Magento 2 and VTEX
   message-catalogue: Message catalogue — curated, versioned texts per family and locale; message-unavailable when the page locale has no text and no declared fallback
   itt-and-portal: ITT analysis and merchant portal — health always visible, results only at pre-registered cuts (D-F); NOT_AVAILABLE as a first-class value
