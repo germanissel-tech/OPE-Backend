@@ -115,17 +115,34 @@ type Assembled<M extends ModuleShape> = M["assembles"] extends readonly Binding[
   ? M["assembles"][number]
   : never;
 
-/** `"memory"` is not a union; `"memory" | "postgres"` is; no technology at all is neither. */
+/**
+ * Is `T` a union of more than one member? `"memory"` is not; `"memory" | "postgres"` is.
+ *
+ * `U = T` keeps a copy of the whole union, because the outer conditional is distributive and its
+ * `T` is one member at a time. So the inner comparison asks "is the whole union assignable to this
+ * one member?": with one member, yes (`false`, not a union); with two, no (`true`). The brackets
+ * around `[U] extends [T]` are what stops the inner conditional from distributing too — without
+ * them it would compare member against member and always answer `false`.
+ */
 type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
 /** Every label some technology of the module provides. */
 type Provided<M extends ModuleShape> = ProvidesOf<Bindings<M, Names<M>>>;
 
-/** What a technology leaves out of what the others provide; empty when there is only one. */
+/**
+ * What a technology leaves out of what the others provide; empty when there is only one.
+ *
+ * The mapped type computes the answer per technology and indexing it by `Names<M>` folds those
+ * answers into one union — the idiom for "the union of the values of a mapped type". With one
+ * technology, `Provided<M>` is exactly what it provides and the `Exclude` is `never`.
+ */
 type Divergence<M extends ModuleShape> = {
   [K in Names<M>]: Exclude<Provided<M>, ProvidesOf<Bindings<M, K>>>;
 }[Names<M>];
 
+// What `serves` needs, read out of the recipes in its three slots. Each alias takes a naked type
+// parameter so a union of recipes yields a union of labels; `X[keyof X]` is again the union of the
+// values of a record — every handler of the map, every security scheme of the map.
 type RequiresOfRecipe<R> = R extends Recipe<unknown, infer N> ? N : never;
 type RequiresOfHandler<R> = R extends HandlerRecipe<unknown, infer N> ? N : never;
 type RequiresOfServes<S> = S extends Serves
@@ -159,9 +176,16 @@ type Chosen<M extends ModuleShape, K extends Names<M>> = Deployed<
 >;
 
 /**
- * A module of composition. When it can be served in one way only there is nothing to decide and
- * the deployment takes it as it is; when it declares more than one technology, the deployment has
- * to name which one and the compiler asks for it. The question appears the day it exists.
+ * A module of composition, in one of three states. Served in one way (no technology names at all)
+ * or in one named way, it is a `Deployed` and a deployment takes it as it is; declaring two or
+ * more, it is `ChooseATechnology`, which a deployment does not accept, and `with(name)` is how the
+ * caller turns it into a `Deployed`.
+ *
+ * The first branch tests `[Names<M>] extends [never]`, in brackets, and the order matters. When a
+ * module lists its bindings, `Names<M>` is `never`, and `never` is assignable to everything —
+ * including `true` — so asking `IsUnion<Names<M>> extends true` first would answer "yes, choose a
+ * technology" for the very modules that have none to choose. The brackets stop the distribution
+ * that makes `never` vanish and let the case be caught before the union test runs.
  */
 export type CompositionModule<M extends ModuleShape> = ([Names<M>] extends [never]
   ? Chosen<M, never>
@@ -176,7 +200,8 @@ export function compositionModule<const M extends ModuleShape>(
 ): CompositionModule<M> {
   const declared: ModuleShape = shape;
   const provides = declared.provides ?? [];
-  // One way of being served is a list; several are a table with a name each.
+  // Both shapes are handled as one table: a list is stored under the empty name, which no author
+  // can write, so the code below has a single case and the empty name never reaches a deployment.
   const technologies: Tables = Array.isArray(provides) ? { "": provides } : (provides as Tables);
   const chosen = (name: string): Deployed<string, string, keyof Handlers> => {
     const bindings = technologies[name] ?? [];
@@ -186,8 +211,11 @@ export function compositionModule<const M extends ModuleShape>(
       serves: declared.serves ?? {},
     };
   };
+  // The returned object always carries the fields of the first technology —the only one, when
+  // there is one, and the empty name when the module listed its bindings— alongside `with`. It is
+  // the **type** that decides who may read them: with two technologies `CompositionModule` is
+  // `ChooseATechnology`, which has no `bindings`, so a deployment cannot take the first by
+  // accident and has to call `with`. The cast is where that reasoning leaves the compiler.
   const [only] = Object.keys(technologies);
-  // The fields of the first technology are always here; the type is what decides whether a
-  // deployment may read them without choosing one first.
   return { ...chosen(only ?? ""), with: chosen } as unknown as CompositionModule<M>;
 }

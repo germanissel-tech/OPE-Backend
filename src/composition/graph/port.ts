@@ -7,7 +7,17 @@ declare const SERVED: unique symbol;
 
 export interface Port<T, L extends string = string> {
   readonly label: L;
-  /** Phantom: carries what the port serves in the type. Never exists at runtime. */
+  /**
+   * Phantom: carries what the port serves in the type and is never assigned at runtime (`port()`
+   * below builds `{ label }` and nothing else).
+   *
+   * It has to be an **optional property**, not a method and not a required one. A property in this
+   * position is covariant, so `Port<MerchantStore>` is assignable to `Port<unknown>` and every port
+   * fits `AnyPort` — which is what lets a list of unrelated ports be one array. Written as
+   * `[SERVED](): T` it would be a method, methods are compared bivariantly and the surrounding
+   * interface stops being assignable the way the graph needs (the spike hit seven TS2352/TS2375
+   * this way; research R-03). Optional, because no value ever carries the key.
+   */
   readonly [SERVED]?: T;
 }
 

@@ -19,11 +19,17 @@ export interface Unwired<Id extends string> {
   readonly operationsWithoutHandler: Id;
 }
 
+// The two checks below are set subtraction over labels. Each module carries three phantoms —what
+// it provides, what it needs, which operations it serves— and these aliases read them back out.
+// They take a naked type parameter so that `M[number]`, the union of the modules of the list,
+// yields the union of all their labels; `Exclude` then says what is left over.
 type AnyDeployed = Deployed<string, string, keyof Handlers>;
 type ProvidedBy<D> = D extends Deployed<infer P, string, keyof Handlers> ? P : never;
 type NeededBy<D> = D extends Deployed<string, infer R, keyof Handlers> ? R : never;
 type ServedBy<D> = D extends Deployed<string, string, infer O> ? O : never;
+/** Needed by some module of the list and provided by none: the components that are missing. */
 type Holes<M extends readonly AnyDeployed[]> = Exclude<NeededBy<M[number]>, ProvidedBy<M[number]>>;
+/** Declared by the contract and served by no module of the list: the operations left unwired. */
 type Unserved<M extends readonly AnyDeployed[]> = Exclude<keyof Handlers, ServedBy<M[number]>> & string;
 
 export interface Deployment<Provides extends string> {

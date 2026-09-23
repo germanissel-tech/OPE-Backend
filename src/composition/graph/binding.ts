@@ -29,7 +29,18 @@ export function bind<T, L extends string, const D extends Needs>(
   return { ports: [target], needs, build };
 }
 
-/** What every port of a list serves, as one type: what a builder of all of them has to return. */
+/**
+ * What every port of a list serves, as one type: the intersection of the union, which is what a
+ * builder of all of them has to return.
+ *
+ * This is the standard union-to-intersection trick, and it reads backwards, so: the first
+ * conditional is distributive (`U` is a naked type parameter), which turns
+ * `MerchantStore | MerchantDirectory` into the union of functions
+ * `((of: MerchantStore) => void) | ((of: MerchantDirectory) => void)`. Inferring one parameter
+ * type out of that union puts `I` in **contravariant** position, and there the compiler has to
+ * find a type assignable to every member's parameter — the intersection
+ * `MerchantStore & MerchantDirectory`. `void` is filler: only the parameter matters.
+ */
 type Everything<U> = (U extends unknown ? (of: U) => void : never) extends (of: infer I) => void ? I : never;
 
 /**

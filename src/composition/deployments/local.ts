@@ -7,8 +7,9 @@
 // order only fixes the order of creation that the shutdown reverses. Adding a module is one line
 // here; forgetting it does not compile.
 //
-// A module names its technology only when it declares more than one: with a single way of serving
-// it there is nothing to decide, and the compiler asks the question the day it exists.
+// Every module below enters bare because each is served in one way. One that declared two would
+// enter as `ledgerModule.with("postgres")`, and leaving the call out would not compile: its type
+// is then `ChooseATechnology`, which this list does not accept.
 import { deployment } from "../graph/index.js";
 import { accessModule } from "../modules/access.js";
 import { adminModule } from "../modules/admin.js";
