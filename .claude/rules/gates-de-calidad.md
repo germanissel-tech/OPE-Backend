@@ -27,20 +27,11 @@ paths:
   se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
-- **Cómo se trabaja el gate de mutación** (la corrida completa cuesta minutos; no se repite por
-  cada arreglo): el archivo incremental `reports/mutation/stryker-incremental.json` **no se
-  borra** — la segunda corrida re-testea sólo lo que cambió; `--all` escribe en otro archivo y
-  nunca alimenta al gate. Ante un superviviente, en este orden: (1) describir el daño observable
-  del mutante; (2) clasificarlo — real, equivalente, sólo diagnóstico, específico del runner —
-  antes de tocar nada; (3) si es real, la prueba que pasa con el original y falla con el mutante;
-  si es equivalente, reestructurar el código para que el mutante no exista, no una excepción;
-  (4) confirmar con `npm run test:mutation -- --files <archivo>[:l1-l2]` (un minuto), no con la
-  corrida completa. La corrida completa del gate la hace **CI en cada push** (job propio): es el
-  juez; localmente no se espera. Un mutante **estático** (código que corre fuera de un `it`: carga
-  de módulo, `beforeAll` → `bootstrap`, semilla, lectores de configuración) se ignora
-  (`ignoreStatic`, ADR-016 enmendado 2026-09-21): el runner de Vitest no lo activa de forma fiable
-  y da falsos sobrevivientes; si además lo cubre un test, sigue corriendo contra ese test. Nunca
-  se cambia producción sólo para satisfacer la herramienta.
+- **Ante un mutante que sobrevive, el procedimiento es una skill**: `triaging-mutants`
+  (`.claude/skills/triaging-mutants/SKILL.md`). Cuatro pasos en orden —describir el daño observable,
+  clasificar el mutante antes de tocar nada, la prueba o la reestructuración según la clase,
+  confirmar acotado— que se **ejecutan**, y por eso no se leen de paso desde acá. Por qué los
+  mutantes estáticos se ignoran y por qué el juez es CI está en ADR-016.
 - **Ritmo de las pruebas, en dos velocidades** (decisión del dueño, 2026-09-21): por historia,
   local y en minutos — `format:check`, `typecheck`, `quality`, `npm test` (proyecto `fast`) — y
   commit. Por hito — el cierre de la feature (antes de la PR) y cada push de la rama — CI corre

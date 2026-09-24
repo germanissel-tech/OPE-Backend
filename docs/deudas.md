@@ -40,9 +40,14 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos         | Feature 025                    | `abierta`      | 2026-09-24 | —         |
 | D-10 | El procedimiento del gate de mutación está escrito como una instrucción        | Feature 025                    | `abierta`      | 2026-09-24 | —         |
 | D-11 | La regla `profiles-compose-modules` vigila un directorio que ya no existe      | Feature 026                    | `abierta`      | 2026-09-24 | —         |
+| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest   | ADR-016 (2026-09-21)           | `abierta`      | 2026-09-24 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
+
+D-12 estaba anotada en la decisión de ADR-016 del 2026-09-21 —«deuda anotada para la feature de
+calidad»— y nunca llegó al registro: exactamente el efecto que esta feature vino a corregir. Se
+registra tal como estaba escrita, sin decidir nada sobre ella.
 
 D-11 apareció **al separar**, no antes: ADR-033 reemplazó los perfiles por despliegues y la regla
 de dependency-cruiser se quedó apuntando a `src/composition/profiles/`, que ya no existe, así que

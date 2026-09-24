@@ -111,21 +111,21 @@ completo, y **recién entonces** se borra del origen. En commits separados.
 
 **Goal**: D-10 cerrada.
 
-- [ ] T017 [US4] **Confirmar el destino antes de mover** (la pregunta de la spec): ¿alguien lo
+- [x] T017 [US4] **Confirmar el destino antes de mover** (la pregunta de la spec): ¿alguien lo
       **ejecuta** paso a paso o lo **consulta**? El texto dice «ante un superviviente, **en este
       orden**» y enumera cuatro pasos, así que es lo primero — pero se confirma leyéndolo, no
       citando el plan. **Si resulta que se consulta, el destino es otro y la tarea cambia.**
-- [ ] T018 [US4] `.claude/skills/<nombre>/SKILL.md` — la skill, con su frontmatter (`name`,
+- [x] T018 [US4] `.claude/skills/<nombre>/SKILL.md` — la skill, con su frontmatter (`name`,
       `description`) como las doce que ya viven ahí. La `description` decide cuándo se la invoca, así
       que dice el síntoma —un mutante que sobrevive— y no sólo el tema.
-- [ ] T019 [US4] Los cuatro pasos, en orden, con lo que cada uno decide: describir el daño
+- [x] T019 [US4] Los cuatro pasos, en orden, con lo que cada uno decide: describir el daño
       observable, clasificar el mutante antes de tocar nada, la prueba o la reestructuración según la
       clase, y confirmar con una corrida acotada. **Lo que es propio de este repositorio** —los
       nombres de los comandos, el archivo incremental— va como dato de la skill o queda en la regla:
       la skill **no importa nada del repositorio por ruta**.
-- [ ] T020 [US4] `.claude/rules/gates-de-calidad.md` — queda que el procedimiento existe y cómo se
+- [x] T020 [US4] `.claude/rules/gates-de-calidad.md` — queda que el procedimiento existe y cómo se
       lo invoca.
-- [ ] T021 [US4] Verificar: `npx vitest run --project tools tests/audit/skills-isolation.test.ts` en
+- [x] T021 [US4] Verificar: `npx vitest run --project tools tests/audit/skills-isolation.test.ts` en
       verde.
 
 ---
