@@ -183,13 +183,16 @@ export class Experiment {
   }
 
   /**
-   * The split may not take what the holdout keeps out of OPE (feature 017): compared in whole
-   * buckets, the unit the assignment resolves to.
+   * The split may not take what the holdout keeps out of OPE (feature 017), compared in the whole
+   * buckets the assignment resolves to.
    *
-   * **In buckets and not in shares**, for two reasons. It compares what actually happens —the
-   * effective split— and not what was asked for; and comparing shares would reject complementary
-   * pairs that are legitimate, because `1 - 0.93` is `0.06999999999999995` in floating point, so a
-   * split of `0.07` would read as above it (measured, feature 022).
+   * **In buckets and not in shares** because the bucket is what actually happens: `assign` compares
+   * `hash % ASSIGNMENT_BUCKETS` against `bucketsOf(treatmentShare)`, so this judges the effective
+   * split and not the declared one. Comparing shares is not wrong, but it needs this same rounding
+   * to be right —`1 - 0.93` is `0.06999999999999995`, so a split of `0.07` would read as above it,
+   * and 20 of the 10 201 pairs of two-decimal values get the wrong verdict without it (measured,
+   * feature 022)— and rounding in share space is this arithmetic plus a division the comparison
+   * undoes, under a second name for 100.
    */
   withinHoldout(holdoutShare: number): Result<Experiment, TreatmentExceedsHoldout> {
     if (bucketsOf(this.treatmentShare) > ASSIGNMENT_BUCKETS - bucketsOf(holdoutShare)) {
