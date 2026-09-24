@@ -87,7 +87,7 @@ completo, y **recién entonces** se borra del origen. En commits separados.
 
 **Goal**: D-08 y D-09 cerradas. Son independientes entre sí.
 
-- [ ] T011 [P] [US3] `docs/adr/016-*.md` (o la configuración que los declara) — recibe lo descriptivo
+- [x] T011 [P] [US3] `docs/adr/016-*.md` (o la configuración que los declara) — recibe lo descriptivo
       de `Gates de calidad`: los umbrales del lint, los de duplicación y código muerto, y los de
       forma de los anillos. **Antes de borrarlos.** Si el destino correcto resulta ser la propia
       configuración —que ya lleva la justificación de cada umbral—, entonces lo que hay que agregar
