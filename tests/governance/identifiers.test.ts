@@ -12,6 +12,8 @@ const check = (dir: string) => {
     `${base}/constitucion.md`,
     "--instructions",
     `${base}/instrucciones.md`,
+    "--rules",
+    `${base}/reglas`,
     "--bundle",
     `${base}/bundle.yaml`,
     "--catalogs",

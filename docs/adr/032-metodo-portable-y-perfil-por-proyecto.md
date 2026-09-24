@@ -161,3 +161,57 @@ más de lo que es.
   bloques descriptivos volvieron a donde se obedecen.
 - Tres secciones quedan declaradas `mixed` con su motivo: separar sus párrafos es la deuda que esta
   feature deja nombrada en vez de esconder.
+
+## Enmienda (2026-09-24, feature 025) — el núcleo se lee siempre; el resto carga cuando hace falta
+
+La enmienda anterior le puso gate y criterio a las instrucciones de los agentes. Ésta las **parte**,
+y el número que lo justifica no es nuestro.
+
+### La fuente
+
+La documentación oficial de Claude Code (`https://code.claude.com/docs/en/memory`, leída el
+2026-09-24) fija el umbral en **menos de 200 líneas por archivo**, y da un motivo que pesa más que
+el costo de contexto: **«Longer files consume more context and reduce adherence»** — un archivo más
+largo **se obedece peor**. También da el criterio: **«Keep it to facts Claude should hold in every
+session… If an entry is a multi-step procedure or only matters for one part of the codebase, move it
+to a skill or a path-scoped rule instead.»**
+
+Se cita la fuente a propósito, para que las doscientas líneas no se lean como una preferencia de
+quien escribió este ADR.
+
+### Lo que la fuente descarta, y era el arreglo obvio
+
+Medido contra la documentación: **partir el archivo en importaciones (`@path`) o en reglas sin
+acotar no cambia nada**, porque las dos cosas se expanden y entran al contexto al arrancar igual.
+Lo único que saca carga del arranque es **acotar una regla a los archivos a los que se aplica**.
+
+### Qué se decide
+
+1. **Tres destinos y dos preguntas.** ¿Hace falta en **toda** sesión? Si sí, el núcleo. Si no, ¿es
+   un procedimiento de varios pasos? Si sí, una skill; si no, una regla acotada en `.claude/rules/`.
+   **Ser normativo no alcanza**: el flujo de trabajo hace falta siempre; cómo se escribe un caso de
+   uso es igual de normativo y sólo hace falta en `src/application/`.
+2. **De cada regla queda en el núcleo la línea que impide equivocarse** antes de que la regla
+   llegue, porque una regla acotada entra cuando el agente **lee** un archivo de esa parte, y
+   escribir el primero es cuando más se la necesita. Si una sección no se puede reducir a eso, no se
+   mueve. Las seis que se movieron pasan porque su invariante la rechaza un gate en el acto:
+   equivocarse cuesta un ciclo de gate, no una revisión.
+3. **El límite vive en la política declarada**, no en el script (constitución XI), y **cuenta los
+   punteros**: un núcleo que entra sólo porque no cuenta lo que carga no entra.
+4. **Dos verificaciones nuevas**: toda regla declara a qué se aplica o por qué no —una regla sin
+   acotar carga al arrancar y no ahorra nada—, y esa parte existe —una regla que nunca se puede
+   activar es una regla muerta—.
+
+### Consecuencias
+
+- `CLAUDE.md` pasa de **573 a 194 líneas**. La serie completa: 360 → 675 → 573 → 194.
+- Seis reglas acotadas al contrato, al código fuente, a la aplicación, al dominio, a las pruebas y a
+  las evaluaciones. Ninguna línea de contenido se perdió; lo único consolidado fue la tabla de
+  comandos, que duplicaba 26 de sus 30 filas con el inventario de `scripts/`.
+- **El gate acepta que un comando esté documentado en dos lugares.** Pedirle al núcleo la lista
+  completa era lo que hacía de esa tabla una segunda copia del inventario; lo que no puede pasar es
+  un comando descrito en **ninguno**.
+- **La clasificación mira desde el título.** Antes empezaba en el segundo nivel, así que el título
+  del núcleo —que lleva la convención de idioma— nunca había tenido que clasificarse.
+- Las tres verificaciones de gobernanza —identificadores, citas de decisiones y marcadores— alcanzan
+  a las siete instrucciones, no sólo al núcleo.

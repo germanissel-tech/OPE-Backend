@@ -22,336 +22,31 @@ Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check, q
 once principios y cita la versión de la constitución** — los once, también los que no aplican, que
 se marcan como tales.
 
-Dentro de una feature que toca HTTP, el orden es:
-
-0. La operación existe en `contracts/api-map.yaml` como `planned`, con consumidor, tag,
-   capacidades, hito del roadmap (`roadmap: <slug>`; la `feature: "NNN"` de `specs/` la toma al
-   pasar a `built`) y fuente (ADR-019). Nada entra al contrato sin estar antes en el mapa:
-   `check:api-map` compara los dos en ambos sentidos. Construirla es pasarla a `built` y, si es
-   la primera de su consumidor, referenciar su esquema de seguridad desde la raíz.
-1. Cambiar el contrato en `contracts/` (multi-archivo, `$ref`). La raíz `openapi.yaml` no
-   declara `components` (salvo `securitySchemes`, que `security` referencia por nombre): cada
-   archivo de `components/` se referencia por ruta relativa desde donde se usa y el bundle lo
-   promueve a `#/components/<tipo>/<NombreDeArchivo>`.
-2. `npm run contract:check` en verde (lint, bundle, compatibilidad contra `main`, drift de
-   tipos). Si agrega una regla nueva al ruleset, agregar su fixture en
-   `tests/contract-rules/fixtures/` (la prueba falla si falta).
-3. Regenerar tipos (`npm run contract:types`). **Nunca editar lo generado a mano.**
-4. Reglas puras y errores en `src/domain/<módulo>/` (`errors.ts`), caso de uso en
-   `src/application/<módulo>/use-cases/`, servicios en `services/` y puertos en `ports/`
-   (ver "Cómo se escribe un caso de uso"), controller en
-   `src/interface-adapters/<módulo>/controllers/<operacion>.ts` tipado con
-   `OperationHandler<"<operationId>">` (sólo traduce DTO ↔ request/response; lee el merchant con
-   `merchantOf(req)`; un fallo se responde con `toProblem(result.error, req.instance)`; lo que
-   varios controllers del módulo comparten —dominio → DTO— en `<módulo>/presenters.ts`; su
-   security handler en `<módulo>/security/`), gateway del puerto en
-   `src/interface-adapters/<módulo>/gateways/`, todo exportado por
-   `src/interface-adapters/<módulo>/index.ts`, y
-   cableado en `src/composition/modules/<módulo>.ts`: el módulo declara sus componentes como
-   constantes con `port("<módulo>.<qué>")<Tipo>()` y dice **tres** cosas —`provides` (sus
-   componentes: la lista de enlaces, o una tabla por tecnología si hay más de una manera de
-   servirlos), `assembles` (lo que arma con ellos, igual en todo despliegue) y `serves` (handlers
-   por `operationId`, esquemas de seguridad, CORS)—; los casos de
-   uso se instancian con `new` dentro de los builders; un handler se declara con `served(necesita,
-{ name, build }, controller, readers?)` y **no elige** si se loguea o se audita.
-   Lo que **necesita** no es una lista: son los `import` y los nombres del `bind`. Un módulo nuevo
-   son tres archivos: el suyo, una línea en `deployments/local.ts` y otra en `CONTEXT_MAP`;
-   olvidarse de cualquiera falla en compilación, en `arch` o en `npm test`.
-   `bootstrap.ts` no nombra ninguna operación y se niega a arrancar si el contrato declara una
-   que ningún módulo sirve. El servidor rutea por `operationId`; no hay otro mecanismo de rutas.
-5. `npm run format:check && npm run quality && npm run typecheck && npm test && npm run test:mutation && npm run test:contract`
-   en verde. El hook de pre-commit corre formato, lint y typecheck sobre lo staged; el resto lo
-   corre CI.
-
-Antes del paso 1, si la operación trae **un sustantivo nuevo**, su nota en `docs/dominio/`
-(ADR-008); si trae **una regla que el esquema no expresa**, su `x-invariants` con tipo propio
-en `contracts/problem-types.yaml` y una prueba `[invariant:<slug>]` (ADR-007); si toma **una
-decisión transversal**, su ADR en `docs/adr/` (ADR-009).
+Dentro de una feature que toca HTTP hay un orden de seis pasos que empieza en el mapa del
+contrato y termina en la cadena de gates. Está en `.claude/rules/contrato.md`, que llega cuando
+tocás `contracts/`.
 
 ### Comandos
 
-| Comando                                           | Qué hace                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run contract:lint`                           | Redocly (estructura) + Spectral (`contracts/.spectral.yaml`, reglas `ope-*`)                                                                                                                                                                                                   |
-| `npm run contract:bundle`                         | Bundle en `contracts/dist/openapi.yaml` (derivado, no se commitea)                                                                                                                                                                                                             |
-| `npm run contract:diff`                           | Cambios incompatibles contra `origin/main` (oasdiff); `CONTRACT_BASE_REF` para otra base; con `info.x-stability: building` los reporta y acepta                                                                                                                                |
-| `npm run contract:types` / `contract:types:check` | Regenera `generated/api.d.ts` y `generated/problem-types.{js,d.ts}` (fuera de `src/`, leídos por `#generated/*`) / falla si alguno está desactualizado                                                                                                                         |
-| `npm run contract:check`                          | lint → bundle → diff → drift de tipos. Corre antes de cualquier commit                                                                                                                                                                                                         |
-| `npm run contract:docs`                           | `docs/api/index.html` autocontenido; se rehúsa si `contract:check` falla                                                                                                                                                                                                       |
-| `npm run contract:insomnia`                       | `docs/api/insomnia.json`: colección de Insomnia derivada del bundle (un request por operación, header de credencial, instantes vivos)                                                                                                                                          |
-| `npm run build` / `dev` / `typecheck`             | `tsc` a `dist/` / servidor real en memoria con `config/dev-merchants.json` (sin mock, ADR-018) / `tsc --noEmit`                                                                                                                                                                |
-| `npm test` / `test:tools` / `test:all`            | Vitest, proyecto `fast`: unitarias, integración (`fastify.inject`), reglas del contrato, compatibilidad, gobernanza, arquitectura / proyecto `tools` (auditoría sobre fixtures, cadena de calidad, documentación) / ambos, como CI                                             |
-| `npm run test:scoped`                             | Los proyectos de Vitest que el cambio necesita: `fast` siempre; `tools` sólo si cambió `scripts/`, `.claude/`, `contracts/`, `docs/`, `tests/audit/`, la cadena de calidad, `contract-docs`, `vitest*`, `package.json` o `.github/` (lo que corre CI); `-- --all` = `test:all` |
-| `npm run test:contract`                           | Schemathesis (`uvx`) contra el servidor levantado                                                                                                                                                                                                                              |
-| `npm run arch`                                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                                                                                                                                                                                      |
-| `npm run check:invariant-tests`                   | Toda `x-invariants` del contrato tiene su prueba `[invariant:<slug>]`                                                                                                                                                                                                          |
-| `npm run check:glossary`                          | Todo sustantivo del contrato resuelve a `docs/dominio/`; toda nota con fuente                                                                                                                                                                                                  |
-| `npm run check:identifiers`                       | Todo identificador citado entre comillas de código en constitución, ADR y glosario existe en el contrato, sus catálogos, `src/` o el tooling; allowlist con motivo en `scripts/identifiers-allowlist.json`                                                                     |
-| `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                                       |
-| `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                             |
-| `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, feature (construida) u hito del roadmap (planeada), fuentes, ciclo de vida                                                                                                              |
-| `npm run check:instructions`                      | Lo que `CLAUDE.md` cita existe (rutas contra el disco, comandos contra `package.json` en los dos sentidos) y cada sección está clasificada en `scripts/instructions-policy.json`; verifica que lo nombrado exista, no que lo escrito sea cierto                                |
-| `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                                                                                                                                                      |
-| `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                                                                                                                                                              |
-| `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                                                                                                                                                               |
-| `npm run release-check`                           | `contract:check` + marcadores en modo estricto: la puerta antes de publicar                                                                                                                                                                                                    |
-| `npm run check:duplication`                       | jscpd: clones estructurales; bloquea en `src/`, informa en `tests/` y `scripts/`                                                                                                                                                                                               |
-| `npm run check:dead-code`                         | knip: archivos, exports y dependencias sin uso bloquean; tipos exportados sin uso informan                                                                                                                                                                                     |
-| `npm run check:behaviour-constants`               | Ninguna constante de comportamiento en `src/` (constitución XI): los archivos retirados no existen y ningún archivo declara sus nombres; `-- --src <dir>` para un fixture                                                                                                      |
-| `npm run check:ports-bound`                       | Todo puerto de `src/application/*/ports/` está enlazado en el grafo y ninguna etiqueta se repite (ADR-033); `-- --src <dir>` para un fixture                                                                                                                                   |
-| `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`; se detiene en el primero rojo                                                                                                                |
-| `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                                   |
-| `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental         |
-| `npm run check:mutation-report`                   | Lee el reporte de la última corrida de mutación y falla si quedó un superviviente; lo usa CI para no releer la salida a ojo                                                                                                                                                    |
+El lazo de una historia: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`.
+Antes de cerrar la feature se agregan `npm run contract:check`, `npm run test:mutation`,
+`npm run test:contract` y `npm run release-check`.
 
-Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los siete gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`.
+| Comando                           | Qué hace                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm test`                        | Vitest, proyecto `fast`: unitarias, integración, contrato, gobernanza, arquitectura                       |
+| `npm run test:tools`              | Proyecto `tools`: auditoría, cadena de calidad, documentación. Sólo cuando el cambio toca una herramienta |
+| `npm run test:all`                | Los dos proyectos, como CI                                                                                |
+| `npm run build`                   | `tsc` a `dist/`                                                                                           |
+| `npm run dev`                     | El servidor real en memoria, sin mock (ADR-018)                                                           |
+| `npm run arch`                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                 |
+| `npm run format` / `format:check` | Prettier sobre todo / falla si algo difiere del formato canónico (ADR-011)                                |
+| `npm run lint:fix`                | Arregla lo que el lint puede arreglar solo                                                                |
+| `npm run release-check`           | `contract:check` más los marcadores en modo estricto: la puerta antes de publicar                         |
 
-### Anillos y módulos (ADR-013, verificado por `npm run arch`)
-
-`src/` contiene `main.ts`, `composition/` y cuatro anillos; nada más. Dependencia sólo hacia
-adentro:
-
-| Anillo                    | Qué va ahí                                                                                                                                                                                                                                                                                                   | Puede importar de                                                                                                                                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/domain/`             | reglas y valores puros, por módulo                                                                                                                                                                                                                                                                           | sólo `domain/`. **Nada de npm ni de Node, ni tipos**                                                                                                                                                                                   |
-| `src/application/`        | casos de uso y **los puertos que definen** (`<módulo>/ports/`), por módulo                                                                                                                                                                                                                                   | `domain/`, `application/`. Tampoco npm ni Node                                                                                                                                                                                         |
-| `src/interface-adapters/` | todo lo que **traduce**, por módulo: `<módulo>/{controllers/, presenters.ts, security/, gateways/, index.ts}` (entrada y salida por nombre); núcleo `http/` sin módulos (tipado, Problem Details, borde genérico, principales); `shared-kernel/`                                                             | `application/`, `domain/`, `node:`. El mapa de contextos rige también aquí; un gateway no importa otro gateway ni npm (los drivers entran por `infrastructure/`); un controller no importa gateways; el núcleo no conoce ningún módulo |
-| `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                                                                                         | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
-| `src/composition/`        | `graph/` (la biblioteca del grafo, sin conocer ningún módulo), `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `deployments/` (la lista de módulos con su tecnología), `release.ts` (lo que viene de afuera del grafo), `bootstrap()`, `*-config.ts` | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
-| `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                                                                                      | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
-
-**Dónde va lo que comparten los controllers**: lo que sirve al borde **sin conocer un módulo**
-(`instantOf`, `idempotent`, la paginación) vive en `http/boundary.ts`; lo que **conoce el módulo**
-(el DTO de sus entidades) en `<módulo>/presenters.ts`; nunca en `controllers/`, donde un archivo es
-una operación.
-
-Fuera de `src/`: `generated/` (lo que `contract:types` deriva del contrato; nunca editado;
-importable sólo desde `interface-adapters/http/` e `infrastructure/http/` como `#generated/*`) y
-`client/` (el cliente tipado para consumidores; nada de `src/` lo importa). Qué contiene cada
-directorio de primer nivel lo dice su `README.md` (ADR-032; verificado por `tests/docs`):
-`config/`, `contracts/`, `generated/`, `patches/`, `scripts/`, `docs/`, `tests/`, `client/`,
-`specs/`.
-
-**Módulos** dentro de `domain/`, `application/` e `interface-adapters/`: `shared-kernel`, `system`, `operator`
-(quién opera: `Operator`, `OperatorId`, alcance; sólo dominio), `merchant`,
-`ledger`, `experiment`, `ingestion`, `catalog`, `barrier`, `selection`, `commercial`, `decision`,
-`outcomes`, `configuration` (los tres niveles y su resolución; nadie lo importa: cada consumidor
-define su puerto de lectura y la composición enlaza), `admin` (registro de administración,
-diagnóstico de anclajes, configuración del SDK), `access` (ADR-034: los tres esquemas de
-autenticación, sus resolvedores y las políticas de seguridad del nivel 1; lee el directorio de
-merchants y nunca escribe) — los demás cuando llegue su feature. Dentro de un módulo
-de aplicación: `use-cases/`, `services/`, `ports/`; en el dominio, `errors.ts` (ADR-023). Cada módulo expone su API pública
-en `index.ts`; un módulo importa de otro **sólo por su `index.ts`** y sólo si el mapa de
-contextos (`CONTEXT_MAP` en `.dependency-cruiser.cjs`) lo permite. Agregar un módulo =
-agregar una entrada al mapa. Cada regla tiene un fixture en `tests/architecture/fixtures/`.
-
-**Composición** (DI manual, sin contenedor; grafo tipado, ADR-033): el cableado es un grafo donde
-cada componente lo declara **una vez** su módulo dueño como una constante exportada —`port("
-ledger.decisions")<DecisionLedger>()`— y quien lo necesita la importa: **no hay resolución por
-texto**, y por eso el mapa de contextos también rige entre módulos de composición. Cada
-`src/composition/modules/<módulo>.ts` exporta tres cosas y nada más (regla de forma
-`composition-module-shape`): `provides` (sus componentes, la lista de enlaces; y **sólo** si hay
-más de una manera de servirlos, una tabla por tecnología —no hay nombre que inventar hasta que
-haya algo que elegir—), `assembles` (lo que arma con ellos, igual en todo despliegue) y `serves`
-(handlers por `operationId`, esquemas de seguridad, CORS). Todo opcional.
-
-Un enlace declara lo que necesita **por nombre**: `bind(Puerto, { clock: ClockPort }, ({ clock })
-=> …)`; `bindAll([Store, Directory], …)` es "una instancia, varias vistas" —se construye una vez y
-los dos puertos responden con el mismo objeto—. El despliegue (`deployments/local.ts`) es una
-lista sin orden significativo, y un módulo nombra su tecnología **sólo si declara más de una**
-(`ledgerModule.with("postgres")`): con una sola no hay nada que decidir.
-**No compilan**: un requisito sin proveedor (`Missing<…>`), dos tecnologías de un módulo que no
-proveen lo mismo (`TechnologiesDisagree<…>`), un módulo con varias tecnologías que entra al
-despliegue sin elegir (`ChooseATechnology<…>`), una instancia que no satisface todas sus vistas, y
-un despliegue que no cubre las operaciones del contrato (`Unwired<…>`). La resolución es perezosa y memorizada —una instancia por
-arranque, sin nada global ni estático— y un ciclo falla al arrancar nombrándolo.
-`instantiate(plan, [replace(Puerto, doble)])` es lo que una prueba reemplaza.
-`bootstrap(config, { deployment?, ports?, handlers? })` devuelve `{ app, resolve, close }`; el
-logger es un componente (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y las
-pruebas lo reemplazan con `replace(LoggerPort, …)`. `start()` adjunta el ciclo de vida (`lifecycle.ts`):
-SIGINT/SIGTERM cierran en orden y salen 0; un cierre que falla o excede la gracia, una excepción
-no capturada o una promesa rechazada sin manejar se loguean y salen 1. `readConfig` rechaza con
-`ConfigError` (variable + problema) lo que no puede arrancar el servidor; `bootstrap` se niega
-a arrancar si el contrato declara una operación que ningún módulo sirve. Las pruebas usan
-`startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos, reloj reemplazable).
-Los merchants viven detrás del puerto `MerchantStore` (ADR-031; en memoria hasta la feature de
-persistencia): `OPE_MERCHANTS` (JSON) o `OPE_MERCHANTS_FILE` es una **semilla** que
-`bootstrap` importa por `ImportMerchantsUseCase` como el operador `system` sólo si el store
-arranca vacío (con merchants ya registrados, no pisa nada); sin semilla ni store poblado, nadie
-autentica. Nada de lo que un operador hace a un merchant (crear, rotar, apagar, dar de baja)
-requiere reiniciar: se lee del store en la siguiente request. Los dos niveles del release
-(constitución XI, ADR-031) son archivos del repositorio, `config/platform.json` y
-`config/treatment-defaults.json` (`OPE_PLATFORM_CONFIG` / `OPE_TREATMENT_DEFAULTS` nombran
-otros), que `readConfig` lee por los lectores de forma del módulo `configuration`
-(`readPlatformConfiguration`, `readTreatmentDefaults`) y las fábricas del dominio
-(`PlatformConfiguration.of`, `TreatmentDefaults.of`) juzgan: un valor fuera de rango es un
-`ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`. La semilla admite,
-junto a los campos del merchant, todo lo que `MerchantConfigurationDeclared` admite
-(`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutShare`, `freshness`, …):
-`bootstrap` lo publica como la versión 1 del merchant (`ImportMerchantConfigurationUseCase`,
-operador `system`) sólo si el merchant no tiene versiones. No hay servidor mock ni modo
-(ADR-018): el composition root no decide sobre configuración (`shape` regla 5).
-
-### Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)
-
-- Un archivo `src/application/<módulo>/use-cases/<nombre>.use-case.ts` que exporta **una** clase
-  `<Nombre>UseCase implements UseCase<Request, Response>` con `execute(request)`. Lo que cambia
-  por llamada va en el request; lo que necesita para operar llega por el constructor como un
-  único objeto tipado por una interfaz `<Nombre>Dependencies` del mismo archivo, cuyos campos
-  son interfaces (puertos de `ports/`, servicios `*Service`, `Clock`, `Logger`),
-  **seis como máximo** (`ope/dependencies-are-interfaces`). Superarlo se resuelve extrayendo un
-  servicio, no relajando el límite.
-- Un caso de uso **nunca** importa ni invoca a otro caso de uso (`use-cases-no-use-cases`). Lo
-  compartido que necesita puertos es una interfaz `*Service` en `services/` —el rol del que
-  depende el consumidor (`AssignmentService`, `ScopedMerchantService`)— y su implementación lleva
-  el **plural de lo que responde** (`Assignments`, `ScopedMerchants`, `ProductTruths`), nunca un
-  prefijo vacío: `Default` no distinguía nada porque no hay nada que distinguir —hay una sola
-  implementación y ningún mecanismo que nombrar—, y qué clase se enlaza se lee en
-  `composition/modules/<módulo>.ts`. Cuando haya dos, la segunda se nombra por su mecanismo, como
-  los gateways (`RuleBasedBarrierInference`, `memoryMerchantStore`). Un servicio no importa
-  casos de uso (`services-no-use-cases`). Autenticación y autorización tampoco son casos de
-  uso: son servicios (`IngestKeyResolver`) que el security handler consulta antes de validar el
-  body y antes de cualquier caso de uso; un caso de uso recibe el merchant resuelto, nunca la
-  credencial.
-- Un error de negocio es una clase en `src/domain/<módulo>/errors.ts` que extiende
-  `DomainError` con `readonly code = "<slug>" as const` y `readonly module = MODULE` (la carpeta;
-  `ope/domain-error-shape`), y el archivo exporta la unión del módulo. El `code` es el slug del
-  catálogo `contracts/problem-types.yaml`: agregar un error = agregar su entrada allí (la prueba
-  de réplica falla si falta). La response del caso de uso es `Result<T, <unión exacta>>`
-  (`ok(value)` / `fail(error)`); un caso de uso que no puede fallar devuelve el valor directo.
-  Un `DomainError` **se devuelve, nunca se lanza** (`ope/no-throw-domain-error`); `throw new
-Error` queda para errores de programación (→ `500`). Sin `try/catch` en `application/`
-  (`ope/no-generic-catch-in-application`): los puertos devuelven `Result`.
-- La traducción a HTTP es una sola: `toProblem(error, instance)` en
-  `interface-adapters/http/to-problem.ts` (`type` desde `code`, status y título del catálogo
-  generado); sólo el borde HTTP del anillo la importa (controllers, presenters, security;
-  `problem-translation-only-in-http`). Los controllers no construyen errores. Los headers de un
-  status son del transporte: `Retry-After` de toda `503` lo agrega la infraestructura con
-  `retryAfterSeconds` del nivel de plataforma.
-- **Preocupaciones transversales: nadie las elige** (ADR-023, feature 021). Un `UseCase<I, O>` que
-  envuelve otro, en `application/shared-kernel/decorators/` (`LoggedUseCase`: nombre del **caso de
-  uso**, duración y `ok` o `code`, nunca el request; `AuditedUseCase`: lo que un operador hizo, por
-  el puerto `AuditTrail` del kernel que `admin` implementa, ADR-034). **Qué se aplica lo dice el
-  contrato, no el módulo**: se audita si y sólo si el consumidor es `admin` y la capacidad no es de
-  lectura, y eso lo deriva `contract:types` a `generated/audited-operations.{js,d.ts}`
-  (`AuditedOperation`). La decoración la declara el kernel una vez (`serves.decoration`) y la
-  aplica la biblioteca del grafo al construir cada handler; el controller recibe el caso de uso
-  **ya envuelto**. Una operación que el contrato manda auditar, servida por un caso de uso cuyo
-  request no lleva operador, **no compila** (`CannotAudit<"<operationId>">`). La semilla del
-  arranque no pasa por ahí —no son operaciones del contrato— y audita sin loguear por el
-  componente `kernel.audit`.
-- **Una acción administrativa que no se pudo auditar no ocurre** (ADR-034, enmienda del
-  2026-09-23): el decorador pregunta al registro **antes** de ejecutar y, si no acepta escrituras,
-  responde `503 store-unavailable` sin que la acción haya pasado. Fallar después sería peor que no
-  fallar. La semilla es una acción administrativa también, así que un servidor cuyo registro
-  rechaza escrituras desde el arranque **no arranca**. Queda abierta la ventana en que el registro
-  se cae durante la acción; se cierra con la transacción del hito `persistence-and-resilience`.
-- Cómo se registra un error de negocio lo declara **el error**: sólo el que deniega lo dice
-  (`MerchantOutOfScope`), y cualquier otro es un rechazo. El kernel no compara códigos por texto.
-- Cada regla `ope/*` vive en `scripts/lint/<regla>.mjs` (plugin `scripts/lint/plugin.mjs`) con su
-  fixture en `tests/lint/fixtures/as-src/` y las de arquitectura en
-  `tests/architecture/fixtures/src/`.
-
-### Cómo se escribe una entidad (ADR-024, verificado por `lint`)
-
-- **Clase si hay reglas, tipo si no.** Un concepto con invariantes o comportamiento
-  (`EventBatch`, `Decision`, `Experiment`, `Merchant`, `Origin`) es una clase en
-  `src/domain/<módulo>/<concepto>.ts` con `private constructor`, `static of(...)` que devuelve
-  `Result<T, E>` con los errores de su `errors.ts` (si tenés la instancia, es válida) y
-  `static rehydrate(record)` que reconstruye desde datos ya registrados **sin** reevaluar las
-  reglas de creación. Un valor sin reglas (`Exposure`, `Assignment`, ids, `Arm`, `ServiceHealth`)
-  sigue siendo un tipo; no se envuelve por uniformidad.
-- **Las reglas viven con su dueño y se invocan por su nombre**: `experiment.assign(visitorId)`,
-  `merchant.allowsOrigin(origin)`, `decision.isIntervention()`, `batch.noOpReason()`. Un caso de
-  uso o servicio no reimplementa una regla del dominio. `src/domain/` no exporta funciones
-  sueltas (`ope/domain-no-loose-functions`); la excepción declarada son las primitivas del
-  `shared-kernel` (`ok`/`fail`, `seconds`/`minutes`/`hours`) y los constructores de identidad
-  de cada módulo (`ids.ts`).
-- **Estados ilegales irrepresentables**: `Decision` es `NoOpDecision | InterveneDecision`
-  (discriminada por `outcome`; `NO_OP` lleva un `NoOpReason` del catálogo, `INTERVENE` su
-  intervención). Fábricas `NoOpDecision.of` / `InterveneDecision.of`; `DecisionBase.rehydrate`.
-- **Las invariantes se validan en su dueño; nadie las esquiva.** `composition/config.ts` parsea
-  la forma del JSON y construye por fábrica; un `fail` es un `ConfigError` que nombra el campo
-  (`merchants[i].experiments[j].treatmentShare`, `merchants[i].origins[k]`). Los gateways
-  reciben entidades, nunca registros crudos. Los errores de configuración son `DomainError` y
-  figuran en el catálogo de problemas aunque ningún endpoint los emita.
-- **Una sola unidad para las tasas (ADR-035)**: toda tasa es una fracción de 1, en el contrato, en
-  la semilla, en los niveles del release y en el dominio. No hay porcentajes 0–100 en ninguna parte y
-  el backend **no convierte formatos**: recibe fracciones y entrega fracciones
-  (`treatmentShare`, `holdoutShare`, `maxIncentiveShare`, `incentiveLadderShare`, `marginShare`,
-  los `cuts` de un experimento, `Incentive.value`). Cómo se muestre un 5 % en un frontend o en un
-  reporte no es problema del backend. `isRate`/`isCount` del `shared-kernel` juzgan los números;
-  ser entero no es una regla de ninguna tasa. La única constante que vale 100 es
-  `ASSIGNMENT_BUCKETS` (`domain/experiment/`) y **no es una conversión**: es la resolución del
-  reparto, y el día que quiera ser más fina ese número cambia y nada más cambia.
-  **Y sólo las tasas que el reparto puede repartir** (ADR-035, enmienda de la feature 023): una tasa
-  que algo cuantiza tiene que ser **exactamente** la que su balde representa, y si no lo es se
-  rechaza nombrándola en vez de ajustarse en silencio — `0.004` repartía a nadie. Lo juzga
-  `Experiment.handsOut(share)`, el dueño de la resolución, y alcanza a los dos campos que pasan por
-  `bucketsOf`: `treatmentShare` (`422 treatment-share-too-fine`) y `holdoutShare`
-  (`invalid-configuration-value`). Los `cuts` y las tres tasas comerciales **no**: nadie las
-  cuantiza. La regla no se escribe con `multipleOf` ni con un epsilon; los dos están medidos y
-  descartados en el ADR.
-- **Políticas publicadas en el contrato**: el gateway las recibe, no las decide. La ventana de
-  deduplicación es un valor del nivel de plataforma que la composición le pasa
-  (`memoryEventDedup(clock, platform.dedupWindow)`); su directorio de políticas en aplicación
-  desapareció con la constitución XI (ADR-031, feature 017) y esta línea decía lo contrario que
-  la convención de los tres niveles.
-- **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
-- La guarda de instantes no parseables (`NaN`) vive en la traducción DTO → dominio del
-  controller (error de programación), no en el dominio.
-
-### Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
-
-- Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
-  anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
-  ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
-  −1 e índices exceptuados); strings repetidos sin tipar sólo con nombre en `src/`
-  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`); forma de casos de uso,
-  dependencias y errores (`ope/use-case-shape`, `ope/dependencies-are-interfaces`,
-  `ope/domain-error-shape`, `ope/no-throw-domain-error`, `ope/no-generic-catch-in-application`,
-  ADR-023); dominio sin funciones sueltas (`ope/domain-no-loose-functions`, ADR-024). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
-  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `APPLICATION_RULES`, `USE_CASE_RULES`,
-  `DOMAIN_RULES`, `DOMAIN_ERROR_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
-- Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
-  lista las entradas y las exclusiones; los motivos están en el encabezado de
-  `scripts/check-dead-code.mjs` (knip no admite comentarios).
-- Mutación: un cambio no entra si un mutante de sus propias líneas sobrevive. `StringLiteral`
-  está excluido (prosa; los literales tipados ya son errores de compilación al mutarse). El
-  runner lleva `patches/@stryker-mutator+vitest-runner+10.0.0.patch` hasta que stryker-js#6210
-  se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
-- Forma de los anillos (`scripts/shape-rules.mjs`, `tests/architecture/shape.test.ts`): ≤ 300
-  líneas por archivo en `domain/` y `application/`; un controller por `operationId`; ningún `new`
-  de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
-  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`);
-  ningún carácter de control crudo en el fuente (un separador como U+001F se escribe como su
-  escape, nunca como el carácter); un módulo de composición exporta sólo sus componentes y a sí
-  mismo (`composition-module-shape`) y construye la implementación de un puerto sólo dentro del
-  builder de un enlace (`port-implementations-only-in-bind`, ADR-033).
-- Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
-  `// Stryker disable next-line <mutador>: <motivo>`.
-- **Cómo se trabaja el gate de mutación** (la corrida completa cuesta minutos; no se repite por
-  cada arreglo): el archivo incremental `reports/mutation/stryker-incremental.json` **no se
-  borra** — la segunda corrida re-testea sólo lo que cambió; `--all` escribe en otro archivo y
-  nunca alimenta al gate. Ante un superviviente, en este orden: (1) describir el daño observable
-  del mutante; (2) clasificarlo — real, equivalente, sólo diagnóstico, específico del runner —
-  antes de tocar nada; (3) si es real, la prueba que pasa con el original y falla con el mutante;
-  si es equivalente, reestructurar el código para que el mutante no exista, no una excepción;
-  (4) confirmar con `npm run test:mutation -- --files <archivo>[:l1-l2]` (un minuto), no con la
-  corrida completa. La corrida completa del gate la hace **CI en cada push** (job propio): es el
-  juez; localmente no se espera. Un mutante **estático** (código que corre fuera de un `it`: carga
-  de módulo, `beforeAll` → `bootstrap`, semilla, lectores de configuración) se ignora
-  (`ignoreStatic`, ADR-016 enmendado 2026-09-21): el runner de Vitest no lo activa de forma fiable
-  y da falsos sobrevivientes; si además lo cubre un test, sigue corriendo contra ese test. Nunca
-  se cambia producción sólo para satisfacer la herramienta.
-- **Ritmo de las pruebas, en dos velocidades** (decisión del dueño, 2026-09-21): por historia,
-  local y en minutos — `format:check`, `typecheck`, `quality`, `npm test` (proyecto `fast`) — y
-  commit. Por hito — el cierre de la feature (antes de la PR) y cada push de la rama — CI corre
-  todo: `contract:check`, `quality`, `test:scoped` (el proyecto `tools` sólo cuando el cambio
-  toca una herramienta), `test:contract`, `release-check` y `test:mutation` en su job. Ante un
-  sobreviviente en CI, `test:mutation -- --files <archivo>` local (un minuto), nunca la corrida
-  completa. La `--all` informativa y `test:load` son medidas de tendencia para hitos más gruesos
-  (varias features, un piloto), no gates.
+**Qué hace cada uno de los demás está en el inventario de `scripts/`**, que su propia prueba
+verifica fila por fila. No se copia acá: tenerlo en dos lugares fue lo que esta partición vino a
+sacar.
 
 ### Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)
 
@@ -371,99 +66,6 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   explícitos. `noPropertyAccessFromIndexSignature`: `env["PORT"]`, no `env.PORT`.
 - Formato: Prettier, y nada más. `npm run format` antes de commitear; el hook lo verifica.
 
-### Notas operativas del contrato
-
-Lo descriptivo —qué es cada entrada de `contracts/`, las convenciones del multi-archivo, la
-tabla de extensiones `x-*` (dónde, forma, regla, consumidor) y cómo se agrega una operación, un
-esquema, un tipo de problema, un motivo de `NO_OP`, una regla o un ejemplo— vive en
-`contracts/README.md` (verificado por `tests/docs`: toda extensión de la fuente tiene su fila).
-Acá queda lo normativo:
-
-- Ruleset de Spectral en estilo bloque (no `{ a: b }`), `"off"` entre comillas.
-  `oas3-schema` está apagada por un bug con path items `$ref` en 3.1; la estructura la
-  valida Redocly. Detalle en `specs/001-api-contract-toolchain/research.md` (R-02).
-- Lista de datos personales prohibidos: **sólo** `contracts/rules/pii-denylist.json`.
-- Catálogo de tipos de error: `contracts/problem-types.yaml` (`urn:ope:problem:<slug>`),
-  **generado** a `generated/problem-types.{js,d.ts}` por `contract:types` (una sola fuente, sin
-  réplica; `ProblemSlug` y los status son literales) y re-exportado por
-  `interface-adapters/http/problem-details.ts`.
-  Catálogo de motivos de `NO_OP`: `contracts/no-op-reasons.yaml`, replicado en
-  `src/domain/shared-kernel/no-op-reasons.ts` (vocabulario compartido por ingesta, ledger y
-  decisión; string con patrón, no enum: ampliar es compatible). Barreras (`BARRIERS`) y
-  anclajes (`ANCHORS`) también viven en el kernel, con réplica contra el contrato.
-- Uniones discriminadas (`Event`): `type: object` + `oneOf` + `discriminator` **con `mapping`**
-  y `type: { enum: [valor] }` en cada rama (sin `const`). Ajv no acepta `mapping` y sólo aplica
-  el discriminador a objetos: el servidor lo quita en runtime
-  (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
-  Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
-- **Ledger**: todo `record()` devuelve `Result<…, LedgerUnavailable>` y ningún puerto lanza por
-  indisponibilidad. A qué degrada cada consumidor y cómo se prueba, en ADR-021 (ADR-023 precisa
-  el tipo).
-- **Puerto de plataforma y estrategia de sincronización**: los cuatro flujos entran por el mismo
-  puerto, en uno de tres modos negociados con el merchant (`push`, construido; `pull` y
-  `subscribe`, planeados). Cuáles, por qué y qué falta, en ADR-025 y en el hito `platform-port`
-  del roadmap (constitución X).
-- **Verdad de producto**: el catálogo entra como snapshot completo por `PUT /v1/catalog` y
-  `capturedAt` es su clave de idempotencia; el stock es guardia, nunca un claim. La frescura por
-  clase, el nivel de sincronización observado y qué de eso es configuración, en ADR-025.
-- **Plano de decisión**: la ingesta no lo conoce —lo invoca por un puerto— y el orquestador recorre
-  las cinco autoridades en orden fijo, de las que **sólo la política comercial** emite el veredicto
-  (constitución I). El vocabulario de hechos, claims y candidatos es **cerrado**: uno nuevo es una
-  feature, no configuración. Cómo infiere, qué registra y qué sale al SDK, en ADR-026 y ADR-027.
-- **Outcomes y cadena de evidencia**: la plataforma notifica la orden (`platformKey`) y la
-  correlación es **sólo** por sesión conocida; sin ella queda `PENDING_CORRELATION` y nunca se
-  completa por inferencia. La idempotencia es atómica en el puerto, la orden es inmutable y la
-  respuesta nunca lleva brazo, experimento ni visitante. Todo lo demás, en ADR-028.
-- **Merchants operados**: el merchant es un agregado con estado y credenciales, y sus reglas se
-  invocan por su nombre. El valor de una credencial viaja **una sola vez**, el store guarda huellas,
-  el interruptor corta **antes** de asignar y toda operación de un operador se audita. Los nombres
-  y los códigos, en ADR-031 y ADR-034.
-- **Firma de plataforma**: con secreto vigente, toda operación con `platformKey` exige
-  `X-OPE-Timestamp` y `X-OPE-Signature`, y se rechaza **antes** de validar el body. Cómo se calcula,
-  qué ventana tiene y de dónde salen los bytes crudos, en ADR-029.
-- **Asignación y experimentos**: la asignación es pura y estable por visitante, y el brazo, el
-  experimento y la fase **nunca** salen al SDK: sólo el motivo del `NO_OP`. El ciclo de vida del
-  experimento, qué congela cada estado y cómo entra la semilla, en ADR-022 (03 §4.10, D-G) y
-  ADR-031.
-- **Configuración del SDK y diagnóstico de anclajes**: el SDK ve del merchant de su credencial
-  sólo lo que necesita para correr, y **nunca** una política, un margen, un escalón, un reparto, un
-  brazo ni un experimento (constitución III y VII). Qué devuelve cada una y qué conserva, en la
-  descripción de `getSdkConfig` y `reportAnchorDiagnostics` del contrato, que es su fuente de verdad.
-- Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
-  la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
-platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{
-adminToken: [] }]`. El security handler resuelve el merchant antes de validar el body (401 /
-  403 `origin-not-allowed`) y entrega las capacidades de su consumidor
-  (`http/security/capabilities.ts`, réplica del mapa); la infraestructura compara
-  `x-required-capabilities` y responde `403 capability-missing` si falta alguna. Cada esquema
-  declara su header en el cableado (`SecurityScheme { handler, header }`): CORS los deriva de
-  ahí y el log redacta todo header. Los logs nunca llevan IP, headers ni cuerpo
-  (`infrastructure/http/request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
-- Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`. Excepción
-  declarada (ADR-003): mientras el contrato lleve `info.x-stability: building` (ningún merchant
-  lo consume), entra con bump MINOR y el prefijo se conserva; `contract:diff` lo reporta y lo
-  acepta, `release-check` avisa. La marca se quita antes del primer piloto.
-- Todo schema de un media type es `$ref` a `components/schemas` (nunca inline).
-- `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
-  involucra sus campos): `type` (slug del catálogo, nunca `unprocessable`), `status`, `rule`,
-  `description`. Toda `422` nombra en su ejemplo la invariante que la produce.
-- Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él. El
-  vocabulario de capacidades es cerrado por consumidor (`consumers.<x>.capabilities` del mapa).
-- **Consumidores**: el tag fija el consumidor y su esquema de seguridad, y
-  `ope-consumer-security` exige exactamente ése. La tabla de los cinco, en ADR-020; qué hacer con
-  un componente que todavía ninguna operación usa, en `contracts/README.md`.
-- Operación `outcomes` (notificación servidor a servidor) ⇒ `x-idempotency: { key, first,
-repeat }` (clave = propiedad requerida del body; dos 2xx distintos) y respuesta `409
-idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro final) ⇒
-  `x-collection: true`, parámetros `cursor`/`limit`/`from`/`to` por `$ref` y `200` con un
-  `<X>Page` (`items`, `nextCursor?`).
-- `merchantId` en la ruta sólo bajo el consumidor `admin` (constitución V v1.2.0, ADR-020); en
-  query y body, nunca.
-- Ciclo de vida (ADR-019): depreciar = `deprecated: true` en la operación + estado `deprecated`
-  en el mapa + anuncio en la descripción; retirar = quitar del contrato + `retired` con
-  `retiredIn` + versión mayor. La documentación publicada muestra la superficie planeada
-  generada desde el mapa (`contract:docs`).
-
 ### Documentación viva
 
 - **Sin cifras de estado en prosa viva** (cuántas reglas, pruebas, operaciones, términos): se
@@ -482,32 +84,52 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
   sin política; también exige la cabecera de generados (`GENERATED by scripts/<x>.mjs`, y `<x>`
   existe), de parches (`# Fix:`, `# Retire:`) y de scripts (comentario inicial). Lo normativo
   queda en este archivo; lo descriptivo, en el README de cada directorio.
-- **Qué entra en este archivo** (ADR-032, feature 024). Una sección es **normativa** si dice
-  **qué hacer** —un agente la obedece— y entonces no tiene otro hogar; es **descriptiva** si dice
-  **cómo es el sistema hoy** —un agente la consulta— y entonces su contenido vive en su ADR, en el
-  contrato o en el README del directorio, y acá queda de qué se trata y dónde buscarlo. Una que
-  tenga párrafos de las dos se declara **mixta con su motivo**: nombra una deuda concreta, no es
-  una forma de no decidir. La clase de cada sección se declara en
-  `scripts/instructions-policy.json` y `check:instructions` la verifica **en los dos sentidos**:
-  una sección sin clase falla, y una clase para una sección que no existe también. Abrir una
-  sección obliga a decidir de qué lado cae.
+- **Dónde va una instrucción nueva** (ADR-032, features 024 y 025). Dos preguntas, en este orden:
+  **¿hace falta en _toda_ sesión?** Si sí, va acá. Si no, **¿es un procedimiento de varios pasos?**
+  Si sí, es una skill (`.claude/skills/`); si no, una regla acotada (`.claude/rules/`) a la parte
+  del código donde se aplica, que llega cuando el agente trabaja sobre ella. Ser normativo **no
+  alcanza**: el flujo de trabajo hace falta siempre y se queda; cómo se escribe un caso de uso es
+  igual de normativo y sólo hace falta en `src/application/`.
+  Este archivo **no puede pasar de 200 líneas** —es el número que la documentación de la
+  herramienta publica, y su motivo es que un archivo más largo **se obedece peor**—, y el límite
+  cuenta los punteros que las reglas dejan atrás.
+- **Cómo se clasifica una sección.** Normativa si dice **qué hacer**, descriptiva si dice **cómo es
+  el sistema hoy** —y entonces su contenido vive en su ADR, en el contrato o en el README del
+  directorio, y acá queda de qué se trata y dónde buscarlo—, o **mixta con su motivo** si tiene
+  párrafos de las dos: nombra una deuda concreta, no es una forma de no decidir. La clase de cada
+  sección, de este archivo y de cada regla, se declara en `scripts/instructions-policy.json`, y
+  `check:instructions` la verifica **en los dos sentidos**: una sección sin clase falla, y una
+  clase para una sección que no existe también. Abrir una sección obliga a decidir.
 - **Lo que ese gate no verifica, y conviene no confundir**: comprueba que **lo nombrado exista**
   —cada ruta contra el disco, cada comando contra `package.json`, cada identificador contra el
   contrato y el código—, no que lo escrito sea **cierto**. Un verde no dice que el documento tenga
   razón; dice que no cita nada que no esté. Lo demás lo verifica la revisión.
 
-### Auditoría de arquitectura (ADR-032)
+### Reglas acotadas
 
-Las skills `auditing-architecture` y `conditioning-project` viven en `.claude/skills/`, como las de
-spec-kit: versionadas con el repositorio, sin instalación global ni plugin (decisión del dueño,
-2026-09-22). La primera es sólo el método: lo que es de este repo está en `audit.profile.json`
-(alcances, gates, fuentes de verdad con su severidad, criterios, evals). Los gates hablan el
-protocolo `findings-v1` por los adaptadores de `scripts/audit/gate-*.mjs`; agregar un gate es un
-adaptador y una línea en el perfil; agregar una fuente de verdad, una línea en `sources[]`. Los
-criterios de diseño están en `docs/auditoria/criterios-diseno.md`; las evaluaciones propias en
-`tests/audit/evals/` (las universales viajan con la skill). Las skills no importan nada del repo
-por ruta (`tests/audit/skills-isolation.test.ts`); llevarlas a otro proyecto es copiar los dos
-directorios y escribir su perfil (`conditioning-project` lo hace).
+Lo que sigue **no** está acá: vive en `.claude/rules/` y llega cuando trabajás sobre esa parte del
+código. De cada una queda la línea que impide equivocarse antes de que llegue.
+
+- **Auditoría de arquitectura** (ADR-032): el método vive en la skill; lo de este repo, en
+  `audit.profile.json`. Detalle en `.claude/rules/auditoria.md`.
+- **Cómo se escribe una entidad** (ADR-024): **clase si hay reglas, tipo si no**; una clase tiene
+  `private constructor`, `of(...)` que devuelve `Result` y `rehydrate` que no re-juzga. Las reglas
+  viven con su dueño y se invocan por su nombre: **`src/domain/` no exporta funciones sueltas**.
+  Detalle en `.claude/rules/entidad.md`.
+- **Gates de calidad** (ADR-016): un cambio **no entra si un mutante de sus propias líneas
+  sobrevive**, y una excepción va en línea con su motivo. Los umbrales y cómo se trabaja el gate de
+  mutación, en `.claude/rules/gates-de-calidad.md`.
+- **Cómo se escribe un caso de uso** (ADR-023): una clase `<Nombre>UseCase` con `execute`, cuyas
+  dependencias llegan por constructor en un único objeto de **interfaces, seis como máximo**; un caso
+  de uso **nunca invoca a otro**, y un error de negocio **se devuelve, nunca se lanza**. Las cuatro
+  las rechaza `lint` en el acto. Detalle en `.claude/rules/caso-de-uso.md`.
+- **Anillos y módulos** (ADR-013): la dependencia va **sólo hacia adentro** —dominio, aplicación,
+  adaptadores, infraestructura— y un módulo importa de otro **sólo por su `index.ts`** y sólo si
+  `CONTEXT_MAP` lo permite. Lo verifica `npm run arch`. Detalle en
+  `.claude/rules/anillos-y-modulos.md`.
+- **Notas operativas del contrato**: el contrato es la **única fuente de verdad de toda la
+  superficie HTTP**, y nada entra sin estar antes en su mapa. Cómo se escribe cada cosa —invariantes,
+  consumidores, idempotencia, paginación— en `.claude/rules/contrato.md`.
 
 ## Reglas que fallan el build (no son sugerencias)
 

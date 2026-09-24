@@ -69,6 +69,8 @@ const citing = [
   ...walkFiles(path.join(root, "docs"), [".md"]),
   ...walkFiles(path.join(root, "specs"), [".md"]),
   ...walkFiles(path.join(root, "contracts"), [".yaml", ".yml"]),
+  // The scoped rules are instructions like the core, and cite decisions like it (feature 025).
+  ...walkFiles(path.join(root, ".claude", "rules"), [".md"]),
   ...["README.md", "CLAUDE.md", path.join(".specify", "memory", "constitution.md")]
     .map((f) => path.join(root, f))
     .filter(exists),
