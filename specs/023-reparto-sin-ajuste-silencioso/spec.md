@@ -128,11 +128,12 @@ resuelve exactamente a un balde; y se arranca el servidor con la configuración 
 - **El cero y el uno.** Los dos resuelven exactamente a un balde (ninguno y todos) y **se aceptan**.
   La regla es sobre la resolución, no sobre el rango: rechazar el 0 sería prohibir un experimento
   que no asigna a nadie a propósito, y rechazar el 1 sería prohibir uno sin control.
-- **Ruido de la representación en punto flotante.** Un valor que difiere de un balde en lo que la
-  representación de un número decimal introduce (del orden de `0.00000000000000004`) **se acepta**:
-  es el mismo valor, escrito por un cliente que lo calculó. Lo que se rechaza es una tasa
-  **materialmente** más fina, empezando por la mitad de un balde (`0.005`). Entre los dos casos hay
-  catorce órdenes de magnitud, así que no hay zona gris.
+- **Ruido de la representación en punto flotante.** Escribir un decimal **no** produce ruido: un
+  número en la petición es un literal que se lee al valor más cercano, así que `0.07`,
+  `0.070000000000000007` y "siete centésimos" son el mismo valor y los tres **se aceptan**. El único
+  ruido que sobrevive viene de una suma hecha por el cliente (`0.1 + 0.2` da
+  `0.30000000000000004`), y ése **se rechaza**: aceptarlo sería ajustarlo en silencio al balde 30,
+  que es exactamente el trato que `0.075` recibe hoy y que esta feature declara inaceptable.
 - **Un valor que "parece" no alineado.** Diez de los ciento un valores de dos decimales no dividen
   exacto por un centésimo en punto flotante, `0.07` entre ellos. Los diez son legítimos y **se
   aceptan**: la regla se juzga contra el balde, no dividiendo.
@@ -161,8 +162,13 @@ resuelve exactamente a un balde; y se arranca el servidor con la configuración 
   un valor que la regla rechaza, nombrando dónde está.
 - **FR-007**: El sistema MUST aceptar los valores que sí resuelven a un balde, **incluidos** los que
   una división por un centésimo haría parecer no alineados, y los extremos 0 y 1.
-- **FR-008**: El sistema MUST aceptar un valor que sólo difiera de un balde por el ruido de la
-  representación de un decimal en punto flotante, tratándolo como ese balde.
+- **FR-008**: El sistema MUST aceptar una tasa si y sólo si es **exactamente** la que su balde
+  representa. Un valor que difiera de un balde, aunque sea por el ruido de una suma del cliente
+  (`0.1 + 0.2`), se rechaza como cualquier otro valor no declarable.
+  _Reemplaza la versión original de este requisito, que pedía aceptar ese ruido tratándolo como el
+  balde más cercano. El plan lo descartó con evidencia (research R-01): aceptarlo **es** ajustar en
+  silencio, que es lo que esta feature vino a eliminar; y el ruido no llega por la red, porque
+  `0.07`, `0.070000000000000007` y `7/100` son el mismo valor y los tres se aceptan._
 - **FR-009**: El contrato MUST declarar la regla en vez de prometer el ajuste al balde más cercano,
   y MUST publicar el rechazo como uno de los resultados posibles de la operación.
 - **FR-010**: La regla MUST conocerse en **un solo lugar**, el mismo que sabe en cuántos baldes se
