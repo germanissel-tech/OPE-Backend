@@ -84,3 +84,19 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
   cual.
 - El `bodyLimit` del servidor sube a 32 MiB (openapi-backend rutea con un handler único; no
   hay límite por operación).
+- Lo que este ADR deja planeado —los modos `pull` y `subscribe`, el refresco parcial de
+  stock/precio, el planificador, el consumidor y los adaptadores Magento 2 y de prueba— es el hito
+  `platform-port` del roadmap en `contracts/api-map.yaml`, que es donde se sigue su estado (feature
+  024, mudanza desde las instrucciones de los agentes).
+
+## Enmienda (2026-09-21, feature 017) — los presupuestos son configuración
+
+Los valores que este ADR fijó —36 h de catálogo, 15 min de stock y precio, los umbrales del nivel de
+sincronización y las recepciones que se conservan— dejaron de ser constantes: son **defaults de
+tratamiento** de `config/treatment-defaults.json` que el merchant sobrescribe en su versión, y
+`ProductTruthService` los lee por el puerto `CatalogPolicies` (constitución XI, ADR-031). Lo que el
+código conserva son las invariantes y el algoritmo: la mediana del nivel de sincronización, y que el
+stock es guardia —`available` booleano, sin cantidades— y nunca un claim.
+
+Registrado al mudar esto desde las instrucciones de los agentes (feature 024), donde era lo único
+que lo decía.

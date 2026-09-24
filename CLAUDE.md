@@ -18,7 +18,9 @@ configuraciones y CI en **inglés**; `npm run check:language` lo hace cumplir. E
 ## Flujo de trabajo (inamovible)
 
 `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
-Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
+Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check, que **evalúa los
+once principios y cita la versión de la constitución** — los once, también los que no aplican, que
+se marcan como tales.
 
 Dentro de una feature que toca HTTP, el orden es:
 
@@ -117,6 +119,11 @@ adentro:
 | `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                                                                                         | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
 | `src/composition/`        | `graph/` (la biblioteca del grafo, sin conocer ningún módulo), `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `deployments/` (la lista de módulos con su tecnología), `release.ts` (lo que viene de afuera del grafo), `bootstrap()`, `*-config.ts` | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                                                                                      | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
+
+**Dónde va lo que comparten los controllers**: lo que sirve al borde **sin conocer un módulo**
+(`instantOf`, `idempotent`, la paginación) vive en `http/boundary.ts`; lo que **conoce el módulo**
+(el DTO de sus entidades) en `<módulo>/presenters.ts`; nunca en `controllers/`, donde un archivo es
+una operación.
 
 Fuera de `src/`: `generated/` (lo que `contract:types` deriva del contrato; nunca editado;
 importable sólo desde `interface-adapters/http/` e `infrastructure/http/` como `#generated/*`) y
@@ -389,30 +396,16 @@ Acá queda lo normativo:
   el discriminador a objetos: el servidor lo quita en runtime
   (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
   Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
-- **Ledger (ADR-021, ADR-023)**: todo `record()` devuelve `Result<…, LedgerUnavailable>`;
-  ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
-  (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
-  los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
-- **Puerto de plataforma y estrategia de sincronización (constitución X, ADR-025)**: cada
-  flujo (catálogo, stock/precio, órdenes, devoluciones) llega por uno de tres modos negociados
-  con el merchant —`push` (construido: la plataforma empuja), `pull` (OPE consulta su API),
-  `subscribe` (OPE consume su cola)— y los tres entran por el mismo puerto; los adaptadores
-  viven en OPE, desacoplados del núcleo, y agregar una plataforma es agregar un adaptador. Los
-  modos `pull`/`subscribe`, el refresco parcial de stock/precio, el planificador, el consumidor
-  y los adaptadores Magento 2 y de prueba son el hito `platform-port` del roadmap del mapa
-  (`contracts/api-map.yaml`). Todo Constitution Check evalúa los once
-  principios y cita la versión de la constitución.
-- **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
-  `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
-  200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
-  existe válido; `ProductTruthService` (aplicación) responde `known` con frescura por clase
-  (`FreshnessBudget` del dominio `catalog`; los presupuestos son defaults de tratamiento en
-  `config/treatment-defaults.json` — catálogo 36 h, stock/precio 15 min desde `capturedAt` —
-  que el merchant sobrescribe en su versión y el servicio lee por el puerto `CatalogPolicies`)
-  o `unknown` con motivo, y `syncLevel` observado (`SyncLevelRules.observe`, 0–2; 3 nunca con
-  snapshots completos; los umbrales y las recepciones conservadas son defaults de tratamiento,
-  la mediana es el algoritmo). El stock es guardia: `available` booleano, sin cantidades.
-  `Money` vive en el `shared-kernel` del dominio.
+- **Ledger**: todo `record()` devuelve `Result<…, LedgerUnavailable>` y ningún puerto lanza por
+  indisponibilidad. A qué degrada cada consumidor y cómo se prueba, en ADR-021 (ADR-023 precisa
+  el tipo).
+- **Puerto de plataforma y estrategia de sincronización**: los cuatro flujos entran por el mismo
+  puerto, en uno de tres modos negociados con el merchant (`push`, construido; `pull` y
+  `subscribe`, planeados). Cuáles, por qué y qué falta, en ADR-025 y en el hito `platform-port`
+  del roadmap (constitución X).
+- **Verdad de producto**: el catálogo entra como snapshot completo por `PUT /v1/catalog` y
+  `capturedAt` es su clave de idempotencia; el stock es guardia, nunca un claim. La frescura por
+  clase, el nivel de sincronización observado y qué de eso es configuración, en ADR-025.
 - **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
   invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
   `DecisionService` (`application/decision/services/`) y la composición enlaza
@@ -447,27 +440,10 @@ Acá queda lo normativo:
   catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
   y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
   intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
-- **Outcomes y cadena de evidencia (ADR-028)**: el módulo `outcomes` (`[shared-kernel, ledger]`)
-  recibe lo que la plataforma y el SDK dicen de las compras. `POST /v1/orders` (`platformKey`,
-  mecanismo A de 02 §5.1) registra la orden como venta verificada con lo que 01 §10.3 admite
-  (`Order.of`: SKUs sin repetir, confirmación no futura); la **correlación es sólo por A**:
-  `Correlation.of(sessionId, decisions)` con `DecisionLedger.bySession` — una sesión es conocida
-  si el merchant decidió en ella; hereda `experiment { experimentId, arm }` de sus decisiones —
-  y sin ella queda `PENDING_CORRELATION`, nunca completada por inferencia; la orden es inmutable
-  (reenviarla "corregida" es `409`). **Idempotencia atómica en el puerto**: `OrderLedger.record`
-  y `recordReturn` deciden `recorded | repeated | conflict` dentro del gateway (01 §6: sin
-  `await` entre chequeo y escritura) con `sameContentAs` sobre lo que la plataforma envió
-  (ítems por SKU, instantes de recepción y lo derivado ignorados). `POST /v1/orders/corroborations`
-  (`ingestKey`, mecanismo B) es evidencia unida a la orden por `merchantId/orderId`: nunca crea ni
-  atribuye. `POST /v1/returns` marca `RETURNED` conservando la correlación (`order-unknown`,
-  `return-items-not-in-order`; una devolución por orden). La orden puede declarar `incentive` y
-  `IncentiveRedemption.of` lo cruza con la última intervención con incentivo de la sesión
-  (`matched | mismatched | not-applied | not-granted | unverifiable`), sin rechazar nunca. Todo
-  `record()` devuelve `Result<…, LedgerUnavailable>` ⇒ `503` con `Retry-After`. Las respuestas
-  llevan `status` (la cadena de 01 §5: `VERIFIED_ORDER | ATTRIBUTED_ORDER | RETURNED`;
-  `Order.status()`) y `correlation` (`PENDING_CORRELATION | ATTRIBUTED`;
-  `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde sin conocer un módulo (`instantOf`, `idempotent`, paginación)
-  vive en `http/boundary.ts`; lo que conoce el módulo (`linesOf`) en `outcomes/presenters.ts`; nunca en `controllers/` (un archivo allí es una operación).
+- **Outcomes y cadena de evidencia**: la plataforma notifica la orden (`platformKey`) y la
+  correlación es **sólo** por sesión conocida; sin ella queda `PENDING_CORRELATION` y nunca se
+  completa por inferencia. La idempotencia es atómica en el puerto, la orden es inmutable y la
+  respuesta nunca lleva brazo, experimento ni visitante. Todo lo demás, en ADR-028.
 - **Merchants operados (ADR-031, feature 017)**: `Merchant` (dominio) lleva `status`
   (`active | off | deactivated`) y `credentials: Credential[]` (`kind` `ingest | platform |
 signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma conserva el
@@ -496,19 +472,9 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   (`http/boundary.ts`), la única ruta donde figura (constitución V); el DTO del merchant y la
   respuesta de rotación viven en `merchant/presenters.ts`, los del registro y el diagnóstico en
   `admin/presenters.ts`.
-- **Firma de plataforma (ADR-029)**: los secretos de firma son credenciales `signing` del merchant
-  (uno o dos vigentes, ≠ claves; en la semilla, `OPE_MERCHANTS[i].platformSecrets`;
-  `Merchant.requiresSignature(now)`). Con secreto, toda operación con `platformKey` (catálogo,
-  órdenes, devoluciones) exige `X-OPE-Timestamp` y `X-OPE-Signature` (`v1=` + hex HMAC-SHA256 de
-  `<ts>.<bytes crudos>`), ventana ±5 min (`application/access/ports/signature-window.ts`),
-  cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
-  antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
-  `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
-  los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
-  compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
-  `MessageAuthenticator` (`node:crypto` en `interface-adapters/access/gateways/`). Toda operación con
-  `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
-  `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
+- **Firma de plataforma**: con secreto vigente, toda operación con `platformKey` exige
+  `X-OPE-Timestamp` y `X-OPE-Signature`, y se rechaza **antes** de validar el body. Cómo se calcula,
+  qué ventana tiene y de dónde salen los bytes crudos, en ADR-029.
 - **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
   abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentShare`,
   `seed`, `targetSample`, `cuts` crecientes como porcentajes de la muestra) y nace
@@ -565,13 +531,9 @@ adminToken: [] }]`. El security handler resuelve el merchant antes de validar el
   `description`. Toda `422` nombra en su ejemplo la invariante que la produce.
 - Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él. El
   vocabulario de capacidades es cerrado por consumidor (`consumers.<x>.capabilities` del mapa).
-- **Consumidores (ADR-020)**: el tag fija el consumidor (`system` → público; `ingest`,
-  `decision` → SDK con `ingestKey`; `outcomes` → plataforma con `platformKey`; `portal` →
-  `portalSession`; `admin` → `adminToken`) y `ope-consumer-security` exige exactamente ese
-  esquema. Los esquemas y componentes que ninguna operación construida usa (`portalSession`,
-  `adminToken`, parámetros de paginación, `Page`) existen como archivos en
-  `components/` **sin referencia desde la raíz** (Redocly rechaza componentes sin uso); entran
-  a la raíz con su primera operación.
+- **Consumidores**: el tag fija el consumidor y su esquema de seguridad, y
+  `ope-consumer-security` exige exactamente ése. La tabla de los cinco, en ADR-020; qué hacer con
+  un componente que todavía ninguna operación usa, en `contracts/README.md`.
 - Operación `outcomes` (notificación servidor a servidor) ⇒ `x-idempotency: { key, first,
 repeat }` (clave = propiedad requerida del body; dos 2xx distintos) y respuesta `409
 idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro final) ⇒
