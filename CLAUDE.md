@@ -18,7 +18,9 @@ configuraciones y CI en **inglés**; `npm run check:language` lo hace cumplir. E
 ## Flujo de trabajo (inamovible)
 
 `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
-Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check.
+Nada se implementa sin spec ni plan. El plan debe pasar el Constitution Check, que **evalúa los
+once principios y cita la versión de la constitución** — los once, también los que no aplican, que
+se marcan como tales.
 
 Dentro de una feature que toca HTTP, el orden es:
 
@@ -88,6 +90,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                                       |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                             |
 | `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, feature (construida) u hito del roadmap (planeada), fuentes, ciclo de vida                                                                                                              |
+| `npm run check:instructions`                      | Lo que `CLAUDE.md` cita existe (rutas contra el disco, comandos contra `package.json` en los dos sentidos) y cada sección está clasificada en `scripts/instructions-policy.json`; verifica que lo nombrado exista, no que lo escrito sea cierto                                |
 | `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                                                                                                                                                      |
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                                                                                                                                                              |
 | `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                                                                                                                                                               |
@@ -99,6 +102,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`; se detiene en el primero rojo                                                                                                                |
 | `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                                   |
 | `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental         |
+| `npm run check:mutation-report`                   | Lee el reporte de la última corrida de mutación y falla si quedó un superviviente; lo usa CI para no releer la salida a ojo                                                                                                                                                    |
 
 Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los siete gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`.
 
@@ -115,6 +119,11 @@ adentro:
 | `src/infrastructure/`     | sólo lo que **hospeda o provee tecnología**: Fastify + openapi-backend, CORS, logging (mañana el driver de Postgres)                                                                                                                                                                                         | todo menos `composition/` y `main.ts`                                                                                                                                                                                                  |
 | `src/composition/`        | `graph/` (la biblioteca del grafo, sin conocer ningún módulo), `modules/<módulo>.ts` (se cablea solo; del anillo importa sólo `interface-adapters/<módulo>/index.js`), `deployments/` (la lista de módulos con su tecnología), `release.ts` (lo que viene de afuera del grafo), `bootstrap()`, `*-config.ts` | todo; sólo `main.ts` y las pruebas lo importan. Controllers y casos de uso sólo desde `modules/`                                                                                                                                       |
 | `src/main.ts`             | lee configuración, `bootstrap`, señales                                                                                                                                                                                                                                                                      | `composition/` y Node; nadie lo importa                                                                                                                                                                                                |
+
+**Dónde va lo que comparten los controllers**: lo que sirve al borde **sin conocer un módulo**
+(`instantOf`, `idempotent`, la paginación) vive en `http/boundary.ts`; lo que **conoce el módulo**
+(el DTO de sus entidades) en `<módulo>/presenters.ts`; nunca en `controllers/`, donde un archivo es
+una operación.
 
 Fuera de `src/`: `generated/` (lo que `contract:types` deriva del contrato; nunca editado;
 importable sólo desde `interface-adapters/http/` e `infrastructure/http/` como `#generated/*`) y
@@ -283,8 +292,11 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   (`invalid-configuration-value`). Los `cuts` y las tres tasas comerciales **no**: nadie las
   cuantiza. La regla no se escribe con `multipleOf` ni con un epsilon; los dos están medidos y
   descartados en el ADR.
-- **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
-  dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
+- **Políticas publicadas en el contrato**: el gateway las recibe, no las decide. La ventana de
+  deduplicación es un valor del nivel de plataforma que la composición le pasa
+  (`memoryEventDedup(clock, platform.dedupWindow)`); su directorio de políticas en aplicación
+  desapareció con la constitución XI (ADR-031, feature 017) y esta línea decía lo contrario que
+  la convención de los tres niveles.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
 - La guarda de instantes no parseables (`NaN`) vive en la traducción DTO → dominio del
   controller (error de programación), no en el dominio.
@@ -384,162 +396,39 @@ Acá queda lo normativo:
   el discriminador a objetos: el servidor lo quita en runtime
   (`infrastructure/http/strip-discriminator-mappings.ts`) y el `type: object` es obligatorio.
   Sólo el subconjunto de JSON Schema que OpenAPI 3.0 admite (ADR-014).
-- **Ledger (ADR-021, ADR-023)**: todo `record()` devuelve `Result<…, LedgerUnavailable>`;
-  ningún puerto lanza por indisponibilidad. La ingesta degrada a `NO_OP` `ledger-unavailable`
-  (202, sin registrar); la exposición responde `503` con `Retry-After`. El camino se prueba con
-  los ledgers falsos de `tests/helpers/unavailable-ledgers.ts`.
-- **Puerto de plataforma y estrategia de sincronización (constitución X, ADR-025)**: cada
-  flujo (catálogo, stock/precio, órdenes, devoluciones) llega por uno de tres modos negociados
-  con el merchant —`push` (construido: la plataforma empuja), `pull` (OPE consulta su API),
-  `subscribe` (OPE consume su cola)— y los tres entran por el mismo puerto; los adaptadores
-  viven en OPE, desacoplados del núcleo, y agregar una plataforma es agregar un adaptador. Los
-  modos `pull`/`subscribe`, el refresco parcial de stock/precio, el planificador, el consumidor
-  y los adaptadores Magento 2 y de prueba son el hito `platform-port` del roadmap del mapa
-  (`contracts/api-map.yaml`). Todo Constitution Check evalúa los once
-  principios y cita la versión de la constitución.
-- **Verdad de producto (ADR-025)**: el catálogo entra como snapshot completo por
-  `PUT /v1/catalog` (consumidor `platform`); `capturedAt` es la clave de idempotencia (201 crea,
-  200 repite, 409 conflicto, 422 fuera de orden). `CatalogSnapshot` (dominio `catalog`) sólo
-  existe válido; `ProductTruthService` (aplicación) responde `known` con frescura por clase
-  (`FreshnessBudget` del dominio `catalog`; los presupuestos son defaults de tratamiento en
-  `config/treatment-defaults.json` — catálogo 36 h, stock/precio 15 min desde `capturedAt` —
-  que el merchant sobrescribe en su versión y el servicio lee por el puerto `CatalogPolicies`)
-  o `unknown` con motivo, y `syncLevel` observado (`SyncLevelRules.observe`, 0–2; 3 nunca con
-  snapshots completos; los umbrales y las recepciones conservadas son defaults de tratamiento,
-  la mediana es el algoritmo). El stock es guardia: `available` booleano, sin cantidades.
-  `Money` vive en el `shared-kernel` del dominio.
-- **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
-  invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
-  `DecisionService` (`application/decision/services/`) y la composición enlaza
-  (el módulo `decision` enlaza el puerto `DecisionPlane` que declara `ingestion`). El orquestador recorre las cinco
-  autoridades: asignación → inferencia (`barrier`) → evidencia (`catalog`) → selección + quality
-  gate (`selection`) → política comercial (`commercial`, la única que emite el veredicto) →
-  ledger (`DecisionRecorder`, que acuña el id y degrada a `ledger-unavailable`). La inferencia es
-  pura: `Signals` (monoide: el lote se funde con la sesión) y `BarrierRules.infer` devuelven la
-  confianza de las **tres** barreras; `DecisionPolicy.barrierVerdict` elige la dominante (umbral,
-  prioridad) y juzga su evidencia por barrera. `CANDIDATES` (vocabulario cerrado por barrera en
-  orden de escalera, con claims) pasa por `QualityGate.of(profile).judgeAll`: el primer claim sin
-  evidencia de su clase rechaza el candidato entero; `CommercialPolicy.verdict` elige el escalón
-  más bajo (uno más con abandono que confirma la barrera, D-B; el reaseguro cuando el abandono
-  la puso en la mesa; incentivo directo en `price`), bloquea (`margin-missing`,
-  `incentive-not-allowed`, `return-risk`), aplica alta intención, presupuesto por sesión,
-  cooldown y fatiga por visitante. Las tres políticas del merchant —`decisionPolicy`
-  (inferencia), `commercialPolicy` (techo, escalones, margen, riesgo de devolución, alta
-  intención, abandono, presupuestos) y `evidenceProfile` (qué declara poder sostener)— son
-  defaults de tratamiento (`config/treatment-defaults.json`: `default-1`,
-  `commercial-default-1` sin margen ⇒ sin incentivos, perfil vacío) que la versión del merchant
-  sobrescribe **campo por campo** (una política declarada nombra su versión y sólo lo que
-  cambia); la forma la leen los lectores de `application/configuration/input/` (semilla, archivo
-  y API por igual), las invariantes el dominio (`PolicyInput`, `TreatmentValues`). El plano lee
-  `PolicyDirectory` (`PolicySet`: políticas, `barriers` activas, `versions`) que la composición
-  enlaza al servicio de configuración; sólo las barreras activas pueden ser dominantes. Ambas
-  políticas son parte del experimento. El vocabulario de hechos
-  y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
-  decisión registra `inference`, `selection` (candidatos con veredicto del gate, elegido,
-  veredicto comercial, `commercialPolicyVersion`) y el `locale` de la página en foco
-  (`PageContext.locale`, BCP 47 validado por forma, para el catálogo de mensajes); el DTO del SDK sólo lleva `outcome`, `reason`
-  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el
-  catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
-  y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
-  intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
-- **Outcomes y cadena de evidencia (ADR-028)**: el módulo `outcomes` (`[shared-kernel, ledger]`)
-  recibe lo que la plataforma y el SDK dicen de las compras. `POST /v1/orders` (`platformKey`,
-  mecanismo A de 02 §5.1) registra la orden como venta verificada con lo que 01 §10.3 admite
-  (`Order.of`: SKUs sin repetir, confirmación no futura); la **correlación es sólo por A**:
-  `Correlation.of(sessionId, decisions)` con `DecisionLedger.bySession` — una sesión es conocida
-  si el merchant decidió en ella; hereda `experiment { experimentId, arm }` de sus decisiones —
-  y sin ella queda `PENDING_CORRELATION`, nunca completada por inferencia; la orden es inmutable
-  (reenviarla "corregida" es `409`). **Idempotencia atómica en el puerto**: `OrderLedger.record`
-  y `recordReturn` deciden `recorded | repeated | conflict` dentro del gateway (01 §6: sin
-  `await` entre chequeo y escritura) con `sameContentAs` sobre lo que la plataforma envió
-  (ítems por SKU, instantes de recepción y lo derivado ignorados). `POST /v1/orders/corroborations`
-  (`ingestKey`, mecanismo B) es evidencia unida a la orden por `merchantId/orderId`: nunca crea ni
-  atribuye. `POST /v1/returns` marca `RETURNED` conservando la correlación (`order-unknown`,
-  `return-items-not-in-order`; una devolución por orden). La orden puede declarar `incentive` y
-  `IncentiveRedemption.of` lo cruza con la última intervención con incentivo de la sesión
-  (`matched | mismatched | not-applied | not-granted | unverifiable`), sin rechazar nunca. Todo
-  `record()` devuelve `Result<…, LedgerUnavailable>` ⇒ `503` con `Retry-After`. Las respuestas
-  llevan `status` (la cadena de 01 §5: `VERIFIED_ORDER | ATTRIBUTED_ORDER | RETURNED`;
-  `Order.status()`) y `correlation` (`PENDING_CORRELATION | ATTRIBUTED`;
-  `Order.correlationStatus()`), y nunca brazo, experimento ni visitante. Lo que comparten los controllers al borde sin conocer un módulo (`instantOf`, `idempotent`, paginación)
-  vive en `http/boundary.ts`; lo que conoce el módulo (`linesOf`) en `outcomes/presenters.ts`; nunca en `controllers/` (un archivo allí es una operación).
-- **Merchants operados (ADR-031, feature 017)**: `Merchant` (dominio) lleva `status`
-  (`active | off | deactivated`) y `credentials: Credential[]` (`kind` `ingest | platform |
-signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma conserva el
-  secreto). Las reglas viven en el agregado: `owns(fingerprint, now)`, `ownsPlatformKey`,
-  `signingSecrets(now)`, `requiresSignature(now)`, `rotated(credential, grace, now)` (la anterior
-  sigue valiendo durante la gracia, acotada por un máximo), `switched(on)`, `deactivated()`
-  (irreversible; `409 merchant-deactivated`), `Merchant.judgeOrigins`. Los valores de las
-  credenciales los acuña el puerto `CredentialMinter` (`ope_ik_ | ope_pk_ | ope_ps_` + base64url)
-  y viajan **una sola vez** en la respuesta que los emite; el store guarda huellas
-  (`MerchantDirectory.byFingerprint`). Kill switch (01 §14.2): `switched(false)` ⇒ la decisión
-  responde `NO_OP` `merchant-off` **antes** de asignar (`MerchantPolicies.enabled`, leído del
-  store por `switchAwarePolicyDirectory`, en los gateways del módulo `configuration`); ingesta, outcomes y catálogo siguen. Operadores:
-  `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE` (`operatorId`, huellas de sus
-  tokens, `scope: "*" | [merchantId]`); `adminToken` es bearer (`Authorization: Bearer
-ope_at_…`), `DefaultAdminTokenResolver` lo resuelve por huella (`401 operator-unknown`) y
-  entrega `OperatorPrincipal` (`operatorOf(req)`); un merchant fuera del alcance responde `403
-merchant-out-of-scope` con el mismo cuerpo que uno inexistente sólo cuando el operador no lo
-  alcanza (`DefaultScopedMerchantService.find`). Toda operación `admin` se envuelve en
-  `AuditedUseCase` (decorador del kernel, ADR-034): el registro de administración
-  (`AdminLog`, `AdminEntry`: operador, operación, merchant, resultado `accepted | rejected |
-failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
-/v1/admin/merchants/{merchantId}/log` lo leen paginado (`Page`/`PageQuery` del kernel de
-  aplicación, `pageOf` en `interface-adapters/shared-kernel/`, `pageQueryOf`/`pageDto`/`merchantPageResponse` en `http/boundary.ts`).
-  `node scripts/mint-admin-token.mjs` acuña un token y su huella; `config/dev-operators.json`
-  lleva el operador de desarrollo. `merchantId` de la ruta se lee con `merchantIdOf(req)`
-  (`http/boundary.ts`), la única ruta donde figura (constitución V); el DTO del merchant y la
-  respuesta de rotación viven en `merchant/presenters.ts`, los del registro y el diagnóstico en
-  `admin/presenters.ts`.
-- **Firma de plataforma (ADR-029)**: los secretos de firma son credenciales `signing` del merchant
-  (uno o dos vigentes, ≠ claves; en la semilla, `OPE_MERCHANTS[i].platformSecrets`;
-  `Merchant.requiresSignature(now)`). Con secreto, toda operación con `platformKey` (catálogo,
-  órdenes, devoluciones) exige `X-OPE-Timestamp` y `X-OPE-Signature` (`v1=` + hex HMAC-SHA256 de
-  `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
-  cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
-  antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
-  `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
-  los security handlers como `SecurityRequest.rawBody`; `PlatformSignature` (dominio) parsea,
-  compara en tiempo constante y juzga la ventana; el HMAC va detrás del puerto
-  `MessageAuthenticator` (`node:crypto` en `interface-adapters/access/gateways/`). Toda operación con
-  `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
-  `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
-- **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
-  abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentShare`,
-  `seed`, `targetSample`, `cuts` crecientes como porcentajes de la muestra) y nace
-  `calibrating`: se asigna y se decide, pero cada decisión estampa `phase: calibration` y la
-  configuración sigue publicándose. `activate` lo pasa a `active` (`activatedAt` =
-  `windowStartedAt`) y **congela** la configuración: sólo entra una versión `corrective` con
-  `reason`, que reinicia la ventana (`windowRestarts[]` con la versión y el motivo;
-  `PublishMerchantConfigurationUseCase` la registra por `ExperimentStore.update` y el registro
-  de administración lleva `windowRestarted`). `close` es terminal (`closed`; repetir es 200;
-  reactivar es `409 experiment-not-open`). Como máximo uno abierto por merchant
-  (`Experiments.of` ⇒ `409 experiment-already-open`, juzgado dentro del store); el reparto no
-  puede tomar el holdout efectivo del merchant (`Experiment.withinHoldout` ⇒ `422
-treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interruptor no cambia su
-  estado. Las reglas viven en `Experiment` (`activated`, `closed`, `windowRestarted`,
-  `isOpen`, `phase`); el id lo acuña `ExperimentIdMinter` (`exp_` + base32). La semilla
-  (`OPE_MERCHANTS[i].experiments[]`: `experimentId`, `treatmentShare`, `seed`,
-  `targetSample`, `cuts?`, `status`, `openedAt`) entra por `ImportExperimentsUseCase` sólo
-  con el store vacío y sin juzgar el holdout; un `active` de la semilla arranca su ventana en
-  `openedAt`. `Experiment.assign` es pura (FNV-1a privado del dominio, `treatmentShare` 0–1,
-  regresión con fingerprint de la 007) y no depende del estado; la asignación se registra con el
-  primer lote aceptado del experimento abierto (`ExperimentDirectory.activeFor`); CONTROL
-  resuelve `NO_OP` `control-arm`; sin experimento abierto, `no-active-experiment`. El brazo,
-  el experimento y la fase **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
-- **Configuración del SDK y diagnóstico de anclajes (01 §3.1.1; feature 017)**: `GET
-/v1/sdk/config` (`ingestKey`, `config:read`) devuelve lo que el SDK puede ver del merchant de
-  su credencial —`enabled` (interruptor), `versions`, `surfaces`, `locales`, `anchors?`— y
-  nunca una política, margen, escalón, reparto, brazo ni experimento; `Cache-Control: no-store`.
-  Lo sirve el módulo `admin` por el puerto `SdkConfigurationSource` (`sdkConfigurationOf`, un
-  gateway de `admin` sobre la resolución de la configuración) y el merchant llega resuelto por el security handler
-  (`GetSdkConfigUseCase` recibe la entidad y lee `isOn()`). `POST /v1/sdk/diagnostics`
-  (`diagnostics:write`) recibe anclajes no resueltos (`anchor` del vocabulario, `pageType`,
-  `configurationVersion?`; nada de la página ni de la persona) y `AnchorDiagnosticsStore.upsert`
-  conserva por merchant el último instante y un contador por clave, con tope
-  `anchorDiagnosticsKept` de plataforma (se descarta el más viejo, nunca se rechaza); `GET
-/v1/admin/merchants/{merchantId}/anchor-diagnostics` lo lee paginado. `PageType` es un esquema
-  propio compartido por `PageContext` y los diagnósticos.
+- **Ledger**: todo `record()` devuelve `Result<…, LedgerUnavailable>` y ningún puerto lanza por
+  indisponibilidad. A qué degrada cada consumidor y cómo se prueba, en ADR-021 (ADR-023 precisa
+  el tipo).
+- **Puerto de plataforma y estrategia de sincronización**: los cuatro flujos entran por el mismo
+  puerto, en uno de tres modos negociados con el merchant (`push`, construido; `pull` y
+  `subscribe`, planeados). Cuáles, por qué y qué falta, en ADR-025 y en el hito `platform-port`
+  del roadmap (constitución X).
+- **Verdad de producto**: el catálogo entra como snapshot completo por `PUT /v1/catalog` y
+  `capturedAt` es su clave de idempotencia; el stock es guardia, nunca un claim. La frescura por
+  clase, el nivel de sincronización observado y qué de eso es configuración, en ADR-025.
+- **Plano de decisión**: la ingesta no lo conoce —lo invoca por un puerto— y el orquestador recorre
+  las cinco autoridades en orden fijo, de las que **sólo la política comercial** emite el veredicto
+  (constitución I). El vocabulario de hechos, claims y candidatos es **cerrado**: uno nuevo es una
+  feature, no configuración. Cómo infiere, qué registra y qué sale al SDK, en ADR-026 y ADR-027.
+- **Outcomes y cadena de evidencia**: la plataforma notifica la orden (`platformKey`) y la
+  correlación es **sólo** por sesión conocida; sin ella queda `PENDING_CORRELATION` y nunca se
+  completa por inferencia. La idempotencia es atómica en el puerto, la orden es inmutable y la
+  respuesta nunca lleva brazo, experimento ni visitante. Todo lo demás, en ADR-028.
+- **Merchants operados**: el merchant es un agregado con estado y credenciales, y sus reglas se
+  invocan por su nombre. El valor de una credencial viaja **una sola vez**, el store guarda huellas,
+  el interruptor corta **antes** de asignar y toda operación de un operador se audita. Los nombres
+  y los códigos, en ADR-031 y ADR-034.
+- **Firma de plataforma**: con secreto vigente, toda operación con `platformKey` exige
+  `X-OPE-Timestamp` y `X-OPE-Signature`, y se rechaza **antes** de validar el body. Cómo se calcula,
+  qué ventana tiene y de dónde salen los bytes crudos, en ADR-029.
+- **Asignación y experimentos**: la asignación es pura y estable por visitante, y el brazo, el
+  experimento y la fase **nunca** salen al SDK: sólo el motivo del `NO_OP`. El ciclo de vida del
+  experimento, qué congela cada estado y cómo entra la semilla, en ADR-022 (03 §4.10, D-G) y
+  ADR-031.
+- **Configuración del SDK y diagnóstico de anclajes**: el SDK ve del merchant de su credencial
+  sólo lo que necesita para correr, y **nunca** una política, un margen, un escalón, un reparto, un
+  brazo ni un experimento (constitución III y VII). Qué devuelve cada una y qué conserva, en la
+  descripción de `getSdkConfig` y `reportAnchorDiagnostics` del contrato, que es su fuente de verdad.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
   la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
 platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{
@@ -549,7 +438,7 @@ adminToken: [] }]`. El security handler resuelve el merchant antes de validar el
   `x-required-capabilities` y responde `403 capability-missing` si falta alguna. Cada esquema
   declara su header en el cableado (`SecurityScheme { handler, header }`): CORS los deriva de
   ahí y el log redacta todo header. Los logs nunca llevan IP, headers ni cuerpo
-  (`request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
+  (`infrastructure/http/request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
 - Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`. Excepción
   declarada (ADR-003): mientras el contrato lleve `info.x-stability: building` (ningún merchant
   lo consume), entra con bump MINOR y el prefijo se conserva; `contract:diff` lo reporta y lo
@@ -560,13 +449,9 @@ adminToken: [] }]`. El security handler resuelve el merchant antes de validar el
   `description`. Toda `422` nombra en su ejemplo la invariante que la produce.
 - Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él. El
   vocabulario de capacidades es cerrado por consumidor (`consumers.<x>.capabilities` del mapa).
-- **Consumidores (ADR-020)**: el tag fija el consumidor (`system` → público; `ingest`,
-  `decision` → SDK con `ingestKey`; `outcomes` → plataforma con `platformKey`; `portal` →
-  `portalSession`; `admin` → `adminToken`) y `ope-consumer-security` exige exactamente ese
-  esquema. Los esquemas y componentes que ninguna operación construida usa (`portalSession`,
-  `adminToken`, parámetros de paginación, `Page`) existen como archivos en
-  `components/` **sin referencia desde la raíz** (Redocly rechaza componentes sin uso); entran
-  a la raíz con su primera operación.
+- **Consumidores**: el tag fija el consumidor y su esquema de seguridad, y
+  `ope-consumer-security` exige exactamente ése. La tabla de los cinco, en ADR-020; qué hacer con
+  un componente que todavía ninguna operación usa, en `contracts/README.md`.
 - Operación `outcomes` (notificación servidor a servidor) ⇒ `x-idempotency: { key, first,
 repeat }` (clave = propiedad requerida del body; dos 2xx distintos) y respuesta `409
 idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro final) ⇒
@@ -597,6 +482,19 @@ idempotency-conflict`. Lectura de colección del portal (`GET` sin parámetro fi
   sin política; también exige la cabecera de generados (`GENERATED by scripts/<x>.mjs`, y `<x>`
   existe), de parches (`# Fix:`, `# Retire:`) y de scripts (comentario inicial). Lo normativo
   queda en este archivo; lo descriptivo, en el README de cada directorio.
+- **Qué entra en este archivo** (ADR-032, feature 024). Una sección es **normativa** si dice
+  **qué hacer** —un agente la obedece— y entonces no tiene otro hogar; es **descriptiva** si dice
+  **cómo es el sistema hoy** —un agente la consulta— y entonces su contenido vive en su ADR, en el
+  contrato o en el README del directorio, y acá queda de qué se trata y dónde buscarlo. Una que
+  tenga párrafos de las dos se declara **mixta con su motivo**: nombra una deuda concreta, no es
+  una forma de no decidir. La clase de cada sección se declara en
+  `scripts/instructions-policy.json` y `check:instructions` la verifica **en los dos sentidos**:
+  una sección sin clase falla, y una clase para una sección que no existe también. Abrir una
+  sección obliga a decidir de qué lado cae.
+- **Lo que ese gate no verifica, y conviene no confundir**: comprueba que **lo nombrado exista**
+  —cada ruta contra el disco, cada comando contra `package.json`, cada identificador contra el
+  contrato y el código—, no que lo escrito sea **cierto**. Un verde no dice que el documento tenga
+  razón; dice que no cita nada que no esté. Lo demás lo verifica la revisión.
 
 ### Auditoría de arquitectura (ADR-032)
 

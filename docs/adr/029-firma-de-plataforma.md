@@ -52,3 +52,14 @@ falsificarse o repetirse: una clave filtrada o un cuerpo capturado bastarían.
   el resultado para un remitente legítimo.
 - Cambiar el esquema de firma es un `v2=` nuevo aceptado junto al `v1=` durante la
   transición, no un cambio incompatible del contrato.
+- **Cómo llegan los bytes crudos**: la firma se calcula sobre el JSON tal como vino, así que la
+  infraestructura lo conserva antes de parsearlo (`keepRawBodies` en
+  `infrastructure/http/raw-bodies.ts`: un parser `parseAs: "buffer"` que delega al de Fastify) y se
+  lo entrega a los security handlers como `SecurityRequest.rawBody`. Sin eso no hay nada que firmar:
+  un JSON reserializado no es el mismo texto.
+- Desde ADR-034 (feature 020) los tres esquemas de autenticación y sus políticas viven en el módulo
+  `access`, así que la ventana es `application/access/ports/signature-window.ts` y el gateway del
+  HMAC está en `interface-adapters/access/gateways/`.
+
+_Las dos líneas de arriba se registraron al mudarlas desde las instrucciones de los agentes
+(feature 024), donde eran lo único que las decía._

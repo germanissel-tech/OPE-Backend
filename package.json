@@ -31,7 +31,7 @@
     "check:identifiers": "node scripts/check-identifiers.mjs",
     "check:adrs": "node scripts/check-adrs.mjs",
     "check:markers": "node scripts/check-markers.mjs",
-    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:identifiers && npm run check:adrs && npm run check:markers && npm run check:language && npm run check:api-map",
+    "contract:check": "npm run contract:lint && npm run contract:bundle && npm run contract:diff && npm run contract:types:check && npm run check:invariant-tests && npm run check:glossary && npm run check:identifiers && npm run check:adrs && npm run check:markers && npm run check:language && npm run check:api-map && npm run check:instructions",
     "release-check": "node scripts/release-check.mjs",
     "contract:docs": "node scripts/contract-docs.mjs",
     "contract:insomnia": "node scripts/contract-insomnia.mjs",
@@ -58,7 +58,8 @@
     "test:load": "node scripts/load-test.mjs",
     "test:mutation": "node scripts/mutation-diff.mjs",
     "check:mutation-report": "node scripts/mutation-diff.mjs --check-report",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "check:instructions": "node scripts/check-instructions.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

@@ -56,3 +56,7 @@ síncronas e infalibles.
   (`503`); `confirmExposure` declara la `503`.
 - Un ledger que "acepta" y pierde la escritura después es una violación de este ADR que la
   observabilidad (cola muerta) tiene que hacer visible; no se disfraza de éxito.
+- El camino de indisponibilidad se prueba con los ledgers falsos de
+  `tests/helpers/unavailable-ledgers.ts`: un ledger que responde `LedgerUnavailable` en cada
+  `record()`, para que cada consumidor demuestre a qué degrada (feature 024, mudanza desde las
+  instrucciones de los agentes).

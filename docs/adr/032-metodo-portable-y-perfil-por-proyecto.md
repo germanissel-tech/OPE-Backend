@@ -111,3 +111,53 @@ message }] }`; con `--list-rules` enumera sus reglas; salida distinta de cero = 
   cabecera falsa, un parche sin condición de retiro o un script sin cabecera también.
 - Feature 019, deudas D-01, D-02 y D-06; el detalle y la evidencia en
   `specs/019-deudas-tecnicas/research.md` (R-01..R-06).
+
+## Enmienda (2026-09-24, feature 024) — el patrón se extiende a las instrucciones de los agentes
+
+El patrón que este ADR estrenó para los README de directorio —**política declarada en un archivo,
+funciones puras sobre texto, y verificación en los dos sentidos**— se aplica ahora a `CLAUDE.md`,
+que es lo que un agente lee antes de tocar el repositorio.
+
+### Por qué
+
+Medido el 2026-09-24: el archivo pasó de 360 a 675 líneas en seis días (+88 %) en una serie
+**monótona**, y de las 759 referencias que cita sólo las citas `ADR-NNN` y los marcadores tenían
+gate. No estaba podrido —366 de 368 identificadores comprobables resolvían—, estaba exacto **por
+disciplina de quien lo editaba**. La prueba de que la disciplina no alcanza: dos directorios
+`policies/` que la feature 017 borró siguieron nombrados tres días y tres features, y una de esas
+líneas además **contradecía** otra sección del mismo archivo.
+
+### Qué se decide
+
+1. **Un criterio de admisión.** Una sección es **normativa** si dice qué hacer —y no tiene otro
+   hogar—, **descriptiva** si dice cómo es el sistema hoy —y su contenido vive en su ADR, en el
+   contrato o en el README del directorio—, o **mixta** cuando tiene párrafos de las dos, y entonces
+   **exige un motivo escrito**: nombra una deuda concreta, no es una forma de no decidir.
+2. **La clase de cada sección se declara** en `scripts/instructions-policy.json`, y se verifica en
+   los dos sentidos: una sección sin clase falla, y una clase para una sección que no existe
+   también. Abrir una sección obliga a decidir.
+3. **Tres formas de referencia, tres fuentes de verdad**: un identificador contra el contrato y el
+   código (`check:identifiers`, que suma el archivo a su lista), una ruta contra el disco, un
+   comando contra `package.json` en los dos sentidos.
+4. **El gate vive en `contract:check`, no en el proyecto `tools`.** Medido: `TOOLS_TRIGGERS` no
+   incluye `CLAUDE.md` **ni `src/`**, y CI corre `test:scoped`. Una prueba en `tools` no habría
+   corrido en el commit que movió el archivo que las instrucciones nombraban — el commit que el gate
+   existe para atrapar. Del patrón de este ADR se toma la forma, no la casa.
+
+### La frontera, escrita a propósito
+
+El gate verifica que **lo nombrado exista**, no que lo escrito sea **cierto**. Un verde no dice que
+el documento tenga razón. La mudanza encontró una afirmación falsa sobre algo que sí existe —una
+lista de «componentes que ninguna operación usa» que incluía uno que se usa desde la feature 017— y
+ningún gate podía atraparla. Eso lo verifica la revisión, y decirlo evita que el verde se lea como
+más de lo que es.
+
+### Consecuencias
+
+- `CLAUDE.md` **bajó de líneas por primera vez**: 675 → 573. El número no es la meta —perseguirlo
+  premia borrar cosas útiles—; que baje una vez es la señal de que el criterio se aplicó.
+- Diez bloques descriptivos volvieron a su ADR, y lo que a cada uno le faltaba se agregó **antes** de
+  borrarse, en commits separados. Dos oraciones **normativas** que estaban escondidas dentro de
+  bloques descriptivos volvieron a donde se obedecen.
+- Tres secciones quedan declaradas `mixed` con su motivo: separar sus párrafos es la deuda que esta
+  feature deja nombrada en vez de esconder.

@@ -84,3 +84,33 @@ estampe en cada decisión y se congele durante el piloto tras una calibración (
   `OPE_MERCHANTS` sino del merchant creado por API (o de la semilla importada).
 - Multi-instancia e invalidación de caché de la configuración efectiva quedan fuera (`01 §9`:
   una instancia).
+
+## Enmienda (registrada 2026-09-24, feature 024) — la forma que esta decisión tomó al construirse
+
+Lo que la implementación fijó y sólo estaba escrito en las instrucciones de los agentes:
+
+- **El agregado y sus reglas.** `Merchant` lleva `status` (`active | off | deactivated`) y
+  `credentials: Credential[]` (`kind` `ingest | platform | signing`, huella SHA-256 del valor,
+  `issuedAt`, `expiresAt`; **sólo la de firma conserva el secreto**). Las reglas viven en el
+  agregado y se invocan por su nombre: `owns(fingerprint, now)`, `ownsPlatformKey`,
+  `signingSecrets(now)`, `requiresSignature(now)`, `rotated(credential, grace, now)` —la anterior
+  sigue valiendo durante la gracia, acotada por un máximo—, `switched(on)`, `deactivated()`
+  (irreversible; `409 merchant-deactivated`) y `Merchant.judgeOrigins`.
+- **Las credenciales se ven una vez.** Los valores los acuña el puerto `CredentialMinter`
+  (`ope_ik_ | ope_pk_ | ope_ps_` + base64url) y viajan **sólo** en la respuesta que los emite; el
+  store guarda huellas y resuelve por `MerchantDirectory.byFingerprint`.
+- **El kill switch corta antes de asignar** (01 §14.2): `switched(false)` ⇒ la decisión responde
+  `NO_OP` `merchant-off` **antes** de la asignación, para no contaminar la medición
+  (`MerchantPolicies.enabled`, leído del store por `switchAwarePolicyDirectory` en los gateways del
+  módulo `configuration`). Ingesta, outcomes y catálogo siguen funcionando.
+- **Los operadores** llegan por `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE`
+  (`operatorId`, huellas de sus tokens, `scope: "*" | [merchantId]`). `adminToken` es bearer;
+  `AdminTokenResolver` lo resuelve por huella (`401 operator-unknown`) y entrega
+  `OperatorPrincipal`. Un merchant fuera del alcance responde `403 merchant-out-of-scope` con el
+  mismo cuerpo que uno inexistente **sólo cuando el operador no lo alcanza**: la diferencia entre
+  «no existe» y «no es tuyo» no se filtra.
+- **Toda operación `admin` se audita** (ADR-034): el registro (`AdminLog`, `AdminEntry`: operador,
+  operación, merchant, resultado `accepted | rejected | failed`, motivo) se escribe pase o falle, y
+  se lee paginado por `GET /v1/admin/log` y `GET /v1/admin/merchants/{merchantId}/log`.
+- **Herramientas**: `node scripts/mint-admin-token.mjs` acuña un token y su huella, y
+  `config/dev-operators.json` lleva el operador de desarrollo.
