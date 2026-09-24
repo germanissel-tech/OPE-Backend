@@ -86,29 +86,29 @@ en su archivo.
 acotación, se comprueba que el gate la ve, y recién entonces se reemplaza la sección por su
 invariante**. En commits separados, para que el diff muestre que nada se perdió.
 
-- [ ] T010 [US1] `.claude/rules/auditoria.md` (12 líneas) → se acota a las evaluaciones y las
+- [x] T010 [US1] `.claude/rules/auditoria.md` (12 líneas) → se acota a las evaluaciones y las
       skills. **La más chica primero**: sirve para calibrar el tamaño del puntero antes de mover las
       grandes, y para ver el mecanismo funcionando de punta a punta.
-- [ ] T011 [P] [US1] `.claude/rules/entidad.md` (48) → se acota al dominio. Invariante que queda:
+- [x] T011 [P] [US1] `.claude/rules/entidad.md` (48) → se acota al dominio. Invariante que queda:
       clase si hay reglas, tipo si no; las reglas viven con su dueño.
-- [ ] T012 [P] [US1] `.claude/rules/gates-de-calidad.md` (51) → al código fuente y las pruebas.
+- [x] T012 [P] [US1] `.claude/rules/gates-de-calidad.md` (51) → al código fuente y las pruebas.
       Invariante: un cambio no entra si un mutante de sus propias líneas sobrevive.
-- [ ] T013 [P] [US1] `.claude/rules/caso-de-uso.md` (59) → a la capa de aplicación. **Es el caso que
+- [x] T013 [P] [US1] `.claude/rules/caso-de-uso.md` (59) → a la capa de aplicación. **Es el caso que
       más se acercó a no moverse** (FR-004: un agente creando el primer archivo de la capa todavía
       no leyó ninguno). Su invariante tiene que ser la que `lint` rechaza en el acto: una clase con
       `execute`, dependencias interfaces, y un error de negocio que se devuelve y nunca se lanza.
-- [ ] T014 [P] [US1] `.claude/rules/anillos-y-modulos.md` (85) → al código fuente. Invariante: la
+- [x] T014 [P] [US1] `.claude/rules/anillos-y-modulos.md` (85) → al código fuente. Invariante: la
       dependencia va sólo hacia adentro; un módulo importa de otro sólo por su índice y sólo si el
       mapa lo permite.
-- [ ] T015 [P] [US1] `.claude/rules/contrato.md` (92) → al contrato. **La más grande.** Invariante:
+- [x] T015 [P] [US1] `.claude/rules/contrato.md` (92) → al contrato. **La más grande.** Invariante:
       el contrato es la única fuente de verdad de toda la superficie HTTP.
-- [ ] T016 [US1] **La fusión, que no es una mudanza**: lo que le falte a `scripts/README.md` de la
+- [x] T016 [US1] **La fusión, que no es una mudanza**: lo que le falte a `scripts/README.md` de la
       tabla de comandos se le agrega **antes** de borrarla (26 de los 30 ya están). El núcleo
       conserva los siete del lazo normal; los cuatro que no son scripts de `scripts/` —`build`,
       `arch`, `format`, `check:mutation-report`— **no se pierden**: se ubican explícitamente.
-- [ ] T017 [US1] Verificar que **nada se perdió**, por sección y no por total: un total que cierra
+- [x] T017 [US1] Verificar que **nada se perdió**, por sección y no por total: un total que cierra
       puede esconder una sección que se fue entera. Enumerar lo consolidado a propósito.
-- [ ] T018 [US1] `wc -l CLAUDE.md` — **bajo 200**, y el gate en verde. Registrar la cifra contra la
+- [x] T018 [US1] `wc -l CLAUDE.md` — **bajo 200**, y el gate en verde. Registrar la cifra contra la
       serie: 360 → 675 → 573 → …
 
 **Checkpoint**: el núcleo entra en una pasada y las seis reglas llegan cuando hacen falta.
@@ -117,13 +117,13 @@ invariante**. En commits separados, para que el diff muestre que nada se perdió
 
 ## Phase 4: User Story 3 - Quien agrega una instrucción sabe dónde ponerla (Priority: P2)
 
-- [ ] T019 [US3] `CLAUDE.md` — los tres destinos escritos con la pregunta que los separa
+- [x] T019 [US3] `CLAUDE.md` — los tres destinos escritos con la pregunta que los separa
       («¿hace falta en **toda** sesión?» y, si no, «¿es un procedimiento de varios pasos?») y un
       ejemplo real de cada uno. Va en la sección de documentación viva, junto al criterio de la 024.
-- [ ] T020 [US3] El criterio de admisión de la feature 024 gana la pregunta que le falta: ser
+- [x] T020 [US3] El criterio de admisión de la feature 024 gana la pregunta que le falta: ser
       normativo no alcanza, tiene que hacer falta en toda sesión. Es la enmienda que la fuente
       oficial pide y la que evita que el núcleo vuelva a crecer por inercia.
-- [ ] T021 [US3] Verificar el criterio contra las catorce secciones de hoy: tiene que dar el mismo
+- [x] T021 [US3] Verificar el criterio contra las catorce secciones de hoy: tiene que dar el mismo
       reparto que esta feature hizo. Si da otro, el criterio está mal escrito o el reparto estaba
       mal, y hay que decir cuál.
 

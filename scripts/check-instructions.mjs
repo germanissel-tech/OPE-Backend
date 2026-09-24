@@ -91,7 +91,14 @@ for (const entry of policy.files) {
   // The commands table and the size limit belong to the core: a rule has neither.
   if (entry.role !== "core") continue;
   problems.push(...coreSizeProblems(markdown, policy.coreMaxLines).map((p) => at(entry.file, p)));
-  const named = commandProblems(markdown, scripts, policy, sectionRange(markdown, policy.commandsSection));
+  // The core names the loop; the inventory of scripts/ describes the rest. Neither alone is the
+  // whole list, and a command in neither is the hole (feature 025).
+  const inventoryFile = path.resolve(root, policy.commandsInventory);
+  const inventory = exists(inventoryFile) ? readFileSync(inventoryFile, "utf8") : "";
+  const named = commandProblems(markdown, scripts, policy, {
+    table: sectionRange(markdown, policy.commandsSection),
+    inventory,
+  });
   commands = named.checked;
   problems.push(...named.problems.map((p) => at(entry.file, p)));
 }

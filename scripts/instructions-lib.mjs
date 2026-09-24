@@ -16,6 +16,7 @@
  * @property {readonly string[]} implicitRoots roots a path may be abbreviated against, in order
  * @property {NotPaths} notPaths what is written with slashes and does not name a place
  * @property {string} commandsSection the heading of the table the commands are read from
+ * @property {string} commandsInventory the file that describes the commands the core does not name
  * @property {readonly InstructionFile[]} files the core and every scoped rule, with their sections
  * @property {readonly Exception[]} exceptions citations that deliberately do not resolve
  */
@@ -53,7 +54,9 @@
 
 const FENCE = /^\s*(```|~~~)/;
 const SPAN = /`([^`\n]+)`/g;
-const HEADING = /^#{2,}\s+(.+?)\s*$/;
+// From the title down. A rule file's only heading is its title, and the core's title carries the
+// language convention: leaving the first level out left a section nobody had to classify (025).
+const HEADING = /^#{1,6}\s+(.+?)\s*$/;
 /** The table writes a command three ways, and a combined cell uses all three: `npm run x`, `npm x`, `x`. */
 const NPM_RUN = /^npm (?:run )?([a-z0-9:-]+)$/;
 const BARE_SCRIPT = /^[a-z][a-z0-9]*(?::[a-z0-9-]+)*$/;
@@ -198,25 +201,38 @@ function documentedCommands(markdown, table) {
  * —`npm run build` / `dev` / `typecheck`— names three commands in three shapes, so all three are
  * read; scoping to the section is what keeps a bare word like `dev` from counting as documentation
  * anywhere else in the document.
+ *
+ * **Two places count, not one** (feature 025). The core names the handful an agent runs in its
+ * loop; the rest are described in the inventory of `scripts/`, which its own test already verifies
+ * row by row. Asking the core to list all of them was what made that table a second copy of the
+ * inventory — the same coupling this work exists to remove. What may not happen is a command
+ * described in *neither*.
  * @param {string} markdown
  * @param {readonly string[]} scripts
  * @param {Policy} policy
- * @param {{ from: number, to: number } | undefined} table
+ * @param {{ table: { from: number, to: number } | undefined, inventory: string }} where the table
+ *   of the core and the markdown of the inventory that describes the rest
  * @returns {{ problems: string[], checked: number }}
  */
-export function commandProblems(markdown, scripts, policy, table) {
+export function commandProblems(markdown, scripts, policy, where) {
+  const { table, inventory } = where;
   if (!table) {
     return { problems: ["0: the commands section of the policy is not in the document"], checked: 0 };
   }
   const excused = new Set(policy.exceptions.map((e) => e.script).filter((s) => typeof s === "string"));
   const documented = documentedCommands(markdown, table);
+  const elsewhere = new Set(
+    [...inventory.matchAll(SPAN)]
+      .map((m) => NPM_RUN.exec(m[1] ?? "")?.[1] ?? (BARE_SCRIPT.test(m[1] ?? "") ? m[1] : undefined))
+      .filter((name) => typeof name === "string"),
+  );
   /** @type {string[]} */
   const problems = [];
   for (const [name, line] of documented) {
     if (!scripts.includes(name)) problems.push(`${line}: command that does not exist: ${name}`);
   }
   for (const name of scripts) {
-    if (documented.has(name) || excused.has(name)) continue;
+    if (documented.has(name) || elsewhere.has(name) || excused.has(name)) continue;
     problems.push(`0: command of the repository that the table does not name: ${name}`);
   }
   return { problems, checked: documented.size };

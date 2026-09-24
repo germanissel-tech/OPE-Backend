@@ -44,7 +44,7 @@ interface Lib {
     markdown: string,
     scripts: readonly string[],
     policy: Policy,
-    table: { from: number; to: number } | undefined,
+    where: { table: { from: number; to: number } | undefined; inventory: string },
   ) => Counted;
   headings: (markdown: string) => { line: number; heading: string }[];
   sectionProblems: (markdown: string, entry: InstructionFile) => Counted;
@@ -164,13 +164,19 @@ describe("the commands table (pure)", () => {
 
   it("reads a combined cell: three commands in three shapes", () => {
     const range = lib.sectionRange(table, "Commands");
-    const found = lib.commandProblems(table, ["quality", "build", "dev", "typecheck"], policy(), range);
+    const found = lib.commandProblems(table, ["quality", "build", "dev", "typecheck"], policy(), {
+      table: range,
+      inventory: "",
+    });
     expect(found).toEqual({ problems: [], checked: 4 });
   });
 
   it("only the first cell counts, and only inside the table", () => {
     const range = lib.sectionRange(table, "Commands");
-    const found = lib.commandProblems(table, ["quality", "build", "dev", "typecheck"], policy(), range);
+    const found = lib.commandProblems(table, ["quality", "build", "dev", "typecheck"], policy(), {
+      table: range,
+      inventory: "",
+    });
     expect(found.problems).toEqual([]);
     // `outside-the-table` is in another section: it neither counts as documented nor is reported.
     expect(found.checked).toBe(4);
@@ -185,10 +191,13 @@ describe("the commands table (pure)", () => {
       policy({
         exceptions: [{ script: "prepare", reason: "an npm hook" }],
       }),
-      range,
+      { table: range, inventory: "" },
     );
     expect(found.problems).toEqual(["0: command of the repository that the table does not name: invented"]);
-    const missing = lib.commandProblems(table, ["quality", "dev", "typecheck"], policy(), range);
+    const missing = lib.commandProblems(table, ["quality", "dev", "typecheck"], policy(), {
+      table: range,
+      inventory: "",
+    });
     expect(missing.problems).toContain("6: command that does not exist: build");
   });
 });
