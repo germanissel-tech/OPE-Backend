@@ -18,11 +18,15 @@ import {
   type ExperimentError,
 } from "./errors.js";
 
-/** `calibrating → active → closed`, or `calibrating → closed` (03 §4.10, D-G). */
-export type ExperimentStatus = "calibrating" | "active" | "closed";
-const CALIBRATING = "calibrating" satisfies ExperimentStatus;
-const ACTIVE = "active" satisfies ExperimentStatus;
-const CLOSED = "closed" satisfies ExperimentStatus;
+/**
+ * The states of an experiment: `calibrating → active → closed`, or `calibrating → closed`
+ * (03 §4.10, D-G). The list is the declaration and the type comes from it, the way the kernel
+ * declares the barriers and the anchors: whoever has to enumerate the states —the reader of the
+ * seed, to reject an unknown one— imports this and cannot fall behind it.
+ */
+export const EXPERIMENT_STATUSES = ["calibrating", "active", "closed"] as const;
+export type ExperimentStatus = (typeof EXPERIMENT_STATUSES)[number];
+const [CALIBRATING, ACTIVE, CLOSED] = EXPERIMENT_STATUSES;
 
 /** What a decision taken under the experiment is for: nothing (calibration) or the analysis. */
 export type ExperimentPhase = "calibration" | "accumulation";

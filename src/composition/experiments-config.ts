@@ -1,14 +1,27 @@
 // Experiments of the seed (ADR-022, ADR-031): the shape is parsed here; each experiment is built
 // by its factory and the set judged by its owner, and a rejected one stops the start naming the
 // field. The seed is the origin: the holdout does not judge it.
-import { Experiment, Experiments, type ExperimentStatus } from "../domain/experiment/index.js";
+import {
+  EXPERIMENT_STATUSES,
+  Experiment,
+  Experiments,
+  type ExperimentStatus,
+} from "../domain/experiment/index.js";
 import { asExperimentId, type MerchantId } from "../domain/shared-kernel/index.js";
 import { ConfigError, type MerchantField } from "./config-error.js";
 import { A_NUMBER, NON_EMPTY_STRING, NOT_AN_OBJECT } from "./env.js";
 import { rejected } from "./seed-errors.js";
 
+/**
+ * The shape of an experiment identifier, as `contracts/components/schemas/ExperimentId.yaml`
+ * declares it. It accepts more than `ExperimentIdMinter` produces (`exp_` + 12 base32 characters)
+ * on purpose: the minter's shape is one valid instance of the rule, not the rule. The seed is the
+ * origin of the system and may carry an experiment opened somewhere else —another environment, an
+ * import— and the public rule is the contract's, so demanding the minter's prefix here would
+ * reject identifiers the contract accepts. The replica is kept by
+ * `tests/unit/experiment-id.test.ts`.
+ */
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const EXPERIMENT_STATUSES: readonly ExperimentStatus[] = ["calibrating", "active", "closed"];
 const isExperimentStatus = (value: unknown): value is ExperimentStatus =>
   typeof value === "string" && (EXPERIMENT_STATUSES as readonly string[]).includes(value);
 

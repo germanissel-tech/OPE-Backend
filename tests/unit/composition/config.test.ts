@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ConfigError, readConfig } from "../../../src/composition/config.js";
+import { EXPERIMENT_STATUSES } from "../../../src/domain/experiment/index.js";
 import { testLevels } from "../../helpers/test-app.js";
 
 /** The files of the release are the only reads the configuration makes unless a variable names another. */
@@ -13,7 +14,7 @@ const noFile = (file: string): string => {
   throw new Error(`unexpected read of ${file}`);
 };
 const merchant = { merchantId: "m_a", ingestKeys: ["k1"], origins: ["https://a.example"] };
-/** An experiment of the seed: the treatment percent and the target sample are required (no default, constitution XI). */
+/** An experiment of the seed: the treatment share and the target sample are required (no default, constitution XI). */
 const exp = {
   experimentId: "exp_00000001",
   treatmentShare: 0.5,
@@ -210,6 +211,24 @@ describe("readConfig", () => {
     const raw = JSON.stringify([{ ...merchant, experiments }]);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
+  });
+
+  // Feature 022, US3: the reader does not write the states down again. If the domain adds one, the
+  // message names it without anybody editing this file, and a state the domain declares is accepted.
+  it("the states the seed accepts are the ones the domain declares, and so is the message", () => {
+    const listed = EXPERIMENT_STATUSES.join(", ");
+    expect(() =>
+      readConfig(
+        { OPE_MERCHANTS: JSON.stringify([{ ...merchant, experiments: [{ ...exp, status: "paused" }] }]) },
+        noFile,
+      ),
+    ).toThrow(`must be one of ${listed}`);
+    for (const status of EXPERIMENT_STATUSES) {
+      const raw = JSON.stringify([{ ...merchant, experiments: [{ ...exp, status }] }]);
+      expect(readConfig({ OPE_MERCHANTS: raw }, noFile).merchants[0]?.experiments.all(), status).toHaveLength(
+        1,
+      );
+    }
   });
 
   const policy = {

@@ -15,7 +15,7 @@ export {
 } from "./errors.js";
 export { Experiments } from "./experiments.js";
 export type { ExperimentError, ExperimentSetError } from "./errors.js";
-export { Experiment } from "./experiment.js";
+export { EXPERIMENT_STATUSES, Experiment } from "./experiment.js";
 export type {
   ExperimentInput,
   ExperimentPhase,

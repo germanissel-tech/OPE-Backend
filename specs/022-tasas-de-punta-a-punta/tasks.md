@@ -24,9 +24,9 @@ los tipos estén regenerados**.
 
 ## Phase 1: Setup
 
-- [X] T001 Confirmar la base: `git log --oneline main..HEAD` incluye las tres ramas encadenadas
+- [x] T001 Confirmar la base: `git log --oneline main..HEAD` incluye las tres ramas encadenadas
       (020, 021, 022). Si alguna se mergeó, rebasear antes de tocar nada.
-- [X] T002 **Confirmar que la ventana sigue abierta**: `grep -n "x-stability" contracts/openapi.yaml`
+- [x] T002 **Confirmar que la ventana sigue abierta**: `grep -n "x-stability" contracts/openapi.yaml`
       tiene que decir `building`. Si ya no está, **parar**: sin la marca este cambio exige versión
       mayor y prefijo nuevo, y eso es otra feature.
 
@@ -37,28 +37,28 @@ los tipos estén regenerados**.
 **Purpose**: los ocho campos cambian de unidad y de nombre. **Bloquea todo lo demás**: sin los tipos
 regenerados no compila nada.
 
-- [X] T003 [US1] `contracts/components/schemas/Experiment.yaml` — `treatmentPercent` →
+- [x] T003 [US1] `contracts/components/schemas/Experiment.yaml` — `treatmentPercent` →
       `treatmentShare` (`number`, 0..1) y `cuts` a `number` con `exclusiveMinimum: 0`. La
       descripción del reparto declara **a qué granularidad resuelve el sistema** (FR-008).
-- [X] T004 [P] [US1] `contracts/components/schemas/ExperimentCreate.yaml` — los mismos dos campos.
-- [X] T005 [P] [US1] `contracts/components/schemas/CommercialPolicy.yaml` y
+- [x] T004 [P] [US1] `contracts/components/schemas/ExperimentCreate.yaml` — los mismos dos campos.
+- [x] T005 [P] [US1] `contracts/components/schemas/CommercialPolicy.yaml` y
       `CommercialPolicyDeclared.yaml` — `maxIncentivePercent` → `maxIncentiveShare`,
       `incentiveLadderPercent` → `incentiveLadderShare`, `marginPercent` → `marginShare`. Se cae la
       frase "Percentages at the edge; the domain works with rates": ya no hay borde distinto.
-- [X] T006 [P] [US1] `contracts/components/schemas/EffectiveConfiguration.yaml`,
+- [x] T006 [P] [US1] `contracts/components/schemas/EffectiveConfiguration.yaml`,
       `TreatmentDefaults.yaml` y `MerchantConfigurationDeclared.yaml` — `holdoutPercent` →
       `holdoutShare`.
-- [X] T007 [US1] `contracts/components/schemas/Incentive.yaml` — `value` a `number` con
+- [x] T007 [US1] `contracts/components/schemas/Incentive.yaml` — `value` a `number` con
       `exclusiveMinimum: 0` y `maximum: 1`. **La trampa**: hoy dice `minimum: 1` y eso significa
       "1 %"; escribir `minimum: 1` sería cometer en el contrato el error que la feature elimina.
       `kind` **no cambia**; sí su descripción, para que `kind: percent` con `value: 0.15` no se lea
       como "0,15 %".
-- [X] T008 [US1] Los **ejemplos** de las operaciones afectadas, que hoy muestran enteros.
-- [X] T009 [US1] `contracts/openapi.yaml` — `info.version` de `1.4.0` a `1.5.0`. El prefijo `/v1/`
+- [x] T008 [US1] Los **ejemplos** de las operaciones afectadas, que hoy muestran enteros.
+- [x] T009 [US1] `contracts/openapi.yaml` — `info.version` de `1.4.0` a `1.5.0`. El prefijo `/v1/`
       **no se toca** (ADR-003).
-- [X] T010 [US1] `npm run contract:check` y revisar el diff **campo por campo**: tiene que reportar
+- [x] T010 [US1] `npm run contract:check` y revisar el diff **campo por campo**: tiene que reportar
       incompatibles —es lo esperado— y **sólo** los ocho. Cualquier otro es alcance escapado.
-- [X] T011 [US1] `npm run contract:types` y confirmar que `generated/` y los esquemas de
+- [x] T011 [US1] `npm run contract:types` y confirmar que `generated/` y los esquemas de
       configuración quedan al día. El cliente tipado se deriva de ahí: **no se toca a mano**.
 
 **Checkpoint**: el contrato habla en tasas. A partir de acá el repositorio no compila, y eso es el
@@ -73,20 +73,20 @@ mapa de todo lo que falta.
 **Independent Test**: buscar el factor en el repositorio y no encontrarlo salvo la granularidad del
 reparto, con su nombre nuevo.
 
-- [X] T012 [US2] `src/domain/configuration/policy-inputs.ts` — se van `isPercent`, `PERCENT`,
+- [x] T012 [US2] `src/domain/configuration/policy-inputs.ts` — se van `isPercent`, `PERCENT`,
       `PERCENT_PROBLEM` y las tres divisiones. **También se va `FIELD_BY_SHARE`**: existía sólo para
       traducir el nombre de una tasa al de su campo de porcentaje, y ahora se llaman igual.
-- [X] T013 [US2] `src/domain/configuration/treatment-values.ts` — se va la copia en línea del
+- [x] T013 [US2] `src/domain/configuration/treatment-values.ts` — se va la copia en línea del
       juicio (el mismo mensaje literal que el de arriba) y la división del holdout.
-- [X] T014 [US2] `src/domain/commercial/commercial-policy.ts` — se va `PERCENT_PER_UNIT` y la
+- [x] T014 [US2] `src/domain/commercial/commercial-policy.ts` — se va `PERCENT_PER_UNIT` y la
       conversión de salida del incentivo.
-- [X] T015 [US2] `src/application/configuration/input/` — los lectores dejan de nombrar campos de
+- [x] T015 [US2] `src/application/configuration/input/` — los lectores dejan de nombrar campos de
       porcentaje; los nombres son los del contrato, que ahora son los del dominio.
-- [X] T016 [US2] `src/composition/experiments-config.ts` — se va su `PERCENT` y la división; el
+- [x] T016 [US2] `src/composition/experiments-config.ts` — se va su `PERCENT` y la división; el
       juicio del reparto queda en la fábrica de la entidad.
-- [X] T017 [US2] `src/interface-adapters/experiment/controllers/create-experiment.ts` y
+- [x] T017 [US2] `src/interface-adapters/experiment/controllers/create-experiment.ts` y
       `presenters.ts` — dejan de convertir: lo que entra y lo que sale ya es una tasa.
-- [X] T018 [US2] Verificar: `grep -rn "/ 100\|\* 100\|PERCENT\|isPercent" src/ --include=*.ts` sólo
+- [x] T018 [US2] Verificar: `grep -rn "/ 100\|\* 100\|PERCENT\|isPercent" src/ --include=*.ts` sólo
       encuentra la granularidad del reparto, y con su nombre nuevo.
 
 ---
@@ -98,15 +98,15 @@ algoritmo.
 
 **Depende de**: fase 2. Independiente de la fase 3.
 
-- [X] T019 [US2] `src/domain/experiment/experiment.ts` — renombrar `PERCENT_BUCKETS` a un nombre
+- [x] T019 [US2] `src/domain/experiment/experiment.ts` — renombrar `PERCENT_BUCKETS` a un nombre
       que diga lo que es (la resolución del reparto), con su motivo escrito al lado: **vale cien
       por coincidencia y no es un factor de conversión**.
-- [X] T020 [US2] Reescribir en tasas la comparación del reparto contra el holdout, que hoy pasa por
+- [x] T020 [US2] Reescribir en tasas la comparación del reparto contra el holdout, que hoy pasa por
       enteros (`bucketsOf`). **Tiene que dar exactamente el mismo veredicto**, incluidos los bordes:
       reparto igual al holdout disponible, y reparto un centésimo por encima.
-- [X] T021 [US2] Revisar `isCut`, que compara contra esa misma constante: los cortes son tasas y su
+- [x] T021 [US2] Revisar `isCut`, que compara contra esa misma constante: los cortes son tasas y su
       regla propia —estrictamente crecientes por encima de cero— se queda en `offendingCut`.
-- [X] T022 [US2] **Correr acá, no al final**:
+- [x] T022 [US2] **Correr acá, no al final**:
       `npx vitest run --project fast tests/unit/domain/experiment`. La prueba de regresión de la
       feature 007 tiene que dar **los mismos brazos para los mismos visitantes**. Si cambia, se
       para y se revisa; **no se ajusta la prueba**.
@@ -122,16 +122,16 @@ algoritmo.
 **⚠️ El paso que más fácil se olvida, y el que el juez de tasas no cubre del todo**: atrapa lo que
 supera 1, pero **no atrapa el 1**.
 
-- [X] T023 [P] [US1] `config/treatment-defaults.json` — `holdoutPercent: 5` → `holdoutShare: 0.05`,
+- [x] T023 [P] [US1] `config/treatment-defaults.json` — `holdoutPercent: 5` → `holdoutShare: 0.05`,
       `maxIncentivePercent: 10` → `maxIncentiveShare: 0.1`, `incentiveLadderPercent: [5, 10]` →
       `incentiveLadderShare: [0.05, 0.1]`.
-- [X] T024 [P] [US1] `config/dev-merchants.json` — `treatmentPercent: 100` → `treatmentShare: 1`,
+- [x] T024 [P] [US1] `config/dev-merchants.json` — `treatmentPercent: 100` → `treatmentShare: 1`,
       `marginPercent: 40` → `marginShare: 0.4`, `holdoutPercent: 0` → `holdoutShare: 0`.
       **Mirar dos veces el 100 → 1**: es el valor donde un error de migración es indistinguible de
       un acierto.
-- [X] T025 [US1] Verificar valor por valor: `grep -rn "Percent" config/` da cero, y cada número es
+- [x] T025 [US1] Verificar valor por valor: `grep -rn "Percent" config/` da cero, y cada número es
       el centésimo del que era.
-- [X] T026 [US1] `tests/helpers/test-app.ts` y los fixtures de los 16 archivos de prueba que
+- [x] T026 [US1] `tests/helpers/test-app.ts` y los fixtures de los 16 archivos de prueba que
       declaran porcentajes. **No tocar** `tests/audit/fixtures/`: son fixtures de la skill de
       auditoría y su contenido es deliberado.
 
@@ -141,13 +141,13 @@ supera 1, pero **no atrapa el 1**.
 
 **Goal**: que la suite pase con las aserciones cambiadas **sólo** de unidad.
 
-- [X] T027 [US1] Recorrer los 16 archivos de prueba que nombran un porcentaje y cambiar la unidad
+- [x] T027 [US1] Recorrer los 16 archivos de prueba que nombran un porcentaje y cambiar la unidad
       del valor y el nombre del campo. **La regla**: si una aserción necesita cambiar algo más que
       eso, hay un cambio de comportamiento que no estaba previsto — parar y revisar.
-- [X] T028 [US1] Agregar el caso que da sentido a todo: un reparto declarado como `0.01` reparte el
+- [x] T028 [US1] Agregar el caso que da sentido a todo: un reparto declarado como `0.01` reparte el
       uno por ciento, y **no** el cien por ciento.
-- [X] T029 [US1] `npm test` y `npm run test:tools` en verde.
-- [X] T030 [US1] `npm run test:contract` — Schemathesis contra los esquemas nuevos.
+- [x] T029 [US1] `npm test` y `npm run test:tools` en verde.
+- [x] T030 [US1] `npm run test:contract` — Schemathesis contra los esquemas nuevos.
 
 ---
 
@@ -155,11 +155,11 @@ supera 1, pero **no atrapa el 1**.
 
 **Independiente de todo lo anterior.**
 
-- [ ] T031 [US3] `src/domain/experiment/experiment.ts` — declarar la lista de estados y derivar el
+- [X] T031 [US3] `src/domain/experiment/experiment.ts` — declarar la lista de estados y derivar el
       tipo de ella, como el kernel hace con las barreras, los anclajes y los motivos de `NO_OP`.
-- [ ] T032 [US3] `src/composition/experiments-config.ts` — importar la lista en vez de volver a
+- [X] T032 [US3] `src/composition/experiments-config.ts` — importar la lista en vez de volver a
       escribirla; el predicado local se va con ella.
-- [ ] T033 [US3] Verificar que el mensaje que rechaza un estado desconocido lista los estados que
+- [X] T033 [US3] Verificar que el mensaje que rechaza un estado desconocido lista los estados que
       existen **en ese momento**, derivados de la lista.
 
 ---
@@ -168,10 +168,10 @@ supera 1, pero **no atrapa el 1**.
 
 **Independiente.**
 
-- [ ] T034 [US4] Escribir en `src/composition/experiments-config.ts`, junto al patrón, **por qué**
+- [X] T034 [US4] Escribir en `src/composition/experiments-config.ts`, junto al patrón, **por qué**
       la semilla admite más que lo que el acuñador produce. Si al escribirlo no aparece un motivo,
       unificar con la forma del acuñador y borrar el patrón.
-- [ ] T035 [US4] Si el motivo existe, dejar en `asExperimentId` una referencia a dónde vive la
+- [X] T035 [US4] Si el motivo existe, dejar en `asExperimentId` una referencia a dónde vive la
       regla, para que quien lo lea no crea que la identidad no tiene ninguna.
 
 ---
