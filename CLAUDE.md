@@ -146,21 +146,11 @@ código. De cada una queda la línea que impide equivocarse antes de que llegue.
 
 ## Convenciones
 
-- **Ninguna política vive en el código (constitución XI, ADR-031)**: todo valor que gobierna
-  el comportamiento es configuración en tres niveles —plataforma (`config/platform.json`:
-  ventana de deduplicación, tolerancia de reloj, memoria de sesión y visitante, ventana de
-  firma, gracia máxima de rotación, tope de diagnósticos), default de tratamiento
-  (`config/treatment-defaults.json`: frescura, umbrales del nivel de sincronización,
-  `holdoutShare`, las tres políticas, superficies, barreras, estrategia de sincronización,
-  idiomas) y merchant (versiones publicadas por `publishMerchantConfiguration`, más el mapa de
-  anclajes)— resuelta valor por valor por `EffectiveConfiguration` y servida desde memoria por
-  `ConfigurationService`; cada decisión estampa la terna (`DecisionFacts.configuration`). El
-  código conserva invariantes y algoritmos; las constantes ya salieron (`check:behaviour-constants`
-  vigila que no vuelvan): un valor de comportamiento nuevo es una entrada en un nivel, nunca una
-  constante. Los consumidores reciben los valores por su puerto (`ClockTolerance`,
-  `SignatureWindow`, `CatalogPolicies`, `PolicyDirectory`, `VisitorWindow`) o en su construcción
-  (los stores en memoria reciben su ventana), enlazados en `composition/modules/`.
-- TypeScript `strict`. Sin `any`. Un módulo por autoridad. Composition root único en
+- **Ninguna política vive en el código (constitución XI, ADR-031)**: un valor de comportamiento
+  nuevo es **una entrada en uno de los tres niveles de configuración, nunca una constante**, y
+  `check:behaviour-constants` vigila que no vuelvan. El código conserva invariantes y algoritmos.
+  Qué contiene cada nivel y por qué puerto llega cada valor, en ADR-031.
+- TypeScript `strict`. Un módulo por autoridad. Composition root único en
   `src/composition/` (ADR-013). Identificadores como tipos marcados (`Branded`): una identidad
   vive en `src/domain/shared-kernel/ids.ts` **sólo** si la comparten módulos que no pueden
   depender entre sí (`MerchantId`, `SessionId`, `VisitorId`, `ExperimentId`); con un dueño, vive

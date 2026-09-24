@@ -66,19 +66,19 @@ origen, estado y fecha.
 **En dos tiempos**, y el orden no es negociable: primero se agrega al destino, se verifica que está
 completo, y **recién entonces** se borra del origen. En commits separados.
 
-- [ ] T006 [US2] `docs/adr/031-merchants-operados-y-tres-niveles.md` — recibe lo descriptivo de la
+- [x] T006 [US2] `docs/adr/031-merchants-operados-y-tres-niveles.md` — recibe lo descriptivo de la
       viñeta: qué contiene cada uno de los tres niveles, quién los resuelve y por qué puerto llega
       cada valor a su consumidor. Es la decisión que ese ADR ya tomó; le faltaba la forma que tomó al
       construirse.
-- [ ] T007 [US2] `CLAUDE.md` — la viñeta queda en su **regla**: un valor de comportamiento nuevo es
+- [x] T007 [US2] `CLAUDE.md` — la viñeta queda en su **regla**: un valor de comportamiento nuevo es
       una entrada en un nivel, nunca una constante, y un gate lo vigila. Las otras siete viñetas no
       se tocan.
-- [ ] T008 [US2] `CLAUDE.md` — **la duplicación que apareció al leer**: «Sin `any`» está en la
+- [x] T008 [US2] `CLAUDE.md` — **la duplicación que apareció al leer**: «Sin `any`» está en la
       viñeta de tipado y otra vez en la de convenciones. Se queda en tipado, que es su lugar. Es
       arreglo de paso, no deuda: si costara trabajo aparte, sería una fila.
-- [ ] T009 [US2] `scripts/instructions-policy.json` — `Convenciones` pasa de `mixed` a `normative` y
+- [x] T009 [US2] `scripts/instructions-policy.json` — `Convenciones` pasa de `mixed` a `normative` y
       pierde su `reason`.
-- [ ] T010 [US2] Verificar: `wc -l CLAUDE.md` **bajó de 195**, `npm run check:instructions` en verde,
+- [x] T010 [US2] Verificar: `wc -l CLAUDE.md` **bajó de 195**, `npm run check:instructions` en verde,
       y lo que se movió no quedó **también** en el origen.
 
 ---
