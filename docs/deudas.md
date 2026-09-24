@@ -39,9 +39,15 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter     | Feature 025                    | `abierta`      | 2026-09-24 | —         |
 | D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos         | Feature 025                    | `abierta`      | 2026-09-24 | —         |
 | D-10 | El procedimiento del gate de mutación está escrito como una instrucción        | Feature 025                    | `abierta`      | 2026-09-24 | —         |
+| D-11 | La regla `profiles-compose-modules` vigila un directorio que ya no existe      | Feature 026                    | `abierta`      | 2026-09-24 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
+
+D-11 apareció **al separar**, no antes: ADR-033 reemplazó los perfiles por despliegues y la regla
+de dependency-cruiser se quedó apuntando a `src/composition/profiles/`, que ya no existe, así que
+hoy no puede dispararse. Arreglarla es cambiar un gate, no documentación; por eso se registra en
+vez de arrastrarse dentro de la 026.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

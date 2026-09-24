@@ -127,3 +127,16 @@ Lo que la implementación fijó y sólo estaba escrito en las instrucciones de l
   - Un consumidor **nunca lee un nivel**: recibe el valor por su puerto (`ClockTolerance`,
     `SignatureWindow`, `CatalogPolicies`, `PolicyDirectory`, `VisitorWindow`) o en su construcción
     —los stores en memoria reciben su ventana—, enlazado en `composition/modules/`.
+- **Cómo entra la semilla, y qué no pisa.** También mudado desde las instrucciones de los agentes
+  por la feature 026 (deuda D-09): `OPE_MERCHANTS` (JSON) u `OPE_MERCHANTS_FILE` los importa
+  `bootstrap` por `ImportMerchantsUseCase` como el operador `system`, y **sólo si el store arranca
+  vacío**: con merchants ya registrados no pisa nada. Sin semilla y sin store poblado, nadie
+  autentica. Junto a los campos del merchant admite todo lo que `MerchantConfigurationDeclared`
+  admite (`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutShare`, `freshness`, …),
+  que `ImportMerchantConfigurationUseCase` publica como la versión 1 **sólo si el merchant no tiene
+  versiones**. Los dos niveles del release los lee `readConfig` por los lectores de forma del módulo
+  `configuration` (`readPlatformConfiguration`, `readTreatmentDefaults`) y los juzgan las fábricas
+  del dominio (`PlatformConfiguration.of`, `TreatmentDefaults.of`): un valor fuera de rango es un
+  `ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`.
+- **Nada de lo que un operador hace a un merchant requiere reiniciar** —crear, rotar, apagar, dar de
+  baja—: se lee del store en la siguiente request.

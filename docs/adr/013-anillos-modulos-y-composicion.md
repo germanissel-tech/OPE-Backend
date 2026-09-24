@@ -152,3 +152,24 @@ presenters.ts, security/, gateways/, index.ts}`: un módulo tiene las partes que
 6. `composition/config.ts` partido por lo que lee: `merchants-config.ts`, `experiments-config.ts`,
    `levels-config.ts`, `env.ts`, `seed-errors.ts` (y `operators-config.ts`, que ya existía).
    Las pruebas unitarias del anillo espejan el árbol (`tests/unit/interface-adapters/<m>/`).
+
+## Enmienda (2026-09-24): el vocabulario de la enmienda de 2026-09-16, al día
+
+Feature 026 (deuda D-09). Al mudar el detalle de la composición desde las instrucciones de los
+agentes apareció que la enmienda de 2026-09-16 quedó escrita con el mecanismo que **ADR-033
+reemplazó**, y el texto correcto vivía sólo en la instrucción. Lo que cambia de nombre, no de
+decisión:
+
+- Un despliegue es `composition/deployments/local.ts`, no `composition/profiles/`, y es una lista
+  sin orden significativo. No hay `binder(overrides).bind(...)`: cada módulo declara sus enlaces
+  con `bind`/`bindAll` y el despliegue los reúne (ADR-033).
+- La firma es `bootstrap(config, { deployment?, ports?, handlers? })` y devuelve
+  `{ app, resolve, close }`.
+- La regla `profiles-compose-modules` de dependency-cruiser sigue nombrando `composition/profiles/`,
+  un directorio que ya no existe, así que hoy no puede dispararse. Queda registrada como deuda en
+  `docs/deudas.md`: arreglarla es cambiar un gate, no documentación, y esta feature no toca gates.
+- Las pruebas arrancan con `startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos,
+  reloj reemplazable), que es lo que usa el repositorio en lugar de llamar a `bootstrap` a mano.
+
+El punto 6 de aquella enmienda —el logger como componente, `lifecycle.ts`, `readConfig` y
+`ConfigError`— sigue vigente tal cual.
