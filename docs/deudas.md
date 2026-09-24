@@ -35,10 +35,10 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-04 | `config/` sin documentación ni esquema propio                                  | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `d37093b` |
 | D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                          | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `8ffe84e` |
 | D-06 | Los directorios de primer nivel no se explican solos                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `cd292e0` |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema     | Feature 025                    | `abierta`      | 2026-09-24 | —         |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter     | Feature 025                    | `abierta`      | 2026-09-24 | —         |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos         | Feature 025                    | `abierta`      | 2026-09-24 | —         |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción        | Feature 025                    | `abierta`      | 2026-09-24 | —         |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema     | Feature 025                    | `implementada` | 2026-09-24 | `27bb238` |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter     | Feature 025                    | `implementada` | 2026-09-24 | `05959f8` |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos         | Feature 025                    | `implementada` | 2026-09-24 | `34c4299` |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción        | Feature 025                    | `implementada` | 2026-09-24 | `f4d6a8d` |
 | D-11 | La regla `profiles-compose-modules` vigila un directorio que ya no existe      | Feature 026                    | `abierta`      | 2026-09-24 | —         |
 | D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest   | ADR-016 (2026-09-21)           | `abierta`      | 2026-09-24 | —         |
 

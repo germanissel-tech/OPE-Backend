@@ -132,19 +132,19 @@ completo, y **recién entonces** se borra del origen. En commits separados.
 
 ## Phase 6: Cierre
 
-- [ ] T022 **La verificación que ningún comando decide**: por cada separación, leer **lo que quedó**
+- [x] T022 **La verificación que ningún comando decide**: por cada separación, leer **lo que quedó**
       y preguntarse si un agente puede obedecerlo sin lo que se fue. Si no puede, **el bloque
       vuelve** y su deuda queda registrada con el motivo. Va antes del cierre de las filas, porque
       puede cambiar cuáles se cierran.
-- [ ] T023 `docs/deudas.md` — las filas que se hayan cerrado pasan a `implementada` con su
+- [x] T023 `docs/deudas.md` — las filas que se hayan cerrado pasan a `implementada` con su
       referencia; las que no, se quedan `abierta` con el motivo. **Cerrar una por decreto es peor que
       dejarla anotada.**
-- [ ] T024 `specs/026-deudas-de-las-instrucciones/quickstart.md` — correr el quickstart entero y
+- [x] T024 `specs/026-deudas-de-las-instrucciones/quickstart.md` — correr el quickstart entero y
       dejar su tabla de estado fechada, con el antes y el después y lo que no se pudo cerrar.
-- [ ] T025 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+- [x] T025 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `release-check`. **Las pruebas del producto no se mueven**: si alguna cambia,
       se para y se revisa qué se entendió mal.
-- [ ] T026 **La feature se aplica a sí misma**: si al terminar quedó una deuda sin registrar —incluida
+- [x] T026 **La feature se aplica a sí misma**: si al terminar quedó una deuda sin registrar —incluida
       cualquiera que haya aparecido al separar— no está hecha.
 
 ---

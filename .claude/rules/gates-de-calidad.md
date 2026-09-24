@@ -36,7 +36,5 @@ paths:
   local y en minutos — `format:check`, `typecheck`, `quality`, `npm test` (proyecto `fast`) — y
   commit. Por hito — el cierre de la feature (antes de la PR) y cada push de la rama — CI corre
   todo: `contract:check`, `quality`, `test:scoped` (el proyecto `tools` sólo cuando el cambio
-  toca una herramienta), `test:contract`, `release-check` y `test:mutation` en su job. Ante un
-  sobreviviente en CI, `test:mutation -- --files <archivo>` local (un minuto), nunca la corrida
-  completa. La `--all` informativa y `test:load` son medidas de tendencia para hitos más gruesos
+  toca una herramienta), `test:contract`, `release-check` y `test:mutation` en su job. La `--all` informativa y `test:load` son medidas de tendencia para hitos más gruesos
   (varias features, un piloto), no gates.

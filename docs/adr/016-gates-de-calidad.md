@@ -81,7 +81,8 @@ Decisión (dueño, 2026-09-21):
 - El gate se juzga en **CI, en cada push** (job propio). El ritmo local por historia es la suite
   rápida (`format:check`, `typecheck`, `quality`, `npm test`); la corrida completa de mutación no
   se repite localmente. Ante un sobreviviente en CI, `--files <archivo>` local.
-- Deuda anotada para la feature de calidad: investigar la activación de estáticos en el runner
+- Deuda anotada para la feature de calidad, hoy la fila **D-12** de `docs/deudas.md` (la feature 026
+  la encontró acá y nunca en el registro): investigar la activación de estáticos en el runner
   (o reducir lo que los tests de integración ejecutan en `beforeAll`, para que el código de
   arranque vuelva a medirse).
 

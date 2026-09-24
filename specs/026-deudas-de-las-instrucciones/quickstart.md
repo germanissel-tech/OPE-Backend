@@ -8,7 +8,8 @@ Cada fila la decide un comando, salvo la última, que la decide leer.
 ls docs/deudas.md && grep -c "^| D-" docs/deudas.md
 ```
 
-Diez filas: las seis de la 019 más las cuatro nuevas. Y su fila en el inventario:
+Al menos diez filas: las seis de la 019 más las cuatro nuevas. Serán más si al separar apareció
+alguna — que es lo que se espera de un registro que funciona. Y su fila en el inventario:
 
 ```bash
 grep -c "deudas.md" docs/README.md      # 1
@@ -53,7 +54,8 @@ La revisión es **por bloque, no por total**: un total que cierra puede esconder
 
 ```bash
 grep -c "EffectiveConfiguration" CLAUDE.md docs/adr/031-*.md
-grep -c "complejidad cognitiva" .claude/rules/gates-de-calidad.md eslint.config.mjs
+grep -c "cognitive-complexity" .claude/rules/gates-de-calidad.md eslint.config.mjs
+grep -c "MAX_RING_FILE_LINES" .claude/rules/anillos-y-modulos.md scripts/shape-rules.mjs
 ```
 
 En cada par, **uno y sólo uno**. Mudarlo y dejarlo también en el origen sería duplicarlo, que es la
@@ -99,3 +101,44 @@ decreto es peor que dejarla anotada.
 | cambiar un umbral de calidad         | su configuración, que es su fuente                          |
 | agregar un módulo                    | el mapa de contextos; ninguna instrucción lo lista          |
 | cambiar el procedimiento de mutación | la skill que lo ejecuta                                     |
+
+## Estado medido (2026-09-24)
+
+Histórico y fechado, como toda tabla de estado de un `quickstart.md`: dice qué pasó esa vez, no
+qué pasa hoy.
+
+| Qué                                  |            Antes |          Después |
+| ------------------------------------ | ---------------: | ---------------: |
+| `CLAUDE.md`                          |       195 líneas |       185 líneas |
+| `.claude/rules/gates-de-calidad.md`  |        58 líneas |        40 líneas |
+| `.claude/rules/anillos-y-modulos.md` |        90 líneas |        40 líneas |
+| Secciones declaradas `mixed`         |                3 |                0 |
+| Dónde vive el registro de deudas     | dentro de la 019 | `docs/deudas.md` |
+| Filas del registro                   |                6 |               12 |
+
+Los siete pasos en verde. La cadena completa —`format:check`, `typecheck`, `quality`, `npm test`
+(148 archivos), `test:tools`, `contract:check`, `release-check`— pasó sin que se moviera **ninguna
+prueba del producto**, que era el canario de la feature.
+
+### Lo que no se cerró, y por qué
+
+- **D-11** (`profiles-compose-modules` vigila `src/composition/profiles/`, que ya no existe) y
+  **D-12** (la activación de mutantes estáticos en el runner de Vitest, anotada en ADR-016 el
+  2026-09-21 y nunca registrada). Las dos aparecieron **al separar**, las dos son cambios de un
+  gate y no de documentación, y por eso quedan `abierta`s con su motivo en vez de arrastrarse
+  dentro de esta feature.
+
+### Lo que la separación corrigió sin que estuviera en la lista
+
+- La enmienda de ADR-013 del 2026-09-16 describía el mecanismo que **ADR-033 reemplazó**
+  (`composition/profiles/`, `binder(overrides)`, `bootstrap(config, { profile? })`), y el texto
+  correcto vivía sólo en la instrucción. Borrarla sin corregir el ADR habría dejado como única
+  fuente escrita una que está mal. Es el argumento a favor del orden en dos tiempos: agregar al
+  destino obliga a leerlo.
+- El reparto que fijó el `research.md` clasificó «Forma de los anillos» como descriptiva leyendo su
+  primera cláusula. Leída regla por regla, cinco de sus seis prohibiciones no viven en ningún otro
+  lado y se quedaron. **El reparto se decide leyendo, no clasificando por el título** — que es lo
+  mismo que la 024 encontró y lo que el paso 7 existe para atrapar.
+- `check:identifiers` no conocía los nombres de las skills, así que la primera cita de
+  `triaging-mutants` salió como identificador inventado. La fuente era la que faltaba: una skill
+  que existe es un nombre que existe.
