@@ -65,8 +65,8 @@
         "syncLevel": {
           "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/syncLevel"
         },
-        "holdoutPercent": {
-          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/holdoutPercent"
+        "holdoutShare": {
+          "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/holdoutShare"
         },
         "decisionPolicy": {
           "$ref": "../../generated/schemas/merchant-configuration-declared.schema.json#/properties/decisionPolicy"
@@ -97,18 +97,18 @@
     "experiment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["experimentId", "treatmentPercent", "seed", "status", "openedAt", "targetSample"],
+      "required": ["experimentId", "treatmentShare", "seed", "status", "openedAt", "targetSample"],
       "properties": {
         "experimentId": {
           "type": "string",
           "description": "Identifier of the experiment (the API mints `exp_` + base32; the seed may choose its own).",
           "pattern": "^[A-Za-z0-9_-]{8,64}$"
         },
-        "treatmentPercent": {
-          "type": "integer",
-          "description": "Share of the visitors assigned to treatment, as an integer percentage (a rate 0–1 inside the domain).",
+        "treatmentShare": {
+          "type": "number",
+          "description": "Share of the visitors assigned to treatment, as a fraction of 1; the split resolves to whole buckets of one hundredth.",
           "minimum": 0,
-          "maximum": 100
+          "maximum": 1
         },
         "seed": {
           "type": "string",
@@ -122,8 +122,8 @@
         },
         "cuts": {
           "type": "array",
-          "description": "Interim analyses as increasing percentages of the target sample.",
-          "items": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 }
+          "description": "Interim analyses as increasing fractions of the target sample.",
+          "items": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
         },
         "status": {
           "type": "string",

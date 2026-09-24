@@ -9,7 +9,7 @@
       "experiments": [
         {
           "experimentId": "exp_dev_000001",
-          "treatmentPercent": 100,
+          "treatmentShare": 1,
           "seed": "dev-seed",
           "status": "active",
           "openedAt": "2026-09-17T00:00:00Z",
@@ -23,10 +23,10 @@
       },
       "commercialPolicy": {
         "version": "dev-commercial-1",
-        "marginPercent": 40
+        "marginShare": 0.4
       },
       "platformSecrets": ["ope_dev_platform_secret"],
-      "holdoutPercent": 0
+      "holdoutShare": 0
     }
   ]
 }

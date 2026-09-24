@@ -9,7 +9,7 @@
     "minutesLevelMedianIntervalMs": 900000,
     "minutesLevelMinReceipts": 3
   },
-  "holdoutPercent": 5,
+  "holdoutShare": 0.05,
   "decisionPolicy": {
     "version": "default-1",
     "rules": [
@@ -150,8 +150,8 @@
   },
   "commercialPolicy": {
     "version": "commercial-default-1",
-    "maxIncentivePercent": 10,
-    "incentiveLadderPercent": [5, 10],
+    "maxIncentiveShare": 0.1,
+    "incentiveLadderShare": [0.05, 0.1],
     "directIncentiveOnPrice": true,
     "returnRisk": {
       "all": [
