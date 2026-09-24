@@ -8,8 +8,7 @@
     "src/interface-adapters/",
     "src/composition/",
     "src/infrastructure/",
-    "contracts/",
-    "../"
+    "contracts/"
   ],
   "notPaths": {
     "shapeNames": [
@@ -148,6 +147,18 @@
     {
       "cite": "origin/main",
       "reason": "A git reference, not a path of the tree."
+    },
+    {
+      "cite": "01-arquitectura-mvp.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
+    },
+    {
+      "cite": "02-integracion-ecommerce.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
+    },
+    {
+      "cite": "03-alcance-mvp.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
     },
     {
       "cite": "merchantId/orderId",

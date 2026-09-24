@@ -142,6 +142,17 @@ describe("what the instructions cite (pure)", () => {
     ]);
   });
 
+  it("an implicit root that climbs out of the repository is a problem (feature 026)", () => {
+    // It made the gate answer differently on every machine: green locally, where the MVP documents
+    // sit in the parent directory, and impossible on CI, which checks out the repository alone.
+    expect(lib.policyProblems(policy({ implicitRoots: ["", "../", "C:/tmp/", "/etc/"] }))).toEqual([
+      "0: implicit root outside the repository: ../",
+      "0: implicit root outside the repository: C:/tmp/",
+      "0: implicit root outside the repository: /etc/",
+    ]);
+    expect(lib.policyProblems(policy({ implicitRoots: ["", "src/", "contracts/"] }))).toEqual([]);
+  });
+
   it("fenced blocks are not read: code shown is not a broken reference", () => {
     const markdown = ["`a/b.ts`", "```", "`c/d.ts`", "```", "`e/f.ts`"].join("\n");
     expect(lib.citations(markdown).map((c) => c.text)).toEqual(["a/b.ts", "e/f.ts"]);
