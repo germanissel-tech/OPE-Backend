@@ -25,7 +25,7 @@ que quedaría es lo más valioso — la deuda anotada donde se la busca.
 
 ## Phase 1: Setup — congelar los números
 
-- [ ] T001 Anotar las cifras contra las que se mide todo: `wc -l CLAUDE.md` (195),
+- [x] T001 Anotar las cifras contra las que se mide todo: `wc -l CLAUDE.md` (195),
       `.claude/rules/gates-de-calidad.md` (58), `.claude/rules/anillos-y-modulos.md` (90), y las tres
       secciones declaradas `mixed` en `scripts/instructions-policy.json`. Si alguna cambió, rehacer
       el reparto del plan con el número nuevo antes de tocar nada.
@@ -40,16 +40,16 @@ de cerrarse.
 **Independent Test**: buscar las cuatro en el registro y comprobar que cada una tiene identificador,
 origen, estado y fecha.
 
-- [ ] T002 [US1] `docs/deudas.md` — el registro vivo: las seis filas de la 019 tal cual, más D-07 a
+- [x] T002 [US1] `docs/deudas.md` — el registro vivo: las seis filas de la 019 tal cual, más D-07 a
       D-10 en estado `abierta`, con su origen (feature 025) y su fecha. Encabezado que diga qué es y
       cómo se agrega una fila, para que la próxima deuda no vuelva a escribirse en otro lado.
-- [ ] T003 [US1] `docs/README.md` — su fila en el inventario (ADR-032). **Sin ella
+- [x] T003 [US1] `docs/README.md` — su fila en el inventario (ADR-032). **Sin ella
       `tests/docs/readmes.test.ts` falla**; y el archivo tiene que estar `git add`eado antes de
       correr la prueba, porque lee lo que git rastrea. Las dos cosas ya me mordieron dos veces.
-- [ ] T004 [US1] `specs/019-deudas-tecnicas/spec.md` — su tabla **se queda como historia de esa
+- [x] T004 [US1] `specs/019-deudas-tecnicas/spec.md` — su tabla **se queda como historia de esa
       feature**, con una línea que apunte al registro vivo. No se borra: es el registro de lo que esa
       feature decidió.
-- [ ] T005 [US1] Verificar: `npx vitest run --project tools tests/docs/readmes.test.ts` en verde, y
+- [x] T005 [US1] Verificar: `npx vitest run --project tools tests/docs/readmes.test.ts` en verde, y
       `npm run check:markers` y `npm run check:identifiers`, que leen `docs/` y ahora ven el
       registro.
 
