@@ -34,12 +34,21 @@ aplica: entonces entra cuando el agente trabaja sobre ellos, y no antes.
 | ----------------------------------- | -----: | ------------------------------- | -----: |
 | Flujo de trabajo                    |     52 | Notas operativas del contrato   |     92 |
 | Convenciones                        |     44 | Anillos y módulos               |     85 |
-| Comandos                            |     37 | Cómo se escribe un caso de uso  |     59 |
-| Documentación viva                  |     31 | Gates de calidad                |     51 |
+| Documentación viva                  |     31 | Cómo se escribe un caso de uso  |     59 |
+| Tipado                              |     17 | Gates de calidad                |     51 |
 | Reglas que fallan el build          |     12 | Cómo se escribe una entidad     |     48 |
-| Fuentes de verdad                   |      8 | Tipado                          |     17 |
-| Si existe `HANDOFF.md`              |      3 | Auditoría de arquitectura       |     12 |
-| **≈ 190**                           |        | **364 fuera del arranque**      |        |
+| Comandos (del lazo normal)          |    ~10 | Auditoría de arquitectura       |     12 |
+| Fuentes de verdad                   |      8 |                                 |        |
+| Si existe `HANDOFF.md`              |      3 |                                 |        |
+| Punteros de las seis que se van     |    ~18 |                                 |        |
+| **≈ 195**                           |        | **347 fuera del arranque**      |        |
+
+_Este reparto lo corrigió el plan, con dos cambios y su medición. **La cuenta original no cerraba**:
+sumaba las secciones que se quedan pero no los punteros, y daba 211 — once por encima del umbral. De
+ahí salieron los dos: la **tabla de comandos se va**, fusionada con el inventario de `scripts/`, que
+ya describe 26 de sus 30 comandos y que una prueba ya verifica fila por fila; y el **tipado se
+queda**, porque ya es casi todo invariante y su acotación sería casi universal — el peor negocio de
+las siete._
 
 ## User Scenarios & Testing _(mandatory)_
 
