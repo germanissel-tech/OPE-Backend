@@ -252,6 +252,8 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
       [{ locales: { supported: ["es"], fallback: "en" } }, "/declared/locales/fallback"],
 
       [{ anchors: { price: { selectors: [".p", " "] } } }, "/declared/anchors/price/selectors/1"],
+      // Feature 023: in range, but finer than a bucket of the split — it would keep nobody out.
+      [{ holdoutShare: 0.004 }, "/declared/holdoutShare"],
     ];
     for (const [declared, pointer] of cases) {
       const res = await configure({ declared, corrective: true, reason: "test" });

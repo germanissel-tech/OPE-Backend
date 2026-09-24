@@ -9,6 +9,7 @@ import {
   type FreshnessBudgetRecord,
   type SyncLevelRulesRecord,
 } from "../catalog/index.js";
+import { Experiment } from "../experiment/index.js";
 import { isRate, BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 import {
@@ -31,6 +32,9 @@ import {
 } from "./vocabulary.js";
 import type { CommercialPolicy } from "../commercial/index.js";
 import type { DecisionPolicy } from "../decision/index.js";
+
+/** The field the holdout is declared under, and the pointer both of its rules report. */
+const HOLDOUT = "holdoutShare";
 
 /** The values as the configuration speaks them (shares, milliseconds, closed vocabularies). */
 export interface TreatmentValuesRecord {
@@ -146,7 +150,14 @@ export class TreatmentValues {
     // The same judge every other share of the system uses; there is no second reading of what a
     // share is (feature 022).
     if (!isRate(record.holdoutShare)) {
-      return fail(new InvalidConfigurationValue("holdoutShare", "must be a fraction between 0 and 1"));
+      return fail(new InvalidConfigurationValue(HOLDOUT, "must be a fraction between 0 and 1"));
+    }
+    // The holdout is compared against the split in whole buckets, so it has to be one the split can
+    // hand out: a holdout of 0.004 resolves to none, and the merchant would keep nobody out while
+    // believing otherwise. The rule is asked of the split, which owns the resolution (feature 023).
+    if (!Experiment.handsOut(record.holdoutShare)) {
+      const problem = "must be one of the buckets the assignment splits the visitors into";
+      return fail(new InvalidConfigurationValue(HOLDOUT, problem));
     }
     const decision = PolicyInput.at("decisionPolicy").decision(record.decisionPolicy);
     if (!decision.ok) return fail(decision.error);

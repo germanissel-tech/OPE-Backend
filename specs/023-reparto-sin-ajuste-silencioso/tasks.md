@@ -28,10 +28,10 @@ SC-007) y `check:invariant-tests` no pasa sin la prueba de la invariante nueva.
 **Purpose**: confirmar que el terreno es el que el plan supuso. Si alguna falla, la feature se
 replantea antes de escribir código, no después.
 
-- [X] T001 Confirmar la base: `git log --oneline main..HEAD` incluye las cuatro ramas encadenadas
+- [x] T001 Confirmar la base: `git log --oneline main..HEAD` incluye las cuatro ramas encadenadas
       (020, 021, 022, 023) si el dueño todavía no mergeó, o sale de `main` si ya lo hizo. Anotar cuál
       de las dos es, porque decide contra qué compara `contract:diff`.
-- [X] T002 **Condición de arranque, no trámite**: `grep -n "x-stability" contracts/openapi.yaml` dice
+- [x] T002 **Condición de arranque, no trámite**: `grep -n "x-stability" contracts/openapi.yaml` dice
       `building`. **Si no está, parar**: sin la marca, estrechar lo que la operación acepta exige
       versión mayor y prefijo `/v2/`, y eso es otra feature y otra conversación con el dueño.
 
@@ -44,26 +44,26 @@ nada que implementar.
 
 **⚠️ CRITICAL**: bloquea las tres historias.
 
-- [X] T003 `contracts/problem-types.yaml` — agregar el slug `treatment-share-too-fine`, status `422`,
+- [x] T003 `contracts/problem-types.yaml` — agregar el slug `treatment-share-too-fine`, status `422`,
       título «The treatment share is finer than the split can resolve». **No** tocar
       `invalid-treatment-share`: sigue siendo el de fuera de rango, que produce el esquema (research
       R-03).
-- [X] T004 `contracts/components/schemas/ExperimentCreate.yaml` — dos cambios en el mismo archivo:
+- [x] T004 `contracts/components/schemas/ExperimentCreate.yaml` — dos cambios en el mismo archivo:
       la descripción de `treatmentShare` deja de prometer el ajuste («a finer value takes the nearest
       bucket») y declara la regla con su ejemplo (`0.07` sí, `0.075` no); y una entrada nueva en el
       `x-invariants` que ya existe, con `type`, `status`, `rule` y `description` (las cuatro que
       `ope-invariants` exige). **No** agregar `multipleOf`: rechazaría `0.07` (research R-01).
-- [X] T005 `contracts/components/responses/ExperimentUnprocessable.yaml` — el `example` único pasa a
+- [x] T005 `contracts/components/responses/ExperimentUnprocessable.yaml` — el `example` único pasa a
       `examples` con dos: el de los cortes tal cual y el nuevo. Verificado que `ope-no-generic-422`
       lee las dos formas y que esta respuesta la referencia **una sola operación**, así que nada más
       se rompe.
-- [X] T006 `contracts/openapi.yaml` — `info.version` de `1.5.0` a `1.6.0`. El prefijo `/v1/` **no**
+- [x] T006 `contracts/openapi.yaml` — `info.version` de `1.5.0` a `1.6.0`. El prefijo `/v1/` **no**
       cambia (ADR-003, la marca de T002).
-- [X] T007 `npm run contract:check` y **leer el diff, no contarlo**: tiene que reportar la
+- [x] T007 `npm run contract:check` y **leer el diff, no contarlo**: tiene que reportar la
       descripción de `treatmentShare`, la invariante nueva y el ejemplo de la `422`. **Ningún campo
       agregado, quitado ni renombrado.** Si aparece un cuarto cambio, parar y revisar qué se tocó de
       más.
-- [X] T008 `npm run contract:types` y confirmar que `generated/problem-types.{js,d.ts}` trae el slug
+- [x] T008 `npm run contract:types` y confirmar que `generated/problem-types.{js,d.ts}` trae el slug
       nuevo en `ProblemSlug` con su status. **Nunca editar lo generado a mano.**
 
 **Checkpoint**: el contrato declara la regla. `check:invariant-tests` va a fallar hasta T014 y eso es
@@ -82,37 +82,37 @@ de dos decimales, que se aceptan.
 
 ### Implementación
 
-- [X] T009 [US1] `src/domain/experiment/experiment.ts` — el método estático que juzga, junto a
+- [x] T009 [US1] `src/domain/experiment/experiment.ts` — el método estático que juzga, junto a
       `ASSIGNMENT_BUCKETS` y `bucketsOf`. La regla es la ida y vuelta:
       `bucketsOf(share) / ASSIGNMENT_BUCKETS === share`. **Sin epsilon y sin ningún número nuevo**
       (research R-01). Su comentario dice el mecanismo: por qué la ida y vuelta y no la división —
       `0.07 / 0.01` da `7.000000000000001` y rechazaría diez valores legítimos—, que es justo lo que
       el lector no puede reconstruir mirando el código.
-- [X] T010 [US1] `src/domain/experiment/errors.ts` — la clase del error, con
+- [x] T010 [US1] `src/domain/experiment/errors.ts` — la clase del error, con
       `readonly code = "treatment-share-too-fine" as const` y `readonly module = MODULE`; agregarla a
       la unión `ExperimentError` del archivo. Sin la unión no compila el `Result` de `Experiment.of`;
       sin la entrada del catálogo (T003) falla la prueba de réplica.
-- [X] T011 [US1] `src/domain/experiment/experiment.ts` — `Experiment.of` aplica la regla **después**
+- [x] T011 [US1] `src/domain/experiment/experiment.ts` — `Experiment.of` aplica la regla **después**
       del rango (`isRate`) y antes del resto. El orden importa: un `1.5` tiene que seguir devolviendo
       `invalid-treatment-share` y no el error nuevo.
 
 ### Pruebas
 
-- [X] T012 [US1] `tests/unit/domain/experiment/experiment.test.ts` — la prueba que sostiene la
+- [x] T012 [US1] `tests/unit/domain/experiment/experiment.test.ts` — la prueba que sostiene la
       feature: recorre **los 101** valores de dos decimales y los acepta, **y los construye de las
       dos maneras**, calculados (`n / 100`) y parseados desde su literal JSON, porque es como llegan
       por la red. Más los cinco rechazos de SC-001 y el ruido de una suma
       (`0.1 + 0.2 === 0.30000000000000004`), que se rechaza. **Si alguno de los 101 falla, el juicio
       se está haciendo por división**: parar y volver a R-01.
-- [X] T013 [US1] **Correr acá, no al final**:
+- [x] T013 [US1] **Correr acá, no al final**:
       `npx vitest run --project fast tests/unit/domain/experiment/assignment-regression.test.ts`.
       Es el único lugar donde esta feature puede cambiar comportamiento sin que nadie lo note. **Si
       la huella cambia, parar** — no se ajusta la prueba.
-- [X] T014 [US1] `tests/integration/admin-experiments.test.ts` — la prueba
+- [x] T014 [US1] `tests/integration/admin-experiments.test.ts` — la prueba
       `[invariant:treatment-share-too-fine]` que `check:invariant-tests` exige: abre un experimento
       con `0.075` por la API, verifica `422` con el `type` del catálogo, que el cuerpo nombra el
       campo, y que **no queda ningún experimento abierto** (FR-005: rechazar antes de registrar).
-- [X] T015 [US1] `tests/unit/composition/config.test.ts` — el camino de la semilla: un
+- [x] T015 [US1] `tests/unit/composition/config.test.ts` — el camino de la semilla: un
       `OPE_MERCHANTS` cuyo experimento declara `0.004` hace que `readConfig` lance un `ConfigError`
       que nombra `merchants[0].experiments[0].treatmentShare`.
 
@@ -130,23 +130,23 @@ un archivo del release el servidor no arranca.
 
 ### Implementación
 
-- [ ] T016 [US2] `src/domain/configuration/treatment-values.ts` — `TreatmentValues.judge` aplica la
+- [x] T016 [US2] `src/domain/configuration/treatment-values.ts` — `TreatmentValues.judge` aplica la
       regla al `holdoutShare` junto a `isRate`, importando el método estático de
       `domain/experiment/index.js`. Verificado que `CONTEXT_MAP` permite ese import y que no hay
       ciclo. El error es el `InvalidConfigurationValue("holdoutShare", …)` que ya existe, con un
       mensaje que dice la regla; **no** se inventa un slug (research R-03).
-- [ ] T017 [US2] `src/domain/experiment/index.ts` — exportar el método sólo si no queda expuesto por
+- [x] T017 [US2] `src/domain/experiment/index.ts` — exportar el método sólo si no queda expuesto por
       `Experiment`. Si es un estático de la clase, el `index.ts` ya lo exporta y esta tarea es
       confirmarlo y cerrarla.
 
 ### Pruebas
 
-- [ ] T018 [P] [US2] `tests/unit/domain/configuration/levels.test.ts` — `TreatmentValues.judge`
+- [x] T018 [P] [US2] `tests/unit/domain/configuration/levels.test.ts` — `TreatmentValues.judge`
       rechaza `holdoutShare: 0.004` nombrando el campo y acepta `0`, `0.05` y `1`.
-- [ ] T019 [P] [US2] `tests/integration/admin-configuration.test.ts` — publicar una versión con
+- [x] T019 [P] [US2] `tests/integration/admin-configuration.test.ts` — publicar una versión con
       `declared: { holdoutShare: 0.004 }` responde `422 invalid-configuration-value` apuntando a
       `holdoutShare`, y **no se crea ninguna versión**.
-- [ ] T020 [US2] `tests/unit/composition/config.test.ts` — un `OPE_TREATMENT_DEFAULTS` con
+- [x] T020 [US2] `tests/unit/composition/config.test.ts` — un `OPE_TREATMENT_DEFAULTS` con
       `holdoutShare: 0.004` hace que `readConfig` lance nombrando `treatmentDefaults.holdoutShare`.
 
 **Checkpoint**: US1 y US2 funcionan solas y juntas.

@@ -50,6 +50,15 @@ describe("readConfig", () => {
     expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
       "treatmentDefaults.holdoutShare is invalid (must be a fraction between 0 and 1).",
     );
+    // Feature 023: in range, but finer than a bucket of the split. The server does not start with a
+    // holdout that keeps nobody out while the file says otherwise.
+    files[path.resolve("d.json")] = JSON.stringify({
+      ...testLevels().defaults.record(),
+      holdoutShare: 0.004,
+    });
+    expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
+      "treatmentDefaults.holdoutShare is invalid (must be one of the buckets the assignment splits the visitors into).",
+    );
     files[path.resolve("p.json")] = JSON.stringify({
       ...testLevels().platform.record(),
       sessionWindowMs: "1d",
