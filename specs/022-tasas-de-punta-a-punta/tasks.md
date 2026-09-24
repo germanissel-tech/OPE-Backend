@@ -189,7 +189,7 @@ supera 1, pero **no atrapa el 1**.
 - [x] T040 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `test:contract`, `release-check` (**avisa por la marca de construcción: es
       lo esperado**).
-- [X] T041 `npm run test:mutation` en verde sobre las líneas cambiadas.
+- [x] T041 `npm run test:mutation` en verde sobre las líneas cambiadas.
 
 ---
 
