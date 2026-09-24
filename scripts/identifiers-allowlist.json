@@ -37,7 +37,31 @@
   },
   {
     "identifier": "holdoutPercent",
-    "reason": "Alternative rejected by ADR-022 (ADR-026 cites the rejection); never a field."
+    "reason": "Field retired by ADR-035 (the share is `holdoutShare`); ADR-022 and ADR-026 name what was retired."
+  },
+  {
+    "identifier": "treatmentPercent",
+    "reason": "Field retired by ADR-035 (the share is `treatmentShare`); ADR-022, ADR-026 and ADR-035 name what was retired."
+  },
+  {
+    "identifier": "maxIncentivePercent",
+    "reason": "Field retired by ADR-035 (the share is `maxIncentiveShare`); ADR-027 names what was retired."
+  },
+  {
+    "identifier": "marginPercent",
+    "reason": "Field retired by ADR-035 (the share is `marginShare`); ADR-027 names what was retired."
+  },
+  {
+    "identifier": "PERCENT",
+    "reason": "Conversion factor removed by ADR-035, which records what was removed."
+  },
+  {
+    "identifier": "PERCENT_PER_UNIT",
+    "reason": "Conversion factor removed by ADR-035, which records what was removed."
+  },
+  {
+    "identifier": "PERCENT_BUCKETS",
+    "reason": "Renamed to `ASSIGNMENT_BUCKETS` by ADR-035, which records the old name."
   },
   {
     "identifier": "checkBatch",

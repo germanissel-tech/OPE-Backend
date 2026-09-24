@@ -155,11 +155,11 @@ supera 1, pero **no atrapa el 1**.
 
 **Independiente de todo lo anterior.**
 
-- [X] T031 [US3] `src/domain/experiment/experiment.ts` — declarar la lista de estados y derivar el
+- [x] T031 [US3] `src/domain/experiment/experiment.ts` — declarar la lista de estados y derivar el
       tipo de ella, como el kernel hace con las barreras, los anclajes y los motivos de `NO_OP`.
-- [X] T032 [US3] `src/composition/experiments-config.ts` — importar la lista en vez de volver a
+- [x] T032 [US3] `src/composition/experiments-config.ts` — importar la lista en vez de volver a
       escribirla; el predicado local se va con ella.
-- [X] T033 [US3] Verificar que el mensaje que rechaza un estado desconocido lista los estados que
+- [x] T033 [US3] Verificar que el mensaje que rechaza un estado desconocido lista los estados que
       existen **en ese momento**, derivados de la lista.
 
 ---
@@ -168,28 +168,28 @@ supera 1, pero **no atrapa el 1**.
 
 **Independiente.**
 
-- [X] T034 [US4] Escribir en `src/composition/experiments-config.ts`, junto al patrón, **por qué**
+- [x] T034 [US4] Escribir en `src/composition/experiments-config.ts`, junto al patrón, **por qué**
       la semilla admite más que lo que el acuñador produce. Si al escribirlo no aparece un motivo,
       unificar con la forma del acuñador y borrar el patrón.
-- [X] T035 [US4] Si el motivo existe, dejar en `asExperimentId` una referencia a dónde vive la
+- [x] T035 [US4] Si el motivo existe, dejar en `asExperimentId` una referencia a dónde vive la
       regla, para que quien lo lea no crea que la identidad no tiene ninguna.
 
 ---
 
 ## Phase 9: Cierre y documentación
 
-- [ ] T036 Decidir y escribir la decisión: ADR nuevo o enmienda de ADR-024 (convención de tasas).
+- [x] T036 Decidir y escribir la decisión: ADR nuevo o enmienda de ADR-024 (convención de tasas).
       Tiene que quedar registrado el recorrido —value object, una sola representación adentro, y
       finalmente una sola unidad— y por qué las dos primeras se descartaron.
-- [ ] T037 [P] `CLAUDE.md` — la convención "porcentajes 0–100 sólo en el borde; adentro, tasas 0–1"
+- [x] T037 [P] `CLAUDE.md` — la convención "porcentajes 0–100 sólo en el borde; adentro, tasas 0–1"
       **deja de existir** porque no hay porcentajes. La reemplaza una línea que diga que el sistema
       habla en tasas y no convierte formatos.
-- [ ] T038 [P] `contracts/README.md` si la superficie descrita cambia.
-- [ ] T039 Correr el quickstart entero y dejar su tabla de estado fechada.
-- [ ] T040 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+- [x] T038 [P] `contracts/README.md` si la superficie descrita cambia.
+- [x] T039 Correr el quickstart entero y dejar su tabla de estado fechada.
+- [x] T040 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `test:contract`, `release-check` (**avisa por la marca de construcción: es
       lo esperado**).
-- [ ] T041 `npm run test:mutation` en verde sobre las líneas cambiadas.
+- [X] T041 `npm run test:mutation` en verde sobre las líneas cambiadas.
 
 ---
 

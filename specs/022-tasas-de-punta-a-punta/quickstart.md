@@ -100,3 +100,34 @@ Que alguien no vuelva a introducir una conversión en un archivo nuevo. No hay g
 lo que hay es que **no queda ninguna a la que copiarle** y que el contrato ya no tiene la otra
 unidad. Si con el tiempo reaparecen, el gate se justifica; hoy sería una regla para un problema que
 la decisión ya resolvió.
+
+## Estado al cierre de la implementación (2026-09-24)
+
+Histórico y fechado, como pide la convención de documentación viva.
+
+| Verificación                                           | Resultado                                                            |
+| ------------------------------------------------------ | -------------------------------------------------------------------- |
+| `Percent` en `contracts/*.yaml`                        | 0                                                                    |
+| `isPercent` / `PERCENT` / `PERCENT_PER_UNIT` en `src/` | 0                                                                    |
+| `Percent` en `config/`                                 | 0                                                                    |
+| Campos que reporta `contract:diff`                     | los ocho y ninguno más                                               |
+| `contract:diff`                                        | 43 incompatibles, aceptados por `info.x-stability: building` (1.5.0) |
+| Regresión de asignación (huella de la 007)             | 5 pruebas, sin tocar una cifra                                       |
+| Un reparto de `0.01`                                   | reparte el uno por ciento (prueba nueva)                             |
+| Estados de experimento declarados                      | una vez, en `domain/experiment/`; el tipo derivado                   |
+| Patrón de `ExperimentId`                               | réplica del contrato, con el motivo escrito y su prueba              |
+| `npm test` (`fast`)                                    | 1296                                                                 |
+| `test:tools`                                           | 58                                                                   |
+| `quality`                                              | 7 gates                                                              |
+| `test:contract`                                        | 29/29 operaciones, 10 245 casos                                      |
+| `release-check`                                        | OK (avisa por la marca de construcción, es lo esperado)              |
+
+**Aserciones de comportamiento preexistentes modificadas: tres grupos, todos previstos por el
+plan.** Las cinco filas que exigían un entero y la fila `[12.5]` de los cortes desaparecen —ser
+entero era una propiedad del porcentaje, no de la tasa— y la huella del contenido de
+`treatment-defaults.json` se recalcula conservando su versión, porque cambió la representación y no
+la política. Todo lo demás cambió de unidad y de nombre de campo, nada más.
+
+**Encontrado de paso**: `scripts/load-test.mjs` sembraba un experimento sin `targetSample`, así que
+`npm run test:load` no arrancaba el servidor desde la feature 017. Arreglado y verificado
+(1049 lotes/s).

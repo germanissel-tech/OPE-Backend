@@ -80,26 +80,15 @@ export class PolicyInput {
   }
 
   /**
-   * The commercial policy of the input, or the field refused. There is nothing to convert: the
-   * input speaks in the same rates the policy reasons with, so the only judge is the policy
-   * itself and the name it rejects is the name the configuration declared (feature 022).
+   * The commercial policy of the input, or the field refused. The input **is** the record the
+   * policy is built from —same fields, same unit since feature 022—, so it goes through whole: it
+   * used to be copied field by field to convert the percentages, and copying it now would only be
+   * a list to forget. The only judge is the policy itself, and the name it rejects is the name the
+   * configuration declared.
    */
   commercial(input: CommercialPolicyInput): PolicyResult<CommercialPolicy> {
-    const at = this.#at;
-    const policy = CommercialPolicy.of({
-      version: input.version,
-      maxIncentiveShare: input.maxIncentiveShare,
-      incentiveLadderShare: [...input.incentiveLadderShare],
-      ...(input.marginShare === undefined ? {} : { marginShare: input.marginShare }),
-      directIncentiveOnPrice: input.directIncentiveOnPrice,
-      returnRisk: input.returnRisk,
-      highIntent: input.highIntent,
-      abandonment: input.abandonment,
-      interventionsPerSession: input.interventionsPerSession,
-      cooldownSeconds: input.cooldownSeconds,
-      interventionsPerVisitorPerDay: input.interventionsPerVisitorPerDay,
-    });
-    return policy.ok ? ok(policy.value) : fail(PolicyInput.located(at, policy.error));
+    const policy = CommercialPolicy.of(input);
+    return policy.ok ? ok(policy.value) : fail(PolicyInput.located(this.#at, policy.error));
   }
 
   /**
