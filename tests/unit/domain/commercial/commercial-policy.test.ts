@@ -67,6 +67,21 @@ describe("CommercialPolicy.of", () => {
     expect(built.value.cooldownSeconds).toBe(0);
   });
 
+  // Feature 023: the rule that a share has to be one of the split's buckets is the split's, and
+  // nothing quantises these three — the incentive goes out with the share that was declared. A
+  // ceiling of 0.375 has to keep working, or the rule leaked out of the one place that needs it.
+  it("the commercial shares are not the split: a finer fraction is valid", () => {
+    const fine = CommercialPolicy.of({
+      ...base,
+      maxIncentiveShare: 0.375,
+      incentiveLadderShare: [0.125, 0.375],
+      marginShare: 0.3333,
+    });
+    expect(fine.ok ? fine.value.maxIncentiveShare : fine.error.message).toBe(0.375);
+    expect(fine.ok ? fine.value.incentiveLadderShare : undefined).toEqual([0.125, 0.375]);
+    expect(fine.ok ? fine.value.marginShare : undefined).toBe(0.3333);
+  });
+
   it("a policy without margin is valid: the margin is what the merchant did not configure", () => {
     const { marginShare, ...without } = base;
     expect(marginShare).toBe(pct(40));

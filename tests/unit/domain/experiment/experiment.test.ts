@@ -101,6 +101,14 @@ describe("Experiment.of", () => {
     expect(built).toMatchObject({ ok: false, error: { code: "invalid-treatment-share" } });
   });
 
+  // Feature 023: the cuts are fractions of the target sample and nobody resolves them to buckets,
+  // so the split's rule does not reach them. Extending it "for consistency" would refuse a cut at
+  // an eighth of the sample, which is perfectly readable.
+  it("the cuts are not the split: a finer fraction is valid", () => {
+    expect(Experiment.of(input({ cuts: [0.125, 0.3333, 0.875] })).ok).toBe(true);
+    expect(Experiment.handsOut(0.125)).toBe(false);
+  });
+
   it("[invariant] an empty seed is rejected", () => {
     const built = Experiment.of(input({ seed: "" }));
     expect(built).toMatchObject({ ok: false, error: { code: "invalid-seed" } });

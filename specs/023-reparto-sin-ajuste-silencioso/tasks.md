@@ -159,14 +159,14 @@ un archivo del release el servidor no arranca.
 
 **Independent Test**: recorrer las tasas versionadas y arrancar el servidor.
 
-- [ ] T021 [P] [US3] Recorrer las tasas cuantizadas de `config/treatment-defaults.json` y
+- [x] T021 [P] [US3] Recorrer las tasas cuantizadas de `config/treatment-defaults.json` y
       `config/dev-merchants.json` **valor por valor, no con una regla**, y confirmar que cada una
       resuelve exactamente a un balde. Si alguna no, corregirla **y decir cuál era** en el commit:
       es un hallazgo, no un trámite.
-- [ ] T022 [P] [US3] Lo mismo con los fixtures de `tests/unit/composition/fixtures/` y los helpers
+- [x] T022 [P] [US3] Lo mismo con los fixtures de `tests/unit/composition/fixtures/` y los helpers
       (`tests/helpers/test-app.ts`). **No tocar** `tests/audit/fixtures/`: son entradas deliberadas
       de la skill de auditoría.
-- [ ] T023 [US3] `npm run build && npm run dev` con la configuración de desarrollo: el servidor
+- [x] T023 [US3] `npm run build && npm run dev` con la configuración de desarrollo: el servidor
       arranca y responde. Es la prueba de que ningún valor del repositorio quedó del lado
       equivocado de la regla.
 
@@ -176,28 +176,28 @@ un archivo del release el servidor no arranca.
 
 ## Phase 6: Cierre y documentación
 
-- [ ] T024 `tests/unit/domain/commercial/commercial-policy.test.ts` y
+- [x] T024 `tests/unit/domain/commercial/commercial-policy.test.ts` y
       `tests/unit/domain/experiment/experiment.test.ts` — la prueba de que **la feature no se
       derramó** (SC-007): un `marginShare: 0.375`, un `incentiveLadderShare: [0.125]` y un
       `cuts: [0.125]` siguen siendo válidos. Nadie los cuantiza, así que la regla no les toca
       (research R-06). Sin esta prueba, el próximo que lea el código extiende la regla «por
       coherencia» y rompe configuraciones legítimas.
-- [ ] T025 `docs/adr/035-una-sola-unidad-para-las-tasas.md` — la enmienda: qué tasa es **declarable**,
+- [x] T025 `docs/adr/035-una-sola-unidad-para-las-tasas.md` — la enmienda: qué tasa es **declarable**,
       por qué la ida y vuelta y no el epsilon ni `multipleOf`, y por qué esto va acá y no en un ADR
       nuevo (la 022 sacó la ambigüedad de unidad, ésta la de representabilidad; son la misma
       pregunta). Registrar que reemplaza a FR-008 de la spec. Citar ADR-022 y ADR-024.
-- [ ] T026 [P] `CLAUDE.md` — la convención de tasas de ADR-035 gana una oración: una tasa es una
+- [x] T026 [P] `CLAUDE.md` — la convención de tasas de ADR-035 gana una oración: una tasa es una
       fracción de 1 **y**, si algo la cuantiza, una que resuelva exactamente a su balde. Nombrar el
       método que la juzga.
-- [ ] T027 [P] `contracts/README.md` — sólo si la tabla de extensiones o el inventario cambian. Es
+- [x] T027 [P] `contracts/README.md` — sólo si la tabla de extensiones o el inventario cambian. Es
       probable que no: no hay extensión `x-*` nueva, sólo una entrada más en una que ya está.
-- [ ] T028 `specs/023-reparto-sin-ajuste-silencioso/quickstart.md` — correr el quickstart entero y
+- [x] T028 `specs/023-reparto-sin-ajuste-silencioso/quickstart.md` — correr el quickstart entero y
       dejar su tabla de estado fechada, con las aserciones preexistentes que hayan cambiado
       enumeradas una por una.
-- [ ] T029 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+- [x] T029 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `test:contract`, `release-check` (**avisa por la marca de construcción: es lo
       esperado**).
-- [ ] T030 `npm run test:mutation` en verde sobre las líneas cambiadas. **Atención al mutante
+- [x] T030 `npm run test:mutation` en verde sobre las líneas cambiadas. **Atención al mutante
       previsible**: la comparación de T009 es una línea, y un mutante que la convierta en `true`
       sobrevive si la prueba sólo verifica aceptaciones. T012 tiene que matarlo con los rechazos.
 

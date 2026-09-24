@@ -275,6 +275,14 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   ser entero no es una regla de ninguna tasa. La única constante que vale 100 es
   `ASSIGNMENT_BUCKETS` (`domain/experiment/`) y **no es una conversión**: es la resolución del
   reparto, y el día que quiera ser más fina ese número cambia y nada más cambia.
+  **Y sólo las tasas que el reparto puede repartir** (ADR-035, enmienda de la feature 023): una tasa
+  que algo cuantiza tiene que ser **exactamente** la que su balde representa, y si no lo es se
+  rechaza nombrándola en vez de ajustarse en silencio — `0.004` repartía a nadie. Lo juzga
+  `Experiment.handsOut(share)`, el dueño de la resolución, y alcanza a los dos campos que pasan por
+  `bucketsOf`: `treatmentShare` (`422 treatment-share-too-fine`) y `holdoutShare`
+  (`invalid-configuration-value`). Los `cuts` y las tres tasas comerciales **no**: nadie las
+  cuantiza. La regla no se escribe con `multipleOf` ni con un epsilon; los dos están medidos y
+  descartados en el ADR.
 - **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
   dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
@@ -639,7 +647,7 @@ directorios y escribir su perfil (`conditioning-project` lo hace).
   en su módulo (`DecisionId` en `ledger/ids.ts`, `EventId` en `ingestion/ids.ts`). Quien acuña
   un id lo pide por un puerto del dueño (`DecisionIdGenerator` del ledger), nunca al kernel.
 - Tasas como fracciones de 1 en todas partes, adentro y afuera; el backend no convierte formatos
-  de porcentaje (ADR-035).
+  de porcentaje, y una tasa que algo cuantiza tiene que ser exactamente la de su balde (ADR-035).
 - Literales de la plataforma (señales, métodos, headers, media types, claves reservadas de una
   librería) se declaran una vez, con nombre y tipo (`HTTP_METHODS`, `SHUTDOWN_SIGNALS`); un
   literal repetido en `src/` donde alguna ocurrencia no la verifica un tipo literal falla el

@@ -100,3 +100,42 @@ renombrado. Si aparece un cuarto, se para.
 Que alguien no agregue mañana una tasa cuantizada sin sujetarla a la regla. No hay gate que lo
 impida: hay un solo lugar que cuantiza y está a la vista. Si aparece un segundo consumidor de
 `bucketsOf`, ahí se justifica una regla; hoy sería maquinaria para un caso que no existe.
+
+## Estado al cierre de la implementación (2026-09-24)
+
+Histórico y fechado, como pide la convención de documentación viva.
+
+| Verificación                                                     | Resultado                                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Los 101 valores de dos decimales, calculados y como literal JSON | los 101 aceptados, cero rechazos falsos                                   |
+| `0.004`, `0.005`, `0.075`, `0.999`, `0.12345`, `0.1 + 0.2`       | los seis rechazados con `treatment-share-too-fine`                        |
+| Regresión de asignación (huella de la 007)                       | 5 pruebas, sin tocar una cifra                                            |
+| Lugares que saben en cuántos baldes se divide la población       | uno: `domain/experiment/experiment.ts`                                    |
+| Números nuevos que deciden qué se acepta                         | ninguno: la regla reusa `ASSIGNMENT_BUCKETS` y `bucketsOf`                |
+| Holdout `0.004` por los tres caminos                             | rechazado en los tres; con él en el release, el servidor no arranca       |
+| La feature no se derramó                                         | `marginShare: 0.375`, escalones `[0.125, 0.375]`, `cuts: [0.125]` válidos |
+| Tasas cuantizadas en datos versionados                           | 14 revisadas una por una, ninguna más fina que un centésimo               |
+| `contract:diff` aislado contra la punta de 022                   | 4 archivos, ningún campo agregado, quitado ni renombrado                  |
+| `npm test` (`fast`)                                              | 1303                                                                      |
+| `test:tools`                                                     | 58                                                                        |
+| `quality`                                                        | 7 gates                                                                   |
+| `contract:check`                                                 | verde; 22 invariantes, 22 con prueba                                      |
+| `test:contract`                                                  | 29/29 operaciones, 10 291 casos                                           |
+| `release-check`                                                  | OK (avisa por la marca de construcción, es lo esperado)                   |
+| `test:mutation`                                                  | todos los mutantes muertos                                                |
+
+**Aserciones de comportamiento preexistentes modificadas: una**, la versión del contrato en la
+prueba de `/v1/health` (`1.5.0` → `1.6.0`). Todo lo demás son aserciones nuevas.
+
+**Lo que la implementación encontró y el plan no había previsto:**
+
+1. **El mapa de `composition/seed-errors.ts` no conocía el código nuevo**, así que el arranque
+   nombraba el experimento entero (`merchants[0].experiments[0]`) en vez del campo. Su `satisfies`
+   garantiza que ningún código se renombre en silencio, pero no que estén todos — la misma clase de
+   agujero que la 022 encontró en el vocabulario de estados.
+2. **`oasdiff` no ve este estrechamiento.** Contra la punta de 022 reporta «no breaking changes»,
+   porque la regla no está escrita en ninguna palabra clave del esquema. El bump a `1.6.0` es un
+   acto deliberado, no algo que la herramienta pueda exigir. Vale para toda regla que viva en
+   `x-invariants`, y quedó escrito en el ADR.
+3. **El mutante que las tareas anticiparon no apareció**: la prueba de los 101 cubre las dos
+   direcciones, así que un mutante que vuelva la comparación `true` muere con los rechazos.
