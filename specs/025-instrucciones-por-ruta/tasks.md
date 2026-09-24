@@ -26,9 +26,9 @@ acotar no puede colarse mientras se trabaja.
 
 ## Phase 1: Setup — la condición de arranque y la cuenta de partida
 
-- [ ] T001 `claude --version` dice **2.1.198 o superior** (verificado al abrir: 2.1.280). **Si bajó,
+- [x] T001 `claude --version` dice **2.1.198 o superior** (verificado al abrir: 2.1.280). **Si bajó,
       parar**: sin reglas acotadas esta feature no tiene mecanismo y hay que replantearla.
-- [ ] T002 Congelar la cuenta de partida: `wc -l CLAUDE.md` da **573**, y anotar el desglose por
+- [x] T002 Congelar la cuenta de partida: `wc -l CLAUDE.md` da **573**, y anotar el desglose por
       sección. Es contra esto que se mide todo, y si alguien lo tocó antes hay que rehacer el
       reparto del plan con el número nuevo.
 
@@ -43,31 +43,31 @@ tiene que reportar que el núcleo tiene 573 líneas contra un límite de 200.
 
 ### La política y la biblioteca
 
-- [ ] T003 `scripts/instructions-policy.json` — pasa de declarar secciones sueltas a declarar
+- [x] T003 `scripts/instructions-policy.json` — pasa de declarar secciones sueltas a declarar
       **archivos** (`files[]`), cada uno con `role` (`core` o `rule`), sus secciones y, los `rule`,
       su `paths`. Gana `coreMaxLines: 200`. **El límite va en la política, no en el script**: es el
       valor que gobierna el comportamiento (constitución XI), y su fuente es la documentación
       oficial.
-- [ ] T004 `scripts/instructions-lib.mjs` — la envoltura por archivo, más las tres verificaciones
+- [x] T004 `scripts/instructions-lib.mjs` — la envoltura por archivo, más las tres verificaciones
       nuevas: el núcleo no supera `coreMaxLines`; todo `rule` declara `paths` **o** su
       `unscopedReason`; y el patrón de un `rule` alcanza al menos un archivo del repositorio. Con
       `checkJs`: toda función exportada con su firma (ADR-012).
-- [ ] T005 `scripts/check-instructions.mjs` — recorre los archivos de la política, reporta con
+- [x] T005 `scripts/check-instructions.mjs` — recorre los archivos de la política, reporta con
       nombre de archivo además de línea, y su resumen gana el recuento de archivos.
 
 ### Las otras tres verificaciones
 
-- [ ] T006 [P] [US2] `scripts/check-identifiers.mjs` — las reglas entran a su lista de documentos,
+- [x] T006 [P] [US2] `scripts/check-identifiers.mjs` — las reglas entran a su lista de documentos,
       junto al núcleo que ya recibió en la feature 024.
-- [ ] T007 [P] [US2] `scripts/check-adrs.mjs` y `scripts/check-markers.mjs` — lo mismo, una línea en
+- [x] T007 [P] [US2] `scripts/check-adrs.mjs` y `scripts/check-markers.mjs` — lo mismo, una línea en
       cada uno: los dos ya arman una lista que incluye `CLAUDE.md`.
 
 ### La prueba de que el límite se verifica
 
-- [ ] T008 [US2] **Correr acá, con el núcleo todavía sin partir**: `npm run check:instructions`.
+- [x] T008 [US2] **Correr acá, con el núcleo todavía sin partir**: `npm run check:instructions`.
       Tiene que reportar que el núcleo tiene **573** líneas contra un límite de **200**. Si pasa en
       verde, el límite no se está verificando y todo lo que sigue sería teatro.
-- [ ] T009 [US2] `tests/docs/instructions.test.ts` — los casos nuevos: un núcleo que supera el
+- [x] T009 [US2] `tests/docs/instructions.test.ts` — los casos nuevos: un núcleo que supera el
       límite falla; un `rule` sin `paths` y sin motivo falla; un `rule` cuyo patrón no alcanza nada
       falla; y los casos de la 024 siguen pasando ahora que la política declara archivos.
 

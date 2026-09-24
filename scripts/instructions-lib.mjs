@@ -10,11 +10,23 @@
 
 /**
  * @typedef {object} Policy
+ * @property {number} coreMaxLines what the core may not exceed. 200, and the number is the one the
+ *   official documentation publishes, with its reason: a longer file is obeyed worse. It lives here
+ *   and not in the script because it governs behaviour (constitution XI).
  * @property {readonly string[]} implicitRoots roots a path may be abbreviated against, in order
  * @property {NotPaths} notPaths what is written with slashes and does not name a place
  * @property {string} commandsSection the heading of the table the commands are read from
- * @property {readonly Section[]} sections every heading of the document, with its kind
+ * @property {readonly InstructionFile[]} files the core and every scoped rule, with their sections
  * @property {readonly Exception[]} exceptions citations that deliberately do not resolve
+ */
+/**
+ * @typedef {object} InstructionFile
+ * @property {string} file path from the repository root
+ * @property {"core" | "rule"} role the core loads at launch; a rule loads when its paths match
+ * @property {readonly string[]} [paths] what a rule is scoped to. **Without this a rule loads at
+ *   launch and saves nothing**, so a rule with neither this nor `unscopedReason` is an error.
+ * @property {string} [unscopedReason] why this rule is deliberately not scoped
+ * @property {readonly Section[]} sections every heading of that file, with its kind
  */
 /**
  * @typedef {object} NotPaths
@@ -235,11 +247,11 @@ export function headings(markdown) {
  * Sections against the policy **in both directions**. The second direction is the half that gets
  * forgotten, and it is the one that forces a decision: a section cannot be opened in silence.
  * @param {string} markdown
- * @param {Policy} policy
+ * @param {InstructionFile} entry
  * @returns {{ problems: string[], checked: number }}
  */
-export function sectionProblems(markdown, policy) {
-  const declared = new Map(policy.sections.map((s) => [s.heading, s]));
+export function sectionProblems(markdown, entry) {
+  const declared = new Map(entry.sections.map((s) => [s.heading, s]));
   const present = headings(markdown);
   /** @type {string[]} */
   const problems = [];
@@ -257,7 +269,7 @@ export function sectionProblems(markdown, policy) {
     }
   }
   const seen = new Set(present.map((h) => h.heading));
-  for (const section of policy.sections) {
+  for (const section of entry.sections) {
     if (!seen.has(section.heading)) {
       problems.push(`0: policy for a section that does not exist: ${section.heading}`);
     }
@@ -266,7 +278,56 @@ export function sectionProblems(markdown, policy) {
 }
 
 /**
- * The policy itself: every exception needs a reason, and names one thing or the other.
+ * The core may not exceed what the policy declares.
+ *
+ * The number is not ours: the official documentation publishes it, and its reason is the one that
+ * matters — a longer file is **obeyed worse**, which is a bigger problem than the tokens it costs.
+ * It counts the pointers that the moved sections leave behind, which is what makes it honest: a
+ * core that fits only by not counting what it carries does not fit (feature 025).
+ * @param {string} markdown
+ * @param {number} max
+ * @returns {string[]}
+ */
+export function coreSizeProblems(markdown, max) {
+  const lines = markdown.split("\n").length;
+  return lines > max ? [`0: the core has ${lines} lines; the limit is ${max}`] : [];
+}
+
+/**
+ * Every rule is scoped, and scoped to something that is there.
+ *
+ * The first half is the decision that cannot be skipped: a rule without `paths` loads at launch
+ * like the core, so it saves nothing and the file grows back without anyone noticing. The second is
+ * what keeps a scoped rule from being dead weight: one that matches no file never loads, and
+ * nothing would say so.
+ * @param {Policy} policy
+ * @param {(pattern: string) => boolean} matchesSomething
+ * @returns {string[]}
+ */
+export function scopeProblems(policy, matchesSomething) {
+  /** @type {string[]} */
+  const problems = [];
+  for (const entry of policy.files) {
+    if (entry.role !== "rule") continue;
+    const scoped = entry.paths ?? [];
+    if (scoped.length === 0) {
+      if ((entry.unscopedReason ?? "").trim() === "") {
+        problems.push(`0: rule that is not scoped and gives no reason: ${entry.file}`);
+      }
+      continue;
+    }
+    for (const pattern of scoped) {
+      if (!matchesSomething(pattern)) {
+        problems.push(`0: the scope matches no file: ${entry.file} → ${pattern}`);
+      }
+    }
+  }
+  return problems;
+}
+
+/**
+ * The policy itself: every exception needs a reason and names one thing or the other, and every
+ * file declares a role the checks know.
  * @param {unknown} parsed
  * @returns {string[]}
  */
@@ -281,6 +342,13 @@ export function policyProblems(parsed) {
     }
     if ((exception.reason ?? "").trim() === "") {
       problems.push(`0: exception without a reason: ${names[0] ?? index}`);
+    }
+  }
+  const cores = policy.files.filter((f) => f.role === "core");
+  if (cores.length !== 1) problems.push(`0: the policy declares ${cores.length} cores; it declares one`);
+  for (const entry of policy.files) {
+    if (entry.role !== "core" && entry.role !== "rule") {
+      problems.push(`0: unknown role "${entry.role}": ${entry.file}`);
     }
   }
   return problems;

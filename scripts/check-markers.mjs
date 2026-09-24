@@ -20,6 +20,8 @@ const strict = args["strict"] === true;
 const files = [
   ...walkFiles(path.join(root, "contracts"), [".yaml", ".yml"]),
   ...walkFiles(path.join(root, "docs"), [".md"]),
+  // The scoped rules are instructions like the core (feature 025).
+  ...walkFiles(path.join(root, ".claude", "rules"), [".md"]),
   ...["README.md", "CLAUDE.md"].map((f) => path.join(root, f)).filter(exists),
 ];
 

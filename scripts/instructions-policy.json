@@ -1,4 +1,5 @@
 {
+  "coreMaxLines": 200,
   "implicitRoots": [
     "",
     "src/",
@@ -24,65 +25,71 @@
     "namespacePrefixes": ["ope/", "#", "@"]
   },
   "commandsSection": "Comandos",
-  "sections": [
+  "files": [
     {
-      "heading": "Fuentes de verdad, en este orden",
-      "kind": "normative"
-    },
-    {
-      "heading": "Flujo de trabajo (inamovible)",
-      "kind": "normative"
-    },
-    {
-      "heading": "Comandos",
-      "kind": "descriptive"
-    },
-    {
-      "heading": "Anillos y módulos (ADR-013, verificado por `npm run arch`)",
-      "kind": "mixed",
-      "reason": "The ring table is the rule an agent obeys; the list of modules describes what exists today and `arch` already verifies it. Separating them is pending."
-    },
-    {
-      "heading": "Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)",
-      "kind": "normative"
-    },
-    {
-      "heading": "Cómo se escribe una entidad (ADR-024, verificado por `lint`)",
-      "kind": "normative"
-    },
-    {
-      "heading": "Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)",
-      "kind": "mixed",
-      "reason": "How the mutation gate is worked is normative; the thresholds describe the linter configuration, which is their own source. Separating them is pending."
-    },
-    {
-      "heading": "Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)",
-      "kind": "normative"
-    },
-    {
-      "heading": "Notas operativas del contrato",
-      "kind": "descriptive"
-    },
-    {
-      "heading": "Documentación viva",
-      "kind": "normative"
-    },
-    {
-      "heading": "Auditoría de arquitectura (ADR-032)",
-      "kind": "descriptive"
-    },
-    {
-      "heading": "Reglas que fallan el build (no son sugerencias)",
-      "kind": "normative"
-    },
-    {
-      "heading": "Convenciones",
-      "kind": "mixed",
-      "reason": "It mixes writing rules an agent obeys with descriptions of the system that belong to their ADR. Separating them is pending."
-    },
-    {
-      "heading": "Si existe `HANDOFF.md` en la raíz",
-      "kind": "normative"
+      "file": "CLAUDE.md",
+      "role": "core",
+      "sections": [
+        {
+          "heading": "Fuentes de verdad, en este orden",
+          "kind": "normative"
+        },
+        {
+          "heading": "Flujo de trabajo (inamovible)",
+          "kind": "normative"
+        },
+        {
+          "heading": "Comandos",
+          "kind": "descriptive"
+        },
+        {
+          "heading": "Anillos y módulos (ADR-013, verificado por `npm run arch`)",
+          "kind": "mixed",
+          "reason": "The ring table is the rule an agent obeys; the list of modules describes what exists today and `arch` already verifies it. Separating them is pending."
+        },
+        {
+          "heading": "Cómo se escribe un caso de uso (ADR-023, verificado por `lint` y `arch`)",
+          "kind": "normative"
+        },
+        {
+          "heading": "Cómo se escribe una entidad (ADR-024, verificado por `lint`)",
+          "kind": "normative"
+        },
+        {
+          "heading": "Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)",
+          "kind": "mixed",
+          "reason": "How the mutation gate is worked is normative; the thresholds describe the linter configuration, which is their own source. Separating them is pending."
+        },
+        {
+          "heading": "Tipado (ADR-011, ADR-012, ADR-017; verificado por `lint` y `typecheck`)",
+          "kind": "normative"
+        },
+        {
+          "heading": "Notas operativas del contrato",
+          "kind": "descriptive"
+        },
+        {
+          "heading": "Documentación viva",
+          "kind": "normative"
+        },
+        {
+          "heading": "Auditoría de arquitectura (ADR-032)",
+          "kind": "descriptive"
+        },
+        {
+          "heading": "Reglas que fallan el build (no son sugerencias)",
+          "kind": "normative"
+        },
+        {
+          "heading": "Convenciones",
+          "kind": "mixed",
+          "reason": "It mixes writing rules an agent obeys with descriptions of the system that belong to their ADR. Separating them is pending."
+        },
+        {
+          "heading": "Si existe `HANDOFF.md` en la raíz",
+          "kind": "normative"
+        }
+      ]
     }
   ],
   "exceptions": [

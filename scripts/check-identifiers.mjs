@@ -191,9 +191,13 @@ const { allowed, problems } = readAllowlist(allowlistFile);
 // already read them (check-adrs, check-markers) set the precedent. An argument and not a constant,
 // so the fixtures of the governance test can point somewhere else (feature 024).
 const instructions = path.resolve(root, argString(args, "instructions") ?? "CLAUDE.md");
-const documents = [constitution, instructions, ...docsDirs.flatMap((d) => walkFiles(d, [".md"]))].filter(
-  exists,
-);
+const documents = [
+  constitution,
+  instructions,
+  // The scoped rules carry the detail the core used to hold, so they cite what it cited (025).
+  ...walkFiles(path.join(root, ".claude", "rules"), [".md"]),
+  ...docsDirs.flatMap((d) => walkFiles(d, [".md"])),
+].filter(exists);
 let cited = 0;
 /** @type {string[]} */
 const unknown = [];
