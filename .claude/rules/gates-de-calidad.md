@@ -7,31 +7,24 @@ paths:
 
 # Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)
 
-- Forma del código en el lint (`eslint-plugin-sonarjs` + core): complejidad cognitiva ≤ 15,
-  anidamiento ≤ 3, ≤ 4 parámetros, ≤ 60 líneas por función (apagada en `tests/`), sin funciones ni
-  ramas idénticas, sin `catch` que ignore el error; números mágicos sólo con nombre en `src/` (0, 1,
-  −1 e índices exceptuados); strings repetidos sin tipar sólo con nombre en `src/`
-  (`ope/no-magic-strings`, regla propia con tipos en `scripts/lint/`); forma de casos de uso,
-  dependencias y errores (`ope/use-case-shape`, `ope/dependencies-are-interfaces`,
-  `ope/domain-error-shape`, `ope/no-throw-domain-error`, `ope/no-generic-catch-in-application`,
-  ADR-023); dominio sin funciones sueltas (`ope/domain-no-loose-functions`, ADR-024). Cada umbral lleva su justificación en `eslint.config.mjs`; los bloques
-  por alcance (`SHAPE_RULES`, `SRC_ONLY_RULES`, `APPLICATION_RULES`, `USE_CASE_RULES`,
-  `DOMAIN_RULES`, `DOMAIN_ERROR_RULES`, `TEST_ONLY_RULES`) se exportan para las pruebas.
-- Duplicación: ≥ 5 líneas / 50 tokens iguales en `src/` no entran. Código muerto: `knip.json`
-  lista las entradas y las exclusiones; los motivos están en el encabezado de
-  `scripts/check-dead-code.mjs` (knip no admite comentarios).
+- **Cada umbral vive donde se lo declara, con su motivo al lado**, y ahí se lo cambia: la forma del
+  código y las reglas `ope/*` en `eslint.config.mjs`, la duplicación en
+  `scripts/check-duplication.mjs`, el código muerto en el encabezado de
+  `scripts/check-dead-code.mjs` (knip no admite comentarios) y el largo de un archivo de anillo en
+  `scripts/shape-rules.mjs`. `tests/lint/lint.test.ts` falla si un umbral numérico aparece sin su
+  motivo, así que la configuración es la fuente completa; copiar los números acá sólo los
+  condenaría a quedar viejos.
+- **Prohibiciones de forma, que ningún umbral expresa** (`scripts/shape-rules.mjs`, verificadas por
+  `tests/architecture/shape.test.ts`): ningún `new` de un paquete npm fuera de `composition/`,
+  `infrastructure/` y los gateways; ningún `import()` calculado; ninguna condición sobre
+  `config.<campo>` en `composition/` (salvo `config.ts`); ningún carácter de control crudo en el
+  fuente (un separador como U+001F se escribe como su escape, nunca como el carácter); la
+  implementación de un puerto se construye sólo dentro del builder de un enlace
+  (`port-implementations-only-in-bind`, ADR-033).
 - Mutación: un cambio no entra si un mutante de sus propias líneas sobrevive. `StringLiteral`
   está excluido (prosa; los literales tipados ya son errores de compilación al mutarse). El
   runner lleva `patches/@stryker-mutator+vitest-runner+10.0.0.patch` hasta que stryker-js#6210
   se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
-- Forma de los anillos (`scripts/shape-rules.mjs`, `tests/architecture/shape.test.ts`): ≤ 300
-  líneas por archivo en `domain/` y `application/`; un controller por `operationId`; ningún `new`
-  de un paquete npm fuera de `composition/`, `infrastructure/` y los gateways; ningún `import()`
-  calculado; ninguna condición sobre `config.<campo>` en `composition/` (salvo `config.ts`);
-  ningún carácter de control crudo en el fuente (un separador como U+001F se escribe como su
-  escape, nunca como el carácter); un módulo de composición exporta sólo sus componentes y a sí
-  mismo (`composition-module-shape`) y construye la implementación de un puerto sólo dentro del
-  builder de un enlace (`port-implementations-only-in-bind`, ADR-033).
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
 - **Cómo se trabaja el gate de mutación** (la corrida completa cuesta minutos; no se repite por

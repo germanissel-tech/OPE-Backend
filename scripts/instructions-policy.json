@@ -102,8 +102,7 @@
       "sections": [
         {
           "heading": "Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)",
-          "kind": "mixed",
-          "reason": "How the mutation gate is worked is normative; the thresholds describe the linter configuration, which is their own source. Separating them is pending."
+          "kind": "normative"
         }
       ]
     },

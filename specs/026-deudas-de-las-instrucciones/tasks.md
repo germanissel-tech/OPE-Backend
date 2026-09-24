@@ -92,7 +92,7 @@ completo, y **recién entonces** se borra del origen. En commits separados.
       forma de los anillos. **Antes de borrarlos.** Si el destino correcto resulta ser la propia
       configuración —que ya lleva la justificación de cada umbral—, entonces lo que hay que agregar
       es el puntero, no el número.
-- [ ] T012 [US3] `.claude/rules/gates-de-calidad.md` — se van los tres bloques descriptivos; quedan
+- [x] T012 [US3] `.claude/rules/gates-de-calidad.md` — se van los tres bloques descriptivos; quedan
       la regla de mutación, las excepciones en línea y el ritmo de las pruebas en dos velocidades.
 - [ ] T013 [P] [US3] `docs/adr/033-grafo-de-composicion-tipado.md` y
       `docs/adr/013-*.md` — reciben el detalle de la composición y lo de fuera de `src/`, antes de
