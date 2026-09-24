@@ -124,8 +124,7 @@
       "sections": [
         {
           "heading": "Anillos y módulos (ADR-013, verificado por `npm run arch`)",
-          "kind": "mixed",
-          "reason": "The ring table is the rule an agent obeys; the list of modules describes what exists today and `arch` already verifies it. Separating them is pending."
+          "kind": "normative"
         }
       ]
     },

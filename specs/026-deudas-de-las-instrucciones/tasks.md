@@ -94,15 +94,15 @@ completo, y **recién entonces** se borra del origen. En commits separados.
       es el puntero, no el número.
 - [x] T012 [US3] `.claude/rules/gates-de-calidad.md` — se van los tres bloques descriptivos; quedan
       la regla de mutación, las excepciones en línea y el ritmo de las pruebas en dos velocidades.
-- [ ] T013 [P] [US3] `docs/adr/033-grafo-de-composicion-tipado.md` y
+- [x] T013 [P] [US3] `docs/adr/033-grafo-de-composicion-tipado.md` y
       `docs/adr/013-*.md` — reciben el detalle de la composición y lo de fuera de `src/`, antes de
       borrarse.
-- [ ] T014 [US3] `.claude/rules/anillos-y-modulos.md` — se van la lista de módulos —cuya fuente
+- [x] T014 [US3] `.claude/rules/anillos-y-modulos.md` — se van la lista de módulos —cuya fuente
       verificada es `CONTEXT_MAP`— y el detalle de la composición; quedan la tabla de anillos, la
       regla del borde y la regla de la composición.
-- [ ] T015 [US3] `scripts/instructions-policy.json` — las dos pasan de `mixed` a `normative` y
+- [x] T015 [US3] `scripts/instructions-policy.json` — las dos pasan de `mixed` a `normative` y
       pierden su `reason`.
-- [ ] T016 [US3] Verificar por regla, **no por total**: lo que se movió está completo en su destino y
+- [x] T016 [US3] Verificar por regla, **no por total**: lo que se movió está completo en su destino y
       no quedó duplicado. Un total que cierra puede esconder un bloque entero.
 
 ---
