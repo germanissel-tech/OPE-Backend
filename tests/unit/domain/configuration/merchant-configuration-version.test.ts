@@ -67,7 +67,7 @@ describe("MerchantConfigurationVersion", () => {
     ).toBe(true);
     const undefinedField = {
       ...draft().declared,
-      holdoutPercent: undefined,
+      holdoutShare: undefined,
     } as unknown as ConfigurationDraft["declared"];
     expect(first.sameContentAs(draft({ declared: undefinedField }))).toBe(true);
     expect(first.sameContentAs(draft({ declared: { freshness: { stockAndPriceMs: 500_000 } } }))).toBe(false);
@@ -100,7 +100,7 @@ describe("EffectiveConfiguration.resolve", () => {
 
   it("with a version: what it declared over the defaults, its anchors, and the three versions; a draft stamps no merchant version", () => {
     const version = MerchantConfigurationVersion.numbered(
-      draft({ declared: { holdoutPercent: 0, anchors: { price: { selectors: [".p"] } } } }),
+      draft({ declared: { holdoutShare: 0, anchors: { price: { selectors: [".p"] } } } }),
       3,
     );
     const resolved = EffectiveConfiguration.resolve(platform(), defaults(), version);

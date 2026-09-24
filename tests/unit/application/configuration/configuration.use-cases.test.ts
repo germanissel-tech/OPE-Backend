@@ -96,7 +96,7 @@ describe("Configurations", () => {
     const published = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: false,
     });
     expect(published.ok).toBe(true);
@@ -111,7 +111,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
   it("numbers the versions, repeats an identical draft with the version in force, and lists them newest first", async () => {
     const { publish, list, get, merchants } = subject();
     await merchants.create(testMerchant({ merchantId: "m_a" }));
-    const request = { actor: all, merchantId: A, declared: { holdoutPercent: 0 }, corrective: false };
+    const request = { actor: all, merchantId: A, declared: { holdoutShare: 0 }, corrective: false };
     const first = await publish.execute(request);
     expect(first.ok ? [first.value.outcome, first.value.version.version] : first.error).toEqual([
       "created",
@@ -122,12 +122,12 @@ describe("PublishMerchantConfigurationUseCase", () => {
       "repeated",
       1,
     ]);
-    const second = await publish.execute({ ...request, declared: { holdoutPercent: 10 } });
+    const second = await publish.execute({ ...request, declared: { holdoutShare: 0.1 } });
     expect(second.ok ? second.value.version.version : second.error).toBe(2);
     const page = await list.execute({ actor: all, merchantId: A, page: { limit: 10 } });
     expect(page.ok ? page.value.items.map((v) => v.version) : page.error).toEqual([2, 1]);
     const view = await get.execute({ actor: all, merchantId: A });
-    expect(view.ok ? view.value.declared : view.error).toEqual({ holdoutPercent: 10 });
+    expect(view.ok ? view.value.declared : view.error).toEqual({ holdoutShare: 0.1 });
   });
 
   it("[invariant:configuration-frozen] with an active experiment only a corrective version passes; an identical draft still repeats", async () => {
@@ -136,14 +136,14 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const frozen = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: false,
     });
     expect(frozen.ok ? undefined : frozen.error.code).toBe("configuration-frozen");
     const corrective = {
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: true,
       reason: "fix",
     };
@@ -159,7 +159,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const created = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: true,
       reason: "anchor fix",
     });
@@ -177,7 +177,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const repeated = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: true,
       reason: "anchor fix",
     });
@@ -191,7 +191,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const plain = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
       corrective: false,
     });
     expect(plain.ok ? [plain.value.outcome, plain.value.windowRestarted] : plain.error).toEqual([
@@ -201,7 +201,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const corrective = await publish.execute({
       actor: all,
       merchantId: A,
-      declared: { holdoutPercent: 5 },
+      declared: { holdoutShare: 0.05 },
       corrective: true,
       reason: "early",
     });
@@ -233,7 +233,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
       publish.execute({
         actor: all,
         merchantId: A,
-        declared: { holdoutPercent: 0 },
+        declared: { holdoutShare: 0 },
         corrective: true,
         reason: "anchor fix",
       }),
@@ -253,14 +253,14 @@ describe("ImportMerchantConfigurationUseCase", () => {
     const first = await importConfiguration.execute({
       actor: Operator.system(),
       merchantId: A,
-      declared: { holdoutPercent: 0 },
+      declared: { holdoutShare: 0 },
     });
     expect(first.ok && "version" in first.value ? first.value.version.version : undefined).toBe(1);
     expect((await configuration.effectiveFor(A)).values.holdoutShare).toBe(0);
     const again = await importConfiguration.execute({
       actor: Operator.system(),
       merchantId: A,
-      declared: { holdoutPercent: 5 },
+      declared: { holdoutShare: 0.05 },
     });
     expect(again.ok ? again.value : again.error).toEqual({ skipped: true });
     const other = subject();

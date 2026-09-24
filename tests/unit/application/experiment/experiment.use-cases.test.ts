@@ -34,7 +34,7 @@ const all = Operator.rehydrate({
 const onlyB = Operator.rehydrate({ operatorId: asOperatorId("ops-b"), tokenFingerprints: [], scope: [B] });
 const LATER = new Date(TEST_NOW.getTime() + 60_000);
 
-const OPENING = { treatmentShare: 0.5, seed: "pilot", targetSample: 1000, cuts: [33, 66] };
+const OPENING = { treatmentShare: 0.5, seed: "pilot", targetSample: 1000, cuts: [0.33, 0.66] };
 
 async function subject(options: { holdoutShare?: number; store?: ExperimentStore } = {}) {
   let now = TEST_NOW;
@@ -74,7 +74,7 @@ describe("CreateExperimentUseCase", () => {
       treatmentShare: 0.5,
       seed: "pilot",
       targetSample: 1000,
-      cuts: [33, 66],
+      cuts: [0.33, 0.66],
       openedAt: TEST_NOW,
       windowRestarts: [],
     });
@@ -104,7 +104,7 @@ describe("CreateExperimentUseCase", () => {
 
   it("the rules of the entity come before the holdout and the store: cuts and target sample name their error", async () => {
     const { create } = await subject();
-    const cuts = await create.execute({ actor: all, merchantId: A, ...OPENING, cuts: [66, 33] });
+    const cuts = await create.execute({ actor: all, merchantId: A, ...OPENING, cuts: [0.66, 0.33] });
     expect(cuts.ok ? undefined : cuts.error.code).toBe("invalid-experiment-cuts");
     const target = await create.execute({ actor: all, merchantId: A, ...OPENING, targetSample: 0 });
     expect(target.ok ? undefined : target.error.code).toBe("invalid-target-sample");

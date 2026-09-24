@@ -73,16 +73,16 @@ describe("PlatformConfiguration.of", () => {
 });
 
 describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
-  it("accepts the release values; the record round-trips; the holdout is a rate inside", () => {
+  it("accepts the release values; the record round-trips; the edges of the holdout are inside", () => {
     const built = TreatmentDefaults.of(defaults());
     expect(built.ok ? built.value.record() : undefined).toEqual(defaults());
     expect(built.ok ? built.value.values.holdoutShare : undefined).toBe(0.05);
     expect(pointerOf(TreatmentDefaults.of({ ...defaults(), version: "" }))).toBe("version");
     expect(pointerOf(TreatmentDefaults.of({ ...defaults(), version: " " }))).toBe("version");
     // The edges of the holdout are inside: nobody kept out, or everybody.
-    for (const holdoutPercent of [0, 100]) {
-      const edge = TreatmentValues.judge({ ...values(), holdoutPercent });
-      expect(edge.ok ? edge.value.holdoutShare : edge.error).toBe(holdoutPercent / 100);
+    for (const holdoutShare of [0, 1]) {
+      const edge = TreatmentValues.judge({ ...values(), holdoutShare });
+      expect(edge.ok ? edge.value.holdoutShare : edge.error).toBe(holdoutShare);
     }
   });
 
@@ -92,8 +92,7 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
       [{ freshness: { catalogMs: 0, stockAndPriceMs: 1 } }, "freshness.catalogMs"],
       [{ freshness: { catalogMs: 10, stockAndPriceMs: 20 } }, "freshness.stockAndPriceMs"],
       [{ syncLevel: { ...v.syncLevel, noDataAfterMs: 0 } }, "syncLevel.noDataAfterMs"],
-      [{ holdoutPercent: 101 }, "holdoutPercent"],
-      [{ holdoutPercent: 2.5 }, "holdoutPercent"],
+      [{ holdoutShare: 1.01 }, "holdoutShare"],
       [{ surfaces: [] }, "surfaces"],
       [{ surfaces: ["product", "product"] }, "surfaces"],
       [{ barriers: ["fit", "shipping" as never] }, "barriers[1]"],
@@ -120,26 +119,14 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
         "decisionPolicy.rules[0].when.type",
       ],
       [
-        { commercialPolicy: { ...v.commercialPolicy, maxIncentivePercent: 120 } },
-        "commercialPolicy.maxIncentivePercent",
+        { commercialPolicy: { ...v.commercialPolicy, maxIncentiveShare: 1.2 } },
+        "commercialPolicy.maxIncentiveShare",
       ],
       [
-        { commercialPolicy: { ...v.commercialPolicy, incentiveLadderPercent: [10, 5] } },
-        "commercialPolicy.incentiveLadderPercent[1]",
+        { commercialPolicy: { ...v.commercialPolicy, incentiveLadderShare: [0.1, 0.05] } },
+        "commercialPolicy.incentiveLadderShare[1]",
       ],
-      [
-        { commercialPolicy: { ...v.commercialPolicy, incentiveLadderPercent: [2.5] } },
-        "commercialPolicy.incentiveLadderPercent[0]",
-      ],
-      [{ commercialPolicy: { ...v.commercialPolicy, marginPercent: 101 } }, "commercialPolicy.marginPercent"],
-      [
-        { commercialPolicy: { ...v.commercialPolicy, marginPercent: 12.5 } },
-        "commercialPolicy.marginPercent",
-      ],
-      [
-        { commercialPolicy: { ...v.commercialPolicy, maxIncentivePercent: 12.5 } },
-        "commercialPolicy.maxIncentivePercent",
-      ],
+      [{ commercialPolicy: { ...v.commercialPolicy, marginShare: 1.01 } }, "commercialPolicy.marginShare"],
       [{ commercialPolicy: { ...v.commercialPolicy, version: " " } }, "commercialPolicy.version"],
       [{ decisionPolicy: { ...v.decisionPolicy, version: "" } }, "decisionPolicy.version"],
       [
@@ -167,8 +154,8 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
     const v = values();
     const declared: DeclaredTreatmentValues = {
       freshness: { stockAndPriceMs: 600_000 },
-      holdoutPercent: 0,
-      commercialPolicy: { version: "sport-1", marginPercent: 40 },
+      holdoutShare: 0,
+      commercialPolicy: { version: "sport-1", marginShare: 0.4 },
       decisionPolicy: { version: "d-2", threshold: 0.7 },
       locales: { supported: ["es-AR"] },
       syncStrategy: { catalog: "pull" },
@@ -177,9 +164,9 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
     if (!resolved.ok) throw new Error(resolved.error.message);
     const record = resolved.value.record();
     expect(record.freshness).toEqual({ catalogMs: v.freshness.catalogMs, stockAndPriceMs: 600_000 });
-    expect(record.holdoutPercent).toBe(0);
+    expect(record.holdoutShare).toBe(0);
     expect(resolved.value.holdoutShare).toBe(0);
-    expect(record.commercialPolicy).toEqual({ ...v.commercialPolicy, version: "sport-1", marginPercent: 40 });
+    expect(record.commercialPolicy).toEqual({ ...v.commercialPolicy, version: "sport-1", marginShare: 0.4 });
     expect(resolved.value.commercialPolicy.marginShare).toBe(0.4);
     expect(resolved.value.decisionPolicy.version).toBe("d-2");
     expect(resolved.value.decisionPolicy.threshold).toBe(0.7);
@@ -204,10 +191,10 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
     expect(
       pointerOf(
         TreatmentValues.resolve(values(), {
-          commercialPolicy: { version: "c", incentiveLadderPercent: [20] },
+          commercialPolicy: { version: "c", incentiveLadderShare: [0.2] },
         }),
       ),
-    ).toBe("commercialPolicy.incentiveLadderPercent[0]");
+    ).toBe("commercialPolicy.incentiveLadderShare[0]");
   });
 });
 

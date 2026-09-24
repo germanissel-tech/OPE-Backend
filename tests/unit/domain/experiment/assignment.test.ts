@@ -6,22 +6,22 @@ import { testExperiment, type ExperimentFacts } from "../../../helpers/experimen
 import type { Experiment } from "../../../../src/domain/experiment/index.js";
 
 const SAMPLE = 100_000;
-const TOLERANCE_PP = 1;
+/** The observed split may sit this far from the declared one: a hundredth, in shares. */
+const TOLERANCE = 0.01;
 
-const PERCENT = 100;
-
-const experiment = (over: ExperimentFacts & { treatmentPercent?: number } = {}): Experiment => {
-  const { treatmentPercent, ...rest } = over;
-  return testExperiment({ treatmentShare: (treatmentPercent ?? 50) / PERCENT, ...rest });
+const experiment = (over: ExperimentFacts & { treatmentShare?: number } = {}): Experiment => {
+  const { treatmentShare, ...rest } = over;
+  return testExperiment({ treatmentShare: treatmentShare ?? 0.5, ...rest });
 };
 
 // Sequential ids are the adversarial case for a hash-based split (research R-01).
 const visitor = (n: number) => asVisitorId(`vis_${String(n).padStart(8, "0")}`);
 
-function treatmentShare(exp: Experiment): number {
+/** The share of the sample the experiment assigned to TREATMENT: measured, not declared. */
+function observedShare(exp: Experiment): number {
   let treatment = 0;
   for (let n = 0; n < SAMPLE; n += 1) if (exp.assign(visitor(n)) === "TREATMENT") treatment += 1;
-  return (100 * treatment) / SAMPLE;
+  return treatment / SAMPLE;
 }
 
 describe("Experiment.assign", () => {
@@ -31,14 +31,25 @@ describe("Experiment.assign", () => {
     for (let i = 0; i < 1000; i += 1) expect(exp.assign(visitor(42))).toBe(first);
   });
 
-  it.each([50, 20, 80])("split: 100 000 sequential visitors land within ±1 pp of %i %", (percent) => {
-    const share = treatmentShare(experiment({ treatmentPercent: percent }));
-    expect(Math.abs(share - percent)).toBeLessThanOrEqual(TOLERANCE_PP);
+  it.each([0.5, 0.2, 0.8])("split: 100 000 sequential visitors land within a hundredth of %d", (declared) => {
+    const observed = observedShare(experiment({ treatmentShare: declared }));
+    expect(Math.abs(observed - declared)).toBeLessThanOrEqual(TOLERANCE);
   });
 
-  it("edges: 0 % never assigns TREATMENT and 100 % always does", () => {
-    expect(treatmentShare(experiment({ treatmentPercent: 0 }))).toBe(0);
-    expect(treatmentShare(experiment({ treatmentPercent: 100 }))).toBe(100);
+  it("edges: a share of 0 never assigns TREATMENT and a share of 1 always does", () => {
+    expect(observedShare(experiment({ treatmentShare: 0 }))).toBe(0);
+    expect(observedShare(experiment({ treatmentShare: 1 }))).toBe(1);
+  });
+
+  // Feature 022: this is the case the whole feature exists for. When the split was a percentage
+  // read as a share, a `1` meant one percent on one side of the conversion and everything on the
+  // other, and nothing could tell the two apart. Now `0.01` is one hundredth and `1` is everyone,
+  // and the distance between them is a hundred times the sample.
+  it("a split of 0.01 gives the treatment one percent of the visitors, not all of them", () => {
+    const observed = observedShare(experiment({ treatmentShare: 0.01 }));
+    expect(observed).toBeGreaterThan(0);
+    expect(observed).toBeLessThan(0.02);
+    expect(observedShare(experiment({ treatmentShare: 1 })) / observed).toBeGreaterThan(50);
   });
 
   it("independence: the same visitor in two merchants agrees only as often as chance (45–55 %)", () => {

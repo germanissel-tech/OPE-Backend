@@ -32,10 +32,10 @@ const spec = (over: Partial<MerchantSpec> = {}): MerchantSpec => ({
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentShare: 1, seed: "seed-a", status: "active", openedAt: NOW },
   ],
   evidenceProfile: { returnsPolicy: true, fitData: true },
-  commercialPolicy: { version: "a-commercial-1", marginPercent: 40 },
+  commercialPolicy: { version: "a-commercial-1", marginShare: 0.4 },
   ...over,
 });
 
@@ -107,7 +107,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
       intervention: {
         anchor: "price",
         messageVersionId: "msg_price_price_incentive_v0",
-        incentive: { kind: "percent", value: 5 },
+        incentive: { kind: "percent", value: 0.05 },
       },
     });
     const decision = await recorded(body.decision.decisionId);
@@ -141,7 +141,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
   it("a high return risk (the policy's own condition) → no incentive: the value message, the fallback in the ledger", async () => {
     // The merchant's return risk: three zooms on the photos (a signal the default rules barely weigh).
     const returnRisk = { fact: "eventCount", type: "photo_interacted", subtype: "zoom", min: 3 };
-    await start(spec({ commercialPolicy: { version: "c", marginPercent: 40, returnRisk } }));
+    await start(spec({ commercialPolicy: { version: "c", marginShare: 0.4, returnRisk } }));
     const zoom = (s: number) => ev(s, { type: "photo_interacted", interaction: "zoom" });
     const body = await ingest([...priceSignals(), zoom(3), zoom(4), zoom(5)]);
     expect(body.decision).toMatchObject({
@@ -169,7 +169,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
       spec({
         commercialPolicy: {
           version: "c",
-          marginPercent: 40,
+          marginShare: 0.4,
           interventionsPerSession: 2,
           cooldownSeconds: 600,
         },
@@ -182,7 +182,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
 
   it("fatigue: the visitor's interventions per day count across sessions", async () => {
     await start(
-      spec({ commercialPolicy: { version: "c", marginPercent: 40, interventionsPerVisitorPerDay: 1 } }),
+      spec({ commercialPolicy: { version: "c", marginShare: 0.4, interventionsPerVisitorPerDay: 1 } }),
     );
     expect((await ingest(priceSignals(), { session: "ses_00000001" })).decision.outcome).toBe("INTERVENE");
     const second = await ingest(priceSignals(10), { session: "ses_00000002" });
@@ -282,12 +282,12 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
 
   it("price without the direct incentive: the abandonment steps up to the evidence message", async () => {
     await start(
-      spec({ commercialPolicy: { version: "c", marginPercent: 40, directIncentiveOnPrice: false } }),
+      spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const plain = await ingest([priceRead(1), cta(2)]);
     expect(plain.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
     await start(
-      spec({ commercialPolicy: { version: "c", marginPercent: 40, directIncentiveOnPrice: false } }),
+      spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const amplified = await ingest([priceRead(1), cta(2), addedToCart(3), removedFromCart(4)]);
     expect(amplified.decision.intervention?.messageVersionId).toBe("msg_price_price_evidence_v0");

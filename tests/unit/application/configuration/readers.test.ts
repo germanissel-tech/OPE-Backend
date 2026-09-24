@@ -127,7 +127,7 @@ describe("readDeclaredConfiguration", () => {
     expect(policy.ok ? policy.value.decisionPolicy : policy.error).toEqual({ version: "d", threshold: 0.5 });
     const commercial = readDeclaredConfiguration({ commercialPolicy: { version: "c" } });
     expect(commercial.ok ? commercial.value.commercialPolicy : commercial.error).toEqual({ version: "c" });
-    expect(pointerOf(readDeclaredConfiguration({ commercialPolicy: { marginPercent: 10 } }))).toBe(
+    expect(pointerOf(readDeclaredConfiguration({ commercialPolicy: { marginShare: 0.1 } }))).toBe(
       "commercialPolicy.version",
     );
   });
@@ -144,7 +144,7 @@ describe("readTreatmentDefaults", () => {
 
   it("demands every value, complete: a missing key of any part names it", () => {
     const cases: [string[], string][] = [
-      [["holdoutPercent"], "holdoutPercent"],
+      [["holdoutShare"], "holdoutShare"],
       [["freshness", "stockAndPriceMs"], "freshness.stockAndPriceMs"],
       [["syncLevel", "receiptsKept"], "syncLevel.receiptsKept"],
       [["syncStrategy", "orders"], "syncStrategy.orders"],

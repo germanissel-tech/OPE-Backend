@@ -153,7 +153,9 @@ describe("config/treatment-defaults.json (level 2)", () => {
       .update(JSON.stringify([raw.decisionPolicy, raw.commercialPolicy]))
       .digest("hex")
       .slice(0, 16);
-    expect([raw.version, fingerprint]).toEqual(["defaults-1", "2f6c61c3985f31e6"]);
+    // The version stays at 1 across feature 022: the same ceiling and the same ladder, written in
+    // the unit the backend speaks. What changed is the representation, not the policy.
+    expect([raw.version, fingerprint]).toEqual(["defaults-1", "c095565bd0190c2b"]);
   });
 
   it("the defaults must be complete: a policy or a profile that lacks a field is refused naming it, and a spare field too", () => {
@@ -180,10 +182,10 @@ describe("config/treatment-defaults.json (level 2)", () => {
     }
     const spare = readTreatmentDefaults({ ...raw, evidenceProfile: { ...raw["evidenceProfile"], mood: 1 } });
     expect(spare.ok ? undefined : spare.error.details).toMatchObject({ pointer: "evidenceProfile.mood" });
-    const { holdoutPercent, ...noHoldout } = raw;
-    expect(holdoutPercent).toBe(5);
+    const { holdoutShare, ...noHoldout } = raw;
+    expect(holdoutShare).toBe(0.05);
     const missing = readTreatmentDefaults(noHoldout);
-    expect(missing.ok ? undefined : missing.error.details).toMatchObject({ pointer: "holdoutPercent" });
+    expect(missing.ok ? undefined : missing.error.details).toMatchObject({ pointer: "holdoutShare" });
   });
 
   it("a value the vocabulary does not know fails naming the field", () => {
@@ -204,10 +206,10 @@ describe("config/treatment-defaults.json (level 2)", () => {
     });
     const ladder = readTreatmentDefaults({
       ...raw,
-      commercialPolicy: { ...(raw["commercialPolicy"] as object), incentiveLadderPercent: [10, 5] },
+      commercialPolicy: { ...(raw["commercialPolicy"] as object), incentiveLadderShare: [0.1, 0.05] },
     });
     expect(ladder.ok ? undefined : ladder.error.details).toMatchObject({
-      pointer: "commercialPolicy.incentiveLadderPercent[1]",
+      pointer: "commercialPolicy.incentiveLadderShare[1]",
     });
   });
 });

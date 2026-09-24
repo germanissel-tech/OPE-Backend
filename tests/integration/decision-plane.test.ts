@@ -28,16 +28,16 @@ const NOW = "2026-09-18T12:00:00.000Z";
 const KEY = "key-a-1";
 const PAGE = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
 
-const merchant = (treatmentPercent: number): MerchantSpec => ({
+const merchant = (treatmentShare: number): MerchantSpec => ({
   merchantId: "m_a",
   ingestKeys: [KEY],
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent, seed: "seed-a", status: "active", openedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentShare, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 });
-const treatment = merchant(100);
+const treatment = merchant(1);
 const control = merchant(0);
 
 // One server per file (015 F-055): the in-memory ports are rebuilt before each test.
