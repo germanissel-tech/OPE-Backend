@@ -9,6 +9,7 @@ import {
   InvalidTargetSample,
   InvalidTreatmentShare,
   TreatmentExceedsHoldout,
+  TreatmentShareTooFine,
   type ExperimentInput,
 } from "../../../../src/domain/experiment/index.js";
 import { asExperimentId, asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
@@ -64,6 +65,48 @@ describe("Experiment.of", () => {
       error: { code: "invalid-treatment-share", module: "experiment", details: { share: 1.5 } },
     });
     if (!built.ok) expect(built.error).toBeInstanceOf(InvalidTreatmentShare);
+  });
+
+  // Feature 023: the rule the whole feature exists for. Before it, a share the split could not
+  // hand out was rounded to the nearest bucket without saying so, and `0.004` opened an experiment
+  // that assigned nobody.
+  it("[invariant] a share the split cannot hand out is rejected, and the hundred and one it can are not", () => {
+    // Both ways the value can reach the domain: computed, and parsed from the JSON literal a client
+    // writes. If any of the 101 is rejected, the rule is being judged by division — see research R-01.
+    const computed = Array.from({ length: 101 }, (_, n) => n / 100);
+    const parsed = JSON.parse(`[${computed.map((s) => s.toFixed(2)).join(",")}]`) as number[];
+    for (const share of [...computed, ...parsed]) {
+      expect(Experiment.of(input({ treatmentShare: share })).ok, String(share)).toBe(true);
+    }
+
+    // A share finer than a bucket: the five of SC-001, plus the noise of an addition, which is
+    // refused like any other because accepting it would be rounding in silence.
+    for (const share of [0.004, 0.005, 0.075, 0.999, 0.12345, 0.1 + 0.2]) {
+      const built = Experiment.of(input({ treatmentShare: share }));
+      expect(built, String(share)).toMatchObject({
+        ok: false,
+        error: { code: "treatment-share-too-fine", module: "experiment", details: { share } },
+      });
+      if (!built.ok) expect(built.error).toBeInstanceOf(TreatmentShareTooFine);
+    }
+
+    // Writing a decimal does not produce that noise: these three are one and the same number.
+    expect([0.07, 0.070000000000000007, 7 / 100].every((s) => Experiment.handsOut(s))).toBe(true);
+  });
+
+  it("a share out of range is out of range, not too fine: the order of the two rules holds", () => {
+    // 1.5 rounds to 150 buckets, so the round trip would also refuse it. The range answers first.
+    expect(Experiment.of(input({ treatmentShare: 1.5 })).ok ? undefined : "checked").toBe("checked");
+    const built = Experiment.of(input({ treatmentShare: 1.5 }));
+    expect(built).toMatchObject({ ok: false, error: { code: "invalid-treatment-share" } });
+  });
+
+  // Feature 023: the cuts are fractions of the target sample and nobody resolves them to buckets,
+  // so the split's rule does not reach them. Extending it "for consistency" would refuse a cut at
+  // an eighth of the sample, which is perfectly readable.
+  it("the cuts are not the split: a finer fraction is valid", () => {
+    expect(Experiment.of(input({ cuts: [0.125, 0.3333, 0.875] })).ok).toBe(true);
+    expect(Experiment.handsOut(0.125)).toBe(false);
   });
 
   it("[invariant] an empty seed is rejected", () => {

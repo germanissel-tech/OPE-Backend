@@ -14,6 +14,7 @@ import {
   InvalidSeed,
   InvalidTargetSample,
   InvalidTreatmentShare,
+  TreatmentShareTooFine,
   TreatmentExceedsHoldout,
   type ExperimentError,
 } from "./errors.js";
@@ -106,6 +107,28 @@ function offendingCut(cuts: readonly number[]): number {
 const bucketsOf = (share: number): number => Math.round(share * ASSIGNMENT_BUCKETS);
 
 export class Experiment {
+  /**
+   * Whether a share is one the split can hand out: the share **comes back as itself** after going
+   * through its bucket.
+   *
+   * The obvious check —"is it a multiple of one hundredth?", `share % 0.01 === 0` or
+   * `share / 0.01` being whole— is wrong, and wrong in the direction that hurts: it rejects ten of
+   * the hundred and one legitimate shares, because `0.07 / 0.01` is `7.000000000000001` in floating
+   * point. So is an epsilon, in a subtler way: it works, but it puts a second number next to
+   * `ASSIGNMENT_BUCKETS` that also decides what is accepted, and the two would have to be kept in
+   * agreement by hand. The round trip asks the only question that matters —does the split hand out
+   * what was declared?— using the resolution that is already here, so raising the resolution needs
+   * no edit.
+   *
+   * A share that misses its bucket by the noise of an addition (`0.1 + 0.2`) is refused like any
+   * other: accepting it would be rounding in silence, which is what this rule exists to stop.
+   * Writing a decimal never produces that noise — `0.07`, `0.070000000000000007` and `7/100` are
+   * one and the same number (ADR-035, feature 023).
+   */
+  static handsOut(share: number): boolean {
+    return bucketsOf(share) / ASSIGNMENT_BUCKETS === share;
+  }
+
   readonly experimentId: ExperimentId;
   readonly merchantId: MerchantId;
   readonly treatmentShare: number;
@@ -138,6 +161,8 @@ export class Experiment {
   static of(input: ExperimentInput): Result<Experiment, ExperimentError> {
     const { treatmentShare, seed, targetSample, cuts } = input;
     if (!isRate(treatmentShare)) return fail(new InvalidTreatmentShare(treatmentShare));
+    // After the range and before the rest: a share out of range is still out of range, not too fine.
+    if (!Experiment.handsOut(treatmentShare)) return fail(new TreatmentShareTooFine(treatmentShare));
     if (seed === "") return fail(new InvalidSeed());
     if (!Number.isInteger(targetSample) || targetSample < 1)
       return fail(new InvalidTargetSample(targetSample));

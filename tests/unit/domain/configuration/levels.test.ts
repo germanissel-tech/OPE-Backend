@@ -86,6 +86,19 @@ describe("TreatmentDefaults.of and TreatmentValues.judge", () => {
     }
   });
 
+  // Feature 023: the holdout is compared against the split in whole buckets, so a holdout finer
+  // than one resolves to none and the merchant keeps nobody out while believing otherwise.
+  it("a holdout the split cannot hand out is refused naming the field; the ones it can are not", () => {
+    for (const holdoutShare of [0.004, 0.005, 0.075, 0.999]) {
+      const judged = TreatmentValues.judge({ ...values(), holdoutShare });
+      expect(pointerOf(judged), String(holdoutShare)).toBe("holdoutShare");
+      expect(judged.ok ? undefined : judged.error.message).toContain("buckets the assignment splits");
+    }
+    for (let n = 0; n <= 100; n += 1) {
+      expect(TreatmentValues.judge({ ...values(), holdoutShare: n / 100 }).ok, String(n)).toBe(true);
+    }
+  });
+
   it("refuses a value that violates the invariants of its type naming the field", () => {
     const v = values();
     const cases: [Partial<TreatmentValuesRecord>, string][] = [

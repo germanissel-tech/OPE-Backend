@@ -87,3 +87,78 @@ existía de todos modos. Una convención que el compilador no sostiene no es una
 - El riesgo de la migración de datos es el `1`: `treatmentShare: 1` es el cien por ciento y
   `holdoutShare: 1` es un holdout total, y los dos pasan toda la validación. Los seis valores de
   `config/` se revisaron de uno en uno y no con una regla.
+
+---
+
+## Enmienda (2026-09-24, feature 023) — y sólo las tasas que el reparto puede repartir
+
+La decisión de arriba sacó la ambigüedad de **unidad**. Medir una pregunta del dueño
+—«¿podemos mejorarlo limitando a 2 decimales?»— dejó a la vista que quedaba una segunda, de la
+misma familia: **la ambigüedad de representabilidad**.
+
+### Lo que quedaba
+
+`Experiment.assign` resuelve el reparto a baldes enteros, pero el dominio aceptaba cualquier tasa
+0..1, así que una tasa más fina que un centésimo se ajustaba al balde más cercano **sin decirlo**.
+Medido:
+
+| se declara  | reparte de verdad                |
+| ----------- | -------------------------------- |
+| `0.075`     | 8 %                              |
+| `0.005`     | 1 %                              |
+| **`0.004`** | **0 % — nadie va a tratamiento** |
+| `0.999`     | 100 %                            |
+
+Un experimento abierto con `treatmentShare: 0.004` se creaba, se activaba, decidía y no asignaba a
+nadie: sin error, sin log, sin diferencia visible. El holdout tenía el mismo agujero, y un
+`holdoutShare: 0.004` apartaba a nadie mientras el merchant creía lo contrario.
+
+El contrato **documentaba** el ajuste («a finer value takes the nearest bucket»), que es una
+sorpresa documentada y no una regla: quien mandaba `0.004` no veía ningún problema.
+
+### La decisión
+
+**Una tasa que algo cuantiza tiene que ser exactamente la que su balde representa**, y si no lo es,
+se rechaza nombrándola. La regla es `Experiment.handsOut(share)`
+—`bucketsOf(share) / ASSIGNMENT_BUCKETS === share`—, un método estático que vive junto al número que
+define la resolución; el reparto la aplica en `Experiment.of` (`422 treatment-share-too-fine`, tipo
+propio del catálogo) y el holdout en `TreatmentValues.judge` (`invalid-configuration-value`
+apuntando a `holdoutShare`).
+
+Alcanza a **dos** campos, `treatmentShare` y `holdoutShare`, que son los dos únicos que pasan por
+`bucketsOf`. Los cortes de un experimento y las tres tasas de la política comercial (techo,
+escalones, margen) **no** quedan sujetos: nadie los cuantiza, y exigirles la regla sería inventar
+una restricción sin un algoritmo que la pida — un margen de `0.375` es perfectamente representable.
+Hay una prueba de eso, porque sin ella el próximo lector extiende la regla «por coherencia».
+
+### Las alternativas descartadas, con su medición
+
+**`multipleOf: 0.01` en el esquema.** Rechaza **diez de los ciento un** valores legítimos, `0.07`
+entre ellos, porque `0.07 / 0.01` es `7.000000000000001` en punto flotante (también `0.14`, `0.28`,
+`0.29`, `0.47`, `0.56`). Que la regla no sea expresable en JSON Schema es exactamente el motivo por
+el que es una `x-invariants` y no una restricción de esquema (ADR-007).
+
+**Un epsilon** (`abs(share * 100 - round(share * 100)) < 1e-9`). Funciona sobre los 101 valores,
+pero pone **un segundo número** al lado de `ASSIGNMENT_BUCKETS` que también decide qué se acepta, y
+los dos habría que mantenerlos de acuerdo a mano. La constitución XI mira ese número con razón. La
+ida y vuelta no introduce ninguno y sigue sola a la resolución.
+
+**Aceptar el ruido de punto flotante.** La spec de la 023 lo pedía (FR-008) y el plan lo descartó:
+aceptar que `0.1 + 0.2` valga por `0.3` **es** ajustar en silencio, que es lo que esta decisión
+elimina. Y ese ruido no llega por la red: un número JSON es un literal decimal que se lee al valor
+más cercano, así que `0.07`, `0.070000000000000007` y `7/100` son el mismo número y los tres se
+aceptan. El único ruido que sobrevive viene de una suma hecha por el cliente, y ahí rechazar es
+mejor servicio que ajustar.
+
+### Consecuencias
+
+- El contrato estrecha lo que acepta en un campo. Entra con bump MINOR conservando `/v1/` por la
+  marca de construcción (ADR-003), y `info.version` va a `1.6.0`.
+- **`oasdiff` no ve este estrechamiento**, porque no está escrito en ninguna palabra clave del
+  esquema: reporta «no breaking changes» para este delta. El bump de versión es un acto deliberado,
+  no algo que la herramienta pueda exigir. Vale para toda regla que viva en `x-invariants`.
+- `rehydrate` no re-juzga, como fija ADR-024: la regla es de creación y un endurecimiento posterior
+  no invalida hechos ya registrados.
+- El mapa de `composition/seed-errors.ts` necesita su entrada para que el arranque nombre el campo y
+  no el experimento entero. Su `satisfies` garantiza que ningún código se renombre en silencio, pero
+  no que estén todos.

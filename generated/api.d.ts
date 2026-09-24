@@ -1252,7 +1252,7 @@ export type components = {
             seed: string;
             /** @description Visitors the accumulation window aims at; the last cut. */
             targetSample: number;
-            /** @description Share of the merchant's visitors assigned to TREATMENT, as a fraction of 1; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`1 − holdoutShare`). The assignment resolves to whole buckets of one hundredth, so a finer value takes the nearest bucket. */
+            /** @description Share of the merchant's visitors assigned to TREATMENT, as a fraction of 1; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`1 − holdoutShare`). The assignment splits the visitors into whole buckets of one hundredth, so the share has to be one of them: `0.07` is a share, `0.075` is not. */
             treatmentShare: number;
         };
         /** @description Identifier of an experiment, minted by OPE when the operator opens it. */
@@ -2126,15 +2126,6 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
-                /**
-                 * @example {
-                 *       "type": "urn:ope:problem:invalid-experiment-cuts",
-                 *       "title": "The experiment cuts are not strictly increasing",
-                 *       "status": 422,
-                 *       "detail": "The cuts must be strictly increasing fractions of the target sample.",
-                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments"
-                 *     }
-                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };

@@ -3,9 +3,20 @@ content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
-    example:
-      type: urn:ope:problem:invalid-experiment-cuts
-      title: The experiment cuts are not strictly increasing
-      status: 422
-      detail: The cuts must be strictly increasing fractions of the target sample.
-      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments
+    examples:
+      cuts:
+        summary: A cut does not follow the previous one
+        value:
+          type: urn:ope:problem:invalid-experiment-cuts
+          title: The experiment cuts are not strictly increasing
+          status: 422
+          detail: The cuts must be strictly increasing fractions of the target sample.
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments
+      tooFine:
+        summary: The share is finer than a bucket of the split
+        value:
+          type: urn:ope:problem:treatment-share-too-fine
+          title: The treatment share is finer than the split can resolve
+          status: 422
+          detail: The treatment share must be one of the buckets the assignment splits the visitors into.
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments

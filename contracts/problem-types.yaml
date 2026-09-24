@@ -56,6 +56,9 @@ types:
   - slug: invalid-treatment-share
     status: 422
     title: The treatment share of an experiment is out of range
+  - slug: treatment-share-too-fine
+    status: 422
+    title: The treatment share is finer than the split can resolve
   - slug: invalid-seed
     status: 422
     title: The seed of an experiment is empty

@@ -22,6 +22,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "ledger-unavailable": Object.freeze({ status: 503, title: "The ledger is not available" }),
   "store-unavailable": Object.freeze({ status: 503, title: "The store is not available" }),
   "invalid-treatment-share": Object.freeze({ status: 422, title: "The treatment share of an experiment is out of range" }),
+  "treatment-share-too-fine": Object.freeze({ status: 422, title: "The treatment share is finer than the split can resolve" }),
   "invalid-seed": Object.freeze({ status: 422, title: "The seed of an experiment is empty" }),
   "invalid-origin": Object.freeze({ status: 422, title: "A registered origin is not scheme://host[:port]" }),
   "invalid-platform-secret": Object.freeze({ status: 500, title: "A platform signing secret is empty or collides with a key" }),

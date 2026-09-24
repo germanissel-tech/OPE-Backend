@@ -8,7 +8,7 @@ required:
 properties:
   treatmentShare:
     type: number
-    description: "Share of the merchant's visitors assigned to TREATMENT, as a fraction of 1; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`1 − holdoutShare`). The assignment resolves to whole buckets of one hundredth, so a finer value takes the nearest bucket."
+    description: "Share of the merchant's visitors assigned to TREATMENT, as a fraction of 1; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`1 − holdoutShare`). The assignment splits the visitors into whole buckets of one hundredth, so the share has to be one of them: `0.07` is a share, `0.075` is not."
     minimum: 0
     maximum: 1
   seed:
@@ -33,3 +33,7 @@ x-invariants:
     status: 422
     rule: the cuts are strictly increasing fractions
     description: A cut that does not follow the previous one is a mistake, not an order (D-F).
+  - type: treatment-share-too-fine
+    status: 422
+    rule: treatmentShare is one of the buckets the assignment splits the visitors into
+    description: "A finer share would be rounded to the nearest bucket without saying so, and the split that ran would not be the one that was declared: `0.004` would assign nobody (ADR-035)."

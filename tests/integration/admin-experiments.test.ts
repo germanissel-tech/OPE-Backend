@@ -140,6 +140,23 @@ describe("opening an experiment (scenarios 1, 6)", () => {
     expect((await decide()).decision.reason).toBe("no-active-experiment");
   });
 
+  it("[invariant:treatment-share-too-fine] a split finer than a bucket is refused and nothing opens", async () => {
+    const res = await open({ ...EXPERIMENT, treatmentShare: 0.075 });
+    expect(res.statusCode).toBe(422);
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:treatment-share-too-fine",
+      detail: "The treatment share must be one of the buckets the assignment splits the visitors into.",
+    });
+    // Refused before it is recorded: no experiment opened, and the log says why.
+    expect((await decide()).decision.reason).toBe("no-active-experiment");
+    const log = json(await admin(app.app, "GET", `/v1/admin/merchants/${A}/log?limit=1`)) as AdminEntryPage;
+    expect(log.items.map((e) => [e.operation, e.outcome, e.code])).toEqual([
+      ["createExperiment", "rejected", "treatment-share-too-fine"],
+    ]);
+    // The bucket the share was reaching for is a share: 0.08 opens.
+    expect((await open({ ...EXPERIMENT, treatmentShare: 0.08 })).statusCode).toBe(201);
+  });
+
   it("[invariant:treatment-exceeds-holdout] the split may not take the holdout of the merchant; what the merchant declares of it counts", async () => {
     // B keeps the default holdout of the release; A declared none.
     const res = await open({ ...EXPERIMENT, treatmentShare: 0.96 }, { merchant: "m_b" });

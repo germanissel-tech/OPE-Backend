@@ -12,6 +12,7 @@ export {
   InvalidTargetSample,
   InvalidTreatmentShare,
   TreatmentExceedsHoldout,
+  TreatmentShareTooFine,
 } from "./errors.js";
 export { Experiments } from "./experiments.js";
 export type { ExperimentError, ExperimentSetError } from "./errors.js";

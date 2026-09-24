@@ -52,6 +52,7 @@ type SeedCode = MerchantError["code"] | ExperimentError["code"] | ExperimentSetE
  */
 const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "invalid-treatment-share": ".treatmentShare",
+  "treatment-share-too-fine": ".treatmentShare",
   "invalid-seed": ".seed",
   "invalid-ingest-keys": ".ingestKeys",
   "invalid-origins": ".origins",
