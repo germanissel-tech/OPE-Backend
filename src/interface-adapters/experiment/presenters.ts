@@ -1,5 +1,5 @@
 // What the experiment controllers share at the boundary (ADR-022, ADR-031): the experiment as
-// the contract publishes it (the split as a whole percentage, instants as text, never the seed)
+// the contract publishes it (the split as the share it is, instants as text, never the seed)
 // and the experiment identifier of the path.
 import {
   asExperimentId,
@@ -18,15 +18,12 @@ import type { TypedRequest, components, operations } from "../http/typed.js";
 
 type ExperimentDto = components["schemas"]["Experiment"];
 
-/** The percentage of the edge ↔ the rate of the domain. */
-export const PERCENT = 100;
-
 export function experimentDto(experiment: Experiment): ExperimentDto {
   const { activatedAt, windowStartedAt, closedAt } = experiment;
   return {
     experimentId: experiment.experimentId,
     status: experiment.status,
-    treatmentPercent: Math.round(experiment.treatmentShare * PERCENT),
+    treatmentShare: experiment.treatmentShare,
     targetSample: experiment.targetSample,
     cuts: [...experiment.cuts],
     openedAt: experiment.openedAt.toISOString(),

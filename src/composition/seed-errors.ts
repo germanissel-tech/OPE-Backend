@@ -31,7 +31,7 @@ const INDEX_DETAIL = "index";
 
 /** The configured fields a domain error of a merchant or an experiment can point at. */
 type ConfiguredField =
-  | ".treatmentPercent"
+  | ".treatmentShare"
   | ".seed"
   | ".ingestKeys"
   | ".origins"
@@ -51,7 +51,7 @@ type SeedCode = MerchantError["code"] | ExperimentError["code"] | ExperimentSetE
  * naming the wrong field.
  */
 const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
-  "invalid-treatment-share": ".treatmentPercent",
+  "invalid-treatment-share": ".treatmentShare",
   "invalid-seed": ".seed",
   "invalid-ingest-keys": ".ingestKeys",
   "invalid-origins": ".origins",

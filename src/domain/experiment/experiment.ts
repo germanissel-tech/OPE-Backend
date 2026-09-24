@@ -38,13 +38,13 @@ export interface WindowRestart {
 export interface ExperimentInput {
   experimentId: ExperimentId;
   merchantId: MerchantId;
-  /** Share of visitors assigned to TREATMENT, as a rate 0..1 (percentages stay at the edge). */
+  /** Share of visitors assigned to TREATMENT, as a fraction of 1: there is no other unit. */
   treatmentShare: number;
   /** Part of the assignment key; immutable. */
   seed: string;
   /** Visitors the accumulation window aims at; the last cut. */
   targetSample: number;
-  /** Interim cuts as whole percentages of the target sample, strictly increasing (D-F). */
+  /** Interim cuts as fractions of the target sample, strictly increasing (D-F). */
   cuts: readonly number[];
   openedAt: Date;
 }
@@ -63,7 +63,13 @@ export interface ExperimentRecord extends ExperimentInput {
 const ASSIGNMENT_KEY_SEPARATOR = "\u001f";
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
-const PERCENT_BUCKETS = 100;
+/**
+ * The resolution of the split: in how many buckets the population is divided to assign a visitor.
+ * A hundred means buckets of one hundredth. It is **not** a conversion factor —there is no other
+ * unit to convert to (feature 022)— and the day the split wants finer resolution this number
+ * changes and nothing else does.
+ */
+const ASSIGNMENT_BUCKETS = 100;
 
 /**
  * 32-bit FNV-1a of the UTF-16 code units of `text`; deterministic and dependency-free. Verified
@@ -79,10 +85,10 @@ function fnv1a32(text: string): number {
   return hash >>> 0;
 }
 
-/** A whole percentage at most 100; the lower bound is the cut before it (none: 0). */
-const isCut = (value: number): boolean => Number.isInteger(value) && value <= PERCENT_BUCKETS;
+/** A share; the lower bound is the cut before it (none: 0), which  enforces. */
+const isCut = isRate;
 
-/** The index of the first cut that is not a whole percentage above the previous one, or -1. */
+/** The index of the first cut that is not a share above the previous one, or -1. */
 function offendingCut(cuts: readonly number[]): number {
   let previous = 0;
   for (const [index, cut] of cuts.entries()) {
@@ -92,8 +98,8 @@ function offendingCut(cuts: readonly number[]): number {
   return -1;
 }
 
-/** The share as whole buckets (1 %): the unit the assignment and the holdout are compared in. */
-const bucketsOf = (share: number): number => Math.round(share * PERCENT_BUCKETS);
+/** The share as whole buckets: the unit the assignment resolves to, and the one it is compared in. */
+const bucketsOf = (share: number): number => Math.round(share * ASSIGNMENT_BUCKETS);
 
 export class Experiment {
   readonly experimentId: ExperimentId;
@@ -175,9 +181,14 @@ export class Experiment {
   /**
    * The split may not take what the holdout keeps out of OPE (feature 017): compared in whole
    * buckets, the unit the assignment resolves to.
+   *
+   * **In buckets and not in shares**, for two reasons. It compares what actually happens —the
+   * effective split— and not what was asked for; and comparing shares would reject complementary
+   * pairs that are legitimate, because `1 - 0.93` is `0.06999999999999995` in floating point, so a
+   * split of `0.07` would read as above it (measured, feature 022).
    */
   withinHoldout(holdoutShare: number): Result<Experiment, TreatmentExceedsHoldout> {
-    if (bucketsOf(this.treatmentShare) > PERCENT_BUCKETS - bucketsOf(holdoutShare)) {
+    if (bucketsOf(this.treatmentShare) > ASSIGNMENT_BUCKETS - bucketsOf(holdoutShare)) {
       return fail(new TreatmentExceedsHoldout(this.treatmentShare, holdoutShare));
     }
     return ok(this);
@@ -218,13 +229,13 @@ export class Experiment {
 
   /**
    * The arm of a visitor: bucket 0..99 of the key against the treatment share (ADR-022). Pure and
-   * stable. The split resolves to whole buckets (1 %): the share is rounded to a bucket count,
-   * which also keeps `n / 100` exact for every integer percentage (7 / 100 * 100 is not 7 in
-   * floating point; Math.round(7 / 100 * 100) is).
+   * stable. The split resolves to whole buckets: the share is rounded to a bucket count, which is
+   * also what keeps the arithmetic exact — `0.07 * 100` is not 7 in floating point, and
+   * `Math.round(0.07 * 100)` is.
    */
   assign(visitorId: VisitorId): Arm {
     const key = [this.merchantId, this.experimentId, this.seed, visitorId].join(ASSIGNMENT_KEY_SEPARATOR);
-    const bucket = fnv1a32(key) % PERCENT_BUCKETS;
+    const bucket = fnv1a32(key) % ASSIGNMENT_BUCKETS;
     return bucket < bucketsOf(this.treatmentShare) ? "TREATMENT" : "CONTROL";
   }
 }

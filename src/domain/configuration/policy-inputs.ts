@@ -1,11 +1,11 @@
 // The policies as the configuration speaks them (ADR-026, ADR-027, ADR-031): the shape of
 // `OPE_MERCHANTS[i].decisionPolicy`, of `config/treatment-defaults.json` and of the
-// administration API — integer percentages at the edge, rates inside (CLAUDE.md § Convenciones).
+// administration API — every share a fraction of 1, in and out (feature 022).
 // A merchant declares a policy by its version and any of its fields; what it does not declare
 // resolves from the treatment defaults field by field, and the merged input is judged by the
 // factory of the policy. A rejection of the factory is located at its field.
-import { BarrierRules, type Rule, type RuleWeights, type Condition } from "../barrier/index.js";
-import { CommercialPolicy, type Abandonment, type HighIntent } from "../commercial/index.js";
+import { BarrierRules, type Rule, type RuleWeights } from "../barrier/index.js";
+import { CommercialPolicy, type CommercialPolicyRecord } from "../commercial/index.js";
 import { DecisionPolicy, type EvidenceRequirements } from "../decision/index.js";
 import { fail, ok, type Barrier, type DomainError, type Result } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
@@ -21,19 +21,13 @@ export interface DecisionPolicyInput {
   evidence: EvidenceRequirements;
 }
 
-export interface CommercialPolicyInput {
-  version: string;
-  maxIncentivePercent: number;
-  incentiveLadderPercent: readonly number[];
-  marginPercent?: number;
-  directIncentiveOnPrice: boolean;
-  returnRisk: Condition;
-  highIntent: HighIntent;
-  abandonment: Abandonment;
-  interventionsPerSession: number;
-  cooldownSeconds: number;
-  interventionsPerVisitorPerDay: number;
-}
+/**
+ * What the configuration declares of a commercial policy: exactly the record the policy is built
+ * from. The two shapes used to be written out separately because they differed in unit —integer
+ * percentages here, rates there—; since feature 022 there is one unit, so there is one shape, and
+ * writing it twice would be two places to forget.
+ */
+export type CommercialPolicyInput = CommercialPolicyRecord;
 
 export type EvidenceProfileInput = MerchantProfile;
 
@@ -43,18 +37,6 @@ export type CommercialPolicyDeclared = Partial<CommercialPolicyInput> & { versio
 export type EvidenceProfileDeclared = Partial<EvidenceProfileInput>;
 
 export type PolicyResult<T> = Result<T, InvalidConfigurationValue>;
-
-/** Percentages live at the edge only: the domain works with rates 0..1. */
-const PERCENT = 100;
-const isPercent = (value: number): boolean => Number.isInteger(value) && value >= 0 && value <= PERCENT;
-const PERCENT_PROBLEM = "must be an integer percentage between 0 and 100";
-
-/** The configuration field behind each rate the commercial policy rejects by name. */
-const FIELD_BY_SHARE: Readonly<Record<string, string>> = {
-  maxIncentiveShare: "maxIncentivePercent",
-  incentiveLadderShare: "incentiveLadderPercent",
-  marginShare: "marginPercent",
-};
 
 /** A policy builder: the values it needs to build and judge policies from their configured shape. */
 export class PolicyInput {
@@ -97,24 +79,18 @@ export class PolicyInput {
     return policy.ok ? ok(policy.value) : fail(PolicyInput.located(at, policy.error));
   }
 
-  /** The commercial policy of the input (percentages become rates here, once), or the field refused. */
+  /**
+   * The commercial policy of the input, or the field refused. There is nothing to convert: the
+   * input speaks in the same rates the policy reasons with, so the only judge is the policy
+   * itself and the name it rejects is the name the configuration declared (feature 022).
+   */
   commercial(input: CommercialPolicyInput): PolicyResult<CommercialPolicy> {
     const at = this.#at;
-    if (!isPercent(input.maxIncentivePercent)) {
-      return fail(new InvalidConfigurationValue(`${at}.maxIncentivePercent`, PERCENT_PROBLEM));
-    }
-    const badStep = input.incentiveLadderPercent.findIndex((step) => !isPercent(step));
-    if (badStep >= 0) {
-      return fail(new InvalidConfigurationValue(`${at}.incentiveLadderPercent[${badStep}]`, PERCENT_PROBLEM));
-    }
-    if (input.marginPercent !== undefined && !isPercent(input.marginPercent)) {
-      return fail(new InvalidConfigurationValue(`${at}.marginPercent`, PERCENT_PROBLEM));
-    }
     const policy = CommercialPolicy.of({
       version: input.version,
-      maxIncentiveShare: input.maxIncentivePercent / PERCENT,
-      incentiveLadderShare: input.incentiveLadderPercent.map((step) => step / PERCENT),
-      ...(input.marginPercent === undefined ? {} : { marginShare: input.marginPercent / PERCENT }),
+      maxIncentiveShare: input.maxIncentiveShare,
+      incentiveLadderShare: [...input.incentiveLadderShare],
+      ...(input.marginShare === undefined ? {} : { marginShare: input.marginShare }),
       directIncentiveOnPrice: input.directIncentiveOnPrice,
       returnRisk: input.returnRisk,
       highIntent: input.highIntent,
@@ -123,27 +99,22 @@ export class PolicyInput {
       cooldownSeconds: input.cooldownSeconds,
       interventionsPerVisitorPerDay: input.interventionsPerVisitorPerDay,
     });
-    return policy.ok
-      ? ok(policy.value)
-      : fail(PolicyInput.located(at, policy.error, undefined, FIELD_BY_SHARE));
+    return policy.ok ? ok(policy.value) : fail(PolicyInput.located(at, policy.error));
   }
 
   /**
    * A rejection of a factory located at its field: `details.path` always names the field (every
    * error of the policy factories does) and `details.index` the element — of the list `indexed`
    * when the path is inside its elements (`rules[2].when…`), of the field itself otherwise
-   * (`incentiveLadderPercent[1]`). `aliases` map a domain field to the configuration field that
-   * fed it (a rate read from a percentage).
+   * (`incentiveLadderShare[1]`).
+   *
+   * There used to be a map from the domain field to the configuration field that fed it, because a
+   * rate was read from a percentage and the two had different names. They have the same name now
+   * (feature 022), so the path the error carries is already the path to report.
    */
-  private static located(
-    at: string,
-    error: DomainError,
-    indexed?: string,
-    aliases: Readonly<Record<string, string>> = {},
-  ): InvalidConfigurationValue {
+  private static located(at: string, error: DomainError, indexed?: string): InvalidConfigurationValue {
     const { path, index } = error.details;
-    const domainPath = String(path);
-    const inside = aliases[domainPath] ?? domainPath;
+    const inside = String(path);
     const field = `${at}.${inside}`;
     if (typeof index !== "number") return new InvalidConfigurationValue(field, error.message);
     if (indexed === undefined) return new InvalidConfigurationValue(`${field}[${index}]`, error.message);

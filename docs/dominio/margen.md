@@ -11,6 +11,6 @@ uso: disponible
 
 > Consciente de margen. Una intervención que destruye contribución se bloquea aunque aumente la probabilidad de conversión.
 
-`marginPercent` de la política comercial. Ausente ⇒ la política bloquea todo candidato con
+`marginShare` de la política comercial. Ausente ⇒ la política bloquea todo candidato con
 componente económico (01 §4.7, fail-closed): el piloto abre el incentivo merchant por merchant
 configurándolo.

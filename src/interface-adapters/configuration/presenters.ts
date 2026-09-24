@@ -1,6 +1,6 @@
 // What the configuration controllers share at the boundary (constitution XI; ADR-031): the
 // levels, the effective configuration and a version as the contract publishes them. The
-// domain records are already the shape the configuration speaks (percentages, milliseconds,
+// domain records are already the shape the configuration speaks (shares, milliseconds,
 // closed vocabularies); the contract bounds the condition algebra to two levels of combinators
 // where the domain admits any depth, so the record is handed over as the published shape.
 import type {

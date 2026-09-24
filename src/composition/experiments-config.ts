@@ -4,11 +4,9 @@
 import { Experiment, Experiments, type ExperimentStatus } from "../domain/experiment/index.js";
 import { asExperimentId, type MerchantId } from "../domain/shared-kernel/index.js";
 import { ConfigError, type MerchantField } from "./config-error.js";
-import { NON_EMPTY_STRING, NOT_AN_OBJECT } from "./env.js";
+import { A_NUMBER, NON_EMPTY_STRING, NOT_AN_OBJECT } from "./env.js";
 import { rejected } from "./seed-errors.js";
 
-/** Percentages live only here, at the edge: the domain works with rates 0..1. */
-const PERCENT = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const EXPERIMENT_STATUSES: readonly ExperimentStatus[] = ["calibrating", "active", "closed"];
 const isExperimentStatus = (value: unknown): value is ExperimentStatus =>
@@ -40,18 +38,18 @@ function parseExperiment(item: unknown, at: MerchantField, merchantId: MerchantI
   const seed = e["seed"];
   const status = e["status"];
   const openedAt = e["openedAt"];
-  const treatmentPercent = e["treatmentPercent"];
+  const treatmentShare = e["treatmentShare"];
   const targetSample = e["targetSample"];
   const cuts = e["cuts"] ?? [];
   if (typeof experimentId !== "string" || !ID_PATTERN.test(experimentId)) {
     throw new ConfigError(`${at}.experimentId`, "must match ^[A-Za-z0-9_-]{8,64}$");
   }
-  // Shape: an integer percentage. Its range is the domain's rule (Experiment.of, as a rate 0..1).
-  if (!Number.isInteger(treatmentPercent)) {
-    throw new ConfigError(`${at}.treatmentPercent`, "must be an integer percentage");
+  // Shape only: it has to be a number. Its range is the domain's rule (Experiment.of).
+  if (typeof treatmentShare !== "number") {
+    throw new ConfigError(`${at}.treatmentShare`, A_NUMBER);
   }
   if (typeof seed !== "string") throw new ConfigError(`${at}.seed`, NON_EMPTY_STRING);
-  if (typeof targetSample !== "number") throw new ConfigError(`${at}.targetSample`, "must be a number");
+  if (typeof targetSample !== "number") throw new ConfigError(`${at}.targetSample`, A_NUMBER);
   if (!isNumberArray(cuts)) throw new ConfigError(`${at}.cuts`, "must be an array of numbers");
   if (!isExperimentStatus(status)) {
     throw new ConfigError(`${at}.status`, `must be one of ${EXPERIMENT_STATUSES.join(", ")}`);
@@ -63,7 +61,7 @@ function parseExperiment(item: unknown, at: MerchantField, merchantId: MerchantI
   const experiment = Experiment.of({
     experimentId: asExperimentId(experimentId),
     merchantId,
-    treatmentShare: Number(treatmentPercent) / PERCENT,
+    treatmentShare,
     seed,
     targetSample,
     cuts,

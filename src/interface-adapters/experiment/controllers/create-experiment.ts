@@ -4,7 +4,7 @@ import { merchantIdOf } from "../../http/boundary.js";
 import { operatorOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
 import { toProblem } from "../../http/to-problem.js";
-import { experimentDto, PERCENT } from "../presenters.js";
+import { experimentDto } from "../presenters.js";
 import type {
   CreateExperimentRequest,
   CreateExperimentResponse,
@@ -19,7 +19,7 @@ export function makeCreateExperiment(
     const result = await createExperiment.execute({
       actor: operatorOf(req),
       merchantId: merchantIdOf(req.path),
-      treatmentShare: req.body.treatmentPercent / PERCENT,
+      treatmentShare: req.body.treatmentShare,
       seed: req.body.seed,
       targetSample: req.body.targetSample,
       cuts: req.body.cuts ?? [],

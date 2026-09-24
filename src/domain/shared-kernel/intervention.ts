@@ -6,7 +6,7 @@
 export const ANCHORS = ["size_selector", "price", "cta", "policies"] as const;
 export type Anchor = (typeof ANCHORS)[number];
 
-/** The kinds of incentive the commercial policy may grant: a percentage in the MVP (03 §4.8). */
+/** The kinds of incentive the commercial policy may grant: a proportional one in the MVP (03 §4.8). */
 export const INCENTIVE_KINDS = ["percent"] as const;
 export type IncentiveKind = (typeof INCENTIVE_KINDS)[number];
 
