@@ -36,6 +36,21 @@ export class InvalidExperimentCuts extends DomainError {
   }
 }
 
+/**
+ * The share is finer than the split can hand out, so the split that ran would not be the one that
+ * was declared: `0.004` would assign nobody (ADR-035). Distinct from `InvalidTreatmentShare`, which
+ * is the range: `0.075` is perfectly in range.
+ */
+export class TreatmentShareTooFine extends DomainError {
+  readonly code = "treatment-share-too-fine" as const;
+  readonly module = MODULE;
+  constructor(share: number) {
+    super("The treatment share must be one of the buckets the assignment splits the visitors into.", {
+      share,
+    });
+  }
+}
+
 /** The split takes what the holdout of the merchant keeps out of OPE (feature 017). */
 export class TreatmentExceedsHoldout extends DomainError {
   readonly code = "treatment-exceeds-holdout" as const;
@@ -85,7 +100,7 @@ export class ExperimentNotFound extends DomainError {
 
 /** What opening an experiment can violate. */
 export type ExperimentError =
-  InvalidTreatmentShare | InvalidSeed | InvalidTargetSample | InvalidExperimentCuts;
+  InvalidTreatmentShare | TreatmentShareTooFine | InvalidSeed | InvalidTargetSample | InvalidExperimentCuts;
 
 /** What the set of a merchant's experiments can violate. */
 export type ExperimentSetError = DuplicateExperimentId | ExperimentAlreadyOpen;

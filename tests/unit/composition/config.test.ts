@@ -184,6 +184,12 @@ describe("readConfig", () => {
       ],
       "merchants[0].experiments[0].treatmentShare",
     ],
+    // Feature 023: in range, but finer than a bucket — it would open an experiment that assigns
+    // nobody, so the seed does not start the server.
+    [
+      [{ ...exp, treatmentShare: 0.004 }],
+      "merchants[0].experiments[0].treatmentShare is invalid (The treatment share must be one of the buckets the assignment splits the visitors into.)",
+    ],
     [
       [{ ...exp, seed: "" }],
       "merchants[0].experiments[0].seed is invalid (The seed must be a non-empty string.)",
