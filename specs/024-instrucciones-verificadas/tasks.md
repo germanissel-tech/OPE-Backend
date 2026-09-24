@@ -170,18 +170,18 @@ borra de acá**, en **commits separados**, para que el diff muestre que nada se 
 
 ## Phase 6: Cierre y documentación
 
-- [ ] T032 `scripts/README.md` — **tres filas nuevas** en el inventario, una por archivo agregado a
+- [x] T032 `scripts/README.md` — **tres filas nuevas** en el inventario, una por archivo agregado a
       `scripts/`. Sin ellas `tests/docs/readmes.test.ts` falla; es ADR-032 aplicándose a esta
       feature, que es exactamente de lo que la feature trata.
-- [ ] T033 `docs/adr/032-metodo-portable-y-perfil-por-proyecto.md` — la enmienda: el patrón de
+- [x] T033 `docs/adr/032-metodo-portable-y-perfil-por-proyecto.md` — la enmienda: el patrón de
       política declarada más prueba que la verifica se extiende de los inventarios de directorio a
       las instrucciones de los agentes; por qué el gate vive en `contract:check` y no en `tools` (la
       medición de los disparadores); y la tercera clase `mixed` con su motivo obligatorio.
-- [ ] T034 `specs/024-instrucciones-verificadas/quickstart.md` — correr el quickstart entero y dejar
+- [x] T034 `specs/024-instrucciones-verificadas/quickstart.md` — correr el quickstart entero y dejar
       su tabla de estado fechada, con el antes y el después de las líneas y qué quedó sin mudar.
-- [ ] T035 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+- [x] T035 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `test:contract`, `release-check`.
-- [ ] T036 **La feature se aplica a sí misma, y es el último criterio**: `CLAUDE.md`, ya editado,
+- [x] T036 **La feature se aplica a sí misma, y es el último criterio**: `CLAUDE.md`, ya editado,
       pasa el gate que él mismo enuncia, y la sección que escribe el criterio está clasificada por
       la política. Si no lo cumple, no está terminada.
 

@@ -123,3 +123,45 @@ npm run release-check
 Que el documento sea correcto. Verde significa que **no cita nada que no exista**, no que lo que
 dice sea cierto. Eso lo verifica la revisión, y la diferencia está escrita junto al criterio
 justamente para que un gate en verde no se lea como más de lo que es.
+
+## Estado al cierre de la implementación (2026-09-24)
+
+Histórico y fechado, como pide la convención de documentación viva.
+
+| Verificación                                   | Resultado                                                   |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| El gate contra el documento **sin corregir**   | **cuatro** problemas, los cuatro reales                     |
+| Falsos positivos sobre las diecinueve no-rutas | **cero** (un gate ingenuo reporta setenta y cinco)          |
+| Rutas, comandos y secciones que verifica       | 168 · 38 · 14                                               |
+| Secciones clasificadas                         | 8 normativas, 3 descriptivas, 3 mixtas; **cero sin motivo** |
+| Bloques descriptivos mudados a su ADR          | 10 de 10                                                    |
+| `CLAUDE.md`                                    | **675 → 573 líneas (−102)**, la primera bajada que registra |
+| `npm test` (`fast`) · `test:tools`             | 1303 · 79                                                   |
+| `quality` · `contract:check` · `release-check` | verdes                                                      |
+
+**Los cuatro hallazgos del gate, y uno más que encontró la mudanza:**
+
+1. `application/ingestion/policies/` y 2. `application/merchant/policies/signature-window.ts`
+   murieron **en el mismo commit** (`29f0e06`, feature 017): el que implementó «ninguna política vive
+   en el código» borró los dos directorios y dejó las dos referencias. Tres días y tres features.
+2. `request-logging.ts`, abreviado sin una raíz que lo resolviera.
+3. `check:mutation-report`, que existía sin fila en la tabla que dice listarlos.
+4. **Lo que ningún gate podía atrapar**: la lista de «componentes que ninguna operación usa»
+   incluía `adminToken`, que se usa desde la feature 017. El identificador existe; lo falso era la
+   frase. Es la frontera que el criterio dejó escrita, encontrada el mismo día que se escribió.
+
+**Lo que la implementación encontró y el plan no había previsto:**
+
+- **Dos oraciones normativas escondidas en bloques descriptivos.** Que el Constitution Check evalúa
+  los once principios vivía dentro del puerto de plataforma; dónde va lo que comparten los
+  controllers al borde, dentro de outcomes. No se borran: vuelven a donde se obedecen. El plan
+  trataba la mudanza como un movimiento; también es una separación.
+- **El bloque que el plan daba por inmovible sí tenía destino.** La configuración del SDK no cita
+  ningún ADR, y el plan lo dejó último por si había que dejarlo — pero el contrato ya lo dice
+  entero, y el contrato es la fuente de verdad de toda superficie HTTP. El puntero apunta ahí.
+- **Dos iteraciones medidas para llegar a cero falsos positivos** en los comandos: primero las
+  celdas combinadas (`npm run build` / `dev` / `typecheck`), después las palabras de la columna de
+  descripción (`tsc`, `uvx`, `fast`, `tools`). La lectura fiel de «la tabla» es su primera celda.
+- **El gate atrapó a su propio autor dos veces**: se exigió a sí mismo documentar
+  `check:instructions`, y marcó un `operationId` que inventé mientras escribía un puntero, antes del
+  commit.
