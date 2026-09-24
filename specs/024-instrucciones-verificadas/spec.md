@@ -86,13 +86,14 @@ en otro lado, y una prueba que se lo recuerda cuando abre una sección nueva.
 tienen otro hogar.
 
 **Independent Test**: se prueba sola agregando una sección sin declarar su política y verificando
-que la prueba falla; y recorriendo las secciones de hoy, comprobando que cada una cae de un lado o
-del otro sin quedar en «depende».
+que la prueba falla; y recorriendo las secciones de hoy, comprobando que ninguna quedó sin clasificar
+y que las mixtas llevan su motivo.
 
 **Acceptance Scenarios**:
 
-1. **Given** el criterio escrito, **When** se recorre cada sección del documento, **Then** cada una
-   es normativa o descriptiva, sin casos ambiguos.
+1. **Given** el criterio escrito, **When** se recorre cada sección del documento, **Then** ninguna
+   queda sin clasificar, y la que tenga párrafos de las dos clases lo declara **con su motivo**: la
+   clase mixta nombra una deuda concreta, no es una forma de no decidir.
 2. **Given** una sección nueva sin política declarada, **When** corre la prueba, **Then** falla
    pidiendo que se declare, igual que falla hoy un directorio nuevo sin política.
 3. **Given** el criterio, **When** alguien pregunta si una decisión transversal nueva va en las
@@ -159,7 +160,13 @@ de borrarse del origen, y que desde las instrucciones se llega a él sin buscar.
   MUST fallar.
 - **FR-007**: El repositorio MUST llevar escrito el criterio que decide qué entra en las
   instrucciones y qué tiene otro hogar, en términos de si el contenido **dice qué hacer** o
-  **describe cómo es el sistema hoy**.
+  **describe cómo es el sistema hoy**. Una sección que tenga párrafos de las dos clases MUST poder
+  declararse así, **y esa declaración MUST exigir un motivo escrito**.
+  _Amplía la versión original, que suponía la clasificación binaria. Al aplicar el criterio a las
+  catorce secciones aparecieron tres con párrafos de los dos tipos (research R-05). Admitir la
+  clase mixta con motivo obligatorio nombra una deuda concreta y localizada; forzar esas tres a un
+  lado sería mentirle a la política el día uno, y dejarlas sin clasificar sería el «depende» que el
+  criterio existe para eliminar._
 - **FR-008**: El sistema MUST fallar cuando el documento gane una sección cuya política no esté
   declarada, de modo que abrirla obligue a decidir de qué lado cae.
 - **FR-009**: El sistema MUST correr estas verificaciones dentro de la cadena que ya corre antes de
@@ -173,8 +180,9 @@ de borrarse del origen, y que desde las instrucciones se llega a él sin buscar.
 
 - **Instrucciones de los agentes**: el documento que un agente lee antes de tocar el repositorio.
   Mezcla hoy dos cosas: lo **normativo** (qué debe hacer) y lo **descriptivo** (cómo es el sistema).
-- **Criterio de admisión**: la regla que decide de cuál de las dos se trata un contenido, y por lo
-  tanto si vive en las instrucciones o en otro documento.
+- **Criterio de admisión**: la regla que decide de cuál de las clases se trata un contenido, y por
+  lo tanto si vive en las instrucciones o en otro documento. Una sección mixta declara una deuda
+  concreta, con su motivo; no es una forma de no decidir.
 - **Referencia**: cada cosa que las instrucciones nombran entre comillas de código. Tiene tres
   formas —identificador, ruta y comando— y cada una se verifica contra una fuente distinta.
 - **Excepción declarada**: una referencia que a propósito no resuelve, con el motivo escrito.
@@ -191,7 +199,8 @@ de borrarse del origen, y que desde las instrucciones se llega a él sin buscar.
 - **SC-003**: Mover un archivo que el documento nombra, o agregar un comando sin documentarlo, hace
   fallar la cadena nombrando dónde. Verificado con un caso de prueba de cada uno.
 - **SC-004**: El criterio de admisión está escrito y **cada una de las catorce secciones** del
-  documento cae de un lado o del otro, sin «depende».
+  documento está clasificada, sin ninguna sin clasificar. Las que tengan párrafos de las dos clases
+  llevan su motivo escrito: **cero secciones mixtas sin motivo**.
 - **SC-005**: Una sección nueva sin política declarada hace fallar la prueba, verificado con su
   propio caso.
 - **SC-006**: El documento **baja de líneas por primera vez desde que existe**, y la cifra queda
