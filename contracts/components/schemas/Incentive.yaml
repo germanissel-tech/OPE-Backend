@@ -11,10 +11,12 @@ required: [kind, value]
 properties:
   kind:
     type: string
-    description: The kind of incentive; only a percentage in the MVP.
+    description: The kind of incentive — a proportional discount and not a fixed amount; only this
+      one in the MVP. It says what the incentive is, not the unit its value is in.
     enum: [percent]
   value:
-    type: integer
-    description: The percentage, as the merchant's commercial policy allows it (never above its ceiling).
-    minimum: 1
-    maximum: 100
+    type: number
+    description: The share the incentive grants, as a fraction of 1 and never above the merchant's
+      ceiling. A fifteen percent discount is `0.15`.
+    exclusiveMinimum: 0
+    maximum: 1

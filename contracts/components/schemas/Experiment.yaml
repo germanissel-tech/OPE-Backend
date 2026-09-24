@@ -4,7 +4,7 @@ additionalProperties: false
 required:
   - experimentId
   - status
-  - treatmentPercent
+  - treatmentShare
   - targetSample
   - cuts
   - openedAt
@@ -14,22 +14,22 @@ properties:
     $ref: ./ExperimentId.yaml
   status:
     $ref: ./ExperimentStatus.yaml
-  treatmentPercent:
-    type: integer
-    description: Share of visitors assigned to TREATMENT, as an integer percentage.
+  treatmentShare:
+    type: number
+    description: "Share of visitors assigned to TREATMENT, as a fraction of 1. The assignment resolves to whole buckets of one hundredth, so a finer value takes the nearest bucket."
     minimum: 0
-    maximum: 100
+    maximum: 1
   targetSample:
     type: integer
     description: Visitors the accumulation window aims at.
     minimum: 1
   cuts:
     type: array
-    description: Interim cuts as percentages of the target sample, strictly increasing; empty when the target sample is the only cut.
+    description: Interim cuts as fractions of the target sample, strictly increasing; empty when the target sample is the only cut.
     items:
-      type: integer
-      minimum: 1
-      maximum: 100
+      type: number
+      exclusiveMinimum: 0
+      maximum: 1
   openedAt:
     type: string
     format: date-time
