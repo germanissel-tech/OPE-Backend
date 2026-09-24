@@ -114,7 +114,8 @@ código. De cada una queda la línea que impide equivocarse antes de que llegue.
   `audit.profile.json`. Detalle en `.claude/rules/auditoria.md`.
 - **Cómo se escribe una entidad** (ADR-024): **clase si hay reglas, tipo si no**; una clase tiene
   `private constructor`, `of(...)` que devuelve `Result` y `rehydrate` que no re-juzga. Las reglas
-  viven con su dueño y se invocan por su nombre. Detalle en `.claude/rules/entidad.md`.
+  viven con su dueño y se invocan por su nombre: **`src/domain/` no exporta funciones sueltas**.
+  Detalle en `.claude/rules/entidad.md`.
 - **Gates de calidad** (ADR-016): un cambio **no entra si un mutante de sus propias líneas
   sobrevive**, y una excepción va en línea con su motivo. Los umbrales y cómo se trabaja el gate de
   mutación, en `.claude/rules/gates-de-calidad.md`.

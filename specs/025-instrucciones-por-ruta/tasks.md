@@ -131,19 +131,19 @@ invariante**. En commits separados, para que el diff muestre que nada se perdió
 
 ## Phase 5: Cierre y documentación
 
-- [ ] T022 **La verificación que ningún comando decide** (FR-004, del quickstart §6): por cada una
+- [x] T022 **La verificación que ningún comando decide** (FR-004, del quickstart §6): por cada una
       de las seis, leer **sólo** lo que quedó en el núcleo y preguntarse si alcanza para no
       equivocarse antes de que la regla llegue. Si alguna no alcanza, **esa sección vuelve**, con el
       motivo escrito. Mirar con más cuidado la del caso de uso.
-- [ ] T023 `docs/adr/032-metodo-portable-y-perfil-por-proyecto.md` — la enmienda: el reparto entre
+- [x] T023 `docs/adr/032-metodo-portable-y-perfil-por-proyecto.md` — la enmienda: el reparto entre
       los tres destinos, el umbral y **la cita de la documentación oficial como su fuente**, para
       que las doscientas líneas se lean como el número que la herramienta publica y no como una
       preferencia. Registrar también las dos correcciones que el plan le hizo a la spec.
-- [ ] T024 `specs/025-instrucciones-por-ruta/quickstart.md` — correr el quickstart entero y dejar su
+- [x] T024 `specs/025-instrucciones-por-ruta/quickstart.md` — correr el quickstart entero y dejar su
       tabla de estado fechada, con el antes y el después y lo consolidado enumerado.
-- [ ] T025 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+- [x] T025 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
       `contract:check`, `test:contract`, `release-check`.
-- [ ] T026 **La feature se aplica a sí misma**: el núcleo, ya partido, pasa el gate que él mismo
+- [x] T026 **La feature se aplica a sí misma**: el núcleo, ya partido, pasa el gate que él mismo
       enuncia —incluido su propio límite— y las secciones que quedan están clasificadas en la
       política. Si no lo cumple, no está terminada.
 

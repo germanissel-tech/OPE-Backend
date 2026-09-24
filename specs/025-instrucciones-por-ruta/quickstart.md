@@ -111,3 +111,39 @@ npm run release-check
 Que la invariante que quedó en el núcleo sea suficiente. Eso lo dice el uso: si un agente se
 equivoca en algo que la regla habría evitado, la invariante era corta y vuelve al núcleo. El gate
 mide el largo y la existencia, no la suficiencia.
+
+## Estado al cierre de la implementación (2026-09-24)
+
+Histórico y fechado, como pide la convención de documentación viva.
+
+| Verificación                                   | Resultado                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------- |
+| Núcleo                                         | **194 líneas** (umbral: 200). Serie: 360 → 675 → 573 → 194     |
+| Suma de las siete instrucciones                | 617 líneas; el crecimiento sobre 573 es frontmatter y punteros |
+| Contenido perdido                              | ninguno; lo único consolidado fue la tabla de comandos         |
+| Reglas acotadas                                | 6, todas con `paths`, todos los patrones alcanzan algo         |
+| El gate contra el núcleo **sin partir**        | falló con 574 contra 200, que era la prueba                    |
+| Archivos que el gate verifica                  | 7 · 155 rutas · 10 comandos · 17 secciones                     |
+| `check:identifiers` / `adrs` / `markers`       | alcanzan las siete instrucciones                               |
+| `npm test` (`fast`) · `test:tools`             | 1303 · 44 en `tests/docs`                                      |
+| `quality` · `contract:check` · `release-check` | verdes                                                         |
+
+**Lo que la implementación encontró y el plan no había previsto:**
+
+1. **El título del núcleo nunca había estado clasificado.** La verificación miraba de `##` para
+   abajo, y el `#` de arriba —que lleva la convención de idioma de ADR-015— quedaba fuera. Apareció
+   sola al mudar la primera regla, porque el título de un archivo de regla **es** su única sección.
+2. **La fusión de la tabla obligó a que el gate acepte dos lugares.** Si el núcleo deja de listar
+   los treinta comandos, los que quedan descritos en el inventario de `scripts/` se reportarían como
+   sin documentar. Ahora cuentan los dos; lo que no puede pasar es un comando descrito en ninguno.
+   Pedirle al núcleo la lista completa era precisamente lo que hacía de esa tabla una segunda copia.
+3. **Faltaban treinta líneas y estaban en el flujo de trabajo.** Los seis pasos del orden dentro de
+   una feature que toca HTTP son detalle del contrato, no del flujo: se fueron a su regla.
+4. **El bloque de código no se lee, por diseño.** Al escribir el lazo de comandos dentro de un
+   ` ```bash `, el gate dejó de verlos: las citas dentro de un bloque cercado se saltean a propósito.
+   La tabla volvió, de diez filas en vez de treinta.
+
+**La verificación que ningún comando decide** (FR-004): leídos los seis punteros como los leería un
+agente sin la regla cargada, los seis alcanzan. Ninguna sección volvió al núcleo. El de la entidad
+ganó una cláusula de seis palabras —que `src/domain/` no exporta funciones sueltas— porque era lo
+único que un agente podía intentar sin que el puntero se lo dijera.
