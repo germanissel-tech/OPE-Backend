@@ -41,9 +41,9 @@ const merchantA: MerchantSpec = {
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
-  declared: { holdoutPercent: 0 },
+  declared: { holdoutShare: 0 },
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentShare: 1, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 };
 
@@ -113,9 +113,9 @@ describe("the levels of the release (scenario 4)", () => {
     expect(json(defaults)).toMatchObject({
       version: "defaults-1",
       freshness: { catalogMs: 129_600_000, stockAndPriceMs: 900_000 },
-      holdoutPercent: 5,
+      holdoutShare: 0.05,
       decisionPolicy: { version: "default-1" },
-      commercialPolicy: { version: "commercial-default-1", incentiveLadderPercent: [5, 10] },
+      commercialPolicy: { version: "commercial-default-1", incentiveLadderShare: [0.05, 0.1] },
       surfaces: ["product", "cart"],
       syncStrategy: { catalog: "push", stockAndPrice: "push", orders: "push", returns: "push" },
     });
@@ -157,7 +157,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(before.versions).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 1 });
     expect(before.declared).toEqual({
       evidenceProfile: { returnsPolicy: true, fitData: true },
-      holdoutPercent: 0,
+      holdoutShare: 0,
     });
     const fresh = await decide("ses_00000001");
     expect((await recorded(fresh.decision.decisionId))?.configuration).toEqual({
@@ -220,7 +220,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
   });
 
   it("publishing what the version in force declares repeats it with 200 and the same number; the log names the version and the reason", async () => {
-    const body = { declared: { holdoutPercent: 10 }, corrective: true, reason: "keep some traffic out" };
+    const body = { declared: { holdoutShare: 0.1 }, corrective: true, reason: "keep some traffic out" };
     const first = await configure(body);
     expect(first.statusCode).toBe(201);
     const again = await configure(body);
@@ -245,8 +245,8 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
   it("[invariant:invalid-configuration-value] an invalid value is refused naming the field, and no version is created", async () => {
     const cases: [unknown, string][] = [
       [
-        { commercialPolicy: { version: "c-2", incentiveLadderPercent: [10, 5] } },
-        "/declared/commercialPolicy/incentiveLadderPercent/1",
+        { commercialPolicy: { version: "c-2", incentiveLadderShare: [0.1, 0.05] } },
+        "/declared/commercialPolicy/incentiveLadderShare/1",
       ],
       [{ decisionPolicy: { version: "d-2", priority: ["fit"] } }, "/declared/decisionPolicy/priority"],
       [{ locales: { supported: ["es"], fallback: "en" } }, "/declared/locales/fallback"],
@@ -268,7 +268,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
   });
 
   it("[invariant:configuration-reason-required] a corrective version without a reason is refused", async () => {
-    const res = await configure({ declared: { holdoutPercent: 0 }, corrective: true });
+    const res = await configure({ declared: { holdoutShare: 0 }, corrective: true });
     expect(res.statusCode).toBe(422);
     expect(problemOf(res)).toMatchObject({
       type: "urn:ope:problem:configuration-reason-required",
@@ -291,7 +291,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
 
   it("isolation: the version of A changes nothing for B, and an operator scoped to A cannot read nor publish for B", async () => {
     await configure({
-      declared: { holdoutPercent: 0, freshness: { stockAndPriceMs: ONE_MINUTE } },
+      declared: { holdoutShare: 0, freshness: { stockAndPriceMs: ONE_MINUTE } },
       corrective: true,
       reason: "a",
     });

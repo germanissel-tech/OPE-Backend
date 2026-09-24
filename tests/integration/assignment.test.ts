@@ -30,7 +30,7 @@ const KEY = "key-a-1";
 const EXPERIMENT_ID = "exp_a_5050001";
 const experimentConfig = {
   experimentId: EXPERIMENT_ID,
-  treatmentPercent: 50,
+  treatmentShare: 0.5,
   seed: "seed-5050",
   status: "active" as const,
   openedAt: NOW,

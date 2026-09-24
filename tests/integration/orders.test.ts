@@ -42,9 +42,9 @@ const merchantWithMargin: MerchantSpec = {
   platformKeys: [PLATFORM_A],
   origins: ["https://a.example"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
-  commercialPolicy: { version: "a-commercial-1", marginPercent: 40 },
+  commercialPolicy: { version: "a-commercial-1", marginShare: 0.4 },
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentShare: 1, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 };
 
@@ -106,7 +106,7 @@ async function incentiveSession(): Promise<number> {
   };
   expect(body.decision.outcome).toBe("INTERVENE");
   const value = body.decision.intervention?.incentive?.value;
-  expect(value).toBe(5);
+  expect(value).toBe(0.05);
   return value ?? 0;
 }
 
@@ -324,7 +324,7 @@ describe("notifyOrder — user story 2: idempotent by orderId, immutable", () =>
       { total: { amount: "1.00", currency: "ARS" } },
       { items: [{ sku: "SKU-1-M", quantity: 2 }] },
       { sessionId: SESSION },
-      { incentive: { kind: "percent", value: 5 } },
+      { incentive: { kind: "percent", value: 0.05 } },
     ]) {
       const res = await postOrder(app.app, orderOf("A-1", change), { platformKey: PLATFORM_A });
       expect(res.statusCode).toBe(409);
@@ -382,9 +382,9 @@ describe("notifyOrder — user story 5: the incentive applied is crossed with th
     await start({ merchants: [merchantWithMargin, merchantB] });
     await incentiveSession();
     const cases: [string, Record<string, unknown>, string][] = [
-      ["M-1", withIncentive(10), "mismatched"],
+      ["M-1", withIncentive(0.1), "mismatched"],
       ["M-2", withIncentive(undefined), "not-applied"],
-      ["M-4", withIncentive(5, null), "unverifiable"],
+      ["M-4", withIncentive(0.05, null), "unverifiable"],
     ];
     for (const [orderId, body, verdict] of cases) {
       const res = await postOrder(app.app, { ...body, orderId }, { platformKey: PLATFORM_A });
@@ -400,7 +400,7 @@ describe("notifyOrder — user story 5: the incentive applied is crossed with th
     await knownSession(KEY_A, "ses_00000002");
     const notGranted = await postOrder(
       app.app,
-      { ...withIncentive(5, "ses_00000002"), orderId: "M-3" },
+      { ...withIncentive(0.05, "ses_00000002"), orderId: "M-3" },
       { platformKey: PLATFORM_A },
     );
     expect(notGranted.statusCode).toBe(201);

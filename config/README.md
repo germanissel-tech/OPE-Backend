@@ -79,5 +79,5 @@ sub-esquemas: `DecisionPolicy`, `CommercialPolicy`, `Freshness`, `SyncLevelRules
 descripción y su rango. El glosario explica el concepto:
 [configuración de plataforma](../docs/dominio/configuracion-de-plataforma.md) y
 [defaults de tratamiento](../docs/dominio/defaults-de-tratamiento.md). Las convenciones de
-unidades: milisegundos en los nombres `*Ms`, porcentajes enteros 0–100 en los nombres `*Percent`
-(adentro del dominio son tasas 0–1), segundos en `*Seconds`.
+unidades: milisegundos en los nombres `*Ms`, fracciones de 1 en los nombres `*Share`
+(la misma unidad afuera y adentro, ADR-035), segundos en `*Seconds`.

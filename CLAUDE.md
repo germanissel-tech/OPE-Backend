@@ -178,7 +178,7 @@ otros), que `readConfig` lee por los lectores de forma del módulo `configuratio
 (`PlatformConfiguration.of`, `TreatmentDefaults.of`) juzgan: un valor fuera de rango es un
 `ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`. La semilla admite,
 junto a los campos del merchant, todo lo que `MerchantConfigurationDeclared` admite
-(`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutPercent`, `freshness`, …):
+(`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutShare`, `freshness`, …):
 `bootstrap` lo publica como la versión 1 del merchant (`ImportMerchantConfigurationUseCase`,
 operador `system`) sólo si el merchant no tiene versiones. No hay servidor mock ni modo
 (ADR-018): el composition root no decide sobre configuración (`shape` regla 5).
@@ -263,15 +263,18 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   intervención). Fábricas `NoOpDecision.of` / `InterveneDecision.of`; `DecisionBase.rehydrate`.
 - **Las invariantes se validan en su dueño; nadie las esquiva.** `composition/config.ts` parsea
   la forma del JSON y construye por fábrica; un `fail` es un `ConfigError` que nombra el campo
-  (`merchants[i].experiments[j].treatmentPercent`, `merchants[i].origins[k]`). Los gateways
+  (`merchants[i].experiments[j].treatmentShare`, `merchants[i].origins[k]`). Los gateways
   reciben entidades, nunca registros crudos. Los errores de configuración son `DomainError` y
   figuran en el catálogo de problemas aunque ningún endpoint los emita.
-- **Convención de tasas dentro del dominio**: `Experiment.treatmentShare` y
-  `CommercialPolicy.{maxIncentiveShare, incentiveLadderShare, marginShare}` son 0–1; el
-  porcentaje entero 0–100 existe sólo en `OPE_MERCHANTS` (`treatmentPercent`,
-  `maxIncentivePercent`, …) y en el DTO (`Incentive.value`, lo que el comprador ve). El reparto
-  resuelve a buckets enteros (1 %) y el incentivo a un porcentaje entero (`Math.round`), una vez
-  en el dominio; `isRate`/`isCount` del `shared-kernel` juzgan los números.
+- **Una sola unidad para las tasas (ADR-035)**: toda tasa es una fracción de 1, en el contrato, en
+  la semilla, en los niveles del release y en el dominio. No hay porcentajes 0–100 en ninguna parte y
+  el backend **no convierte formatos**: recibe fracciones y entrega fracciones
+  (`treatmentShare`, `holdoutShare`, `maxIncentiveShare`, `incentiveLadderShare`, `marginShare`,
+  los `cuts` de un experimento, `Incentive.value`). Cómo se muestre un 5 % en un frontend o en un
+  reporte no es problema del backend. `isRate`/`isCount` del `shared-kernel` juzgan los números;
+  ser entero no es una regla de ninguna tasa. La única constante que vale 100 es
+  `ASSIGNMENT_BUCKETS` (`domain/experiment/`) y **no es una conversión**: es la resolución del
+  reparto, y el día que quiera ser más fina ese número cambia y nada más cambia.
 - **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
   dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
@@ -494,7 +497,7 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   `platformKey` declara los dos parámetros de header (regla `ope-platform-signature-headers`).
   `node scripts/sign-platform-request.mjs <secreto> <archivo>` firma para curl e Insomnia.
 - **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
-  abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentPercent`,
+  abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentShare`,
   `seed`, `targetSample`, `cuts` crecientes como porcentajes de la muestra) y nace
   `calibrating`: se asigna y se decide, pero cada decisión estampa `phase: calibration` y la
   configuración sigue publicándose. `activate` lo pasa a `active` (`activatedAt` =
@@ -508,7 +511,7 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
 treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interruptor no cambia su
   estado. Las reglas viven en `Experiment` (`activated`, `closed`, `windowRestarted`,
   `isOpen`, `phase`); el id lo acuña `ExperimentIdMinter` (`exp_` + base32). La semilla
-  (`OPE_MERCHANTS[i].experiments[]`: `experimentId`, `treatmentPercent`, `seed`,
+  (`OPE_MERCHANTS[i].experiments[]`: `experimentId`, `treatmentShare`, `seed`,
   `targetSample`, `cuts?`, `status`, `openedAt`) entra por `ImportExperimentsUseCase` sólo
   con el store vacío y sin juzgar el holdout; un `active` de la semilla arranca su ventana en
   `openedAt`. `Experiment.assign` es pura (FNV-1a privado del dominio, `treatmentShare` 0–1,
@@ -620,7 +623,7 @@ directorios y escribir su perfil (`conditioning-project` lo hace).
   ventana de deduplicación, tolerancia de reloj, memoria de sesión y visitante, ventana de
   firma, gracia máxima de rotación, tope de diagnósticos), default de tratamiento
   (`config/treatment-defaults.json`: frescura, umbrales del nivel de sincronización,
-  `holdoutPercent`, las tres políticas, superficies, barreras, estrategia de sincronización,
+  `holdoutShare`, las tres políticas, superficies, barreras, estrategia de sincronización,
   idiomas) y merchant (versiones publicadas por `publishMerchantConfiguration`, más el mapa de
   anclajes)— resuelta valor por valor por `EffectiveConfiguration` y servida desde memoria por
   `ConfigurationService`; cada decisión estampa la terna (`DecisionFacts.configuration`). El
@@ -635,7 +638,8 @@ directorios y escribir su perfil (`conditioning-project` lo hace).
   depender entre sí (`MerchantId`, `SessionId`, `VisitorId`, `ExperimentId`); con un dueño, vive
   en su módulo (`DecisionId` en `ledger/ids.ts`, `EventId` en `ingestion/ids.ts`). Quien acuña
   un id lo pide por un puerto del dueño (`DecisionIdGenerator` del ledger), nunca al kernel.
-- Porcentajes 0–100 sólo en el borde (DTO); adentro, tasas 0–1.
+- Tasas como fracciones de 1 en todas partes, adentro y afuera; el backend no convierte formatos
+  de porcentaje (ADR-035).
 - Literales de la plataforma (señales, métodos, headers, media types, claves reservadas de una
   librería) se declaran una vez, con nombre y tipo (`HTTP_METHODS`, `SHUTDOWN_SIGNALS`); un
   literal repetido en `src/` donde alguna ocurrencia no la verifica un tipo literal falla el

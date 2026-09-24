@@ -30,7 +30,7 @@ const SELECTORS_KEYS: readonly Key[] = ["selectors"];
 const VALUE_KEYS: readonly Key[] = [
   "freshness",
   "syncLevel",
-  "holdoutPercent",
+  "holdoutShare",
   "decisionPolicy",
   "commercialPolicy",
   "evidenceProfile",
@@ -52,8 +52,8 @@ const DECISION_FIELDS: readonly Key[] = [
   "evidence",
 ];
 const COMMERCIAL_FIELDS: readonly Key[] = [
-  "maxIncentivePercent",
-  "incentiveLadderPercent",
+  "maxIncentiveShare",
+  "incentiveLadderShare",
   "directIncentiveOnPrice",
   "returnRisk",
   "highIntent",
@@ -123,7 +123,7 @@ function values(shape: Shape, raw: Raw, where: Field): DeclaredConfiguration {
   const read: DeclaredConfiguration = {};
   if (shape.has(raw, "freshness")) read.freshness = numbersAt(shape, raw, "freshness", where);
   if (shape.has(raw, "syncLevel")) read.syncLevel = numbersAt(shape, raw, "syncLevel", where);
-  if (shape.has(raw, "holdoutPercent")) read.holdoutPercent = shape.number(raw, "holdoutPercent", where);
+  if (shape.has(raw, "holdoutShare")) read.holdoutShare = shape.number(raw, "holdoutShare", where);
   if (shape.has(raw, "decisionPolicy")) {
     read.decisionPolicy = decisionPolicyDeclared(
       shape,

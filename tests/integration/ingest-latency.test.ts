@@ -127,7 +127,7 @@ describe("latency of POST /v1/events (local profile)", () => {
             experiments: [
               {
                 experimentId: "exp_lat_00001",
-                treatmentPercent: 50,
+                treatmentShare: 0.5,
                 seed: "seed-lat",
                 status: "active",
                 openedAt: "2026-09-17T00:00:00Z",

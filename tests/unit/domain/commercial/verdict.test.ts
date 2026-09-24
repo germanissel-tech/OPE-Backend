@@ -118,7 +118,7 @@ describe("CommercialPolicy.verdict — the ladder (user story 2)", () => {
       "2. price with the direct incentive, margin and ceiling → the incentive at the first step",
       base,
       input({ barrier: "price", judged: judgedOf("price") }),
-      intervene("msg_price_price_incentive_v0", 5),
+      intervene("msg_price_price_incentive_v0", 0.05),
     ],
     [
       "3a. price without margin → the next acceptable, non-economic candidate",
@@ -283,7 +283,7 @@ describe("CommercialPolicy.verdict — the abandonment amplifies (user story 3, 
     );
     const noEvidence = judgedOf("price", full, { ...freshEvidence, stockAndPriceFresh: false });
     expect(policy.verdict(input({ barrier: "price", judged: noEvidence, abandoned: true }))).toEqual(
-      intervene("msg_price_price_incentive_v0", 5),
+      intervene("msg_price_price_incentive_v0", 0.05),
     );
   });
 

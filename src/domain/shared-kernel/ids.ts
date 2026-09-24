@@ -15,7 +15,12 @@ export type SessionId = Branded<string, "SessionId">;
 export type VisitorId = Branded<string, "VisitorId">;
 export type ExperimentId = Branded<string, "ExperimentId">;
 
-/** Constructors: the contract already validated the pattern; here only the brand is applied. */
+/**
+ * Constructors: the contract already validated the pattern; here only the brand is applied. The
+ * shapes live in `contracts/components/schemas/` (`ExperimentId.yaml` for the experiment, whose
+ * pattern the seed reader replicates because it reads identifiers the HTTP border never saw);
+ * `MerchantId` has none, being derived from the credential.
+ */
 export const asMerchantId = (value: string): MerchantId => value as MerchantId;
 export const asSessionId = (value: string): SessionId => value as SessionId;
 export const asVisitorId = (value: string): VisitorId => value as VisitorId;

@@ -28,7 +28,7 @@ get:
               minutesLevelMaxAgeMs: 3600000
               minutesLevelMedianIntervalMs: 900000
               minutesLevelMinReceipts: 3
-            holdoutPercent: 5
+            holdoutShare: 0.05
             decisionPolicy:
               version: default-1
               rules:
@@ -54,8 +54,8 @@ get:
                   - fit
             commercialPolicy:
               version: commercial-default-1
-              maxIncentivePercent: 10
-              incentiveLadderPercent:
+              maxIncentiveShare: 0.1
+              incentiveLadderShare:
                 - 5
                 - 10
               directIncentiveOnPrice: true

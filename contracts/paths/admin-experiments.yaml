@@ -22,12 +22,12 @@ post:
         schema:
           $ref: ../components/schemas/ExperimentCreate.yaml
         example:
-          treatmentPercent: 50
+          treatmentShare: 0.5
           seed: pilot-2026-q4
           targetSample: 32000
           cuts:
-            - 33
-            - 66
+            - 0.33
+            - 0.66
   responses:
     "201":
       description: The experiment, calibrating.
@@ -38,11 +38,11 @@ post:
           example:
             experimentId: exp_9a8b7c6d5e4f
             status: calibrating
-            treatmentPercent: 50
+            treatmentShare: 0.5
             targetSample: 32000
             cuts:
-              - 33
-              - 66
+              - 0.33
+              - 0.66
             openedAt: 2026-09-20T12:00:00Z
             windowRestarts: []
     "400":
@@ -64,7 +64,7 @@ post:
   x-invariants:
     - type: treatment-exceeds-holdout
       status: 422
-      rule: treatmentPercent ≤ 100 − the holdout of the merchant's effective configuration
+      rule: treatmentShare ≤ 1 − the holdout of the merchant's effective configuration
       description: "The holdout is what the merchant keeps out of OPE; an experiment cannot take it (feature 017, holdout decision)."
 get:
   operationId: listExperiments
@@ -91,11 +91,11 @@ get:
             items:
               - experimentId: exp_9a8b7c6d5e4f
                 status: active
-                treatmentPercent: 50
+                treatmentShare: 0.5
                 targetSample: 32000
                 cuts:
-                  - 33
-                  - 66
+                  - 0.33
+                  - 0.66
                 openedAt: 2026-09-20T12:00:00Z
                 activatedAt: 2026-09-27T12:00:00Z
                 windowStartedAt: 2026-10-01T09:00:00Z

@@ -10,27 +10,27 @@ properties:
     description: Version the merchant gives its commercial policy; stamped in every decision.
     minLength: 1
     maxLength: 64
-  maxIncentivePercent:
-    type: integer
-    description: Ceiling of any incentive, as an integer percentage.
+  maxIncentiveShare:
+    type: number
+    description: Ceiling of any incentive, as a fraction of 1.
     minimum: 0
-    maximum: 100
-  incentiveLadderPercent:
+    maximum: 1
+  incentiveLadderShare:
     type: array
-    description: Incentive steps as integer percentages, strictly increasing, within the ceiling.
+    description: Incentive steps as fractions of 1, strictly increasing, within the ceiling.
     minItems: 1
     maxItems: 8
     items:
-      type: integer
+      type: number
       description: One step.
       minimum: 0
-      maximum: 100
-  marginPercent:
-    type: integer
-    description: Margin the merchant declares, as an integer percentage; absent means no incentive goes
+      maximum: 1
+  marginShare:
+    type: number
+    description: Margin the merchant declares, as a fraction of 1; absent means no incentive goes
       out (01 §4.7).
     minimum: 0
-    maximum: 100
+    maximum: 1
   directIncentiveOnPrice:
     type: boolean
     description: Whether the price barrier may receive the incentive directly.

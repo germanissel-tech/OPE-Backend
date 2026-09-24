@@ -42,6 +42,9 @@ un porcentaje contra la convención de tasas; y los puertos admitían respuestas
    `Math.round(share × 100)`, porque `n / 100 × 100` no es exacto en punto flotante (7 → 7,000…01)
    y la comparación directa cambiaría el brazo de algunos visitantes. La asignación es idéntica
    a ADR-022 para los 101 porcentajes (verificada con un fingerprint de 100 000 visitantes).
+   **Enmendado por ADR-035 (2026-09-24)**: el porcentaje 0–100 dejó de existir, también en
+   `OPE_MERCHANTS` y en el contrato. Lo que sigue vigente es el redondeo a buckets enteros y su
+   motivo; la constante que lo hace se llama `ASSIGNMENT_BUCKETS` y no es una conversión.
 6. **Las políticas publicadas en el contrato viven en dominio o aplicación.** La ventana de
    deduplicación se declara en `application/ingestion` y el gateway la recibe.
 7. **Todo puerto devuelve `Promise`.** La persistencia real no cambiará ninguna firma.

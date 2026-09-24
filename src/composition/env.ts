@@ -5,6 +5,7 @@ import { ConfigError, type Variable } from "./config-error.js";
 export const NOT_AN_OBJECT = "is not an object";
 export const NON_EMPTY_STRING = "must be a non-empty string";
 export const STRING_ARRAY = "must be an array of strings";
+export const A_NUMBER = "must be a number";
 
 export function parseJson(variable: Variable, raw: string): unknown {
   try {

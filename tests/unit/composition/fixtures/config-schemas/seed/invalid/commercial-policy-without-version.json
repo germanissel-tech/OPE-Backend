@@ -5,7 +5,7 @@
       "ingestKeys": ["ope_ik_seed"],
       "origins": ["https://shop.example"],
       "commercialPolicy": {
-        "marginPercent": 40
+        "marginShare": 0.4
       }
     }
   ]

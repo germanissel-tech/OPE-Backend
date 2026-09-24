@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ConfigError, readConfig } from "../../../src/composition/config.js";
+import { EXPERIMENT_STATUSES } from "../../../src/domain/experiment/index.js";
 import { testLevels } from "../../helpers/test-app.js";
 
 /** The files of the release are the only reads the configuration makes unless a variable names another. */
@@ -13,10 +14,10 @@ const noFile = (file: string): string => {
   throw new Error(`unexpected read of ${file}`);
 };
 const merchant = { merchantId: "m_a", ingestKeys: ["k1"], origins: ["https://a.example"] };
-/** An experiment of the seed: the treatment percent and the target sample are required (no default, constitution XI). */
+/** An experiment of the seed: the treatment share and the target sample are required (no default, constitution XI). */
 const exp = {
   experimentId: "exp_00000001",
-  treatmentPercent: 50,
+  treatmentShare: 0.5,
   seed: "s",
   status: "active",
   openedAt: "2026-09-17T00:00:00Z",
@@ -41,13 +42,13 @@ describe("readConfig", () => {
       [path.resolve("d.json")]: JSON.stringify({
         ...testLevels().defaults.record(),
         version: "defaults-2",
-        holdoutPercent: 120,
+        holdoutShare: 1.2,
       }),
     };
     const read = (file: string): string => files[file] ?? noFile(file);
     expect(readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform.version).toBe("platform-2");
     expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
-      "treatmentDefaults.holdoutPercent is invalid (must be an integer percentage between 0 and 100).",
+      "treatmentDefaults.holdoutShare is invalid (must be a fraction between 0 and 1).",
     );
     files[path.resolve("p.json")] = JSON.stringify({
       ...testLevels().platform.record(),
@@ -110,7 +111,7 @@ describe("readConfig", () => {
     ).toEqual([]);
   });
 
-  it("experiments are optional, the treatment percent is required, and the shape is validated", () => {
+  it("experiments are optional, the treatment share is required, and the shape is validated", () => {
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];
     // A seed declared active was opened, activated and its window started at the same instant.
@@ -133,7 +134,7 @@ describe("readConfig", () => {
     const calibrating = readConfig(
       {
         OPE_MERCHANTS: JSON.stringify([
-          { ...merchant, experiments: [{ ...exp, status: "calibrating", cuts: [33, 66] }] },
+          { ...merchant, experiments: [{ ...exp, status: "calibrating", cuts: [0.33, 0.66] }] },
         ]),
       },
       noFile,
@@ -141,22 +142,22 @@ describe("readConfig", () => {
     expect(calibrating?.record()).toMatchObject({
       status: "calibrating",
       activatedAt: undefined,
-      cuts: [33, 66],
+      cuts: [0.33, 0.66],
     });
     expect(
       readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0]?.experiments.all(),
     ).toEqual([]);
-    const closed = { ...exp, experimentId: "exp_00000002", status: "closed", treatmentPercent: 20 };
+    const closed = { ...exp, experimentId: "exp_00000002", status: "closed", treatmentShare: 0.2 };
     const two = { ...merchant, experiments: [closed, exp] };
     const set = readConfig({ OPE_MERCHANTS: JSON.stringify([two]) }, noFile).merchants[0]?.experiments;
     expect(set?.all()).toHaveLength(2);
     expect(set?.open()?.experimentId).toBe(exp.experimentId);
     expect(set?.all()[0]?.record()).toMatchObject({ status: "closed", closedAt: new Date(exp.openedAt) });
-    const { treatmentPercent, ...noPercent } = exp;
-    expect(treatmentPercent).toBe(50);
+    const { treatmentShare, ...noShare } = exp;
+    expect(treatmentShare).toBe(0.5);
     expect(() =>
-      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, experiments: [noPercent] }]) }, noFile),
-    ).toThrow("merchants[0].experiments[0].treatmentPercent must be an integer percentage.");
+      readConfig({ OPE_MERCHANTS: JSON.stringify([{ ...merchant, experiments: [noShare] }]) }, noFile),
+    ).toThrow("merchants[0].experiments[0].treatmentShare must be a number.");
   });
 
   it.each([
@@ -169,28 +170,19 @@ describe("readConfig", () => {
       [
         {
           ...exp,
-          treatmentPercent: 101,
+          treatmentShare: 1.01,
         },
       ],
-      "merchants[0].experiments[0].treatmentPercent is invalid (The treatment share must be a number between 0 and 1.)",
+      "merchants[0].experiments[0].treatmentShare is invalid (The treatment share must be a number between 0 and 1.)",
     ],
     [
       [
         {
           ...exp,
-          treatmentPercent: -1,
+          treatmentShare: -0.01,
         },
       ],
-      "merchants[0].experiments[0].treatmentPercent",
-    ],
-    [
-      [
-        {
-          ...exp,
-          treatmentPercent: 12.5,
-        },
-      ],
-      "merchants[0].experiments[0].treatmentPercent",
+      "merchants[0].experiments[0].treatmentShare",
     ],
     [
       [{ ...exp, seed: "" }],
@@ -211,14 +203,32 @@ describe("readConfig", () => {
     ],
     [[{ ...exp, cuts: "33" }], "merchants[0].experiments[0].cuts must be an array of numbers."],
     [
-      [{ ...exp, cuts: [66, 33] }],
-      "merchants[0].experiments[0].cuts[1] is invalid (The cuts must be strictly increasing percentages of the target sample.)",
+      [{ ...exp, cuts: [0.66, 0.33] }],
+      "merchants[0].experiments[0].cuts[1] is invalid (The cuts must be strictly increasing fractions of the target sample.)",
     ],
     ["nope", "merchants[0].experiments must be an array of experiments."],
   ])("experiments=%j is refused: %s", (experiments, message) => {
     const raw = JSON.stringify([{ ...merchant, experiments }]);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(ConfigError);
     expect(() => readConfig({ OPE_MERCHANTS: raw }, noFile)).toThrow(message);
+  });
+
+  // Feature 022, US3: the reader does not write the states down again. If the domain adds one, the
+  // message names it without anybody editing this file, and a state the domain declares is accepted.
+  it("the states the seed accepts are the ones the domain declares, and so is the message", () => {
+    const listed = EXPERIMENT_STATUSES.join(", ");
+    expect(() =>
+      readConfig(
+        { OPE_MERCHANTS: JSON.stringify([{ ...merchant, experiments: [{ ...exp, status: "paused" }] }]) },
+        noFile,
+      ),
+    ).toThrow(`must be one of ${listed}`);
+    for (const status of EXPERIMENT_STATUSES) {
+      const raw = JSON.stringify([{ ...merchant, experiments: [{ ...exp, status }] }]);
+      expect(readConfig({ OPE_MERCHANTS: raw }, noFile).merchants[0]?.experiments.all(), status).toHaveLength(
+        1,
+      );
+    }
   });
 
   const policy = {
@@ -246,9 +256,9 @@ describe("readConfig", () => {
   };
   const commercial = {
     version: "sport-commercial-1",
-    maxIncentivePercent: 15,
-    incentiveLadderPercent: [5, 10, 15],
-    marginPercent: 40,
+    maxIncentiveShare: 0.15,
+    incentiveLadderShare: [0.05, 0.1, 0.15],
+    marginShare: 0.4,
     directIncentiveOnPrice: false,
     returnRisk: { fact: "sessionAddedToCart" },
     highIntent: "from-cart",
@@ -268,9 +278,9 @@ describe("readConfig", () => {
           {
             ...merchant,
             decisionPolicy: policy,
-            commercialPolicy: { version: "c-1", marginPercent: 40 },
+            commercialPolicy: { version: "c-1", marginShare: 0.4 },
             evidenceProfile: { returnsPolicy: true, authorizedAttributes: ["material"] },
-            holdoutPercent: 0,
+            holdoutShare: 0,
             freshness: { stockAndPriceMs: 600000 },
             locales: { supported: ["es-AR"], fallback: "es-AR" },
             anchors: { price: { selectors: [".price"] } },
@@ -281,9 +291,9 @@ describe("readConfig", () => {
     ).merchants[0]?.declared;
     expect(declared).toEqual({
       decisionPolicy: policy,
-      commercialPolicy: { version: "c-1", marginPercent: 40 },
+      commercialPolicy: { version: "c-1", marginShare: 0.4 },
       evidenceProfile: { returnsPolicy: true, authorizedAttributes: ["material"] },
-      holdoutPercent: 0,
+      holdoutShare: 0,
       freshness: { stockAndPriceMs: 600000 },
       locales: { supported: ["es-AR"], fallback: "es-AR" },
       anchors: { price: { selectors: [".price"] } },
@@ -333,8 +343,8 @@ describe("readConfig", () => {
     ],
     [
       "ladder not numbers",
-      { commercialPolicy: { ...commercial, incentiveLadderPercent: ["5"] } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent[0] is invalid (must be a number).",
+      { commercialPolicy: { ...commercial, incentiveLadderShare: ["5"] } },
+      "merchants[0].commercialPolicy.incentiveLadderShare[0] is invalid (must be a number).",
     ],
     [
       "highIntent outside the vocabulary",
@@ -359,8 +369,8 @@ describe("readConfig", () => {
     ],
     [
       "a ladder that is not a list",
-      { commercialPolicy: { version: "c", incentiveLadderPercent: 5 } },
-      "merchants[0].commercialPolicy.incentiveLadderPercent is invalid (must be an array of numbers).",
+      { commercialPolicy: { version: "c", incentiveLadderShare: 0.05 } },
+      "merchants[0].commercialPolicy.incentiveLadderShare is invalid (must be an array of numbers).",
     ],
     [
       "rules that are not a list",

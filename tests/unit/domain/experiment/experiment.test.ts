@@ -24,7 +24,7 @@ const input = (over: Partial<ExperimentInput> = {}): ExperimentInput => ({
   treatmentShare: 0.5,
   seed: "seed-alpha",
   targetSample: 32_000,
-  cuts: [33, 66],
+  cuts: [0.33, 0.66],
   openedAt: OPENED,
   ...over,
 });
@@ -84,14 +84,13 @@ describe("Experiment.of", () => {
     expect(Experiment.of(input({ targetSample: 1 })).ok).toBe(true);
   });
 
-  it("[invariant:invalid-experiment-cuts] the cuts are strictly increasing whole percentages within 1..100, naming the first offender", () => {
+  it("[invariant:invalid-experiment-cuts] the cuts are strictly increasing fractions of 1, naming the first offender", () => {
     const cases: [number[], number][] = [
-      [[66, 33], 1],
-      [[33, 33], 1],
-      [[0, 50], 0],
-      [[50, 101], 1],
-      [[12.5], 0],
-      [[33, Number.NaN], 1],
+      [[0.66, 0.33], 1],
+      [[0.33, 0.33], 1],
+      [[0, 0.5], 0],
+      [[0.5, 1.01], 1],
+      [[0.33, Number.NaN], 1],
     ];
     for (const [cuts, index] of cases) {
       const built = Experiment.of(input({ cuts }));
@@ -101,14 +100,14 @@ describe("Experiment.of", () => {
       });
       if (!built.ok) expect(built.error).toBeInstanceOf(InvalidExperimentCuts);
     }
-    for (const cuts of [[], [1], [100], [1, 50, 100], [33, 66, 100]]) {
+    for (const cuts of [[], [0.01], [1], [0.01, 0.5, 1], [0.33, 0.66, 1]]) {
       expect(Experiment.of(input({ cuts })).ok, JSON.stringify(cuts)).toBe(true);
     }
   });
 
   it("rehydrate does not re-judge: a recorded share out of range comes back as recorded", () => {
     expect(Experiment.rehydrate(experimentRecord({ treatmentShare: 2 })).treatmentShare).toBe(2);
-    expect(Experiment.rehydrate(experimentRecord({ cuts: [66, 33] })).cuts).toEqual([66, 33]);
+    expect(Experiment.rehydrate(experimentRecord({ cuts: [0.66, 0.33] })).cuts).toEqual([0.66, 0.33]);
   });
 });
 

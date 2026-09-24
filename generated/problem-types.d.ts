@@ -59,9 +59,9 @@ export declare const PROBLEM_TYPES: {
   readonly "invalid-policy-priority": { readonly status: 500; readonly title: "The priority of a decision policy is not a permutation of the three barriers" };
   readonly "invalid-policy-evidence": { readonly status: 500; readonly title: "The evidence requirements of a decision policy name an unknown barrier" };
   readonly "invalid-commercial-version": { readonly status: 500; readonly title: "The commercial policy version is empty" };
-  readonly "invalid-incentive-ceiling": { readonly status: 500; readonly title: "The incentive ceiling is not an integer percentage between 0 and 100" };
+  readonly "invalid-incentive-ceiling": { readonly status: 500; readonly title: "The incentive ceiling is not a fraction between 0 and 1" };
   readonly "invalid-incentive-ladder": { readonly status: 500; readonly title: "The incentive ladder is not strictly increasing within 1 and the ceiling" };
-  readonly "invalid-margin": { readonly status: 500; readonly title: "The margin is not a percentage between 0 and 100" };
+  readonly "invalid-margin": { readonly status: 500; readonly title: "The margin is not a fraction between 0 and 1" };
   readonly "invalid-return-risk": { readonly status: 500; readonly title: "The return-risk condition references a fact OPE does not capture" };
   readonly "invalid-intervention-budget": { readonly status: 500; readonly title: "An interventions budget of the commercial policy is not an integer of at least 1" };
   readonly "invalid-cooldown": { readonly status: 500; readonly title: "The cooldown of the commercial policy is negative" };

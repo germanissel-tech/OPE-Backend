@@ -39,7 +39,7 @@ const merchantA: MerchantSpec = {
   platformKeys: ["platform-a-1"],
   origins: ["https://a.example"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
-  declared: { holdoutPercent: 0 },
+  declared: { holdoutShare: 0 },
   experiments: [],
 };
 
@@ -60,7 +60,7 @@ afterAll(async () => {
   await app.close();
 });
 
-const EXPERIMENT = { treatmentPercent: 100, seed: "pilot", targetSample: 32_000, cuts: [33, 66] };
+const EXPERIMENT = { treatmentShare: 1, seed: "pilot", targetSample: 32_000, cuts: [0.33, 0.66] };
 
 const open = (body: unknown = EXPERIMENT, o: { as?: TestOperator; merchant?: string } = {}) =>
   admin(app.app, "POST", `/v1/admin/merchants/${o.merchant ?? A}/experiments`, {
@@ -104,9 +104,9 @@ describe("opening an experiment (scenarios 1, 6)", () => {
     expect(experiment).toEqual({
       experimentId: expect.stringMatching(/^exp_[a-z2-7]{12}$/) as string,
       status: "calibrating",
-      treatmentPercent: 100,
+      treatmentShare: 1,
       targetSample: 32_000,
-      cuts: [33, 66],
+      cuts: [0.33, 0.66],
       openedAt: NOW,
       windowRestarts: [],
     });
@@ -126,15 +126,15 @@ describe("opening an experiment (scenarios 1, 6)", () => {
   });
 
   it("without cuts the target sample is the only cut; a body outside the schema is 400", async () => {
-    const res = await open({ treatmentPercent: 50, seed: "s", targetSample: 10 });
+    const res = await open({ treatmentShare: 0.5, seed: "s", targetSample: 10 });
     expect(res.statusCode).toBe(201);
     expect((json(res) as Experiment).cuts).toEqual([]);
-    expect((await open({ treatmentPercent: 50, seed: "s" })).statusCode).toBe(400);
-    expect((await open({ ...EXPERIMENT, treatmentPercent: 101 })).statusCode).toBe(400);
+    expect((await open({ treatmentShare: 0.5, seed: "s" })).statusCode).toBe(400);
+    expect((await open({ ...EXPERIMENT, treatmentShare: 1.01 })).statusCode).toBe(400);
   });
 
   it("[invariant:invalid-experiment-cuts] cuts that do not increase are refused and nothing opens", async () => {
-    const res = await open({ ...EXPERIMENT, cuts: [66, 33] });
+    const res = await open({ ...EXPERIMENT, cuts: [0.66, 0.33] });
     expect(res.statusCode).toBe(422);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:invalid-experiment-cuts" });
     expect((await decide()).decision.reason).toBe("no-active-experiment");
@@ -142,11 +142,11 @@ describe("opening an experiment (scenarios 1, 6)", () => {
 
   it("[invariant:treatment-exceeds-holdout] the split may not take the holdout of the merchant; what the merchant declares of it counts", async () => {
     // B keeps the default holdout of the release; A declared none.
-    const res = await open({ ...EXPERIMENT, treatmentPercent: 96 }, { merchant: "m_b" });
+    const res = await open({ ...EXPERIMENT, treatmentShare: 0.96 }, { merchant: "m_b" });
     expect(res.statusCode).toBe(422);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:treatment-exceeds-holdout" });
-    expect((await open({ ...EXPERIMENT, treatmentPercent: 95 }, { merchant: "m_b" })).statusCode).toBe(201);
-    expect((await open({ ...EXPERIMENT, treatmentPercent: 100 })).statusCode).toBe(201);
+    expect((await open({ ...EXPERIMENT, treatmentShare: 0.95 }, { merchant: "m_b" })).statusCode).toBe(201);
+    expect((await open({ ...EXPERIMENT, treatmentShare: 1 })).statusCode).toBe(201);
     const log = json(await admin(app.app, "GET", "/v1/admin/merchants/m_b/log?limit=2")) as AdminEntryPage;
     expect(log.items.map((e) => [e.operation, e.outcome, e.code])).toEqual([
       ["createExperiment", "accepted", undefined],
@@ -175,7 +175,7 @@ describe("opening an experiment (scenarios 1, 6)", () => {
 describe("calibration, activation and the frozen configuration (scenarios 2, 3, 4, 5)", () => {
   it("in calibration a version is published and stamped normally; activation starts the window and freezes the configuration", async () => {
     const experiment = await opened();
-    const published = await configure({ holdoutPercent: 0, freshness: { stockAndPriceMs: 600_000 } });
+    const published = await configure({ holdoutShare: 0, freshness: { stockAndPriceMs: 600_000 } });
     expect(published.statusCode).toBe(201);
     const activated = await transition(experiment.experimentId, "activate");
     expect(activated.statusCode).toBe(200);
@@ -189,7 +189,7 @@ describe("calibration, activation and the frozen configuration (scenarios 2, 3, 
     const kept = await recorded(result.decision.decisionId);
     expect(kept?.phase).toBeUndefined();
     expect(kept?.configuration).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 2 });
-    const frozen = await configure({ holdoutPercent: 0, freshness: { stockAndPriceMs: 300_000 } });
+    const frozen = await configure({ holdoutShare: 0, freshness: { stockAndPriceMs: 300_000 } });
     expect(frozen.statusCode).toBe(409);
     expect(problemOf(frozen)).toMatchObject({ type: "urn:ope:problem:configuration-frozen" });
     const versions = json(await admin(app.app, "GET", `/v1/admin/merchants/${A}/configuration/versions`)) as {
@@ -209,7 +209,7 @@ describe("calibration, activation and the frozen configuration (scenarios 2, 3, 
     const later = new Date(new Date(NOW).getTime() + 60_000);
     current = later;
     const corrective = await configure(
-      { holdoutPercent: 0, freshness: { stockAndPriceMs: 600_000 } },
+      { holdoutShare: 0, freshness: { stockAndPriceMs: 600_000 } },
       { corrective: true, reason: "anchor fix" },
     );
     expect(corrective.statusCode).toBe(201);
@@ -231,7 +231,7 @@ describe("calibration, activation and the frozen configuration (scenarios 2, 3, 
 
   it("a corrective version while the experiment calibrates is a plain version: no window to restart", async () => {
     await opened();
-    const corrective = await configure({ holdoutPercent: 0 }, { corrective: true, reason: "early" });
+    const corrective = await configure({ holdoutShare: 0 }, { corrective: true, reason: "early" });
     expect(corrective.statusCode).toBe(201);
     const log = json(await admin(app.app, "GET", `/v1/admin/merchants/${A}/log?limit=1`)) as AdminEntryPage;
     expect(log.items[0]?.result).toEqual({ configurationVersion: 2, windowRestarted: false });
@@ -286,7 +286,7 @@ describe("isolation and scope", () => {
     const missing = await transition("exp_unknown_001", "activate");
     expect(missing.statusCode).toBe(404);
     expect(problemOf(missing)).toMatchObject({ type: "urn:ope:problem:experiment-not-found" });
-    const b = await open({ ...EXPERIMENT, treatmentPercent: 50 }, { merchant: "m_b" });
+    const b = await open({ ...EXPERIMENT, treatmentShare: 0.5 }, { merchant: "m_b" });
     expect(b.statusCode).toBe(201);
     const id = (json(b) as Experiment).experimentId;
     expect((await open(EXPERIMENT, { merchant: "m_b", as: "ops-a" })).statusCode).toBe(403);

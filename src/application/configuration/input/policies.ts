@@ -31,8 +31,8 @@ const WEIGHT_KEYS: readonly Key[] = ["strong", "supporting"];
 const EVIDENCE_KEYS: readonly Key[] = ["freshStockAndPrice", "availableVariant"];
 /** The fields of the commercial policy that are numbers, read when present. */
 const COMMERCIAL_NUMBERS: readonly Key[] = [
-  "maxIncentivePercent",
-  "marginPercent",
+  "maxIncentiveShare",
+  "marginShare",
   "interventionsPerSession",
   "cooldownSeconds",
   "interventionsPerVisitorPerDay",
@@ -40,7 +40,7 @@ const COMMERCIAL_NUMBERS: readonly Key[] = [
 const COMMERCIAL_KEYS: readonly Key[] = [
   "version",
   ...COMMERCIAL_NUMBERS,
-  "incentiveLadderPercent",
+  "incentiveLadderShare",
   "directIncentiveOnPrice",
   "returnRisk",
   "highIntent",
@@ -117,10 +117,8 @@ export function commercialPolicyDeclared(
   for (const key of COMMERCIAL_NUMBERS) if (shape.has(raw, key)) numbers[key] = shape.number(raw, key, where);
   return {
     version: shape.string(raw, "version", where),
-    ...(numbers as Pick<CommercialPolicyDeclared, "maxIncentivePercent" | "marginPercent">),
-    ...optional(shape, raw, "incentiveLadderPercent", () =>
-      shape.numbers(raw, "incentiveLadderPercent", where),
-    ),
+    ...(numbers as Pick<CommercialPolicyDeclared, "maxIncentiveShare" | "marginShare">),
+    ...optional(shape, raw, "incentiveLadderShare", () => shape.numbers(raw, "incentiveLadderShare", where)),
     ...optional(shape, raw, "directIncentiveOnPrice", () =>
       shape.boolean(raw, "directIncentiveOnPrice", where),
     ),

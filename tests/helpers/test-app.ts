@@ -36,7 +36,7 @@ export interface MerchantSpec {
   origins: string[];
   experiments: {
     experimentId: string;
-    treatmentPercent: number;
+    treatmentShare: number;
     seed: string;
     status: ExperimentStatus;
     openedAt: string;
@@ -53,8 +53,6 @@ export interface MerchantSpec {
   declared?: Record<string, unknown>;
 }
 
-const PERCENT = 100;
-
 /** Builds the entities of a spec the way config.ts does; a spec that breaks a rule is a test bug. */
 function configured(spec: MerchantSpec): MerchantConfig {
   const merchantId = asMerchantId(spec.merchantId);
@@ -70,7 +68,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
     const experiment = Experiment.of({
       experimentId: asExperimentId(e.experimentId),
       merchantId,
-      treatmentShare: e.treatmentPercent / PERCENT,
+      treatmentShare: e.treatmentShare,
       seed: e.seed,
       targetSample: e.targetSample ?? TEST_TARGET_SAMPLE,
       cuts: e.cuts ?? [],
@@ -122,12 +120,12 @@ const merchantA: MerchantSpec = {
   // A declares what it can sustain, so the quality gate lets the reassurance and the size recommendation through.
   evidenceProfile: { returnsPolicy: true, fitData: true },
   // The whole traffic goes to OPE: no holdout (feature 017).
-  declared: { holdoutPercent: 0 },
+  declared: { holdoutShare: 0 },
   // Everyone in TREATMENT: the decision reasons of feature 004 stay observable through A.
   experiments: [
     {
       experimentId: "exp_a_000001",
-      treatmentPercent: 100,
+      treatmentShare: 1,
       seed: "seed-a",
       status: "active",
       openedAt: "2026-09-17T00:00:00Z",
@@ -140,7 +138,7 @@ export const merchantB: MerchantSpec = {
   platformKeys: ["platform-b-1"],
   origins: ["https://b.example", "https://shop.b.example:8443"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
-  declared: { holdoutPercent: 0 },
+  declared: { holdoutShare: 0 },
   experiments: [],
 };
 const testMerchants: MerchantSpec[] = [merchantA, merchantB];

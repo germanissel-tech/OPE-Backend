@@ -9,7 +9,7 @@ import {
   type FreshnessBudgetRecord,
   type SyncLevelRulesRecord,
 } from "../catalog/index.js";
-import { BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
+import { isRate, BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 import {
   PolicyInput,
@@ -32,12 +32,12 @@ import {
 import type { CommercialPolicy } from "../commercial/index.js";
 import type { DecisionPolicy } from "../decision/index.js";
 
-/** The values as the configuration speaks them (percentages, milliseconds, closed vocabularies). */
+/** The values as the configuration speaks them (shares, milliseconds, closed vocabularies). */
 export interface TreatmentValuesRecord {
   freshness: FreshnessBudgetRecord;
   syncLevel: SyncLevelRulesRecord;
-  /** Share of the traffic kept out of every experiment, as an integer percentage; 0 is allowed. */
-  holdoutPercent: number;
+  /** Share of the traffic kept out of every experiment, as a fraction of 1; 0 is allowed. */
+  holdoutShare: number;
   decisionPolicy: DecisionPolicyInput;
   commercialPolicy: CommercialPolicyInput;
   evidenceProfile: EvidenceProfileInput;
@@ -51,7 +51,7 @@ export interface TreatmentValuesRecord {
 export interface DeclaredTreatmentValues {
   freshness?: Partial<FreshnessBudgetRecord>;
   syncLevel?: Partial<SyncLevelRulesRecord>;
-  holdoutPercent?: number;
+  holdoutShare?: number;
   decisionPolicy?: DecisionPolicyDeclared;
   commercialPolicy?: CommercialPolicyDeclared;
   evidenceProfile?: EvidenceProfileDeclared;
@@ -62,8 +62,6 @@ export interface DeclaredTreatmentValues {
 }
 
 export type TreatmentResult<T> = Result<T, InvalidConfigurationValue>;
-
-const PERCENT = 100;
 
 /** A closed list: non-empty, without repeats, every element of the vocabulary. */
 function judgeList(
@@ -100,7 +98,7 @@ const located = (at: string, error: { path: string; message: string }): InvalidC
 export class TreatmentValues {
   readonly freshness: FreshnessBudget;
   readonly syncLevel: SyncLevelRules;
-  /** The holdout as a rate 0..1; the configuration speaks the percentage. */
+  /** The holdout as a share of 1, the way the configuration declares it. */
   readonly holdoutShare: number;
   readonly decisionPolicy: DecisionPolicy;
   readonly commercialPolicy: CommercialPolicy;
@@ -123,7 +121,7 @@ export class TreatmentValues {
     this.#record = record;
     this.freshness = built.freshness;
     this.syncLevel = built.syncLevel;
-    this.holdoutShare = record.holdoutPercent / PERCENT;
+    this.holdoutShare = record.holdoutShare;
     this.decisionPolicy = built.decision;
     this.commercialPolicy = built.commercial;
     this.evidenceProfile = {
@@ -145,14 +143,10 @@ export class TreatmentValues {
     if (!freshness.ok) return fail(located("freshness", freshness.error));
     const syncLevel = SyncLevelRules.of(record.syncLevel);
     if (!syncLevel.ok) return fail(located("syncLevel", syncLevel.error));
-    if (
-      !Number.isInteger(record.holdoutPercent) ||
-      record.holdoutPercent < 0 ||
-      record.holdoutPercent > PERCENT
-    ) {
-      return fail(
-        new InvalidConfigurationValue("holdoutPercent", "must be an integer percentage between 0 and 100"),
-      );
+    // The same judge every other share of the system uses; there is no second reading of what a
+    // share is (feature 022).
+    if (!isRate(record.holdoutShare)) {
+      return fail(new InvalidConfigurationValue("holdoutShare", "must be a fraction between 0 and 1"));
     }
     const decision = PolicyInput.at("decisionPolicy").decision(record.decisionPolicy);
     if (!decision.ok) return fail(decision.error);
@@ -187,7 +181,7 @@ export class TreatmentValues {
     return {
       freshness: PolicyInput.merge(defaults.freshness, declared.freshness),
       syncLevel: PolicyInput.merge(defaults.syncLevel, declared.syncLevel),
-      holdoutPercent: declared.holdoutPercent ?? defaults.holdoutPercent,
+      holdoutShare: declared.holdoutShare ?? defaults.holdoutShare,
       decisionPolicy: PolicyInput.merge(defaults.decisionPolicy, declared.decisionPolicy),
       commercialPolicy: PolicyInput.merge(defaults.commercialPolicy, declared.commercialPolicy),
       evidenceProfile: PolicyInput.merge(defaults.evidenceProfile, declared.evidenceProfile),

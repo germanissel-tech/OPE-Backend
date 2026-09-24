@@ -25,11 +25,11 @@ post:
           example:
             experimentId: exp_9a8b7c6d5e4f
             status: active
-            treatmentPercent: 50
+            treatmentShare: 0.5
             targetSample: 32000
             cuts:
-              - 33
-              - 66
+              - 0.33
+              - 0.66
             openedAt: 2026-09-20T12:00:00Z
             activatedAt: 2026-09-27T12:00:00Z
             windowStartedAt: 2026-09-27T12:00:00Z

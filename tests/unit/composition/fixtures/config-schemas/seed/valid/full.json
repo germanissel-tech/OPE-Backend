@@ -9,18 +9,18 @@
       "experiments": [
         {
           "experimentId": "exp_seed_0001",
-          "treatmentPercent": 50,
+          "treatmentShare": 0.5,
           "seed": "s",
           "status": "active",
           "openedAt": "2026-09-17T00:00:00Z",
           "targetSample": 1000,
-          "cuts": [25, 50]
+          "cuts": [0.25, 0.5]
         }
       ],
-      "holdoutPercent": 0,
+      "holdoutShare": 0,
       "commercialPolicy": {
         "version": "c-1",
-        "marginPercent": 40
+        "marginShare": 0.4
       },
       "evidenceProfile": {
         "returnsPolicy": true,

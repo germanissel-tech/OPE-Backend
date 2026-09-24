@@ -871,7 +871,7 @@ export type components = {
             type: "checkout_advanced";
             visitorId: components["schemas"]["VisitorId"];
         };
-        /** @description A complete commercial policy (ADR-027): incentive ceiling and ladder, margin, return risk, high intent, abandonment and budgets. Percentages at the edge; the domain works with rates. */
+        /** @description A complete commercial policy (ADR-027): incentive ceiling and ladder, margin, return risk, high intent, abandonment and budgets. Every share is a fraction of 1, here as everywhere. */
         CommercialPolicy: {
             /**
              * @description What a cart abandonment without a signal triggers.
@@ -887,16 +887,16 @@ export type components = {
              * @enum {string}
              */
             highIntent: "from-cart" | "from-checkout" | "never";
-            /** @description Incentive steps as integer percentages, strictly increasing, within the ceiling. */
-            incentiveLadderPercent: number[];
+            /** @description Incentive steps as fractions of 1, strictly increasing, within the ceiling. */
+            incentiveLadderShare: number[];
             /** @description Interventions a session may receive. */
             interventionsPerSession: number;
             /** @description Interventions a visitor may receive per day (fatigue). */
             interventionsPerVisitorPerDay: number;
-            /** @description Margin the merchant declares, as an integer percentage; absent means no incentive goes out (01 §4.7). */
-            marginPercent?: number;
-            /** @description Ceiling of any incentive, as an integer percentage. */
-            maxIncentivePercent: number;
+            /** @description Margin the merchant declares, as a fraction of 1; absent means no incentive goes out (01 §4.7). */
+            marginShare?: number;
+            /** @description Ceiling of any incentive, as a fraction of 1. */
+            maxIncentiveShare: number;
             returnRisk: components["schemas"]["Condition"];
             /** @description Version the merchant gives its commercial policy; stamped in every decision. */
             version: string;
@@ -917,16 +917,16 @@ export type components = {
              * @enum {string}
              */
             highIntent?: "from-cart" | "from-checkout" | "never";
-            /** @description Incentive steps as integer percentages, strictly increasing, within the ceiling. */
-            incentiveLadderPercent?: number[];
+            /** @description Incentive steps as fractions of 1, strictly increasing, within the ceiling. */
+            incentiveLadderShare?: number[];
             /** @description Interventions a session may receive. */
             interventionsPerSession?: number;
             /** @description Interventions a visitor may receive per day (fatigue). */
             interventionsPerVisitorPerDay?: number;
-            /** @description Margin the merchant declares, as an integer percentage; absent means no incentive goes out (01 §4.7). */
-            marginPercent?: number;
-            /** @description Ceiling of any incentive, as an integer percentage. */
-            maxIncentivePercent?: number;
+            /** @description Margin the merchant declares, as a fraction of 1; absent means no incentive goes out (01 §4.7). */
+            marginShare?: number;
+            /** @description Ceiling of any incentive, as a fraction of 1. */
+            maxIncentiveShare?: number;
             returnRisk?: components["schemas"]["Condition"];
             /** @description Version the merchant gives its commercial policy; stamped in every decision. */
             version: string;
@@ -1117,8 +1117,8 @@ export type components = {
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
-            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
-            holdoutPercent: number;
+            /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
+            holdoutShare: number;
             locales: components["schemas"]["Locales"];
             platform: components["schemas"]["PlatformConfiguration"];
             /** @description Page types where OPE may intervene. */
@@ -1223,7 +1223,7 @@ export type components = {
              * @description When it was closed; absent while open.
              */
             closedAt?: string;
-            /** @description Interim cuts as percentages of the target sample, strictly increasing; empty when the target sample is the only cut. */
+            /** @description Interim cuts as fractions of the target sample, strictly increasing; empty when the target sample is the only cut. */
             cuts: number[];
             experimentId: components["schemas"]["ExperimentId"];
             /**
@@ -1234,8 +1234,8 @@ export type components = {
             status: components["schemas"]["ExperimentStatus"];
             /** @description Visitors the accumulation window aims at. */
             targetSample: number;
-            /** @description Share of visitors assigned to TREATMENT, as an integer percentage. */
-            treatmentPercent: number;
+            /** @description Share of visitors assigned to TREATMENT, as a fraction of 1. The assignment resolves to whole buckets of one hundredth, so a finer value takes the nearest bucket. */
+            treatmentShare: number;
             /** @description Every restart of the accumulation window, oldest first. */
             windowRestarts: components["schemas"]["WindowRestart"][];
             /**
@@ -1246,14 +1246,14 @@ export type components = {
         };
         /** @description What an operator declares to open an experiment (ADR-022, D-G): the split, the seed of the assignment key, the target sample and the cuts at which its result may be read (D-F). Split and seed are immutable: changing them is another experiment. */
         ExperimentCreate: {
-            /** @description Interim cuts as percentages of the target sample, strictly increasing (D-F: results are read only at pre-fixed cuts). Without cuts, the target sample is the only one. */
+            /** @description Interim cuts as fractions of the target sample, strictly increasing (D-F: results are read only at pre-fixed cuts). Without cuts, the target sample is the only one. */
             cuts?: number[];
             /** @description Part of the assignment key; never shown again. */
             seed: string;
             /** @description Visitors the accumulation window aims at; the last cut. */
             targetSample: number;
-            /** @description Share of the merchant's visitors assigned to TREATMENT, as an integer percentage; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`100 − holdoutPercent`). */
-            treatmentPercent: number;
+            /** @description Share of the merchant's visitors assigned to TREATMENT, as a fraction of 1; the rest is CONTROL. It cannot exceed what the holdout of the merchant leaves (`1 − holdoutShare`). The assignment resolves to whole buckets of one hundredth, so a finer value takes the nearest bucket. */
+            treatmentShare: number;
         };
         /** @description Identifier of an experiment, minted by OPE when the operator opens it. */
         ExperimentId: string;
@@ -1337,11 +1337,11 @@ export type components = {
          */
         Incentive: {
             /**
-             * @description The kind of incentive; only a percentage in the MVP.
+             * @description The kind of incentive — a proportional discount and not a fixed amount; only this one in the MVP. It says what the incentive is, not the unit its value is in.
              * @enum {string}
              */
             kind: "percent";
-            /** @description The percentage, as the merchant's commercial policy allows it (never above its ceiling). */
+            /** @description The share the incentive grants, as a fraction of 1 and never above the merchant's ceiling. A fifteen percent discount is `0.15`. */
             value: number;
         };
         /** @description Response to an accepted batch. Carries the result per event and the decision for the session. */
@@ -1427,8 +1427,8 @@ export type components = {
             decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];
             evidenceProfile?: components["schemas"]["EvidenceProfileDeclared"];
             freshness?: components["schemas"]["FreshnessDeclared"];
-            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
-            holdoutPercent?: number;
+            /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
+            holdoutShare?: number;
             locales?: components["schemas"]["Locales"];
             /** @description Page types where OPE may intervene. */
             surfaces?: components["schemas"]["Surface"][];
@@ -1906,8 +1906,8 @@ export type components = {
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
-            /** @description Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0. */
-            holdoutPercent: number;
+            /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
+            holdoutShare: number;
             locales: components["schemas"]["Locales"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
@@ -2014,11 +2014,11 @@ export type components = {
                  *       "type": "urn:ope:problem:invalid-configuration-value",
                  *       "title": "A configuration value violates an invariant of its type",
                  *       "status": 422,
-                 *       "detail": "declared.commercialPolicy.incentiveLadderPercent is invalid (The incentive ladder is not strictly increasing within 1 and the ceiling).",
+                 *       "detail": "declared.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not strictly increasing within 1 and the ceiling).",
                  *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration",
                  *       "errors": [
                  *         {
-                 *           "pointer": "/declared/commercialPolicy/incentiveLadderPercent",
+                 *           "pointer": "/declared/commercialPolicy/incentiveLadderShare",
                  *           "message": "The incentive ladder is not strictly increasing within 1 and the ceiling."
                  *         }
                  *       ]
@@ -2131,7 +2131,7 @@ export type components = {
                  *       "type": "urn:ope:problem:invalid-experiment-cuts",
                  *       "title": "The experiment cuts are not strictly increasing",
                  *       "status": 422,
-                 *       "detail": "The cuts must be strictly increasing percentages of the target sample.",
+                 *       "detail": "The cuts must be strictly increasing fractions of the target sample.",
                  *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/experiments"
                  *     }
                  */
@@ -2685,7 +2685,7 @@ export interface operations {
                      *           "minutesLevelMedianIntervalMs": 900000,
                      *           "minutesLevelMinReceipts": 3
                      *         },
-                     *         "holdoutPercent": 5,
+                     *         "holdoutShare": 0.05,
                      *         "decisionPolicy": {
                      *           "version": "default-1",
                      *           "rules": [
@@ -2721,8 +2721,8 @@ export interface operations {
                      *         },
                      *         "commercialPolicy": {
                      *           "version": "commercial-default-1",
-                     *           "maxIncentivePercent": 10,
-                     *           "incentiveLadderPercent": [
+                     *           "maxIncentiveShare": 0.1,
+                     *           "incentiveLadderShare": [
                      *             5,
                      *             10
                      *           ],
@@ -3059,11 +3059,11 @@ export interface operations {
                      *         {
                      *           "experimentId": "exp_9a8b7c6d5e4f",
                      *           "status": "active",
-                     *           "treatmentPercent": 50,
+                     *           "treatmentShare": 0.5,
                      *           "targetSample": 32000,
                      *           "cuts": [
-                     *             33,
-                     *             66
+                     *             0.33,
+                     *             0.66
                      *           ],
                      *           "openedAt": "2026-09-20T12:00:00Z",
                      *           "activatedAt": "2026-09-27T12:00:00Z",
@@ -3104,12 +3104,12 @@ export interface operations {
             content: {
                 /**
                  * @example {
-                 *       "treatmentPercent": 50,
+                 *       "treatmentShare": 0.5,
                  *       "seed": "pilot-2026-q4",
                  *       "targetSample": 32000,
                  *       "cuts": [
-                 *         33,
-                 *         66
+                 *         0.33,
+                 *         0.66
                  *       ]
                  *     }
                  */
@@ -3127,11 +3127,11 @@ export interface operations {
                      * @example {
                      *       "experimentId": "exp_9a8b7c6d5e4f",
                      *       "status": "calibrating",
-                     *       "treatmentPercent": 50,
+                     *       "treatmentShare": 0.5,
                      *       "targetSample": 32000,
                      *       "cuts": [
-                     *         33,
-                     *         66
+                     *         0.33,
+                     *         0.66
                      *       ],
                      *       "openedAt": "2026-09-20T12:00:00Z",
                      *       "windowRestarts": []
@@ -3174,11 +3174,11 @@ export interface operations {
                      * @example {
                      *       "experimentId": "exp_9a8b7c6d5e4f",
                      *       "status": "active",
-                     *       "treatmentPercent": 50,
+                     *       "treatmentShare": 0.5,
                      *       "targetSample": 32000,
                      *       "cuts": [
-                     *         33,
-                     *         66
+                     *         0.33,
+                     *         0.66
                      *       ],
                      *       "openedAt": "2026-09-20T12:00:00Z",
                      *       "activatedAt": "2026-09-27T12:00:00Z",
@@ -3222,11 +3222,11 @@ export interface operations {
                      * @example {
                      *       "experimentId": "exp_9a8b7c6d5e4f",
                      *       "status": "closed",
-                     *       "treatmentPercent": 50,
+                     *       "treatmentShare": 0.5,
                      *       "targetSample": 32000,
                      *       "cuts": [
-                     *         33,
-                     *         66
+                     *         0.33,
+                     *         0.66
                      *       ],
                      *       "openedAt": "2026-09-20T12:00:00Z",
                      *       "activatedAt": "2026-09-27T12:00:00Z",
@@ -3550,7 +3550,7 @@ export interface operations {
                      *         "minutesLevelMedianIntervalMs": 900000,
                      *         "minutesLevelMinReceipts": 3
                      *       },
-                     *       "holdoutPercent": 5,
+                     *       "holdoutShare": 0.05,
                      *       "decisionPolicy": {
                      *         "version": "default-1",
                      *         "rules": [
@@ -3586,8 +3586,8 @@ export interface operations {
                      *       },
                      *       "commercialPolicy": {
                      *         "version": "commercial-default-1",
-                     *         "maxIncentivePercent": 10,
-                     *         "incentiveLadderPercent": [
+                     *         "maxIncentiveShare": 0.1,
+                     *         "incentiveLadderShare": [
                      *           5,
                      *           10
                      *         ],

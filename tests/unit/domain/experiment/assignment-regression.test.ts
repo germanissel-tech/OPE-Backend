@@ -7,7 +7,7 @@ import { asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 
 const SAMPLE = 100_000;
-const PERCENT = 100;
+const BUCKETS = 100;
 const FINGERPRINTS: Record<number, number> = { 50: 1243557091, 20: 853083737, 80: 2325495260 };
 
 // Local copy of the domain's FNV-1a (src/domain/experiment/experiment.ts): the domain does not
@@ -27,7 +27,7 @@ describe("assignment regression against feature 007", () => {
   it.each(Object.entries(FINGERPRINTS))(
     "%s % treatment: the arm sequence of 100 000 visitors is unchanged",
     (percent, fingerprint) => {
-      const experiment = testExperiment({ treatmentShare: Number(percent) / PERCENT, openedAt: new Date(0) });
+      const experiment = testExperiment({ treatmentShare: Number(percent) / BUCKETS, openedAt: new Date(0) });
       let arms = "";
       for (let n = 1; n <= SAMPLE; n += 1) {
         arms +=
@@ -39,16 +39,16 @@ describe("assignment regression against feature 007", () => {
 
   it("every integer percentage survives the round trip to a rate once rounded to buckets (7 / 100 * 100 is not 7)", () => {
     const inexact: number[] = [];
-    for (let percent = 0; percent <= PERCENT; percent += 1) {
-      if ((percent / PERCENT) * PERCENT !== percent) inexact.push(percent);
-      expect(Math.round((percent / PERCENT) * PERCENT)).toBe(percent);
+    for (let percent = 0; percent <= BUCKETS; percent += 1) {
+      if ((percent / BUCKETS) * BUCKETS !== percent) inexact.push(percent);
+      expect(Math.round((percent / BUCKETS) * BUCKETS)).toBe(percent);
     }
     expect(inexact.length).toBeGreaterThan(0);
   });
 
   it("the threshold is the rounded bucket count for every integer percentage", () => {
-    for (let percent = 0; percent <= PERCENT; percent += 1) {
-      const experiment = testExperiment({ treatmentShare: percent / PERCENT, openedAt: new Date(0) });
+    for (let percent = 0; percent <= BUCKETS; percent += 1) {
+      const experiment = testExperiment({ treatmentShare: percent / BUCKETS, openedAt: new Date(0) });
       // 10 000 sequential visitors: the share of TREATMENT lands within 2 pp of the percentage.
       let treatment = 0;
       for (let n = 1; n <= 10_000; n += 1) {

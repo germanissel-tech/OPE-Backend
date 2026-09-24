@@ -27,12 +27,12 @@ export class InvalidTargetSample extends DomainError {
   }
 }
 
-/** The cuts are not strictly increasing whole percentages of the target sample (D-F). */
+/** The cuts are not strictly increasing fractions of the target sample (D-F). */
 export class InvalidExperimentCuts extends DomainError {
   readonly code = "invalid-experiment-cuts" as const;
   readonly module = MODULE;
   constructor(index: number) {
-    super("The cuts must be strictly increasing percentages of the target sample.", { index });
+    super("The cuts must be strictly increasing fractions of the target sample.", { index });
   }
 }
 

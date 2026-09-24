@@ -142,7 +142,7 @@ describe("isolation between merchants", () => {
   it("assignments: the same visitor in two merchants with active experiments is assigned independently; nothing crosses", async () => {
     const experiment = (seed: string) => ({
       experimentId: "exp_iso_00001",
-      treatmentPercent: 50,
+      treatmentShare: 0.5,
       seed,
       status: "active" as const,
       openedAt: NOW,
@@ -189,14 +189,14 @@ describe("isolation between merchants", () => {
   it("experiments: a closed and an active experiment of the same merchant do not share assignments", async () => {
     const closed = {
       experimentId: "exp_closed_001",
-      treatmentPercent: 50,
+      treatmentShare: 0.5,
       seed: "old",
       status: "closed" as const,
       openedAt: NOW,
     };
     const active = {
       experimentId: "exp_active_01",
-      treatmentPercent: 50,
+      treatmentShare: 0.5,
       seed: "new",
       status: "active" as const,
       openedAt: NOW,
@@ -257,7 +257,7 @@ describe("isolation between merchants", () => {
     });
     const experiment = {
       experimentId: "exp_iso_00001",
-      treatmentPercent: 100,
+      treatmentShare: 1,
       seed: "s",
       status: "active" as const,
       openedAt: NOW,
@@ -329,7 +329,7 @@ describe("isolation between merchants", () => {
   it("commercial policy and visitor state: A with margin grants the incentive, B without margin does not; A's fatigue does not touch B", async () => {
     const experiment = {
       experimentId: "exp_iso_00002",
-      treatmentPercent: 100,
+      treatmentShare: 1,
       seed: "s",
       status: "active" as const,
       openedAt: NOW,
@@ -342,7 +342,7 @@ describe("isolation between merchants", () => {
       origins: [A.origin],
       experiments: [experiment],
       evidenceProfile: profile,
-      commercialPolicy: { version: "a-c", marginPercent: 40, interventionsPerVisitorPerDay: 1 },
+      commercialPolicy: { version: "a-c", marginShare: 0.4, interventionsPerVisitorPerDay: 1 },
     };
     const b: MerchantSpec = {
       merchantId: B.id,
@@ -378,7 +378,7 @@ describe("isolation between merchants", () => {
     });
     const inA = json(await postEvents(app.app, price(1, "ses_00000001"), { key: A.key })) as IngestResult;
     const inB = json(await postEvents(app.app, price(1, "ses_00000001"), { key: B.key })) as IngestResult;
-    expect(inA.decision.intervention).toMatchObject({ incentive: { kind: "percent", value: 5 } });
+    expect(inA.decision.intervention).toMatchObject({ incentive: { kind: "percent", value: 0.05 } });
     expect(inB.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
     expect(inB.decision.intervention).not.toHaveProperty("incentive");
     const ledgerA = await app

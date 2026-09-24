@@ -136,15 +136,15 @@ describe("Order.sameContentAs", () => {
     ["a line less", { items: [{ sku: "SKU-1", quantity: 2 }] }],
     ["another confirmation instant", { confirmedAt: new Date("2026-09-19T11:58:00.000Z") }],
     ["a session", { sessionId: session }],
-    ["an incentive declared", { declared: { kind: "percent", value: 5 } }],
+    ["an incentive declared", { declared: { kind: "percent", value: 0.05 } }],
   ])("%s is different content", (_name, over) => {
     expect(valid().sameContentAs(valid(over))).toBe(false);
   });
 
   it("another incentive value is different content; the same incentive is the same", () => {
-    const five = valid({ declared: { kind: "percent", value: 5 } });
+    const five = valid({ declared: { kind: "percent", value: 0.05 } });
     expect(five.sameContentAs(valid({ declared: { kind: "percent", value: 10 } }))).toBe(false);
-    expect(five.sameContentAs(valid({ declared: { kind: "percent", value: 5 } }))).toBe(true);
+    expect(five.sameContentAs(valid({ declared: { kind: "percent", value: 0.05 } }))).toBe(true);
   });
 
   it("another orderId is different content (the ledger never compares across identities, but the rule holds)", () => {
@@ -157,18 +157,21 @@ describe("Order — the record, the return and the lines", () => {
     const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
     const redemption = IncentiveRedemption.rehydrate({
       verdict: "not-granted",
-      declared: { kind: "percent", value: 5 },
+      declared: { kind: "percent", value: 0.05 },
     });
     const returned = Return.rehydrate({ orderId: base.orderId, returnedAt: NOW, receivedAt: NOW });
     const order = Order.rehydrate({
-      ...valid({ sessionId: asSessionId("ses_00000001"), declared: { kind: "percent", value: 5 } }).record(),
+      ...valid({
+        sessionId: asSessionId("ses_00000001"),
+        declared: { kind: "percent", value: 0.05 },
+      }).record(),
       correlation,
       redemption,
     }).withReturn(returned);
     const record = order.record();
     expect(record).toMatchObject({
       sessionId: "ses_00000001",
-      declared: { kind: "percent", value: 5 },
+      declared: { kind: "percent", value: 0.05 },
       correlation,
       redemption,
       returned,

@@ -17,4 +17,4 @@ value:
       anchor: price
       incentive:
         kind: percent
-        value: 5
+        value: 0.05

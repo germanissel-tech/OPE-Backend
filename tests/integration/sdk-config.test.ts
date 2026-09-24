@@ -35,13 +35,13 @@ const merchantA: MerchantSpec = {
   origins: ["https://a.example"],
   evidenceProfile: { returnsPolicy: true, fitData: true },
   declared: {
-    holdoutPercent: 0,
+    holdoutShare: 0,
     anchors: ANCHORS,
     locales: { supported: ["es-AR", "en"], fallback: "es-AR" },
-    commercialPolicy: { version: "a-1", marginPercent: 40 },
+    commercialPolicy: { version: "a-1", marginShare: 0.4 },
   },
   experiments: [
-    { experimentId: "exp_a_000001", treatmentPercent: 100, seed: "seed-a", status: "active", openedAt: NOW },
+    { experimentId: "exp_a_000001", treatmentShare: 1, seed: "seed-a", status: "active", openedAt: NOW },
   ],
 };
 
@@ -101,7 +101,7 @@ describe("GET /v1/sdk/config (scenarios 1, 2)", () => {
   it("a published version is served on the next request with its number; without an anchor map the field is absent", async () => {
     const published = await admin(app.app, "POST", `/v1/admin/merchants/${A}/configuration`, {
       body: {
-        declared: { holdoutPercent: 0, surfaces: ["product"], locales: { supported: ["en"] } },
+        declared: { holdoutShare: 0, surfaces: ["product"], locales: { supported: ["en"] } },
         corrective: true,
         reason: "redesign",
       },

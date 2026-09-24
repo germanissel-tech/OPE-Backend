@@ -9,7 +9,7 @@
     "version",
     "freshness",
     "syncLevel",
-    "holdoutPercent",
+    "holdoutShare",
     "decisionPolicy",
     "commercialPolicy",
     "evidenceProfile",
@@ -35,11 +35,11 @@
     "syncLevel": {
       "$ref": "#/$defs/SyncLevelRules"
     },
-    "holdoutPercent": {
-      "type": "integer",
-      "description": "Share of the traffic kept out of every experiment, as an integer percentage; a merchant may set it to 0.",
+    "holdoutShare": {
+      "type": "number",
+      "description": "Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0.",
       "minimum": 0,
-      "maximum": 100
+      "maximum": 1
     },
     "decisionPolicy": {
       "$ref": "#/$defs/DecisionPolicy"
@@ -691,12 +691,12 @@
     },
     "CommercialPolicy": {
       "type": "object",
-      "description": "A complete commercial policy (ADR-027): incentive ceiling and ladder, margin, return risk, high intent, abandonment and budgets. Percentages at the edge; the domain works with rates.",
+      "description": "A complete commercial policy (ADR-027): incentive ceiling and ladder, margin, return risk, high intent, abandonment and budgets. Every share is a fraction of 1, here as everywhere.",
       "additionalProperties": false,
       "required": [
         "version",
-        "maxIncentivePercent",
-        "incentiveLadderPercent",
+        "maxIncentiveShare",
+        "incentiveLadderShare",
         "directIncentiveOnPrice",
         "returnRisk",
         "highIntent",
@@ -712,29 +712,29 @@
           "minLength": 1,
           "maxLength": 64
         },
-        "maxIncentivePercent": {
-          "type": "integer",
-          "description": "Ceiling of any incentive, as an integer percentage.",
+        "maxIncentiveShare": {
+          "type": "number",
+          "description": "Ceiling of any incentive, as a fraction of 1.",
           "minimum": 0,
-          "maximum": 100
+          "maximum": 1
         },
-        "incentiveLadderPercent": {
+        "incentiveLadderShare": {
           "type": "array",
-          "description": "Incentive steps as integer percentages, strictly increasing, within the ceiling.",
+          "description": "Incentive steps as fractions of 1, strictly increasing, within the ceiling.",
           "minItems": 1,
           "maxItems": 8,
           "items": {
-            "type": "integer",
+            "type": "number",
             "description": "One step.",
             "minimum": 0,
-            "maximum": 100
+            "maximum": 1
           }
         },
-        "marginPercent": {
-          "type": "integer",
-          "description": "Margin the merchant declares, as an integer percentage; absent means no incentive goes out (01 §4.7).",
+        "marginShare": {
+          "type": "number",
+          "description": "Margin the merchant declares, as a fraction of 1; absent means no incentive goes out (01 §4.7).",
           "minimum": 0,
-          "maximum": 100
+          "maximum": 1
         },
         "directIncentiveOnPrice": {
           "type": "boolean",

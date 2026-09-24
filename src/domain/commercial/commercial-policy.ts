@@ -36,7 +36,7 @@ export type Abandonment = "nothing" | "reassure-returns";
 
 export interface CommercialPolicyRecord {
   version: string;
-  /** The ceiling of the incentive as a rate 0..1 (the percentage stays at the edge, CLAUDE.md § Convenciones). */
+  /** The ceiling of the incentive as a share of 1 — the only unit there is (feature 022). */
   maxIncentiveShare: number;
   /** The steps of the ladder as rates, strictly increasing, each within (0, ceiling]. */
   incentiveLadderShare: readonly number[];
@@ -88,8 +88,6 @@ type Choice =
   | { kind: "chosen"; candidate: Candidate; incentive?: Incentive }
   | { kind: "refused"; reason: NoOpReason; blocked?: Blocked };
 
-/** The incentive the shopper sees is a whole percentage: the rate resolves to it once, here. */
-const PERCENT_PER_UNIT = 100;
 const INCENTIVE: Step = "incentive";
 const REASSURANCE: Step = "reassurance";
 const PRICE: Barrier = "price";
@@ -128,8 +126,7 @@ export class CommercialPolicy {
   /**
    * A policy, or the first violated invariant: version not blank, ceiling a rate 0..1, ladder
    * strictly increasing within (0, ceiling], margin absent or a rate, return-risk condition
-   * inside the vocabulary, budgets of at least one, cooldown not negative. That the rates
-   * resolve to whole percentages is the edge's rule (the configuration reads integers).
+   * inside the vocabulary, budgets of at least one, cooldown not negative.
    */
   static of(record: CommercialPolicyRecord): Result<CommercialPolicy, CommercialError> {
     if (record.version.trim() === "") return fail(new InvalidCommercialVersion());
@@ -228,9 +225,9 @@ export class CommercialPolicy {
     return facts.holds(this.returnRisk) ? "return-risk" : undefined;
   }
 
-  /** The first step of the ladder as the whole percentage the shopper sees; the invariant keeps it within the ceiling. */
+  /** The first step of the ladder, as the share it is; the invariant keeps it within the ceiling. */
   #incentiveValue(): number {
-    return Math.round((this.incentiveLadderShare[0] ?? this.maxIncentiveShare) * PERCENT_PER_UNIT);
+    return this.incentiveLadderShare[0] ?? this.maxIncentiveShare;
   }
 
   #highIntent({ addedToCart, enteredCheckout }: CommercialInput): boolean {

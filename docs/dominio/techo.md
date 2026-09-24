@@ -11,5 +11,5 @@ uso: disponible
 
 > Techo del merchant: conserva autoridad sobre el incentivo máximo.
 
-`maxIncentivePercent` de la política comercial: ningún escalón lo supera (invariante al
+`maxIncentiveShare` de la política comercial: ningún escalón lo supera (invariante al
 construir la política); techo 0 ⇒ el merchant no admite incentivos.

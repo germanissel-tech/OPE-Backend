@@ -7,7 +7,7 @@
       "experiments": [
         {
           "experimentId": "exp_seed_0001",
-          "treatmentPercent": 50.5,
+          "treatmentShare": 1.01,
           "seed": "s",
           "status": "active",
           "openedAt": "2026-09-17T00:00:00Z",
