@@ -95,3 +95,23 @@ El cableado es un **grafo tipado**, con inyección de dependencias manual y sin 
   constructores devuelvan efectos y reescribiría dominio y aplicación; fuera del alcance.
 - **Verificar la cobertura sólo al arrancar** (lo que había): detecta el error cuando el proceso
   corre, no impide escribirlo, y no cubre las pruebas que no arrancan la aplicación.
+
+## El vocabulario que fijó la implementación
+
+Mudado desde las instrucciones de los agentes por la feature 026 (deuda D-09): la decisión estaba
+acá, pero los nombres con los que se escribe sólo estaban en la regla que un agente lee.
+
+- Un enlace declara lo que necesita **por nombre**: `bind(Puerto, { clock: ClockPort }, ({ clock })
+=> …)`. `bindAll([Store, Directory], …)` es "una instancia, varias vistas": se construye una vez y
+  los dos puertos responden con el mismo objeto.
+- Un módulo nombra su tecnología con `ledgerModule.with("postgres")`, y **sólo si declara más de
+  una**.
+- Los cuatro requisitos del punto 3 tienen alias con nombre, que aparecen literalmente en el
+  mensaje del compilador: `Missing<…>` (un requisito sin proveedor), `TechnologiesDisagree<…>` (dos
+  tecnologías de un módulo que no proveen lo mismo), `ChooseATechnology<…>` (un módulo con varias
+  que entra al despliegue sin elegir) y `Unwired<…>` (un despliegue que no cubre las operaciones del
+  contrato). A ellos se suman una instancia que no satisface todas sus vistas y, ya en ejecución, un
+  ciclo que falla al arrancar nombrándolo.
+- Lo que una prueba reemplaza se escribe `instantiate(plan, [replace(Puerto, doble)])`; el logger es
+  un componente (`Logger` en `shared-kernel`, pino en `infrastructure/logging/`) y se reemplaza
+  igual, con `replace(LoggerPort, …)`.

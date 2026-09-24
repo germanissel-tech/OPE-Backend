@@ -49,6 +49,11 @@ prepare para usarla. La revisión de deudas sigue; esta feature es el lugar dond
 
 ### Registro de deudas
 
+> **El registro vivo se mudó a `docs/deudas.md`** (feature 026). Lo de abajo es la historia de
+> esta feature: las seis deudas que la abrieron y cómo quedaron. Una deuda nueva **no** se agrega
+> acá — `specs/` es histórico y fechado, y tenerlo adentro hizo que dos features posteriores
+> nombraran cuatro deudas sin que ninguna llegara al registro.
+
 | Id   | Título                                                                         | Origen                         | Estado         | Fecha      | Cierre    |
 | ---- | ------------------------------------------------------------------------------ | ------------------------------ | -------------- | ---------- | --------- |
 | D-01 | La skill de auditoría de arquitectura está acoplada a este repo                | Revisión del dueño tras la 018 | `implementada` | 2026-09-21 | `5571829` |

@@ -1,12 +1,17 @@
 // Feature 019 D-01 (ADR-032, SC-01-2): the audit skills are the method and nothing else. No
 // script of .claude/skills/auditing-architecture or conditioning-project imports or reads a
-// path outside those two skills nor a package beyond `node:`; every skill has its SKILL.md
+// path outside those two skills nor a package beyond `node:`. Every skill this repository
+// authors —including triaging-mutants, which is deliberately not portable: it triages this
+// repository's mutation gate— has its SKILL.md
 // with a name. They live in the repository like the spec-kit ones: no global installation.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const SKILLS = ["auditing-architecture", "conditioning-project"].map((s) => path.join(".claude/skills", s));
+const PORTABLE = ["auditing-architecture", "conditioning-project"];
+/** The skills this repository authors; the spec-kit ones are vendored and reach into .specify/. */
+const OWN = [...PORTABLE, "triaging-mutants"];
+const SKILLS = PORTABLE.map((s) => path.join(".claude/skills", s));
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -68,7 +73,7 @@ describe("the audit skills depend on nothing of this repository", () => {
   });
 
   it("every skill has a SKILL.md whose frontmatter names it", () => {
-    for (const skill of SKILLS) {
+    for (const skill of OWN.map((s) => path.join(".claude/skills", s))) {
       const content = readFileSync(path.join(skill, "SKILL.md"), "utf8");
       expect(content, skill).toMatch(new RegExp(`^---\\nname: ${path.basename(skill)}\\n`, "u"));
     }

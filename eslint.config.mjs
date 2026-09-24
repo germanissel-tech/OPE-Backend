@@ -17,6 +17,8 @@ const COMMONJS_FILES = ["contracts/rules/functions/*.js", "**/*.cjs"];
 
 // Shape of the code (ADR-016, FR-010..FR-013). Every threshold carries its reason; a value
 // without one is a "voodoo constant". These apply everywhere unless a scope below says otherwise.
+// Each block below is exported so tests/lint/lint.test.ts can apply the same rules to its
+// fixtures: the fixture proves the rule fires, and the export is what makes it the same rule.
 export const SHAPE_RULES = {
   // 15 is the threshold of Sonar's original cognitive-complexity paper (Campbell, 2018): past it
   // a function is no longer understood in one reading.

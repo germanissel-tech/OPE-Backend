@@ -114,3 +114,29 @@ Lo que la implementación fijó y sólo estaba escrito en las instrucciones de l
   se lee paginado por `GET /v1/admin/log` y `GET /v1/admin/merchants/{merchantId}/log`.
 - **Herramientas**: `node scripts/mint-admin-token.mjs` acuña un token y su huella, y
   `config/dev-operators.json` lleva el operador de desarrollo.
+- **Qué contiene cada nivel, y cómo llega a quien lo usa.** El detalle que sólo estaba escrito en
+  las instrucciones de los agentes (mudado acá por la feature 026, deuda D-07):
+  - **Plataforma** (`config/platform.json`): ventana de deduplicación, tolerancia de reloj, memoria
+    de sesión y de visitante, ventana de firma, gracia máxima de rotación, tope de diagnósticos.
+  - **Default de tratamiento** (`config/treatment-defaults.json`): frescura, umbrales del nivel de
+    sincronización, `holdoutShare`, las tres políticas, superficies, barreras, estrategia de
+    sincronización, idiomas.
+  - **Merchant**: las versiones que publica `publishMerchantConfiguration`, más el mapa de anclajes.
+  - `EffectiveConfiguration` resuelve **valor por valor** entre los tres, `ConfigurationService` lo
+    sirve desde memoria, y cada decisión estampa la terna en `DecisionFacts.configuration`.
+  - Un consumidor **nunca lee un nivel**: recibe el valor por su puerto (`ClockTolerance`,
+    `SignatureWindow`, `CatalogPolicies`, `PolicyDirectory`, `VisitorWindow`) o en su construcción
+    —los stores en memoria reciben su ventana—, enlazado en `composition/modules/`.
+- **Cómo entra la semilla, y qué no pisa.** También mudado desde las instrucciones de los agentes
+  por la feature 026 (deuda D-09): `OPE_MERCHANTS` (JSON) u `OPE_MERCHANTS_FILE` los importa
+  `bootstrap` por `ImportMerchantsUseCase` como el operador `system`, y **sólo si el store arranca
+  vacío**: con merchants ya registrados no pisa nada. Sin semilla y sin store poblado, nadie
+  autentica. Junto a los campos del merchant admite todo lo que `MerchantConfigurationDeclared`
+  admite (`decisionPolicy`, `commercialPolicy`, `evidenceProfile`, `holdoutShare`, `freshness`, …),
+  que `ImportMerchantConfigurationUseCase` publica como la versión 1 **sólo si el merchant no tiene
+  versiones**. Los dos niveles del release los lee `readConfig` por los lectores de forma del módulo
+  `configuration` (`readPlatformConfiguration`, `readTreatmentDefaults`) y los juzgan las fábricas
+  del dominio (`PlatformConfiguration.of`, `TreatmentDefaults.of`): un valor fuera de rango es un
+  `ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`.
+- **Nada de lo que un operador hace a un merchant requiere reiniciar** —crear, rotar, apagar, dar de
+  baja—: se lee del store en la siguiente request.

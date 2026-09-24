@@ -8,6 +8,9 @@
 // point of separating them is that a path judged as an identifier is invisible (that is why a
 // retired directory survived two features) and an identifier judged as a path is a false positive.
 
+/** A root that is absolute, on either platform: these functions stay free of `node:path`. */
+const ESCAPES_REPOSITORY = /^(?:\/|[A-Za-z]:)/;
+
 /**
  * @typedef {object} Policy
  * @property {number} coreMaxLines what the core may not exceed. 200, and the number is the one the
@@ -358,6 +361,15 @@ export function policyProblems(parsed) {
     }
     if ((exception.reason ?? "").trim() === "") {
       problems.push(`0: exception without a reason: ${names[0] ?? index}`);
+    }
+  }
+  // A root that climbs out of the repository makes the gate answer differently on every machine:
+  // it passed locally, where the MVP documents sit in the parent directory, and could never pass
+  // on CI, which checks out the repository alone (feature 026). What lives outside the repository
+  // is an exception with its reason, not a root.
+  for (const root of policy.implicitRoots) {
+    if (ESCAPES_REPOSITORY.test(root) || root.split("/").includes("..")) {
+      problems.push(`0: implicit root outside the repository: ${root}`);
     }
   }
   const cores = policy.files.filter((f) => f.role === "core");

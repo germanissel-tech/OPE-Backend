@@ -11,10 +11,11 @@
 // and anything with spaces or punctuation are prose and are not judged. Fenced code blocks are
 // skipped, and a glossary note may cite its own `en` term. An identifier exists if it is a
 // token of the bundle, a catalogue, a source file or the tooling of the repo (lint, contract
-// rules, scripts, CI: the ADRs name their rules). The allowlist names the citations that are
+// rules, scripts, CI: the ADRs name their rules), or the name of a skill, which is its directory
+// under .claude/skills/. The allowlist names the citations that are
 // not identifiers of the system (markers, states, names of a replaced version) and every entry
 // needs a reason.
-import { readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import {
   argString,
@@ -109,6 +110,17 @@ function isDirectory(file) {
 }
 
 /**
+ * A skill's name is its directory under .claude/skills/, and only its SKILL.md frontmatter
+ * repeats it. Walking prose for it would let any word in any skill vouch for any citation, so
+ * the directory listing is the source: a skill that exists is a name that exists.
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function skillNames(dir) {
+  return isDirectory(dir) ? readdirSync(dir).filter((name) => exists(path.join(dir, name, "SKILL.md"))) : [];
+}
+
+/**
  * Whether a backtick span has the shape of an identifier of the system.
  * @param {string} span
  * @returns {boolean}
@@ -173,7 +185,10 @@ function readAllowlist(file) {
 
 /** @type {string[]} */
 const sources = [bundle, ...catalogs, ...walkFiles(srcDir, [".ts"]), ...tooling].filter(exists);
-const known = sources.map((f) => readFileSync(f, "utf8")).join("\n");
+const known = [
+  ...sources.map((f) => readFileSync(f, "utf8")),
+  ...skillNames(path.resolve(root, ".claude", "skills")),
+].join("\n");
 /** @type {Map<string, boolean>} */
 const verdicts = new Map();
 /** @param {string} identifier */

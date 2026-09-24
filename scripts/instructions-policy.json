@@ -8,8 +8,7 @@
     "src/interface-adapters/",
     "src/composition/",
     "src/infrastructure/",
-    "contracts/",
-    "../"
+    "contracts/"
   ],
   "notPaths": {
     "shapeNames": [
@@ -61,8 +60,7 @@
         },
         {
           "heading": "Convenciones",
-          "kind": "mixed",
-          "reason": "It mixes writing rules an agent obeys with descriptions of the system that belong to their ADR. Separating them is pending."
+          "kind": "normative"
         },
         {
           "heading": "Si existe `HANDOFF.md` en la raíz",
@@ -103,8 +101,7 @@
       "sections": [
         {
           "heading": "Gates de calidad (ADR-016, verificado por `quality` y `test:mutation`)",
-          "kind": "mixed",
-          "reason": "How the mutation gate is worked is normative; the thresholds describe the linter configuration, which is their own source. Separating them is pending."
+          "kind": "normative"
         }
       ]
     },
@@ -126,8 +123,7 @@
       "sections": [
         {
           "heading": "Anillos y módulos (ADR-013, verificado por `npm run arch`)",
-          "kind": "mixed",
-          "reason": "The ring table is the rule an agent obeys; the list of modules describes what exists today and `arch` already verifies it. Separating them is pending."
+          "kind": "normative"
         }
       ]
     },
@@ -151,6 +147,18 @@
     {
       "cite": "origin/main",
       "reason": "A git reference, not a path of the tree."
+    },
+    {
+      "cite": "01-arquitectura-mvp.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
+    },
+    {
+      "cite": "02-integracion-ecommerce.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
+    },
+    {
+      "cite": "03-alcance-mvp.md",
+      "reason": "An MVP document, outside the repository: the session reaches it with --add-dir .., and CI never has it."
     },
     {
       "cite": "merchantId/orderId",
