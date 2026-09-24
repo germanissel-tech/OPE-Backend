@@ -74,5 +74,9 @@
   {
     "identifier": "originAllowed",
     "reason": "Name of the replaced version of the origin rule (ADR-024 records what was replaced)."
+  },
+  {
+    "identifier": "multipleOf",
+    "reason": "JSON Schema keyword, not an identifier of the system; ADR-035 names it to discard it."
   }
 ]

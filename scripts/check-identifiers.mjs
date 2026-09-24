@@ -3,6 +3,7 @@
 // constitution, data-contract section: the code and the contract are English).
 //
 //   node scripts/check-identifiers.mjs [--docs <dir,dir>] [--constitution <file>] [--bundle <file>]
+//       [--instructions <file>]
 //       [--catalogs <file,file>] [--src <dir>] [--tooling <path,path>] [--allowlist <file>]
 //
 // A span counts as an identifier by its shape: snake_case or kebab-case with at least one
@@ -186,7 +187,13 @@ function isKnown(identifier) {
 }
 
 const { allowed, problems } = readAllowlist(allowlistFile);
-const documents = [constitution, ...docsDirs.flatMap((d) => walkFiles(d, [".md"]))].filter(exists);
+// The agent instructions are a governance document like the others, and the two checks that
+// already read them (check-adrs, check-markers) set the precedent. An argument and not a constant,
+// so the fixtures of the governance test can point somewhere else (feature 024).
+const instructions = path.resolve(root, argString(args, "instructions") ?? "CLAUDE.md");
+const documents = [constitution, instructions, ...docsDirs.flatMap((d) => walkFiles(d, [".md"]))].filter(
+  exists,
+);
 let cited = 0;
 /** @type {string[]} */
 const unknown = [];

@@ -88,6 +88,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run check:adrs`                              | Frontmatter de `docs/adr/` y ninguna cita `ADR-NNN` rota                                                                                                                                                                                                                       |
 | `npm run check:markers`                           | Lista `ABIERTO` / `PROPUESTO` / `PLACEHOLDER`; `-- --strict` falla con bloqueantes                                                                                                                                                                                             |
 | `npm run check:api-map`                           | Mapa del contrato ↔ contrato en los dos sentidos; consumidores, capacidades, esquemas, feature (construida) u hito del roadmap (planeada), fuentes, ciclo de vida                                                                                                              |
+| `npm run check:instructions`                      | Lo que `CLAUDE.md` cita existe (rutas contra el disco, comandos contra `package.json` en los dos sentidos) y cada sección está clasificada en `scripts/instructions-policy.json`; verifica que lo nombrado exista, no que lo escrito sea cierto                                |
 | `npm run check:language`                          | Texto en español en comentarios, strings, contrato, configs o CI (lista `scripts/language-denylist.json`)                                                                                                                                                                      |
 | `npm run format` / `format:check`                 | Prettier: formatea todo / falla si algo difiere del formato canónico (único formateador, ADR-011)                                                                                                                                                                              |
 | `npm run lint` / `lint:fix`                       | ESLint estricto con tipos + conteo de excepciones (`Lint exceptions: N`) / arregla lo automático                                                                                                                                                                               |
@@ -99,6 +100,7 @@ decisión transversal**, su ADR en `docs/adr/` (ADR-009).
 | `npm run quality`                                 | `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`; se detiene en el primero rojo                                                                                                                |
 | `npm run test:load`                               | Carga informativa con autocannon sobre el servidor construido (`OPE_LOAD_DURATION`, `_CONNECTIONS`, `_VISITORS`); nunca falla por las cifras                                                                                                                                   |
 | `npm run test:mutation`                           | Stryker sobre las líneas de `src/` cambiadas contra `origin/main` (incluye archivos sin trackear); `-- --files a.ts,b.ts:10-20` muta sólo eso, con `--force`, para iterar sobre un superviviente; `-- --all` muta todo, informativo, con su propio archivo incremental         |
+| `npm run check:mutation-report`                   | Lee el reporte de la última corrida de mutación y falla si quedó un superviviente; lo usa CI para no releer la salida a ojo                                                                                                                                                    |
 
 Los seis `check:*` de gobernanza corren dentro de `contract:check`; `quality` encadena los siete gates de calidad (ADR-016): `lint` → `arch` → `check:duplication` → `check:dead-code` → `check:language` → `check:behaviour-constants` → `check:ports-bound`.
 
@@ -283,8 +285,11 @@ Error` queda para errores de programación (→ `500`). Sin `try/catch` en `appl
   (`invalid-configuration-value`). Los `cuts` y las tres tasas comerciales **no**: nadie las
   cuantiza. La regla no se escribe con `multipleOf` ni con un epsilon; los dos están medidos y
   descartados en el ADR.
-- **Políticas publicadas en el contrato** (la ventana de deduplicación) se declaran en
-  dominio o aplicación (`application/ingestion/policies/`) y el gateway las recibe.
+- **Políticas publicadas en el contrato**: el gateway las recibe, no las decide. La ventana de
+  deduplicación es un valor del nivel de plataforma que la composición le pasa
+  (`memoryEventDedup(clock, platform.dedupWindow)`); su directorio de políticas en aplicación
+  desapareció con la constitución XI (ADR-031, feature 017) y esta línea decía lo contrario que
+  la convención de los tres niveles.
 - **Todo puerto devuelve `Promise`**; los gateways en memoria devuelven `Promise.resolve(...)`.
 - La guarda de instantes no parseables (`NaN`) vive en la traducción DTO → dominio del
   controller (error de programación), no en el dominio.
@@ -495,7 +500,7 @@ failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
   (uno o dos vigentes, ≠ claves; en la semilla, `OPE_MERCHANTS[i].platformSecrets`;
   `Merchant.requiresSignature(now)`). Con secreto, toda operación con `platformKey` (catálogo,
   órdenes, devoluciones) exige `X-OPE-Timestamp` y `X-OPE-Signature` (`v1=` + hex HMAC-SHA256 de
-  `<ts>.<bytes crudos>`), ventana ±5 min (`application/merchant/policies/signature-window.ts`),
+  `<ts>.<bytes crudos>`), ventana ±5 min (`application/access/ports/signature-window.ts`),
   cualquiera de los secretos; `401 signature-missing | signature-invalid | signature-expired`
   antes de validar el body. La infraestructura conserva los bytes del JSON (`keepRawBodies` en
   `infrastructure/http/raw-bodies.ts`: parser `parseAs: "buffer"` que delega al parser de Fastify) y los entrega a
@@ -549,7 +554,7 @@ adminToken: [] }]`. El security handler resuelve el merchant antes de validar el
   `x-required-capabilities` y responde `403 capability-missing` si falta alguna. Cada esquema
   declara su header en el cableado (`SecurityScheme { handler, header }`): CORS los deriva de
   ahí y el log redacta todo header. Los logs nunca llevan IP, headers ni cuerpo
-  (`request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
+  (`infrastructure/http/request-logging.ts`). `bodyLimit` del servidor: 32 MiB (un snapshot de catálogo).
 - Cambio incompatible ⇒ `info.version` a la mayor siguiente **y** prefijo `/v<N>/`. Excepción
   declarada (ADR-003): mientras el contrato lleve `info.x-stability: building` (ningún merchant
   lo consume), entra con bump MINOR y el prefijo se conserva; `contract:diff` lo reporta y lo

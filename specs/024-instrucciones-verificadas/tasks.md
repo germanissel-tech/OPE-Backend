@@ -28,9 +28,9 @@ usan.
 **Purpose**: los dos hallazgos son el fixture de toda la feature. Si alguien los arregla antes, la
 historia 1 pierde su prueba.
 
-- [ ] T001 Confirmar la base: `git log --oneline main..HEAD` y anotar si las ramas 022, 023 y 024
+- [x] T001 Confirmar la base: `git log --oneline main..HEAD` y anotar si las ramas 022, 023 y 024
       siguen encadenadas o si el dueño ya mergeó.
-- [ ] T002 **No arreglar todavía.** Confirmar que los dos hallazgos siguen en pie:
+- [x] T002 **No arreglar todavía.** Confirmar que los dos hallazgos siguen en pie:
       `grep -n "merchant/policies/signature-window" CLAUDE.md` da la línea, y
       `grep -c "check:mutation-report" CLAUDE.md` da cero. **Si alguno ya está arreglado, parar**: la
       historia 1 necesita fallar antes de pasar, y hay que reponer el caso en un fixture.
@@ -43,17 +43,17 @@ historia 1 pierde su prueba.
 
 **⚠️ CRITICAL**: bloquea US1 y US2.
 
-- [ ] T003 `scripts/instructions-policy.json` — el archivo declarado, con la forma de
+- [x] T003 `scripts/instructions-policy.json` — el archivo declarado, con la forma de
       `contracts/policy.md`: raíces implícitas, formas no-ruta, secciones y excepciones. Los
       encabezados son en castellano porque son los del documento; **los motivos en inglés**, que es
       configuración (ADR-015). Arranca con las raíces y las formas medidas; las secciones llegan en
       US2 y las excepciones se llenan cuando el gate las pida.
-- [ ] T004 `scripts/instructions-lib.mjs` — funciones puras sobre texto, como
+- [x] T004 `scripts/instructions-lib.mjs` — funciones puras sobre texto, como
       `scripts/readme-inventory-lib.mjs`: extraer las citas con su línea, clasificarlas en las tres
       formas, resolver una ruta contra las raíces declaradas, comparar comandos en los dos sentidos,
       comparar secciones contra la política en los dos sentidos. Con `checkJs`: toda función
       exportada con su firma en JSDoc (ADR-012).
-- [ ] T005 `scripts/check-language.mjs` — agregar `scripts/instructions-policy.json` a
+- [x] T005 `scripts/check-language.mjs` — agregar `scripts/instructions-policy.json` a
       `ALWAYS_EXCLUDED`, con su comentario, como ya está `readme-inventory-policy.json`. **Sin esto
       `check:language` falla** en cuanto la política nombre un encabezado en castellano.
 
@@ -68,42 +68,42 @@ ninguna de las diecinueve que se escriben con barras y no son rutas.
 
 ### El gate
 
-- [ ] T006 [US1] `scripts/check-instructions.mjs` — lee la política, recorre `CLAUDE.md`, reporta
+- [x] T006 [US1] `scripts/check-instructions.mjs` — lee la política, recorre `CLAUDE.md`, reporta
       una línea por problema con archivo y línea, y siempre una línea de resumen (en verde también:
       un gate que sólo habla cuando falla no deja ver que sigue mirando). Sale 1 con problemas.
-- [ ] T007 [US1] `package.json` — el script `check:instructions`, encadenado en `contract:check`
+- [x] T007 [US1] `package.json` — el script `check:instructions`, encadenado en `contract:check`
       junto a los otros seis `check:*` de gobernanza. **No** en el proyecto `tools`: medido en
       research R-01, ni `CLAUDE.md` ni `src/` disparan `tools`, así que allá no habría corrido en el
       commit que rompió esto.
-- [ ] T008 [US1] `scripts/check-identifiers.mjs` — una línea: `CLAUDE.md` entra a `documents`, como
+- [x] T008 [US1] `scripts/check-identifiers.mjs` — una línea: `CLAUDE.md` entra a `documents`, como
       ya está en `check-adrs.mjs` y `check-markers.mjs`. **No tocar `PROSE_CHARS`**: descarta las
       rutas por diseño y está bien; las rutas se resuelven contra el disco, no se buscan en un texto.
-- [ ] T009 [US1] `scripts/identifiers-allowlist.json` — `multipleOf` con su motivo (palabra de JSON
+- [x] T009 [US1] `scripts/identifiers-allowlist.json` — `multipleOf` con su motivo (palabra de JSON
       Schema, no un identificador del sistema). Es el único que aparece al extender el alcance.
 
 ### La prueba de que sirve
 
-- [ ] T010 [US1] **Correr acá, antes de arreglar nada**: `npm run check:instructions`. Tiene que
+- [x] T010 [US1] **Correr acá, antes de arreglar nada**: `npm run check:instructions`. Tiene que
       reportar **exactamente dos** cosas: la ruta de la ventana de firma en su módulo viejo y
       `check:mutation-report` sin documentar. **Si reporta una tercera, mirarla antes de seguir**: o
       es un hallazgo más o es un falso positivo, y las dos cosas cambian el trabajo.
-- [ ] T011 [US1] Verificar **cero falsos positivos** sobre las diecinueve no-rutas (`errors.ts`,
+- [x] T011 [US1] Verificar **cero falsos positivos** sobre las diecinueve no-rutas (`errors.ts`,
       `services/`, `ports/`, `index.ts`, `use-cases/`, `controllers/`, `ids.ts`, las siete `ope/*`,
       `origin/main`, `merchantId/orderId`, `HANDOFF.md`, `research.md`). Un gate ingenuo reporta
       setenta y cinco: está medido, y es el criterio que separa este gate de uno inservible.
-- [ ] T012 [US1] `tests/docs/instructions.test.ts` — la prueba, proyecto `tools`, con fixtures en
+- [x] T012 [US1] `tests/docs/instructions.test.ts` — la prueba, proyecto `tools`, con fixtures en
       `tests/docs/fixtures/`: una ruta que no existe se reporta; una ruta abreviada con una raíz
       declarada no; cada una de las tres formas no-ruta no; un comando sin documentar y uno
       documentado que no existe se reportan; una excepción sin motivo falla.
 
 ### El arreglo
 
-- [ ] T013 [US1] `CLAUDE.md` — corregir la ruta de la ventana de firma (vive en el módulo `access`
+- [x] T013 [US1] `CLAUDE.md` — corregir la ruta de la ventana de firma (vive en el módulo `access`
       desde la feature 020) y agregar la fila de `check:mutation-report` a la tabla de comandos.
-- [ ] T014 [US1] **El caso circular**: el gate nuevo agregó `check:instructions` a `package.json`, y
+- [x] T014 [US1] **El caso circular**: el gate nuevo agregó `check:instructions` a `package.json`, y
       el gate exige que todo comando esté documentado, así que **se exige a sí mismo**. Agregar su
       fila. Es la primera vez que la feature se aplica a sí misma y conviene notarlo en el commit.
-- [ ] T015 [US1] `npm run check:instructions` en verde, y `npm run contract:check` también.
+- [x] T015 [US1] `npm run check:instructions` en verde, y `npm run contract:check` también.
 
 **Checkpoint**: US1 entregable sola. Una referencia vieja ya no sobrevive un commit.
 
@@ -116,21 +116,21 @@ ninguna de las diecinueve que se escriben con barras y no son rutas.
 **Independent Test**: agregar una sección sin declararla y ver que falla; y comprobar que ninguna de
 las catorce quedó sin clasificar ni mixta sin motivo.
 
-- [ ] T016 [US2] `scripts/instructions-policy.json` — las catorce secciones con su clase, según la
+- [x] T016 [US2] `scripts/instructions-policy.json` — las catorce secciones con su clase, según la
       tabla de research R-05. **Tres son `mixed`** (Anillos y módulos, Gates de calidad,
       Convenciones) y las tres **llevan motivo**: una mixta sin motivo es lo mismo que no
       clasificarla.
-- [ ] T017 [US2] `scripts/instructions-lib.mjs` y `scripts/check-instructions.mjs` — la verificación
+- [x] T017 [US2] `scripts/instructions-lib.mjs` y `scripts/check-instructions.mjs` — la verificación
       en los dos sentidos: una sección del documento sin entrada falla, y una entrada para una
       sección que no existe también. Es la simetría de `checkPolicies` y es la mitad que se olvida.
-- [ ] T018 [US2] `CLAUDE.md` — el criterio de admisión escrito, en la sección de documentación viva:
+- [x] T018 [US2] `CLAUDE.md` — el criterio de admisión escrito, en la sección de documentación viva:
       qué es normativo, qué es descriptivo, qué hace una sección mixta, y **la frontera de lo que el
       gate verifica** (que lo nombrado exista, no que lo escrito sea cierto). Sin esa última frase,
       un gate en verde se lee como más de lo que es.
-- [ ] T019 [P] [US2] `tests/docs/instructions.test.ts` — sus fixtures: una sección sin política
+- [x] T019 [P] [US2] `tests/docs/instructions.test.ts` — sus fixtures: una sección sin política
       falla, una política sin sección falla, una mixta sin motivo falla, una clase que no es ninguna
       de las tres falla.
-- [ ] T020 [US2] Verificar con un comando que las catorce están clasificadas y que hay **cero mixtas
+- [x] T020 [US2] Verificar con un comando que las catorce están clasificadas y que hay **cero mixtas
       sin motivo** (el del quickstart).
 
 **Checkpoint**: abrir una sección ya no se puede hacer en silencio.

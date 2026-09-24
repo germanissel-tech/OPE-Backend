@@ -34,10 +34,13 @@ const CODE_EXTENSIONS = [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"];
 const TEXT_EXTENSIONS = [".yaml", ".yml", ".json"];
 const EXTENSIONS = [...CODE_EXTENSIONS, ...TEXT_EXTENSIONS];
 // The inventory policy names the (Spanish) columns of the documentation README, like the denylist names Spanish words.
+// The instructions policy names the (Spanish) headings of CLAUDE.md, for the same reason: the headings are the
+// document's, and the policy has to name them exactly. Its own prose — the reason of every exception — is English.
 // The evals of the audit cite headings of the (Spanish) documentation in their expected findings.
 const ALWAYS_EXCLUDED = [
   "scripts/language-denylist.json",
   "scripts/readme-inventory-policy.json",
+  "scripts/instructions-policy.json",
   "patches/",
   "tests/audit/evals/",
 ];
