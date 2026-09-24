@@ -22,6 +22,7 @@ export declare const PROBLEM_TYPES: {
   readonly "ledger-unavailable": { readonly status: 503; readonly title: "The ledger is not available" };
   readonly "store-unavailable": { readonly status: 503; readonly title: "The store is not available" };
   readonly "invalid-treatment-share": { readonly status: 422; readonly title: "The treatment share of an experiment is out of range" };
+  readonly "treatment-share-too-fine": { readonly status: 422; readonly title: "The treatment share is finer than the split can resolve" };
   readonly "invalid-seed": { readonly status: 422; readonly title: "The seed of an experiment is empty" };
   readonly "invalid-origin": { readonly status: 422; readonly title: "A registered origin is not scheme://host[:port]" };
   readonly "invalid-platform-secret": { readonly status: 500; readonly title: "A platform signing secret is empty or collides with a key" };
