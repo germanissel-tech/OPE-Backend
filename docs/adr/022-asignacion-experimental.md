@@ -58,3 +58,25 @@ vive el experimento y qué ve el SDK.
   ventana de acumulación empieza al activarlo y la configuración queda congelada) y `closed`
   (terminal)—; lo abre, activa y cierra un operador por la API de administración; como máximo
   uno abierto por merchant. El holdout se aplica al abrir un experimento por API.
+
+## Enmienda (2026-09-21, feature 017; registrada 2026-09-24) — el ciclo de vida y sus reglas
+
+Lo que la administración de experimentos (ADR-031) agregó a este ADR y sólo estaba escrito en las
+instrucciones de los agentes:
+
+- **Los tres estados y qué congela cada uno.** Un experimento nace `calibrating` —se asigna y se
+  decide, pero cada decisión estampa `phase: calibration` y la configuración sigue publicándose—;
+  `activate` lo pasa a `active`, empieza la ventana de acumulación y **congela** la configuración:
+  sólo entra una versión `corrective` con su motivo, que **reinicia la ventana** y queda anotada en
+  `windowRestarts[]` con la versión y el motivo. `close` es terminal: repetirlo responde 200,
+  reactivar es `409 experiment-not-open`.
+- **Como máximo uno abierto por merchant**, juzgado dentro del store (`Experiments.of` ⇒
+  `409 experiment-already-open`), y el reparto no puede tomar el holdout efectivo del merchant
+  (`Experiment.withinHoldout` ⇒ `422 treatment-exceeds-holdout`, leído por el puerto
+  `HoldoutSource`). El interruptor del merchant no cambia el estado del experimento.
+- **El identificador lo acuña `ExperimentIdMinter`** (`exp_` + base32). La semilla
+  (`OPE_MERCHANTS[i].experiments[]`) entra por `ImportExperimentsUseCase` **sólo con el store
+  vacío** y sin juzgar el holdout; un `active` de la semilla arranca su ventana en su `openedAt`.
+- **Lo que nunca sale al SDK**: el brazo, el experimento y la fase no viajan como campos. Lo único
+  que sale es el motivo del `NO_OP` — `control-arm` cuando el visitante es de control,
+  `no-active-experiment` cuando no hay experimento abierto.

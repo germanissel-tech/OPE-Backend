@@ -406,111 +406,29 @@ Acá queda lo normativo:
 - **Verdad de producto**: el catálogo entra como snapshot completo por `PUT /v1/catalog` y
   `capturedAt` es su clave de idempotencia; el stock es guardia, nunca un claim. La frescura por
   clase, el nivel de sincronización observado y qué de eso es configuración, en ADR-025.
-- **Plano de decisión (ADR-026, ADR-027)**: la ingesta no conoce al plano: `IngestBatchUseCase`
-  invoca el puerto `DecisionPlane` (`application/ingestion/ports/`) que implementa
-  `DecisionService` (`application/decision/services/`) y la composición enlaza
-  (el módulo `decision` enlaza el puerto `DecisionPlane` que declara `ingestion`). El orquestador recorre las cinco
-  autoridades: asignación → inferencia (`barrier`) → evidencia (`catalog`) → selección + quality
-  gate (`selection`) → política comercial (`commercial`, la única que emite el veredicto) →
-  ledger (`DecisionRecorder`, que acuña el id y degrada a `ledger-unavailable`). La inferencia es
-  pura: `Signals` (monoide: el lote se funde con la sesión) y `BarrierRules.infer` devuelven la
-  confianza de las **tres** barreras; `DecisionPolicy.barrierVerdict` elige la dominante (umbral,
-  prioridad) y juzga su evidencia por barrera. `CANDIDATES` (vocabulario cerrado por barrera en
-  orden de escalera, con claims) pasa por `QualityGate.of(profile).judgeAll`: el primer claim sin
-  evidencia de su clase rechaza el candidato entero; `CommercialPolicy.verdict` elige el escalón
-  más bajo (uno más con abandono que confirma la barrera, D-B; el reaseguro cuando el abandono
-  la puso en la mesa; incentivo directo en `price`), bloquea (`margin-missing`,
-  `incentive-not-allowed`, `return-risk`), aplica alta intención, presupuesto por sesión,
-  cooldown y fatiga por visitante. Las tres políticas del merchant —`decisionPolicy`
-  (inferencia), `commercialPolicy` (techo, escalones, margen, riesgo de devolución, alta
-  intención, abandono, presupuestos) y `evidenceProfile` (qué declara poder sostener)— son
-  defaults de tratamiento (`config/treatment-defaults.json`: `default-1`,
-  `commercial-default-1` sin margen ⇒ sin incentivos, perfil vacío) que la versión del merchant
-  sobrescribe **campo por campo** (una política declarada nombra su versión y sólo lo que
-  cambia); la forma la leen los lectores de `application/configuration/input/` (semilla, archivo
-  y API por igual), las invariantes el dominio (`PolicyInput`, `TreatmentValues`). El plano lee
-  `PolicyDirectory` (`PolicySet`: políticas, `barriers` activas, `versions`) que la composición
-  enlaza al servicio de configuración; sólo las barreras activas pueden ser dominantes. Ambas
-  políticas son parte del experimento. El vocabulario de hechos
-  y de candidatos es cerrado: un hecho, un claim o un candidato nuevo es una feature. Cada
-  decisión registra `inference`, `selection` (candidatos con veredicto del gate, elegido,
-  veredicto comercial, `commercialPolicyVersion`) y el `locale` de la página en foco
-  (`PageContext.locale`, BCP 47 validado por forma, para el catálogo de mensajes); el DTO del SDK sólo lleva `outcome`, `reason`
-  (barrera si `INTERVENE`) e `intervention` (`msg_<barrera>_<anclaje>_<escalón>_v0` hasta el
-  catálogo de mensajes, más `incentive { kind: percent, value }` cuando la política lo concede). Estado de sesión
-  y de visitante en memoria (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h); una
-  intervención cuenta contra los presupuestos sólo si el ledger la aceptó.
+- **Plano de decisión**: la ingesta no lo conoce —lo invoca por un puerto— y el orquestador recorre
+  las cinco autoridades en orden fijo, de las que **sólo la política comercial** emite el veredicto
+  (constitución I). El vocabulario de hechos, claims y candidatos es **cerrado**: uno nuevo es una
+  feature, no configuración. Cómo infiere, qué registra y qué sale al SDK, en ADR-026 y ADR-027.
 - **Outcomes y cadena de evidencia**: la plataforma notifica la orden (`platformKey`) y la
   correlación es **sólo** por sesión conocida; sin ella queda `PENDING_CORRELATION` y nunca se
   completa por inferencia. La idempotencia es atómica en el puerto, la orden es inmutable y la
   respuesta nunca lleva brazo, experimento ni visitante. Todo lo demás, en ADR-028.
-- **Merchants operados (ADR-031, feature 017)**: `Merchant` (dominio) lleva `status`
-  (`active | off | deactivated`) y `credentials: Credential[]` (`kind` `ingest | platform |
-signing`, huella SHA-256 del valor, `issuedAt`, `expiresAt`; sólo la de firma conserva el
-  secreto). Las reglas viven en el agregado: `owns(fingerprint, now)`, `ownsPlatformKey`,
-  `signingSecrets(now)`, `requiresSignature(now)`, `rotated(credential, grace, now)` (la anterior
-  sigue valiendo durante la gracia, acotada por un máximo), `switched(on)`, `deactivated()`
-  (irreversible; `409 merchant-deactivated`), `Merchant.judgeOrigins`. Los valores de las
-  credenciales los acuña el puerto `CredentialMinter` (`ope_ik_ | ope_pk_ | ope_ps_` + base64url)
-  y viajan **una sola vez** en la respuesta que los emite; el store guarda huellas
-  (`MerchantDirectory.byFingerprint`). Kill switch (01 §14.2): `switched(false)` ⇒ la decisión
-  responde `NO_OP` `merchant-off` **antes** de asignar (`MerchantPolicies.enabled`, leído del
-  store por `switchAwarePolicyDirectory`, en los gateways del módulo `configuration`); ingesta, outcomes y catálogo siguen. Operadores:
-  `OPE_ADMIN_OPERATORS` (JSON) o `OPE_ADMIN_OPERATORS_FILE` (`operatorId`, huellas de sus
-  tokens, `scope: "*" | [merchantId]`); `adminToken` es bearer (`Authorization: Bearer
-ope_at_…`), `DefaultAdminTokenResolver` lo resuelve por huella (`401 operator-unknown`) y
-  entrega `OperatorPrincipal` (`operatorOf(req)`); un merchant fuera del alcance responde `403
-merchant-out-of-scope` con el mismo cuerpo que uno inexistente sólo cuando el operador no lo
-  alcanza (`DefaultScopedMerchantService.find`). Toda operación `admin` se envuelve en
-  `AuditedUseCase` (decorador del kernel, ADR-034): el registro de administración
-  (`AdminLog`, `AdminEntry`: operador, operación, merchant, resultado `accepted | rejected |
-failed`, motivo) se escribe pase o falle; `GET /v1/admin/log` y `GET
-/v1/admin/merchants/{merchantId}/log` lo leen paginado (`Page`/`PageQuery` del kernel de
-  aplicación, `pageOf` en `interface-adapters/shared-kernel/`, `pageQueryOf`/`pageDto`/`merchantPageResponse` en `http/boundary.ts`).
-  `node scripts/mint-admin-token.mjs` acuña un token y su huella; `config/dev-operators.json`
-  lleva el operador de desarrollo. `merchantId` de la ruta se lee con `merchantIdOf(req)`
-  (`http/boundary.ts`), la única ruta donde figura (constitución V); el DTO del merchant y la
-  respuesta de rotación viven en `merchant/presenters.ts`, los del registro y el diagnóstico en
-  `admin/presenters.ts`.
+- **Merchants operados**: el merchant es un agregado con estado y credenciales, y sus reglas se
+  invocan por su nombre. El valor de una credencial viaja **una sola vez**, el store guarda huellas,
+  el interruptor corta **antes** de asignar y toda operación de un operador se audita. Los nombres
+  y los códigos, en ADR-031 y ADR-034.
 - **Firma de plataforma**: con secreto vigente, toda operación con `platformKey` exige
   `X-OPE-Timestamp` y `X-OPE-Signature`, y se rechaza **antes** de validar el body. Cómo se calcula,
   qué ventana tiene y de dónde salen los bytes crudos, en ADR-029.
-- **Asignación y experimentos (ADR-022, ADR-024, ADR-031; 03 §4.10, D-G)**: un experimento lo
-  abre un operador (`POST /v1/admin/merchants/{merchantId}/experiments`: `treatmentShare`,
-  `seed`, `targetSample`, `cuts` crecientes como porcentajes de la muestra) y nace
-  `calibrating`: se asigna y se decide, pero cada decisión estampa `phase: calibration` y la
-  configuración sigue publicándose. `activate` lo pasa a `active` (`activatedAt` =
-  `windowStartedAt`) y **congela** la configuración: sólo entra una versión `corrective` con
-  `reason`, que reinicia la ventana (`windowRestarts[]` con la versión y el motivo;
-  `PublishMerchantConfigurationUseCase` la registra por `ExperimentStore.update` y el registro
-  de administración lleva `windowRestarted`). `close` es terminal (`closed`; repetir es 200;
-  reactivar es `409 experiment-not-open`). Como máximo uno abierto por merchant
-  (`Experiments.of` ⇒ `409 experiment-already-open`, juzgado dentro del store); el reparto no
-  puede tomar el holdout efectivo del merchant (`Experiment.withinHoldout` ⇒ `422
-treatment-exceeds-holdout`, leído por el puerto `HoldoutSource`). El interruptor no cambia su
-  estado. Las reglas viven en `Experiment` (`activated`, `closed`, `windowRestarted`,
-  `isOpen`, `phase`); el id lo acuña `ExperimentIdMinter` (`exp_` + base32). La semilla
-  (`OPE_MERCHANTS[i].experiments[]`: `experimentId`, `treatmentShare`, `seed`,
-  `targetSample`, `cuts?`, `status`, `openedAt`) entra por `ImportExperimentsUseCase` sólo
-  con el store vacío y sin juzgar el holdout; un `active` de la semilla arranca su ventana en
-  `openedAt`. `Experiment.assign` es pura (FNV-1a privado del dominio, `treatmentShare` 0–1,
-  regresión con fingerprint de la 007) y no depende del estado; la asignación se registra con el
-  primer lote aceptado del experimento abierto (`ExperimentDirectory.activeFor`); CONTROL
-  resuelve `NO_OP` `control-arm`; sin experimento abierto, `no-active-experiment`. El brazo,
-  el experimento y la fase **nunca** viajan como campos: sólo el motivo del `NO_OP` sale al SDK.
-- **Configuración del SDK y diagnóstico de anclajes (01 §3.1.1; feature 017)**: `GET
-/v1/sdk/config` (`ingestKey`, `config:read`) devuelve lo que el SDK puede ver del merchant de
-  su credencial —`enabled` (interruptor), `versions`, `surfaces`, `locales`, `anchors?`— y
-  nunca una política, margen, escalón, reparto, brazo ni experimento; `Cache-Control: no-store`.
-  Lo sirve el módulo `admin` por el puerto `SdkConfigurationSource` (`sdkConfigurationOf`, un
-  gateway de `admin` sobre la resolución de la configuración) y el merchant llega resuelto por el security handler
-  (`GetSdkConfigUseCase` recibe la entidad y lee `isOn()`). `POST /v1/sdk/diagnostics`
-  (`diagnostics:write`) recibe anclajes no resueltos (`anchor` del vocabulario, `pageType`,
-  `configurationVersion?`; nada de la página ni de la persona) y `AnchorDiagnosticsStore.upsert`
-  conserva por merchant el último instante y un contador por clave, con tope
-  `anchorDiagnosticsKept` de plataforma (se descarta el más viejo, nunca se rechaza); `GET
-/v1/admin/merchants/{merchantId}/anchor-diagnostics` lo lee paginado. `PageType` es un esquema
-  propio compartido por `PageContext` y los diagnósticos.
+- **Asignación y experimentos**: la asignación es pura y estable por visitante, y el brazo, el
+  experimento y la fase **nunca** salen al SDK: sólo el motivo del `NO_OP`. El ciclo de vida del
+  experimento, qué congela cada estado y cómo entra la semilla, en ADR-022 (03 §4.10, D-G) y
+  ADR-031.
+- **Configuración del SDK y diagnóstico de anclajes**: el SDK ve del merchant de su credencial
+  sólo lo que necesita para correr, y **nunca** una política, un margen, un escalón, un reparto, un
+  brazo ni un experimento (constitución III y VII). Qué devuelve cada una y qué conserva, en la
+  descripción de `getSdkConfig` y `reportAnchorDiagnostics` del contrato, que es su fuente de verdad.
 - Operación autenticada con la credencial de ingesta ⇒ `security: [{ ingestKey: [] }]`; con
   la de plataforma (servidor a servidor, `X-OPE-Platform-Key`, ADR-025) ⇒ `security: [{
 platformKey: [] }]`; de un operador (`Authorization: Bearer`, ADR-031) ⇒ `security: [{

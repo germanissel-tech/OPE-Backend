@@ -78,3 +78,33 @@ evidencia y veredicto.
   código y es el contenido inicial del nivel **defaults de tratamiento**
   (`config/treatment-defaults.json`); un merchant la sobrescribe publicando una versión de
   configuración por API, y cada decisión estampa la terna de versiones (constitución XI).
+
+## Enmienda (registrada 2026-09-24, feature 024) — cómo quedó armado el plano
+
+Lo que las features 011 y 012 construyeron y sólo estaba escrito en las instrucciones de los
+agentes. La decisión de este ADR y de ADR-027 no cambia; esto es su forma.
+
+- **La ingesta no conoce al plano.** `IngestBatchUseCase` invoca el puerto `DecisionPlane`, que
+  declara `application/ingestion/ports/` y que implementa `DecisionService` en
+  `application/decision/services/`; la composición los enlaza. Ése es el único punto de contacto.
+- **El orquestador recorre las cinco autoridades en orden fijo** (constitución I): asignación →
+  inferencia (`barrier`) → evidencia (`catalog`) → selección y quality gate (`selection`) →
+  política comercial (`commercial`, la **única** que emite el veredicto) → ledger
+  (`DecisionRecorder`, que acuña el id y degrada a `ledger-unavailable`).
+- **La inferencia es pura.** `Signals` es un monoide —el lote se funde con la sesión— y
+  `BarrierRules.infer` devuelve la confianza de las **tres** barreras; `DecisionPolicy.barrierVerdict`
+  elige la dominante por umbral y prioridad, y juzga su evidencia por barrera. Sólo las barreras
+  activas del merchant pueden ser dominantes.
+- **El vocabulario es cerrado.** `CANDIDATES` lista los candidatos por barrera en orden de escalera,
+  cada uno con sus claims; `QualityGate.of(profile).judgeAll` rechaza el candidato **entero** ante el
+  primer claim sin evidencia de su clase. Un hecho, un claim o un candidato nuevo es una feature, no
+  configuración.
+- **Qué lee y qué estampa.** El plano lee `PolicyDirectory` (`PolicySet`: las tres políticas, las
+  barreras activas y las versiones), que la composición enlaza al servicio de configuración. Cada
+  decisión registra `inference`, `selection` —candidatos con su veredicto del gate, el elegido, el
+  veredicto comercial y la versión de la política comercial— y el `locale` de la página en foco.
+- **Lo que sale al SDK es mucho menos**: `outcome`, `reason` (la barrera si es `INTERVENE`) e
+  `intervention`, más el incentivo cuando la política lo concede. Nada del brazo, del experimento ni
+  del visitante.
+- **El estado vive en memoria** (`SessionStateStore`, `VisitorStateStore`, ventanas de 24 h) y una
+  intervención cuenta contra los presupuestos **sólo si el ledger la aceptó**.

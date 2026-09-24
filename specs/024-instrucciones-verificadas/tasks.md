@@ -147,21 +147,21 @@ llega en un paso.
 **Cómo se hace cada bloque**, y el orden no es negociable: **primero se agrega al ADR, después se
 borra de acá**, en **commits separados**, para que el diff muestre que nada se perdió.
 
-- [ ] T021 [P] [US3] Ledger (4 líneas) → ADR-021/023. El más chico: sirve para calibrar el tamaño
+- [x] T021 [P] [US3] Ledger (4 líneas) → ADR-021/023. El más chico: sirve para calibrar el tamaño
       del puntero que queda antes de mover los grandes.
-- [ ] T022 [P] [US3] Puerto de plataforma (9) → ADR-025.
-- [ ] T023 [P] [US3] Verdad de producto (11) → ADR-025.
-- [ ] T024 [P] [US3] Firma de plataforma (13) → ADR-029.
-- [ ] T025 [P] [US3] Consumidores (19) → ADR-020.
-- [ ] T026 [P] [US3] Outcomes y cadena de evidencia (21) → ADR-028.
-- [ ] T027 [P] [US3] Asignación y experimentos (23) → ADR-022/024/031.
-- [ ] T028 [P] [US3] Merchants operados (28) → ADR-031.
-- [ ] T029 [P] [US3] Plano de decisión (34) → ADR-026/027. El más grande.
-- [ ] T030 [US3] **Configuración del SDK (33) — va último y puede no moverse.** Cita la feature 017
+- [x] T022 [P] [US3] Puerto de plataforma (9) → ADR-025.
+- [x] T023 [P] [US3] Verdad de producto (11) → ADR-025.
+- [x] T024 [P] [US3] Firma de plataforma (13) → ADR-029.
+- [x] T025 [P] [US3] Consumidores (19) → ADR-020.
+- [x] T026 [P] [US3] Outcomes y cadena de evidencia (21) → ADR-028.
+- [x] T027 [P] [US3] Asignación y experimentos (23) → ADR-022/024/031.
+- [x] T028 [P] [US3] Merchants operados (28) → ADR-031.
+- [x] T029 [P] [US3] Plano de decisión (34) → ADR-026/027. El más grande.
+- [x] T030 [US3] **Configuración del SDK (33) — va último y puede no moverse.** Cita la feature 017
       y el documento de arquitectura, **no un ADR**: no tiene destino. Si al llegar no hay uno, **se
       queda**, con el motivo escrito en el documento. Inventar un ADR para poder mudar sería el
       trámite que esta feature debería estar eliminando.
-- [ ] T031 [US3] Después de cada bloque, `npm run check:instructions` y `npm run check:adrs`: la
+- [x] T031 [US3] Después de cada bloque, `npm run check:instructions` y `npm run check:adrs`: la
       mudanza mueve identificadores de un archivo a otro y los dos los verifican.
 
 **Checkpoint**: el documento bajó de líneas por primera vez.
