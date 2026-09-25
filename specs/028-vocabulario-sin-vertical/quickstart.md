@@ -94,6 +94,32 @@ la ropa, quedó vocabulario de indumentaria que el `grep` del paso 1 no atrapa p
 Y leer la nota del glosario del evento: tiene que explicar qué control es, no qué atributo elige ese
 control en un rubro.
 
+## Estado, corrido el 2026-09-25
+
+Histórico y fechado (ADR-032): lo de abajo es lo que dio ese día, no una promesa.
+
+| Paso                                 | Resultado                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| 1. el vocabulario viejo no existe    | ✅ cero ocurrencias en `src/`, `contracts/` y `config/`                               |
+| 2. el contrato dice lo que la fuente | ✅ cuatro anclajes y ninguno nombra una prenda; **antes no coincidían con la fuente** |
+| 3. el evento perdió el campo         | ✅ sin campos propios; el campo eliminado da `400` con su puntero                     |
+| 4. la decisión no cambió             | ✅ verde; es el control real de toda la feature                                       |
+| 5. las réplicas siguen al contrato   | ✅ `ANCHORS`, `EVENT_TYPES` y `BLOCKS` verdes                                         |
+| 6. el corpus sirve versiones nuevas  | ✅ cinco versiones nuevas; ninguna vieja editada; un solo estilo en el archivo        |
+| 7. el tope desapareció               | ✅ sin `maxItems`; `minItems` y `uniqueItems` siguen rechazando lo que rechazaban     |
+| 8. contrato y cadena completa        | ✅ verde; `contract:diff` reportó lo incompatible y lo aceptó por `building` (1.8.0)  |
+| 9. lo que ningún comando decide      | ✅ leído; ver abajo                                                                   |
+
+**El paso 9, que es el que no tiene comando.** Leí los dos enums como si vendiera heladeras y las dos
+descripciones aguantan: el anclaje dice «el control que elige variante» y aclara entre guiones que en
+indumentaria son el de talle y el de color; el bloque dice «donde la página declara si el producto le
+va a servir al comprador — la tabla de talles de una prenda, las medidas de un electrodoméstico». Un
+integrador de otro rubro no tiene que traducir desde la ropa para entenderlos.
+
+Lo que **no** se puede afirmar, y conviene no confundir: que `specifications` sea el mejor nombre en un
+rubro que nadie observó todavía. `03 §9` dice que el piloto no va a contestar eso. Lo que sí se puede
+afirmar es que el nombre viejo era de indumentaria y éste no.
+
 ## Dónde se toca qué, después de esto
 
 | Si querés…                               | Se toca                                                                    |

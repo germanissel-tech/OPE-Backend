@@ -1,4 +1,26 @@
 <!--
+Sync Impact Report (1.4.4, 2026-09-25)
+- Version change: 1.4.3 → 1.4.4 (PATCH: dos viñetas de «Contrato de datos e identidad»; ningún
+  principio cambia de sentido).
+- Modified sections:
+  - **Escalas** — decía que las superficies visibles expresan porcentajes 0–100 y que la
+    normalización ocurre una sola vez en el borde. **ADR-035 abolió esas dos unidades en la
+    feature 022**: el sistema habla en tasas 0..1 de punta a punta y no convierte formatos, y
+    `CLAUDE.md` ya lo reflejaba. La constitución prevalece sobre todo, así que la viñeta vieja no
+    era cosmética: quien la leyera implementaría una conversión que el código no hace, y tendría
+    razón según el documento que manda. Nadie lo notó porque ningún gate lo puede notar —
+    `check:instructions` verifica que lo citado **exista**, no que lo escrito sea **cierto**.
+    Hallazgo de la feature 028; decisión del dueño del 2026-09-25 de corregirlo acá y no aparte.
+  - **Barreras del MVP** — la glosa de `fit` decía «(talle y calce)», paráfrasis de `01 §4.2`
+    antes de su enmienda; la fuente ahora dice «calce» (ADR-037). Governance lo contempla: un
+    principio derivado de un DECIDIDO de los documentos del MVP se enmienda **si el documento
+    fuente cambia**, y cambió el 2026-09-25.
+- No requiere cambio en los documentos del MVP: la primera corrige la constitución contra un ADR
+  ya aceptado y la segunda la alinea con una enmienda de la fuente que ya ocurrió.
+- Templates: sin cambios.
+-->
+
+<!--
 Sync Impact Report (1.4.3, 2026-09-24)
 - Version change: 1.4.2 → 1.4.3 (PATCH: redacción; ningún principio cambia de sentido).
 - Modified sections: X — la viñeta de lo configurable por merchant decía «catálogo de mensajes»
@@ -277,12 +299,13 @@ es la de configuración del mapa del contrato.
 
 ## Contrato de datos e identidad
 
-- **Escalas**: las superficies visibles al merchant expresan porcentajes en 0–100; los motores
-  internos trabajan con tasas 0–1. La normalización ocurre **una sola vez, en el borde** (capa
-  de API / DTO). Un tipo interno MUST NOT recibir un porcentaje 0–100.
+- **Escalas**: el sistema habla en **tasas 0..1 de punta a punta** y no convierte formatos de
+  porcentaje (ADR-035). Toda entrada y toda salida, incluido cualquier endpoint, recibe y entrega
+  fracciones de 1; una tasa que algo cuantiza tiene que ser exactamente la de su balde. Ningún
+  borde normaliza porcentajes, porque no hay dos unidades que reconciliar.
 - **Frescura por merchant**: el presupuesto de frescura de catálogo, stock y precio se configura
   por merchant y se mide. Un dato más viejo que su presupuesto se trata como ausente.
-- **Barreras del MVP**: exactamente tres — `fit` (talle y calce), `price` (precio y valor),
+- **Barreras del MVP**: exactamente tres — `fit` (calce), `price` (precio y valor),
   `returns` (cambios y devoluciones), con los identificadores del contrato. Agregar una barrera
   es cambio de alcance, no feature.
 - **Superficies**: ficha de producto entra; carrito es capacidad construida con activación
@@ -374,4 +397,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.4.3 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-24
+**Version**: 1.4.4 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-25

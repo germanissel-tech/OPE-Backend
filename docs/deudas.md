@@ -42,7 +42,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
 | D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)                | `abierta`      | 2026-09-24 | —         |
 | D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)        | `abierta`      | 2026-09-25 | —         |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `abierta`      | 2026-09-25 | —         |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
 | D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `abierta`      | 2026-09-25 | —         |
 | D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `abierta`      | 2026-09-25 | —         |
@@ -131,6 +131,13 @@ el 2026-09-25** (catorce líneas en `01`, `02` y `03`; en cada caso lo que el do
 genérico y lo que ejemplificaba era ropa, y la enmienda bajó la ropa a ejemplo). Recién con la fuente
 enmendada el renombre alinea en vez de divergir, y eso es la feature 028. La lección, que vale más que
 la fila: **antes de llamar deuda a un acople, hay que verificar si la fuente lo pide.**
+
+**Cerrada en la feature 028**, y conviene decir hasta dónde: de las cinco filas de la tabla de
+arriba, dos estaban mal medidas (las corrige el párrafo anterior y ADR-037), una era «de OPE y por
+diseño» y no había nada que hacer, y las dos que sí eran deuda —el anclaje con su evento y el
+vocabulario de bloques— quedan cerradas. Lo que la tabla llamaba la variante **no se cierra acá**: se
+separó como D-16, porque no es un renombre. Una deuda que se cierra parcialmente se dice así, no se
+marca entera.
 
 D-16 sale de ahí. La enmienda **permitió** que una variante deje de exigir talle y color, pero eso no
 es un renombre: cambia la forma de lo que un merchant envía. La pregunta que hay que contestar antes de

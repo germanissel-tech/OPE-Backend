@@ -169,36 +169,37 @@ dos sentidos distintos, y una configuración con todas las barreras se acepta.
 
 ## Phase 5: Cierre
 
-- [ ] T031 `.specify/memory/constitution.md` — la enmienda **PATCH** con sus dos viñetas (R-08). La
+- [x] T031 `.specify/memory/constitution.md` — la enmienda **PATCH** con sus dos viñetas (R-08). La
       primera la causa esta feature: la glosa de la barrera sigue a la fuente, que Governance permite
       **porque el documento fuente cambió**. La segunda es hallazgo y no alcance: la viñeta `Escalas`
       contradice a ADR-035 desde la feature 022. **Confirmar con el dueño antes de escribirla**; si
       prefiere separarla, sale de acá y entra como fila en `docs/deudas.md` con el motivo.
       Sync Impact Report arriba del archivo, como las enmiendas anteriores.
-- [ ] T032 `docs/adr/0NN-*.md` — el ADR que registra **la enmienda de la fuente del 2026-09-25**: qué
+      **Decisión del dueño (2026-09-25): las dos, en un PATCH.** La constitución queda en **1.4.4**.
+- [x] T032 `docs/adr/0NN-*.md` — el ADR que registra **la enmienda de la fuente del 2026-09-25**: qué
       se cambió de `01`, `02` y `03`, por qué ninguna decisión cambió de contenido, y el criterio que
       separó lo que un documento decide de lo que ejemplifica. Precedente: ADR-030, que registra
       decisiones de producto del dueño. Se escribe **al cerrar**, cuando los identificadores que
       nombra existen (`check:identifiers`).
-- [ ] T033 `docs/deudas.md` — D-14 a `implementada` con su commit, y su narrativa apuntando al ADR de
+- [x] T033 `docs/deudas.md` — D-14 a `implementada` con su commit, y su narrativa apuntando al ADR de
       T032. D-16 y D-17 quedan abiertas: esta feature no las toca.
-- [ ] T034 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión: ¿hace
+- [x] T034 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión: ¿hace
       falta en toda sesión, es un procedimiento, o es de una parte del código? La hipótesis es que no
       hace falta nada: el criterio de qué vocabulario es de quién ya está en `.claude/rules/contrato.md`
       desde la 027. `check:instructions` verifica la clasificación en los dos sentidos.
-- [ ] T035 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
+- [x] T035 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
       `check:language`, `check:behaviour-constants`, `check:ports-bound` — los siete, uno por uno,
       antes de la cadena completa.
-- [ ] T036 Correr el quickstart **entero**, sus nueve pasos, y dejar su tabla de estado **fechada**.
+- [x] T036 Correr el quickstart **entero**, sus nueve pasos, y dejar su tabla de estado **fechada**.
       El paso 9 no lo decide ningún comando: leer los dos enums como si uno vendiera heladeras.
-- [ ] T037 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `build`, `test`,
+- [x] T037 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `build`, `test`,
       `test:tools`, `contract:check`, `test:contract`, `release-check`. **`build` antes de
       `test:contract`**: con un `dist/` viejo se prueba el servidor anterior y el error culpa al
       código de hoy.
-- [ ] T038 `npm run test:mutation`. Por historia, el gate acotado
+- [x] T038 `npm run test:mutation`. Por historia, el gate acotado
       (`--files <archivo>:<desde>-<hasta>`) mientras el código está fresco; la corrida completa del
       diff, al cierre. Ante un superviviente, la skill `triaging-mutants`.
-- [ ] T039 **El canario**: `grep -rnE "size_selector|size_guide" src/ contracts/ config/` tiene que
+- [x] T039 **El canario**: `grep -rnE "size_selector|size_guide" src/ contracts/ config/` tiene que
       dar **nada**. Mientras quede una ocurrencia, la feature no está hecha. En la 027 este paso
       encontró lo único que quedaba, así que no es ceremonia.
 
