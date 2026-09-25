@@ -43,24 +43,30 @@ se editan a mano.**
 
 ---
 
-## Phase 2: Foundational — el módulo existe y compila
+## Phase 2: Foundational — lo único que puede existir sin consumidor
 
-**⚠️ Bloquea todas las historias.** Un módulo nuevo son tres archivos y olvidarse de cualquiera
-falla en compilación, en `arch` o en `npm test`.
+**Corrección medida, no opinión.** Esta fase pedía crear el módulo vacío en los tres anillos y
+verificar los gates. **No se puede**, y los gates lo dijeron en dos pasos:
 
-- [ ] T005 `.dependency-cruiser.cjs` — entrada de `messages` en `CONTEXT_MAP` con
-      `[shared-kernel, selection]` y nada más. **No depende de `catalog`**: recibe el valor de
-      atributo ya resuelto, nunca el producto.
-- [ ] T006 `src/composition/modules/messages.ts` — el módulo con sus tres cosas (`provides`,
-      `assembles`, `serves`), y `src/composition/deployments/local.ts` con su línea. Una sola
-      tecnología ⇒ **no nombra ninguna**: no hay nombre que inventar hasta que haya algo que elegir.
-- [ ] T007 `src/domain/messages/`, `src/application/messages/`,
-      `src/interface-adapters/messages/` con su `index.ts` — la API pública de cada anillo del
-      módulo, vacía todavía.
-- [ ] T008 Verificar: `npm run typecheck`, `npm run arch` y `npm run check:ports-bound` en verde con
-      el módulo vacío. Si `arch` pasa con un `CONTEXT_MAP` incompleto, hay un fixture que falta.
+- `arch` rechaza un `index.ts` sin contenido (`no-orphans`): un anillo que no importa ni exporta
+  nada no es un anillo.
+- `check:dead-code` rechaza un archivo que nadie importa (`unused file`), así que tampoco sobrevive
+  el dominio solo.
 
-**Checkpoint**: el módulo existe y el grafo lo conoce. Las tres historias pueden empezar.
+Es el repositorio teniendo razón: **un módulo sin consumidor es código muerto**, y andamiar primero
+para llenar después es exactamente lo que estos gates existen para impedir. Lo que queda de la fase
+es una línea, y el resto del módulo nace con su primer contenido real, en US1 (T022, T031, T034).
+
+- [x] T005 `.dependency-cruiser.cjs` — entrada de `messages` en `CONTEXT_MAP` con
+      `[shared-kernel, selection]`: necesita la familia de mensaje, que `selection` define, y nada
+      más. **No depende de `catalog`**: recibe el valor de atributo ya resuelto, nunca el producto.
+      Es inerte hasta que haya código, y por eso es lo único que puede ir antes.
+- [x] T006 **Movida a US1** (T034): el módulo de composición y su línea en `deployments/local.ts`.
+      Un módulo que no provee ni sirve nada es un marcador de posición, y entra cuando tiene algo.
+- [x] T007 **Movida a US1** (T017 en adelante): el dominio del módulo nace con su primer consumidor.
+- [x] T008 Verificado: `quality` (los siete gates) y `arch` en verde con la entrada del mapa sola.
+
+**Checkpoint**: el mapa de contextos conoce al módulo. US1 lo hace existir.
 
 ---
 
@@ -126,18 +132,26 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 - [ ] T023 [US1] `src/application/messages/services/message.service.ts` — resuelve el texto de una
       familia: idioma de la página → idioma de reserva; dentro del idioma resuelto, voz del merchant
       → voz por defecto. **Nunca un texto en otro idioma** (`FR-012`, `FR-013`, `FR-014`, `FR-015`).
-- [ ] T024 [US1] `src/application/selection/ports/` — el puerto que **la selección declara** y
-      `messages` implementa, como `ingestion` declara `DecisionPlane` (ADR-026). `selection` **no
-      importa `messages`**.
+- [ ] T024 [US1] `src/application/decision/ports/` — el puerto que declara **quien lo necesita** y
+      `messages` implementa, como `ingestion` declara `DecisionPlane` (ADR-026). Devuelve **lo que se
+      puede decir**: los candidatos con su texto y su versión, en orden de escalera.
 
-### El filtro en la selección
+      **Corrección al plan**: decía `application/selection/ports/`, pero `selection` **no tiene capa
+      de aplicación** — es dominio puro (`candidate.ts`, `profile.ts`, `quality-gate.ts`) y el
+      orquestador lo invoca directo. El puerto va donde está su consumidor.
 
-- [ ] T025 [US1] `src/domain/selection/quality-gate.ts` — la disponibilidad de texto entra como una
-      clase más de evidencia y una razón de rechazo más. **El gate sigue siendo una función pura**
-      (constitución II): recibe qué familias tienen texto, no consulta nada.
-- [ ] T026 [US1] `src/application/selection/` — resuelve la disponibilidad de texto **antes** del
-      juicio, desde memoria, y se la pasa al gate. Sin texto la familia no es candidata; si ninguna
-      queda en pie por falta de texto, `NO_OP` `message-unavailable` (`01 §322`, research R-03).
+### El filtro, antes del gate
+
+- [ ] T025 [US1] **El quality gate no se toca.** Segunda corrección al plan, y quita riesgo en vez de
+      agregarlo: `01 §322` dice que sin texto **la familia no es candidata**, así que nunca llega al
+      juicio. No hace falta una clase de evidencia nueva, ni una razón de rechazo, ni cuidar que el
+      gate siga siendo puro: no cambia una línea.
+- [ ] T026 [US1] `src/application/decision/services/decision.service.ts` — al armar el contexto, los
+      candidatos de la barrera dominante se filtran a los que tienen texto, **conservando el orden de
+      la escalera**, y recién entonces se juzgan. Vacío tras el filtro ⇒ `NO_OP`
+      `message-unavailable`; no vacío pero todos rechazados ⇒ `no-acceptable-candidate`. Armar el
+      contexto es lo que el principio I le permite al orquestador; **rankear no**, y el orden lo pone
+      la escalera. Si el archivo pasa de 300 líneas, se extrae un servicio.
 - [ ] T027 [US1] `src/domain/selection/candidate.ts` — **`MESSAGE_PLACEHOLDER_VERSION` y
       `candidateId` desaparecen**. El id del candidato pasa a ser la familia; la versión del texto la
       trae el corpus. Es el síntoma que motivó la feature: mientras quede, no está hecha.

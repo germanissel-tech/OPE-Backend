@@ -40,6 +40,10 @@ const CONTEXT_MAP = {
   catalog: ["shared-kernel", "ledger"],
   barrier: ["shared-kernel", "ingestion"],
   selection: ["shared-kernel"],
+  // Feature 027: messages owns the curated corpus. It needs selection for the message family
+  // (barrier, anchor, step) and nothing else — it receives the attribute value already resolved,
+  // never the product, so it does not depend on catalog.
+  messages: ["shared-kernel", "selection"],
   commercial: ["shared-kernel", "barrier", "selection"],
   decision: [
     "shared-kernel",
