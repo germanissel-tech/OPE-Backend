@@ -55,7 +55,7 @@ describe("architecture by rings and modules (dependency-cruiser)", () => {
     expectRule("nobody-imports-composition", "some/bad-composition.ts");
     expectRule("nobody-imports-main", "some/bad-main.ts");
     expectRule("composition-wires-by-module", "composition/bad-wiring.ts");
-    expectRule("profiles-compose-modules", "composition/profiles/bad-profile.ts");
+    expectRule("deployments-compose-modules", "composition/deployments/bad-deployment.ts");
     // Modules
     expectRule("modules-only-via-index", "application/ledger/bad-internal-import.ts");
     expectRule("context-map:ledger", "domain/ledger/bad-context.ts");
