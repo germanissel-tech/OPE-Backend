@@ -269,6 +269,18 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(unknownField.statusCode).toBe(400);
   });
 
+  it("the barriers a merchant declares are bounded by the vocabulary, not by a number (feature 028)", async () => {
+    // Removing the cap loosened nothing: what bounded the list was the vocabulary, and it still does.
+    // Corrective, with their reason: the merchant has an active experiment, so any other version
+    // would be 409 configuration-frozen before reaching the schema, which is what this measures.
+    const declare = (barriers: string[]) =>
+      configure({ declared: { barriers }, corrective: true, reason: "test" });
+    expect((await declare(["fit", "price", "returns"])).statusCode).toBe(201);
+    expect((await declare(["fit", "fit"])).statusCode).toBe(400);
+    expect((await declare([])).statusCode).toBe(400);
+    expect((await declare(["shipping"])).statusCode).toBe(400);
+  });
+
   it("a correspondence with one label twice is refused with its own type, not a generic one", async () => {
     // The contract declares duplicate-attribute-label as the type of this 422 (feature 027), so the
     // fault travels with its own code: a reader has to know which of the two things went wrong.

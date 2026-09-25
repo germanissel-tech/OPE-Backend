@@ -1473,7 +1473,7 @@ export type components = {
             anchors?: components["schemas"]["AnchorMap"];
             /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
             attributeLabels?: components["schemas"]["AttributeLabel"][];
-            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. No upper bound of its own: with unique items over a closed vocabulary the list cannot exceed it, and a number here would say «a merchant picks at most N» while meaning «N exist» — two things that stop coinciding the day one more barrier exists. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
             decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];

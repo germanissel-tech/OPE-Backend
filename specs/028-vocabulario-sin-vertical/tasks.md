@@ -150,15 +150,18 @@ en ese bloque sigue produciendo la misma barrera.
 **Independent Test**: se puede explicar en una frase qué limita el esquema sin usar el número tres con
 dos sentidos distintos, y una configuración con todas las barreras se acepta.
 
-- [ ] T028 [US3] `contracts/components/schemas/MerchantConfigurationDeclared.yaml` — **borrar
+- [x] T028 [US3] `contracts/components/schemas/MerchantConfigurationDeclared.yaml` — **borrar
       `maxItems`** del campo de barreras; `minItems: 1` y `uniqueItems: true` se quedan, y la
       descripción dice qué limita sin depender de cuántas barreras existan hoy. El tope no se
       reemplaza por otro número: con `uniqueItems` sobre un enum de tres, una lista de más de tres no
       puede existir (R-07).
-- [ ] T029 [US3] `npm run contract:check` y `npm run contract:types`.
-- [ ] T030 [P] [US3] `tests/integration/admin-configuration.test.ts` — una configuración con todas las
+- [x] T029 [US3] `npm run contract:check` y `npm run contract:types`.
+- [x] T030 [P] [US3] `tests/integration/admin-configuration.test.ts` — una configuración con todas las
       barreras se acepta; una con una repetida se rechaza por `uniqueItems`, como antes; y una con
-      ninguna, por `minItems`. Lo que se prueba es que **borrar el tope no aflojó nada**.
+      ninguna, por `minItems`. Lo que se prueba es que **borrar el tope no aflojó nada**. Las cuatro
+      publicaciones van **correctivas con su motivo**: el merchant de la prueba tiene un experimento
+      activo, así que sin eso el `409 configuration-frozen` llega antes que el esquema y la prueba
+      mediría otra cosa.
 
 **Checkpoint**: el límite se mueve solo el día que exista una cuarta barrera.
 
