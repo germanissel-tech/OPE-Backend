@@ -63,7 +63,7 @@ El orden en que se busca un texto cuando el idioma de la página no tiene uno pr
 
 ### `MessageOutcome` — unión discriminada
 
-Lo que la autoridad del mensaje responde. Estados ilegales irrepresentables (ADR-024):
+Lo que la resolución del texto responde. Estados ilegales irrepresentables (ADR-024):
 
 ```
 Dressed   { text: CuratedText, version: MessageVersion }
@@ -86,23 +86,23 @@ en `contracts/problem-types.yaml`:
 
 ## Aplicación
 
-### `MessageService` (autoridad) — `application/messages/services/`
+### `MessageService` — `application/messages/services/`
 
-La autoridad que viste la decisión, **después del veredicto comercial y antes del ledger** (R-03).
-Recibe la familia de mensaje elegida, el valor de atributo ya resuelto (o su ausencia), el idioma de
-la página y la configuración del merchant; devuelve un `MessageOutcome`.
+Resuelve el texto de una familia: recibe la familia, el valor de atributo ya resuelto (o su
+ausencia), el idioma de la página y la configuración del merchant; devuelve un `MessageOutcome`.
 
-**No decide si intervenir.** Eso lo emitió la política comercial, única autoridad del veredicto
-(constitución I). Esta autoridad informa **si puede entregar**, igual que `DecisionRecorder` informa
-si el ledger aceptó.
+**Lo consulta la selección, antes del gate** (R-03): sin texto, la familia no es candidata
+(`01 §322`). No decide si intervenir —eso lo emite la política comercial, única autoridad del
+veredicto (constitución I)— y no consulta nada durante el juicio: el gate recibe la disponibilidad
+de texto como una clase más de evidencia y **sigue siendo una función pura**.
 
 ### Puertos — `application/messages/ports/`
 
-| Puerto             | Qué responde                                                                      | Quién lo enlaza                                     |
-| ------------------ | --------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `MessageCorpus`    | el texto curado para una familia, un valor, un idioma y una voz, si existe        | `messages`, sobre el activo del release             |
-| `MessageDirectory` | lo que el merchant declaró: voz, cadena de idiomas y correspondencia de etiquetas | `configuration`, como ya hace con `PolicyDirectory` |
-| `UnmappedValueLog` | registra que apareció un valor sin correspondencia                                | `messages`                                          |
+| Puerto             | Qué responde                                                                     | Quién lo enlaza                                     |
+| ------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `MessageCorpus`    | el texto curado para una familia, un valor, un idioma y una voz, si existe       | `messages`, sobre el activo del release             |
+| `MessageDirectory` | lo que el merchant declaró: versión, voz, idiomas y correspondencia de etiquetas | `configuration`, como ya hace con `PolicyDirectory` |
+| `UnmappedValueLog` | registra que apareció un valor sin correspondencia                               | `messages`                                          |
 
 Todos devuelven `Promise`, y los que pueden fallar devuelven `Result` (ADR-023).
 
@@ -120,11 +120,11 @@ Lo que se agrega a lo que un merchant publica, por el camino que ya existe
 (`publishMerchantConfiguration`), versionado y estampado en cada decisión junto con las otras dos
 versiones:
 
-| Campo                   | Qué es                                  | Invariante                                               |
-| ----------------------- | --------------------------------------- | -------------------------------------------------------- |
-| `voice`                 | la voz elegida                          | del vocabulario cerrado                                  |
-| `locales.fallbackChain` | reemplaza al `fallback` de un solo tag  | no vacía, sin repetidos, todos bien formados             |
-| `attributeLabels`       | sus etiquetas → valores del vocabulario | cada valor existe; ninguna etiqueta apunta a dos valores |
+| Campo              | Qué es                                  | Invariante                                               |
+| ------------------ | --------------------------------------- | -------------------------------------------------------- |
+| `voice`            | la voz elegida                          | del vocabulario cerrado                                  |
+| `locales.fallback` | el idioma de reserva; no cambia         | uno solo, opcional, de los soportados                    |
+| `attributeLabels`  | sus etiquetas → valores del vocabulario | cada valor existe; ninguna etiqueta apunta a dos valores |
 
 Las tres las juzgan las fábricas del dominio, no el lector de forma (ADR-024): un valor fuera de
 rango es un error que nombra su campo.

@@ -5,24 +5,36 @@ Cada decisión cita su evidencia y qué se descartó.
 
 ---
 
-## R-01 — Dónde vive el corpus, y la tensión con el principio X
+## R-01 — Dónde vive el corpus, y la palabra que el principio X había perdido
 
 **Decisión**: el corpus de prosa es un **activo del release** (archivo del repositorio, leído por un
-puerto); lo que se publica **por merchant** es sólo lo que varía: la voz elegida, la cadena de
-idiomas y la correspondencia de sus etiquetas. La operación planeada `publishMessageCatalog` se
-**retira del mapa** antes de construirse.
+puerto); lo que se publica **por merchant** es sólo lo que varía: la versión que se le sirve, la voz
+elegida, sus idiomas y la correspondencia de sus etiquetas. La operación planeada
+`publishMessageCatalog` se **retira del mapa** antes de construirse.
 
-**La tensión, dicha entera.** El principio X de la constitución enumera, entre lo que varía por
-merchant como configuración versionada, el «catálogo de mensajes». Leído al pie de la letra, eso
-manda a la operación planeada. Pero la decisión del dueño del 2026-09-24 —**los textos los escribe
-OPE**— le saca el sujeto: si la prosa es de OPE y se reusa entre merchants, no es algo que varíe
-por merchant.
+**Esto no es una interpretación: es lo que la fuente ya decía.** `01 §14.2` declara la tabla de
+banderas configurables por merchant, y la fila dice:
 
-**Por qué el reparto propuesto respeta el principio y no lo esquiva.** Lo que el principio X exige
-es que **nada que varíe por merchant esté en el código**. Bajo este reparto, todo lo que varía por
-merchant —voz, idiomas, correspondencia de valores— **es** configuración versionada, publicada por
-el camino que ya existe (`publishMerchantConfiguration`) y estampada en cada decisión junto con las
-otras dos versiones. Lo que no varía no es configuración de nadie: es contenido de OPE.
+| Bandera              | Parámetros  |
+| -------------------- | ----------- |
+| Catálogo de mensajes | **versión** |
+
+`03 §191` lo repite con las mismas palabras: «versión del catálogo de mensajes». **Lo que varía por
+merchant es la versión, no el contenido.**
+
+**El principio X había perdido esa palabra al parafrasear** y decía «catálogo de mensajes» a secas,
+lo que se leía como que el contenido de los textos varía por merchant. Se restauró por enmienda
+**PATCH** (constitución 1.4.3, 2026-09-24), agregando además qué elige el merchant para que la
+lectura equivocada no vuelva.
+
+**Por qué la enmienda no necesitó tocar los documentos del MVP**, que es lo que la cláusula de
+Governance habría exigido: no cambia una decisión de la fuente, **la restaura**. Si el reparto
+hubiera contradicho a `01`, la enmienda no habría sido legítima desde una feature.
+
+Bajo este reparto, todo lo que varía por merchant —versión, voz, idiomas, correspondencia de
+valores— **es** configuración versionada, publicada por el camino que ya existe
+(`publishMerchantConfiguration`) y estampada en cada decisión junto con las otras dos versiones. Lo
+que no varía no es configuración de nadie: es contenido de OPE.
 
 **Y el principio VIII lo respalda**: «los mensajes son curados y versionados; el runtime los lee de
 un almacén. Los usos offline (**redacción del catálogo de mensajes**, …) corren fuera del plano de
@@ -35,8 +47,9 @@ revisó — justo lo que la decisión «los escribe OPE» busca evitar—, y el 
 duplicado en cada merchant. Está **planeada y no construida**: retirarla ahora no cuesta nada y
 después cuesta una versión mayor (ADR-019).
 
-**Para el dueño**: si esta lectura del principio X no lo convence, la alternativa no es el reparto
-sino una enmienda de la constitución. Queda anotado en el ADR, no resuelto por decreto.
+**Descartado: dejar el principio X como estaba y acomodar el diseño a su letra.** Habría puesto a
+cada merchant a publicar el mismo corpus, contra lo que `01 §14.2` decide. Cuando la paráfrasis y
+la fuente no coinciden, se corrige la paráfrasis.
 
 ---
 
@@ -45,43 +58,61 @@ sino una enmienda de la constitución. Queda anotado en el ADR, no resuelto por 
 **Decisión**: `message-unavailable` entra al catálogo `contracts/no-op-reasons.yaml` como un motivo
 más. No hace falta un tercer resultado ni un canal nuevo.
 
-**Evidencia**: `ledger-unavailable` ya es exactamente esto — una **falla de entrega**, no una
-decisión de callarse — y su descripción lo dice: «the intervention is suppressed rather than left
-unmeasured». La `FR-016` de la spec («no debe presentarlo como una decisión de no intervenir») se
-cumple porque **el motivo es lo que distingue**: el catálogo de motivos existe justamente para que
-`control-arm`, `barrier-unclear` y `ledger-unavailable` no se confundan entre sí.
+**Evidencia**: lo nombra la fuente. `01 §322` dice que el resultado es «`NO_OP` con motivo
+(`message-unavailable`)», así que el nombre y su naturaleza están decididos; lo que había que
+resolver es si hacía falta un resultado nuevo, y no hace falta.
+
+**Quién lo emite**: la **selección**, que es donde vive el filtro (R-03). Se emite cuando ningún
+candidato de la barrera dominante queda en pie **por falta de texto**, y se distingue de
+`no-acceptable-candidate`, que es cuando ninguno queda en pie porque sus claims no tienen evidencia.
+Dos causas distintas de la misma forma, dos motivos distintos: es para eso que el catálogo de
+motivos existe, y es lo que `FR-016` y `FR-017` piden.
 
 **Consecuencia que sale gratis**: el presupuesto por sesión y la fatiga por visitante **no se
-consumen**. El orquestador ya lo resuelve con `decision.isIntervention()`, así que degradar a `NO_OP`
-antes de registrar deja los contadores intactos sin escribir una línea. Es la misma regla que ya
-rige: una intervención cuenta contra los presupuestos sólo si llegó a ocurrir.
+consumen**, porque nunca se emitió una intervención que descontar. El orquestador ya consume los
+contadores sólo cuando hubo intervención (`decision.isIntervention()`), así que no hay que escribir
+ni razonar nada.
 
 ---
 
-## R-03 — Quién viste el mensaje: ni el orquestador, ni el borde
+## R-03 — Sin texto, la familia no es candidata: el filtro vive en la selección
 
-**Decisión**: una autoridad propia, **después del veredicto comercial y antes del ledger**, en un
-módulo nuevo `messages`.
+**Decisión**: la disponibilidad de texto es un **filtro de viabilidad del candidato**, dentro de la
+autoridad de selección, junto al quality gate. **No** es un paso posterior al veredicto comercial.
 
-**Evidencia, y es la más restrictiva de todas.** El principio I dice, literalmente: «El orquestador
-MUST limitarse a armar el contexto e invocar las autoridades en orden. MUST NOT inferir barreras,
-rankear candidatos **ni elegir mensajes**». No hay margen de interpretación.
+**La fuente lo decide, y con estas palabras** (`01 §322`):
 
-Las dos alternativas obvias fallan:
+> «El idioma es una dimensión del catálogo de mensajes, no un tratamiento distinto: el texto se
+> elige por familia, anclaje, escalón y el `locale` que trae el contexto de página; **si no hay
+> texto para ese idioma, la familia no es candidata** y el resultado es `NO_OP` con motivo
+> (`message-unavailable`), salvo que el merchant declare un idioma de reserva.»
 
-| Dónde                        | Por qué no                                                                                                                                      |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dentro del orquestador       | Lo prohíbe el principio I por su nombre. Y `decision.service.ts` ya está en 267 de las 300 líneas que la regla de forma permite                 |
-| En el borde HTTP (presenter) | El ledger no registraría qué texto se mostró, contra `FR-018` y contra el principio IX, que exige que toda cifra se reconstruya hasta su origen |
+**Corrección**: la primera versión de este research proponía una autoridad nueva después del
+veredicto comercial, con la forma de `DecisionRecorder`, que degradaba un `INTERVENE` a `NO_OP`. Es
+lo que el principio I permite, pero **no es lo que la fuente decide**, y la de la fuente es mejor
+por tres motivos medibles:
 
-**El precedente que fija la forma**: `DecisionRecorder` ya es un paso posterior al veredicto que
-puede convertir un `INTERVENE` en un `NO_OP` (`ledger-unavailable`). El vestido del mensaje es
-igual: **no decide si intervenir** —eso lo emitió la política comercial, única autoridad del
-veredicto— sino que **informa si puede entregar**. Y va **antes** del ledger porque el registro
-tiene que llevar la versión del texto.
+1. **Un merchant con corpus parcial sigue interviniendo.** Si la familia más alta no tiene texto, la
+   escalera cae al escalón de abajo y se muestra algo que sí se puede sostener. Con la degradación
+   posterior, ese mismo merchant se callaba entero.
+2. **No hace falta una autoridad nueva.** La selección ya rechaza candidatos que no puede sostener;
+   «no hay texto» tiene exactamente esa forma. Una autoridad menos en la cadena.
+3. **La pregunta del presupuesto desaparece.** Si nunca se emitió una intervención, no hay nada que
+   descontar: no hay que razonar sobre contadores que no se tocan.
 
-La cadena queda: asignación → inferencia → evidencia → selección + gate → política comercial →
-**vestido del mensaje** → ledger.
+**Qué se conserva del análisis anterior, porque sigue valiendo**: el principio I prohíbe al
+orquestador elegir mensajes («MUST NOT inferir barreras, rankear candidatos **ni elegir
+mensajes**»), y el borde HTTP tampoco puede, porque el ledger tiene que registrar la versión
+mostrada (`FR-018`, principio IX). Las dos alternativas obvias siguen descartadas; lo que cambia es
+dónde queda la tercera.
+
+**Y el quality gate sigue siendo puro** (constitución II), que era el riesgo de meter el filtro
+ahí: el corpus se resuelve **antes**, desde memoria, y la disponibilidad de texto por familia llega
+como una clase más de evidencia — igual que llegan hoy los atributos del producto. El gate no
+consulta nada; juzga lo que recibe.
+
+La cadena queda como estaba: asignación → inferencia → evidencia → **selección + gate (claims y
+texto)** → política comercial → ledger.
 
 ---
 
@@ -130,20 +161,30 @@ ledger.
 
 ---
 
-## R-06 — La cadena de idiomas reemplaza al salto único
+## R-06 — El idioma de reserva se queda como está: uno, opcional
 
-**Decisión**: `Locales.fallback` (un solo tag) pasa a ser una **cadena ordenada**. Es un cambio
-incompatible del esquema, aceptado bajo `info.x-stability: building` (ADR-003).
+**Decisión**: **`Locales.fallback` no cambia.** La primera versión de este research proponía
+reemplazarlo por una cadena ordenada. **Retirado**, por dos motivos independientes, cualquiera de
+los cuales alcanza.
 
-**Evidencia**: hoy el esquema declara `fallback` como «The language to use when the page's is not
-supported; one of `supported`». Con un solo tag, `es-AR` sin texto propio salta directo al final en
-vez de probar `es-419` y después `es`. Tener variantes regionales en el corpus no sirve de nada sin
-la cadena.
+**El primero es de gobernanza, y es el que manda.** `01 §14.2` declara la bandera «Idiomas del
+merchant» con parámetros «idiomas con texto, **idioma de reserva (opcional)**» y la marca
+**DECIDIDO (2026-09-20)**. La constitución dice que un principio derivado de una decisión DECIDIDO
+de los documentos del MVP sólo se enmienda si cambia el documento fuente. Cambiar un salto único por
+una cadena es cambiar esa decisión, y eso no se hace desde una feature.
 
-**El orden de resolución, y por qué el idioma va primero**: un texto en el idioma equivocado está
-**roto**; uno en la voz equivocada está fuera de marca pero se entiende. Entonces: se resuelve
-idioma recorriendo la cadena, y dentro del idioma resuelto se intenta la voz del merchant y luego la
-voz por defecto. Agotado todo, `message-unavailable` — **nunca** un texto en otro idioma.
+**El segundo es que no hace falta.** Con los textos escritos por OPE, **OPE elige la granularidad
+del corpus**. Si el corpus se escribe en `es-419` y el merchant declara `es-419` como idioma de
+reserva, una página en `es-AR` resuelve en **un salto**. La cadena sólo haría falta si OPE
+escribiera `es-AR` y `es-MX` por separado y además quisiera un intermedio entre ellos y el final —
+un refinamiento que ningún merchant pidió y que, si alguna vez hace falta, es su propia feature con
+su propio cambio en `01`.
+
+**Lo que sí se conserva de aquella redacción**: el orden de resolución. Un texto en el idioma
+equivocado está **roto**; uno en la voz equivocada está fuera de marca pero se entiende. Se resuelve
+primero el idioma —el de la página, y si no tiene texto, el de reserva— y dentro del idioma
+resuelto se intenta la voz del merchant y después la voz por defecto. Sin texto, la familia no es
+candidata (R-03); **nunca** un texto en otro idioma.
 
 ---
 
@@ -167,16 +208,17 @@ con su evidencia, no un permiso general de plantillas.
 ## R-08 — Dónde se registra la decisión
 
 **Decisión**: **un ADR nuevo**, con el número que le toque al escribirse, por tres motivos
-transversales que ninguna feature
-posterior debería tener que re-deducir: dónde vive el corpus y por qué eso no contradice el
-principio X (R-01), que el vestido del mensaje es una autoridad posterior al veredicto y no trabajo
-del orquestador (R-03), y que el vocabulario de valores es cerrado y de OPE mientras la
-correspondencia es del merchant (R-04).
+transversales que ninguna feature posterior debería tener que re-deducir: que el corpus es un
+activo del release y el merchant elige versión, voz e idiomas (R-01); que la disponibilidad de
+texto filtra candidatos en la selección y no degrada una intervención decidida (R-03); y que el
+vocabulario de valores es cerrado y de OPE mientras la correspondencia es del merchant (R-04).
 
-**Sin enmienda de la constitución.** El reparto de R-01 satisface el principio X en su intención
-—nada que varíe por merchant vive en el código— y el ADR deja escrita la lectura para que el dueño
-la confirme o la discuta. Enmendar la constitución para una feature sería invertir el orden: la
-constitución prevalece, y acá no hace falta cambiarla.
+**Y una enmienda de la constitución, que sí hizo falta** (decisión del dueño, 2026-09-24):
+**1.4.3**, PATCH, sobre el principio X. No es enmendar para acomodar una feature —eso sería
+invertir el orden, porque la constitución prevalece— sino **restaurar** la palabra que su fuente
+tiene y la paráfrasis perdió. La regla que queda es la que el propio caso enseña: cuando una
+paráfrasis y su fuente no coinciden, se corrige la paráfrasis; cuando el diseño y la fuente no
+coinciden, se corrige el diseño.
 
 ---
 

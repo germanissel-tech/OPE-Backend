@@ -124,30 +124,7 @@ comprobar que funcionan **sin redactar nada**.
 
 ---
 
-### User Story 3 - El idioma resuelve por cadena, no por salto único (Priority: P3)
-
-Una tienda sirve `es-AR` y `es-MX`, y el corpus tiene textos en `es-419`. Hoy la configuración
-admite **un solo idioma de repliegue**, así que una variante regional sin texto propio salta
-directamente al final en vez de probar la variante más cercana.
-
-**Why this priority**: es lo que hace que las variantes regionales sean útiles en vez de decorativas.
-Sin la cadena, tener `es-AR` y `es-419` en el corpus no sirve de nada.
-
-**Independent Test**: pedir una decisión con un idioma de página que no tiene texto propio y
-comprobar que resuelve al más cercano de la cadena antes de rendirse.
-
-**Acceptance Scenarios**:
-
-1. **Given** una cadena declarada y una página en un idioma sin texto propio, **When** el plano
-   interviene, **Then** se usa el texto del primer idioma de la cadena que tenga uno.
-2. **Given** una página cuyo idioma agota la cadena sin encontrar texto, **When** el plano
-   interviene, **Then** responde `message-unavailable` — **nunca** un texto en otro idioma.
-3. **Given** una página que no declara idioma, **When** el plano interviene, **Then** se usa el
-   idioma por defecto del merchant.
-
----
-
-### User Story 4 - El merchant se entera de lo que le falta mapear (Priority: P4)
+### User Story 3 - El merchant se entera de lo que le falta mapear (Priority: P3)
 
 Un merchant agrega una línea de productos con una tela que no mapeó. Todo funciona: esos productos
 simplemente no hablan de tela. **Y nadie se entera.** OPE deja de intervenir en media tienda en
@@ -229,8 +206,8 @@ reporte con su conteo; comprobar que el reporte nunca rechaza ni bloquea nada.
 
 - **FR-012**: El idioma DEBE resolverse antes que la voz. El sistema NO DEBE mostrar nunca un texto
   en un idioma distinto del que resolvió.
-- **FR-013**: Un merchant DEBE poder declarar una **cadena** de idiomas de repliegue, recorrida en
-  orden, y no un único idioma alternativo.
+- **FR-013**: Cuando el idioma de la página no tiene texto, DEBE usarse el **idioma de reserva** que
+  el merchant declara, si lo declaró. Es uno solo y es opcional, como la fuente lo decide.
 - **FR-014**: Cuando la página no declara idioma, DEBE usarse el idioma por defecto del merchant.
 - **FR-015**: Cuando la voz configurada no tiene texto para la familia y el idioma resueltos, DEBE
   usarse la voz por defecto antes de rendirse; un texto fuera de voz es aceptable, uno fuera de
@@ -278,8 +255,8 @@ reporte con su conteo; comprobar que el reporte nunca rechaza ni bloquea nada.
   curada (por ejemplo, un tipo de tela). No es la etiqueta del merchant.
 - **Correspondencia de valores**: la traducción que declara un merchant entre sus etiquetas y los
   valores del vocabulario. Varias etiquetas suyas pueden apuntar al mismo valor.
-- **Cadena de idiomas**: el orden en que un merchant quiere que se busque un texto cuando el idioma
-  de la página no tiene uno propio.
+- **Idioma de reserva**: el idioma que un merchant declara para cuando el de la página no tiene
+  texto. Uno solo y opcional.
 - **Valor pendiente de mapear**: un valor que apareció en el catálogo de un merchant sin
   correspondencia, con su conteo y su último instante.
 
@@ -342,6 +319,24 @@ reporte con su conteo; comprobar que el reporte nunca rechaza ni bloquea nada.
   sin revisión.
 - **Ampliar el vocabulario de candidatos.** Las familias de mensaje son las que el plano ya elige;
   esta feature las viste, no las inventa.
+
+## Correcciones tras leer los documentos fuente (2026-09-24)
+
+Dos cosas que esta spec dio por abiertas y que `01` ya tenía decididas. Quedan escritas porque
+explican por qué la spec cambió después de escrita.
+
+1. **La disponibilidad de texto filtra candidatos; no degrada una intervención ya decidida.**
+   `01 §322`: «si no hay texto para ese idioma, **la familia no es candidata** y el resultado es
+   `NO_OP` con motivo». Es mejor que lo que esta spec insinuaba: un merchant con textos incompletos
+   **sigue interviniendo** con un escalón más bajo, en vez de callarse.
+2. **El idioma de reserva es uno y opcional.** `01 §14.2` lo declara así y lo marca DECIDIDO
+   (2026-09-20). La historia que proponía una cadena de repliegue **se retiró**: cambiarlo sería
+   cambiar una decisión de la fuente, y además no hace falta — con el corpus escrito en la
+   granularidad correcta, un salto alcanza. Las historias pasaron de cuatro a tres.
+
+Y una tercera, que fue al revés: la constitución **sí** se enmendó (1.4.3, PATCH), porque su
+principio X había perdido la palabra «versión» al parafrasear a `01 §14.2` y se leía como que el
+contenido de los textos varía por merchant.
 
 ## Preguntas que decide el plan
 
