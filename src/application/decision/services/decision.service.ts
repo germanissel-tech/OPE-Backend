@@ -56,8 +56,13 @@ interface Evidence {
 /** The context the orchestrator carries through the authorities of one batch. */
 interface Context {
   merchantId: MerchantId;
-  /** Language of the page in focus, when the SDK read one: which text the catalogue can serve. */
-  locale?: string;
+  /**
+   * Language of the page in focus, when the SDK read one: which text the catalogue can serve.
+   * Optional **and** `undefined`, unlike the request of the messages plane: inside the orchestrator
+   * an absent language and an undefined one are the same thing, so guarding the difference would be
+   * a branch no test can tell apart. The one place it matters is the port, and it guards it there.
+   */
+  locale?: string | undefined;
   policies: MerchantPolicies;
   session: SessionState;
   visitorInterventions: number;
@@ -109,7 +114,7 @@ export class DecisionService implements DecisionPlane {
       const arm = assigned.value?.assignment.arm;
       const judged = await this.#judge({
         merchantId,
-        ...(focus.locale === undefined ? {} : { locale: focus.locale }),
+        locale: focus.locale,
         policies: merchant,
         session,
         visitorInterventions: remembered.visitorInterventions,
@@ -155,16 +160,15 @@ export class DecisionService implements DecisionPlane {
       truth: evidence.truth,
       evidence: evidence.gate,
       abandoned,
-      ...(locale === undefined ? {} : { locale }),
+      locale,
       attributes: evidence.gate.attributes,
     });
     const trigger = triggerOf(settled.barrier, barrier);
     const verdict = commercial.verdict({
-      ...(arm === undefined ? {} : { arm }),
-      ...(barrier === undefined ? {} : { barrier }),
+      arm,
+      barrier,
       trigger,
-      // Stryker disable next-line ConditionalExpression: an absent key and an undefined one are the same input
-      ...(unsustainable === undefined ? {} : { unsustainable }),
+      unsustainable,
       judged,
       abandoned,
       addedToCart: session.addedToCart(),

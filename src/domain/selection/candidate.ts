@@ -1,9 +1,10 @@
 // Candidate interventions (01-arquitectura-mvp.md §4.4; 03-alcance-mvp.md §4.8; ADR-027): for
 // each barrier, the interventions OPE may make, ordered by the incentive ladder — information,
 // reassurance, uncertainty, evidence, incentive — each declaring the claims it makes. A closed
-// vocabulary of OPE: a merchant declares what evidence it provides, never new candidates
-// (those arrive with the message catalogue feature of the map). Until then the candidate id is the
-// placeholder message version `msg_<barrier>_<anchor>_<step>_v0`.
+// vocabulary of OPE: a merchant declares what evidence it provides, never new candidates, and
+// never the text either — the corpus of the release writes it (ADR-036). The candidate id is the
+// family the corpus keys its texts by, `<barrier>.<anchor>.<step>`, so two candidates of the same
+// family cannot exist and no text is orphan.
 import { MATERIAL, type Anchor, type Barrier } from "../shared-kernel/index.js";
 
 /** The steps of the incentive ladder, from the cheapest in margin to the incentive itself. */

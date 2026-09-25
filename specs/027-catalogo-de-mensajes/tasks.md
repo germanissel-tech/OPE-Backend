@@ -298,10 +298,13 @@ conteo; y comprobar que el reporte **nunca** rechaza ni demora la ingesta.
       `cursor`/`limit` por `$ref` y un `<X>Page` (`items`, `nextCursor?`). Si es la
       primera operación de su esquema de seguridad, referenciarlo desde la raíz — no lo es
       (`adminToken` ya está en uso).
-      **Sin `from`/`to`**, que esta tarea nombraba: ninguna FR de la historia pide una ventana de
-      tiempo y `listAnchorDiagnostics`, que es la misma forma, tampoco los tiene. Filtrar sin
-      requisito es alcance que la spec no pidió. (Los parámetros existen en `components/` y **no los
-      usa ninguna operación**; eso es otra cosa, anotada como deuda.)
+      **Sin `from`/`to`**, que esta tarea nombraba: la regla que los pide
+      (`.claude/rules/contrato.md`) los pide para una **lectura de colección del portal**, y esta es
+      del consumidor `admin`; `listAnchorDiagnostics`, que es la misma forma y el mismo consumidor,
+      lleva sólo `cursor`/`limit`. Ninguna FR de la historia pide una ventana de tiempo, y filtrar sin
+      requisito es alcance que la spec no pidió. (Al buscarlos aparecieron sin usar en
+      `components/`, lo anoté como deuda y **estaba mal**: `contracts/README.md` ya explica que un
+      componente entra con la primera operación que lo usa. D-15, descartada con el motivo.)
 - [x] T058 [US3] `npm run contract:check` y `npm run contract:types`. Salió una: el sustantivo
       `unmapped` no resolvía al glosario — `docs/dominio/sin-correspondencia.md`.
 - [x] T059 [US3] `src/application/admin/ports/unmapped-value-log.ts` y su gateway en
@@ -334,7 +337,7 @@ conteo; y comprobar que el reporte **nunca** rechaza ni demora la ingesta.
 
 ## Phase 6: Cierre
 
-- [ ] T064 `docs/adr/0NN-*.md` — el ADR, ahora que sus identificadores existen y
+- [x] T064 `docs/adr/036-vocabulario-cerrado-y-mapa-del-merchant.md` — el ADR, ahora que sus identificadores existen y
       `check:identifiers` puede verificarlos. Los tres motivos transversales (research R-08): el
       corpus es un activo del release y el merchant elige versión, voz e idiomas; sin texto la
       familia no es candidata; el vocabulario es cerrado y de OPE mientras la correspondencia es del
@@ -351,24 +354,48 @@ conteo; y comprobar que el reporte **nunca** rechaza ni demora la ingesta.
       traducción va del merchant hacia OPE— con sus dos instancias: el mapa de anclajes (desde la
       017) y la correspondencia de etiquetas (US2). La tercera, el vocabulario de bloques, es D-14.
 
-- [ ] T065 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, y el criterio de admisión decide:
+- [x] T065 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, y el criterio de admisión decide:
       ¿hace falta en toda sesión (núcleo), es un procedimiento (skill) o es de una parte del código
-      (regla acotada)? El núcleo está en 185 de 200 líneas. `npm run check:instructions` verifica la
-      clasificación en los dos sentidos.
-- [ ] T066 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
+      (regla acotada)? `npm run check:instructions` verifica la clasificación en los dos sentidos.
+      **Resultado: el núcleo no cambia y `.claude/rules/contrato.md` gana una línea.** Nada de esta
+      feature hace falta en toda sesión ni es un procedimiento; lo que sí hay es una regla que se
+      aplica **cuando alguien inventa un vocabulario**, y eso pasa tocando `contracts/`, que es
+      cuando esa regla llega: el vocabulario es de OPE y cerrado, el mapeo es del merchant, y el
+      criterio de ADR-036 decide de qué lado cae lo próximo.
+- [x] T066 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
       `check:language`, `check:behaviour-constants`, `check:ports-bound` — los siete de gobernanza y
       calidad que esta feature puede romper, uno por uno antes de la cadena completa.
-- [ ] T067 Correr el quickstart **entero**, sus once pasos, y dejar su tabla de estado **fechada**.
+- [x] T067 Correr el quickstart **entero**, sus once pasos, y dejar su tabla de estado **fechada**.
       El paso 11 no lo decide ningún comando: leer un texto del corpus y preguntarse si alguien lo
-      escribiría así.
-- [ ] T068 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
-      `contract:check`, `test:contract`, `release-check`.
-- [ ] T069 `npm run test:mutation` sobre las líneas cambiadas. Ante un superviviente, la skill
-      `triaging-mutants`: describir el daño, clasificarlo **antes de tocar nada**, la prueba o la
-      reestructuración según la clase, y confirmar con `--files`. La corrida completa la juzga CI.
-- [ ] T070 **La verificación que ningún comando hace**: `grep` de `MESSAGE_PLACEHOLDER_VERSION` y de
+      escribiría así. **Dos pasos nombraban rutas que no existen** —el 7 por la cadena de idiomas que
+      la fuente contradijo, el 9 porque el reporte quedó en `admin`— y quedan corregidos con el
+      motivo, no borrados.
+- [x] T068 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `test`, `test:tools`,
+      `contract:check`, `test:contract`, `release-check`. Todo verde, con una trampa que conviene
+      dejar escrita: `test:contract` levanta `dist/main.js` **si existe**, así que con un `dist/`
+      viejo prueba el servidor de antes. Falló con `platform.unmappedValuesKept is invalid` —el valor
+      nuevo de esta feature, que el build viejo no tenía— y lo arregló `npm run build`. No es un bug:
+      es que en local hay que construir antes, y CI ya lo hace.
+- [x] T069 `npm run test:mutation` sobre las líneas cambiadas. **Diecinueve supervivientes**, todos
+      juntos y todos al cierre, que es el problema además del síntoma. Cierra en cero, y la mitad se
+      fue por reestructurar y no por probar: la guarda `...(x === undefined ? {} : { x })` sobre un
+      tipo interno tiene dos brazos que son el mismo input, así que `Context`, `CandidatesRequest` y
+      `CommercialInput` declaran `?: T | undefined` y el valor se pasa — **una** guarda, en el borde
+      donde la ausencia se observa, y una excepción de Stryker menos. Lo demás fueron pruebas que
+      faltaban: el `details` de los tres errores del corpus, la clave del corpus con el valor de
+      atributo, el idioma de la página llegando al corpus, la guarda del claim, el orden de desalojo
+      del registro y la forma de la correspondencia en la semilla.
+
+      **Y una lección de método, que quedó escrita en `.claude/rules/gates-de-calidad.md`**: por
+      historia se corre el gate acotado (`--files <archivo>:<desde>-<hasta>`) mientras el código está
+      fresco, la corrida larga se escribe a un archivo y no a una tubería, y no se edita `src/`
+      mientras corre. Perdí dos corridas por esas dos últimas.
+
+- [x] T070 **La verificación que ningún comando hace**: `grep` de `MESSAGE_PLACEHOLDER_VERSION` y de
       `msg_.*_v0` en `src/` y `contracts/` tiene que dar **nada**. Mientras quede una ocurrencia, la
-      feature no está hecha.
+      feature no está hecha. Quedaba una: el comentario de cabecera de `candidate.ts`, que seguía
+      prometiendo el placeholder «hasta la feature del catálogo de mensajes». El `grep` lo encontró
+      y nada más lo habría encontrado.
 
 ---
 

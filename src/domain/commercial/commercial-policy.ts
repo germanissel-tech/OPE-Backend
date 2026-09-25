@@ -56,9 +56,14 @@ export interface CommercialPolicyRecord {
 export type Trigger = "rules" | "abandonment" | "none";
 
 export interface CommercialInput {
-  /** Absent when the merchant has no active experiment. */
-  arm?: Arm;
-  barrier?: Barrier;
+  /**
+   * Absent when the merchant has no active experiment. Optional **and** `undefined`, like the two
+   * below: the policy compares them against `undefined`, so an absent key and an undefined one are
+   * the same input, and declaring only the first forced every caller into a conditional spread whose
+   * two branches nothing can tell apart.
+   */
+  arm?: Arm | undefined;
+  barrier?: Barrier | undefined;
   trigger: Trigger;
   /**
    * Why no intervention can be sustained at all, before the ladder walks: the barrier's evidence
@@ -66,7 +71,7 @@ export interface CommercialInput {
    * (`message-unavailable`, 01 §322). The two must not be confused — one is «we cannot claim it»,
    * the other «we have nothing written» — so the reason travels and the ladder does not invent one.
    */
-  unsustainable?: NoOpReason;
+  unsustainable?: NoOpReason | undefined;
   judged: readonly Judged[];
   abandoned: boolean;
   addedToCart: boolean;

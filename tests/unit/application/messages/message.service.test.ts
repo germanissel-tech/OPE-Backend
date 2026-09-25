@@ -113,6 +113,22 @@ describe("Messages.sayable — what the product is made of", () => {
     expect(await askFor()).toEqual([]);
   });
 
+  it("a family that claims the material never falls back to a text without it", async () => {
+    // A corpus that also holds a text of this family with **no** attribute value: that is what a
+    // careless corpus looks like, and it is the only thing between OPE and talking about a fabric it
+    // knows nothing about. What decides is the claim of the candidate, not what the corpus answers.
+    const careless = corpusOf([
+      { family: family(uncertainty), locale: "es", voice: "neutral", text: "The text with no material." },
+    ]);
+    const said = await new Messages({ corpus: careless, directory: directoryOf({ labels }) }).sayable({
+      merchantId: MERCHANT,
+      candidates: [uncertainty],
+      attributes: withMaterial(),
+      locale: "es",
+    });
+    expect(said).toEqual([]);
+  });
+
   it("a label the merchant mapped to nothing is like no material at all, and is never shown", async () => {
     const said = await askFor("Premium unbeatable cotton");
     expect(said).toEqual([]);

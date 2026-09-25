@@ -75,6 +75,22 @@ describe("memoryUnmappedValueLog", () => {
     expect((await log.pendingOf(B, NONE, { limit: 10 })).items.map((v) => v.products)).toEqual([7]);
   });
 
+  it("the oldest is the one seen first, whatever order the catalogue names them in", async () => {
+    const log = memoryUnmappedValueLog(1);
+    await log.replace(A, [{ label: "Frisa", products: 1 }], at(1));
+    // The new label comes **first** in the catalogue and the old one second, so keeping the order
+    // given and keeping the oldest are two different answers: one keeps Frisa, the other Nylon.
+    await log.replace(
+      A,
+      [
+        { label: "Nylon", products: 1 },
+        { label: "Frisa", products: 1 },
+      ],
+      at(2),
+    );
+    expect((await log.pendingOf(A, NONE, { limit: 10 })).items.map((v) => v.label)).toEqual(["Nylon"]);
+  });
+
   it("a merchant nothing was recorded for reads an empty page, not an error", async () => {
     const log = memoryUnmappedValueLog(2);
     expect(await log.pendingOf(A, NONE, { limit: 10 })).toEqual({ items: [] });

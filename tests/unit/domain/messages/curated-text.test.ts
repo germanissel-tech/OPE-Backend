@@ -32,6 +32,17 @@ describe("CuratedText.of", () => {
     expect(!over.ok && over.error.code).toBe("corpus-text-too-long");
   });
 
+  it("every rejection names the version, and the long one says how long: a corpus of many texts is fixed by knowing which", () => {
+    // Without the version in the details, the startup refusal says a text is wrong and not which
+    // one, which in a corpus is the difference between a fix and a search.
+    const empty = of("");
+    expect(!empty.ok && empty.error.details).toEqual({ version });
+    const over = of("a".repeat(513));
+    expect(!over.ok && over.error.details).toEqual({ version, length: 513 });
+    const template = of("Fabric {material}.");
+    expect(!template.ok && template.error.details).toEqual({ version });
+  });
+
   it("refuses a text that still carries a slot: the corpus takes prose, never a template", () => {
     for (const value of ["Fabric is {material}.", "{0} left in your size", "Before the {"]) {
       const text = of(value);

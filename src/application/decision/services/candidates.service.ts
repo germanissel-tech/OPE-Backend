@@ -31,7 +31,8 @@ export interface CandidatesRequest {
   evidence: GateEvidence;
   /** Whether the session was abandoned: the commercial policy may settle on a barrier because of it. */
   abandoned: boolean;
-  locale?: string;
+  /** Optional and `undefined`: only the port of the messages plane distinguishes the two (see `Context`). */
+  locale?: string | undefined;
   attributes: ReadonlyMap<string, string>;
 }
 

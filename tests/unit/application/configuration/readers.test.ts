@@ -105,12 +105,31 @@ describe("readDeclaredConfiguration", () => {
         "decisionPolicy.rules[0].when.first.extra",
       ],
       [{ anchors: { price: { selectors: [".p"], extra: 1 } } }, "anchors.price.extra"],
+      [{ attributeLabels: [{ label: "L", value: "linen", extra: 1 }] }, "attributeLabels.0.extra"],
     ];
     for (const [declared, pointer] of cases) {
       const result = readDeclaredConfiguration(declared);
       expect(pointerOf(result), pointer).toBe(pointer);
       expect(problemOf(result), pointer).toBe(NOT_A_FIELD);
     }
+  });
+
+  it("the correspondence is a list of pairs: anything else names the field it is not", () => {
+    // A list and not a map, so that a repeated label is a fault with a name (feature 027); the
+    // shape only judges that it is a list of objects — that two entries repeat is the domain's.
+    const notAList = readDeclaredConfiguration({ attributeLabels: { "Denim 12oz": "denim" } });
+    expect(pointerOf(notAList)).toBe("attributeLabels");
+    expect(problemOf(notAList)).toBe("must be an array of objects");
+    expect(pointerOf(readDeclaredConfiguration({ attributeLabels: ["Denim 12oz"] }))).toBe(
+      "attributeLabels.0",
+    );
+    expect(pointerOf(readDeclaredConfiguration({ attributeLabels: [{ value: "denim" }] }))).toBe(
+      "attributeLabels.0.label",
+    );
+    const read = readDeclaredConfiguration({ attributeLabels: [{ label: "Denim 12oz", value: "denim" }] });
+    expect(read.ok ? read.value.attributeLabels : read.error).toEqual([
+      { label: "Denim 12oz", value: "denim" },
+    ]);
   });
 
   it("reads what is optional only when it is there: languages without a fallback, a policy without weights", () => {

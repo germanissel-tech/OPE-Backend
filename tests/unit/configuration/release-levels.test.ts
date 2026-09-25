@@ -37,6 +37,7 @@ describe("config/platform.json (level 1)", () => {
     expect(platform().signatureWindowMs).toBe(minutes(5));
     expect(platform().rotationGraceMaxMs).toBe(hours(168));
     expect(platform().anchorDiagnosticsKept).toBe(200);
+    expect(platform().unmappedValuesKept).toBe(200);
   });
 
   it("a value out of its range, an unknown field or a missing one fails naming the field", () => {

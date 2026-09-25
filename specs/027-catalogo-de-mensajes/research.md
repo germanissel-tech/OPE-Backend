@@ -207,7 +207,8 @@ con su evidencia, no un permiso general de plantillas.
 
 ## R-08 — Dónde se registra la decisión
 
-**Decisión**: **un ADR nuevo**, con el número que le toque al escribirse, por tres motivos
+**Decisión**: **un ADR nuevo**, que al escribirse quedó como **ADR-036** («Vocabulario cerrado y mapa
+del merchant»), por tres motivos
 transversales que ninguna feature posterior debería tener que re-deducir: que el corpus es un
 activo del release y el merchant elige versión, voz e idiomas (R-01); que la disponibilidad de
 texto filtra candidatos en la selección y no degrada una intervención decidida (R-03); y que el

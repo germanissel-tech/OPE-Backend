@@ -11,6 +11,7 @@ import {
   Candidates,
   DecisionService,
   States,
+  type MessageRequest,
   type SessionStateStore,
   type VisitorStateStore,
 } from "../../../../src/application/decision/index.js";
@@ -22,9 +23,9 @@ import {
   type SessionState,
   type VisitorState,
 } from "../../../../src/domain/decision/index.js";
-import { EventBatch, type Event } from "../../../../src/domain/ingestion/index.js";
+import { EventBatch, type Event, type PageContext } from "../../../../src/domain/ingestion/index.js";
 import { LedgerUnavailable, asDecisionId, type Decision } from "../../../../src/domain/ledger/index.js";
-import { type Candidate, type MerchantProfile } from "../../../../src/domain/selection/index.js";
+import { type MerchantProfile } from "../../../../src/domain/selection/index.js";
 import {
   asExperimentId,
   asMerchantId,
@@ -164,8 +165,13 @@ function subject(options: Options = {}) {
     receipts: () => Promise.resolve([]),
   };
   const inner = options.inference ?? new RuleBasedBarrierInference();
+  /** Every family can be said; what it records is the request, because the language travels in it. */
+  const asked: MessageRequest[] = [];
   const everySayable = {
-    sayable: ({ candidates }: { candidates: readonly Candidate[] }) => Promise.resolve(sayable(candidates)),
+    sayable: (request: MessageRequest) => {
+      asked.push(request);
+      return Promise.resolve(sayable(request.candidates));
+    },
   };
   const inference: BarrierInference = {
     infer: (context) => {
@@ -225,10 +231,29 @@ function subject(options: Options = {}) {
     if (!batch.ok) throw new Error(batch.error.message);
     return service.decide({ merchantId: A, batch: batch.value, now: NOW });
   };
-  return { decide, calls, sessions, visitors, decisions, entries };
+  return { decide, calls, sessions, visitors, decisions, entries, asked };
 }
 
 describe("DecisionService.decide — order of the authorities (constitution I)", () => {
+  it("the language of the page travels to the corpus, and a page without one carries none (01 §322)", async () => {
+    // The whole language rule hangs off this: if the page's language does not reach the corpus, every
+    // merchant is served the same one and the filter that makes a family sayable judges the wrong key.
+    const page: PageContext = {
+      pageType: "product",
+      productId: "SKU-1",
+      variantId: "SKU-1-M",
+      locale: "es-AR",
+    };
+    const spoken = subject({ catalog: snapshot });
+    await spoken.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4, page)]);
+    expect(spoken.asked.at(-1)?.locale).toBe("es-AR");
+    // Absent and not empty: a language nobody declared is not a language to look up.
+    const silent = subject({ catalog: snapshot });
+    await silent.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4)]);
+    const last = silent.asked.at(-1);
+    expect(last === undefined ? "no request" : "locale" in last).toBe(false);
+  });
+
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
     const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);

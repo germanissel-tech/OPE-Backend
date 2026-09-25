@@ -22,10 +22,9 @@ export function memoryUnmappedValueLog(kept: number): UnmappedValueLog {
       // Oldest first so the limit consumes the oldest; a stable sort keeps the catalogue's order
       // among the ones first seen in this same catalogue.
       held.sort((a, b) => a.firstSeenAt.getTime() - b.firstSeenAt.getTime());
-      byMerchant.set(
-        merchantId,
-        new Map(held.slice(Math.max(0, held.length - kept)).map((v) => [v.label, v])),
-      );
+      // The last `kept` of the order above, which is the newest: a negative start already returns
+      // them all when fewer than `kept` arrived, so no floor is needed.
+      byMerchant.set(merchantId, new Map(held.slice(-kept).map((v) => [v.label, v])));
       return Promise.resolve();
     },
     pendingOf(merchantId, mapped, query) {

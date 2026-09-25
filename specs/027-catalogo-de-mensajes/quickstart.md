@@ -69,15 +69,19 @@ El motivo existe en el catálogo y se distingue de `control-arm`, `barrier-uncle
 demás. Y lo que hay que comprobar además: **los presupuestos no se consumen** cuando no hubo texto,
 igual que con `ledger-unavailable`.
 
-## 7. El idioma resuelve por cadena y nunca miente
+## 7. El idioma no se negocia, y nunca miente
 
 ```bash
-npx vitest run --project fast tests/unit/domain/messages/locale-chain
+npx vitest run --project fast tests/unit/application/messages
 ```
 
-Un idioma sin texto propio prueba los de la cadena en orden. Agotada la cadena responde
-`message-unavailable` — **jamás** un texto en otro idioma. Y la voz sí repliega a la voz por
-defecto: fuera de voz se entiende, fuera de idioma no.
+Un idioma sin texto propio prueba el de reserva que el merchant declaró, **uno y opcional**; sin él,
+o sin texto ahí tampoco, responde `message-unavailable` — **jamás** un texto en otro idioma.
+
+**Este paso decía otra cosa cuando se escribió**: «resuelve por cadena» (`es-AR` → `es-419` → `es`).
+La cadena era una invención del plan: `01 §14.2` marca «idioma de reserva (opcional)» como
+DECIDIDO, en singular, y la fuente prevalece. Queda escrito acá porque el paso corregido no explica
+por qué existía el otro.
 
 ## 8. La versión registrada sobrevive a un cambio del corpus
 
@@ -92,7 +96,7 @@ no se cumple.
 ## 9. El merchant ve lo que le falta mapear
 
 ```bash
-npx vitest run --project fast tests/integration/messages
+npx vitest run --project fast tests/integration/unmapped-attribute-values.test.ts
 ```
 
 Un catálogo con valores sin correspondencia los deja listados con su conteo, y **nunca** rechaza ni
@@ -118,6 +122,28 @@ plantilla donde tiene que haber prosa.
 
 Y leer un texto **de la voz que no es la por defecto**, si ya hubiera dos, contra el mismo mensaje
 en la voz neutra. Si no se distinguen, la voz no está haciendo nada y sobra.
+
+## Estado, corrido el 2026-09-25
+
+Histórico y fechado (ADR-032): lo de abajo es lo que dio ese día, no una promesa.
+
+| Paso                                | Resultado                                                                          |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| 1. el placeholder no existe         | ✅ el `grep` no devuelve nada, ni en `src/` ni en `contracts/`                     |
+| 2. la intervención llega con texto  | ✅ `Intervention` lleva `text` requerido, y sigue sin barrera, brazo ni escalón    |
+| 3. dos productos, dos textos        | ✅ verde; el ejemplo trabajado es una prueba, no una tabla                         |
+| 4. agregar productos no cuesta nada | ✅ probado por SC-003 (cuarenta prendas más, cero frases y cero líneas)            |
+| 5. el valor crudo no sale nunca     | ✅ verde; el texto sale del corpus o el producto no habla de eso                   |
+| 6. sin texto ≠ decidir callarse     | ✅ `message-unavailable` existe y se distingue de `no-acceptable-candidate`        |
+| 7. el idioma no se negocia          | ✅ verde, con el paso corregido: reserva única, no cadena                          |
+| 8. la versión sobrevive al corpus   | ✅ verde; el ledger registra el identificador, nunca el texto                      |
+| 9. el merchant ve lo que le falta   | ✅ verde; y el reporte no rechaza ni demora la ingesta                             |
+| 10. contrato y cadena completa      | ✅ verde; `publishMessageCatalog` salió del mapa                                   |
+| 11. lo que ningún comando decide    | ✅ leído; prosa, no ficha técnica, y cada texto dice sólo lo que su claim sostiene |
+
+Dos pasos nombraban rutas que la implementación no creó —el 7 por una decisión del plan que la
+fuente contradijo, el 9 porque el reporte quedó en `admin`— y los dos quedan corregidos arriba, con
+el motivo. Un quickstart que no se corre no es una verificación: es una intención.
 
 ## Dónde se toca qué, después de esto
 
