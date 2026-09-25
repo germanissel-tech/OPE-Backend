@@ -27,21 +27,22 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                          | Origen                         | Estado         | Fecha      | Cierre    |
-| ---- | ------------------------------------------------------------------------------- | ------------------------------ | -------------- | ---------- | --------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018 | `implementada` | 2026-09-21 | `5571829` |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01) | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —         |
-| D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `d37093b` |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `8ffe84e` |
-| D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `cd292e0` |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema      | Feature 025                    | `implementada` | 2026-09-24 | `27bb238` |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter      | Feature 025                    | `implementada` | 2026-09-24 | `05959f8` |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                    | `implementada` | 2026-09-24 | `34c4299` |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                    | `implementada` | 2026-09-24 | `f4d6a8d` |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                    | `implementada` | 2026-09-24 | `ea3d111` |
-| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)           | `abierta`      | 2026-09-24 | —         |
-| D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)   | `abierta`      | 2026-09-25 | —         |
+| Id   | Título                                                                          | Origen                              | Estado         | Fecha      | Cierre    |
+| ---- | ------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `evaluada`     | 2026-09-21 | —         |
+| D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
+| D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema      | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter      | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
+| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)                | `abierta`      | 2026-09-24 | —         |
+| D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)        | `abierta`      | 2026-09-25 | —         |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -76,6 +77,34 @@ hay algo comparable a lo que ya hacen `check:identifiers` (toda cita resuelve) y
 `check:behaviour-constants` (los archivos retirados no existen): **cada fixture nombra la ruta real
 que imita, y un gate comprueba que esa ruta exista**. Medir primero cuántos fixtures podrían
 declararla es parte del trabajo.
+
+D-14 sale de una evaluación con el dueño sobre usar OPE en otro rubro. Lo medido, para no
+re-deducirlo:
+
+| Capa                                                            | Veredicto                                                                          |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Escalones, las cinco autoridades, clases de claim               | **universales**: hablan de persuasión y evidencia, no de productos                 |
+| Barreras (`fit`, `price`, `returns`)                            | **universales en concepto**: «¿me va a servir?» le pasa a una heladera igual       |
+| `size_selector` (anclaje) y `size_selector_interacted` (evento) | **mal nombrados**: el control genérico elige variante, no talle                    |
+| `block` (`size_guide` entre siete)                              | **vocabulario de OPE que debería ser del merchant**: nombra lugares de _su_ página |
+| `AttributeValue` (telas) y el corpus                            | **de OPE y por diseño**: la prosa la escribe OPE, así que el vocabulario es suyo   |
+
+**El límite del principio**, que conviene tener escrito: lo que OPE tiene que **escribir** sigue
+siendo de OPE; lo que sólo **identifica un lugar o un comportamiento** puede ser del merchant.
+
+Tres cosas que la evaluación descartó, con su motivo:
+
+- **Un nivel de configuración «industria»** contradice la constitución XI, que fija **tres** niveles
+  de resolución. Si alguna vez existe, es una **plantilla del onboarding** que se expande en la
+  versión del merchant y después deja de existir, no un nivel que se resuelva en runtime.
+- **«La industria del merchant»** se rompe con una tienda por departamentos, que vende dos rubros.
+- **Parametrizar los vocabularios por industria** no abarata nada: todos crecen **por suma** y eso es
+  a propósito. Lo único estructuralmente caro es una **barrera nueva**, y el tipo lo hace visible
+  —`Record<Barrier, readonly Candidate[]>` no compila sin su escalera— pero no se puede diseñar sin
+  observar un merchant del rubro.
+
+`03 §9` dice que el piloto **no va a poder decir «qué pasa en otros rubros»**, así que esto no es una
+promesa incumplida: es acople que se decide cargar, con el mapa de dónde está.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
