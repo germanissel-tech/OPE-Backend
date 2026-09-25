@@ -27,20 +27,21 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                          | Origen                         | Estado         | Fecha      | Cierre      |
-| ---- | ------------------------------------------------------------------------------- | ------------------------------ | -------------- | ---------- | ----------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018 | `implementada` | 2026-09-21 | `5571829`   |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01) | `implementada` | 2026-09-21 | `eec62b3`   |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —           |
-| D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `d37093b`   |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `8ffe84e`   |
-| D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `cd292e0`   |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema      | Feature 025                    | `implementada` | 2026-09-24 | `27bb238`   |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter      | Feature 025                    | `implementada` | 2026-09-24 | `05959f8`   |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                    | `implementada` | 2026-09-24 | `34c4299`   |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                    | `implementada` | 2026-09-24 | `f4d6a8d`   |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                    | `implementada` | 2026-09-24 | `pendiente` |
-| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)           | `abierta`      | 2026-09-24 | —           |
+| Id   | Título                                                                          | Origen                         | Estado         | Fecha      | Cierre    |
+| ---- | ------------------------------------------------------------------------------- | ------------------------------ | -------------- | ---------- | --------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018 | `implementada` | 2026-09-21 | `5571829` |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01) | `implementada` | 2026-09-21 | `eec62b3` |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02) | `evaluada`     | 2026-09-21 | —         |
+| D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `d37093b` |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `8ffe84e` |
+| D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21 | `implementada` | 2026-09-21 | `cd292e0` |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema      | Feature 025                    | `implementada` | 2026-09-24 | `27bb238` |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter      | Feature 025                    | `implementada` | 2026-09-24 | `05959f8` |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                    | `implementada` | 2026-09-24 | `34c4299` |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                    | `implementada` | 2026-09-24 | `f4d6a8d` |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                    | `implementada` | 2026-09-24 | `ea3d111` |
+| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)           | `abierta`      | 2026-09-24 | —         |
+| D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)   | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -60,9 +61,21 @@ convicción que si no existiera.
 
 Cerrada en la feature 027 (pasando por ahí): la regla es `deployments-compose-modules` y nombra
 `composition/deployments/`, con su fixture renombrado, y el renombre queda registrado en la
-enmienda del 2026-09-24 de ADR-013. **Lo que queda para pensar más allá de esta fila**: ningún gate
-verifica que un fixture siga apuntando a algo que existe, y este caso muestra que ahí se puede
-esconder una regla apagada durante features enteras.
+enmienda del 2026-09-24 de ADR-013.
+
+D-13 sale de ahí, y es la lección y no el caso: **nada verifica que un fixture siga apuntando a algo
+que existe.** El repositorio tiene fixtures para casi todo —reglas de arquitectura
+(`tests/architecture/fixtures/`), reglas de lint (`tests/lint/fixtures/`), reglas del contrato
+(`tests/contract-rules/fixtures/`), evaluaciones de la auditoría— y son su mejor idea: una regla sin
+fixture no se sabe si dispara. Pero un fixture **construye su propio sujeto**, así que sobrevive a
+que el sujeto real cambie de nombre o desaparezca, y entonces la prueba mide el fixture en vez de la
+regla. El síntoma es el peor posible: verde.
+
+No está claro qué lo verificaría, y por eso es una deuda y no un arreglo. Lo que D-11 sugiere es que
+hay algo comparable a lo que ya hacen `check:identifiers` (toda cita resuelve) y
+`check:behaviour-constants` (los archivos retirados no existen): **cada fixture nombra la ruta real
+que imita, y un gate comprueba que esa ruta exista**. Medir primero cuántos fixtures podrían
+declararla es parte del trabajo.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
