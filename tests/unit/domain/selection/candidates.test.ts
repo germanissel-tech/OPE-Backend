@@ -43,6 +43,7 @@ describe("CANDIDATES", () => {
     expect(claims).toEqual({
       "fit.size_selector.information": [],
       "fit.policies.reassurance": ["returns-policy"],
+      "fit.size_selector.uncertainty": ["product-attribute"],
       "fit.size_selector.evidence": ["fit-data", "availability"],
       "price.price.information": [],
       "price.price.evidence": ["current-price"],

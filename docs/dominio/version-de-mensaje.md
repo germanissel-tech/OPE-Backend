@@ -3,7 +3,7 @@ es: versión de mensaje
 en: message version
 contexto: medicion
 estado: aprobado
-uso: pendiente
+uso: disponible
 fuente: mvp:01-arquitectura-mvp.md#5
 ---
 

@@ -269,6 +269,33 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(unknownField.statusCode).toBe(400);
   });
 
+  it("a correspondence with one label twice is refused with its own type, not a generic one", async () => {
+    // The contract declares duplicate-attribute-label as the type of this 422 (feature 027), so the
+    // fault travels with its own code: a reader has to know which of the two things went wrong.
+    const res = await configure({
+      declared: {
+        attributeLabels: [
+          { label: "Combed Cotton 24/1", value: "combed-cotton" },
+          { label: "Combed Cotton 24/1", value: "linen" },
+        ],
+      },
+      corrective: true,
+      reason: "test",
+    });
+    expect(res.statusCode).toBe(422);
+    expect(problemOf(res).type).toBe("urn:ope:problem:duplicate-attribute-label");
+  });
+
+  it("a correspondence naming a value outside OPE's vocabulary is refused by the shape itself", async () => {
+    // The vocabulary is an enum, so the schema refuses it before any rule of the domain runs: a 400
+    // and not a 422, because the request never was one the contract admits.
+    const res = await configure({
+      declared: { attributeLabels: [{ label: "Lycra", value: "elastane" }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(problemOf(res).type).toBe("urn:ope:problem:validation-failed");
+  });
+
   it("[invariant:configuration-reason-required] a corrective version without a reason is refused", async () => {
     const res = await configure({ declared: { holdoutShare: 0 }, corrective: true });
     expect(res.statusCode).toBe(422);

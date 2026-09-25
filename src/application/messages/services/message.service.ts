@@ -7,7 +7,7 @@
 // merchant's reserve language— and inside the language resolved the merchant's voice is tried and
 // then the default one. Nothing resolves to a text in another language: the family stops being a
 // candidate instead (01 §322).
-import type { CuratedText } from "../../../domain/messages/index.js";
+import type { AttributeValue, CuratedText } from "../../../domain/messages/index.js";
 import type { Candidate, Sayable } from "../../../domain/selection/index.js";
 import type { Voice } from "../../../domain/shared-kernel/index.js";
 import type { MessagePlane, MessageRequest } from "../../decision/index.js";
@@ -32,7 +32,9 @@ export class Messages implements MessagePlane {
     const settings = await this.#directory.settingsFor(request.merchantId);
     const locales = localesOf(request.locale, settings);
     const resolved = await Promise.all(
-      request.candidates.map(async (candidate) => this.#say(candidate, locales, settings.voice)),
+      request.candidates.map(async (candidate) =>
+        this.#say(candidate, locales, settings.voice, valueOf(candidate, request, settings)),
+      ),
     );
     // The order given is the order of the incentive ladder, and the ladder is what decides which
     // rung the commercial policy settles on: filtering must not reorder it.
@@ -40,9 +42,17 @@ export class Messages implements MessagePlane {
   }
 
   /** The text for one candidate, language first and voice second, or undefined when there is none. */
-  async #say(candidate: Candidate, locales: readonly string[], voice: Voice): Promise<Sayable | undefined> {
+  async #say(
+    candidate: Candidate,
+    locales: readonly string[],
+    voice: Voice,
+    attributeValue: AttributeValue | undefined,
+  ): Promise<Sayable | undefined> {
+    // A candidate that claims an attribute and found no value for it cannot be said: the product
+    // does not carry it, or the merchant mapped nothing to what it carries (01 §322).
+    if (claimsAnAttribute(candidate) && attributeValue === undefined) return undefined;
     for (const locale of locales) {
-      const text = await this.#look(candidate, locale, voice);
+      const text = await this.#look(candidate, locale, voice, attributeValue);
       if (text !== undefined) {
         return { candidate, said: { messageVersionId: text.version, text: text.value } };
       }
@@ -50,9 +60,41 @@ export class Messages implements MessagePlane {
     return undefined;
   }
 
-  async #look(candidate: Candidate, locale: string, voice: Voice): Promise<CuratedText | undefined> {
-    return this.#corpus.find({ family: candidate.candidateId, locale, voice });
+  async #look(
+    candidate: Candidate,
+    locale: string,
+    voice: Voice,
+    attributeValue: AttributeValue | undefined,
+  ): Promise<CuratedText | undefined> {
+    return this.#corpus.find({
+      family: candidate.candidateId,
+      locale,
+      voice,
+      ...(attributeValue === undefined ? {} : { attributeValue }),
+    });
   }
+}
+
+/** Whether a candidate says something about an attribute of the product in focus. */
+const claimsAnAttribute = (candidate: Candidate): boolean =>
+  candidate.claims.some((claim) => claim.kind === "product-attribute");
+
+/**
+ * What OPE can say about the product for this candidate: the label the catalogue carries, translated
+ * through the merchant's correspondence. **The label itself is never used**: it is free text the
+ * platform exposes without normalisation, so showing it would publish copy nobody reviewed.
+ */
+function valueOf(
+  candidate: Candidate,
+  request: MessageRequest,
+  settings: MessageSettings,
+): AttributeValue | undefined {
+  for (const claim of candidate.claims) {
+    if (claim.kind !== "product-attribute") continue;
+    const label = request.attributes.get(claim.key);
+    return label === undefined ? undefined : settings.labels.valueOf(label);
+  }
+  return undefined;
 }
 
 /** The languages to try, in order: the page's, then the merchant's reserve language. */

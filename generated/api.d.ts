@@ -746,6 +746,30 @@ export type components = {
             any: components["schemas"]["NestedCondition"][];
         };
         /**
+         * @description One label of the merchant and the value of OPE's vocabulary it corresponds to. A list of pairs
+         *     and not a map, for two reasons: a request body declares `additionalProperties: false`, and a list
+         *     can repeat a label — which is a merchant error worth naming rather than one the shape silently
+         *     swallows.
+         */
+        AttributeLabel: {
+            /** @description The attribute value as the merchant's platform exposes it, verbatim. */
+            label: string;
+            value: components["schemas"]["AttributeValue"];
+        };
+        /**
+         * @description A concept OPE has curated prose for: today, what a garment is made of. **OPE's vocabulary, not
+         *     the merchant's**: `CatalogProduct.attributes` is free text the platform exposes without
+         *     normalisation, so a text that showed it would publish copy nobody reviewed and claim what no
+         *     evidence sustains (constitution II).
+         *
+         *     A merchant maps its own labels onto these values (`MerchantConfigurationDeclared.attributeLabels`)
+         *     the way it maps its selectors onto the anchors. A value nobody wrote a sentence for does not exist
+         *     for the message: the product says nothing about it and the ladder falls a rung. The list grows on
+         *     demand, with the discipline the barriers, the anchors and the steps were bounded with.
+         * @enum {string}
+         */
+        AttributeValue: "combed-cotton" | "jersey" | "linen" | "denim" | "leather";
+        /**
          * @description One of the three purchase barriers OPE infers (01 §4.2).
          * @enum {string}
          */
@@ -1111,6 +1135,8 @@ export type components = {
         /** @description The configuration a merchant is served with, resolved value by value: what it declared, else the treatment defaults, with the platform values on top (constitution XI). Never a secret. */
         EffectiveConfiguration: {
             anchors?: components["schemas"]["AnchorMap"];
+            /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
+            attributeLabels?: components["schemas"]["AttributeLabel"][];
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
@@ -1425,6 +1451,8 @@ export type components = {
         /** @description Level 3: what a merchant overrides of the treatment defaults, plus its anchor map (which has no default). Every field is optional; a declared policy names its version and may declare only some of its fields. */
         MerchantConfigurationDeclared: {
             anchors?: components["schemas"]["AnchorMap"];
+            /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
+            attributeLabels?: components["schemas"]["AttributeLabel"][];
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
@@ -2013,21 +2041,6 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
-                /**
-                 * @example {
-                 *       "type": "urn:ope:problem:invalid-configuration-value",
-                 *       "title": "A configuration value violates an invariant of its type",
-                 *       "status": 422,
-                 *       "detail": "declared.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not strictly increasing within 1 and the ceiling).",
-                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration",
-                 *       "errors": [
-                 *         {
-                 *           "pointer": "/declared/commercialPolicy/incentiveLadderShare",
-                 *           "message": "The incentive ladder is not strictly increasing within 1 and the ceiling."
-                 *         }
-                 *       ]
-                 *     }
-                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };

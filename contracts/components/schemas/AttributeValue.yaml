@@ -1,0 +1,17 @@
+type: string
+description: |
+  A concept OPE has curated prose for: today, what a garment is made of. **OPE's vocabulary, not
+  the merchant's**: `CatalogProduct.attributes` is free text the platform exposes without
+  normalisation, so a text that showed it would publish copy nobody reviewed and claim what no
+  evidence sustains (constitution II).
+
+  A merchant maps its own labels onto these values (`MerchantConfigurationDeclared.attributeLabels`)
+  the way it maps its selectors onto the anchors. A value nobody wrote a sentence for does not exist
+  for the message: the product says nothing about it and the ladder falls a rung. The list grows on
+  demand, with the discipline the barriers, the anchors and the steps were bounded with.
+enum:
+  - combed-cotton
+  - jersey
+  - linen
+  - denim
+  - leather

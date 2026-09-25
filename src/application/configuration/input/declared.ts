@@ -14,6 +14,7 @@ import {
 } from "../../../domain/configuration/index.js";
 import { commercialPolicyDeclared, decisionPolicyDeclared, evidenceProfileDeclared } from "./policies.js";
 import { at, named, Shape, type Field, type Key, type Raw, type ShapeResult } from "./shape.js";
+import type { AttributeLabelRecord } from "../../../domain/messages/index.js";
 import type { Barrier } from "../../../domain/shared-kernel/index.js";
 
 const FRESHNESS_KEYS: readonly Key[] = ["catalogMs", "stockAndPriceMs"];
@@ -40,7 +41,7 @@ const VALUE_KEYS: readonly Key[] = [
   "locales",
 ];
 /** The keys a merchant may declare; the seed of `OPE_MERCHANTS` admits them next to the merchant fields. */
-export const DECLARED_CONFIGURATION_KEYS: readonly Key[] = [...VALUE_KEYS, "anchors"];
+export const DECLARED_CONFIGURATION_KEYS: readonly Key[] = [...VALUE_KEYS, "anchors", "attributeLabels"];
 const DEFAULTS_KEYS: readonly Key[] = ["version", ...VALUE_KEYS];
 /** What a complete policy declares beyond its version (the defaults must declare it all). */
 const DECISION_FIELDS: readonly Key[] = [
@@ -106,6 +107,18 @@ function strategy(shape: Shape, raw: Raw, where: Field): Partial<SyncStrategy> {
   return read;
 }
 
+const ATTRIBUTE_LABEL_KEYS = ["label", "value"] as const;
+
+/** What the merchant's labels correspond to: read as a list, because a label may repeat and that is a fault worth naming. */
+function attributeLabels(shape: Shape, raw: Raw, where: Field): AttributeLabelRecord[] {
+  const field = at(where, "attributeLabels");
+  return shape.records(raw, "attributeLabels", where).map((entry, i) => {
+    const each = named(field, String(i));
+    shape.closed(entry, ATTRIBUTE_LABEL_KEYS, each);
+    return { label: shape.string(entry, "label", each), value: shape.string(entry, "value", each) };
+  });
+}
+
 function anchors(shape: Shape, raw: Raw, where: Field): AnchorMapRecord {
   const record = shape.recordAt(raw, "anchors", where);
   const field = at(where, "anchors");
@@ -150,6 +163,7 @@ function values(shape: Shape, raw: Raw, where: Field): DeclaredConfiguration {
   if (shape.has(raw, "syncStrategy")) read.syncStrategy = strategy(shape, raw, where);
   if (shape.has(raw, "locales")) read.locales = locales(shape, raw, where);
   if (shape.has(raw, "anchors")) read.anchors = anchors(shape, raw, where);
+  if (shape.has(raw, "attributeLabels")) read.attributeLabels = attributeLabels(shape, raw, where);
   return read;
 }
 

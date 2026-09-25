@@ -207,6 +207,12 @@ types:
   - slug: rotation-grace-too-long
     status: 422
     title: The rotation grace exceeds the platform maximum
+  - slug: duplicate-attribute-label
+    status: 422
+    title: One attribute label points at two values of OPE's vocabulary
+  - slug: unknown-attribute-value
+    status: 500
+    title: A correspondence names a value OPE writes no texts for
   - slug: configuration-frozen
     status: 409
     title: The configuration is frozen while an experiment is active

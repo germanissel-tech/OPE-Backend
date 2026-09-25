@@ -56,6 +56,30 @@
       "voice": "neutral",
       "version": "mv_returns_policies_reassurance_es_neutral_2",
       "text": "Esta tienda tiene política de cambios: revisala antes de comprar."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "combed-cotton",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_combed-cotton_es_neutral_1",
+      "text": "Es algodón peinado: más suave y con menos pelusa que el algodón común."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "linen",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_linen_es_neutral_1",
+      "text": "Es lino: fresco y de caída suelta. Se arruga, y es parte."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "denim",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_denim_es_neutral_1",
+      "text": "Es denim: firme al principio y cede con el uso."
     }
   ]
 }

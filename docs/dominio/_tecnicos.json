@@ -74,6 +74,8 @@
     "not",
     "ref",
     "weights",
-    "dedup"
+    "dedup",
+    "value",
+    "label"
   ]
 }

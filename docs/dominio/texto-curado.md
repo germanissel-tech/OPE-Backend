@@ -3,7 +3,7 @@ es: texto curado
 en: curated text
 contexto: decision
 estado: aprobado
-uso: pendiente
+uso: disponible
 fuente: mvp:03-alcance-mvp.md#4.4
 ---
 

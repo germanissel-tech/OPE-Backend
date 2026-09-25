@@ -4,7 +4,7 @@
 // vocabulary of OPE: a merchant declares what evidence it provides, never new candidates
 // (those arrive with the message catalogue feature of the map). Until then the candidate id is the
 // placeholder message version `msg_<barrier>_<anchor>_<step>_v0`.
-import type { Anchor, Barrier } from "../shared-kernel/index.js";
+import { MATERIAL, type Anchor, type Barrier } from "../shared-kernel/index.js";
 
 /** The steps of the incentive ladder, from the cheapest in margin to the incentive itself. */
 export const STEPS = ["information", "reassurance", "uncertainty", "evidence", "incentive"] as const;
@@ -53,6 +53,7 @@ export const CANDIDATES: Readonly<Record<Barrier, readonly Candidate[]>> = {
   fit: [
     candidate("fit", "size_selector", "information", []),
     candidate("fit", "policies", "reassurance", [{ kind: "returns-policy" }]),
+    candidate("fit", "size_selector", "uncertainty", [{ kind: "product-attribute", key: MATERIAL }]),
     candidate("fit", "size_selector", "evidence", [{ kind: "fit-data" }, { kind: "availability" }]),
   ],
   price: [

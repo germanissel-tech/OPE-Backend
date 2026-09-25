@@ -37,4 +37,27 @@ export class UnresolvedPlaceholder extends DomainError {
   }
 }
 
-export type MessageError = EmptyText | TextTooLong | UnresolvedPlaceholder;
+/**
+ * A correspondence of the merchant names a value OPE writes no texts for. Over HTTP the schema
+ * refuses it by itself —the vocabulary is an enum— so this is the seed's path, where the shape is
+ * read and the domain judges (ADR-024).
+ */
+export class UnknownAttributeValue extends DomainError {
+  readonly code = "unknown-attribute-value" as const;
+  readonly module = MODULE;
+  constructor(value: string) {
+    super("The attribute value is not one OPE writes texts for.", { value });
+  }
+}
+
+/** One label pointing at two values: there would be no way to tell what a product carrying it says. */
+export class DuplicateAttributeLabel extends DomainError {
+  readonly code = "duplicate-attribute-label" as const;
+  readonly module = MODULE;
+  constructor(label: string) {
+    super("One attribute label corresponds to two values of OPE's vocabulary.", { label });
+  }
+}
+
+export type MessageError =
+  EmptyText | TextTooLong | UnresolvedPlaceholder | UnknownAttributeValue | DuplicateAttributeLabel;

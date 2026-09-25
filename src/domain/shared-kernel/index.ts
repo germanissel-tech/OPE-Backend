@@ -14,6 +14,8 @@ export { Money } from "./money.js";
 export type { MoneyRecord } from "./money.js";
 export { fail, ok } from "./result.js";
 export type { Fail, Ok, Result } from "./result.js";
+export { MATERIAL } from "./attribute-keys.js";
+export type { AttributeKey } from "./attribute-keys.js";
 export { DEFAULT_VOICE, VOICES } from "./voice.js";
 export type { Voice } from "./voice.js";
 export { NO_OP_REASONS } from "./no-op-reasons.js";

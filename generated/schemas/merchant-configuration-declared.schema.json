@@ -57,6 +57,14 @@
     "locales": {
       "$ref": "#/$defs/Locales"
     },
+    "attributeLabels": {
+      "type": "array",
+      "description": "What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only.",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/AttributeLabel"
+      }
+    },
     "anchors": {
       "$ref": "#/$defs/AnchorMap"
     }
@@ -825,6 +833,37 @@
           "maxLength": 35
         }
       }
+    },
+    "AttributeLabel": {
+      "type": "object",
+      "description": "One label of the merchant and the value of OPE's vocabulary it corresponds to. A list of pairs\nand not a map, for two reasons: a request body declares `additionalProperties: false`, and a list\ncan repeat a label — which is a merchant error worth naming rather than one the shape silently\nswallows.\n",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "value"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "The attribute value as the merchant's platform exposes it, verbatim.",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "value": {
+          "$ref": "#/$defs/AttributeValue"
+        }
+      }
+    },
+    "AttributeValue": {
+      "type": "string",
+      "description": "A concept OPE has curated prose for: today, what a garment is made of. **OPE's vocabulary, not\nthe merchant's**: `CatalogProduct.attributes` is free text the platform exposes without\nnormalisation, so a text that showed it would publish copy nobody reviewed and claim what no\nevidence sustains (constitution II).\n\nA merchant maps its own labels onto these values (`MerchantConfigurationDeclared.attributeLabels`)\nthe way it maps its selectors onto the anchors. A value nobody wrote a sentence for does not exist\nfor the message: the product says nothing about it and the ladder falls a rung. The list grows on\ndemand, with the discipline the barriers, the anchors and the steps were bounded with.\n",
+      "enum": [
+        "combed-cotton",
+        "jersey",
+        "linen",
+        "denim",
+        "leather"
+      ]
     },
     "AnchorMap": {
       "type": "object",

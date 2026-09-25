@@ -217,56 +217,66 @@ textos distintos; agregar productos cuyos valores ya están mapeados no requiere
 
 ### Antes del contrato
 
-- [ ] T041 [P] [US2] `docs/dominio/` — notas de **valor de atributo** y **correspondencia de
+- [x] T041 [P] [US2] `docs/dominio/` — notas de **valor de atributo** y **correspondencia de
       valores**, con su fuente. El sustantivo es del vocabulario de OPE, **no** la etiqueta del
       merchant: la nota tiene que decir esa diferencia o nadie la va a respetar.
 
 ### El contrato
 
-- [ ] T042 [US2] `contracts/components/schemas/` — el vocabulario cerrado de valores de atributo y la
+- [x] T042 [US2] `contracts/components/schemas/` — el vocabulario cerrado de valores de atributo y la
       correspondencia que declara el merchant (sus etiquetas → valores de OPE), en
       `MerchantConfigurationDeclared` y `EffectiveConfiguration`.
-- [ ] T043 [US2] `contracts/problem-types.yaml` + `x-invariants` — **dos invariantes que el esquema
-      no expresa**, cada una con su tipo propio, su `422` y su ejemplo nombrándola: una
-      correspondencia que nombre un valor fuera del vocabulario, y una etiqueta que apunte a dos
-      valores. Toda `422` nombra en su ejemplo la invariante que la produce.
-- [ ] T044 [US2] `tests/` — la prueba `[invariant:<slug>]` de cada una. `npm run
+- [x] T043 [US2] `contracts/problem-types.yaml` + `x-invariants` — **una sola invariante, no dos**.
+      La tarea pedía dos, pero un valor fuera del vocabulario **sí lo expresa el esquema**: el
+      vocabulario es un `enum`, así que la petición se rechaza con `400 validation-failed` antes de
+      que corra ninguna regla del dominio. `x-invariants` es para lo que el esquema no expresa, y eso
+      es la etiqueta repetida (`duplicate-attribute-label`, `422`, con su ejemplo nombrándola).
+
+      El valor desconocido igual tiene su error de dominio (`unknown-attribute-value`), porque la
+      **semilla** no pasa por el esquema: ahí la forma se lee y el dominio juzga.
+
+- [x] T044 [US2] `tests/` — la prueba `[invariant:<slug>]` de cada una. `npm run
 check:invariant-tests` falla si falta.
-- [ ] T045 [US2] `npm run contract:check` y `npm run contract:types`.
+- [x] T045 [US2] `npm run contract:check` y `npm run contract:types`.
 
 ### El dominio y la aplicación
 
-- [ ] T046 [P] [US2] `src/domain/shared-kernel/` o `src/domain/messages/` — `ATTRIBUTE_VALUES`, el
+- [x] T046 [P] [US2] `src/domain/shared-kernel/` o `src/domain/messages/` — `ATTRIBUTE_VALUES`, el
       vocabulario cerrado, réplica del esquema con su prueba. **Arranca con los pocos valores para
       los que exista prosa curada** y crece por demanda, como barreras, anclajes y escalones.
-- [ ] T047 [US2] `src/domain/messages/errors.ts` — `UnknownAttributeValue` y
+- [x] T047 [US2] `src/domain/messages/errors.ts` — `UnknownAttributeValue` y
       `DuplicateAttributeLabel`, con sus `code` del catálogo.
-- [ ] T048 [US2] `src/domain/configuration/` — la correspondencia se juzga en su fábrica: cada valor
+- [x] T048 [US2] `src/domain/configuration/` — la correspondencia se juzga en su fábrica: cada valor
       existe en el vocabulario, ninguna etiqueta apunta a dos. `composition/` parsea la forma y
       construye por fábrica; un `fail` es un `ConfigError` que nombra el campo.
-- [ ] T049 [US2] `src/domain/selection/candidate.ts` — el candidato que **afirma un atributo del
+- [x] T049 [US2] `src/domain/selection/candidate.ts` — el candidato que **afirma un atributo del
       producto** (`{ kind: "product-attribute", key }`). El tipo de claim y su juicio en el gate ya
       existen y no se tocan; lo que falta es que algún candidato lo declare.
-- [ ] T050 [US2] `src/application/messages/services/message.service.ts` — el texto se elige por el
+- [x] T050 [US2] `src/application/messages/services/message.service.ts` — el texto se elige por el
       valor de OPE al que la etiqueta del producto corresponde. **El valor crudo del merchant no se
       muestra nunca** (`FR-004`): o corresponde a un valor del vocabulario, o el producto no habla de
       eso.
-- [ ] T051 [US2] Comprobar `FR-011` y **dejar escrito por qué se cumple**: una familia afirma una
-      sola clave de atributo, así que no puede haber dos textos compitiendo en el mismo anclaje. Si
-      resultara que sí puede, hace falta un orden determinista **y** su prueba.
+- [x] T051 [US2] `FR-011` **se cumple por construcción, y queda escrito**: un solo candidato afirma
+      un atributo (`fit.size_selector.uncertainty`) y afirma una sola clave, así que el corpus tiene a
+      lo sumo un texto por `(familia, valor, idioma, voz)` y la escalera elige un candidato. No hace
+      falta ningún orden determinista porque no hay nada que ordenar.
+
+      **Lo que lo volvería falso**, anotado para quien agregue el segundo: dos candidatos del mismo
+      anclaje y escalón afirmando claves distintas. Ahí sí habría dos textos aplicables, y haría falta
+      un orden **y** su prueba.
 
 ### Pruebas de US2
 
-- [ ] T052 [P] [US2] `tests/unit/domain/messages/` — el caso del copy de marketing: un atributo cuyo
+- [x] T052 [P] [US2] `tests/unit/domain/messages/` — el caso del copy de marketing: un atributo cuyo
       valor es «Algodón premium insuperable» **nunca** se muestra; o mapea a un valor de OPE y se usa
       la prosa de OPE, o el producto no habla de eso.
-- [ ] T053 [P] [US2] `tests/unit/application/messages/` — dos productos que difieren sólo en el valor
+- [x] T053 [P] [US2] `tests/unit/application/messages/` — dos productos que difieren sólo en el valor
       reciben textos distintos; el que no trae el atributo cae al escalón de abajo; dos etiquetas
       distintas mapeadas al mismo valor reciben **el mismo** texto; un valor sin mapear se comporta
       como si el atributo no estuviera.
-- [ ] T054 [US2] `tests/integration/` — publicar una configuración con un valor desconocido responde
+- [x] T054 [US2] `tests/integration/` — publicar una configuración con un valor desconocido responde
       `422` nombrando el valor; con una etiqueta duplicada, `422` nombrándola.
-- [ ] T055 [US2] `tests/` — **el ejemplo del quickstart, ejecutable**: 12 productos, 7 etiquetas de
+- [x] T055 [US2] `tests/` — **el ejemplo del quickstart, ejecutable**: 12 productos, 7 etiquetas de
       tela, 4 frases de OPE, 5 líneas de correspondencia, **cero** textos por producto (`SC-002`).
       Y agregar productos con valores ya mapeados **no toca ningún archivo** (`SC-003`).
 

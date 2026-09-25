@@ -3,7 +3,12 @@
 // entry; an entry the domain refuses is a ConfigError, so a corpus that cannot be shown does not
 // start the server (constitution II).
 import path from "node:path";
-import { CuratedText, messageVersion } from "../domain/messages/index.js";
+import {
+  ATTRIBUTE_VALUES,
+  CuratedText,
+  messageVersion,
+  type AttributeValue,
+} from "../domain/messages/index.js";
 import { CANDIDATES } from "../domain/selection/index.js";
 import { DEFAULT_VOICE, VOICES, type Voice } from "../domain/shared-kernel/index.js";
 import { ConfigError } from "./config-error.js";
@@ -14,11 +19,21 @@ import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 const CORPUS_FILE = "config/messages.json";
 const VARIABLE = "OPE_MESSAGE_CORPUS";
 
+const ALL_CANDIDATES = Object.values(CANDIDATES).flat();
+
 /** Every message family the decision plane may choose: what a corpus entry is allowed to name. */
-const FAMILIES: ReadonlySet<string> = new Set(
-  Object.values(CANDIDATES)
-    .flat()
-    .map((candidate) => candidate.candidateId),
+const FAMILIES: ReadonlySet<string> = new Set(ALL_CANDIDATES.map((candidate) => candidate.candidateId));
+
+/**
+ * The families that must have a text in the default language. A family that claims an attribute of
+ * the product is **not** among them: it is sayable exactly when the value the product carries has
+ * prose, so it has no unconditional text and requiring one would force writing about materials
+ * nobody studied. A product whose value has no text simply says nothing about it (01 §322).
+ */
+const UNCONDITIONAL: ReadonlySet<string> = new Set(
+  ALL_CANDIDATES.filter(
+    (candidate) => !candidate.claims.some((claim) => claim.kind === "product-attribute"),
+  ).map((candidate) => candidate.candidateId),
 );
 
 /**
@@ -30,9 +45,10 @@ const FAMILIES: ReadonlySet<string> = new Set(
  *    that was written for nothing, and almost always a typo in the family;
  * 2. no version says two different things, because the ledger records the version and a person read
  *    one of them;
- * 3. every family has a text in the default language and voice, so a merchant that configured
- *    nothing can still say something. Without this `message-unavailable` would be the normal case
- *    instead of the exception, and silence would look like a decision.
+ * 3. every family that does not depend on the product has a text in the default language and voice,
+ *    so a merchant that configured nothing can still say something. Without this
+ *    `message-unavailable` would be the normal case instead of the exception, and silence would look
+ *    like a decision.
  */
 export function readCorpus(
   env: NodeJS.ProcessEnv,
@@ -76,7 +92,7 @@ function refuseIncompleteDefault(entries: readonly CorpusEntry[], defaultLocale:
   const served = new Set(
     entries.filter((entry) => entry.key.locale === defaultLocale).map((entry) => entry.key.family),
   );
-  const missing = [...FAMILIES].find((family) => !served.has(family));
+  const missing = [...UNCONDITIONAL].find((family) => !served.has(family));
   if (missing !== undefined) {
     throw new ConfigError(VARIABLE, `has no text for ${missing} in ${defaultLocale}/${DEFAULT_VOICE}`);
   }
@@ -98,10 +114,21 @@ function entryOf(raw: unknown, index: number): CorpusEntry {
   if (typeof value !== "string") throw new ConfigError(VARIABLE, `${where}.text must be a string`);
   const text = CuratedText.of(messageVersion(keyAt(raw, "version", where)), value);
   if (!text.ok) throw new ConfigError(VARIABLE, `${where}: ${text.error.message}`);
-  return { key: { family, locale, voice }, text: text.value };
+  // A text that speaks of what the product is made of names the value of OPE's vocabulary it is
+  // written for; one that speaks of nothing of the product names none.
+  const attributeValue = raw["attributeValue"];
+  if (attributeValue !== undefined && !isAttributeValue(attributeValue)) {
+    throw new ConfigError(VARIABLE, `${where}.attributeValue is not a value OPE writes texts for`);
+  }
+  return {
+    key: { family, locale, voice, ...(attributeValue === undefined ? {} : { attributeValue }) },
+    text: text.value,
+  };
 }
 
 const isVoice = (value: string): value is Voice => (VOICES as readonly string[]).includes(value);
+const isAttributeValue = (value: unknown): value is AttributeValue =>
+  typeof value === "string" && (ATTRIBUTE_VALUES as readonly string[]).includes(value);
 
 /** A field of the key: the reader owns its shape, because no factory of the domain judges it. */
 function keyAt(raw: Record<string, unknown>, field: string, where: string): string {

@@ -3,6 +3,11 @@ description: "Level 3: what a merchant overrides of the treatment defaults, plus
   (which has no default). Every field is optional; a declared policy names its version and may
   declare only some of its fields."
 additionalProperties: false
+x-invariants:
+  - type: duplicate-attribute-label
+    status: 422
+    rule: attributeLabels[].label are unique
+    description: One label of the merchant pointing at two values of OPE's vocabulary; there would be no way to tell what a product carrying it says.
 properties:
   freshness:
     $ref: ./FreshnessDeclared.yaml
@@ -40,5 +45,11 @@ properties:
     $ref: ./SyncStrategyDeclared.yaml
   locales:
     $ref: ./Locales.yaml
+  attributeLabels:
+    type: array
+    description: What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only.
+    maxItems: 256
+    items:
+      $ref: ./AttributeLabel.yaml
   anchors:
     $ref: ./AnchorMap.yaml

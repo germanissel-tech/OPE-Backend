@@ -1,0 +1,18 @@
+type: object
+description: |
+  One label of the merchant and the value of OPE's vocabulary it corresponds to. A list of pairs
+  and not a map, for two reasons: a request body declares `additionalProperties: false`, and a list
+  can repeat a label — which is a merchant error worth naming rather than one the shape silently
+  swallows.
+additionalProperties: false
+required:
+  - label
+  - value
+properties:
+  label:
+    type: string
+    description: The attribute value as the merchant's platform exposes it, verbatim.
+    minLength: 1
+    maxLength: 512
+  value:
+    $ref: ./AttributeValue.yaml

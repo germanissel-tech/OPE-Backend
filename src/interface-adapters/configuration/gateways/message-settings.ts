@@ -8,8 +8,10 @@ import type { MessageDirectory, MessageSettings } from "../../../application/mes
 
 export const messageSettingsOf = (configuration: ConfigurationService): MessageDirectory => ({
   settingsFor: async (merchantId: MerchantId): Promise<MessageSettings> => {
-    const { locales } = (await configuration.effectiveFor(merchantId)).values;
+    const effective = await configuration.effectiveFor(merchantId);
+    const { locales } = effective.values;
     return {
+      labels: effective.labels,
       // One voice, so there is nothing for a merchant to choose yet: the corpus is keyed by voice
       // from day one so the second is one more entry, and the field that picks it arrives with it.
       voice: DEFAULT_VOICE,

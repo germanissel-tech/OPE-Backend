@@ -175,6 +175,10 @@ describe("QualityGate.judgeAll — the catalogue", () => {
     expect(judged.map((j) => [j.candidate.step, j.verdict])).toEqual([
       ["information", { acceptable: true }],
       ["reassurance", rejected("no-returns-policy")],
+      // The uncertainty rung claims what the garment is made of. The product carries a material,
+      // so what stops it is the empty profile: the merchant authorised no attribute, and «nothing
+      // declared means nothing may be claimed» (feature 027).
+      ["uncertainty", rejected("attribute-not-authorized")],
       ["evidence", rejected("no-fit-data")],
     ]);
     const priced = QualityGate.of(full).judgeAll(sayable(CANDIDATES.price), {

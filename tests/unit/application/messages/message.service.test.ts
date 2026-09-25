@@ -9,7 +9,7 @@ import {
   type MessageSettings,
   type TextKey,
 } from "../../../../src/application/messages/index.js";
-import { CuratedText, messageVersion } from "../../../../src/domain/messages/index.js";
+import { AttributeLabels, CuratedText, messageVersion } from "../../../../src/domain/messages/index.js";
 import { CANDIDATES, type Candidate, type Step } from "../../../../src/domain/selection/index.js";
 import type { MerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
@@ -30,16 +30,22 @@ const corpusOf = (entries: readonly (TextKey & { text: string })[]): MessageCorp
   find: (key: TextKey) => {
     // The voice is not compared: with a single voice the comparison is always true and the
     // compiler says so. It returns to this corpus with the second one.
-    const found = entries.find((entry) => entry.family === key.family && entry.locale === key.locale);
+    const found = entries.find(
+      (entry) =>
+        entry.family === key.family &&
+        entry.locale === key.locale &&
+        entry.attributeValue === key.attributeValue,
+    );
     if (found === undefined) return Promise.resolve(undefined);
-    const text = CuratedText.of(messageVersion(`mv_${found.family}_${found.locale}`), found.text);
+    const version = `mv_${found.family}_${found.attributeValue ?? "any"}_${found.locale}`;
+    const text = CuratedText.of(messageVersion(version), found.text);
     if (!text.ok) throw new Error(found.text);
     return Promise.resolve(text.value);
   },
 });
 
 const directoryOf = (settings: Partial<MessageSettings> = {}): MessageDirectory => ({
-  settingsFor: () => Promise.resolve({ voice: "neutral", ...settings }),
+  settingsFor: () => Promise.resolve({ voice: "neutral", labels: AttributeLabels.empty(), ...settings }),
 });
 
 const ask = (corpus: MessageCorpus, directory: MessageDirectory, locale?: string) =>
@@ -51,6 +57,85 @@ const ask = (corpus: MessageCorpus, directory: MessageDirectory, locale?: string
   });
 
 const family = (candidate: (typeof CANDIDATES.fit)[number]) => candidate.candidateId;
+const uncertainty = rung("uncertainty");
+
+/** What a merchant declared about its own labels: three ways of writing one value of OPE's. */
+const labelsOf = (records: readonly { label: string; value: string }[]) => {
+  const built = AttributeLabels.of(records);
+  if (!built.ok) throw new Error(built.error.message);
+  return built.value;
+};
+
+// The case that decided the scope of the feature (German Issel, 2026-09-24): a plain white t-shirt
+// and one of combed cotton have to say different things, **without anyone writing a text per
+// garment**. What differs is the value of an attribute; what is written is one sentence per value.
+describe("Messages.sayable — what the product is made of", () => {
+  const withMaterial = (material?: string) => new Map(material === undefined ? [] : [["material", material]]);
+  const corpus = corpusOf([
+    {
+      family: family(uncertainty),
+      attributeValue: "combed-cotton",
+      locale: "es",
+      voice: "neutral",
+      text: "The combed cotton text.",
+    },
+    {
+      family: family(uncertainty),
+      attributeValue: "linen",
+      locale: "es",
+      voice: "neutral",
+      text: "The linen text.",
+    },
+  ]);
+  const labels = labelsOf([
+    { label: "Combed Cotton 24/1", value: "combed-cotton" },
+    { label: "peinado", value: "combed-cotton" },
+    { label: "Linen 100%", value: "linen" },
+  ]);
+  const askFor = (material?: string) =>
+    new Messages({ corpus, directory: directoryOf({ labels }) }).sayable({
+      merchantId: MERCHANT,
+      candidates: [uncertainty],
+      attributes: withMaterial(material),
+      locale: "es",
+    });
+
+  it("two products differing only in their material say different things", async () => {
+    expect((await askFor("Combed Cotton 24/1"))[0]?.said.text).toBe("The combed cotton text.");
+    expect((await askFor("Linen 100%"))[0]?.said.text).toBe("The linen text.");
+  });
+
+  it("two labels of the merchant meaning one value say the same thing: one sentence, many stores", async () => {
+    expect((await askFor("peinado"))[0]?.said.text).toBe("The combed cotton text.");
+  });
+
+  it("a product that carries no material does not speak of it", async () => {
+    expect(await askFor()).toEqual([]);
+  });
+
+  it("a label the merchant mapped to nothing is like no material at all, and is never shown", async () => {
+    const said = await askFor("Premium unbeatable cotton");
+    expect(said).toEqual([]);
+    expect(JSON.stringify(said)).not.toContain("Premium");
+  });
+
+  it("a mapped value OPE wrote nothing for does not speak either: the corpus decides, not the merchant", async () => {
+    // `denim` is in OPE's vocabulary and this corpus has no sentence for it.
+    const denim = labelsOf([{ label: "Denim 12oz", value: "denim" }]);
+    const said = await new Messages({ corpus, directory: directoryOf({ labels: denim }) }).sayable({
+      merchantId: MERCHANT,
+      candidates: [uncertainty],
+      attributes: withMaterial("Denim 12oz"),
+      locale: "es",
+    });
+    expect(said).toEqual([]);
+  });
+
+  it("adding products costs nothing: twenty of an already mapped material all speak", async () => {
+    const all = await Promise.all(Array.from({ length: 20 }, () => askFor("Combed Cotton 24/1")));
+    expect(all.every((said) => said[0]?.said.text === "The combed cotton text.")).toBe(true);
+  });
+});
 
 describe("Messages.sayable — what can be said", () => {
   it("answers only the families the corpus holds, in the order given (the ladder)", async () => {
@@ -99,6 +184,6 @@ describe("Messages.sayable — what can be said", () => {
       { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
     ]);
     const said = await ask(corpus, directoryOf(), "es");
-    expect(said[0]?.said.messageVersionId).toBe(`mv_${family(information)}_es`);
+    expect(said[0]?.said.messageVersionId).toBe(`mv_${family(information)}_any_es`);
   });
 });

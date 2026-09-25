@@ -280,6 +280,14 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
       candidates: [
         { candidateId: "fit.size_selector.information", step: "information", verdict: "acceptable" },
         { candidateId: "fit.policies.reassurance", step: "reassurance", verdict: "acceptable" },
+        // Feature 027: the uncertainty rung says what the garment is made of, and this product
+        // carries no material, so the gate rejects it by the claim it could not sustain.
+        {
+          candidateId: "fit.size_selector.uncertainty",
+          step: "uncertainty",
+          verdict: "unacceptable",
+          reason: "attribute-unknown",
+        },
         { candidateId: "fit.size_selector.evidence", step: "evidence", verdict: "acceptable" },
       ],
       chosen: "fit.size_selector.information",
@@ -307,9 +315,12 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
       "mv_fit.size_selector.information_test",
     );
+    // One reason per rung, each naming what it could not sustain: the information rung claims
+    // nothing, the others claim a policy, a material and fit data the profile never declared.
     expect(decision.selection?.candidates.map((c) => c.reason)).toEqual([
       undefined,
       "no-returns-policy",
+      "attribute-unknown",
       "no-fit-data",
     ]);
   });
