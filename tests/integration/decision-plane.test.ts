@@ -9,6 +9,7 @@ import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
+import { corpusText } from "../helpers/sayable.js";
 import {
   catalogProductOf,
   eventOf,
@@ -98,7 +99,11 @@ describe("decision plane — user story 1", () => {
       sessionId: "ses_00000001",
       outcome: "INTERVENE",
       reason: "fit",
-      intervention: { anchor: "size_selector", messageVersionId: "msg_fit_size_selector_information_v0" },
+      intervention: {
+        anchor: "size_selector",
+        messageVersionId: "mv_fit_size_selector_information_es_neutral_1",
+        text: corpusText("mv_fit_size_selector_information_es_neutral_1"),
+      },
     });
     const decision = await recorded(body.decision.decisionId);
     expect(decision?.inference).toMatchObject({
@@ -141,7 +146,11 @@ describe("decision plane — user story 1", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "returns",
-      intervention: { anchor: "policies", messageVersionId: "msg_returns_policies_information_v0" },
+      intervention: {
+        anchor: "policies",
+        messageVersionId: "mv_returns_policies_information_es_neutral_1",
+        text: corpusText("mv_returns_policies_information_es_neutral_1"),
+      },
     });
   });
 

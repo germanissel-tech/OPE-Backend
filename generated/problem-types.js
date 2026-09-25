@@ -83,4 +83,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "experiment-not-found": Object.freeze({ status: 404, title: "The experiment does not exist" }),
   "invalid-operator-scope": Object.freeze({ status: 500, title: "The scope of an operator is neither \"*\" nor a list of merchants" }),
   "invalid-operator-tokens": Object.freeze({ status: 500, title: "An operator needs one or two non-empty token fingerprints" }),
+  "corpus-text-empty": Object.freeze({ status: 500, title: "A curated text of the corpus is empty" }),
+  "corpus-text-too-long": Object.freeze({ status: 500, title: "A curated text of the corpus is longer than the contract allows" }),
+  "corpus-text-has-placeholder": Object.freeze({ status: 500, title: "A curated text of the corpus still carries a placeholder" }),
 });

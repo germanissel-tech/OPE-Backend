@@ -24,8 +24,26 @@ export type GateRejection =
 
 export type GateVerdict = { acceptable: true } | { acceptable: false; reason: GateRejection };
 
-export interface Judged {
+/**
+ * The curated text a candidate would be said with, as the intervention carries it: the version for
+ * the ledger, the text for the SDK.
+ */
+export interface SaidWith {
+  messageVersionId: string;
+  text: string;
+}
+
+/**
+ * A candidate with the text it can be said with. **Resolved before the gate**, because a family
+ * without a text is not a candidate at all (01 §322) — so every candidate the gate judges has one,
+ * and nothing downstream has to handle its absence.
+ */
+export interface Sayable {
   candidate: Candidate;
+  said: SaidWith;
+}
+
+export interface Judged extends Sayable {
   verdict: GateVerdict;
 }
 
@@ -52,9 +70,9 @@ export class QualityGate {
     return ACCEPTABLE;
   }
 
-  /** Every candidate judged, in the order given (the ladder). */
-  judgeAll(candidates: readonly Candidate[], evidence: GateEvidence): readonly Judged[] {
-    return candidates.map((candidate) => ({ candidate, verdict: this.judge(candidate, evidence) }));
+  /** Every sayable candidate judged, in the order given (the ladder). */
+  judgeAll(sayables: readonly Sayable[], evidence: GateEvidence): readonly Judged[] {
+    return sayables.map((sayable) => ({ ...sayable, verdict: this.judge(sayable.candidate, evidence) }));
   }
 
   /** Exhaustive over `kind` without a default: a claim class nobody judges does not compile (015 F-038). */

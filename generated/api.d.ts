@@ -1355,18 +1355,22 @@ export type components = {
             results: components["schemas"]["EventResult"][];
         };
         /**
-         * @description The intervention the decision plane emits: where to render (`anchor`), which curated
-         *     message version to fetch from the message catalogue and, when the commercial policy
-         *     allowed one, the incentive to show. Until the message catalogue feature of the map exists
-         *     `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_<step>_v0`
-         *     (the step of the incentive ladder: information, reassurance, evidence, incentive); the
-         *     SDK renders nothing it cannot resolve.
+         * @description The intervention the decision plane emits: where to render (`anchor`), the curated text to
+         *     render there and, when the commercial policy allowed one, the incentive to show.
+         *
+         *     The text travels here so the SDK renders without a second round trip at the exact moment the
+         *     friction is happening. `messageVersionId` travels with it and is what the ledger records: the
+         *     text is for rendering, the version is for measuring. A version is immutable — correcting a text
+         *     mints a new one — so what a decision says a person read keeps saying it after the corpus changes
+         *     (constitution IX).
          */
         Intervention: {
             anchor: components["schemas"]["Anchor"];
             incentive?: components["schemas"]["Incentive"];
-            /** @description Version of the curated message to render. The text is served by the message catalogue, not by this contract. */
+            /** @description Version of the curated text that was rendered; stable and immutable, so a result can be attributed to what the person actually read. */
             messageVersionId: string;
+            /** @description The curated text to render, written and reviewed by a person before it was served (constitution VIII). Complete prose, never a template with slots to fill. */
+            text: string;
         };
         /** @description The kill switch of the merchant (01 §14.2): `enabled: false` turns OPE off for it without a deploy; the SDK keeps receiving valid answers and every decision is NO_OP; the platform keeps being able to notify. */
         KillSwitch: {

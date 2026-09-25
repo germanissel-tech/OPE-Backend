@@ -169,5 +169,5 @@
   "surfaces": ["product", "cart"],
   "barriers": ["fit", "price", "returns"],
   "syncStrategy": { "catalog": "push", "stockAndPrice": "push", "orders": "push", "returns": "push" },
-  "locales": { "supported": [] }
+  "locales": { "supported": ["es"], "fallback": "es" }
 }

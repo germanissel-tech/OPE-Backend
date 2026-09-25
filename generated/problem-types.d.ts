@@ -83,6 +83,9 @@ export declare const PROBLEM_TYPES: {
   readonly "experiment-not-found": { readonly status: 404; readonly title: "The experiment does not exist" };
   readonly "invalid-operator-scope": { readonly status: 500; readonly title: "The scope of an operator is neither \"*\" nor a list of merchants" };
   readonly "invalid-operator-tokens": { readonly status: 500; readonly title: "An operator needs one or two non-empty token fingerprints" };
+  readonly "corpus-text-empty": { readonly status: 500; readonly title: "A curated text of the corpus is empty" };
+  readonly "corpus-text-too-long": { readonly status: 500; readonly title: "A curated text of the corpus is longer than the contract allows" };
+  readonly "corpus-text-has-placeholder": { readonly status: 500; readonly title: "A curated text of the corpus still carries a placeholder" };
 };
 
 /** A slug of the catalogue: the `code` of every catalogued domain error. */

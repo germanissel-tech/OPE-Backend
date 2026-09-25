@@ -106,18 +106,18 @@ describe("commercial policy — the incentive (user story 2)", () => {
       reason: "price",
       intervention: {
         anchor: "price",
-        messageVersionId: "msg_price_price_incentive_v0",
+        messageVersionId: "mv_price_price_incentive_es_neutral_1",
         incentive: { kind: "percent", value: 0.05 },
       },
     });
     const decision = await recorded(body.decision.decisionId);
     expect(decision?.selection).toEqual({
       candidates: [
-        { candidateId: "msg_price_price_information_v0", step: "information", verdict: "acceptable" },
-        { candidateId: "msg_price_price_evidence_v0", step: "evidence", verdict: "acceptable" },
-        { candidateId: "msg_price_price_incentive_v0", step: "incentive", verdict: "acceptable" },
+        { candidateId: "price.price.information", step: "information", verdict: "acceptable" },
+        { candidateId: "price.price.evidence", step: "evidence", verdict: "acceptable" },
+        { candidateId: "price.price.incentive", step: "incentive", verdict: "acceptable" },
       ],
-      chosen: "msg_price_price_incentive_v0",
+      chosen: "price.price.incentive",
       commercialVerdict: { blocked: false },
       commercialPolicyVersion: "a-commercial-1",
     });
@@ -129,11 +129,11 @@ describe("commercial policy — the incentive (user story 2)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "price",
-      intervention: { messageVersionId: "msg_price_price_information_v0" },
+      intervention: { messageVersionId: "mv_price_price_information_es_neutral_1" },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.selection).toMatchObject({
-      chosen: "msg_price_price_information_v0",
+      chosen: "price.price.information",
       commercialVerdict: { blocked: false },
     });
   });
@@ -147,11 +147,11 @@ describe("commercial policy — the incentive (user story 2)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "price",
-      intervention: { messageVersionId: "msg_price_price_information_v0" },
+      intervention: { messageVersionId: "mv_price_price_information_es_neutral_1" },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.selection).toMatchObject({
-      chosen: "msg_price_price_information_v0",
+      chosen: "price.price.information",
       commercialVerdict: { blocked: false },
     });
   });
@@ -205,6 +205,9 @@ describe("commercial policy — the incentive (user story 2)", () => {
       "anchor",
       "incentive",
       "messageVersionId",
+      // The curated text: since feature 027 it travels so the SDK renders without a second round
+      // trip. It is the only thing added; no barrier, arm, policy, margin or step ever appears.
+      "text",
     ]);
     expect(JSON.stringify(body)).not.toMatch(/candidates|claims|commercialVerdict|PolicyVersion|blocked/);
   });
@@ -217,12 +220,12 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "returns",
-      intervention: { messageVersionId: "msg_returns_policies_information_v0" },
+      intervention: { messageVersionId: "mv_returns_policies_information_es_neutral_1" },
     });
     expect((await recorded(body.decision.decisionId))?.selection?.candidates).toEqual([
-      { candidateId: "msg_returns_policies_information_v0", step: "information", verdict: "acceptable" },
+      { candidateId: "returns.policies.information", step: "information", verdict: "acceptable" },
       {
-        candidateId: "msg_returns_policies_reassurance_v0",
+        candidateId: "returns.policies.reassurance",
         step: "reassurance",
         verdict: "unacceptable",
         reason: "no-returns-policy",
@@ -236,7 +239,7 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "returns",
-      intervention: { messageVersionId: "msg_returns_policies_reassurance_v0" },
+      intervention: { messageVersionId: "mv_returns_policies_reassurance_es_neutral_1" },
     });
     expect((await recorded(body.decision.decisionId))?.inference).toMatchObject({ trigger: "abandonment" });
   });
@@ -244,7 +247,7 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
   it("without the returns policy the abandonment falls back to the general information", async () => {
     await start(spec({ evidenceProfile: { returnsPolicy: false } }));
     const body = await ingest([addedToCart(1), removedFromCart(2)]);
-    expect(body.decision.intervention?.messageVersionId).toBe("msg_returns_policies_information_v0");
+    expect(body.decision.intervention?.messageVersionId).toBe("mv_returns_policies_information_es_neutral_1");
   });
 
   it("stale stock and price: the current-price candidate is unacceptable and the value message goes out", async () => {
@@ -271,7 +274,7 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "fit",
-      intervention: { messageVersionId: "msg_fit_policies_reassurance_v0", anchor: "policies" },
+      intervention: { messageVersionId: "mv_fit_policies_reassurance_es_neutral_1", anchor: "policies" },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.inference).toMatchObject({
@@ -285,11 +288,11 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
       spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const plain = await ingest([priceRead(1), cta(2)]);
-    expect(plain.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
+    expect(plain.decision.intervention?.messageVersionId).toBe("mv_price_price_information_es_neutral_1");
     await start(
       spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const amplified = await ingest([priceRead(1), cta(2), addedToCart(3), removedFromCart(4)]);
-    expect(amplified.decision.intervention?.messageVersionId).toBe("msg_price_price_evidence_v0");
+    expect(amplified.decision.intervention?.messageVersionId).toBe("mv_price_price_evidence_es_neutral_1");
   });
 });

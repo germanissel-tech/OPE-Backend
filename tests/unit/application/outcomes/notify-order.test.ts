@@ -48,7 +48,8 @@ const noOp = (id: string, withExperiment = true): Decision =>
 const granting = (id: string, value: number): Decision =>
   InterveneDecision.of({ ...facts(id), experiment }, "price", {
     anchor: "price",
-    messageVersionId: "msg_price_price_incentive_v0",
+    messageVersionId: "mv_price_price_incentive_es_neutral_1",
+    text: "If it does not fit, the exchange is free.",
     incentive: { kind: "percent", value },
   });
 

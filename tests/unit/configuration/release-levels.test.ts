@@ -76,7 +76,9 @@ describe("config/treatment-defaults.json (level 2)", () => {
       minutesLevelMinReceipts: 3,
     });
     expect(values.holdoutShare).toBe(0.05);
-    expect(values.locales).toEqual({ supported: [] });
+    // The release ships a language since feature 027: with none, no family has a text and OPE is
+    // mute — which is fail-closed but useless. The merchant overrides it; it is never a constant.
+    expect(values.locales).toEqual({ supported: ["es"], fallback: "es" });
     expect(values.evidenceProfile).toEqual({
       returnsPolicy: false,
       fitData: false,

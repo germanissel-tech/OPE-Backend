@@ -1,0 +1,61 @@
+{
+  "version": "corpus-1",
+  "texts": [
+    {
+      "family": "fit.size_selector.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_size_selector_information_es_neutral_1",
+      "text": "El talle de esta marca puede variar. Mirá la guía antes de elegir."
+    },
+    {
+      "family": "fit.policies.reassurance",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_policies_reassurance_es_neutral_1",
+      "text": "Si no te queda, el cambio es sin costo."
+    },
+    {
+      "family": "fit.size_selector.evidence",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_size_selector_evidence_es_neutral_1",
+      "text": "Quienes compraron este modelo suelen pedir un talle más."
+    },
+    {
+      "family": "price.price.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_information_es_neutral_1",
+      "text": "Este es el precio de hoy."
+    },
+    {
+      "family": "price.price.evidence",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_evidence_es_neutral_1",
+      "text": "El precio que ves es el que vas a pagar: sin recargos al finalizar."
+    },
+    {
+      "family": "price.price.incentive",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_incentive_es_neutral_1",
+      "text": "Tenemos un descuento para esta compra."
+    },
+    {
+      "family": "returns.policies.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_returns_policies_information_es_neutral_1",
+      "text": "Los cambios se hacen dentro de los 30 días."
+    },
+    {
+      "family": "returns.policies.reassurance",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_returns_policies_reassurance_es_neutral_1",
+      "text": "Si algo no sale como esperabas, el cambio es sin costo."
+    }
+  ]
+}

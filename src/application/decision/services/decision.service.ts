@@ -11,7 +11,7 @@
 // the session and visitor budgets — they measure what the visitor saw.
 import { FactContext, Signals, type ProductFacts } from "../../../domain/barrier/index.js";
 import { asProductId, asVariantId } from "../../../domain/catalog/index.js";
-import { CANDIDATES, QualityGate, type GateEvidence, type Judged } from "../../../domain/selection/index.js";
+import type { CandidatesService } from "./candidates.service.js";
 import type { StateService } from "./state.service.js";
 import type { CommercialVerdict, Trigger } from "../../../domain/commercial/index.js";
 import type { SessionState, TruthSummary } from "../../../domain/decision/index.js";
@@ -23,8 +23,8 @@ import type {
   DecisionSelection,
   EvidenceRecord,
 } from "../../../domain/ledger/index.js";
+import type { GateEvidence, Judged } from "../../../domain/selection/index.js";
 import type { Arm, Barrier, MerchantId, NoOpReason } from "../../../domain/shared-kernel/index.js";
-import type { BarrierInference } from "../../barrier/index.js";
 import type { ProductTruth, ProductTruthService } from "../../catalog/index.js";
 import type { AssignmentService } from "../../experiment/index.js";
 import type { DecisionPlane, DecisionRequest } from "../../ingestion/index.js";
@@ -35,7 +35,7 @@ export interface DecisionServiceDependencies {
   assignment: AssignmentService;
   policies: PolicyDirectory;
   state: StateService;
-  inference: BarrierInference;
+  candidates: CandidatesService;
   truth: ProductTruthService;
   recorder: DecisionRecorder;
 }
@@ -55,6 +55,9 @@ interface Evidence {
 
 /** The context the orchestrator carries through the authorities of one batch. */
 interface Context {
+  merchantId: MerchantId;
+  /** Language of the page in focus, when the SDK read one: which text the catalogue can serve. */
+  locale?: string;
   policies: MerchantPolicies;
   session: SessionState;
   visitorInterventions: number;
@@ -105,6 +108,8 @@ export class DecisionService implements DecisionPlane {
       if (focus.locale !== undefined) facts.locale = focus.locale;
       const arm = assigned.value?.assignment.arm;
       const judged = await this.#judge({
+        merchantId,
+        ...(focus.locale === undefined ? {} : { locale: focus.locale }),
         policies: merchant,
         session,
         visitorInterventions: remembered.visitorInterventions,
@@ -128,25 +133,38 @@ export class DecisionService implements DecisionPlane {
   }
 
   /** Inference → barrier verdict → selection with the gate → commercial verdict; the ledger gets how it was reasoned. */
-  async #judge({ policies, session, visitorInterventions, arm, evidence, now }: Context): Promise<Judgement> {
-    const { decision, commercial, profile, barriers } = policies;
-    const inference = await this.#deps.inference.infer({
-      rules: decision.rules,
+  async #judge({
+    merchantId,
+    locale,
+    policies,
+    session,
+    visitorInterventions,
+    arm,
+    evidence,
+    now,
+  }: Context): Promise<Judgement> {
+    const { commercial } = policies;
+    const abandoned = session.abandoned();
+    // The barrier the commercial policy settles on has to be known before asking what can be said,
+    // because the candidates are the ones of that barrier. The inference itself is the service's.
+    const { inference, settled, barrier, judged, unsustainable } = await this.#deps.candidates.for({
+      merchantId,
+      policies,
       signals: session.signals,
       product: evidence.product,
+      truth: evidence.truth,
+      evidence: evidence.gate,
+      abandoned,
+      ...(locale === undefined ? {} : { locale }),
+      attributes: evidence.gate.attributes,
     });
-    const settled = decision.barrierVerdict({ inference, truth: evidence.truth, active: barriers });
-    const abandoned = session.abandoned();
-    const barrier = commercial.fallbackBarrier(settled.barrier, abandoned);
     const trigger = triggerOf(settled.barrier, barrier);
-    const sustained = barrier !== undefined && settled.evidenceReason === undefined;
-    const judged = sustained ? QualityGate.of(profile).judgeAll(CANDIDATES[barrier], evidence.gate) : [];
     const verdict = commercial.verdict({
       ...(arm === undefined ? {} : { arm }),
       ...(barrier === undefined ? {} : { barrier }),
       trigger,
       // Stryker disable next-line ConditionalExpression: an absent key and an undefined one are the same input
-      ...(settled.evidenceReason === undefined ? {} : { evidenceReason: settled.evidenceReason }),
+      ...(unsustainable === undefined ? {} : { unsustainable }),
       judged,
       abandoned,
       addedToCart: session.addedToCart(),
@@ -154,7 +172,7 @@ export class DecisionService implements DecisionPlane {
       facts: FactContext.of({
         signals: session.signals,
         product: evidence.product,
-        readingSeconds: decision.rules.readingSeconds,
+        readingSeconds: policies.decision.rules.readingSeconds,
       }),
       session: {
         interventions: session.interventions,
@@ -169,7 +187,7 @@ export class DecisionService implements DecisionPlane {
     return {
       verdict,
       inference: {
-        policyVersion: decision.version,
+        policyVersion: policies.decision.version,
         confidences: inference.confidences,
         matched: inference.matched,
         trigger,

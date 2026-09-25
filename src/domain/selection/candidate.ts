@@ -33,11 +33,12 @@ export interface Candidate {
   claims: readonly Claim[];
 }
 
-const MESSAGE_PLACEHOLDER_VERSION = "v0";
+/** What joins the three parts of a family; no part of the vocabulary contains it. */
+const OF_THE_FAMILY = ".";
 
-/** The placeholder id of a candidate until the message catalogue names real versions. */
+/** The message family a candidate belongs to: what the corpus is keyed by. */
 const candidateId = (barrier: Barrier, anchor: Anchor, step: Step): string =>
-  `msg_${barrier}_${anchor}_${step}_${MESSAGE_PLACEHOLDER_VERSION}`;
+  [barrier, anchor, step].join(OF_THE_FAMILY);
 
 const candidate = (barrier: Barrier, anchor: Anchor, step: Step, claims: readonly Claim[]): Candidate => ({
   candidateId: candidateId(barrier, anchor, step),

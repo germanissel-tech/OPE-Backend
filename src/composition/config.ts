@@ -7,11 +7,13 @@
 // merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
 import { ConfigError } from "./config-error.js";
+import { readCorpus } from "./corpus-config.js";
 import { text } from "./env.js";
 import { readLevels, type ReleaseLevels } from "./levels-config.js";
 import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
 import type { Operator } from "../domain/operator/index.js";
+import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 
 export type { MerchantConfig } from "./merchants-config.js";
 export type { ReleaseLevels } from "./levels-config.js";
@@ -25,6 +27,8 @@ export interface AppConfig {
   /** The operators of OPE (ADR-031); none configured means nobody administers. */
   operators: Operator[];
   levels: ReleaseLevels;
+  /** The curated texts of the release (feature 027). */
+  corpus: readonly CorpusEntry[];
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -41,6 +45,7 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     merchants: readMerchants(env, readFile),
     operators: readOperators(env, readFile),
     levels: readLevels(env, readFile),
+    corpus: readCorpus(env, readFile),
   };
 }
 

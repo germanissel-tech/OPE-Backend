@@ -48,3 +48,6 @@ reasons:
   - slug: merchant-off
     emitter: orchestrator
     description: "The merchant's kill switch is off (01 §14.2): OPE decides nothing and intervenes nowhere for this merchant until an operator turns it back on; assignment is not consulted and no budget is consumed."
+  - slug: message-unavailable
+    emitter: selection
+    description: No candidate of the dominant barrier has a curated text for the page's language and the merchant's voice (01 §322); the family is not a candidate, so nothing is shown. Distinct from no-acceptable-candidate, which is every candidate rejected for lack of evidence.

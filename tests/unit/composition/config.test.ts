@@ -7,8 +7,14 @@ import { ConfigError, readConfig } from "../../../src/composition/config.js";
 import { EXPERIMENT_STATUSES } from "../../../src/domain/experiment/index.js";
 import { testLevels } from "../../helpers/test-app.js";
 
-/** The files of the release are the only reads the configuration makes unless a variable names another. */
-const LEVEL_FILES = ["config/platform.json", "config/treatment-defaults.json"].map((f) => path.resolve(f));
+/**
+ * The files of the release are the only reads the configuration makes unless a variable names
+ * another: the two levels and, since feature 027, the curated corpus. The stub throws on anything
+ * else on purpose — that a new file is read is a change to what readConfig does, not a detail.
+ */
+const LEVEL_FILES = ["config/platform.json", "config/treatment-defaults.json", "config/messages.json"].map(
+  (f) => path.resolve(f),
+);
 const noFile = (file: string): string => {
   if (LEVEL_FILES.includes(file)) return readFileSync(file, "utf8");
   throw new Error(`unexpected read of ${file}`);
@@ -26,7 +32,10 @@ const exp = {
 
 describe("readConfig", () => {
   it("defaults: port 3000, loopback host, the bundled contract, no merchants", () => {
-    expect(readConfig({}, noFile)).toEqual({
+    // The corpus is asserted apart: comparing it here against itself would say nothing, and what
+    // matters of it is that the release brings texts and every one of them is servable.
+    const { corpus, ...rest } = readConfig({}, noFile);
+    expect(rest).toEqual({
       port: 3000,
       host: "127.0.0.1",
       contractPath: path.resolve("contracts/dist/openapi.yaml"),
@@ -34,6 +43,8 @@ describe("readConfig", () => {
       operators: [],
       levels: testLevels(),
     });
+    expect(corpus.length).toBeGreaterThan(0);
+    expect(corpus.every((entry) => entry.text.value.length > 0)).toBe(true);
   });
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {

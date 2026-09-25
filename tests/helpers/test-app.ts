@@ -11,6 +11,7 @@ import {
   readTreatmentDefaults,
 } from "../../src/application/configuration/index.js";
 import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
+import { readCorpus } from "../../src/composition/corpus-config.js";
 import { localDeployment } from "../../src/composition/deployments/local.js";
 import { withoutSchemaReference } from "../../src/composition/env.js";
 import { instantiate, replace, type AnyPort, type Override } from "../../src/composition/graph/index.js";
@@ -176,6 +177,8 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   merchants: (merchants ?? testMerchants).map(configured),
   operators: testOperators,
   levels: testLevels(),
+  // The real corpus of the release, so an integration test sees the texts a person would see.
+  corpus: readCorpus({}, (file) => readFileSync(file, "utf8")),
   ...over,
 });
 

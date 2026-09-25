@@ -12,6 +12,7 @@ import {
   type GateVerdict,
   type MerchantProfile,
 } from "../../../../src/domain/selection/index.js";
+import { sayable } from "../../../helpers/sayable.js";
 
 const full: MerchantProfile = { returnsPolicy: true, fitData: true, authorizedAttributes: ["material"] };
 const fresh: GateEvidence = {
@@ -167,20 +168,26 @@ describe("QualityGate.judge — one claim at a time", () => {
 
 describe("QualityGate.judgeAll — the catalogue", () => {
   it("judges the candidates of a barrier in ladder order, keeping the rejections", () => {
-    const judged = QualityGate.of(EMPTY_PROFILE).judgeAll(CANDIDATES.fit, { ...fresh, available: false });
+    const judged = QualityGate.of(EMPTY_PROFILE).judgeAll(sayable(CANDIDATES.fit), {
+      ...fresh,
+      available: false,
+    });
     expect(judged.map((j) => [j.candidate.step, j.verdict])).toEqual([
       ["information", { acceptable: true }],
       ["reassurance", rejected("no-returns-policy")],
       ["evidence", rejected("no-fit-data")],
     ]);
-    const priced = QualityGate.of(full).judgeAll(CANDIDATES.price, { ...fresh, stockAndPriceFresh: false });
+    const priced = QualityGate.of(full).judgeAll(sayable(CANDIDATES.price), {
+      ...fresh,
+      stockAndPriceFresh: false,
+    });
     expect(priced.map((j) => j.verdict.acceptable)).toEqual([true, false, true]);
   });
 
   it("is deterministic: 1 000 judgements of the same candidate and evidence agree", () => {
     const gate = QualityGate.of(full);
-    const first = gate.judgeAll(CANDIDATES.fit, fresh);
-    for (let i = 0; i < 1000; i++) expect(gate.judgeAll(CANDIDATES.fit, fresh)).toEqual(first);
+    const first = gate.judgeAll(sayable(CANDIDATES.fit), fresh);
+    for (let i = 0; i < 1000; i++) expect(gate.judgeAll(sayable(CANDIDATES.fit), fresh)).toEqual(first);
     expect(first.every((j) => j.verdict.acceptable)).toBe(true);
   });
 });

@@ -26,7 +26,11 @@ const facts: DecisionFactsInput = {
     evidence: { truth: "known", stockAndPrice: "fresh", available: true },
   },
 };
-const intervention = { messageVersionId: "msg_fit_size_selector_v0", anchor: "size_selector" as const };
+const intervention = {
+  text: "If it does not fit, the exchange is free.",
+  messageVersionId: "msg_fit_size_selector_v0",
+  anchor: "size_selector" as const,
+};
 
 function ids(): { next: () => ReturnType<typeof asDecisionId>; minted: number } {
   const state = { minted: 0, next: () => asDecisionId(`dec_${String(++state.minted).padStart(8, "0")}`) };

@@ -80,7 +80,7 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { messageVersionId: "msg-1", anchor: "size_selector" },
+    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
   );
   await app.resolve(DecisionLedgerPort).record(decision);
 }
@@ -379,7 +379,7 @@ describe("isolation between merchants", () => {
     const inA = json(await postEvents(app.app, price(1, "ses_00000001"), { key: A.key })) as IngestResult;
     const inB = json(await postEvents(app.app, price(1, "ses_00000001"), { key: B.key })) as IngestResult;
     expect(inA.decision.intervention).toMatchObject({ incentive: { kind: "percent", value: 0.05 } });
-    expect(inB.decision.intervention?.messageVersionId).toBe("msg_price_price_information_v0");
+    expect(inB.decision.intervention?.messageVersionId).toBe("mv_price_price_information_es_neutral_1");
     expect(inB.decision.intervention).not.toHaveProperty("incentive");
     const ledgerA = await app
       .resolve(DecisionLedgerPort)

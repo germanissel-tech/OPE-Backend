@@ -81,58 +81,58 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 
 ### Antes del contrato
 
-- [ ] T009 [P] [US1] `docs/dominio/` — nota por cada sustantivo nuevo: **texto curado**, **voz**,
+- [x] T009 [P] [US1] `docs/dominio/` — nota por cada sustantivo nuevo: **texto curado**, **voz**,
       **versión de mensaje**. Cada una con su fuente (`01 §322`, `03 §4.4`). Sin esto
       `check:glossary` falla cuando el contrato los nombre.
 
 ### El contrato
 
-- [ ] T010 [US1] `contracts/components/schemas/Voice.yaml` — el vocabulario cerrado de voces, con
+- [x] T010 [US1] `contracts/components/schemas/Voice.yaml` — el vocabulario cerrado de voces, con
       **un solo valor** y su valor por defecto declarado. La clave existe desde el día uno (`SC-008`).
-- [ ] T011 [US1] `contracts/components/schemas/Intervention.yaml` — lleva el texto a mostrar, y su
+- [x] T011 [US1] `contracts/components/schemas/Intervention.yaml` — lleva el texto a mostrar, y su
       descripción **deja de decir** que «el texto lo sirve el catálogo de mensajes, no este
       contrato» (research R-05). `messageVersionId` **se conserva**: el texto es para renderizar, la
       versión para medir. El placeholder `msg_<barrier>_<anchor>_<step>_v0` sale de la descripción.
-- [ ] T012 [US1] `contracts/components/schemas/MerchantConfigurationDeclared.yaml` y
+- [x] T012 [US1] `contracts/components/schemas/MerchantConfigurationDeclared.yaml` y
       `EffectiveConfiguration.yaml` — la voz del merchant y la versión del corpus que se le sirve.
       `Locales` **no se toca**: el idioma de reserva es uno y opcional, como `01 §14.2` lo decide.
-- [ ] T013 [US1] `contracts/no-op-reasons.yaml` — `message-unavailable`, emitido por `selection`,
+- [x] T013 [US1] `contracts/no-op-reasons.yaml` — `message-unavailable`, emitido por `selection`,
       con la descripción que lo distingue de `no-acceptable-candidate`: uno es «ningún candidato
       tiene texto», el otro «ningún candidato tiene evidencia».
-- [ ] T014 [US1] `contracts/problem-types.yaml` — los errores del módulo que la configuración puede
+- [x] T014 [US1] `contracts/problem-types.yaml` — los errores del módulo que la configuración puede
       producir (`unknown-voice` para empezar; los de la correspondencia llegan en US2).
-- [ ] T015 [US1] Verificar: `npm run contract:check` en verde. Con `info.x-stability: building` el
+- [x] T015 [US1] Verificar: `npm run contract:check` en verde. Con `info.x-stability: building` el
       cambio de `Intervention` entra con bump MINOR conservando `/v1/` (ADR-003);
       `contract:diff` lo reporta y lo acepta. **Si agrega una regla nueva al ruleset, su fixture en
       `tests/contract-rules/fixtures/`.**
-- [ ] T016 [US1] `npm run contract:types`. **Nunca editar `generated/` a mano.**
+- [x] T016 [US1] `npm run contract:types`. **Nunca editar `generated/` a mano.**
 
 ### El dominio
 
-- [ ] T017 [P] [US1] `src/domain/messages/ids.ts` — `MessageVersion` como tipo marcado. Vive acá y
+- [x] T017 [P] [US1] `src/domain/messages/ids.ts` — `MessageVersion` como tipo marcado. Vive acá y
       no en el `shared-kernel` porque tiene un dueño (ADR-024).
-- [ ] T018 [P] [US1] `src/domain/shared-kernel/` — `VOICES` y su voz por defecto, réplica del
+- [x] T018 [P] [US1] `src/domain/shared-kernel/` — `VOICES` y su voz por defecto, réplica del
       esquema, con la prueba que verifica que coinciden (como `BARRIERS` y `ANCHORS`). Comprobar que
       `check:behaviour-constants` **no** lo marca: es un vocabulario replicado del contrato, no una
       constante de comportamiento.
-- [ ] T019 [US1] `src/domain/messages/curated-text.ts` — clase con `private constructor` y `of(...)`
+- [x] T019 [US1] `src/domain/messages/curated-text.ts` — clase con `private constructor` y `of(...)`
       que devuelve `Result`. Rechaza: texto vacío o sólo espacios, más largo que el máximo del
       contrato, versión mal formada, y **un texto que contenga un marcador de interpolación sin
       resolver** — eso es una plantilla que alguien creyó que era prosa, y llegaría así a una persona
       (R-07).
-- [ ] T020 [US1] `src/domain/messages/message-outcome.ts` — unión discriminada (`Dressed` |
+- [x] T020 [US1] `src/domain/messages/message-outcome.ts` — unión discriminada (`Dressed` |
       `Unavailable`). No existe un `Dressed` con texto ausente (ADR-024).
-- [ ] T021 [US1] `src/domain/messages/errors.ts` — `UnknownVoice` con su `code` del catálogo y la
+- [x] T021 [US1] `src/domain/messages/errors.ts` — `UnknownVoice` con su `code` del catálogo y la
       unión del módulo. Un `DomainError` **se devuelve, nunca se lanza**.
 
 ### La aplicación y la resolución
 
-- [ ] T022 [US1] `src/application/messages/ports/message-corpus.ts` y `message-directory.ts` — los
+- [x] T022 [US1] `src/application/messages/ports/message-corpus.ts` y `message-directory.ts` — los
       puertos, devolviendo `Promise`.
-- [ ] T023 [US1] `src/application/messages/services/message.service.ts` — resuelve el texto de una
+- [x] T023 [US1] `src/application/messages/services/message.service.ts` — resuelve el texto de una
       familia: idioma de la página → idioma de reserva; dentro del idioma resuelto, voz del merchant
       → voz por defecto. **Nunca un texto en otro idioma** (`FR-012`, `FR-013`, `FR-014`, `FR-015`).
-- [ ] T024 [US1] `src/application/decision/ports/` — el puerto que declara **quien lo necesita** y
+- [x] T024 [US1] `src/application/decision/ports/` — el puerto que declara **quien lo necesita** y
       `messages` implementa, como `ingestion` declara `DecisionPlane` (ADR-026). Devuelve **lo que se
       puede decir**: los candidatos con su texto y su versión, en orden de escalera.
 
@@ -142,46 +142,46 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 
 ### El filtro, antes del gate
 
-- [ ] T025 [US1] **El quality gate no se toca.** Segunda corrección al plan, y quita riesgo en vez de
+- [x] T025 [US1] **El quality gate no se toca.** Segunda corrección al plan, y quita riesgo en vez de
       agregarlo: `01 §322` dice que sin texto **la familia no es candidata**, así que nunca llega al
       juicio. No hace falta una clase de evidencia nueva, ni una razón de rechazo, ni cuidar que el
       gate siga siendo puro: no cambia una línea.
-- [ ] T026 [US1] `src/application/decision/services/decision.service.ts` — al armar el contexto, los
+- [x] T026 [US1] `src/application/decision/services/decision.service.ts` — al armar el contexto, los
       candidatos de la barrera dominante se filtran a los que tienen texto, **conservando el orden de
       la escalera**, y recién entonces se juzgan. Vacío tras el filtro ⇒ `NO_OP`
       `message-unavailable`; no vacío pero todos rechazados ⇒ `no-acceptable-candidate`. Armar el
       contexto es lo que el principio I le permite al orquestador; **rankear no**, y el orden lo pone
       la escalera. Si el archivo pasa de 300 líneas, se extrae un servicio.
-- [ ] T027 [US1] `src/domain/selection/candidate.ts` — **`MESSAGE_PLACEHOLDER_VERSION` y
+- [x] T027 [US1] `src/domain/selection/candidate.ts` — **`MESSAGE_PLACEHOLDER_VERSION` y
       `candidateId` desaparecen**. El id del candidato pasa a ser la familia; la versión del texto la
       trae el corpus. Es el síntoma que motivó la feature: mientras quede, no está hecha.
 
 ### El corpus y su lectura
 
-- [ ] T028 [US1] `config/` — el corpus como activo del release, con el mínimo para probar: un texto
+- [x] T028 [US1] `config/` — el corpus como activo del release, con el mínimo para probar: un texto
       por familia en el idioma y la voz por defecto. Su fila en `config/README.md` (ADR-032) y la
       prueba del inventario en verde — **el archivo tiene que estar `git add`eado antes de correrla**,
       porque lee lo que git rastrea.
-- [ ] T029 [US1] `src/application/configuration/input/` y `src/composition/levels-config.ts` — el
+- [x] T029 [US1] `src/application/configuration/input/` y `src/composition/levels-config.ts` — el
       lector de forma del corpus; las **fábricas del dominio juzgan**, no el lector (ADR-024). Un
       valor fuera de rango es un `ConfigError` que nombra su campo.
-- [ ] T030 [US1] Las invariantes del corpus se verifican **al arrancar** y el servidor **no arranca**
+- [x] T030 [US1] Las invariantes del corpus se verifican **al arrancar** y el servidor **no arranca**
       si falla alguna (constitución II): toda entrada nombra una familia que el plano puede elegir,
       un idioma bien formado y una voz que existe; ninguna versión se repite con texto distinto;
       existe al menos un texto por familia en el idioma y la voz por defecto.
-- [ ] T031 [US1] `src/interface-adapters/messages/gateways/` — el gateway del corpus sobre lo leído,
+- [x] T031 [US1] `src/interface-adapters/messages/gateways/` — el gateway del corpus sobre lo leído,
       y el enlace del puerto de lectura de la configuración del merchant desde el módulo
       `configuration`, como ya se hace con `PolicyDirectory`.
 
 ### El borde y el registro
 
-- [ ] T032 [US1] `src/interface-adapters/` — el DTO de la intervención lleva el texto. Sigue **sin
+- [x] T032 [US1] `src/interface-adapters/` — el DTO de la intervención lleva el texto. Sigue **sin
       llevar** barrera, brazo, experimento, política, margen ni escalón (`FR-024`): las reglas de
       exposición no cambian.
-- [ ] T033 [US1] `src/domain/ledger/decision.ts` — comprobar que `DecisionRecord.intervention` ya
+- [x] T033 [US1] `src/domain/ledger/decision.ts` — comprobar que `DecisionRecord.intervention` ya
       lleva la versión (la lleva, desde la 011) y que **el registro no incorpora el texto**: guarda
       la versión, y la versión es inmutable (`FR-018`, `FR-019`).
-- [ ] T034 [US1] `src/composition/modules/messages.ts` y `selection.ts` — el cableado completo.
+- [x] T034 [US1] `src/composition/modules/messages.ts` y `selection.ts` — el cableado completo.
       `bootstrap` sigue negándose a arrancar si el contrato declara una operación que nadie sirve.
 
 ### Pruebas de US1

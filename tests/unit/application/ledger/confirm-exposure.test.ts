@@ -39,7 +39,11 @@ const decision = (over: Partial<DecisionRecord> = {}): Decision =>
     ...facts,
     outcome: "INTERVENE",
     reason: "barrier-size",
-    intervention: { messageVersionId: "msg-1", anchor: "size_selector" },
+    intervention: {
+      text: "If it does not fit, the exchange is free.",
+      messageVersionId: "msg-1",
+      anchor: "size_selector",
+    },
     ...over,
   });
 

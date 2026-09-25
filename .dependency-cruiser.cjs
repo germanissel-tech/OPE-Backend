@@ -43,7 +43,7 @@ const CONTEXT_MAP = {
   // Feature 027: messages owns the curated corpus. It needs selection for the message family
   // (barrier, anchor, step) and nothing else — it receives the attribute value already resolved,
   // never the product, so it does not depend on catalog.
-  messages: ["shared-kernel", "selection"],
+  messages: ["shared-kernel", "selection", "decision"],
   commercial: ["shared-kernel", "barrier", "selection"],
   decision: [
     "shared-kernel",
@@ -70,6 +70,7 @@ const CONTEXT_MAP = {
     "catalog",
     "ingestion",
     "barrier",
+    "messages",
   ],
   admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
   // Feature 020 (ADR-034): access owns the three schemes, their resolvers and the policies of the

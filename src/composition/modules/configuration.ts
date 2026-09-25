@@ -29,6 +29,7 @@ import {
   policySourceOf,
   releaseConfigurationLevels,
   switchAwarePolicyDirectory,
+  messageSettingsOf,
 } from "../../interface-adapters/configuration/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
 import { ReleaseLevelsPort } from "../release.js";
@@ -36,6 +37,7 @@ import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
+import { MessageDirectoryPort } from "./messages.js";
 import { AuditPort, ClockPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
@@ -65,6 +67,9 @@ export const configurationModule = compositionModule({
     ),
     bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
       holdoutSourceOf(configuration),
+    ),
+    bind(MessageDirectoryPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+      messageSettingsOf(configuration),
     ),
     bind(
       PolicyDirectoryPort,

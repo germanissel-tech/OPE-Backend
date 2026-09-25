@@ -13,7 +13,8 @@ value:
     outcome: INTERVENE
     reason: price
     intervention:
-      messageVersionId: msg_price_price_incentive_v0
+      messageVersionId: mv_price_price_incentive_en_neutral_1
+      text: This is today's price. With the discount it comes to $ 19,000.
       anchor: price
       incentive:
         kind: percent

@@ -38,7 +38,8 @@ const noOp = (id: string, over: Partial<DecisionFacts> = {}): Decision =>
 const intervene = (id: string, incentive?: Incentive, over: Partial<DecisionFacts> = {}): Decision =>
   InterveneDecision.of(facts(id, over), "price", {
     anchor: "price",
-    messageVersionId: "msg_price_price_incentive_v0",
+    messageVersionId: "mv_price_price_incentive_es_neutral_1",
+    text: "If it does not fit, the exchange is free.",
     ...(incentive === undefined ? {} : { incentive }),
   });
 const percent = (value: number): Incentive => ({ kind: "percent", value });

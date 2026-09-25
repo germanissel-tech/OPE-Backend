@@ -240,3 +240,12 @@ types:
   - slug: invalid-operator-tokens
     status: 500
     title: An operator needs one or two non-empty token fingerprints
+  - slug: corpus-text-empty
+    status: 500
+    title: A curated text of the corpus is empty
+  - slug: corpus-text-too-long
+    status: 500
+    title: A curated text of the corpus is longer than the contract allows
+  - slug: corpus-text-has-placeholder
+    status: 500
+    title: A curated text of the corpus still carries a placeholder
