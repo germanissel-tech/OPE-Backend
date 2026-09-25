@@ -41,7 +41,6 @@ consumers:
         experiments:read,
         experiments:write,
         log:read,
-        messages:publish,
       ]
 roadmap:
   persistence-and-resilience: Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity; the administration entry commits with the action it records, which closes the window ADR-034 leaves open (audit 014 F-043, F-045, F-046; ADR-034)
@@ -356,12 +355,12 @@ operations:
     feature: "017"
     status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1
-  - operationId: publishMessageCatalog
-    method: post
-    path: /v1/admin/merchants/{merchantId}/message-catalog
+  - operationId: listUnmappedAttributeValues
+    method: get
+    path: /v1/admin/merchants/{merchantId}/unmapped-attribute-values
     consumer: admin
     tag: admin
-    capabilities: [messages:publish]
+    capabilities: [merchants:read]
     roadmap: message-catalogue
     status: planned
-    source: mvp:03-alcance-mvp.md#4.4
+    source: mvp:01-arquitectura-mvp.md#3.1.1

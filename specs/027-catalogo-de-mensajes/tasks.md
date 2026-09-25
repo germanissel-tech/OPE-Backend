@@ -26,20 +26,20 @@ se editan a mano.**
 
 ## Phase 1: Setup — el mapa del contrato, que va antes que todo
 
-- [ ] T001 `contracts/api-map.yaml` — **borrar la entrada de `publishMessageCatalog`**. No lleva
+- [x] T001 `contracts/api-map.yaml` — **borrar la entrada de `publishMessageCatalog`**. No lleva
       `retired` con `retiredIn`: eso es para operaciones **publicadas**, y ésta nunca estuvo en el
       contrato. Una operación planeada que se cancela se saca del plan; el motivo vive en el
       research (R-01) y en el ADR del cierre.
-- [ ] T002 `contracts/api-map.yaml` + `src/interface-adapters/http/security/capabilities.ts` —
+- [x] T002 `contracts/api-map.yaml` + `src/interface-adapters/http/security/capabilities.ts` —
       `messages:publish` queda **sin ningún uso** (hoy aparece en el vocabulario del consumidor
       `admin`, en la operación borrada y en la réplica del mapa). Se va de los tres. Dejarla
       invitaría a construir la operación que acabamos de cancelar. La prueba de réplica falla si
       los dos lados no coinciden.
-- [ ] T003 `contracts/api-map.yaml` — la operación de lectura de los valores sin mapear entra como
+- [x] T003 `contracts/api-map.yaml` — la operación de lectura de los valores sin mapear entra como
       `planned`: consumidor `admin`, tag `admin`, capacidad `merchants:read` (la misma que
       `listAnchorDiagnostics`, que es su precedente), `roadmap: message-catalogue` y su fuente. US3
       la pasa a `built`. **Nada entra al contrato sin estar antes acá.**
-- [ ] T004 Verificar: `npm run check:api-map` en verde y el recuento de planeadas bajó en una neta.
+- [x] T004 Verificar: `npm run check:api-map` en verde y el recuento de planeadas bajó en una neta.
 
 ---
 
