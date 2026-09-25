@@ -13,7 +13,6 @@ export const messageSettingsOf = (configuration: ConfigurationService): MessageD
       // One voice, so there is nothing for a merchant to choose yet: the corpus is keyed by voice
       // from day one so the second is one more entry, and the field that picks it arrives with it.
       voice: DEFAULT_VOICE,
-      supported: locales.supported,
       ...(locales.fallback === undefined ? {} : { fallback: locales.fallback }),
     };
   },

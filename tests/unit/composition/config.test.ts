@@ -531,3 +531,65 @@ describe("readConfig — operators (feature 017)", () => {
     expect(() => readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile)).toThrow(message);
   });
 });
+
+// Feature 027: the corpus of the release is content, so no gate can judge it —
+// `src/composition/**` is excluded from mutation on purpose and every text is valid prose. What can
+// be judged is whether it is *servable*, and a corpus that is not does not start the server
+// (constitution II). These are the only checks standing between a broken corpus and a person.
+describe("readCorpus — a corpus that cannot be served does not start the server", () => {
+  const CORPUS = path.resolve("config/messages.json");
+  /** The corpus of the release with `over` applied to each entry named by its family. */
+  const corpusWith = (texts: readonly Record<string, unknown>[]): string =>
+    JSON.stringify({ version: "corpus-test", texts });
+  const entry = (over: Record<string, unknown> = {}) => ({
+    family: "fit.policies.reassurance",
+    locale: "es",
+    voice: "neutral",
+    version: "mv_test_1",
+    text: "A curated text.",
+    ...over,
+  });
+  /** Reads the levels of the release and the corpus the test names. */
+  const withCorpus = (raw: string) => (file: string) => (file === CORPUS ? raw : readFileSync(file, "utf8"));
+
+  it("refuses a text of a family no candidate has: unreachable, and almost always a typo", () => {
+    const read = withCorpus(corpusWith([entry({ family: "fit.policies.reassurence" })]));
+    expect(() => readConfig({}, read)).toThrow(/names a family no candidate has/u);
+  });
+
+  it("refuses one version saying two different things: the ledger records the version, a person read one text", () => {
+    const read = withCorpus(
+      corpusWith([entry(), entry({ family: "returns.policies.reassurance", text: "Another text." })]),
+    );
+    expect(() => readConfig({}, read)).toThrow(/says two different things/u);
+  });
+
+  it("refuses a corpus incomplete in the default language: silence would be the normal answer", () => {
+    // Every entry is valid and reachable; what is missing is the rest of the families, so a merchant
+    // that configured nothing would hear `message-unavailable` as the rule instead of the exception.
+    const read = withCorpus(corpusWith([entry()]));
+    expect(() => readConfig({}, read)).toThrow(/has no text for .* in es\/neutral/u);
+  });
+
+  it("refuses a text that is empty, too long, or still a template, naming which", () => {
+    for (const [over, expected] of [
+      [{ text: "   " }, /cannot be empty/u],
+      [{ text: "a".repeat(513) }, /longer than the contract allows/u],
+      [{ text: "Fabric {material}." }, /still carries a placeholder/u],
+    ] as const) {
+      const read = withCorpus(corpusWith([entry(over)]));
+      expect(() => readConfig({}, read), JSON.stringify(over)).toThrow(expected);
+    }
+  });
+
+  it("refuses a voice OPE writes no texts in", () => {
+    const read = withCorpus(corpusWith([entry({ voice: "streetwear" })]));
+    expect(() => readConfig({}, read)).toThrow(/not a voice OPE writes texts in/u);
+  });
+
+  it("refuses a corpus that is not a list of texts at all", () => {
+    expect(() => readConfig({}, withCorpus(JSON.stringify({ version: "x" })))).toThrow(
+      /must hold a list of texts/u,
+    );
+  });
+});

@@ -196,9 +196,9 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 - [x] T038 [US1] `tests/integration/` — con `startTestApp()`: una intervención llega con texto; una
       familia sin texto cae al escalón de abajo; sin ninguna, `NO_OP` `message-unavailable`. Y **los
       presupuestos no se consumen** en ese caso.
-- [ ] T039 [US1] `tests/unit/` — un corpus incoherente **no arranca el servidor**, con el mensaje que
+- [x] T039 [US1] `tests/unit/` — un corpus incoherente **no arranca el servidor**, con el mensaje que
       nombra qué entrada está mal.
-- [ ] T040 [US1] Prueba de aislamiento entre merchants: dos merchants con voces distintas reciben
+- [x] T040 [US1] Prueba de aislamiento entre merchants: dos merchants con voces distintas reciben
       textos distintos y ninguno ve la configuración del otro. **Toda feature que toca configuración
       la incluye.**
 

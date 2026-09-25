@@ -39,7 +39,7 @@ const corpusOf = (entries: readonly (TextKey & { text: string })[]): MessageCorp
 });
 
 const directoryOf = (settings: Partial<MessageSettings> = {}): MessageDirectory => ({
-  settingsFor: () => Promise.resolve({ voice: "neutral", supported: ["es"], ...settings }),
+  settingsFor: () => Promise.resolve({ voice: "neutral", ...settings }),
 });
 
 const ask = (corpus: MessageCorpus, directory: MessageDirectory, locale?: string) =>

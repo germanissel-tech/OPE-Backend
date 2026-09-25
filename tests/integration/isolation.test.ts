@@ -86,6 +86,13 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
   await app.resolve(DecisionLedgerPort).record(decision);
 }
 
+/** A batch with one long dwell on the size guide: what makes the fit barrier fire. */
+const dwellOnSizeGuide = (from: number, page: Record<string, unknown>) => ({
+  events: [
+    eventOf(from, { occurredAt: NOW, page, type: "block_dwelled", block: "size_guide", dwellMs: 6000 }),
+  ],
+});
+
 describe("isolation between merchants", () => {
   it("deduplication: the same eventId in A and in B comes in for both", async () => {
     expect(await ingest(A.key)).toMatchObject({ accepted: 2, duplicates: 0 });
@@ -292,11 +299,7 @@ describe("isolation between merchants", () => {
       ).toBe(201);
     }
     const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
-    const batch = (from: number) => ({
-      events: [
-        eventOf(from, { occurredAt: NOW, page, type: "block_dwelled", block: "size_guide", dwellMs: 6000 }),
-      ],
-    });
+    const batch = (from: number) => dwellOnSizeGuide(from, page);
     const inA = json(await postEvents(app.app, batch(1), { key: A.key })) as IngestResult;
     const inB = json(await postEvents(app.app, batch(1), { key: B.key })) as IngestResult;
     expect(inA.decision).toMatchObject({ outcome: "NO_OP", reason: "barrier-unclear" });
@@ -325,6 +328,94 @@ describe("isolation between merchants", () => {
     expect(
       await app.resolve(SessionStatePort).load(asMerchantId("m_c"), asSessionId("ses_00000001")),
     ).toBeUndefined();
+  });
+
+  it("message catalogue (feature 027, FR-013): A's reserve language answers and B's does not; neither reads the other's", async () => {
+    // The corpus of the release is written in Spanish. The page is in Portuguese for both, so what
+    // decides is the reserve language each merchant declared: A falls back to Spanish and speaks, B
+    // falls back to English and has nothing written, which is `message-unavailable` and not a
+    // decision to stay quiet.
+    const experiment = {
+      experimentId: "exp_iso_msg_1",
+      treatmentShare: 1,
+      seed: "s",
+      status: "active" as const,
+      openedAt: NOW,
+    };
+    // Both merchants infer the same way: the only difference between them is the language, so the
+    // difference in the outcome can only come from the corpus.
+    const infers = {
+      version: "msg-iso-1",
+      threshold: 0.4,
+      priority: ["fit", "price", "returns"],
+      evidence: { freshStockAndPrice: ["price"], availableVariant: ["fit"] },
+      // Every barrier of the priority needs a rule, so the three are declared; only the fit one
+      // can fire with these events.
+      rules: [
+        {
+          id: "fit.size-guide",
+          barrier: "fit",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "size_guide" },
+        },
+        {
+          id: "price.price",
+          barrier: "price",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "price" },
+        },
+        {
+          id: "returns.policies",
+          barrier: "returns",
+          strength: "strong",
+          when: { fact: "dwellSeconds", block: "policies" },
+        },
+      ],
+    };
+    const of = (id: string, key: string, platformKey: string, locale: string): MerchantSpec => ({
+      merchantId: id,
+      ingestKeys: [key],
+      platformKeys: [platformKey],
+      origins: [id === A.id ? A.origin : B.origin],
+      experiments: [experiment],
+      decisionPolicy: infers,
+      declared: { locales: { supported: [locale], fallback: locale } },
+    });
+    await app.resetPorts({
+      config: { merchants: [of(A.id, A.key, "platform-a-1", "es"), of(B.id, B.key, "platform-b-1", "en")] },
+    });
+    for (const platformKey of ["platform-a-1", "platform-b-1"]) {
+      expect(
+        (
+          await putCatalog(
+            app.app,
+            { capturedAt: NOW, products: [catalogProductOf("SKU-1")] },
+            { platformKey },
+          )
+        ).statusCode,
+      ).toBe(201);
+    }
+    const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M", locale: "pt-BR" };
+    const batch = (from: number) => dwellOnSizeGuide(from, page);
+    const inA = json(await postEvents(app.app, batch(1), { key: A.key })) as IngestResult;
+    const inB = json(await postEvents(app.app, batch(3), { key: B.key })) as IngestResult;
+    // The DTO is a discriminated union, so reaching the intervention needs the narrowing the
+    // outcome already implies: what is asserted is the branch, not a field that might be absent.
+    const interventionOf = (decision: IngestResult["decision"]) =>
+      "intervention" in decision ? decision.intervention : undefined;
+    expect(inA.decision).toMatchObject({ outcome: "INTERVENE", reason: "fit" });
+    expect(interventionOf(inA.decision)?.text.length ?? 0).toBeGreaterThan(0);
+    expect(inB.decision).toMatchObject({ outcome: "NO_OP", reason: "message-unavailable" });
+    expect(interventionOf(inB.decision)).toBeUndefined();
+    // B not speaking did not spend a budget it never used, and A's text never reached B's ledger.
+    const ledgerB = await app
+      .resolve(DecisionLedgerPort)
+      .find(asMerchantId(B.id), asDecisionId(inB.decision.decisionId));
+    expect(ledgerB?.isIntervention()).toBe(false);
+    expect(
+      await app.resolve(SessionStatePort).load(asMerchantId(B.id), asSessionId("ses_00000001")),
+    ).toMatchObject({ interventions: 0 });
+    expect(JSON.stringify(inB)).not.toContain(A.id);
   });
 
   it("commercial policy and visitor state: A with margin grants the incentive, B without margin does not; A's fatigue does not touch B", async () => {

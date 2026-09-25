@@ -86,20 +86,25 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 function entryOf(raw: unknown, index: number): CorpusEntry {
-  const where = `${VARIABLE}.texts[${index}]`;
-  if (!isObject(raw)) throw new ConfigError(VARIABLE, `texts[${index}] is not an object`);
-  const family = stringAt(raw, "family", where);
-  const locale = stringAt(raw, "locale", where);
-  const voice = stringAt(raw, "voice", where);
-  if (!isVoice(voice)) throw new ConfigError(VARIABLE, `texts[${index}].voice is not a voice OPE writes in`);
-  const text = CuratedText.of(messageVersion(stringAt(raw, "version", where)), stringAt(raw, "text", where));
-  if (!text.ok) throw new ConfigError(VARIABLE, `texts[${index}] ${text.error.message}`);
+  const where = `texts[${index}]`;
+  if (!isObject(raw)) throw new ConfigError(VARIABLE, `${where} is not an object`);
+  const family = keyAt(raw, "family", where);
+  const locale = keyAt(raw, "locale", where);
+  const voice = keyAt(raw, "voice", where);
+  if (!isVoice(voice)) throw new ConfigError(VARIABLE, `${where}.voice is not a voice OPE writes texts in`);
+  // The text itself is the domain's to judge: empty, too long or still a template are its rules,
+  // and repeating them here would give the same fault two messages.
+  const value = raw["text"];
+  if (typeof value !== "string") throw new ConfigError(VARIABLE, `${where}.text must be a string`);
+  const text = CuratedText.of(messageVersion(keyAt(raw, "version", where)), value);
+  if (!text.ok) throw new ConfigError(VARIABLE, `${where}: ${text.error.message}`);
   return { key: { family, locale, voice }, text: text.value };
 }
 
 const isVoice = (value: string): value is Voice => (VOICES as readonly string[]).includes(value);
 
-function stringAt(raw: Record<string, unknown>, field: string, where: string): string {
+/** A field of the key: the reader owns its shape, because no factory of the domain judges it. */
+function keyAt(raw: Record<string, unknown>, field: string, where: string): string {
   const value = raw[field];
   if (typeof value !== "string" || value.trim() === "") {
     throw new ConfigError(VARIABLE, `${where}.${field} must be a non-empty string`);

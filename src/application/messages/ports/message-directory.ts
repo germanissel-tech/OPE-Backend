@@ -6,8 +6,6 @@ import type { MerchantId, Voice } from "../../../domain/shared-kernel/index.js";
 
 export interface MessageSettings {
   voice: Voice;
-  /** Languages the store serves, as the merchant declared them. */
-  supported: readonly string[];
   /** The language to fall back to when the page's has no text; one and optional (01 §14.2, DECIDIDO). */
   fallback?: string;
 }
