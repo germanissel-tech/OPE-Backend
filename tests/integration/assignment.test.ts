@@ -159,7 +159,13 @@ describe("assignment (ASSIGNED)", () => {
     const decisionId = (json(ingest) as IngestResult).decision.decisionId;
     const exposure = await postExposure(
       app.app,
-      { decisionId, sessionId: "ses_00000001", visitorId: control, exposedAt: NOW, anchor: "size_selector" },
+      {
+        decisionId,
+        sessionId: "ses_00000001",
+        visitorId: control,
+        exposedAt: NOW,
+        anchor: "variant_selector",
+      },
       { key: KEY },
     );
     for (const body of [ingest.body, exposure.body]) {

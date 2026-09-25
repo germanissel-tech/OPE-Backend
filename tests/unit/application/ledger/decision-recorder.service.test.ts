@@ -28,8 +28,8 @@ const facts: DecisionFactsInput = {
 };
 const intervention = {
   text: "If it does not fit, the exchange is free.",
-  messageVersionId: "msg_fit_size_selector_v0",
-  anchor: "size_selector" as const,
+  messageVersionId: "msg_fit_variant_selector_v0",
+  anchor: "variant_selector" as const,
 };
 
 function ids(): { next: () => ReturnType<typeof asDecisionId>; minted: number } {

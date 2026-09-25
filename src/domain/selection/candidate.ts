@@ -52,10 +52,10 @@ const candidate = (barrier: Barrier, anchor: Anchor, step: Step, claims: readonl
 /** The candidates of the MVP, per barrier, in ladder order (spec 012, Assumptions). */
 export const CANDIDATES: Readonly<Record<Barrier, readonly Candidate[]>> = {
   fit: [
-    candidate("fit", "size_selector", "information", []),
+    candidate("fit", "variant_selector", "information", []),
     candidate("fit", "policies", "reassurance", [{ kind: "returns-policy" }]),
-    candidate("fit", "size_selector", "uncertainty", [{ kind: "product-attribute", key: MATERIAL }]),
-    candidate("fit", "size_selector", "evidence", [{ kind: "fit-data" }, { kind: "availability" }]),
+    candidate("fit", "variant_selector", "uncertainty", [{ kind: "product-attribute", key: MATERIAL }]),
+    candidate("fit", "variant_selector", "evidence", [{ kind: "fit-data" }, { kind: "availability" }]),
   ],
   price: [
     candidate("price", "price", "information", []),

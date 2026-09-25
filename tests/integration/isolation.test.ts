@@ -67,7 +67,7 @@ const exposureOf = (decisionId: string) => ({
   sessionId: "ses_00000001",
   visitorId: "vis_00000001",
   exposedAt: NOW,
-  anchor: "size_selector",
+  anchor: "variant_selector",
 });
 
 async function intervene(merchantId: string, decisionId: string): Promise<void> {
@@ -81,7 +81,11 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
+    {
+      text: "If it does not fit, the exchange is free.",
+      messageVersionId: "msg-1",
+      anchor: "variant_selector",
+    },
   );
   await app.resolve(DecisionLedgerPort).record(decision);
 }

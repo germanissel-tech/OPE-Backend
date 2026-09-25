@@ -36,7 +36,7 @@ const at = (offsetMs: number) => new Date(Date.parse(NOW) + offsetMs).toISOStrin
 const ONE_OF_EACH: Record<string, unknown>[] = [
   { type: "product_viewed" },
   { type: "listing_viewed", page: { pageType: "listing" } },
-  { type: "size_selector_interacted", size: "M" },
+  { type: "variant_selector_interacted" },
   { type: "variant_selected", selectedVariantId: "VAR-1" },
   { type: "photo_interacted", interaction: "zoom" },
   { type: "block_dwelled", block: "size_guide", dwellMs: 4200 },
@@ -120,6 +120,33 @@ describe("POST /v1/events", () => {
     // The rejected batch left no trace: the same ids come in as new.
     const again = await postEvents(app.app, batchOf(2, 1, { occurredAt: NOW }), { key: "key-a-1" });
     expect(json(again)).toMatchObject({ accepted: 2, duplicates: 0 });
+  });
+
+  it("the vocabulary is closed: the old name of the variant-selector event and its retired field are 400 (feature 028)", async () => {
+    // Nothing of the merchant's world enters the closed vocabulary, and nothing that nobody reads
+    // stays in it. The old type name and the label it used to carry are both refused by name, which
+    // is what makes «the vocabulary is closed» verifiable instead of a claim.
+    const oldName = await postEvents(
+      app.app,
+      { events: [eventOf(1, { occurredAt: NOW, type: "size_selector_interacted", size: "M" })] },
+      { key: "key-a-1" },
+    );
+    expect(oldName.statusCode).toBe(400);
+    expect(problemOf(oldName).type).toBe("urn:ope:problem:validation-failed");
+    const retiredField = await postEvents(
+      app.app,
+      { events: [eventOf(2, { occurredAt: NOW, type: "variant_selector_interacted", size: "M" })] },
+      { key: "key-a-1" },
+    );
+    expect(retiredField.statusCode).toBe(400);
+    expect(problemOf(retiredField).errors?.map((e) => e.pointer)).toContain("/body/events/0/size");
+    // And the event **without** it is accepted: what the system reads is that the control was touched.
+    const accepted = await postEvents(
+      app.app,
+      { events: [eventOf(3, { occurredAt: NOW, type: "variant_selector_interacted" })] },
+      { key: "key-a-1" },
+    );
+    expect(accepted.statusCode).toBe(202);
   });
 
   it("personal datum in the page context (page.email) → 400 naming the field; it is not scrubbed", async () => {

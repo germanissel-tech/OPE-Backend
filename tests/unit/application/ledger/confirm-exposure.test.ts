@@ -42,7 +42,7 @@ const decision = (over: Partial<DecisionRecord> = {}): Decision =>
     intervention: {
       text: "If it does not fit, the exchange is free.",
       messageVersionId: "msg-1",
-      anchor: "size_selector",
+      anchor: "variant_selector",
     },
     ...over,
   });
@@ -73,7 +73,7 @@ const input = (over: Partial<ConfirmExposureRequest> = {}): ConfirmExposureReque
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
   exposedAt: now,
-  anchor: "size_selector",
+  anchor: "variant_selector",
   ...over,
 });
 

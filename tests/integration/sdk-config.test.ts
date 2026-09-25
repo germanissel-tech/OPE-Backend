@@ -139,7 +139,7 @@ describe("POST /v1/sdk/diagnostics and GET .../anchor-diagnostics (scenario 3)",
     const res = await report({
       configurationVersion: 1,
       unresolved: [
-        { anchor: "size_selector", pageType: "product" },
+        { anchor: "variant_selector", pageType: "product" },
         { anchor: "cta", pageType: "product" },
       ],
     });
@@ -148,7 +148,7 @@ describe("POST /v1/sdk/diagnostics and GET .../anchor-diagnostics (scenario 3)",
     const page = await diagnosticsOf();
     expect(page.items).toEqual([
       { anchor: "cta", pageType: "product", configurationVersion: 1, lastSeenAt: NOW, count: 1 },
-      { anchor: "size_selector", pageType: "product", configurationVersion: 1, lastSeenAt: NOW, count: 1 },
+      { anchor: "variant_selector", pageType: "product", configurationVersion: 1, lastSeenAt: NOW, count: 1 },
     ]);
   });
 

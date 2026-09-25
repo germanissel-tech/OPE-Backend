@@ -59,7 +59,7 @@ describe("date-time guard at the HTTP edge", () => {
         sessionId: "ses_00000001",
         visitorId: "vis_00000001",
         exposedAt: "not a date",
-        anchor: "size_selector",
+        anchor: "variant_selector",
       } as never,
       security,
     };

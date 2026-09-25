@@ -2,10 +2,10 @@
   "version": "corpus-1",
   "texts": [
     {
-      "family": "fit.size_selector.information",
+      "family": "fit.variant_selector.information",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit_size_selector_information_es_neutral_2",
+      "version": "mv_fit_variant_selector_information_es_neutral_2",
       "text": "El talle puede variar entre marcas: conviene chequearlo antes de elegir."
     },
     {
@@ -16,10 +16,10 @@
       "text": "Si dudás del talle, mirá las condiciones de cambio antes de elegir."
     },
     {
-      "family": "fit.size_selector.evidence",
+      "family": "fit.variant_selector.evidence",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit_size_selector_evidence_es_neutral_2",
+      "version": "mv_fit_variant_selector_evidence_es_neutral_2",
       "text": "Esta tienda publicó información de talles para este modelo: mirala antes de elegir."
     },
     {
@@ -58,27 +58,27 @@
       "text": "Esta tienda tiene política de cambios: revisala antes de comprar."
     },
     {
-      "family": "fit.size_selector.uncertainty",
+      "family": "fit.variant_selector.uncertainty",
       "attributeValue": "combed-cotton",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit.size_selector.uncertainty_combed-cotton_es_neutral_1",
+      "version": "mv_fit_variant_selector_uncertainty_combed-cotton_es_neutral_1",
       "text": "Es algodón peinado: más suave y con menos pelusa que el algodón común."
     },
     {
-      "family": "fit.size_selector.uncertainty",
+      "family": "fit.variant_selector.uncertainty",
       "attributeValue": "linen",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit.size_selector.uncertainty_linen_es_neutral_1",
+      "version": "mv_fit_variant_selector_uncertainty_linen_es_neutral_1",
       "text": "Es lino: fresco y de caída suelta. Se arruga, y es parte."
     },
     {
-      "family": "fit.size_selector.uncertainty",
+      "family": "fit.variant_selector.uncertainty",
       "attributeValue": "denim",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit.size_selector.uncertainty_denim_es_neutral_1",
+      "version": "mv_fit_variant_selector_uncertainty_denim_es_neutral_1",
       "text": "Es denim: firme al principio y cede con el uso."
     }
   ]

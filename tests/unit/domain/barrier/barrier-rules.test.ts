@@ -14,10 +14,10 @@ import {
   type ProductFacts,
   type Rule,
 } from "../../../../src/domain/barrier/index.js";
-import { addedToCart, dwell, photo, sizeSelector } from "../../../helpers/events.js";
+import { addedToCart, dwell, photo, variantSelector } from "../../../helpers/events.js";
 
 const rule = (over: Partial<Rule> & Pick<Rule, "id" | "barrier">): Rule => ({
-  when: { fact: "eventCount", type: "size_selector_interacted", min: 2 },
+  when: { fact: "eventCount", type: "variant_selector_interacted", min: 2 },
   strength: "strong",
   ...over,
 });
@@ -25,7 +25,7 @@ const base: BarrierRulesRecord = {
   weights: { strong: 0.4, supporting: 0.2 },
   readingSeconds: 5,
   rules: [
-    rule({ id: "fit.size-selector-twice", barrier: "fit" }),
+    rule({ id: "fit.variant-selector-twice", barrier: "fit" }),
     rule({ id: "fit.size-guide-read", barrier: "fit", when: { fact: "dwellSeconds", block: "size_guide" } }),
     rule({
       id: "fit.photo-zoomed",
@@ -116,7 +116,7 @@ describe("BarrierRules.of — invariants (SC-003)", () => {
     ],
     [
       "duplicate id",
-      (r) => withRule(r, rule({ id: "fit.size-selector-twice", barrier: "fit" })),
+      (r) => withRule(r, rule({ id: "fit.variant-selector-twice", barrier: "fit" })),
       "duplicate-rule-id",
       { path: "id", index: 5 },
     ],
@@ -285,8 +285,8 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
 
   it("sums the weights of the rules that hold, per barrier, and lists them in declaration order", () => {
     const signals = Signals.of([
-      sizeSelector(1),
-      sizeSelector(2),
+      variantSelector(1),
+      variantSelector(2),
       photo(3),
       photo(4),
       dwell(5, "policies", 6000),
@@ -294,7 +294,7 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
     const inference = rules().infer(signals, product);
     expect(inference.confidences).toEqual({ fit: 0.6, price: 0, returns: 0.4 });
     expect(inference.matched).toEqual([
-      "fit.size-selector-twice",
+      "fit.variant-selector-twice",
       "fit.photo-zoomed",
       "returns.policies-read",
     ]);
@@ -310,7 +310,7 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
         rule({ id: "fit.c", barrier: "fit", weight: 0.2 }),
       ],
     });
-    const signals = Signals.of([sizeSelector(1), sizeSelector(2)]);
+    const signals = Signals.of([variantSelector(1), variantSelector(2)]);
     expect(many.infer(signals, product).confidences.fit).toBe(1);
     const three = valid({
       ...base,
@@ -329,9 +329,11 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
   it("an explicit weight overrides the strength weight", () => {
     const custom = valid({
       ...base,
-      rules: base.rules.map((r) => (r.id === "fit.size-selector-twice" ? { ...r, weight: 0.25 } : r)),
+      rules: base.rules.map((r) => (r.id === "fit.variant-selector-twice" ? { ...r, weight: 0.25 } : r)),
     });
-    expect(custom.infer(Signals.of([sizeSelector(1), sizeSelector(2)]), product).confidences.fit).toBe(0.25);
+    expect(custom.infer(Signals.of([variantSelector(1), variantSelector(2)]), product).confidences.fit).toBe(
+      0.25,
+    );
     expect(custom.weightOf({ id: "z", barrier: "fit", strength: "supporting", when: { all: [] } })).toBe(0.2);
   });
 
@@ -345,8 +347,8 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
   it("is deterministic: 1 000 evaluations of the same context give the same inference", () => {
     const signals = Signals.of([
       addedToCart(1),
-      sizeSelector(2),
-      sizeSelector(3),
+      variantSelector(2),
+      variantSelector(3),
       dwell(4, "size_guide", 5000),
     ]);
     const built = rules();

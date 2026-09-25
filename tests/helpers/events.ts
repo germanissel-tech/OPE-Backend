@@ -22,8 +22,7 @@ function eventAt(atSeconds: number, over: Partial<Event> & { type: Event["type"]
   return { ...base, ...over } as Event;
 }
 
-export const sizeSelector = (at: number, size = "M"): Event =>
-  eventAt(at, { type: "size_selector_interacted", size });
+export const variantSelector = (at: number): Event => eventAt(at, { type: "variant_selector_interacted" });
 export const dwell = (
   at: number,
   block: "description" | "size_guide" | "reviews" | "policies" | "price" | "gallery" | "cta",

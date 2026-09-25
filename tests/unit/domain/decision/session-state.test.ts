@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { SessionState } from "../../../../src/domain/decision/index.js";
-import { addedToCart, checkout, removedFromCart, sizeSelector } from "../../../helpers/events.js";
+import { addedToCart, checkout, removedFromCart, variantSelector } from "../../../helpers/events.js";
 
 const t0 = new Date("2026-09-18T12:00:00.000Z");
 const t1 = new Date("2026-09-18T12:05:00.000Z");
@@ -19,10 +19,10 @@ describe("SessionState", () => {
   });
 
   it("absorb merges the batch into the session and stamps the instant; the previous value is untouched", () => {
-    const first = SessionState.empty(t0).absorb(Signals.of([sizeSelector(1), addedToCart(2)]), t0);
-    const second = first.absorb(Signals.of([sizeSelector(10), removedFromCart(11)]), t1);
-    expect(first.signals.count({ type: "size_selector_interacted" })).toBe(1);
-    expect(second.signals.count({ type: "size_selector_interacted" })).toBe(2);
+    const first = SessionState.empty(t0).absorb(Signals.of([variantSelector(1), addedToCart(2)]), t0);
+    const second = first.absorb(Signals.of([variantSelector(10), removedFromCart(11)]), t1);
+    expect(first.signals.count({ type: "variant_selector_interacted" })).toBe(1);
+    expect(second.signals.count({ type: "variant_selector_interacted" })).toBe(2);
     expect(second.updatedAt).toBe(t1);
     expect(second.interventions).toBe(0);
     expect(first.abandoned()).toBe(false);

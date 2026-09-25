@@ -6,7 +6,7 @@ import { CuratedText, messageVersion } from "../../../../src/domain/messages/ind
 import { memoryMessageCorpus, type CorpusEntry } from "../../../../src/interface-adapters/messages/index.js";
 import type { TextKey } from "../../../../src/application/messages/index.js";
 
-const FAMILY = "fit.size_selector.uncertainty";
+const FAMILY = "fit.variant_selector.uncertainty";
 const entry = (value: string, over: Partial<TextKey> = {}): CorpusEntry => {
   const version = messageVersion(`mv_${over.attributeValue ?? "base"}_es_neutral_1`);
   const text = CuratedText.of(version, value);

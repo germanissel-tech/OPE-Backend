@@ -15,12 +15,12 @@ import {
   photo,
   removedFromCart,
   returned,
-  sizeSelector,
+  variantSelector,
 } from "../../../helpers/events.js";
 
 const signals = Signals.of([
-  sizeSelector(1),
-  sizeSelector(2),
+  variantSelector(1),
+  variantSelector(2),
   photo(3, "zoom"),
   dwell(4, "policies", 6000),
   addedToCart(5),
@@ -35,8 +35,8 @@ const F: Condition = { fact: "sessionEnteredCheckout" };
 
 describe("FactContext.holds — predicates", () => {
   it.each<[string, Condition, boolean]>([
-    ["eventCount met", { fact: "eventCount", type: "size_selector_interacted", min: 2 }, true],
-    ["eventCount not met", { fact: "eventCount", type: "size_selector_interacted", min: 3 }, false],
+    ["eventCount met", { fact: "eventCount", type: "variant_selector_interacted", min: 2 }, true],
+    ["eventCount not met", { fact: "eventCount", type: "variant_selector_interacted", min: 3 }, false],
     [
       "eventCount with subtype",
       { fact: "eventCount", type: "photo_interacted", subtype: "zoom", min: 1 },
@@ -65,7 +65,7 @@ describe("FactContext.holds — predicates", () => {
       "sequence with subtype",
       {
         fact: "sequence",
-        first: { type: "size_selector_interacted" },
+        first: { type: "variant_selector_interacted" },
         then: { type: "block_dwelled", subtype: "policies" },
       },
       true,

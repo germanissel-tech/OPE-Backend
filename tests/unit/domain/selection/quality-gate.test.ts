@@ -24,7 +24,7 @@ const candidate = (claims: Claim[]): Candidate => ({
   candidateId: "msg_test",
   barrier: "fit",
   step: "evidence",
-  anchor: "size_selector",
+  anchor: "variant_selector",
   claims,
 });
 const rejected = (reason: string): GateVerdict => ({ acceptable: false, reason: reason as never });

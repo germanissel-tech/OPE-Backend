@@ -36,7 +36,7 @@ const exposure = (decisionId: string, over: Record<string, unknown> = {}) => ({
   sessionId: "ses_00000001",
   visitorId: "vis_00000001",
   exposedAt: NOW,
-  anchor: "size_selector",
+  anchor: "variant_selector",
   ...over,
 });
 
@@ -52,7 +52,11 @@ async function interveneDecision(a: SharedApp, merchantId: string, decisionId: s
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
+    {
+      text: "If it does not fit, the exchange is free.",
+      messageVersionId: "msg-1",
+      anchor: "variant_selector",
+    },
   );
   await a.resolve(DecisionLedgerPort).record(decision);
 }
@@ -97,7 +101,7 @@ describe("POST /v1/exposures", () => {
       await app.resolve(ExposureLedgerPort).find(asMerchantId("m_a"), asDecisionId("dec_intervene1")),
     ).toMatchObject({
       decisionId: "dec_intervene1",
-      anchor: "size_selector",
+      anchor: "variant_selector",
       exposedAt: new Date(NOW),
     });
     expect(

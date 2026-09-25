@@ -268,7 +268,7 @@ describe("real server over the contract", () => {
         decisionId: "dec_00000001",
         ...ids,
         exposedAt: "2026-09-16T12:00:00Z",
-        anchor: "size_selector",
+        anchor: "variant_selector",
       },
     };
     for (const [url, payload] of Object.entries(bodies)) {

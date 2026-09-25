@@ -3,7 +3,7 @@ description: "The merchant's anchor map (01 §3.1.1): where the SDK renders each
   absent here resolves by the SDK's own chain."
 additionalProperties: false
 properties:
-  size_selector:
+  variant_selector:
     $ref: ./AnchorSelectors.yaml
   price:
     $ref: ./AnchorSelectors.yaml

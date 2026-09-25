@@ -44,7 +44,11 @@ const intervene = (): Decision =>
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
+    {
+      text: "If it does not fit, the exchange is free.",
+      messageVersionId: "msg-1",
+      anchor: "variant_selector",
+    },
   );
 
 const exposure = {
@@ -52,7 +56,7 @@ const exposure = {
   sessionId: "ses_00000001",
   visitorId: "vis_00000001",
   exposedAt: NOW,
-  anchor: "size_selector",
+  anchor: "variant_selector",
 };
 
 describe("ledger unavailable", () => {

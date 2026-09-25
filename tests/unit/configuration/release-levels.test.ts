@@ -15,7 +15,7 @@ import { FactContext, Signals } from "../../../src/domain/barrier/index.js";
 import { SURFACES, SYNC_MODES } from "../../../src/domain/configuration/index.js";
 import { CANDIDATES } from "../../../src/domain/selection/index.js";
 import { BARRIERS, hours, minutes } from "../../../src/domain/shared-kernel/index.js";
-import { addedToCart, dwell, removedFromCart, sizeSelector } from "../../helpers/events.js";
+import { addedToCart, dwell, removedFromCart, variantSelector } from "../../helpers/events.js";
 import { testLevels } from "../../helpers/test-app.js";
 
 const PLATFORM = "config/platform.json";
@@ -95,7 +95,7 @@ describe("config/treatment-defaults.json (level 2)", () => {
     expect(policy.rules.readingSeconds).toBe(5);
     expect(policy.evidence).toEqual({ freshStockAndPrice: ["price"], availableVariant: ["fit"] });
     expect(policy.rules.rules.map((r) => [r.id, r.barrier, r.strength])).toEqual([
-      ["fit.size-selector-twice", "fit", "strong"],
+      ["fit.variant-selector-twice", "fit", "strong"],
       ["fit.size-guide-read", "fit", "strong"],
       ["fit.variants-compared", "fit", "strong"],
       ["fit.photo-zoomed", "fit", "supporting"],
@@ -107,17 +107,17 @@ describe("config/treatment-defaults.json (level 2)", () => {
       ["price.checkout-then-exit", "price", "supporting"],
       ["returns.policies-read", "returns", "strong"],
       ["returns.cart-then-policies", "returns", "strong"],
-      ["returns.size-doubt-and-policies", "returns", "strong"],
+      ["returns.variant-doubt-and-policies", "returns", "strong"],
       ["returns.photos-and-description", "returns", "supporting"],
       ["returns.policies-then-cart-removed", "returns", "supporting"],
     ]);
     const product = { attributes: new Map<string, string>(), available: true };
-    expect(policy.rules.infer(Signals.of([sizeSelector(1), sizeSelector(2)]), product).confidences.fit).toBe(
-      0.4,
-    );
+    expect(
+      policy.rules.infer(Signals.of([variantSelector(1), variantSelector(2)]), product).confidences.fit,
+    ).toBe(0.4);
     expect(
       policy.rules.infer(
-        Signals.of([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]),
+        Signals.of([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]),
         product,
       ).confidences.fit,
     ).toBe(0.8);
@@ -145,9 +145,9 @@ describe("config/treatment-defaults.json (level 2)", () => {
     const facts = (events: Parameters<typeof Signals.of>[0]) =>
       FactContext.of({ signals: Signals.of(events), product: { attributes: new Map() }, readingSeconds: 5 });
     expect(
-      facts([sizeSelector(1), sizeSelector(2), dwell(3, "policies", 6000)]).holds(policy.returnRisk),
+      facts([variantSelector(1), variantSelector(2), dwell(3, "policies", 6000)]).holds(policy.returnRisk),
     ).toBe(true);
-    expect(facts([sizeSelector(1), dwell(3, "policies", 6000)]).holds(policy.returnRisk)).toBe(false);
+    expect(facts([variantSelector(1), dwell(3, "policies", 6000)]).holds(policy.returnRisk)).toBe(false);
   });
 
   it("the content of the default policies is bound to the version of the file: change one, change the other", () => {
@@ -156,9 +156,13 @@ describe("config/treatment-defaults.json (level 2)", () => {
       .update(JSON.stringify([raw.decisionPolicy, raw.commercialPolicy]))
       .digest("hex")
       .slice(0, 16);
-    // The version stays at 1 across feature 022: the same ceiling and the same ladder, written in
-    // the unit the backend speaks. What changed is the representation, not the policy.
-    expect([raw.version, fingerprint]).toEqual(["defaults-1", "c095565bd0190c2b"]);
+    // The version stays at 1 across features 022 and 028, and the criterion is the same both times:
+    // it says **the treatment changed**, and neither time it did. 022 rewrote the numbers in the unit
+    // the backend speaks; 028 renamed three rules whose conditions, barriers and strengths are
+    // identical. Bumping it would tell every operator that their defaults changed when their
+    // treatment is the same. The vocabulary those names belong to is stamped elsewhere: the contract
+    // version, which 028 does bump.
+    expect([raw.version, fingerprint]).toEqual(["defaults-1", "40a43765c568141c"]);
   });
 
   it("the defaults must be complete: a policy or a profile that lacks a field is refused naming it, and a spare field too", () => {

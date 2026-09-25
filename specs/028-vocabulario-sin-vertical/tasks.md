@@ -28,14 +28,16 @@ editan a mano.**
 
 ## Phase 1: Setup — lo que va antes del contrato
 
-- [ ] T001 [P] `docs/dominio/anclaje.md` — la nota deja de listar un anclaje que nombra una prenda y
+- [x] T001 [P] `docs/dominio/anclaje.md` — la nota deja de listar un anclaje que nombra una prenda y
       pasa a listar los cuatro nuevos. ADR-008: la nota va **antes** de que el sustantivo entre al
       contrato, no después.
-- [ ] T002 [P] `docs/dominio/eventos/interaccion-con-selector-de-talle.md` — **el archivo se
+- [x] T002 [P] `docs/dominio/eventos/interaccion-con-selector-de-talle.md` — **el archivo se
       renombra** y la nota explica qué control es, no qué atributo elige ese control en un rubro. El
       nombre del archivo es parte de la nota: uno que nombra una prenda es la misma deuda en el
-      índice.
-- [ ] T003 `contracts/api-map.yaml` — **verificar que no cambia**: ninguna operación se agrega, se
+      índice. **Y una tercera nota que la tarea no listaba**: `seleccion-de-variante.md` citaba
+      «interacción con color y variante» de `03 §4.1`, que la enmienda del 2026-09-25 ya no dice. Una
+      nota que cita una frase que su fuente perdió es la misma clase de defecto que D-13.
+- [x] T003 `contracts/api-map.yaml` — **verificar que no cambia**: ninguna operación se agrega, se
       retira ni cambia de forma. Es el paso 0 del orden de seis y acá la respuesta es «nada que
       hacer», que también hay que comprobar. `check:api-map` es el gate.
 
@@ -53,61 +55,64 @@ misma secuencia de señales produce la misma decisión; y la cuenta de anclajes 
 
 ### El contrato
 
-- [ ] T004 [US1] `contracts/components/schemas/Anchor.yaml` — el enum pasa a
+- [x] T004 [US1] `contracts/components/schemas/Anchor.yaml` — el enum pasa a
       `[variant_selector, price, cta, policies]` y la descripción deja de hablar de talles.
-- [ ] T005 [US1] `contracts/components/schemas/AnchorMap.yaml` — las claves del mapa siguen al enum.
-- [ ] T006 [US1] `contracts/components/schemas/SizeSelectorInteracted.yaml` → **renombrar el archivo**
+- [x] T005 [US1] `contracts/components/schemas/AnchorMap.yaml` — las claves del mapa siguen al enum.
+- [x] T006 [US1] `contracts/components/schemas/SizeSelectorInteracted.yaml` → **renombrar el archivo**
       a `VariantSelectorInteracted.yaml`, el `enum` del discriminador al tipo nuevo, y **eliminar** la
       propiedad que lleva la etiqueta del talle junto con su entrada en `required` (R-03). El evento
       queda sin campos propios.
-- [ ] T007 [US1] `contracts/components/schemas/Event.yaml` — la entrada del `discriminator.mapping` y
+- [x] T007 [US1] `contracts/components/schemas/Event.yaml` — la entrada del `discriminator.mapping` y
       el `$ref` del `oneOf` siguen al archivo nuevo. Si uno se mueve y el otro no, `contract:lint`
       falla: es la prueba de que el mapping y la unión no se desincronizan.
-- [ ] T008 [P] [US1] Los ejemplos y descripciones que nombran el anclaje o el evento:
+- [x] T008 [P] [US1] Los ejemplos y descripciones que nombran el anclaje o el evento:
       `contracts/examples/event-batch.yaml`, `contracts/examples/exposure-confirmation.yaml`,
       `contracts/paths/sdk-config.yaml`, `contracts/paths/sdk-diagnostics.yaml`,
       `contracts/paths/admin-diagnostics.yaml`, `contracts/paths/admin-configuration.yaml`.
-- [ ] T009 [US1] `contracts/openapi.yaml` — `info.version` a la **MINOR** siguiente. El cambio es
+- [x] T009 [US1] `contracts/openapi.yaml` — `info.version` a la **MINOR** siguiente. El cambio es
       incompatible y entra por la marca `info.x-stability: building` (ADR-003): `contract:diff` lo
       reporta y lo acepta, `release-check` avisa.
-- [ ] T010 [US1] `npm run contract:check` y `npm run contract:types`. **Nunca editar lo generado.**
+- [x] T010 [US1] `npm run contract:check` y `npm run contract:types`. **Nunca editar lo generado.**
 
 ### El código
 
-- [ ] T011 [US1] `src/domain/shared-kernel/intervention.ts` — `ANCHORS`.
-- [ ] T012 [US1] `src/domain/ingestion/event.ts` — `EVENT_TYPES` y la interfaz del evento, que pierde
+- [x] T011 [US1] `src/domain/shared-kernel/intervention.ts` — `ANCHORS`.
+- [x] T012 [US1] `src/domain/ingestion/event.ts` — `EVENT_TYPES` y la interfaz del evento, que pierde
       su único campo propio y queda como `EventBase<…>`, igual que `product_viewed`.
-- [ ] T013 [US1] `src/domain/barrier/signals.ts` — el caso del `switch` exhaustivo. **No compila si
+- [x] T013 [US1] `src/domain/barrier/signals.ts` — el caso del `switch` exhaustivo. **No compila si
       falta**, que es exactamente el punto de que sea exhaustivo.
-- [ ] T014 [US1] `src/domain/selection/candidate.ts` — las familias de candidatos que llevan el
+- [x] T014 [US1] `src/domain/selection/candidate.ts` — las familias de candidatos que llevan el
       anclaje en su identificador.
-- [ ] T015 [US1] `src/interface-adapters/ingestion/controllers/ingest-events.ts` — la traducción del
+- [x] T015 [US1] `src/interface-adapters/ingestion/controllers/ingest-events.ts` — la traducción del
       DTO, que deja de leer el campo eliminado.
 
 ### La configuración
 
-- [ ] T016 [US1] `config/treatment-defaults.json` — la regla que cuenta interacciones con el selector
+- [x] T016 [US1] `config/treatment-defaults.json` — la regla que cuenta interacciones con el selector
       y **su identificador** (`fit.size-selector-twice` → `fit.variant-selector-twice`), y la de
       devoluciones que nombra la duda de talle. Un identificador que nombra una prenda es la misma
       deuda con otra ropa, y éstos viajan al ledger como el motivo de la barrera.
-- [ ] T017 [US1] `config/messages.json` — las tres familias del anclaje renombrado, **cada texto con
+- [x] T017 [US1] `config/messages.json` — las tres familias del anclaje renombrado, **cada texto con
       una versión nueva** (R-06). El texto no cambia; el identificador sí, porque lleva la familia
-      adentro y conservarlo dejaría un identificador nombrando una familia que no existe. Unificar de
-      paso el formato, que hoy convive en dos estilos en el mismo archivo.
+      adentro y conservarlo dejaría un identificador nombrando una familia que no existe. **El
+      contador se conserva** —dice cuántas veces se reescribió ese texto, y el renombre no desescribe
+      una revisión— y el formato se unifica **adoptando el estilo de las otras seis**, no el de las
+      cinco: así el corpus queda con un solo estilo sin re-acuñar por cosmética seis versiones que no
+      tenían motivo para cambiar.
 
 ### Pruebas de US1
 
-- [ ] T018 [P] [US1] `tests/contract/` — las réplicas del kernel (`ANCHORS`, `EVENT_TYPES`) contra el
+- [x] T018 [P] [US1] `tests/contract/` — las réplicas del kernel (`ANCHORS`, `EVENT_TYPES`) contra el
       contrato. Si una se renombró y la otra no, esto falla; no hay que escribir nada nuevo, hay que
       verlo fallar antes y pasar después.
-- [ ] T019 [US1] `tests/integration/decision-plane.test.ts` y `tests/unit/application/barrier/` — **la
+- [x] T019 [US1] `tests/integration/decision-plane.test.ts` y `tests/unit/application/barrier/` — **la
       prueba que importa más que todas las demás**: la misma secuencia de señales produce la misma
       barrera, la misma confianza, el mismo escalón y el mismo anclaje. Un renombre que cambia una
       decisión no es un renombre.
-- [ ] T020 [P] [US1] `tests/integration/ingest-events.test.ts` — un evento con el nombre viejo, y uno
+- [x] T020 [P] [US1] `tests/integration/ingest-events.test.ts` — un evento con el nombre viejo, y uno
       con el nombre nuevo **más el campo eliminado**, reciben `400` nombrando el campo. Es lo que
       convierte «el vocabulario es cerrado» en algo verificable.
-- [ ] T021 [US1] El resto de `tests/` que nombra el vocabulario viejo. Son las que más ocurrencias
+- [x] T021 [US1] El resto de `tests/` que nombra el vocabulario viejo. Son las que más ocurrencias
       tienen (R-00) y ninguna cambia de intención: cambian de palabra.
 
 **Checkpoint**: el SDK y el backend hablan de variantes, y ninguna decisión se movió.

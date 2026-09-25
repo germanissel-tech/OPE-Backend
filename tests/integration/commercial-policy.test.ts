@@ -57,7 +57,7 @@ const at = (seconds: number): string =>
   new Date(new Date(NOW).getTime() - 60_000 + seconds * 1000).toISOString();
 const ev = (seconds: number, over: Record<string, unknown>): Record<string, unknown> =>
   eventOf(++n, { occurredAt: at(seconds), page: PAGE, ...over });
-const sizeSelector = (s: number) => ev(s, { type: "size_selector_interacted", size: "M" });
+const variantSelector = (s: number) => ev(s, { type: "variant_selector_interacted" });
 const sizeGuide = (s: number) => ev(s, { type: "block_dwelled", block: "size_guide", dwellMs: 6000 });
 const priceRead = (s: number) => ev(s, { type: "block_dwelled", block: "price", dwellMs: 6000 });
 const policies = (s: number) => ev(s, { type: "block_dwelled", block: "policies", dwellMs: 8000 });
@@ -177,7 +177,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
       }),
     );
     expect((await ingest(priceSignals())).decision.outcome).toBe("INTERVENE");
-    const again = await ingest([sizeSelector(10), sizeSelector(11), sizeGuide(12)]);
+    const again = await ingest([variantSelector(10), variantSelector(11), sizeGuide(12)]);
     expect(again.decision).toMatchObject({ outcome: "NO_OP", reason: "session-budget-exhausted" });
   });
 
