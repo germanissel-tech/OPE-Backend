@@ -178,7 +178,7 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   operators: testOperators,
   levels: testLevels(),
   // The real corpus of the release, so an integration test sees the texts a person would see.
-  corpus: readCorpus({}, (file) => readFileSync(file, "utf8")),
+  corpus: readCorpus({}, (file) => readFileSync(file, "utf8"), "es"),
   ...over,
 });
 

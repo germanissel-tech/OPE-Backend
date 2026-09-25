@@ -57,8 +57,9 @@ export class Messages implements MessagePlane {
 
 /** The languages to try, in order: the page's, then the merchant's reserve language. */
 function localesOf(pageLocale: string | undefined, settings: MessageSettings): readonly string[] {
-  // Stryker disable next-line ArrayDeclaration: any list of locales the corpus does not hold behaves
-  // exactly like none — the lookup misses and nothing is sayable — so no test can tell them apart.
+  // A list of locales the corpus does not hold behaves exactly like none: the lookup misses and
+  // nothing is sayable, so no test can tell an empty chain from a bogus one.
+  // Stryker disable next-line ArrayDeclaration: no test distinguishes an empty chain from a bogus one
   if (pageLocale === undefined) return settings.fallback === undefined ? [] : [settings.fallback];
   return settings.fallback === undefined ? [pageLocale] : [pageLocale, settings.fallback];
 }

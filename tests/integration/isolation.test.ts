@@ -17,6 +17,7 @@ import {
   asVisitorId,
 } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
+import { corpusEntryOf } from "../helpers/sayable.js";
 import {
   admin,
   batchOf,
@@ -379,7 +380,9 @@ describe("isolation between merchants", () => {
     const inA = json(await postEvents(app.app, price(1, "ses_00000001"), { key: A.key })) as IngestResult;
     const inB = json(await postEvents(app.app, price(1, "ses_00000001"), { key: B.key })) as IngestResult;
     expect(inA.decision.intervention).toMatchObject({ incentive: { kind: "percent", value: 0.05 } });
-    expect(inB.decision.intervention?.messageVersionId).toBe("mv_price_price_information_es_neutral_1");
+    expect(inB.decision.intervention?.messageVersionId).toBe(
+      corpusEntryOf("price.price.information").version,
+    );
     expect(inB.decision.intervention).not.toHaveProperty("incentive");
     const ledgerA = await app
       .resolve(DecisionLedgerPort)

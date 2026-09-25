@@ -5,36 +5,36 @@
       "family": "fit.size_selector.information",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit_size_selector_information_es_neutral_1",
-      "text": "El talle de esta marca puede variar. Mirá la guía antes de elegir."
+      "version": "mv_fit_size_selector_information_es_neutral_2",
+      "text": "El talle puede variar entre marcas: conviene chequearlo antes de elegir."
     },
     {
       "family": "fit.policies.reassurance",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit_policies_reassurance_es_neutral_1",
-      "text": "Si no te queda, el cambio es sin costo."
+      "version": "mv_fit_policies_reassurance_es_neutral_2",
+      "text": "Si dudás del talle, mirá las condiciones de cambio antes de elegir."
     },
     {
       "family": "fit.size_selector.evidence",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_fit_size_selector_evidence_es_neutral_1",
-      "text": "Quienes compraron este modelo suelen pedir un talle más."
+      "version": "mv_fit_size_selector_evidence_es_neutral_2",
+      "text": "Esta tienda publicó información de talles para este modelo: mirala antes de elegir."
     },
     {
       "family": "price.price.information",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_price_price_information_es_neutral_1",
-      "text": "Este es el precio de hoy."
+      "version": "mv_price_price_information_es_neutral_2",
+      "text": "Si estás comparando, acá abajo está todo lo que entra en el precio."
     },
     {
       "family": "price.price.evidence",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_price_price_evidence_es_neutral_1",
-      "text": "El precio que ves es el que vas a pagar: sin recargos al finalizar."
+      "version": "mv_price_price_evidence_es_neutral_2",
+      "text": "Este precio está vigente ahora, no es una referencia vieja."
     },
     {
       "family": "price.price.incentive",
@@ -47,15 +47,15 @@
       "family": "returns.policies.information",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_returns_policies_information_es_neutral_1",
-      "text": "Los cambios se hacen dentro de los 30 días."
+      "version": "mv_returns_policies_information_es_neutral_2",
+      "text": "Antes de decidir, mirá las condiciones de cambio de esta tienda."
     },
     {
       "family": "returns.policies.reassurance",
       "locale": "es",
       "voice": "neutral",
-      "version": "mv_returns_policies_reassurance_es_neutral_1",
-      "text": "Si algo no sale como esperabas, el cambio es sin costo."
+      "version": "mv_returns_policies_reassurance_es_neutral_2",
+      "text": "Esta tienda tiene política de cambios: revisala antes de comprar."
     }
   ]
 }

@@ -9,7 +9,7 @@ import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
-import { corpusText } from "../helpers/sayable.js";
+import { corpusEntryOf, corpusText } from "../helpers/sayable.js";
 import {
   catalogProductOf,
   eventOf,
@@ -101,8 +101,8 @@ describe("decision plane — user story 1", () => {
       reason: "fit",
       intervention: {
         anchor: "size_selector",
-        messageVersionId: "mv_fit_size_selector_information_es_neutral_1",
-        text: corpusText("mv_fit_size_selector_information_es_neutral_1"),
+        messageVersionId: corpusEntryOf("fit.size_selector.information").version,
+        text: corpusText(corpusEntryOf("fit.size_selector.information").version),
       },
     });
     const decision = await recorded(body.decision.decisionId);
@@ -148,8 +148,8 @@ describe("decision plane — user story 1", () => {
       reason: "returns",
       intervention: {
         anchor: "policies",
-        messageVersionId: "mv_returns_policies_information_es_neutral_1",
-        text: corpusText("mv_returns_policies_information_es_neutral_1"),
+        messageVersionId: corpusEntryOf("returns.policies.information").version,
+        text: corpusText(corpusEntryOf("returns.policies.information").version),
       },
     });
   });

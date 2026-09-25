@@ -87,6 +87,7 @@ export class Candidates implements CandidatesService {
         inference,
         settled,
         ...found,
+        // Stryker disable next-line ConditionalExpression: an absent key and an undefined one are the same input
         ...(unsustainable === undefined ? {} : { unsustainable }),
         judged: [],
       };

@@ -8,6 +8,7 @@ import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json } from "../helpers/json.js";
+import { corpusEntryOf } from "../helpers/sayable.js";
 import {
   catalogProductOf,
   eventOf,
@@ -106,7 +107,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
       reason: "price",
       intervention: {
         anchor: "price",
-        messageVersionId: "mv_price_price_incentive_es_neutral_1",
+        messageVersionId: corpusEntryOf("price.price.incentive").version,
         incentive: { kind: "percent", value: 0.05 },
       },
     });
@@ -129,7 +130,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "price",
-      intervention: { messageVersionId: "mv_price_price_information_es_neutral_1" },
+      intervention: { messageVersionId: corpusEntryOf("price.price.information").version },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.selection).toMatchObject({
@@ -147,7 +148,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "price",
-      intervention: { messageVersionId: "mv_price_price_information_es_neutral_1" },
+      intervention: { messageVersionId: corpusEntryOf("price.price.information").version },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.selection).toMatchObject({
@@ -220,7 +221,7 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "returns",
-      intervention: { messageVersionId: "mv_returns_policies_information_es_neutral_1" },
+      intervention: { messageVersionId: corpusEntryOf("returns.policies.information").version },
     });
     expect((await recorded(body.decision.decisionId))?.selection?.candidates).toEqual([
       { candidateId: "returns.policies.information", step: "information", verdict: "acceptable" },
@@ -239,7 +240,7 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "returns",
-      intervention: { messageVersionId: "mv_returns_policies_reassurance_es_neutral_1" },
+      intervention: { messageVersionId: corpusEntryOf("returns.policies.reassurance").version },
     });
     expect((await recorded(body.decision.decisionId))?.inference).toMatchObject({ trigger: "abandonment" });
   });
@@ -247,7 +248,9 @@ describe("quality gate — the merchant's profile (user story 1)", () => {
   it("without the returns policy the abandonment falls back to the general information", async () => {
     await start(spec({ evidenceProfile: { returnsPolicy: false } }));
     const body = await ingest([addedToCart(1), removedFromCart(2)]);
-    expect(body.decision.intervention?.messageVersionId).toBe("mv_returns_policies_information_es_neutral_1");
+    expect(body.decision.intervention?.messageVersionId).toBe(
+      corpusEntryOf("returns.policies.information").version,
+    );
   });
 
   it("stale stock and price: the current-price candidate is unacceptable and the value message goes out", async () => {
@@ -274,7 +277,10 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
     expect(body.decision).toMatchObject({
       outcome: "INTERVENE",
       reason: "fit",
-      intervention: { messageVersionId: "mv_fit_policies_reassurance_es_neutral_1", anchor: "policies" },
+      intervention: {
+        messageVersionId: corpusEntryOf("fit.policies.reassurance").version,
+        anchor: "policies",
+      },
     });
     expect(body.decision.intervention).not.toHaveProperty("incentive");
     expect((await recorded(body.decision.decisionId))?.inference).toMatchObject({
@@ -288,11 +294,15 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
       spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const plain = await ingest([priceRead(1), cta(2)]);
-    expect(plain.decision.intervention?.messageVersionId).toBe("mv_price_price_information_es_neutral_1");
+    expect(plain.decision.intervention?.messageVersionId).toBe(
+      corpusEntryOf("price.price.information").version,
+    );
     await start(
       spec({ commercialPolicy: { version: "c", marginShare: 0.4, directIncentiveOnPrice: false } }),
     );
     const amplified = await ingest([priceRead(1), cta(2), addedToCart(3), removedFromCart(4)]);
-    expect(amplified.decision.intervention?.messageVersionId).toBe("mv_price_price_evidence_es_neutral_1");
+    expect(amplified.decision.intervention?.messageVersionId).toBe(
+      corpusEntryOf("price.price.evidence").version,
+    );
   });
 });

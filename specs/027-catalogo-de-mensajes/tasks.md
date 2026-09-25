@@ -191,9 +191,9 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 - [x] T036 [P] [US1] `tests/unit/application/messages/` — la resolución: idioma de la página, idioma
       de reserva, voz del merchant, voz por defecto, y **que nunca devuelve un texto de otro
       idioma**.
-- [ ] T037 [P] [US1] `tests/unit/domain/selection/` — el gate con la disponibilidad de texto: una
+- [x] T037 [P] [US1] `tests/unit/domain/selection/` — el gate con la disponibilidad de texto: una
       familia sin texto se rechaza, y el gate **sigue siendo puro** (no recibe ningún puerto).
-- [ ] T038 [US1] `tests/integration/` — con `startTestApp()`: una intervención llega con texto; una
+- [x] T038 [US1] `tests/integration/` — con `startTestApp()`: una intervención llega con texto; una
       familia sin texto cae al escalón de abajo; sin ninguna, `NO_OP` `message-unavailable`. Y **los
       presupuestos no se consumen** en ese caso.
 - [ ] T039 [US1] `tests/unit/` — un corpus incoherente **no arranca el servidor**, con el mensaje que
