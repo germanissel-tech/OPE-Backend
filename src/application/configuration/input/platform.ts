@@ -12,6 +12,7 @@ const NUMBER_KEYS = [
   "signatureWindowMs",
   "rotationGraceMaxMs",
   "anchorDiagnosticsKept",
+  "unmappedValuesKept",
   "retryAfterSeconds",
 ] as const satisfies readonly Key[];
 const WINDOW: Key = "dedupWindow";

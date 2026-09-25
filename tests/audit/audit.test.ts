@@ -21,7 +21,7 @@ const ownEvals: Record<string, string | null> = {
   "central-wiring-list": "arch/composition-wires-by-module",
   "magic-signal-strings": "lint/ope/no-magic-strings",
   "mode-flag-across-layers": null,
-  "profile-picks-gateways": "arch/profiles-compose-modules",
+  "profile-picks-gateways": "arch/deployments-compose-modules",
 };
 
 interface Finding {

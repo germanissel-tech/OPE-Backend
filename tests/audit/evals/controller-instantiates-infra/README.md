@@ -8,7 +8,7 @@ Fixture: `tests/audit/fixtures/controller-instantiates-infra/src`.
 (`adapters-inward`, si el import fuera de infraestructura propia).
 
 **Qué agrega la revisión cognitiva**: nombrar el puerto que falta (`ExposureLedger`), dónde se
-cablea (`composition/profiles`) y la prueba de aislamiento por merchant que el cliente directo
+cablea (`composition/deployments`) y la prueba de aislamiento por merchant que el cliente directo
 saltea (constitución V).
 
 **Esperado**: `expected.json` (fuente `constitution#I`, severidad `high`).

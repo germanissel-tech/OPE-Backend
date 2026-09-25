@@ -1,10 +1,11 @@
 // Candidate interventions (01-arquitectura-mvp.md §4.4; 03-alcance-mvp.md §4.8; ADR-027): for
 // each barrier, the interventions OPE may make, ordered by the incentive ladder — information,
 // reassurance, uncertainty, evidence, incentive — each declaring the claims it makes. A closed
-// vocabulary of OPE: a merchant declares what evidence it provides, never new candidates
-// (those arrive with the message catalogue feature of the map). Until then the candidate id is the
-// placeholder message version `msg_<barrier>_<anchor>_<step>_v0`.
-import type { Anchor, Barrier } from "../shared-kernel/index.js";
+// vocabulary of OPE: a merchant declares what evidence it provides, never new candidates, and
+// never the text either — the corpus of the release writes it (ADR-036). The candidate id is the
+// family the corpus keys its texts by, `<barrier>.<anchor>.<step>`, so two candidates of the same
+// family cannot exist and no text is orphan.
+import { MATERIAL, type Anchor, type Barrier } from "../shared-kernel/index.js";
 
 /** The steps of the incentive ladder, from the cheapest in margin to the incentive itself. */
 export const STEPS = ["information", "reassurance", "uncertainty", "evidence", "incentive"] as const;
@@ -33,11 +34,12 @@ export interface Candidate {
   claims: readonly Claim[];
 }
 
-const MESSAGE_PLACEHOLDER_VERSION = "v0";
+/** What joins the three parts of a family; no part of the vocabulary contains it. */
+const OF_THE_FAMILY = ".";
 
-/** The placeholder id of a candidate until the message catalogue names real versions. */
+/** The message family a candidate belongs to: what the corpus is keyed by. */
 const candidateId = (barrier: Barrier, anchor: Anchor, step: Step): string =>
-  `msg_${barrier}_${anchor}_${step}_${MESSAGE_PLACEHOLDER_VERSION}`;
+  [barrier, anchor, step].join(OF_THE_FAMILY);
 
 const candidate = (barrier: Barrier, anchor: Anchor, step: Step, claims: readonly Claim[]): Candidate => ({
   candidateId: candidateId(barrier, anchor, step),
@@ -52,6 +54,7 @@ export const CANDIDATES: Readonly<Record<Barrier, readonly Candidate[]>> = {
   fit: [
     candidate("fit", "size_selector", "information", []),
     candidate("fit", "policies", "reassurance", [{ kind: "returns-policy" }]),
+    candidate("fit", "size_selector", "uncertainty", [{ kind: "product-attribute", key: MATERIAL }]),
     candidate("fit", "size_selector", "evidence", [{ kind: "fit-data" }, { kind: "availability" }]),
   ],
   price: [

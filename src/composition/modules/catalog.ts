@@ -7,6 +7,7 @@ import {
   type CatalogPolicies,
   type CatalogStore,
   type ProductTruthService,
+  type AttributeLabelReportService,
 } from "../../application/catalog/index.js";
 import { makeUpsertCatalogSnapshot, memoryCatalogStore } from "../../interface-adapters/catalog/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
@@ -15,6 +16,8 @@ import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 export const CatalogStorePort = port("catalog.store")<CatalogStore>();
 /** The freshness budgets and the level rules of each merchant; the configuration binds them. */
 export const CatalogPoliciesPort = port("catalog.policies")<CatalogPolicies>();
+/** Where the vocabulary of a replaced catalogue is reported; the administration binds it (FR-020). */
+export const AttributeLabelReportPort = port("catalog.label-report")<AttributeLabelReportService>();
 /** What the decision plane consults: what is known of a product, and how fresh. */
 export const ProductTruthPort = port("catalog.product-truth")<ProductTruthService>();
 
@@ -36,6 +39,7 @@ export const catalogModule = compositionModule({
           logger: LoggerPort,
           store: CatalogStorePort,
           policies: CatalogPoliciesPort,
+          labels: AttributeLabelReportPort,
         },
         { name: "upsertCatalogSnapshot", build: (deps) => new UpsertCatalogSnapshotUseCase(deps) },
         (useCase) => makeUpsertCatalogSnapshot(useCase),

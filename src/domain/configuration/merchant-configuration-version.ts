@@ -3,6 +3,7 @@
 // anchor map; it says whether it is corrective (the only kind allowed while an experiment is
 // active, 03 §4.10) and why. Its own rules are here; the values are judged once resolved over
 // the treatment defaults (EffectiveConfiguration).
+import { AttributeLabels, type AttributeLabelRecord, type AttributeLabelsError } from "../messages/index.js";
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
 import { AnchorMap, type AnchorMapRecord } from "./anchor-map.js";
 import { ConfigurationReasonRequired, type InvalidConfigurationValue } from "./errors.js";
@@ -11,6 +12,7 @@ import type { OperatorId } from "../operator/index.js";
 
 export interface DeclaredConfiguration extends DeclaredTreatmentValues {
   anchors?: AnchorMapRecord;
+  attributeLabels?: readonly AttributeLabelRecord[];
 }
 
 /** What is published: everything but the number, which the store assigns. */
@@ -27,7 +29,7 @@ export interface MerchantConfigurationVersionRecord extends ConfigurationDraft {
   version: number;
 }
 
-export type VersionError = ConfigurationReasonRequired | InvalidConfigurationValue;
+export type VersionError = ConfigurationReasonRequired | InvalidConfigurationValue | AttributeLabelsError;
 
 /** The canonical text of the declared values: what two versions compare by. */
 function canonical(value: unknown): string {
@@ -74,6 +76,12 @@ export class MerchantConfigurationVersion {
     if (input.declared.anchors !== undefined) {
       const anchors = AnchorMap.of(input.declared.anchors);
       if (!anchors.ok) return fail(anchors.error);
+    }
+    if (input.declared.attributeLabels !== undefined) {
+      const labels = AttributeLabels.of(input.declared.attributeLabels);
+      // Its own code travels: the contract names duplicate-attribute-label as the type of that 422,
+      // so wrapping it would promise one thing and emit another.
+      if (!labels.ok) return fail(labels.error);
     }
     return ok(input);
   }

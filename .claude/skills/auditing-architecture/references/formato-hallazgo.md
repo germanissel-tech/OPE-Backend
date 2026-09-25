@@ -64,7 +64,7 @@ No hay puntuación numérica. Si alguien pide "un 1 a 10", la respuesta es el es
   "evidence": "const ttl = Number(process.env[\"OPE_DEDUP_TTL\"] ?? 86400000);",
   "proposal": {
     "before": "const ttl = Number(process.env[\"OPE_DEDUP_TTL\"] ?? 86400000);",
-    "after": "// ttl comes in through the EventDedup port's window, wired in composition/profiles"
+    "after": "// ttl comes in through the EventDedup port's window, wired in composition/deployments"
   },
   "coveringTest": "tests/architecture/shape.test.ts: \"src/ instantiates npm packages only in composition\" (extend to process.env)",
   "status": "confirmed"

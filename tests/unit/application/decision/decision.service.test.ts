@@ -8,8 +8,10 @@ import {
 } from "../../../../src/application/barrier/index.js";
 import { ProductTruths, type CatalogStore } from "../../../../src/application/catalog/index.js";
 import {
+  Candidates,
   DecisionService,
   States,
+  type MessageRequest,
   type SessionStateStore,
   type VisitorStateStore,
 } from "../../../../src/application/decision/index.js";
@@ -21,8 +23,9 @@ import {
   type SessionState,
   type VisitorState,
 } from "../../../../src/domain/decision/index.js";
-import { EventBatch, type Event } from "../../../../src/domain/ingestion/index.js";
+import { EventBatch, type Event, type PageContext } from "../../../../src/domain/ingestion/index.js";
 import { LedgerUnavailable, asDecisionId, type Decision } from "../../../../src/domain/ledger/index.js";
+import { type MerchantProfile } from "../../../../src/domain/selection/index.js";
 import {
   asExperimentId,
   asMerchantId,
@@ -54,11 +57,11 @@ import {
   TEST_VERSIONS,
   testVisitorWindow,
 } from "../../../helpers/platform.js";
+import { sayable } from "../../../helpers/sayable.js";
 import { testLevels } from "../../../helpers/test-app.js";
 import { recordingLogger, unavailableDecisionLedger } from "../../../helpers/unavailable-ledgers.js";
 import type { AssignmentService } from "../../../../src/application/experiment/index.js";
 import type { ExperimentPhase } from "../../../../src/domain/experiment/index.js";
-import type { MerchantProfile } from "../../../../src/domain/selection/index.js";
 
 const A = asMerchantId("m_a");
 const NOW = new Date(BASE.getTime() + 60_000);
@@ -162,6 +165,14 @@ function subject(options: Options = {}) {
     receipts: () => Promise.resolve([]),
   };
   const inner = options.inference ?? new RuleBasedBarrierInference();
+  /** Every family can be said; what it records is the request, because the language travels in it. */
+  const asked: MessageRequest[] = [];
+  const everySayable = {
+    sayable: (request: MessageRequest) => {
+      asked.push(request);
+      return Promise.resolve(sayable(request.candidates));
+    },
+  };
   const inference: BarrierInference = {
     infer: (context) => {
       calls.push("infer");
@@ -201,7 +212,10 @@ function subject(options: Options = {}) {
       visitors: visitorStore,
       visitorWindow: testVisitorWindow(),
     }),
-    inference,
+    // Since feature 027 the plane asks one service for the inference and for what can be said:
+    // a family without a curated text is not a candidate (01 §322), so the corpus is consulted
+    // before the gate. The messages stub says every family can be said.
+    candidates: new Candidates({ inference, messages: everySayable }),
     truth: new ProductTruths({
       clock: { now: () => NOW },
       store,
@@ -217,10 +231,29 @@ function subject(options: Options = {}) {
     if (!batch.ok) throw new Error(batch.error.message);
     return service.decide({ merchantId: A, batch: batch.value, now: NOW });
   };
-  return { decide, calls, sessions, visitors, decisions, entries };
+  return { decide, calls, sessions, visitors, decisions, entries, asked };
 }
 
 describe("DecisionService.decide — order of the authorities (constitution I)", () => {
+  it("the language of the page travels to the corpus, and a page without one carries none (01 §322)", async () => {
+    // The whole language rule hangs off this: if the page's language does not reach the corpus, every
+    // merchant is served the same one and the filter that makes a family sayable judges the wrong key.
+    const page: PageContext = {
+      pageType: "product",
+      productId: "SKU-1",
+      variantId: "SKU-1-M",
+      locale: "es-AR",
+    };
+    const spoken = subject({ catalog: snapshot });
+    await spoken.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4, page)]);
+    expect(spoken.asked.at(-1)?.locale).toBe("es-AR");
+    // Absent and not empty: a language nobody declared is not a language to look up.
+    const silent = subject({ catalog: snapshot });
+    await silent.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4)]);
+    const last = silent.asked.at(-1);
+    expect(last === undefined ? "no request" : "locale" in last).toBe(false);
+  });
+
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
     const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
@@ -228,7 +261,10 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(decision.isIntervention()).toBe(true);
     expect(decision.isIntervention() && decision.intervention).toEqual({
       anchor: "size_selector",
-      messageVersionId: "msg_fit_size_selector_information_v0",
+      messageVersionId: "mv_fit.size_selector.information_test",
+      // The curated text travels with the intervention since feature 027: the SDK renders it
+      // without a second round trip, and the version is what the ledger keeps.
+      text: "A curated text.",
     });
     expect(decision.reason).toBe("fit");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
@@ -267,11 +303,19 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision.selection).toEqual({
       candidates: [
-        { candidateId: "msg_fit_size_selector_information_v0", step: "information", verdict: "acceptable" },
-        { candidateId: "msg_fit_policies_reassurance_v0", step: "reassurance", verdict: "acceptable" },
-        { candidateId: "msg_fit_size_selector_evidence_v0", step: "evidence", verdict: "acceptable" },
+        { candidateId: "fit.size_selector.information", step: "information", verdict: "acceptable" },
+        { candidateId: "fit.policies.reassurance", step: "reassurance", verdict: "acceptable" },
+        // Feature 027: the uncertainty rung says what the garment is made of, and this product
+        // carries no material, so the gate rejects it by the claim it could not sustain.
+        {
+          candidateId: "fit.size_selector.uncertainty",
+          step: "uncertainty",
+          verdict: "unacceptable",
+          reason: "attribute-unknown",
+        },
+        { candidateId: "fit.size_selector.evidence", step: "evidence", verdict: "acceptable" },
       ],
-      chosen: "msg_fit_size_selector_information_v0",
+      chosen: "fit.size_selector.information",
       commercialVerdict: { blocked: false },
       commercialPolicyVersion: "commercial-default-1",
     });
@@ -282,7 +326,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision.reason).toBe("control-arm");
     expect(decision.selection).toMatchObject({
-      chosen: "msg_fit_size_selector_information_v0",
+      chosen: "fit.size_selector.information",
       commercialVerdict: { blocked: false },
     });
   });
@@ -294,11 +338,14 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     });
     const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
     expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
-      "msg_fit_size_selector_information_v0",
+      "mv_fit.size_selector.information_test",
     );
+    // One reason per rung, each naming what it could not sustain: the information rung claims
+    // nothing, the others claim a policy, a material and fit data the profile never declared.
     expect(decision.selection?.candidates.map((c) => c.reason)).toEqual([
       undefined,
       "no-returns-policy",
+      "attribute-unknown",
       "no-fit-data",
     ]);
   });
@@ -321,18 +368,18 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([dwell(1, "price", 6000), cta(2)]);
     // The default commercial policy has no margin: the incentive is blocked, the value message goes out.
     expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
-      "msg_price_price_information_v0",
+      "mv_price.price.information_test",
     );
     expect(decision.selection?.commercialVerdict).toEqual({ blocked: false });
     expect(decision.selection?.candidates).toEqual([
-      { candidateId: "msg_price_price_information_v0", step: "information", verdict: "acceptable" },
+      { candidateId: "price.price.information", step: "information", verdict: "acceptable" },
       {
-        candidateId: "msg_price_price_evidence_v0",
+        candidateId: "price.price.evidence",
         step: "evidence",
         verdict: "unacceptable",
         reason: "stale-price",
       },
-      { candidateId: "msg_price_price_incentive_v0", step: "incentive", verdict: "acceptable" },
+      { candidateId: "price.price.incentive", step: "incentive", verdict: "acceptable" },
     ]);
     expect(decision.inference?.evidence).toEqual({ truth: "known", stockAndPrice: "stale", available: true });
   });
@@ -354,7 +401,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
       viewed(4, page),
     ]);
     expect(decision.selection?.candidates.at(-1)).toEqual({
-      candidateId: "msg_fit_size_selector_evidence_v0",
+      candidateId: "fit.size_selector.evidence",
       step: "evidence",
       verdict: "unacceptable",
       reason: "variant-unavailable",

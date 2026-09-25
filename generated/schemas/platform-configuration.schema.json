@@ -15,6 +15,7 @@
     "signatureWindowMs",
     "rotationGraceMaxMs",
     "anchorDiagnosticsKept",
+    "unmappedValuesKept",
     "retryAfterSeconds"
   ],
   "properties": {
@@ -70,6 +71,12 @@
     "anchorDiagnosticsKept": {
       "type": "integer",
       "description": "Anchor diagnostics kept per merchant at most.",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "unmappedValuesKept": {
+      "type": "integer",
+      "description": "Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused.",
       "minimum": 1,
       "maximum": 1000000
     },

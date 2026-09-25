@@ -44,7 +44,7 @@ const intervene = (): Decision =>
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { messageVersionId: "msg-1", anchor: "size_selector" },
+    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
   );
 
 const exposure = {

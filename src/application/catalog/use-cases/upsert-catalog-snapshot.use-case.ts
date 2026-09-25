@@ -21,6 +21,7 @@ import type { LedgerUnavailable } from "../../../domain/ledger/index.js";
 import type { Clock, ClockTolerance, Logger, UseCase } from "../../shared-kernel/index.js";
 import type { CatalogPolicies } from "../ports/catalog-policies.js";
 import type { CatalogStore } from "../ports/catalog-store.js";
+import type { AttributeLabelReportService } from "../services/attribute-label-report.service.js";
 
 export interface UpsertCatalogSnapshotRequest {
   merchantId: MerchantId;
@@ -47,6 +48,7 @@ export interface UpsertCatalogSnapshotDependencies {
   tolerance: ClockTolerance;
   store: CatalogStore;
   policies: CatalogPolicies;
+  labels: AttributeLabelReportService;
   logger: Logger;
 }
 
@@ -61,7 +63,7 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
   }
 
   async execute(request: UpsertCatalogSnapshotRequest): Promise<UpsertCatalogSnapshotResponse> {
-    const { clock, tolerance, store, policies, logger } = this.#deps;
+    const { clock, tolerance, store, policies, labels, logger } = this.#deps;
     const now = clock.now();
     const built = CatalogSnapshot.of(
       {
@@ -88,6 +90,9 @@ export class UpsertCatalogSnapshotUseCase implements UseCase<
     const rules = await policies.syncLevelRulesFor(request.merchantId);
     const written = await store.replace(request.merchantId, snapshot, rules.receiptsKept);
     if (!written.ok) return fail(written.error);
+    // The vocabulary of the catalogue is reported once it is the catalogue, and never before: what
+    // was not replaced is not what the shop sells. It cannot fail, so nothing here handles it.
+    await labels.record(request.merchantId, snapshot.attributes(), snapshot.receivedAt);
     const summary = await this.#summary(request.merchantId, snapshot, "created");
     logger.info(
       {

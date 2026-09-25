@@ -26,7 +26,11 @@ const facts: DecisionFacts = {
   decidedAt: now,
   configuration: { platform: "platform-1", defaults: "defaults-1" },
 };
-const intervention = { messageVersionId: "msg-1", anchor: "size_selector" as const };
+const intervention = {
+  text: "If it does not fit, the exchange is free.",
+  messageVersionId: "msg-1",
+  anchor: "size_selector" as const,
+};
 
 describe("NoOpDecision.of", () => {
   it("produces a NO_OP decision without intervention, with everything the ledger records", () => {
@@ -97,18 +101,18 @@ describe("DecisionBase.rehydrate", () => {
     const selection = {
       candidates: [
         {
-          candidateId: "msg_fit_size_selector_information_v0",
+          candidateId: "fit.size_selector.information",
           step: "information",
           verdict: "acceptable" as const,
         },
         {
-          candidateId: "msg_fit_policies_reassurance_v0",
+          candidateId: "fit.policies.reassurance",
           step: "reassurance",
           verdict: "unacceptable" as const,
           reason: "no-returns-policy",
         },
       ],
-      chosen: "msg_fit_size_selector_information_v0",
+      chosen: "fit.size_selector.information",
       commercialVerdict: { blocked: false },
       commercialPolicyVersion: "commercial-default-1",
     };

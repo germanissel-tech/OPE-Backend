@@ -27,6 +27,7 @@ import { memoryDecisionLedger } from "../../../../src/interface-adapters/ledger/
 import { memoryCorroborationLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-corroboration-ledger.js";
 import { memoryOrderLedger } from "../../../../src/interface-adapters/outcomes/gateways/memory-order-ledger.js";
 import { TEST_TOLERANCE, TEST_VERSIONS } from "../../../helpers/platform.js";
+import { corpusEntryOf } from "../../../helpers/sayable.js";
 import { recordingLogger, unavailableOrderLedger } from "../../../helpers/unavailable-ledgers.js";
 
 const A = asMerchantId("m_a");
@@ -48,7 +49,8 @@ const noOp = (id: string, withExperiment = true): Decision =>
 const granting = (id: string, value: number): Decision =>
   InterveneDecision.of({ ...facts(id), experiment }, "price", {
     anchor: "price",
-    messageVersionId: "msg_price_price_incentive_v0",
+    messageVersionId: corpusEntryOf("price.price.incentive").version,
+    text: "If it does not fit, the exchange is free.",
     incentive: { kind: "percent", value },
   });
 

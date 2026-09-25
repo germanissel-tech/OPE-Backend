@@ -85,7 +85,9 @@ operaciones cabía en una pantalla; con diez módulos era el archivo de 93 rutas
    construirlo, lo construido se registra en orden para el cierre, y un despliegue mixto
    (Postgres para ledgers, Redis para dedup, configuración para merchants) es la forma normal.
    Cambiar la base de datos de un módulo = un archivo en `gateways/<módulo>/`, una tabla en su
-   módulo y una línea en el perfil. Regla `profiles-compose-modules`: `composition/profiles/`
+   módulo y una línea en el perfil. Regla `deployments-compose-modules`:
+   `composition/deployments/` (el nombre que los dos tenían en 2026-09-17 se registra en la
+   enmienda del 2026-09-24, al final)
    no importa `interface-adapters/gateways/` (con fixture).
 
 El punto 3 de la decisión sigue vigente en lo demás (perfil como parámetro, `close` en orden
@@ -136,7 +138,7 @@ presenters.ts, security/, gateways/, index.ts}`: un módulo tiene las partes que
    (`composition/modules/<m>.ts` importa del anillo sólo `interface-adapters/<m>/index.js` y el
    `shared-kernel`); `gateways-drivers-from-infrastructure` (un gateway no importa npm; `node:`
    sí; el driver entra por `infrastructure/`); `generated-only-from-http-core`. Las existentes
-   (`gateways-no-cross`, `controllers-no-gateways`, `profiles-compose-modules`,
+   (`gateways-no-cross`, `controllers-no-gateways`, `deployments-compose-modules`,
    `problem-translation-only-in-http`, `composition-wires-by-module`) cambian de ruta. Lo que une
    puertos de varios módulos es un adaptador del root: `composition/adapters/`
    (`switchAwarePolicyDirectory`: decisión + configuración + merchant).
@@ -165,9 +167,12 @@ decisión:
   con `bind`/`bindAll` y el despliegue los reúne (ADR-033).
 - La firma es `bootstrap(config, { deployment?, ports?, handlers? })` y devuelve
   `{ app, resolve, close }`.
-- La regla `profiles-compose-modules` de dependency-cruiser sigue nombrando `composition/profiles/`,
-  un directorio que ya no existe, así que hoy no puede dispararse. Queda registrada como deuda en
-  `docs/deudas.md`: arreglarla es cambiar un gate, no documentación, y esta feature no toca gates.
+- La regla de dependency-cruiser que vigila que un despliegue no elija gateways pasó a llamarse
+  `deployments-compose-modules` y a nombrar `composition/deployments/`. Antes decía
+  `composition/profiles/`, un directorio que el código dejó de tener, **y su prueba seguía en
+  verde**: el fixture había conservado el nombre viejo, así que la regla disparaba sobre el fixture
+  y el despliegue real quedaba sin vigilancia. Un fixture que sobrevive a su sujeto no prueba una
+  regla — esconde que dejó de aplicarse. Cerrada en la feature 027 (deuda D-11).
 - Las pruebas arrancan con `startTestApp()` de `tests/helpers/test-app.ts` (dos merchants fijos,
   reloj reemplazable), que es lo que usa el repositorio en lugar de llamar a `bootstrap` a mano.
 

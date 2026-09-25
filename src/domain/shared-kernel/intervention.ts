@@ -16,9 +16,15 @@ export interface Incentive {
   value: number;
 }
 
-/** Where to render, which curated message version to fetch (the message catalogue feature serves the text) and, when granted, the incentive. */
+/**
+ * What the decision plane emits when it intervenes: where to render, the curated text to render
+ * there and, when the commercial policy granted one, the incentive. The text travels so the SDK
+ * renders without a second round trip; the version travels so the ledger can say what the person
+ * read, and keeps saying it after the corpus changes (constitution IX).
+ */
 export interface Intervention {
   messageVersionId: string;
+  text: string;
   anchor: Anchor;
   incentive?: Incentive;
 }

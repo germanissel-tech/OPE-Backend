@@ -46,6 +46,8 @@ describe("PlatformConfiguration.of", () => {
       [{ clockSkewToleranceMs: -1 }, "clockSkewToleranceMs"],
       [{ rotationGraceMaxMs: 0.5 }, "rotationGraceMaxMs"],
       [{ anchorDiagnosticsKept: 0 }, "anchorDiagnosticsKept"],
+      [{ unmappedValuesKept: 0 }, "unmappedValuesKept"],
+      [{ unmappedValuesKept: 1.5 }, "unmappedValuesKept"],
       [{ retryAfterSeconds: 0 }, "retryAfterSeconds"],
       [{ retryAfterSeconds: 1.5 }, "retryAfterSeconds"],
     ];
@@ -61,6 +63,7 @@ describe("PlatformConfiguration.of", () => {
         clockSkewToleranceMs: 0,
         rotationGraceMaxMs: 0,
         anchorDiagnosticsKept: 1,
+        unmappedValuesKept: 1,
         retryAfterSeconds: 1,
         dedupWindow: { ttlMs: 1, maxIds: 1 },
         sessionWindowMs: 1,

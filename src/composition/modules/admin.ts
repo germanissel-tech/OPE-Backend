@@ -8,29 +8,37 @@ import {
   ListAdminLogUseCase,
   ListAnchorDiagnosticsUseCase,
   ListMerchantAdminLogUseCase,
+  ListUnmappedAttributeValuesUseCase,
   ReportAnchorDiagnosticsUseCase,
+  UnmappedValues,
   type AdminLog,
   type AnchorDiagnosticsStore,
   type SdkConfigurationSource,
+  type UnmappedValueLog,
 } from "../../application/admin/index.js";
 import {
   makeGetSdkConfig,
   makeListAdminLog,
   makeListAnchorDiagnostics,
   makeListMerchantAdminLog,
+  makeListUnmappedAttributeValues,
   makeReportAnchorDiagnostics,
   memoryAdminLog,
   memoryAnchorDiagnosticsStore,
+  memoryUnmappedValueLog,
   sdkConfigurationOf,
 } from "../../interface-adapters/admin/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { PlatformConfigurationPort } from "../release.js";
+import { AttributeLabelReportPort } from "./catalog.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantPort } from "./merchant.js";
+import { MessageDirectoryPort } from "./messages.js";
 import { AuditTrailPort, ClockPort } from "./shared-kernel.js";
 
 export const AdminLogPort = port("admin.log")<AdminLog>();
 const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>();
+const UnmappedValuesPort = port("admin.unmapped-values")<UnmappedValueLog>();
 /** What the SDK may see of the configuration of its merchant. */
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
@@ -42,8 +50,18 @@ export const adminModule = compositionModule({
     bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
       memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
     ),
+    bind(UnmappedValuesPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+      memoryUnmappedValueLog(platform.unmappedValuesKept),
+    ),
     bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
       sdkConfigurationOf(configuration),
+    ),
+  ],
+  assembles: [
+    bind(
+      AttributeLabelReportPort,
+      { log: UnmappedValuesPort, directory: MessageDirectoryPort },
+      (deps) => new UnmappedValues(deps),
     ),
   ],
   serves: {
@@ -67,6 +85,14 @@ export const adminModule = compositionModule({
         { diagnostics: AnchorDiagnosticsPort, clock: ClockPort },
         { name: "reportAnchorDiagnostics", build: (deps) => new ReportAnchorDiagnosticsUseCase(deps) },
         (useCase) => makeReportAnchorDiagnostics(useCase),
+      ),
+      listUnmappedAttributeValues: served(
+        { scoped: ScopedMerchantPort, directory: MessageDirectoryPort, unmapped: UnmappedValuesPort },
+        {
+          name: "listUnmappedAttributeValues",
+          build: (deps) => new ListUnmappedAttributeValuesUseCase(deps),
+        },
+        (useCase) => makeListUnmappedAttributeValues(useCase),
       ),
       listAnchorDiagnostics: served(
         { scoped: ScopedMerchantPort, diagnostics: AnchorDiagnosticsPort },

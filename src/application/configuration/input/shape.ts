@@ -81,6 +81,8 @@ export type Key =
   | "supported"
   | "fallback"
   | "anchors"
+  | "attributeLabels"
+  | "label"
   | "selectors"
   | "dedupWindow"
   | "ttlMs"
@@ -92,6 +94,7 @@ export type Key =
   | "signatureWindowMs"
   | "rotationGraceMaxMs"
   | "anchorDiagnosticsKept"
+  | "unmappedValuesKept"
   | "retryAfterSeconds";
 
 /** `parent.key`, or `key` at the root. */
@@ -185,6 +188,18 @@ export class Shape {
       return [];
     }
     return value;
+  }
+
+  /** A list of objects: each one is read by its own caller, which knows what keys it admits. */
+  records(raw: Raw, key: Key, where: Field): Raw[] {
+    const value = raw[key];
+    const field = at(where, key);
+    if (!Array.isArray(value)) {
+      this.refuse(field, "must be an array of objects");
+      // Stryker disable next-line ArrayDeclaration: a placeholder after a refusal is never observable
+      return [];
+    }
+    return value.map((entry, i) => this.record(entry, named(field, String(i))));
   }
 
   numbers(raw: Raw, key: Key, where: Field): number[] {

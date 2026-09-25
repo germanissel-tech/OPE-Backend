@@ -52,7 +52,7 @@ async function interveneDecision(a: SharedApp, merchantId: string, decisionId: s
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { messageVersionId: "msg-1", anchor: "size_selector" },
+    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
   );
   await a.resolve(DecisionLedgerPort).record(decision);
 }

@@ -1,0 +1,85 @@
+{
+  "version": "corpus-1",
+  "texts": [
+    {
+      "family": "fit.size_selector.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_size_selector_information_es_neutral_2",
+      "text": "El talle puede variar entre marcas: conviene chequearlo antes de elegir."
+    },
+    {
+      "family": "fit.policies.reassurance",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_policies_reassurance_es_neutral_2",
+      "text": "Si dudás del talle, mirá las condiciones de cambio antes de elegir."
+    },
+    {
+      "family": "fit.size_selector.evidence",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit_size_selector_evidence_es_neutral_2",
+      "text": "Esta tienda publicó información de talles para este modelo: mirala antes de elegir."
+    },
+    {
+      "family": "price.price.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_information_es_neutral_2",
+      "text": "Si estás comparando, acá abajo está todo lo que entra en el precio."
+    },
+    {
+      "family": "price.price.evidence",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_evidence_es_neutral_2",
+      "text": "Este precio está vigente ahora, no es una referencia vieja."
+    },
+    {
+      "family": "price.price.incentive",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_price_price_incentive_es_neutral_1",
+      "text": "Tenemos un descuento para esta compra."
+    },
+    {
+      "family": "returns.policies.information",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_returns_policies_information_es_neutral_2",
+      "text": "Antes de decidir, mirá las condiciones de cambio de esta tienda."
+    },
+    {
+      "family": "returns.policies.reassurance",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_returns_policies_reassurance_es_neutral_2",
+      "text": "Esta tienda tiene política de cambios: revisala antes de comprar."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "combed-cotton",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_combed-cotton_es_neutral_1",
+      "text": "Es algodón peinado: más suave y con menos pelusa que el algodón común."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "linen",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_linen_es_neutral_1",
+      "text": "Es lino: fresco y de caída suelta. Se arruga, y es parte."
+    },
+    {
+      "family": "fit.size_selector.uncertainty",
+      "attributeValue": "denim",
+      "locale": "es",
+      "voice": "neutral",
+      "version": "mv_fit.size_selector.uncertainty_denim_es_neutral_1",
+      "text": "Es denim: firme al principio y cede con el uso."
+    }
+  ]
+}

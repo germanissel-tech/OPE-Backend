@@ -8,7 +8,7 @@ mixto (Postgres para ledgers, Redis para dedup) obliga a una segunda copia o a u
 decisión de implementación de cada puerto vive lejos de su módulo. Es el `profiles/memory.ts` (hoy `profiles/local.ts`)
 anterior a la enmienda de ADR-013 sobre enlaces, condensado.
 
-**Lo ve un gate**: sí — `arch/profiles-compose-modules` (`composition/profiles/` no importa
+**Lo ve un gate**: sí — `arch/deployments-compose-modules` (`composition/deployments/` no importa
 `interface-adapters/<módulo>/gateways/`). El gate da el archivo; la revisión pone la línea.
 
 **Qué agrega la revisión cognitiva**: que un perfil es un _despliegue_, no un _entorno_: compone

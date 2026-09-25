@@ -344,6 +344,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/unmapped-attribute-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The attribute labels of a merchant the platform does not know how to talk about
+         * @description What the last catalogue of the merchant brought with no correspondence in the closed vocabulary (01 §3.1.1): per label, how many products carry it, since when and when last; most recent first, up to the limit the platform keeps. A label the merchant maps afterwards stops being listed without republishing the catalogue. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listUnmappedAttributeValues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/platform-configuration": {
         parameters: {
             query?: never;
@@ -746,6 +766,30 @@ export type components = {
             any: components["schemas"]["NestedCondition"][];
         };
         /**
+         * @description One label of the merchant and the value of OPE's vocabulary it corresponds to. A list of pairs
+         *     and not a map, for two reasons: a request body declares `additionalProperties: false`, and a list
+         *     can repeat a label — which is a merchant error worth naming rather than one the shape silently
+         *     swallows.
+         */
+        AttributeLabel: {
+            /** @description The attribute value as the merchant's platform exposes it, verbatim. */
+            label: string;
+            value: components["schemas"]["AttributeValue"];
+        };
+        /**
+         * @description A concept OPE has curated prose for: today, what a garment is made of. **OPE's vocabulary, not
+         *     the merchant's**: `CatalogProduct.attributes` is free text the platform exposes without
+         *     normalisation, so a text that showed it would publish copy nobody reviewed and claim what no
+         *     evidence sustains (constitution II).
+         *
+         *     A merchant maps its own labels onto these values (`MerchantConfigurationDeclared.attributeLabels`)
+         *     the way it maps its selectors onto the anchors. A value nobody wrote a sentence for does not exist
+         *     for the message: the product says nothing about it and the ladder falls a rung. The list grows on
+         *     demand, with the discipline the barriers, the anchors and the steps were bounded with.
+         * @enum {string}
+         */
+        AttributeValue: "combed-cotton" | "jersey" | "linen" | "denim" | "leather";
+        /**
          * @description One of the three purchase barriers OPE infers (01 §4.2).
          * @enum {string}
          */
@@ -1111,6 +1155,8 @@ export type components = {
         /** @description The configuration a merchant is served with, resolved value by value: what it declared, else the treatment defaults, with the platform values on top (constitution XI). Never a secret. */
         EffectiveConfiguration: {
             anchors?: components["schemas"]["AnchorMap"];
+            /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
+            attributeLabels?: components["schemas"]["AttributeLabel"][];
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
@@ -1355,18 +1401,22 @@ export type components = {
             results: components["schemas"]["EventResult"][];
         };
         /**
-         * @description The intervention the decision plane emits: where to render (`anchor`), which curated
-         *     message version to fetch from the message catalogue and, when the commercial policy
-         *     allowed one, the incentive to show. Until the message catalogue feature of the map exists
-         *     `messageVersionId` follows the placeholder pattern `msg_<barrier>_<anchor>_<step>_v0`
-         *     (the step of the incentive ladder: information, reassurance, evidence, incentive); the
-         *     SDK renders nothing it cannot resolve.
+         * @description The intervention the decision plane emits: where to render (`anchor`), the curated text to
+         *     render there and, when the commercial policy allowed one, the incentive to show.
+         *
+         *     The text travels here so the SDK renders without a second round trip at the exact moment the
+         *     friction is happening. `messageVersionId` travels with it and is what the ledger records: the
+         *     text is for rendering, the version is for measuring. A version is immutable — correcting a text
+         *     mints a new one — so what a decision says a person read keeps saying it after the corpus changes
+         *     (constitution IX).
          */
         Intervention: {
             anchor: components["schemas"]["Anchor"];
             incentive?: components["schemas"]["Incentive"];
-            /** @description Version of the curated message to render. The text is served by the message catalogue, not by this contract. */
+            /** @description Version of the curated text that was rendered; stable and immutable, so a result can be attributed to what the person actually read. */
             messageVersionId: string;
+            /** @description The curated text to render, written and reviewed by a person before it was served (constitution VIII). Complete prose, never a template with slots to fill. */
+            text: string;
         };
         /** @description The kill switch of the merchant (01 §14.2): `enabled: false` turns OPE off for it without a deploy; the SDK keeps receiving valid answers and every decision is NO_OP; the platform keeps being able to notify. */
         KillSwitch: {
@@ -1421,6 +1471,8 @@ export type components = {
         /** @description Level 3: what a merchant overrides of the treatment defaults, plus its anchor map (which has no default). Every field is optional; a declared policy names its version and may declare only some of its fields. */
         MerchantConfigurationDeclared: {
             anchors?: components["schemas"]["AnchorMap"];
+            /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
+            attributeLabels?: components["schemas"]["AttributeLabel"][];
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
@@ -1661,6 +1713,8 @@ export type components = {
             sessionWindowMs: number;
             /** @description Milliseconds a platform signature's timestamp may sit from the server clock, either way (ADR-029). */
             signatureWindowMs: number;
+            /** @description Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused. */
+            unmappedValuesKept: number;
             /** @description Version of the platform configuration the release declares. */
             version: string;
             /** @description Milliseconds a visitor's interventions count for the fatigue limit. */
@@ -1916,6 +1970,30 @@ export type components = {
             /** @description Version of the treatment defaults the release declares. */
             version: string;
         };
+        /** @description An attribute label of the merchant's catalogue with no correspondence in the closed vocabulary of the platform: how many products of the catalogue carry it, since when it has been arriving and when it last arrived. While it is listed, those products say nothing about that attribute; mapping it makes them speak and takes it off this list. */
+        UnmappedAttributeValue: {
+            /**
+             * Format: date-time
+             * @description The first catalogue this label arrived in without a correspondence.
+             */
+            firstSeenAt: string;
+            /** @description The label as the platform of the merchant exposes it, not normalised. */
+            label: string;
+            /**
+             * Format: date-time
+             * @description The last catalogue it arrived in.
+             */
+            lastSeenAt: string;
+            /** @description Products of the last catalogue that carry this label. */
+            products: number;
+        };
+        /** @description A page of unmapped attribute labels of a merchant, most recent first. */
+        UnmappedAttributeValuePage: {
+            /** @description Unmapped labels of this page, most recent first. */
+            items: components["schemas"]["UnmappedAttributeValue"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
         /** @description An anchor of the merchant's map the SDK could not resolve on a page type (01 §3.1.1): the anchor and the page type, nothing of the page nor of the person. */
         UnresolvedAnchor: {
             anchor: components["schemas"]["Anchor"];
@@ -2009,21 +2087,6 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
-                /**
-                 * @example {
-                 *       "type": "urn:ope:problem:invalid-configuration-value",
-                 *       "title": "A configuration value violates an invariant of its type",
-                 *       "status": 422,
-                 *       "detail": "declared.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not strictly increasing within 1 and the ceiling).",
-                 *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration",
-                 *       "errors": [
-                 *         {
-                 *           "pointer": "/declared/commercialPolicy/incentiveLadderShare",
-                 *           "message": "The incentive ladder is not strictly increasing within 1 and the ceiling."
-                 *         }
-                 *       ]
-                 *     }
-                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -3470,6 +3533,52 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    listUnmappedAttributeValues: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of unmapped attribute labels. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "label": "Frisa",
+                     *           "products": 9,
+                     *           "firstSeenAt": "2026-09-18T09:00:00Z",
+                     *           "lastSeenAt": "2026-09-20T12:00:00Z"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["UnmappedAttributeValuePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     getPlatformConfiguration: {
         parameters: {
             query?: never;
@@ -3499,6 +3608,7 @@ export interface operations {
                      *       "signatureWindowMs": 300000,
                      *       "rotationGraceMaxMs": 604800000,
                      *       "anchorDiagnosticsKept": 200,
+                     *       "unmappedValuesKept": 200,
                      *       "retryAfterSeconds": 5
                      *     }
                      */

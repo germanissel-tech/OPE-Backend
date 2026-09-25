@@ -1,4 +1,17 @@
 <!--
+Sync Impact Report (1.4.3, 2026-09-24)
+- Version change: 1.4.2 → 1.4.3 (PATCH: redacción; ningún principio cambia de sentido).
+- Modified sections: X — la viñeta de lo configurable por merchant decía «catálogo de mensajes»
+  y su fuente dice «**versión** del catálogo de mensajes» (01 §14.2, tabla de banderas; 03 §191
+  con las mismas palabras). La paráfrasis perdió la palabra y se leía como que el contenido de
+  los textos varía por merchant. Se restaura la palabra y se agrega qué elige el merchant, para
+  que la lectura equivocada no vuelva: los textos los escribe OPE y se reusan; el merchant elige
+  versión, voz e idiomas.
+- No requiere cambio en los documentos del MVP: la enmienda **restaura** lo que la fuente ya
+  decide, y por eso no cae bajo la cláusula de Governance que exige cambiar el documento fuente
+  (feature 027, research R-01; decisión del dueño del 2026-09-24).
+- Templates: sin cambios.
+
 Sync Impact Report (1.4.2, 2026-09-20)
 - Version change: 1.4.1 → 1.4.2 (PATCH: el gate del plan admite lo que ADR-003 ya precisa).
 - Modified sections: §Flujo de trabajo, Constitution Check, gate de superficie HTTP — un cambio
@@ -233,7 +246,9 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
   **adaptador de prueba** existen desde el día uno; Magento 2 es el primer adaptador real;
   VTEX sólo se verifica documentalmente durante el diseño del puerto.
 - Lo que varía por merchant es **configuración versionada, no código** (perfil de datos,
-  mapa de anclajes, flags, catálogo de mensajes).
+  mapa de anclajes, flags, **versión del catálogo de mensajes**: los textos los escribe OPE y se
+  reusan entre merchants; lo que el merchant elige es qué versión se le sirve, con qué voz y en
+  qué idiomas).
 - Mecanismo A (server-to-server con identificador propagado) es la única fuente autoritativa
   de atribución; B corrobora; C nunca es autoridad.
 
@@ -359,4 +374,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.4.2 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20
+**Version**: 1.4.3 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-24

@@ -1,6 +1,6 @@
 {
   "id": "F-001",
-  "file": "tests/audit/fixtures/profile-picks-gateways/src/composition/profiles/memory.ts",
+  "file": "tests/audit/fixtures/profile-picks-gateways/src/composition/deployments/memory.ts",
   "line": 20,
   "rule": {
     "id": "profile-per-environment-picks-gateways",
@@ -12,6 +12,6 @@
     "before": "export function memoryProfile(overrides) { const clock = overrides.clock ?? systemClock; return { clock, eventDedup: overrides.eventDedup ?? memoryEventDedup(clock), decisions: overrides.decisions ?? memoryDecisionLedger(), exposures: overrides.exposures ?? memoryExposureLedger() }; }",
     "after": "// modules/ledger.ts: the binding lives with the module, per technology\nexport const memoryLedgerPorts: Bindings<LedgerPorts> = { decisions: memoryDecisionLedger, exposures: memoryExposureLedger };\n// profiles/memory.ts: one deployment composes one table per module\nconst kernel = bind(systemKernelPorts);\nconst ports = { ...kernel, ...bind(memoryIngestionPorts(kernel.clock)), ...bind(memoryLedgerPorts) };"
   },
-  "coveringTest": "tests/architecture/architecture.test.ts: \"profiles-compose-modules\" (composition/profiles/ imports no gateway)",
+  "coveringTest": "tests/architecture/architecture.test.ts: \"deployments-compose-modules\" (composition/deployments/ imports no gateway)",
   "status": "confirmed"
 }

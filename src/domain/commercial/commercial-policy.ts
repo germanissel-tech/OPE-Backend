@@ -29,7 +29,7 @@ import {
   InvalidReturnRisk,
   type CommercialError,
 } from "./errors.js";
-import type { Candidate, Judged, Step } from "../selection/index.js";
+import type { Candidate, Judged, SaidWith, Sayable, Step } from "../selection/index.js";
 
 export type HighIntent = "from-cart" | "from-checkout" | "never";
 export type Abandonment = "nothing" | "reassure-returns";
@@ -56,12 +56,22 @@ export interface CommercialPolicyRecord {
 export type Trigger = "rules" | "abandonment" | "none";
 
 export interface CommercialInput {
-  /** Absent when the merchant has no active experiment. */
-  arm?: Arm;
-  barrier?: Barrier;
+  /**
+   * Absent when the merchant has no active experiment. Optional **and** `undefined`, like the two
+   * below: the policy compares them against `undefined`, so an absent key and an undefined one are
+   * the same input, and declaring only the first forced every caller into a conditional spread whose
+   * two branches nothing can tell apart.
+   */
+  arm?: Arm | undefined;
+  barrier?: Barrier | undefined;
   trigger: Trigger;
-  /** Why the barrier's evidence cannot sustain it, when it cannot (the decision policy's judgement). */
-  evidenceReason?: NoOpReason;
+  /**
+   * Why no intervention can be sustained at all, before the ladder walks: the barrier's evidence
+   * cannot sustain it (the decision policy's judgement) or no candidate has a curated text
+   * (`message-unavailable`, 01 §322). The two must not be confused — one is «we cannot claim it»,
+   * the other «we have nothing written» — so the reason travels and the ladder does not invent one.
+   */
+  unsustainable?: NoOpReason | undefined;
   judged: readonly Judged[];
   abandoned: boolean;
   addedToCart: boolean;
@@ -85,7 +95,7 @@ export type CommercialVerdict =
 
 /** What the ladder walk settles on before the gates of arm, intent and budgets apply. */
 type Choice =
-  | { kind: "chosen"; candidate: Candidate; incentive?: Incentive }
+  | { kind: "chosen"; candidate: Candidate; said: SaidWith; incentive?: Incentive }
   | { kind: "refused"; reason: NoOpReason; blocked?: Blocked };
 
 const INCENTIVE: Step = "incentive";
@@ -173,7 +183,8 @@ export class CommercialPolicy {
     if (choice.kind === "refused") return noOp(choice.reason);
     const intervention: Intervention = {
       anchor: choice.candidate.anchor,
-      messageVersionId: choice.candidate.candidateId,
+      messageVersionId: choice.said.messageVersionId,
+      text: choice.said.text,
       ...(choice.incentive === undefined ? {} : { incentive: choice.incentive }),
     };
     return {
@@ -191,31 +202,34 @@ export class CommercialPolicy {
    */
   #choose(input: CommercialInput): Choice {
     if (input.barrier === undefined) return { kind: "refused", reason: "barrier-unclear" };
-    if (input.evidenceReason !== undefined) return { kind: "refused", reason: input.evidenceReason };
-    const acceptable = input.judged.filter((j) => j.verdict.acceptable).map((j) => j.candidate);
-    const start = startOf(input, acceptable);
-    const lowest = (fits: (c: Candidate) => boolean): Candidate | undefined =>
-      acceptable.find((c, i) => i >= start && fits(c)) ?? acceptable.find(fits);
-    const candidate = this.#directIncentive(input.barrier, acceptable) ?? lowest(() => true);
-    if (candidate === undefined) return { kind: "refused", reason: "no-acceptable-candidate" };
-    if (candidate.step !== INCENTIVE) return { kind: "chosen", candidate };
+    if (input.unsustainable !== undefined) return { kind: "refused", reason: input.unsustainable };
+    const acceptable: readonly Sayable[] = input.judged.filter((j) => j.verdict.acceptable);
+    const start = startOf(
+      input,
+      acceptable.map((s) => s.candidate),
+    );
+    const lowest = (fits: (c: Candidate) => boolean): Sayable | undefined =>
+      acceptable.find((s, i) => i >= start && fits(s.candidate)) ?? acceptable.find((s) => fits(s.candidate));
+    const chosen = this.#directIncentive(input.barrier, acceptable) ?? lowest(() => true);
+    if (chosen === undefined) return { kind: "refused", reason: "no-acceptable-candidate" };
+    if (chosen.candidate.step !== INCENTIVE) return { kind: "chosen", ...chosen };
     const reason = this.#economicBlock(input.facts);
     if (reason === undefined) {
-      return { kind: "chosen", candidate, incentive: { kind: "percent", value: this.#incentiveValue() } };
+      return { kind: "chosen", ...chosen, incentive: { kind: "percent", value: this.#incentiveValue() } };
     }
     const fallback = lowest((c) => c.step !== INCENTIVE);
-    if (fallback !== undefined) return { kind: "chosen", candidate: fallback };
+    if (fallback !== undefined) return { kind: "chosen", ...fallback };
     return {
       kind: "refused",
       reason: "commercial-policy-blocked",
-      blocked: { candidateId: candidate.candidateId, reason },
+      blocked: { candidateId: chosen.candidate.candidateId, reason },
     };
   }
 
   /** The acceptable incentive when it enters directly (price barrier, policy allowing it). */
-  #directIncentive(barrier: Barrier, acceptable: readonly Candidate[]): Candidate | undefined {
+  #directIncentive(barrier: Barrier, acceptable: readonly Sayable[]): Sayable | undefined {
     if (barrier !== PRICE || !this.directIncentiveOnPrice) return undefined;
-    return acceptable.find((c) => c.step === INCENTIVE);
+    return acceptable.find((s) => s.candidate.step === INCENTIVE);
   }
 
   /** Why an incentive cannot go out now, or undefined when it can. */

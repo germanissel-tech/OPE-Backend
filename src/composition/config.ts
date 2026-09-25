@@ -7,11 +7,13 @@
 // merchants: a server nobody configured authenticates nobody (fail-closed).
 import path from "node:path";
 import { ConfigError } from "./config-error.js";
+import { readCorpus } from "./corpus-config.js";
 import { text } from "./env.js";
 import { readLevels, type ReleaseLevels } from "./levels-config.js";
 import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
 import type { Operator } from "../domain/operator/index.js";
+import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 
 export type { MerchantConfig } from "./merchants-config.js";
 export type { ReleaseLevels } from "./levels-config.js";
@@ -25,6 +27,8 @@ export interface AppConfig {
   /** The operators of OPE (ADR-031); none configured means nobody administers. */
   operators: Operator[];
   levels: ReleaseLevels;
+  /** The curated texts of the release (feature 027). */
+  corpus: readonly CorpusEntry[];
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -34,14 +38,31 @@ const MAX_PORT = 65535;
 
 /** Builds the configuration from the environment, or throws a `ConfigError` naming what is wrong. */
 export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => string): AppConfig {
+  // The order of the reads is the order of the errors: with several things wrong you hear about the
+  // seed of the merchants first, because that is what a person is most likely to have just edited.
+  // The corpus needs the levels, so it is read after them and not in the literal.
+  const merchants = readMerchants(env, readFile);
+  const operators = readOperators(env, readFile);
+  const levels = readLevels(env, readFile);
   return {
     port: readPort(text(env, "PORT")),
     host: text(env, "HOST") ?? "127.0.0.1",
     contractPath: path.resolve(text(env, "OPE_CONTRACT") ?? "contracts/dist/openapi.yaml"),
-    merchants: readMerchants(env, readFile),
-    operators: readOperators(env, readFile),
-    levels: readLevels(env, readFile),
+    merchants,
+    operators,
+    levels,
+    corpus: readCorpus(env, readFile, defaultLocaleOf(levels)),
   };
+}
+
+/**
+ * The language a corpus must be complete in: the merchant's reserve language when the release
+ * declares one, else the first it serves. A release that declares neither has nothing to be
+ * complete in, and the corpus check has nothing to say.
+ */
+function defaultLocaleOf(levels: ReleaseLevels): string {
+  const { locales } = levels.defaults.values;
+  return locales.fallback ?? locales.supported[0] ?? "";
 }
 
 /** Decimal digits only: `Number()` would also accept hex, exponents and blanks. */

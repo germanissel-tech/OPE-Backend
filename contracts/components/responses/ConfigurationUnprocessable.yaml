@@ -3,13 +3,27 @@ content:
   application/problem+json:
     schema:
       $ref: ../schemas/ProblemDetails.yaml
-    example:
-      type: urn:ope:problem:invalid-configuration-value
-      title: A configuration value violates an invariant of its type
-      status: 422
-      detail: declared.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not
-        strictly increasing within 1 and the ceiling).
-      instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
-      errors:
-        - pointer: /declared/commercialPolicy/incentiveLadderShare
-          message: The incentive ladder is not strictly increasing within 1 and the ceiling.
+    examples:
+      invalidValue:
+        summary: A value its own type refuses (invalid-configuration-value)
+        value:
+          type: urn:ope:problem:invalid-configuration-value
+          title: A configuration value violates an invariant of its type
+          status: 422
+          detail: declared.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is
+            not strictly increasing within 1 and the ceiling).
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
+          errors:
+            - pointer: /declared/commercialPolicy/incentiveLadderShare
+              message: The incentive ladder is not strictly increasing within 1 and the ceiling.
+      duplicateAttributeLabel:
+        summary: One label pointing at two values (duplicate-attribute-label)
+        value:
+          type: urn:ope:problem:duplicate-attribute-label
+          title: One attribute label points at two values of OPE's vocabulary
+          status: 422
+          detail: 'declared.attributeLabels has one label twice: "Combed Cotton 24/1".'
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
+          errors:
+            - pointer: /declared/attributeLabels/3/label
+              message: This label already corresponds to a value of OPE's vocabulary.

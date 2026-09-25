@@ -90,6 +90,12 @@ Acá queda lo normativo:
   las cinco autoridades en orden fijo, de las que **sólo la política comercial** emite el veredicto
   (constitución I). El vocabulario de hechos, claims y candidatos es **cerrado**: uno nuevo es una
   feature, no configuración. Cómo infiere, qué registra y qué sale al SDK, en ADR-026 y ADR-027.
+- **Un vocabulario nuevo es de OPE y cerrado; lo que el merchant declara es cómo su mundo se mapea
+  sobre él** (ADR-036, patrón «vocabulario cerrado y mapa del merchant»). El criterio que decide de
+  qué lado cae algo: **lo que OPE tiene que escribir sigue siendo de OPE; lo que sólo identifica un
+  lugar o un comportamiento puede ser del merchant**. Sus dos instancias —el mapa de anclajes
+  (`anchors`) y la correspondencia de etiquetas (`attributeLabels`)— y lo que todavía está del lado
+  equivocado, en ADR-036.
 - **Outcomes y cadena de evidencia**: la plataforma notifica la orden (`platformKey`) y la
   correlación es **sólo** por sesión conocida; sin ella queda `PENDING_CORRELATION` y nunca se
   completa por inferencia. La idempotencia es atómica en el puerto, la orden es inmutable y la

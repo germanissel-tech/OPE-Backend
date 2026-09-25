@@ -4,8 +4,10 @@
 // made of is the business of its own module. It owns the state of sessions and visitors, and
 // serves no operation of its own: what it builds is the plane the ingestion asks for a decision.
 import {
+  Candidates,
   DecisionService,
   States,
+  type MessagePlane,
   type PolicyDirectory,
   type SessionStateStore,
   type StateService,
@@ -33,6 +35,10 @@ export const VisitorStatePort = port("decision.visitors")<VisitorStateStore>();
 const VisitorWindowPort = port("decision.visitor-window")<VisitorWindow>();
 /** The policies of each merchant, with its kill switch: the configuration binds them. */
 export const PolicyDirectoryPort = port("decision.policies")<PolicyDirectory>();
+/** What can be said for a barrier: the messages module implements it, so the plane never depends on the corpus. */
+export const MessagePlanePort = port("decision.messages")<MessagePlane>();
+/** The inference and the candidates that survive being sayable and being judged (feature 027). */
+const CandidatesPort = port("decision.candidates")<Candidates>();
 /** Session and visitor state as one authority. */
 const DecisionStatePort = port("decision.state")<StateService>();
 
@@ -55,12 +61,17 @@ export const decisionModule = compositionModule({
       (deps) => new States(deps),
     ),
     bind(
+      CandidatesPort,
+      { inference: BarrierInferencePort, messages: MessagePlanePort },
+      (deps) => new Candidates(deps),
+    ),
+    bind(
       DecisionPlanePort,
       {
         assignment: AssignmentPort,
         policies: PolicyDirectoryPort,
         state: DecisionStatePort,
-        inference: BarrierInferencePort,
+        candidates: CandidatesPort,
         truth: ProductTruthPort,
         recorder: DecisionRecorderPort,
       },

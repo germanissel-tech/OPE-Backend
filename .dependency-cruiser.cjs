@@ -9,7 +9,7 @@
 //   infrastructure     → everything but composition and main.ts
 //   composition        → everything; only main.ts (and the tests) import it. Controllers, security
 //                        handlers, use cases and gateways are bound in composition/modules/<module>.ts;
-//                        a profile (composition/profiles/) composes modules, it never picks gateways
+//                        a deployment (composition/deployments/) lists modules, it never picks gateways
 //   main.ts            → composition and Node; nobody imports it
 //
 // Modules (inside domain/, application/ and interface-adapters/): a module imports from another
@@ -40,6 +40,10 @@ const CONTEXT_MAP = {
   catalog: ["shared-kernel", "ledger"],
   barrier: ["shared-kernel", "ingestion"],
   selection: ["shared-kernel"],
+  // Feature 027: messages owns the curated corpus. It needs selection for the message family
+  // (barrier, anchor, step) and nothing else — it receives the attribute value already resolved,
+  // never the product, so it does not depend on catalog.
+  messages: ["shared-kernel", "selection", "decision"],
   commercial: ["shared-kernel", "barrier", "selection"],
   decision: [
     "shared-kernel",
@@ -66,8 +70,12 @@ const CONTEXT_MAP = {
     "catalog",
     "ingestion",
     "barrier",
+    "messages",
   ],
-  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
+  // Feature 027: admin also owns the report of what a catalogue brings that OPE has no word for.
+  // It reads the vocabulary of a merchant (messages) and receives the attributes of its catalogue
+  // (catalog) to implement the role the catalogue declares; neither of them knows the report.
+  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment", "messages", "catalog"],
   // Feature 020 (ADR-034): access owns the three schemes, their resolvers and the policies of the
   // platform level they depend on. It reads the merchant directory and never writes to it: that
   // direction is what keeps the merchant module with a single reason to change.
@@ -188,11 +196,11 @@ module.exports = {
       },
     },
     {
-      name: "profiles-compose-modules",
+      name: "deployments-compose-modules",
       comment:
-        "A profile is a deployment: it composes one binding table per module (composition/modules/<module>.ts); it never picks gateways itself (ADR-013).",
+        "A deployment is a list of modules: each module composes its own bindings (composition/modules/<module>.ts) and the deployment never picks a gateway itself (ADR-013, ADR-033).",
       severity: "error",
-      from: { path: `${SRC}composition/profiles/` },
+      from: { path: `${SRC}composition/deployments/` },
       to: { path: `${SRC}interface-adapters/[^/]+/gateways/` },
     },
     {

@@ -1,0 +1,43 @@
+get:
+  operationId: listUnmappedAttributeValues
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:read
+  x-collection: true
+  summary: The attribute labels of a merchant the platform does not know how to talk about
+  description: "What the last catalogue of the merchant brought with no correspondence in the closed
+    vocabulary (01 §3.1.1): per label, how many products carry it, since when and when last; most
+    recent first, up to the limit the platform keeps. A label the merchant maps afterwards stops
+    being listed without republishing the catalogue. Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of unmapped attribute labels.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/UnmappedAttributeValuePage.yaml
+          example:
+            items:
+              - label: Frisa
+                products: 9
+                firstSeenAt: 2026-09-18T09:00:00Z
+                lastSeenAt: 2026-09-20T12:00:00Z
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

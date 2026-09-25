@@ -1,0 +1,14 @@
+type: string
+description: |
+  The register a curated text is written in (03 §4.4). A shop for skaters and one for adult
+  womenswear say the same thing differently in the same language, and that difference is the
+  voice — never the language: a text in the wrong language is broken, one in the wrong voice is
+  off-brand but understood, so the language resolves first.
+
+  A closed vocabulary of OPE, not of the merchant: the texts are written and reviewed by OPE and
+  reused across merchants, and a merchant picks one (constitution X). `neutral` is the default,
+  used when the chosen voice has no text for the family and language resolved. It starts with a
+  single value on purpose: the key exists from day one so a second voice is one more entry and not
+  a redesign.
+enum:
+  - neutral

@@ -7,6 +7,7 @@ import {
 import {
   asProductId,
   asVariantId,
+  type Attribute,
   type CatalogSnapshot,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
@@ -54,14 +55,22 @@ function fakeStore(down = false): CatalogStore & { held: () => CatalogSnapshot |
 function subject(nowAt: () => Date, down = false) {
   const store = fakeStore(down);
   const { logger, entries } = recordingLogger();
+  /** The report of the vocabulary: what the use case handed over, and to prove it hands it over once. */
+  const reported: { attributes: readonly Attribute[]; at: Date }[] = [];
   const useCase = new UpsertCatalogSnapshotUseCase({
     clock: { now: nowAt },
     tolerance: TEST_TOLERANCE,
     store,
     policies: TEST_CATALOG_POLICIES,
+    labels: {
+      record: (_m, attributes, when) => {
+        reported.push({ attributes, at: when });
+        return Promise.resolve();
+      },
+    },
     logger,
   });
-  return { useCase, store, entries };
+  return { useCase, store, entries, reported };
 }
 
 describe("UpsertCatalogSnapshotUseCase", () => {
@@ -77,6 +86,30 @@ describe("UpsertCatalogSnapshotUseCase", () => {
       value: { products: 2, variants: 2, receivedAt: at(0), observedSyncLevel: 1, outcome: "created" },
     });
     expect(store.held()?.counts()).toEqual({ products: 2, variants: 2 });
+  });
+
+  it("the vocabulary of the catalogue is reported once it is the catalogue, with the instant it arrived (FR-020)", async () => {
+    const { useCase, reported } = subject(() => at(0));
+    const shirt = { ...product("P1"), attributes: [{ key: "material", value: "Frisa" }] };
+    await useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [shirt, product("P2")] });
+    // Flat and with its repetitions, so whoever reads it counts products; the instant is the
+    // snapshot's, not a later now.
+    expect(reported).toEqual([{ attributes: [{ key: "material", value: "Frisa" }], at: at(0) }]);
+  });
+
+  it("nothing is reported when nothing was replaced: not a repeat, not a conflict, not a store that is down", async () => {
+    let now = at(0);
+    const { useCase, reported } = subject(() => now);
+    await useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [product("P1")] });
+    expect(reported).toHaveLength(1);
+    now = at(MIN);
+    await useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [product("P1")] });
+    await useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [product("P1", "99.00")] });
+    await useCase.execute({ merchantId: A, capturedAt: at(-2 * MIN), products: [] });
+    expect(reported).toHaveLength(1);
+    const down = subject(() => at(0), true);
+    await down.useCase.execute({ merchantId: A, capturedAt: at(-MIN), products: [product("P1")] });
+    expect(down.reported).toEqual([]);
   });
 
   it("a newer capture replaces completely: products that no longer come disappear", async () => {

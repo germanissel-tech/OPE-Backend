@@ -99,6 +99,15 @@ export class CatalogSnapshot {
     return { products: this.#byProduct.size, variants: this.#variants };
   }
 
+  /**
+   * Every attribute of every product, flat and with its repetitions: one entry per product that
+   * carries it, so counting the entries of a value counts the products. The order is the order the
+   * platform sent, because a report of them is read by a person.
+   */
+  attributes(): readonly Attribute[] {
+    return this.products.flatMap((product) => product.attributes);
+  }
+
   /** Age of the picture at `now`, in ms; never negative (a capture ahead of the clock is "just now"). */
   ageAt(now: Date): number {
     return Math.max(0, now.getTime() - this.capturedAt.getTime());

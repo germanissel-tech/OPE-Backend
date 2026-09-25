@@ -5,4 +5,4 @@ export type { Candidate, Claim, ClaimKind, Step } from "./candidate.js";
 export { EMPTY_PROFILE } from "./profile.js";
 export type { MerchantProfile } from "./profile.js";
 export { QualityGate } from "./quality-gate.js";
-export type { GateEvidence, GateRejection, GateVerdict, Judged } from "./quality-gate.js";
+export type { GateEvidence, GateRejection, GateVerdict, Judged, SaidWith, Sayable } from "./quality-gate.js";

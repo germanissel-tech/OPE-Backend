@@ -10,7 +10,7 @@
   "evidence": "const validator = new Ajv({ allErrors: true });",
   "proposal": {
     "before": "const validator = new Ajv({ allErrors: true });",
-    "after": "export function makeConfirmExposure(exposures: ExposureLedger) { ... } // the gateway is wired in composition/profiles"
+    "after": "export function makeConfirmExposure(exposures: ExposureLedger) { ... } // the gateway is wired in composition/deployments"
   },
   "coveringTest": "tests/architecture/shape.test.ts: \"src/ instantiates npm packages only in composition, infrastructure and gateways\"",
   "status": "confirmed"

@@ -12,7 +12,8 @@ describe("CANDIDATES", () => {
       for (const c of CANDIDATES[barrier]) {
         expect(c.barrier).toBe(barrier);
         expect(ANCHORS).toContain(c.anchor);
-        expect(c.candidateId).toBe(`msg_${barrier}_${c.anchor}_${c.step}_v0`);
+        // The id of a candidate is its message family, which is what the corpus is keyed by (feature 027).
+        expect(c.candidateId).toBe(`${barrier}.${c.anchor}.${c.step}`);
       }
     }
   });
@@ -40,14 +41,15 @@ describe("CANDIDATES", () => {
   it("declares the claims of the MVP catalogue (spec 012, Assumptions)", () => {
     const claims = Object.fromEntries(all.map((c) => [c.candidateId, c.claims.map((claim) => claim.kind)]));
     expect(claims).toEqual({
-      msg_fit_size_selector_information_v0: [],
-      msg_fit_policies_reassurance_v0: ["returns-policy"],
-      msg_fit_size_selector_evidence_v0: ["fit-data", "availability"],
-      msg_price_price_information_v0: [],
-      msg_price_price_evidence_v0: ["current-price"],
-      msg_price_price_incentive_v0: ["incentive"],
-      msg_returns_policies_information_v0: [],
-      msg_returns_policies_reassurance_v0: ["returns-policy"],
+      "fit.size_selector.information": [],
+      "fit.policies.reassurance": ["returns-policy"],
+      "fit.size_selector.uncertainty": ["product-attribute"],
+      "fit.size_selector.evidence": ["fit-data", "availability"],
+      "price.price.information": [],
+      "price.price.evidence": ["current-price"],
+      "price.price.incentive": ["incentive"],
+      "returns.policies.information": [],
+      "returns.policies.reassurance": ["returns-policy"],
     });
   });
 });

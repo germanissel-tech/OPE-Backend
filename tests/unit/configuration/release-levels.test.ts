@@ -37,6 +37,7 @@ describe("config/platform.json (level 1)", () => {
     expect(platform().signatureWindowMs).toBe(minutes(5));
     expect(platform().rotationGraceMaxMs).toBe(hours(168));
     expect(platform().anchorDiagnosticsKept).toBe(200);
+    expect(platform().unmappedValuesKept).toBe(200);
   });
 
   it("a value out of its range, an unknown field or a missing one fails naming the field", () => {
@@ -76,7 +77,9 @@ describe("config/treatment-defaults.json (level 2)", () => {
       minutesLevelMinReceipts: 3,
     });
     expect(values.holdoutShare).toBe(0.05);
-    expect(values.locales).toEqual({ supported: [] });
+    // The release ships a language since feature 027: with none, no family has a text and OPE is
+    // mute — which is fail-closed but useless. The merchant overrides it; it is never a constant.
+    expect(values.locales).toEqual({ supported: ["es"], fallback: "es" });
     expect(values.evidenceProfile).toEqual({
       returnsPolicy: false,
       fitData: false,

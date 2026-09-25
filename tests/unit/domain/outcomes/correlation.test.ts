@@ -21,6 +21,7 @@ import {
   asVisitorId,
   type Incentive,
 } from "../../../../src/domain/shared-kernel/index.js";
+import { corpusEntryOf } from "../../../helpers/sayable.js";
 
 const S = asSessionId("ses_00000001");
 const facts = (id: string, over: Partial<DecisionFacts> = {}): DecisionFacts => ({
@@ -38,7 +39,8 @@ const noOp = (id: string, over: Partial<DecisionFacts> = {}): Decision =>
 const intervene = (id: string, incentive?: Incentive, over: Partial<DecisionFacts> = {}): Decision =>
   InterveneDecision.of(facts(id, over), "price", {
     anchor: "price",
-    messageVersionId: "msg_price_price_incentive_v0",
+    messageVersionId: corpusEntryOf("price.price.incentive").version,
+    text: "If it does not fit, the exchange is free.",
     ...(incentive === undefined ? {} : { incentive }),
   });
 const percent = (value: number): Incentive => ({ kind: "percent", value });

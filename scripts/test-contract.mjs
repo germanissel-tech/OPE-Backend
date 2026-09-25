@@ -15,7 +15,7 @@
 // Manual negative test: OPE_SERVER_ENTRY=tests/contract/fixtures/health-203.ts npm run test:contract
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { bundlePath, repoRoot } from "./lib.mjs";
 import { startBuiltServer } from "./server-lib.mjs";
@@ -39,11 +39,35 @@ const CONTRACT_MERCHANT = {
   origins: ["http://127.0.0.1"],
 };
 
+/**
+ * The newest modification under a directory, in ms.
+ * @param {string} dir
+ * @returns {number}
+ */
+function newestUnder(dir) {
+  let newest = 0;
+  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const at = statSync(path.join(entry.parentPath, entry.name)).mtimeMs;
+    if (at > newest) newest = at;
+  }
+  return newest;
+}
+
 /** @returns {string | null} the reason the run cannot start, or null */
 function preflight() {
   const uvx = spawnSync("uvx", ["--version"], { encoding: "utf8" });
   if (uvx.status !== 0) return "`uvx` not found. Install uv: https://docs.astral.sh/uv/";
   if (!existsSync(bundlePath)) return `${bundlePath} does not exist. Run npm run contract:bundle.`;
+  // A stale build is the worst failure this script can produce: it starts the server of the previous
+  // commit and reports today's code as broken (feature 027). Refusing is the whole fix.
+  const built = path.join(repoRoot, "dist", "main.js");
+  if (process.env["OPE_SERVER_ENTRY"] === undefined && existsSync(built)) {
+    const sources = newestUnder(path.join(repoRoot, "src"));
+    if (sources > statSync(built).mtimeMs) {
+      return "dist/ is older than src/: this would test the previous build. Run npm run build.";
+    }
+  }
   return null;
 }
 

@@ -207,6 +207,12 @@ types:
   - slug: rotation-grace-too-long
     status: 422
     title: The rotation grace exceeds the platform maximum
+  - slug: duplicate-attribute-label
+    status: 422
+    title: One attribute label points at two values of OPE's vocabulary
+  - slug: unknown-attribute-value
+    status: 500
+    title: A correspondence names a value OPE writes no texts for
   - slug: configuration-frozen
     status: 409
     title: The configuration is frozen while an experiment is active
@@ -240,3 +246,12 @@ types:
   - slug: invalid-operator-tokens
     status: 500
     title: An operator needs one or two non-empty token fingerprints
+  - slug: corpus-text-empty
+    status: 500
+    title: A curated text of the corpus is empty
+  - slug: corpus-text-too-long
+    status: 500
+    title: A curated text of the corpus is longer than the contract allows
+  - slug: corpus-text-has-placeholder
+    status: 500
+    title: A curated text of the corpus still carries a placeholder

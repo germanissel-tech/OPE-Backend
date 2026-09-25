@@ -55,6 +55,7 @@ function convert(node, schemas, defs, where) {
   /** @type {Record<string, unknown>} */
   const out = {};
   for (const [key, value] of Object.entries(node)) {
+    if (key.startsWith("x-")) continue;
     if (UNSUPPORTED.includes(key))
       throw new Error(`${where}: \`${key}\` is outside the supported subset (ADR-014)`);
     if (key === "$ref" && typeof value === "string" && value.startsWith(COMPONENT_REF)) {

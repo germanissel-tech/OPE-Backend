@@ -21,6 +21,7 @@ import { experimentModule } from "../modules/experiment.js";
 import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { merchantModule } from "../modules/merchant.js";
+import { messagesModule } from "../modules/messages.js";
 import { outcomesModule } from "../modules/outcomes.js";
 import { kernelModule } from "../modules/shared-kernel.js";
 import { systemModule } from "../modules/system.js";
@@ -38,6 +39,7 @@ export const localDeployment = (config: AppConfig) =>
     ledgerModule,
     catalogModule,
     barrierModule,
+    messagesModule,
     decisionModule,
     ingestionModule,
     outcomesModule,

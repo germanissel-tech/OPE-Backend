@@ -52,6 +52,12 @@ properties:
     $ref: ./SyncStrategy.yaml
   locales:
     $ref: ./Locales.yaml
+  attributeLabels:
+    type: array
+    description: What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only.
+    maxItems: 256
+    items:
+      $ref: ./AttributeLabel.yaml
   anchors:
     $ref: ./AnchorMap.yaml
   platform:
