@@ -73,6 +73,8 @@ paths:
     $ref: ./paths/admin-experiment-close.yaml
   /v1/admin/merchants/{merchantId}/anchor-diagnostics:
     $ref: ./paths/admin-diagnostics.yaml
+  /v1/admin/merchants/{merchantId}/unmapped-attribute-values:
+    $ref: ./paths/admin-unmapped-attribute-values.yaml
   /v1/admin/platform-configuration:
     $ref: ./paths/admin-platform-configuration.yaml
   /v1/admin/treatment-defaults:

@@ -1,0 +1,29 @@
+type: object
+description: "An attribute label of the merchant's catalogue with no correspondence in the closed
+  vocabulary of the platform: how many products of the catalogue carry it, since when it has been
+  arriving and when it last arrived. While it is listed, those products say nothing about that
+  attribute; mapping it makes them speak and takes it off this list."
+additionalProperties: false
+required:
+  - label
+  - products
+  - firstSeenAt
+  - lastSeenAt
+properties:
+  label:
+    type: string
+    description: The label as the platform of the merchant exposes it, not normalised.
+    minLength: 1
+    maxLength: 512
+  products:
+    type: integer
+    description: Products of the last catalogue that carry this label.
+    minimum: 1
+  firstSeenAt:
+    type: string
+    format: date-time
+    description: The first catalogue this label arrived in without a correspondence.
+  lastSeenAt:
+    type: string
+    format: date-time
+    description: The last catalogue it arrived in.

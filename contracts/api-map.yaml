@@ -361,6 +361,6 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:read]
-    roadmap: message-catalogue
-    status: planned
+    feature: "027"
+    status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1

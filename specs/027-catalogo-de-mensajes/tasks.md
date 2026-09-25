@@ -291,28 +291,40 @@ check:invariant-tests` falla si falta.
 **Independent Test**: publicar un catálogo con un valor sin mapear y verlo en el reporte con su
 conteo; y comprobar que el reporte **nunca** rechaza ni demora la ingesta.
 
-- [ ] T056 [US3] `config/platform.json` — el tope de valores conservados, como nivel plataforma.
+- [x] T056 [US3] `config/platform.json` — el tope de valores conservados, como nivel plataforma.
       **No una constante** (constitución XI); `check:behaviour-constants` lo vigila.
-- [ ] T057 [US3] `contracts/` — la operación de lectura pasa a `built` en el mapa y entra al
+- [x] T057 [US3] `contracts/` — la operación de lectura pasa a `built` en el mapa y entra al
       contrato: `GET` paginada del consumidor `admin`, con `x-collection: true`, los parámetros
-      `cursor`/`limit`/`from`/`to` por `$ref` y un `<X>Page` (`items`, `nextCursor?`). Si es la
+      `cursor`/`limit` por `$ref` y un `<X>Page` (`items`, `nextCursor?`). Si es la
       primera operación de su esquema de seguridad, referenciarlo desde la raíz — no lo es
       (`adminToken` ya está en uso).
-- [ ] T058 [US3] `npm run contract:check` y `npm run contract:types`.
-- [ ] T059 [US3] `src/application/messages/ports/unmapped-value-log.ts` y su gateway en
-      `src/interface-adapters/messages/gateways/` — `upsert` conserva por merchant la etiqueta, el
-      conteo de productos y el último instante, con el tope: alcanzado, **se descarta el más viejo y
+      **Sin `from`/`to`**, que esta tarea nombraba: ninguna FR de la historia pide una ventana de
+      tiempo y `listAnchorDiagnostics`, que es la misma forma, tampoco los tiene. Filtrar sin
+      requisito es alcance que la spec no pidió. (Los parámetros existen en `components/` y **no los
+      usa ninguna operación**; eso es otra cosa, anotada como deuda.)
+- [x] T058 [US3] `npm run contract:check` y `npm run contract:types`. Salió una: el sustantivo
+      `unmapped` no resolvía al glosario — `docs/dominio/sin-correspondencia.md`.
+- [x] T059 [US3] `src/application/admin/ports/unmapped-value-log.ts` y su gateway en
+      `src/interface-adapters/admin/gateways/` — `replace` conserva por merchant la etiqueta, el
+      conteo de productos y los dos instantes, con el tope: alcanzado, **se descarta el más viejo y
       nunca se rechaza** (`FR-021`). Misma forma que `AnchorDiagnosticsStore`.
-- [ ] T060 [US3] `src/interface-adapters/messages/controllers/<operacion>.ts` tipado con
-      `OperationHandler<"<operationId>">`, su presenter en `messages/presenters.ts`, la paginación
-      con `pageQueryOf`/`pageDto`/`merchantPageResponse` de `http/boundary.ts`, y el `merchantId` de
-      la ruta con `merchantIdOf(req)`.
-- [ ] T061 [US3] `src/composition/modules/messages.ts` — el handler declarado con `served(...)`. **No
+      **En `admin` y no en `messages`**, que esta tarea decía: es un reporte que lee un operador, que
+      es exactamente lo que `admin` ya es (`AnchorDiagnostic` vive ahí aunque hable de anclajes), y
+      ponerlo en `messages` le habría dado al vocabulario un conocimiento de operadores y de
+      alcances que no tiene por qué tener. Escribe cuando el catálogo se reemplaza, así que el
+      catálogo declara el rol (`AttributeLabelReportService`) y `admin` lo implementa: la dirección
+      contraria habría cerrado un ciclo `catalog → messages → decision → catalog`.
+- [x] T060 [US3] `src/interface-adapters/admin/controllers/list-unmapped-attribute-values.ts` tipado
+      con `OperationHandler<"listUnmappedAttributeValues">`, su presenter en `admin/presenters.ts`, la
+      paginación con `merchantPageResponse` de `http/boundary.ts`, y el `merchantId` de la ruta.
+- [x] T061 [US3] `src/composition/modules/admin.ts` — el handler declarado con `served(...)`. **No
       elige si se loguea ni si se audita**: la operación es de lectura, así que el contrato no manda
       auditarla, y eso lo deriva `contract:types`.
-- [ ] T062 [P] [US3] `tests/unit/` — el tope: el más viejo se descarta, la ingesta nunca falla, y el
-      conteo por etiqueta es correcto con productos repetidos.
-- [ ] T063 [US3] `tests/integration/` — un operador lee el reporte de su merchant; uno fuera de
+- [x] T062 [P] [US3] `tests/unit/` — el tope: el más viejo se descarta, la ingesta nunca falla, y el
+      conteo por etiqueta es correcto con productos repetidos. Más lo que apareció al escribirlos: el
+      reporte se entrega **una sola vez y sólo cuando el catálogo se reemplazó** —ni un repetido, ni
+      un conflicto, ni un store caído lo entregan— y con el instante de la instantánea.
+- [x] T063 [US3] `tests/integration/` — un operador lee el reporte de su merchant; uno fuera de
       alcance recibe `403 merchant-out-of-scope` con el mismo cuerpo que uno inexistente; un valor
       que después se mapea deja de figurar.
 
@@ -327,6 +339,18 @@ conteo; y comprobar que el reporte **nunca** rechaza ni demora la ingesta.
       corpus es un activo del release y el merchant elige versión, voz e idiomas; sin texto la
       familia no es candidata; el vocabulario es cerrado y de OPE mientras la correspondencia es del
       merchant. Estado `propuesta` primero, `aceptada` al cerrar.
+
+      **Y un cuarto que la evaluación del 2026-09-25 agregó, y sin el cual el tercero no se puede
+      aplicar a nada nuevo**: el criterio que decide de qué lado cae una cosa. **Lo que OPE tiene que
+      escribir sigue siendo de OPE; lo que sólo identifica un lugar o un comportamiento puede ser del
+      merchant.** La prosa de una tela no puede vivir en la configuración de una tienda; el nombre
+      del bloque donde esa tienda tiene su guía de talles, sí.
+
+      El ADR nombra también el patrón que el repositorio venía aplicando sin bautizar —OPE declara un
+      vocabulario chico y cerrado, el merchant declara cómo su mundo se mapea sobre él, y la
+      traducción va del merchant hacia OPE— con sus dos instancias: el mapa de anclajes (desde la
+      017) y la correspondencia de etiquetas (US2). La tercera, el vocabulario de bloques, es D-14.
+
 - [ ] T065 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, y el criterio de admisión decide:
       ¿hace falta en toda sesión (núcleo), es un procedimiento (skill) o es de una parte del código
       (regla acotada)? El núcleo está en 185 de 200 líneas. `npm run check:instructions` verifica la

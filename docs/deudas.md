@@ -43,6 +43,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)                | `abierta`      | 2026-09-24 | —         |
 | D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)        | `abierta`      | 2026-09-25 | —         |
 | D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `abierta`      | 2026-09-25 | —         |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -105,6 +106,22 @@ Tres cosas que la evaluación descartó, con su motivo:
 
 `03 §9` dice que el piloto **no va a poder decir «qué pasa en otros rubros»**, así que esto no es una
 promesa incumplida: es acople que se decide cargar, con el mapa de dónde está.
+
+D-15 apareció al escribir la operación del reporte de la 027: la tarea pedía los parámetros
+`from`/`to`, y al buscarlos resultó que `contracts/components/parameters/from.yaml` y `to.yaml`
+existen, están bien escritos y **ninguna operación los referencia**. No se usaron —la historia no
+pide una ventana de tiempo— y quedan donde estaban.
+
+Lo que importa no es el parámetro: es que `contract:check` corre doce verificaciones y **ninguna
+mira si un componente tiene consumidor**. Un componente huérfano es lo contrario del problema que
+`check:identifiers` resuelve (que toda cita resuelva): acá lo citado no existe al revés, lo que
+existe no se cita. El efecto es el de siempre —alguien lo lee como si estuviera en uso y diseña
+sobre él— y el síntoma vuelve a ser verde.
+
+Es la misma familia que D-13: lo que nadie verifica no es lo que está mal escrito, es lo que dejó
+de estar conectado. Medir primero cuántos componentes no tienen consumidor es parte del trabajo:
+puede haber esquemas que sólo existan para `$ref` de otros y no de una operación, y la regla tiene
+que distinguirlos.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

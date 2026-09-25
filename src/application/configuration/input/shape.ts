@@ -94,6 +94,7 @@ export type Key =
   | "signatureWindowMs"
   | "rotationGraceMaxMs"
   | "anchorDiagnosticsKept"
+  | "unmappedValuesKept"
   | "retryAfterSeconds";
 
 /** `parent.key`, or `key` at the root. */

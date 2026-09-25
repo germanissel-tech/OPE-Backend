@@ -344,6 +344,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/unmapped-attribute-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The attribute labels of a merchant the platform does not know how to talk about
+         * @description What the last catalogue of the merchant brought with no correspondence in the closed vocabulary (01 §3.1.1): per label, how many products carry it, since when and when last; most recent first, up to the limit the platform keeps. A label the merchant maps afterwards stops being listed without republishing the catalogue. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listUnmappedAttributeValues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/platform-configuration": {
         parameters: {
             query?: never;
@@ -1693,6 +1713,8 @@ export type components = {
             sessionWindowMs: number;
             /** @description Milliseconds a platform signature's timestamp may sit from the server clock, either way (ADR-029). */
             signatureWindowMs: number;
+            /** @description Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused. */
+            unmappedValuesKept: number;
             /** @description Version of the platform configuration the release declares. */
             version: string;
             /** @description Milliseconds a visitor's interventions count for the fatigue limit. */
@@ -1947,6 +1969,30 @@ export type components = {
             syncStrategy: components["schemas"]["SyncStrategy"];
             /** @description Version of the treatment defaults the release declares. */
             version: string;
+        };
+        /** @description An attribute label of the merchant's catalogue with no correspondence in the closed vocabulary of the platform: how many products of the catalogue carry it, since when it has been arriving and when it last arrived. While it is listed, those products say nothing about that attribute; mapping it makes them speak and takes it off this list. */
+        UnmappedAttributeValue: {
+            /**
+             * Format: date-time
+             * @description The first catalogue this label arrived in without a correspondence.
+             */
+            firstSeenAt: string;
+            /** @description The label as the platform of the merchant exposes it, not normalised. */
+            label: string;
+            /**
+             * Format: date-time
+             * @description The last catalogue it arrived in.
+             */
+            lastSeenAt: string;
+            /** @description Products of the last catalogue that carry this label. */
+            products: number;
+        };
+        /** @description A page of unmapped attribute labels of a merchant, most recent first. */
+        UnmappedAttributeValuePage: {
+            /** @description Unmapped labels of this page, most recent first. */
+            items: components["schemas"]["UnmappedAttributeValue"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
         };
         /** @description An anchor of the merchant's map the SDK could not resolve on a page type (01 §3.1.1): the anchor and the page type, nothing of the page nor of the person. */
         UnresolvedAnchor: {
@@ -3487,6 +3533,52 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    listUnmappedAttributeValues: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of unmapped attribute labels. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "label": "Frisa",
+                     *           "products": 9,
+                     *           "firstSeenAt": "2026-09-18T09:00:00Z",
+                     *           "lastSeenAt": "2026-09-20T12:00:00Z"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["UnmappedAttributeValuePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     getPlatformConfiguration: {
         parameters: {
             query?: never;
@@ -3516,6 +3608,7 @@ export interface operations {
                      *       "signatureWindowMs": 300000,
                      *       "rotationGraceMaxMs": 604800000,
                      *       "anchorDiagnosticsKept": 200,
+                     *       "unmappedValuesKept": 200,
                      *       "retryAfterSeconds": 5
                      *     }
                      */

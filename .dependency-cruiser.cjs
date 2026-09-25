@@ -72,7 +72,10 @@ const CONTEXT_MAP = {
     "barrier",
     "messages",
   ],
-  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment"],
+  // Feature 027: admin also owns the report of what a catalogue brings that OPE has no word for.
+  // It reads the vocabulary of a merchant (messages) and receives the attributes of its catalogue
+  // (catalog) to implement the role the catalogue declares; neither of them knows the report.
+  admin: ["shared-kernel", "operator", "merchant", "configuration", "experiment", "messages", "catalog"],
   // Feature 020 (ADR-034): access owns the three schemes, their resolvers and the policies of the
   // platform level they depend on. It reads the merchant directory and never writes to it: that
   // direction is what keeps the merchant module with a single reason to change.

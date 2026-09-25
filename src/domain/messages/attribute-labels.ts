@@ -43,6 +43,11 @@ export class AttributeLabels {
     return new AttributeLabels(new Map(records.map(({ label, value }) => [label, value as AttributeValue])));
   }
 
+  /** Every label the merchant declared: what a report of what it did not declare has to exclude. */
+  labels(): ReadonlySet<string> {
+    return new Set(this.#byLabel.keys());
+  }
+
   /** What the merchant's label means to OPE, or undefined when it mapped nothing to it. */
   valueOf(label: string): AttributeValue | undefined {
     return this.#byLabel.get(label);

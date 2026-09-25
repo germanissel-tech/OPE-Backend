@@ -1,12 +1,18 @@
 // What the admin controllers share at the boundary (ADR-031): the admin log entry and the
 // anchor diagnostic as the contract publishes them — instants as text, optional fields only
 // when present, never the merchant of a diagnostic (the path names it).
-import type { AdminEntry, AdminResult, AnchorDiagnostic } from "../../domain/admin/index.js";
+import type {
+  AdminEntry,
+  AdminResult,
+  AnchorDiagnostic,
+  UnmappedAttributeValue,
+} from "../../domain/admin/index.js";
 import type { components } from "../http/typed.js";
 
 type AdminEntryDto = components["schemas"]["AdminEntry"];
 type AdminResultDto = components["schemas"]["AdminResult"];
 type AnchorDiagnosticDto = components["schemas"]["AnchorDiagnostic"];
+type UnmappedAttributeValueDto = components["schemas"]["UnmappedAttributeValue"];
 
 /** Only the fields the action produced. */
 function resultDto(result: AdminResult): AdminResultDto {
@@ -43,5 +49,15 @@ export function anchorDiagnosticDto(diagnostic: AnchorDiagnostic): AnchorDiagnos
       : { configurationVersion: diagnostic.configurationVersion }),
     lastSeenAt: diagnostic.lastSeenAt.toISOString(),
     count: diagnostic.count,
+  };
+}
+
+/** The gap as the contract publishes it: never the merchant (the path names it). */
+export function unmappedAttributeValueDto(value: UnmappedAttributeValue): UnmappedAttributeValueDto {
+  return {
+    label: value.label,
+    products: value.products,
+    firstSeenAt: value.firstSeenAt.toISOString(),
+    lastSeenAt: value.lastSeenAt.toISOString(),
   };
 }
