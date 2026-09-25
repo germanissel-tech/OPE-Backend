@@ -82,7 +82,7 @@ describe("DecisionBase.rehydrate", () => {
     const inference = {
       policyVersion: "default-1",
       confidences: { fit: 0.4, price: 0.2, returns: 0 },
-      matched: ["fit.size-guide-read"],
+      matched: ["fit.specifications-read"],
       barrier: "fit" as const,
       trigger: "rules" as const,
       evidence: { truth: "absent" as const },

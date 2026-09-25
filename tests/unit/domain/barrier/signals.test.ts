@@ -70,8 +70,8 @@ describe("Signals.of", () => {
 });
 
 describe("Signals as a monoid", () => {
-  const a = Signals.of([variantSelector(1), dwell(2, "size_guide", 3000), addedToCart(9)]);
-  const b = Signals.of([variantSelector(20), dwell(21, "size_guide", 3000), removedFromCart(30)]);
+  const a = Signals.of([variantSelector(1), dwell(2, "specifications", 3000), addedToCart(9)]);
+  const b = Signals.of([variantSelector(20), dwell(21, "specifications", 3000), removedFromCart(30)]);
   const c = Signals.of([viewed(40)]);
 
   it("empty is the identity and nothing was seen", () => {
@@ -84,7 +84,7 @@ describe("Signals as a monoid", () => {
   it("merge adds counts and dwell, keeps the earliest first and the latest last", () => {
     const m = a.merge(b);
     expect(m.count({ type: "variant_selector_interacted" })).toBe(2);
-    expect(m.dwellSeconds("size_guide")).toBe(6);
+    expect(m.dwellSeconds("specifications")).toBe(6);
     expect(m.sequence({ type: "added_to_cart" }, { type: "removed_from_cart" })).toBe(true);
     expect(m.sequence({ type: "variant_selector_interacted" }, { type: "removed_from_cart" })).toBe(true);
     expect(b.merge(a).sequence({ type: "added_to_cart" }, { type: "removed_from_cart" })).toBe(true);
@@ -97,7 +97,7 @@ describe("Signals as a monoid", () => {
   it("does not mutate its operands", () => {
     a.merge(b);
     expect(a.count({ type: "variant_selector_interacted" })).toBe(1);
-    expect(b.dwellSeconds("size_guide")).toBe(3);
+    expect(b.dwellSeconds("specifications")).toBe(3);
   });
 });
 
@@ -108,11 +108,11 @@ function same(x: Signals, y: Signals): boolean {
     { type: "added_to_cart" as const },
     { type: "removed_from_cart" as const },
     { type: "product_viewed" as const },
-    { type: "block_dwelled" as const, subtype: "size_guide" },
+    { type: "block_dwelled" as const, subtype: "specifications" },
   ];
   return (
     refs.every((r) => x.count(r) === y.count(r)) &&
-    x.dwellSeconds("size_guide") === y.dwellSeconds("size_guide") &&
+    x.dwellSeconds("specifications") === y.dwellSeconds("specifications") &&
     refs.every((r) => refs.every((t) => x.sequence(r, t) === y.sequence(r, t)))
   );
 }

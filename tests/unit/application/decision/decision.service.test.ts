@@ -248,20 +248,25 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     await spoken.decide([
       variantSelector(1),
       variantSelector(2),
-      dwell(3, "size_guide", 6000),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(spoken.asked.at(-1)?.locale).toBe("es-AR");
     // Absent and not empty: a language nobody declared is not a language to look up.
     const silent = subject({ catalog: snapshot });
-    await silent.decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000), viewed(4)]);
+    await silent.decide([
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
+      viewed(4),
+    ]);
     const last = silent.asked.at(-1);
     expect(last === undefined ? "no request" : "locale" in last).toBe(false);
   });
 
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
     const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(calls).toEqual(["assign", "sessions.load", "truth", "infer", "record", "sessions.save"]);
     expect(decision.isIntervention()).toBe(true);
     expect(decision.isIntervention() && decision.intervention).toEqual({
@@ -277,7 +282,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(decision.inference).toEqual({
       policyVersion: "default-1",
       confidences: { fit: 0.8, price: 0, returns: 0 },
-      matched: ["fit.variant-selector-twice", "fit.size-guide-read"],
+      matched: ["fit.variant-selector-twice", "fit.specifications-read"],
       barrier: "fit",
       trigger: "rules",
       evidence: { truth: "known", stockAndPrice: "fresh", available: true },
@@ -289,7 +294,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("while the experiment calibrates the decision is taken the same way and stamped as calibration (03 §4.10)", async () => {
     const { decide } = subject({ catalog: snapshot, phase: "calibration" });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.isIntervention()).toBe(true);
     expect(decision.phase).toBe("calibration");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
@@ -305,7 +310,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("the ledger keeps the selection: every candidate judged, the chosen one and the commercial version (constitution IX)", async () => {
     const { decide } = subject({ catalog: snapshot });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.selection).toEqual({
       candidates: [
         { candidateId: "fit.variant_selector.information", step: "information", verdict: "acceptable" },
@@ -328,7 +333,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("CONTROL records the selection too, with what would have been chosen", async () => {
     const { decide } = subject({ catalog: snapshot, arm: "CONTROL" });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.reason).toBe("control-arm");
     expect(decision.selection).toMatchObject({
       chosen: "fit.variant_selector.information",
@@ -341,7 +346,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
       catalog: snapshot,
       profile: { returnsPolicy: false, fitData: false, authorizedAttributes: [] },
     });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
       "mv_fit.variant_selector.information_test",
     );
@@ -402,7 +407,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const decision = await decide([
       variantSelector(1),
       variantSelector(2),
-      dwell(3, "size_guide", 6000),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.selection?.candidates.at(-1)).toEqual({
@@ -424,7 +429,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("CONTROL goes through the same inference and the ledger keeps it (constitution III)", async () => {
     const { decide } = subject({ catalog: snapshot, arm: "CONTROL" });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "control-arm" });
     expect(decision.inference).toMatchObject({ barrier: "fit", trigger: "rules", confidences: { fit: 0.8 } });
   });
@@ -450,7 +455,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 describe("DecisionService.decide — evidence and session", () => {
   it("no catalogue → evidence-missing with the evidence recorded", async () => {
     const { decide } = subject();
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.reason).toBe("evidence-missing");
     expect(decision.inference?.evidence).toEqual({ truth: "absent" });
     expect(decision.selection?.candidates).toEqual([]);
@@ -463,7 +468,7 @@ describe("DecisionService.decide — evidence and session", () => {
     const decision = await decide([
       variantSelector(1),
       variantSelector(2),
-      dwell(3, "size_guide", 6000),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.reason).toBe("variant-unavailable");
@@ -480,7 +485,7 @@ describe("DecisionService.decide — evidence and session", () => {
     const decision = await decide([
       variantSelector(1),
       variantSelector(2),
-      dwell(3, "size_guide", 6000),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.reason).toBe("evidence-missing");
@@ -490,8 +495,8 @@ describe("DecisionService.decide — evidence and session", () => {
   it("the session accumulates across batches: one signal per batch reaches the threshold on the second", async () => {
     const { decide } = subject({ catalog: snapshot });
     expect((await decide([variantSelector(1), variantSelector(2)])).reason).toBe("barrier-unclear");
-    expect((await decide([dwell(10, "size_guide", 6000)])).isIntervention()).toBe(true);
-    expect((await decide([dwell(20, "size_guide", 6000)])).reason).toBe("session-budget-exhausted");
+    expect((await decide([dwell(10, "specifications", 6000)])).isIntervention()).toBe(true);
+    expect((await decide([dwell(20, "specifications", 6000)])).reason).toBe("session-budget-exhausted");
   });
 
   it("an abandonment without a signal → returns reassurance", async () => {
@@ -506,7 +511,7 @@ describe("DecisionService.decide — evidence and session", () => {
     const decision = await decide([
       variantSelector(1),
       variantSelector(2),
-      dwell(3, "size_guide", 6000),
+      dwell(3, "specifications", 6000),
       checkout(4),
     ]);
     expect(decision.reason).toBe("high-intent");
@@ -524,7 +529,7 @@ describe("DecisionService.decide — the ledger is down (ADR-021)", () => {
 
   it("decision not recorded → NO_OP ledger-unavailable and the intervention is not counted against the session", async () => {
     const { decide, sessions, entries } = subject({ catalog: snapshot, ledgerDown: true });
-    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
     expect(decision.inference?.barrier).toBe("fit");
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(0);

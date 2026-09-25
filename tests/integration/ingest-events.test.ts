@@ -39,7 +39,7 @@ const ONE_OF_EACH: Record<string, unknown>[] = [
   { type: "variant_selector_interacted" },
   { type: "variant_selected", selectedVariantId: "VAR-1" },
   { type: "photo_interacted", interaction: "zoom" },
-  { type: "block_dwelled", block: "size_guide", dwellMs: 4200 },
+  { type: "block_dwelled", block: "specifications", dwellMs: 4200 },
   { type: "cta_approached", approach: "hover" },
   { type: "product_returned_to", previousProductId: "SKU-0" },
   { type: "added_to_cart", quantity: 1 },

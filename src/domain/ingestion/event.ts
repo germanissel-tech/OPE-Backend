@@ -59,7 +59,7 @@ export interface PhotoInteracted extends EventBase<"photo_interacted"> {
 }
 export const BLOCKS = [
   "description",
-  "size_guide",
+  "specifications",
   "reviews",
   "policies",
   "price",

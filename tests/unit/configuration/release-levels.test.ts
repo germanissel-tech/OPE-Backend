@@ -96,7 +96,7 @@ describe("config/treatment-defaults.json (level 2)", () => {
     expect(policy.evidence).toEqual({ freshStockAndPrice: ["price"], availableVariant: ["fit"] });
     expect(policy.rules.rules.map((r) => [r.id, r.barrier, r.strength])).toEqual([
       ["fit.variant-selector-twice", "fit", "strong"],
-      ["fit.size-guide-read", "fit", "strong"],
+      ["fit.specifications-read", "fit", "strong"],
       ["fit.variants-compared", "fit", "strong"],
       ["fit.photo-zoomed", "fit", "supporting"],
       ["fit.returned-to-product", "fit", "supporting"],
@@ -117,7 +117,7 @@ describe("config/treatment-defaults.json (level 2)", () => {
     ).toBe(0.4);
     expect(
       policy.rules.infer(
-        Signals.of([variantSelector(1), variantSelector(2), dwell(3, "size_guide", 6000)]),
+        Signals.of([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]),
         product,
       ).confidences.fit,
     ).toBe(0.8);
@@ -162,7 +162,7 @@ describe("config/treatment-defaults.json (level 2)", () => {
     // identical. Bumping it would tell every operator that their defaults changed when their
     // treatment is the same. The vocabulary those names belong to is stamped elsewhere: the contract
     // version, which 028 does bump.
-    expect([raw.version, fingerprint]).toEqual(["defaults-1", "40a43765c568141c"]);
+    expect([raw.version, fingerprint]).toEqual(["defaults-1", "68a16172254e6fe2"]);
   });
 
   it("the defaults must be complete: a policy or a profile that lacks a field is refused naming it, and a spare field too", () => {

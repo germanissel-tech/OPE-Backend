@@ -126,14 +126,17 @@ misma secuencia de señales produce la misma decisión; y la cuenta de anclajes 
 **Independent Test**: ningún miembro nombra un concepto de una vertical, y una sesión que permanecía
 en ese bloque sigue produciendo la misma barrera.
 
-- [ ] T022 [US2] `contracts/components/schemas/BlockDwelled.yaml` — el enum del bloque: el miembro que
+- [x] T022 [US2] `contracts/components/schemas/BlockDwelled.yaml` — el enum del bloque: el miembro que
       nombra una prenda pasa a `specifications`, que nombra el mismo lugar en cualquier rubro (R-04).
-- [ ] T023 [US2] `npm run contract:check` y `npm run contract:types`.
-- [ ] T024 [US2] `src/domain/ingestion/event.ts` — `BLOCKS`.
-- [ ] T025 [US2] `config/treatment-defaults.json` — las reglas que nombran ese bloque y **sus
+      La descripción del campo dice **por qué** permanecer ahí es evidencia de duda de calce: sin eso,
+      el nombre genérico esconde la semántica que la inferencia lee, que era la mitad del motivo para
+      no dárselo al merchant.
+- [x] T023 [US2] `npm run contract:check` y `npm run contract:types`.
+- [x] T024 [US2] `src/domain/ingestion/event.ts` — `BLOCKS`.
+- [x] T025 [US2] `config/treatment-defaults.json` — las reglas que nombran ese bloque y **sus
       identificadores**: la de lectura de la guía y la condición negada de la regla de devoluciones.
-- [ ] T026 [P] [US2] `tests/contract/` — la réplica de `BLOCKS` contra el contrato.
-- [ ] T027 [US2] `tests/unit/domain/barrier/` y `tests/integration/` — permanecer en el bloque
+- [x] T026 [P] [US2] `tests/contract/` — la réplica de `BLOCKS` contra el contrato.
+- [x] T027 [US2] `tests/unit/domain/barrier/` y `tests/integration/` — permanecer en el bloque
       renombrado infiere la misma barrera con la misma confianza que antes.
 
 **Checkpoint**: el vocabulario de lugares sirve para una heladera.

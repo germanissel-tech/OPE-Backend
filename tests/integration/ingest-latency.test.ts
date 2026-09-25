@@ -77,7 +77,7 @@ describe("latency of POST /v1/events (local profile)", () => {
         eventOf(from + 1, { type: "photo_interacted", interaction: "zoom", page, sessionId: session }),
         eventOf(from + 2, {
           type: "block_dwelled",
-          block: "size_guide",
+          block: "specifications",
           dwellMs: 6000,
           page,
           sessionId: session,

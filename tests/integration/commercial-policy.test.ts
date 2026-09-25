@@ -58,7 +58,8 @@ const at = (seconds: number): string =>
 const ev = (seconds: number, over: Record<string, unknown>): Record<string, unknown> =>
   eventOf(++n, { occurredAt: at(seconds), page: PAGE, ...over });
 const variantSelector = (s: number) => ev(s, { type: "variant_selector_interacted" });
-const sizeGuide = (s: number) => ev(s, { type: "block_dwelled", block: "size_guide", dwellMs: 6000 });
+const specifications = (s: number) =>
+  ev(s, { type: "block_dwelled", block: "specifications", dwellMs: 6000 });
 const priceRead = (s: number) => ev(s, { type: "block_dwelled", block: "price", dwellMs: 6000 });
 const policies = (s: number) => ev(s, { type: "block_dwelled", block: "policies", dwellMs: 8000 });
 const cta = (s: number) => ev(s, { type: "cta_approached", approach: "hover" });
@@ -177,7 +178,7 @@ describe("commercial policy — the incentive (user story 2)", () => {
       }),
     );
     expect((await ingest(priceSignals())).decision.outcome).toBe("INTERVENE");
-    const again = await ingest([variantSelector(10), variantSelector(11), sizeGuide(12)]);
+    const again = await ingest([variantSelector(10), variantSelector(11), specifications(12)]);
     expect(again.decision).toMatchObject({ outcome: "NO_OP", reason: "session-budget-exhausted" });
   });
 
@@ -270,7 +271,7 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
       // Size guide (0.4) + two variants compared (0.4): fit stays inferred with the cart in play.
       variant(1, "SKU-1-M"),
       variant(2, "SKU-1-L"),
-      sizeGuide(3),
+      specifications(3),
       addedToCart(4),
       removedFromCart(5),
     ]);

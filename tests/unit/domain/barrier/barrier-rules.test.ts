@@ -26,7 +26,11 @@ const base: BarrierRulesRecord = {
   readingSeconds: 5,
   rules: [
     rule({ id: "fit.variant-selector-twice", barrier: "fit" }),
-    rule({ id: "fit.size-guide-read", barrier: "fit", when: { fact: "dwellSeconds", block: "size_guide" } }),
+    rule({
+      id: "fit.specifications-read",
+      barrier: "fit",
+      when: { fact: "dwellSeconds", block: "specifications" },
+    }),
     rule({
       id: "fit.photo-zoomed",
       barrier: "fit",
@@ -349,7 +353,7 @@ describe("BarrierRules.infer (FR-012, FR-013)", () => {
       addedToCart(1),
       variantSelector(2),
       variantSelector(3),
-      dwell(4, "size_guide", 5000),
+      dwell(4, "specifications", 5000),
     ]);
     const built = rules();
     const first = built.infer(signals, product);

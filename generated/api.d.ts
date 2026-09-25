@@ -811,10 +811,10 @@ export type components = {
         /** @description Scroll and dwell over a block of the product page. */
         BlockDwelled: {
             /**
-             * @description Semantic block of the product page the visitor dwelled on.
+             * @description Semantic block of the product page the visitor dwelled on. `specifications` is where the page states whether the product will suit the buyer — the size chart of a garment, the dimensions of an appliance — which is why dwelling there is evidence of a fit doubt.
              * @enum {string}
              */
-            block: "description" | "size_guide" | "reviews" | "policies" | "price" | "gallery" | "cta";
+            block: "description" | "specifications" | "reviews" | "policies" | "price" | "gallery" | "cta";
             device: components["schemas"]["DeviceClass"];
             /** @description Milliseconds of dwell over the block. */
             dwellMs: number;

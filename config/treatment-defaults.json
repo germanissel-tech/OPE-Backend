@@ -25,10 +25,10 @@
         }
       },
       {
-        "id": "fit.size-guide-read",
+        "id": "fit.specifications-read",
         "barrier": "fit",
         "strength": "strong",
-        "when": { "fact": "dwellSeconds", "block": "size_guide" }
+        "when": { "fact": "dwellSeconds", "block": "specifications" }
       },
       {
         "id": "fit.variants-compared",
@@ -59,7 +59,7 @@
               "first": { "type": "added_to_cart" },
               "then": { "type": "removed_from_cart" }
             },
-            { "not": { "fact": "dwellSeconds", "block": "size_guide" } },
+            { "not": { "fact": "dwellSeconds", "block": "specifications" } },
             { "not": { "fact": "dwellSeconds", "block": "policies" } }
           ]
         }
