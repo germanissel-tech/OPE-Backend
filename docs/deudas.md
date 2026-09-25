@@ -44,6 +44,8 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)        | `abierta`      | 2026-09-25 | —         |
 | D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `abierta`      | 2026-09-25 | —         |
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `abierta`      | 2026-09-25 | —         |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -106,6 +108,41 @@ Tres cosas que la evaluación descartó, con su motivo:
 
 `03 §9` dice que el piloto **no va a poder decir «qué pasa en otros rubros»**, así que esto no es una
 promesa incumplida: es acople que se decide cargar, con el mapa de dónde está.
+
+**Esa tabla se escribió sin abrir `01`, y dos de sus filas estaban mal.** Al arrancar la feature 028
+se fue a verificarla contra la fuente y apareció lo contrario de lo que decía: el anclaje no estaba
+«mal nombrado» —`01 §3` listaba «dónde están el selector de talle, el de color…»— y la variante no era
+una omisión nuestra, porque `01 §0.1` la definía como «la combinación exacta de talle y color». El
+núcleo no se había acoplado a la vertical: **estaba implementando la fuente con fidelidad.** Renombrar
+sin más habría separado el código de la fuente de verdad #2, que es exactamente el error que la 027
+enseñó a no cometer.
+
+Lo que la verificación sí encontró, y la tabla no tenía:
+
+- **`01` argumentaba a favor del renombre en la misma tabla**: dos filas arriba de «selector de talle»
+  dice que la normalización mínima produce «un vocabulario de eventos **estable, independiente de la
+  plataforma**».
+- **El contrato le debía un anclaje a la fuente**: `01 §3` listaba **cinco** puntos de anclaje y el
+  contrato publica **cuatro** —faltaba el del selector de color—. Generalizar los dos selectores en uno
+  cierra esa deuda sin agregar nada.
+
+Así que el orden correcto era al revés, y se hizo así: **la fuente se evaluó con el dueño y se enmendó
+el 2026-09-25** (catorce líneas en `01`, `02` y `03`; en cada caso lo que el documento decidía era
+genérico y lo que ejemplificaba era ropa, y la enmienda bajó la ropa a ejemplo). Recién con la fuente
+enmendada el renombre alinea en vez de divergir, y eso es la feature 028. La lección, que vale más que
+la fila: **antes de llamar deuda a un acople, hay que verificar si la fuente lo pide.**
+
+D-16 sale de ahí. La enmienda **permitió** que una variante deje de exigir talle y color, pero eso no
+es un renombre: cambia la forma de lo que un merchant envía. La pregunta que hay que contestar antes de
+tocarlo, y que es el trabajo de verdad, es **cómo el claim de calce sabe cuál de los atributos de una
+variante es el que se recomienda** — hoy lo sabe porque el atributo se llama `size`. Se queda afuera de
+la 028 a propósito, que hace sólo los renombres.
+
+D-17 sale del mismo momento, y es incómoda: los documentos del MVP **no están bajo control de
+versiones** —no hay `.git` en su directorio—. La regla que la 027 dejó escrita, «cuando el diseño y la
+fuente no coinciden, se corrige el diseño», se apoya en documentos que pueden cambiar sin que quede
+registro de qué cambió, cuándo ni por qué. La enmienda del 2026-09-25 quedó respaldada con una copia
+fechada a mano (`../*.bak-2026-09-25`), que es mejor que nada y bastante peor que una historia.
 
 D-15 se registró y se descartó el mismo día, y queda acá porque **descartar con el motivo vale más
 que borrar**: un commit de la 027 la nombra y alguien va a venir a buscarla.
