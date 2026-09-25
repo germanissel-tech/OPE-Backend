@@ -186,9 +186,9 @@ familia sin texto en el corpus no se elige, cayendo al escalón de abajo o a `NO
 
 ### Pruebas de US1
 
-- [ ] T035 [P] [US1] `tests/unit/domain/messages/` — `CuratedText` (los cuatro rechazos, incluido el
+- [x] T035 [P] [US1] `tests/unit/domain/messages/` — `CuratedText` (los cuatro rechazos, incluido el
       marcador de interpolación), `MessageOutcome`, la réplica de `VOICES` contra el esquema.
-- [ ] T036 [P] [US1] `tests/unit/application/messages/` — la resolución: idioma de la página, idioma
+- [x] T036 [P] [US1] `tests/unit/application/messages/` — la resolución: idioma de la página, idioma
       de reserva, voz del merchant, voz por defecto, y **que nunca devuelve un texto de otro
       idioma**.
 - [ ] T037 [P] [US1] `tests/unit/domain/selection/` — el gate con la disponibilidad de texto: una
