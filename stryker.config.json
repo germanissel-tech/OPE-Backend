@@ -36,5 +36,6 @@
     "fileName": "reports/mutation/report.json"
   },
   "tempDirName": ".stryker-tmp",
-  "concurrency": 4
+  "$commentConcurrency": "Four runners left eight of twelve cores idle and every run cost minutes (feature 027). Ten leaves two for the checker processes and the editor.",
+  "concurrency": 10
 }

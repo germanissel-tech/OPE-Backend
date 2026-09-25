@@ -27,6 +27,27 @@ paths:
   se publique; `patch-package` lo aplica en `postinstall` y falla si deja de aplicar.
 - Excepciones: en línea y con motivo, como las de lint (`Lint exceptions: N`); en mutación,
   `// Stryker disable next-line <mutador>: <motivo>`.
+- **Los supervivientes que este repo produce una y otra vez**, con lo que mata a cada uno (feature
+  027, donde aparecieron todos juntos al cerrar). Reconocerlos al escribir cuesta menos que triarlos
+  después:
+  - `...(x === undefined ? {} : { x })` sobre un tipo **interno**: los dos brazos son el mismo input
+    y ninguna prueba los distingue. Se declara `x?: T | undefined` y se pasa el valor; la guarda
+    queda **una sola vez**, en el borde donde la ausencia se observa. Restar una excepción es mejor
+    que sumar una.
+  - `a ?? ""` dentro de una clave de búsqueda: lo mata una prueba con dos entradas que difieren
+    **sólo** en esa parte de la clave.
+  - un comparador (`a - b`): lo mata un caso donde el orden de entrada **no** es el ordenado; con la
+    entrada ya ordenada, invertir el comparador no cambia nada.
+  - el `details` de un `DomainError`: se afirma `details`, no sólo `code`.
+  - un piso redundante (`Math.max(0, n - k)` antes de un `slice`): ninguna prueba lo mata porque no
+    hace nada —`slice(-k)` ya lo hace— y la respuesta es borrarlo.
+- **Por historia, el gate acotado**: `npm run test:mutation -- --files <archivo>:<desde>-<hasta>`
+  re-juzga sólo esas líneas mientras el código está fresco; la corrida completa del diff se guarda
+  para el cierre. Sin rangos re-juzga el archivo entero con `--force`, que puede costar más que el
+  diff completo.
+- **Una corrida larga se escribe a un archivo, nunca a una tubería**: pasarla por `tail` descarta lo
+  único que hay que leer y obliga a repetirla. Y no se edita `src/` mientras corre: el veredicto deja
+  de ser del código que quedó.
 - **Ante un mutante que sobrevive, el procedimiento es una skill**: `triaging-mutants`
   (`.claude/skills/triaging-mutants/SKILL.md`). Cuatro pasos en orden —describir el daño observable,
   clasificar el mutante antes de tocar nada, la prueba o la reestructuración según la clase,
