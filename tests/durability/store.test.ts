@@ -7,6 +7,9 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openSqliteStore } from "../../src/infrastructure/sqlite/open-store.js";
 
+/** SQLite own name for a database that never touches disk; the store takes it verbatim. */
+const IN_MEMORY = ":memory:";
+
 describe("the durable store", () => {
   let dir: string;
   let file: string;
@@ -70,6 +73,24 @@ describe("the durable store", () => {
     store.close();
   });
 
+  it("creates the directory holding the file, because SQLite does not", () => {
+    // Found by running the quickstart, not by a test: every test here starts from `mkdtemp`, so
+    // the directory always existed. `npm run dev` on a fresh clone has no `data/`, and SQLite
+    // answered "unable to open database file" — naming neither the path nor what was missing.
+    const nested = path.join(dir, "deeper", "still", "ope.db");
+    const store = openSqliteStore({ file: nested });
+    store.run("INSERT INTO exposures (merchant_id, decision_id, document) VALUES (:m, :d, :doc)", {
+      m: "m-1",
+      d: "d-1",
+      doc: "{}",
+    });
+    store.close();
+    const reopened = openSqliteStore({ file: nested });
+    expect(reopened.all("SELECT document FROM exposures")).toHaveLength(1);
+    // Closed before the teardown: on Windows a directory holding an open file cannot be removed.
+    reopened.close();
+  });
+
   it("says so when the build has no migration to apply", () => {
     const empty = mkdtempSync(path.join(tmpdir(), "ope-no-migrations-"));
     writeFileSync(path.join(empty, "notes.txt"), "not a migration");
@@ -78,5 +99,72 @@ describe("the durable store", () => {
     } finally {
       rmSync(empty, { recursive: true, force: true });
     }
+  });
+
+  it("puts a file in WAL, and leaves a memory database alone", () => {
+    // WAL is what lets a read run while a write is in flight and what survives a process that
+    // dies mid-write, so it is not decoration: a store that quietly fell back to the rollback
+    // journal would behave differently exactly when it matters.
+    const onDisk = openSqliteStore({ file });
+    expect(onDisk.all("PRAGMA journal_mode")).toEqual([{ journal_mode: "wal" }]);
+    onDisk.close();
+
+    const inMemory = openSqliteStore({ file: IN_MEMORY });
+    expect(inMemory.all("PRAGMA journal_mode")).toEqual([{ journal_mode: "memory" }]);
+    inMemory.close();
+  });
+
+  describe("a build with more than one migration", () => {
+    let schema: string;
+
+    /** Writes `NNN-<name>.sql`; each one leaves the schema at its own version. */
+    const migration = (n: string, sql: string): void => {
+      writeFileSync(path.join(schema, `${n}-step.sql`), `${sql}\nPRAGMA user_version = ${Number(n)};\n`);
+    };
+
+    beforeEach(() => {
+      schema = mkdtempSync(path.join(tmpdir(), "ope-migrations-"));
+    });
+
+    afterEach(() => {
+      rmSync(schema, { recursive: true, force: true });
+    });
+
+    it("applies them in the order of their number and expects the last one's version", () => {
+      // The order is not decoration either: the second one here alters what the first created, so
+      // running them the other way round fails outright.
+      migration("001", "CREATE TABLE step (a TEXT);");
+      migration("002", "ALTER TABLE step ADD COLUMN b TEXT;");
+
+      const store = openSqliteStore({ file, migrations: schema });
+      store.run("INSERT INTO step (a, b) VALUES (:a, :b)", { a: "1", b: "2" });
+      expect(store.all("PRAGMA user_version")).toEqual([{ user_version: 2 }]);
+      store.close();
+    });
+
+    it("refuses a build whose migration numbers skip one", () => {
+      // A gap is what a migration lost in a merge looks like, and applying the rest would leave a
+      // schema nobody described. It is found because the versions are asked for in turn.
+      migration("001", "CREATE TABLE step (a TEXT);");
+      migration("003", "CREATE TABLE later (b TEXT);");
+
+      expect(() => openSqliteStore({ file, migrations: schema })).toThrow(
+        /No migration 2 in .*: the versions of the schema skip one/,
+      );
+    });
+
+    it("refuses a build whose migrations do not leave the version their names announce", () => {
+      // A migration named 002 that forgets to bump `user_version` leaves the store one version
+      // behind for ever, and every later start would try to apply it again.
+      writeFileSync(
+        path.join(schema, "001-step.sql"),
+        "CREATE TABLE step (a TEXT);\nPRAGMA user_version = 1;\n",
+      );
+      writeFileSync(path.join(schema, "002-step.sql"), "ALTER TABLE step ADD COLUMN b TEXT;\n");
+
+      expect(() => openSqliteStore({ file, migrations: schema })).toThrow(
+        /leave schema version 1, not the 2 their names announce/,
+      );
+    });
   });
 });

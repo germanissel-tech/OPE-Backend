@@ -209,26 +209,56 @@ reinicio y la próxima publicación.
 
 ## Phase 5: Cierre
 
-- [ ] T023 `tests/integration/ingest-latency.test.ts` — correrla **con el almacén durable** y dejar el
+- [x] T023 `tests/integration/ingest-latency.test.ts` — correrla **con el almacén durable** y dejar el
       p50 y el p95 **anotados y fechados** en el quickstart. No es un adorno: es el número que decide
       si «desacoplar la aceptación del ledger» sube de prioridad en el hito (research R-01), y el
       quickstart es el único lugar donde queda.
-- [ ] T024 `docs/adr/0NN-*.md` — el ADR de la decisión transversal: **por qué la escritura durable
+      **Medido y anotado en el quickstart, fechado** (y en ADR-038): memoria p95 0,90–1,35 ms,
+      SQLite p95 1,94–2,72 ms, **diferencia de 1,0 a 1,4 ms** sobre un presupuesto de 150 ms. La
+      prueba mide **los dos perfiles en la misma corrida**, porque una cifra absoluta de una máquina
+      no dice nada. **Conclusión: «desacoplar la aceptación» no sube de prioridad**, y ahora eso se
+      apoya en una tabla y no en una intuición.
+- [x] T024 `docs/adr/0NN-*.md` — el ADR de la decisión transversal: **por qué la escritura durable
       queda en el camino crítico** pese a `01 §P9`, con el argumento de trazabilidad (IX) que impide
       desacoplar a la ligera y el número de T023 como disparador. Se escribe al cerrar, cuando los
       identificadores existen.
-- [ ] T025 `docs/deudas.md` — D-21 se queda `abierta` y gana la referencia a esta feature; si
+      **ADR-038**, con el número de T023 como disparador y las dos cosas que ese número **no** dice:
+      está medido con `fastify.inject`, que saltea la red, y con un solo proceso.
+- [x] T025 `docs/deudas.md` — D-21 se queda `abierta` y gana la referencia a esta feature; si
       aparecen deudas nuevas, sus filas.
-- [ ] T026 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión. La
+      D-21 gana la referencia y **las tres cosas concretas que quedaron apoyadas en «un solo
+      proceso»**, medidas al implementar: `rowid` como orden de inserción (no existe en PostgreSQL),
+      el primero/repetido/conflicto como `SELECT` + `INSERT` en transacción, y `changes()` para la
+      idempotencia. No son deudas nuevas: son lo que el gateway de PostgreSQL tendrá que resolver, y
+      escribirlas ahora evita que se redescubran.
+- [x] T026 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión. La
       hipótesis es que sí hace falta algo: dónde vive un driver y por qué un gateway no lo importa es
       una regla acotada que llega cuando alguien toca `src/interface-adapters/*/gateways/`.
-- [ ] T027 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
+      **Sí hizo falta**: `.claude/rules/gateway-durable.md`, con su puntero en CLAUDE.md (190 de 200
+      líneas) y su clase en `instructions-policy.json`. El motivo es el punto 3 de la regla —al leer,
+      toda clase anidada se rehidrata—, que es un fallo **silencioso**: se ve bien en toda lectura y
+      falla en la única escritura que importa. Casi lo cometo con `Money`.
+- [x] T027 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
       `check:language`, `check:behaviour-constants`, `check:ports-bound` — los siete, uno por uno.
-- [ ] T028 Correr el quickstart **entero**, sus siete pasos, y dejar su tabla de estado **fechada**.
+      Los siete verdes.
+- [x] T028 Correr el quickstart **entero**, sus siete pasos, y dejar su tabla de estado **fechada**.
       El paso 7 no lo decide ningún comando: abrir el almacén y leer una fila del ledger como lo haría
       alguien que está discutiendo una cifra y no tiene el código a mano.
-- [ ] T029 Cadena completa como CI, con `build` antes de `test:contract`.
-- [ ] T030 `npm run test:mutation`. Los gateways nuevos son código con ramas —traducir un fallo del
+      **Corrido entero, y el paso 3 encontró un defecto que ninguna prueba encontraba**: SQLite crea
+      el archivo pero no el directorio, y toda prueba arranca de `mkdtemp`, así que el directorio
+      siempre existía. `npm run dev` sobre un clon limpio moría con «unable to open database file»,
+      que no nombra ni la ruta ni qué falta. Arreglado, con su prueba. El paso 7 se hizo con una fila
+      real, ingestada por HTTP contra `npm run dev` y leída abriendo el archivo.
+- [x] T029 Cadena completa como CI, con `build` antes de `test:contract`.
+      Verde entera sobre Node 24: 7 gates, 1380 + 44 + 84 pruebas, 30/30 operaciones y 10 461
+      casos de contrato, `release-check` OK.
+      **Y encontró un defecto que no era de esta feature**: `capture()` de `scripts/lib.mjs` usaba
+      el `maxBuffer` por defecto de Node (1 MiB), y el grafo de dependencias de `src/` como JSON lo
+      pasó al crecer el repositorio. `spawnSync` falla con `ENOBUFS` en vez de truncar, así que el
+      gate `arch` de la auditoría se reportaba **degradado** con una traza de
+      `node:internal/child_process` como motivo. Arreglado ahí y en las dos skills, que tenían el
+      mismo riesgo latente.
+- [x] T030 `npm run test:mutation`. Los gateways nuevos son código con ramas —traducir un fallo del
       almacén a `LedgerUnavailable` es una— así que acá el gate tiene de qué agarrarse, a diferencia
       de un renombre.
 
@@ -276,3 +306,31 @@ Uno por T001 (el salto de Node, solo), uno por historia, y los del cierre.
   guardado se lea igual; ésa verifica que **el sistema decida igual**, que es otra cosa.
 - **Lo que este plan no puede verificar**: que SQLite se comporte como PostgreSQL bajo concurrencia.
   Está en **D-21** con su motivo y su fecha, y ninguna tarea de acá lo promete.
+
+      **46 supervivientes, y el triaje es la historia de esta tarea.** La skill `triaging-mutants`,
+      en sus cuatro pasos. Por clase:
+
+      - **Equivalentes que se reestructuraron** (la mayoría): los cinco
+        `...(x === undefined ? {} : { x })` de `record()` —el superviviente que la regla de gates ya
+        tenía catalogado, resuelto como `Order` ya lo hacía—; la rama
+        `params === undefined` del almacén, porque `{...undefined}` es `{}` y el driver responde
+        igual; la guarda «esto es un objeto» de `rowOf`, que re-verificaba lo que el tipo del driver
+        ya dice; y dos condiciones de `isMarkedDate` que **decían de más**: si hay una sola clave y
+        su valor es un string bajo `$date`, esa clave **es** `$date`, y preguntar `typeof === object`
+        no lo distingue de nada. El `sort` de las migraciones se reemplazó por pedir las versiones
+        1..N en orden, que no necesita comparador y además encuentra un hueco.
+      - **Reales, con su prueba**: `document.ts` no tenía ninguna y es el truco central de la
+        feature —ahora tiene ocho, sobre todo de **qué no debe confundirse con un instante**,
+        incluido `evidence: { truth: "known" }`, que el ledger lleva de verdad—; el modo WAL; el
+        orden de dos migraciones y la versión que dejan; y un `find` de exposición que no encuentra
+        nada.
+      - **Específicos del runner** (cuatro): abrir el almacén corre en un hook, así que el runner de
+        vitest no los activa de forma fiable (ADR-016, la misma familia que **D-12**). Se verificó
+        **aplicando el mutante a mano**: mata dos pruebas. Excepción en línea con ese motivo.
+
+      **Un error propio que conviene dejar escrito**: clasifiqué dos mutantes por razonamiento y me
+      equivoqué en los dos —el de `keys[0] === DATE_KEY` y el del comparador—. Aplicarlos a mano es
+      lo que lo dijo, y es lo que el paso 1 de la skill pide: describir el daño **observable**, no
+      el que uno supone.
+
+      **Resultado: todo mutante del diff muere.**

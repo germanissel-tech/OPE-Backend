@@ -26,7 +26,9 @@ import { loadProfile, ProfileError } from "../../auditing-architecture/scripts/p
  * @returns {{ ok: boolean; stdout: string; stderr: string }}
  */
 function sh(root, command) {
-  const r = spawnSync(command, { cwd: root, encoding: "utf8", shell: true });
+  // 64 MiB: Node default is 1 MiB, and a gate that prints more fails with `ENOBUFS` instead of
+  // being truncated — the doctor would report it degraded for a reason that is not about the gate.
+  const r = spawnSync(command, { cwd: root, encoding: "utf8", shell: true, maxBuffer: 64 * 1024 * 1024 });
   return { ok: r.status === 0, stdout: r.stdout, stderr: r.stderr };
 }
 

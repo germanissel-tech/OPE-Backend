@@ -141,6 +141,21 @@
           "kind": "normative"
         }
       ]
+    },
+    {
+      "file": ".claude/rules/gateway-durable.md",
+      "role": "rule",
+      "paths": ["src/interface-adapters/*/gateways/**", "src/infrastructure/sqlite/**", "migrations/**"],
+      "sections": [
+        {
+          "heading": "Cómo se escribe un gateway durable (feature 030; ADR-021, ADR-024, ADR-038)",
+          "kind": "normative"
+        },
+        {
+          "heading": "El esquema y sus migraciones",
+          "kind": "normative"
+        }
+      ]
     }
   ],
   "exceptions": [

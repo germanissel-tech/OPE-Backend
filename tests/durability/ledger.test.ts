@@ -151,6 +151,17 @@ describe("the exposure ledger across a restart", () => {
     expect(found?.exposedAt).toBeInstanceOf(Date);
   });
 
+  it("says nothing when there is no exposure for that decision", async () => {
+    // The empty answer has its own case because it is a different path through the gateway: with
+    // no row there is no document to read, and reading one anyway is what a store returns
+    // `undefined` for.
+    expect(await exposures().find(MERCHANT, asDecisionId("dec_00000009"))).toBeUndefined();
+
+    fixture.restart();
+
+    expect(await exposures().find(MERCHANT, asDecisionId("dec_00000009"))).toBeUndefined();
+  });
+
   it("does not let one merchant's exposure block another's", async () => {
     await exposures().record(exposureOf("dec_00000003", MERCHANT));
 

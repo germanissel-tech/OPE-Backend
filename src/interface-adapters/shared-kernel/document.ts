@@ -30,10 +30,16 @@ interface MarkedDate {
  */
 export function toDocument(value: unknown): string {
   if (value instanceof Date) return JSON.stringify(mark(value));
-  return JSON.stringify(value, function (this: unknown, key: string, converted: unknown): unknown {
-    const original: unknown = isObject(this) ? this[key] : undefined;
-    return original instanceof Date ? mark(original) : converted;
-  });
+  // `this` is the container the key belongs to, and `JSON.stringify` only ever passes an object
+  // or an array — the root arrives wrapped in one too. So it is typed rather than guarded: a
+  // guard for a case that cannot happen is a branch no test can take.
+  return JSON.stringify(
+    value,
+    function (this: Record<string, unknown>, key: string, converted: unknown): unknown {
+      const original: unknown = this[key];
+      return original instanceof Date ? mark(original) : converted;
+    },
+  );
 }
 
 /**
@@ -50,12 +56,21 @@ export function fromDocument(text: string): unknown {
 
 const mark = (date: Date): MarkedDate => ({ [DATE_KEY]: date.toISOString() });
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-/** Exactly one field, and it is the mark: nothing the domain carries looks like this. */
+/**
+ * Exactly one field, and it is the mark: nothing the domain carries looks like this.
+ *
+ * **It reads the field instead of asking what kind of thing it is**, and each of the two
+ * remaining checks is one a value can actually fail. Asking `typeof value === "object"` first was
+ * a guard for the compiler that no input could distinguish — a number, a string and an array all
+ * answer `undefined` to `[DATE_KEY]` — and comparing the *name* of the single field said nothing
+ * either: if there is one key and its value is a string under `DATE_KEY`, that key **is**
+ * `DATE_KEY`. Both were found by mutants nothing could kill.
+ *
+ * `null` is the one that has to be asked, because reading any field of it throws — and a record
+ * with an absent value is most records.
+ */
 function isMarkedDate(value: unknown): value is MarkedDate {
-  if (!isObject(value) || Array.isArray(value)) return false;
-  const keys = Object.keys(value);
-  return keys.length === 1 && keys[0] === DATE_KEY && typeof value[DATE_KEY] === "string";
+  if (value === null) return false;
+  const marked = value as Partial<MarkedDate>;
+  return typeof marked[DATE_KEY] === "string" && Object.keys(marked).length === 1;
 }

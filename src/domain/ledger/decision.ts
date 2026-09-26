@@ -84,22 +84,22 @@ export interface DecisionFacts {
   /** The three versions the decision was taken with (01 §14.2): platform, treatment defaults and, if any, the merchant's. */
   configuration: ConfigurationVersions;
   /** `calibration` while the open experiment is calibrating (03 §4.10); absent in accumulation or without an experiment. */
-  phase?: DecisionPhase;
+  phase?: DecisionPhase | undefined;
   /** The experiment and arm the visitor was assigned to; absent when the merchant has no active experiment. */
-  experiment?: DecisionExperiment;
+  experiment?: DecisionExperiment | undefined;
   /** Absent only when the plane did not get to infer (no product in focus, ledger down before deciding). */
-  inference?: DecisionInference;
+  inference?: DecisionInference | undefined;
   /** Absent when the plane did not get to select (no inference, or no barrier to select for). */
-  selection?: DecisionSelection;
+  selection?: DecisionSelection | undefined;
   /** Language of the page in focus (BCP 47), so the message catalogue can pick the text; absent when the SDK did not read one. */
-  locale?: string;
+  locale?: string | undefined;
 }
 
 /** A decision as the ledger stores it: the facts plus the outcome and what the outcome carries. */
 export interface DecisionRecord extends DecisionFacts {
   outcome: DecisionOutcome;
   reason: string;
-  intervention?: Intervention;
+  intervention?: Intervention | undefined;
 }
 
 export abstract class DecisionBase implements DecisionFacts {
@@ -147,8 +147,14 @@ export abstract class DecisionBase implements DecisionFacts {
 
   /**
    * The record as a ledger would store it: the counterpart of `rehydrate`, so a store never has
-   * to know which optional fields this class happens to assign. What was never set is absent, not
-   * present and undefined, which is what makes a written document read back identical.
+   * to know which optional fields this class happens to assign.
+   *
+   * **A field it never had travels as `undefined`, not as an absent key**, and the two are the
+   * same thing here: `JSON.stringify` drops both, and the constructor only assigns what is not
+   * `undefined`. Guarding each one —`...(x === undefined ? {} : { x })`— would write the same
+   * document through two branches no test could tell apart, which is the shape of survivor this
+   * repository keeps producing (`.claude/rules/gates-de-calidad.md`). `Order.record` was already
+   * written this way.
    */
   record(): DecisionRecord {
     return {
@@ -160,12 +166,12 @@ export abstract class DecisionBase implements DecisionFacts {
       configuration: this.configuration,
       outcome: this.outcome,
       reason: this.reason,
-      ...(this.phase === undefined ? {} : { phase: this.phase }),
-      ...(this.experiment === undefined ? {} : { experiment: this.experiment }),
-      ...(this.inference === undefined ? {} : { inference: this.inference }),
-      ...(this.selection === undefined ? {} : { selection: this.selection }),
-      ...(this.locale === undefined ? {} : { locale: this.locale }),
-      ...(this.isIntervention() ? { intervention: this.intervention } : {}),
+      phase: this.phase,
+      experiment: this.experiment,
+      inference: this.inference,
+      selection: this.selection,
+      locale: this.locale,
+      intervention: this.isIntervention() ? this.intervention : undefined,
     };
   }
 
