@@ -9,15 +9,21 @@ value:
           value: regular
       variants:
         - variantId: SKU-1-M-BLACK
-          size: M
-          color: black
+          attributes:
+            - key: size
+              value: M
+            - key: color
+              value: black
           available: true
           price:
             amount: "19990.00"
             currency: ARS
         - variantId: SKU-1-L-BLACK
-          size: L
-          color: black
+          attributes:
+            - key: size
+              value: L
+            - key: color
+              value: black
           available: false
           price:
             amount: "19990.00"

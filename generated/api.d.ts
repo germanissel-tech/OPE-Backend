@@ -833,15 +833,17 @@ export type components = {
             type: "block_dwelled";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /** @description A key/value pair as the platform exposes it, with no normalisation. Shared by the product and its variants so the shape is written once: a garment sends fabric and care, an appliance sends capacity and finish, and OPE does not need to know which is which. */
+        CatalogAttribute: {
+            /** @description Attribute key as the platform names it. */
+            key: string;
+            /** @description Attribute value as text. */
+            value: string;
+        };
         /** @description A product of the catalogue as the platform exposes it, with its variants nested. */
         CatalogProduct: {
             /** @description Key/value pairs as the platform exposes them (fit, material, care); no normalisation. */
-            attributes?: {
-                /** @description Attribute key as the platform names it. */
-                key: string;
-                /** @description Attribute value as text. */
-                value: string;
-            }[];
+            attributes?: components["schemas"]["CatalogAttribute"][];
             /** @description The product identifier as the platform exposes it (the one the SDK resolves on the page). */
             productId: string;
             /** @description Display title of the product, as the platform shows it. */
@@ -880,15 +882,13 @@ export type components = {
             /** @description Number of variants across every product. */
             variants: number;
         };
-        /** @description The exact combination of size and colour: the only level at which truth exists (01 §0.1). */
+        /** @description The exact combination of attributes that defines a sellable item — in apparel, size and colour: the only level at which truth exists (01 §0.1). What identifies it is its id; the attributes say what tells it apart from its siblings, so a single variant may declare none. */
         CatalogVariant: {
+            /** @description Key/value pairs that tell this variant apart from its siblings, as the platform exposes them; no normalisation. */
+            attributes?: components["schemas"]["CatalogAttribute"][];
             /** @description Availability as a guard (01 §4.3): `false` means 'do not recommend'; no quantity travels. */
             available: boolean;
-            /** @description Colour label as the platform shows it. */
-            color: string;
             price: components["schemas"]["Money"];
-            /** @description Size label as the platform shows it (S, M, 42, …). */
-            size: string;
             /** @description The variant identifier as the platform exposes it; unique across the snapshot. */
             variantId: string;
         };

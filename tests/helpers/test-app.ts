@@ -360,15 +360,17 @@ export function catalogProductOf(
   variants = 1,
   over: Record<string, unknown> = {},
 ): Record<string, unknown> {
-  const sizes = ["M", "L", "S", "XL"];
+  const axes = ["M", "L", "S", "XL"];
   return {
     productId: id,
     title: `Product ${id}`,
     attributes: [{ key: "fit", value: "regular" }],
     variants: Array.from({ length: variants }, (_, i) => ({
-      variantId: `${id}-${sizes[i % sizes.length] ?? "M"}${i >= sizes.length ? String(i) : ""}`,
-      size: sizes[i % sizes.length] ?? "M",
-      color: "black",
+      variantId: `${id}-${axes[i % axes.length] ?? "M"}${i >= axes.length ? String(i) : ""}`,
+      attributes: [
+        { key: "size", value: axes[i % axes.length] ?? "M" },
+        { key: "color", value: "black" },
+      ],
       available: true,
       price: { amount: "19990.00", currency: "ARS" },
     })),

@@ -29,12 +29,12 @@ nunca se editan a mano.**
 
 ## Phase 1: Setup — lo que va antes del contrato
 
-- [ ] T001 `docs/dominio/variante.md` — la cita pasa a ser la que la fuente dice **hoy** («la
+- [x] T001 `docs/dominio/variante.md` — la cita pasa a ser la que la fuente dice **hoy** («la
       combinación exacta de atributos que define un artículo vendible — en indumentaria, talle y
       color»), y el cuerpo deja de enumerar talle y color entre los campos del catálogo. ADR-008: la
       nota va **antes** de que el contrato cambie. Es la única nota del glosario que cita texto que la
       enmienda del 2026-09-25 borró, verificado contra el diff (research R-05).
-- [ ] T002 `contracts/api-map.yaml` — **verificar que no cambia**: la variante viaja dentro del cuerpo
+- [x] T002 `contracts/api-map.yaml` — **verificar que no cambia**: la variante viaja dentro del cuerpo
       de una operación que ya existe, así que ninguna se agrega, retira ni cambia de forma.
       `check:api-map` es el gate.
 
@@ -52,54 +52,60 @@ uno con la forma vieja, rechazado; y una decisión sobre ese catálogo, idéntic
 
 ### El contrato
 
-- [ ] T003 [US1] `contracts/components/schemas/CatalogAttribute.yaml` — **nuevo**: el par clave/valor
+- [x] T003 [US1] `contracts/components/schemas/CatalogAttribute.yaml` — **nuevo**: el par clave/valor
       tal como la plataforma lo expone, sin normalización. Es **exactamente** la forma que
       `CatalogProduct` define hoy en línea: clave hasta 64, valor hasta 512, los dos requeridos,
       `additionalProperties: false`.
-- [ ] T004 [US1] `contracts/components/schemas/CatalogProduct.yaml` — su lista de atributos pasa a
+- [x] T004 [US1] `contracts/components/schemas/CatalogProduct.yaml` — su lista de atributos pasa a
       referenciar el componente en vez de definirlo en línea. **El esquema efectivo no debe cambiar**:
       si `contract:diff` reporta algo sobre el producto, la extracción se hizo mal. Es la verificación
       que convierte esto en un cambio seguro y no en un trámite.
-- [ ] T005 [US1] `contracts/components/schemas/CatalogVariant.yaml` — **pierde** los dos campos de
+      **Verificado**: `contract:diff` no reporta **nada** sobre los atributos del producto; los dos
+      únicos cambios que lista son los campos de la variante, que es lo que la feature viene a hacer.
+- [x] T005 [US1] `contracts/components/schemas/CatalogVariant.yaml` — **pierde** los dos campos de
       indumentaria de `properties` y de `required`; **gana** `attributes`, opcional, lista de hasta 64
       con `$ref` al componente nuevo. La descripción deja de decir «la combinación exacta de talle y
       color» y dice lo que la fuente dice desde la enmienda.
-- [ ] T006 [P] [US1] `contracts/examples/catalog-snapshot.yaml` — las variantes del ejemplo declaran
+- [x] T006 [P] [US1] `contracts/examples/catalog-snapshot.yaml` — las variantes del ejemplo declaran
       atributos. Es lo que un integrador copia primero, así que si el ejemplo sigue mostrando talles,
       el contrato dice una cosa y enseña otra.
-- [ ] T007 [US1] `contracts/openapi.yaml` — `info.version` a la **MINOR** siguiente. Incompatible, y
+- [x] T007 [US1] `contracts/openapi.yaml` — `info.version` a la **MINOR** siguiente. Incompatible, y
       entra por la marca `info.x-stability: building` (ADR-003).
-- [ ] T008 [US1] `npm run contract:check` y `npm run contract:types`. **Nunca editar lo generado.**
+- [x] T008 [US1] `npm run contract:check` y `npm run contract:types`. **Nunca editar lo generado.**
 
 ### El código
 
-- [ ] T009 [US1] `src/domain/catalog/catalog-snapshot.ts` — la interfaz de la variante lleva
+- [x] T009 [US1] `src/domain/catalog/catalog-snapshot.ts` — la interfaz de la variante lleva
       `attributes: readonly Attribute[]`, **reusando la interfaz `Attribute` que el módulo ya
       exporta** (research R-06). Ningún tipo nuevo: es el mismo concepto.
-- [ ] T010 [US1] `src/domain/catalog/catalog-snapshot.ts` — la huella de contenido serializa los
+- [x] T010 [US1] `src/domain/catalog/catalog-snapshot.ts` — la huella de contenido serializa los
       atributos de la variante **igual que los del producto**, que lo hace una línea más arriba en la
       misma función. Es la única línea de la feature que cambia comportamiento.
-- [ ] T011 [US1] `src/interface-adapters/catalog/controllers/upsert-catalog-snapshot.ts` — la
+- [x] T011 [US1] `src/interface-adapters/catalog/controllers/upsert-catalog-snapshot.ts` — la
       traducción del DTO al dominio sigue al contrato.
 
 ### Pruebas de US1
 
-- [ ] T012 [P] [US1] `tests/helpers/test-app.ts` — el constructor de variantes deja de recibir un
+- [x] T012 [P] [US1] `tests/helpers/test-app.ts` — el constructor de variantes deja de recibir un
       talle y recibe atributos. Es el que usan casi todas las demás, así que arreglarlo primero es lo
       que hace mecánico el resto.
-- [ ] T013 [US1] `tests/integration/catalog.test.ts` — **prueba nueva**: un catálogo cuyas variantes
+- [x] T013 [US1] `tests/integration/catalog.test.ts` — **prueba nueva**: un catálogo cuyas variantes
       declaran atributos que no son de indumentaria se acepta y su verdad de producto queda legible; y
       uno con los campos viejos recibe `400` nombrando el campo. Es lo que convierte «una tienda que no
       vende ropa puede publicar» en algo verificable.
-- [ ] T014 [US1] `tests/unit/domain/catalog/catalog-snapshot.test.ts` — **prueba nueva**: dos
+- [x] T014 [US1] `tests/unit/domain/catalog/catalog-snapshot.test.ts` — **prueba nueva**: dos
       instantáneas del mismo instante cuyas variantes difieren **sólo** en un atributo **no** son el
       mismo contenido; dos idénticas sí. Cubre el único cambio de comportamiento (constitución VI), y
-      hasta hoy ese caso sólo se notaba si cambiaba el talle o el color.
-- [ ] T015 [US1] El resto de `tests/` que construye variantes: `catalog-size.test.ts`,
+      hasta hoy ese caso sólo se notaba si cambiaba el talle o el color. Se agregó también el caso
+      **reordenado**, que el precedente del producto ya decidía: reordenar atributos es contenido
+      distinto, y escribirlo evita que alguien invente después una segunda semántica de igualdad.
+- [x] T015 [US1] El resto de `tests/` que construye variantes: `catalog-size.test.ts`,
       `ingest-events.test.ts`, `product-truth.service.test.ts`,
       `upsert-catalog-snapshot.use-case.test.ts`, `decision.service.test.ts`. **Ninguna cambia de
       expectativa**: si alguna necesita cambiar lo que espera, no era un cambio de forma y hay que
-      parar a mirar por qué.
+      parar a mirar por qué. **Ninguna lo necesitó**: las tres que fallaron al principio lo hicieron
+      por la **forma** del dato —dos aserciones de catálogo y la versión del contrato en el health—, no
+      por lo que esperaban.
 
 **Checkpoint**: una plataforma de cualquier rubro publica su catálogo sin inventar nada.
 

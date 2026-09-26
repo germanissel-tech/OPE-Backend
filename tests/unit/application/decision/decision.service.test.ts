@@ -78,15 +78,19 @@ const snapshot = CatalogSnapshot.rehydrate({
       variants: [
         {
           variantId: asVariantId("SKU-1-M"),
-          size: "M",
-          color: "black",
+          attributes: [
+            { key: "size", value: "M" },
+            { key: "color", value: "black" },
+          ],
           available: true,
           price: Money.rehydrate({ amount: "10.00", currency: "USD" }),
         },
         {
           variantId: asVariantId("SKU-1-L"),
-          size: "L",
-          color: "black",
+          attributes: [
+            { key: "size", value: "L" },
+            { key: "color", value: "black" },
+          ],
           available: false,
           price: Money.rehydrate({ amount: "10.00", currency: "USD" }),
         },

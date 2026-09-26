@@ -46,9 +46,84 @@ describe("PUT /v1/catalog", () => {
     const truth = await app.resolve(ProductTruthPort).lookup(A, asProductId("P2"), asVariantId("P2-M"));
     expect(truth).toMatchObject({
       kind: "known",
-      variant: { size: "M", available: true },
+      variant: {
+        attributes: [
+          { key: "size", value: "M" },
+          { key: "color", value: "black" },
+        ],
+        available: true,
+      },
       stockAndPrice: "fresh",
     });
+  });
+
+  it("a shop that does not sell clothes publishes its catalogue, and the old shape is refused (feature 029)", async () => {
+    // The story of the feature, executable: nothing obligatory asks a platform for something its
+    // world does not have. An appliance declares capacity and finish; a garment declares size and
+    // colour; the backend does not need to know which is which.
+    const fridge = catalogProductOf("P1", 1, {
+      title: "Fridge",
+      variants: [
+        {
+          variantId: "P1-380-INOX",
+          attributes: [
+            { key: "capacity", value: "380 L" },
+            { key: "finish", value: "stainless steel" },
+          ],
+          available: true,
+          price: { amount: "899990.00", currency: "ARS" },
+        },
+      ],
+    });
+    const res = await putCatalog(
+      app.app,
+      { capturedAt: CAPTURED, products: [fridge] },
+      { platformKey: PLATFORM_A },
+    );
+    expect(res.statusCode).toBe(201);
+    const truth = await app
+      .resolve(ProductTruthPort)
+      .lookup(A, asProductId("P1"), asVariantId("P1-380-INOX"));
+    expect(truth).toMatchObject({
+      kind: "known",
+      variant: {
+        attributes: [
+          { key: "capacity", value: "380 L" },
+          { key: "finish", value: "stainless steel" },
+        ],
+      },
+    });
+
+    // A variant with nothing to declare is legitimate: what identifies it is its id.
+    const bare = catalogProductOf("P2", 1, {
+      variants: [{ variantId: "P2-ONE", available: true, price: { amount: "1000.00", currency: "ARS" } }],
+    });
+    const plain = await putCatalog(
+      app.app,
+      { capturedAt: "2026-09-18T11:59:30.000Z", products: [bare] },
+      { platformKey: PLATFORM_A },
+    );
+    expect(plain.statusCode).toBe(201);
+
+    // And the shape the contract used to demand is refused naming the field.
+    const apparel = catalogProductOf("P3", 1, {
+      variants: [
+        {
+          variantId: "P3-M",
+          size: "M",
+          color: "black",
+          available: true,
+          price: { amount: "1.00", currency: "ARS" },
+        },
+      ],
+    });
+    const old = await putCatalog(
+      app.app,
+      { capturedAt: "2026-09-18T11:59:45.000Z", products: [apparel] },
+      { platformKey: PLATFORM_A },
+    );
+    expect(old.statusCode).toBe(400);
+    expect(problemOf(old).errors?.map((e) => e.pointer)).toContain("/body/products/0/variants/0/size");
   });
 
   it("a store that cannot keep the snapshot → 503 ledger-unavailable with Retry-After, nothing replaced (F-044, ADR-021)", async () => {
@@ -120,8 +195,7 @@ describe("PUT /v1/catalog", () => {
             variants: [
               {
                 variantId: "P1-M",
-                size: "M",
-                color: "black",
+                attributes: [{ key: "size", value: "M" }],
                 available: true,
                 price: { amount: "1.00", currency: "ARS" },
               },
