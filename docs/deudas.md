@@ -31,7 +31,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | ---- | ------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
 | D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
 | D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `evaluada`     | 2026-09-21 | —         |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
 | D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
 | D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
 | D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
@@ -44,11 +44,21 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan              | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
 | D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `abierta`      | 2026-09-25 | —         |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `evaluada`     | 2026-09-25 | —         |
 | D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
+
+D-03 se **descartó el 2026-09-25**, en la evaluación de las deudas abiertas, y el motivo es de la
+constitución y no de conveniencia: Governance pide que toda complejidad añadida se justifique frente a
+la tesis del MVP —«¿contribuye a producir un número confiable de contribución incremental?»— y un
+scaffold para **otros** backends no contribuye. No es que esté mal hecho ni que falte: no es deuda de
+este producto. La idea sigue viva fuera de este registro; lo que deja de ser cierto es que OPE tenga
+algo pendiente por ella.
+
+Que haya estado cuatro días en `evaluada` sin que nadie la mirara es la señal: una fila que nadie
+puede cerrar porque no depende de este producto ensucia el registro cada vez que se lo revisa.
 
 D-12 estaba anotada en la decisión de ADR-016 del 2026-09-21 —«deuda anotada para la feature de
 calidad»— y nunca llegó al registro: exactamente el efecto que la feature 026 vino a corregir.
