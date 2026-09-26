@@ -9,21 +9,42 @@ import { buildServer } from "../infrastructure/http/build-server.js";
 import { ConfigError, type AppConfig } from "./config.js";
 import { assertEveryOperationWired } from "./coverage.js";
 import { localDeployment } from "./deployments/local.js";
-import { instantiate, type Closable, type Deployment, type Instance, type Override } from "./graph/index.js";
+import {
+  instantiate,
+  type Closable,
+  type Deployment,
+  type Instance,
+  type Label,
+  type Override,
+} from "./graph/index.js";
 import { ImportConfigurationPort } from "./modules/configuration.js";
 import { ImportExperimentsPort } from "./modules/experiment.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
 import { LoggerPort } from "./modules/shared-kernel.js";
-import { ContractPort } from "./release.js";
+import { ContractPort, type SqlStorePort } from "./release.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
-/** What the local deployment provides; a deployment that provides less does not compile here. */
-export type LocalComponents = ReturnType<typeof localDeployment> extends Deployment<infer P> ? P : never;
+/**
+ * What a deployment has to provide for the boot to work: everything the local one provides, plus
+ * the store a durable deployment adds.
+ *
+ * **Why the store is in the union although the local deployment has none.** `Deployment<P>` carries
+ * `P` in a covariant position, so a deployment providing *more* is assignable to a `Deployment` of
+ * *less* — never the other way round. That direction is the check that matters: a deployment that
+ * provides **less** does not compile here, which is what keeps a module from being forgotten. But
+ * it also means the type has to name the widest set, or the durable deployment would be rejected
+ * for providing one component too many.
+ *
+ * The label is read off the port rather than written, so renaming the port cannot leave this
+ * behind agreeing with nothing.
+ */
+export type DeployedComponents =
+  (ReturnType<typeof localDeployment> extends Deployment<infer P> ? P : never) | Label<typeof SqlStorePort>;
 
 export interface BootstrapOverrides {
   /** The deployment that builds the components; the local one unless a caller says otherwise. */
-  deployment?: (config: AppConfig) => Deployment<LocalComponents>;
+  deployment?: (config: AppConfig) => Deployment<DeployedComponents>;
   /** Targeted replacements the graph applies (for example, a fixed clock in tests). */
   ports?: readonly Override[];
   /** Handlers that replace the wired ones (negative contract tests). */
@@ -33,7 +54,7 @@ export interface BootstrapOverrides {
 export interface App {
   app: FastifyInstance;
   /** The component behind a port, for whoever built the app (a test, a tool). */
-  resolve: Instance<LocalComponents>["resolve"];
+  resolve: Instance<DeployedComponents>["resolve"];
   /** Shuts down the server, then what the graph created, in reverse creation order. */
   close: () => Promise<void>;
 }
@@ -52,7 +73,7 @@ async function shutdown(app: FastifyInstance, closables: readonly Closable[]): P
  */
 export async function importSeed(
   config: AppConfig,
-  graph: Pick<Instance<LocalComponents>, "resolve">,
+  graph: Pick<Instance<DeployedComponents>, "resolve">,
 ): Promise<void> {
   const actor = Operator.system();
   const seeds = config.merchants.map((m) => m.seed);

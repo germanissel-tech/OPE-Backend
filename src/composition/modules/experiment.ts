@@ -29,8 +29,10 @@ import {
   memoryAssignmentLedger,
   memoryExperimentStore,
   nodeExperimentIdMinter,
+  sqliteAssignmentLedger,
 } from "../../interface-adapters/experiment/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
+import { SqlStorePort } from "../release.js";
 import { ScopedMerchantPort } from "./merchant.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
@@ -57,12 +59,25 @@ const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AuditRes
   r.ok ? { experimentId: r.value.experimentId } : undefined;
 
 export const experimentModule = compositionModule({
-  provides: [
-    // One instance, two views: what the administration writes and what the assignment reads.
-    bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
-    bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
-    bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
-  ],
+  provides: {
+    // The experiments themselves stay in memory in both: they are rebuilt from the seed at every
+    // start and that works (spec, "what this feature does not do"). What changes is where the
+    // **assignments** go, because those are not rebuilt from anything — losing one moves a
+    // visitor between arms (ADR-022).
+    memory: [
+      // One instance, two views: what the administration writes and what the assignment reads.
+      bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
+      bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
+      bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
+    ],
+    sqlite: [
+      bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
+      bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
+      bind(AssignmentLedgerPort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
+        sqliteAssignmentLedger(deps),
+      ),
+    ],
+  },
   assembles: [
     bind(
       ScopedExperimentPort,

@@ -145,6 +145,30 @@ export abstract class DecisionBase implements DecisionFacts {
     return InterveneDecision.of(facts, reason, intervention);
   }
 
+  /**
+   * The record as a ledger would store it: the counterpart of `rehydrate`, so a store never has
+   * to know which optional fields this class happens to assign. What was never set is absent, not
+   * present and undefined, which is what makes a written document read back identical.
+   */
+  record(): DecisionRecord {
+    return {
+      decisionId: this.decisionId,
+      merchantId: this.merchantId,
+      sessionId: this.sessionId,
+      visitorId: this.visitorId,
+      decidedAt: this.decidedAt,
+      configuration: this.configuration,
+      outcome: this.outcome,
+      reason: this.reason,
+      ...(this.phase === undefined ? {} : { phase: this.phase }),
+      ...(this.experiment === undefined ? {} : { experiment: this.experiment }),
+      ...(this.inference === undefined ? {} : { inference: this.inference }),
+      ...(this.selection === undefined ? {} : { selection: this.selection }),
+      ...(this.locale === undefined ? {} : { locale: this.locale }),
+      ...(this.isIntervention() ? { intervention: this.intervention } : {}),
+    };
+  }
+
   /** Is this the decision of that session and visitor? Nothing else is revealed about a foreign one. */
   belongsTo(sessionId: SessionId, visitorId: VisitorId): boolean {
     return this.sessionId === sessionId && this.visitorId === visitorId;

@@ -13,3 +13,5 @@ docs/api/
 # reportes de mutación y sandbox de Stryker
 reports/
 .stryker-tmp/
+# el almacén durable de una corrida local (feature 030); el esquema sí se versiona, en migrations/
+data/

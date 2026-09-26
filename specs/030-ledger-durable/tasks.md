@@ -56,18 +56,28 @@ aplica; el que rige es el de anillos: infraestructura → gateways → composici
 
 ## Phase 2: Foundational — el almacén, que bloquea a las dos historias
 
-- [ ] T004 `src/infrastructure/sqlite/` — la apertura del archivo y el modo WAL. **Es el único lugar
+- [x] T004 `src/infrastructure/sqlite/` — la apertura del archivo y el modo WAL. **Es el único lugar
       que importa `node:sqlite`**: el anillo de infraestructura es el que la regla reserva para «lo que
       hospeda o provee tecnología», y un gateway lo recibe por su enlace
       (`port-implementations-only-in-bind`).
-- [ ] T005 `migrations/` — el esquema versionado (FR-007): una tabla por entidad, con columnas sólo
+      **Lo que la tarea no decía y había que decidir**: el anillo de adaptadores **no puede importar
+      infraestructura**, así que el gateway no podía recibir un tipo definido ahí. El vocabulario
+      —`SqlStore`, síncrono, con `transaction` y `close`— vive en
+      `interface-adapters/shared-kernel/sql-store.ts` y el motor que lo habla, en infraestructura.
+- [x] T005 `migrations/` — el esquema versionado (FR-007): una tabla por entidad, con columnas sólo
       para el merchant y la clave que el puerto busca, y el registro como documento (data-model).
-- [ ] T006 `src/infrastructure/sqlite/` — la verificación de esquema al abrir: si no es el que el
+      **Y lo que ADR-032 obliga y la tarea no listaba**: `migrations/README.md` con su inventario y
+      su política en `readme-inventory-policy.json`, o `tests/docs` falla por directorio nuevo.
+- [x] T006 `src/infrastructure/sqlite/` — la verificación de esquema al abrir: si no es el que el
       código espera, **el arranque falla diciendo qué esperaba** (FR-006). Misma regla que la
       configuración y la semilla.
-- [ ] T007 `src/composition/sqlite-config.ts` — la ruta del archivo, desde el entorno y con un valor
+      **Un caso que la tarea no nombraba y es el que importa**: versión 0 **con tablas adentro** es
+      una base ajena en nuestra ruta, y aplicarle el esquema encima sería justo la corrupción
+      silenciosa que el chequeo existe para evitar. Se rechaza igual que una versión distinta.
+- [x] T007 `src/composition/sqlite-config.ts` — la ruta del archivo, desde el entorno y con un valor
       por defecto para desarrollo. **No es un valor de comportamiento**, así que no entra en los tres
       niveles de la constitución XI; `check:behaviour-constants` vigila lo otro.
+      `OPE_STORE`, con `data/ope.db` por defecto y `:memory:` por nombre.
 
 **Checkpoint**: hay dónde escribir, y el arranque se niega si no entiende lo que encuentra.
 
@@ -79,42 +89,88 @@ aplica; el que rige es el de anillos: infraestructura → gateways → composici
 
 **Independent Test**: registrar, exponer, atribuir, reiniciar, y leer las tres con el mismo contenido.
 
-- [ ] T008 [P] [US1] `src/interface-adapters/ledger/gateways/sqlite-decision-ledger.ts` — `record`,
+- [x] T008 [P] [US1] `src/interface-adapters/ledger/gateways/sqlite-decision-ledger.ts` — `record`,
       `find` y `bySession`. El fallo del almacén se traduce a `LedgerUnavailable` (ADR-021): el puerto
       no cambia de forma y la degradación se conserva.
-- [ ] T009 [P] [US1] `src/interface-adapters/ledger/gateways/sqlite-exposure-ledger.ts` — `record` y
+- [x] T009 [P] [US1] `src/interface-adapters/ledger/gateways/sqlite-exposure-ledger.ts` — `record` y
       `find`, con la idempotencia **a través del reinicio** (FR-005): repetir una confirmación tiene
       que responder lo mismo que la primera vez, y eso hoy lo garantiza un `Map` que se vacía.
-- [ ] T010 [P] [US1] `src/interface-adapters/outcomes/gateways/sqlite-order-ledger.ts` — `record`,
+- [x] T010 [P] [US1] `src/interface-adapters/outcomes/gateways/sqlite-order-ledger.ts` — `record`,
       `recordReturn` y `find`.
-- [ ] T011 [P] [US1] `src/interface-adapters/outcomes/gateways/sqlite-corroboration-ledger.ts` —
+- [x] T011 [P] [US1] `src/interface-adapters/outcomes/gateways/sqlite-corroboration-ledger.ts` —
       `record` y `find` por orden.
-- [ ] T012 [P] [US1] `src/interface-adapters/experiment/gateways/sqlite-assignment-ledger.ts` —
+- [x] T012 [P] [US1] `src/interface-adapters/experiment/gateways/sqlite-assignment-ledger.ts` —
       `record` y `find`. **Es el que más importa de los cinco**: sin él, un visitante que vuelve
       después de un reinicio se reasigna, y la asignación es estable por visitante por diseño
       (ADR-022). Perderla no borra información: **cambia el comportamiento y contamina la medición**.
-- [ ] T013 [US1] `src/composition/modules/{ledger,outcomes,experiment}.ts` — cada módulo declara su
+- [x] T013 [US1] `src/composition/modules/{ledger,outcomes,experiment}.ts` — cada módulo declara su
       segunda tecnología, y `src/composition/deployments/local.ts` la elige con
       `<módulo>Module.with("sqlite")`. **Omitir la elección no compila**: el tipo pasa a ser
-      `ChooseATechnology` y el despliegue no lo acepta.
+      `ChooseATechnology` y el despliegue no lo acepta. Verificado: los tres módulos, y los dos
+      despliegues eligen.
+
+      **Acá el plan tenía un hueco, y se resolvió distinto de como R-04 lo escribió.** R-04 decía
+      «no se agrega un despliegue nuevo: el local pasa a ser durable», y señalaba la consecuencia
+      —«hoy las pruebas usan ese mismo despliegue»— remitiendo a R-06, que decide que las 1372
+      **siguen en memoria**. Las dos cosas juntas no cierran: si el local es durable y las pruebas
+      son el local, las pruebas van por disco.
+
+      Se resolvió con **dos despliegues**: `local` (todo en memoria, lo que construye la suite) y
+      `durable` (SQLite, lo que corre `main.ts` y por lo tanto `npm run dev`). Lo común —los doce
+      módulos servidos de una sola manera— está en `shared-modules.ts`, porque tenerlo dos veces
+      era duplicación que el gate marcó y con razón: agregar un módulo en un archivo y olvidarlo en
+      el otro es un despliegue al que le falta algo.
+
+      **Se prefirió esto a la alternativa** de un solo despliegue con un interruptor, que habría
+      hecho pasar las 1372 por un almacén para probar comportamiento que no depende de dónde se
+      guarda — es decir, habría contradicho R-06, que es la decisión más cara de las dos.
+
+      **Y dos cosas más que la tarea no preveía.** El almacén no quedó como
+      `composition/modules/store.ts`: un archivo ahí tiene que ser un módulo del mapa de contextos y
+      no puede exportar una factory (`shape.test.ts`, `architecture.test.ts`), y el almacén no es un
+      módulo del dominio sino **un recurso del proceso**, como el contrato leído del disco. Vive en
+      `release.ts`, que es exactamente eso, como un componente aparte de `releaseComponents` para
+      que un despliegue en memoria no abra ningún archivo. Y `DeployedComponents` (antes
+      `LocalComponents`) tuvo que incluir la etiqueta del almacén: `Deployment<P>` es covariante en
+      `P`, así que un despliegue que provee **de más** no era asignable — el chequeo que importa es
+      el otro, el que rechaza uno que provee **de menos**.
 
 ### Pruebas de US1
 
-- [ ] T014 [US1] `vitest.config.ts` — el proyecto `durability`, separado de `fast`. Las 1372 que ya
+- [x] T014 [US1] `vitest.config.ts` — el proyecto `durability`, separado de `fast`. Las 1372 que ya
       existen **siguen en memoria**: prueban comportamiento, y hacerlas pasar por disco las haría más
       lentas sin probar nada nuevo (research R-06).
-- [ ] T015 [US1] `tests/durability/` — el recorrido entero: registrar una decisión con su
+- [x] T015 [US1] `tests/durability/` — el recorrido entero: registrar una decisión con su
       razonamiento, confirmar su exposición, atribuirle una orden con su corroboración, **cerrar y
       reabrir el almacén**, y leer las cuatro con el mismo contenido.
-- [ ] T016 [US1] `tests/durability/` — la asignación cruzando el reinicio: el mismo visitante vuelve
+      `evidence-chain.test.ts`. Y verifica **los empalmes**, no sólo los cuatro registros: la
+      exposición apunta a la decisión, la orden y la corroboración a la misma sesión, y `bySession`
+      vuelve a encontrar la decisión — que es el paso que convierte una venta en atribuida
+      (ADR-028). Los cuatro pueden volver enteros y no empalmar, porque lo que los une no es una
+      clave foránea sino los identificadores que llevan.
+- [x] T016 [US1] `tests/durability/` — la asignación cruzando el reinicio: el mismo visitante vuelve
       al **mismo brazo**. Es el caso donde la durabilidad no es sobre datos sino sobre comportamiento.
-- [ ] T017 [US1] `tests/durability/` — la idempotencia cruzando el reinicio: confirmar dos veces una
+- [x] T017 [US1] `tests/durability/` — la idempotencia cruzando el reinicio: confirmar dos veces una
       exposición responde lo mismo antes y después.
-- [ ] T018 [US1] `tests/durability/` — **el aislamiento entre merchants cruzando el reinicio**. Es
+- [x] T018 [US1] `tests/durability/` — **el aislamiento entre merchants cruzando el reinicio**. Es
       donde un índice mal puesto o un `WHERE` olvidado lo rompería, y ninguna prueba en memoria lo
       alcanza.
-- [ ] T019 [US1] `tests/durability/` — el almacén que no acepta: la decisión degrada a `NO_OP` con
+- [x] T019 [US1] `tests/durability/` — el almacén que no acepta: la decisión degrada a `NO_OP` con
       motivo `ledger-unavailable` y el plano sigue respondiendo (ADR-021).
+      Cubierto en `ledger.test.ts` y `outcomes.test.ts`, y con una verificación que la tarea no
+      pedía: **que quede escrito por qué**. El canal de fallo dice «no se registró nada» y nada más,
+      que es lo que el plano necesita para fallar cerrado y exactamente lo que no alcanza para
+      diagnosticar; un disco lleno, un permiso perdido y un esquema que derivó se ven iguales desde
+      afuera salvo en esa línea de log.
+
+- [x] T019b [US1] `tests/durability/restart.test.ts` — **no estaba en el plan y hacía falta**: las
+      demás pruebas arman un gateway a mano, y ninguna levantaba el despliegue durable entero. Ésta
+      arranca el servidor, ingesta por HTTP, lo cierra, lo vuelve a levantar sobre el mismo archivo
+      y encuentra la decisión. Es lo único que atraparía un almacén que el arranque no puede abrir,
+      un módulo que quedó fuera de la lista o una semilla que deja de funcionar cuando algo
+      persiste — y ese último caso tiene su propio escenario, porque los merchants y los
+      experimentos **no** son durables todavía y el segundo arranque es donde esa combinación se
+      rompería.
 
 **Checkpoint**: un reinicio ya no borra el experimento.
 

@@ -23,6 +23,10 @@
       "dir": "patches"
     },
     {
+      "dir": "migrations",
+      "columns": ["Versión que deja"]
+    },
+    {
       "dir": "scripts",
       "columns": ["Clase"]
     },

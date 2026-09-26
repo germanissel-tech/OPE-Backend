@@ -13,8 +13,11 @@ import {
   makeNotifyReturn,
   memoryCorroborationLedger,
   memoryOrderLedger,
+  sqliteCorroborationLedger,
+  sqliteOrderLedger,
 } from "../../interface-adapters/outcomes/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
+import { SqlStorePort } from "../release.js";
 import { DecisionLedgerPort } from "./ledger.js";
 import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
@@ -22,10 +25,18 @@ export const OrderLedgerPort = port("outcomes.orders")<OrderLedger>();
 export const CorroborationLedgerPort = port("outcomes.corroborations")<CorroborationLedger>();
 
 export const outcomesModule = compositionModule({
-  provides: [
-    bind(OrderLedgerPort, {}, () => memoryOrderLedger()),
-    bind(CorroborationLedgerPort, {}, () => memoryCorroborationLedger()),
-  ],
+  provides: {
+    memory: [
+      bind(OrderLedgerPort, {}, () => memoryOrderLedger()),
+      bind(CorroborationLedgerPort, {}, () => memoryCorroborationLedger()),
+    ],
+    sqlite: [
+      bind(OrderLedgerPort, { store: SqlStorePort, logger: LoggerPort }, (deps) => sqliteOrderLedger(deps)),
+      bind(CorroborationLedgerPort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
+        sqliteCorroborationLedger(deps),
+      ),
+    ],
+  },
   serves: {
     handlers: {
       notifyOrder: served(

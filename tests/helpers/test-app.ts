@@ -179,6 +179,9 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   levels: testLevels(),
   // The real corpus of the release, so an integration test sees the texts a person would see.
   corpus: readCorpus({}, (file) => readFileSync(file, "utf8"), "es"),
+  // The local deployment does not open a store, so this is never read here. It is in the shape
+  // because the configuration carries it; a test that wants durability builds its own.
+  store: { file: ":memory:" },
   ...over,
 });
 

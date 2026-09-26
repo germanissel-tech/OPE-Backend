@@ -13,7 +13,8 @@ export type Variable =
   | "OPE_ADMIN_OPERATORS_FILE"
   | "OPE_PLATFORM_CONFIG"
   | "OPE_TREATMENT_DEFAULTS"
-  | "OPE_MESSAGE_CORPUS";
+  | "OPE_MESSAGE_CORPUS"
+  | "OPE_STORE";
 
 /** A field inside the merchants configuration, as a path from `merchants[i]`. */
 export type MerchantField = `merchants[${number}]${string}`;
