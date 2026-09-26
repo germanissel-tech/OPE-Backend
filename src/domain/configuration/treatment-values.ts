@@ -189,11 +189,18 @@ export class TreatmentValues {
 
   /** The merge itself, for whoever needs the record before judging it. */
   static merged(defaults: TreatmentValuesRecord, declared: DeclaredTreatmentValues): TreatmentValuesRecord {
+    const { evidence: declaredEvidence, ...declaredPolicy } = declared.decisionPolicy ?? {};
     return {
       freshness: PolicyInput.merge(defaults.freshness, declared.freshness),
       syncLevel: PolicyInput.merge(defaults.syncLevel, declared.syncLevel),
       holdoutShare: declared.holdoutShare ?? defaults.holdoutShare,
-      decisionPolicy: PolicyInput.merge(defaults.decisionPolicy, declared.decisionPolicy),
+      // `evidence` merges one level deeper than the rest: it is the only declared field that is an
+      // object of its own, so a shallow merge would let a merchant that declares one of its two keys
+      // lose the default of the other without saying so.
+      decisionPolicy: {
+        ...PolicyInput.merge(defaults.decisionPolicy, declaredPolicy),
+        evidence: PolicyInput.merge(defaults.decisionPolicy.evidence, declaredEvidence),
+      },
       commercialPolicy: PolicyInput.merge(defaults.commercialPolicy, declared.commercialPolicy),
       evidenceProfile: PolicyInput.merge(defaults.evidenceProfile, declared.evidenceProfile),
       surfaces: declared.surfaces ?? defaults.surfaces,

@@ -115,6 +115,25 @@ describe("EffectiveConfiguration.resolve", () => {
     });
   });
 
+  it("declaring one evidence requirement keeps the default of the other (feature 029)", () => {
+    // `evidence` is the only declared field that is an object of its own, so the shallow merge that
+    // serves every other field would let a merchant that declares one key lose the default of the
+    // other **without saying so** — the worst kind of configuration bug, because nothing complains.
+    const before = defaults().values.decisionPolicy.evidence;
+    expect(before.availableVariant.length).toBeGreaterThan(0);
+    const version = MerchantConfigurationVersion.numbered(
+      draft({
+        declared: { decisionPolicy: { version: "d-2", evidence: { freshStockAndPrice: ["price"] } } },
+      }),
+      4,
+    );
+    const resolved = EffectiveConfiguration.resolve(platform(), defaults(), version);
+    if (!resolved.ok) throw new Error(resolved.error.message);
+    const evidence = resolved.value.values.decisionPolicy.evidence;
+    expect(evidence.freshStockAndPrice).toEqual(["price"]);
+    expect(evidence.availableVariant).toEqual(before.availableVariant);
+  });
+
   it("a declared value the resolution refuses names its field", () => {
     const bad = EffectiveConfiguration.resolve(platform(), defaults(), draft({ declared: { barriers: [] } }));
     expect(bad.ok ? undefined : bad.error.details["pointer"]).toBe("barriers");

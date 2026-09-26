@@ -32,7 +32,14 @@ export type CommercialPolicyInput = CommercialPolicyRecord;
 export type EvidenceProfileInput = MerchantProfile;
 
 /** What a merchant declares of a policy: its version, and the fields it overrides. */
-export type DecisionPolicyDeclared = Partial<DecisionPolicyInput> & { version: string };
+export type DecisionPolicyDeclared = Partial<Omit<DecisionPolicyInput, "evidence">> & {
+  version: string;
+  /**
+   * Either requirement may be declared on its own: the resolution merges this one level deeper than
+   * the rest, so declaring one key does not silently drop the default of the other.
+   */
+  evidence?: Partial<EvidenceRequirements> | undefined;
+};
 export type CommercialPolicyDeclared = Partial<CommercialPolicyInput> & { version: string };
 export type EvidenceProfileDeclared = Partial<EvidenceProfileInput>;
 

@@ -21,8 +21,10 @@ const A = asMerchantId("m_a");
 
 const variant = (id: string, over: Partial<Product["variants"][number]> = {}) => ({
   variantId: asVariantId(id),
-  size: "M",
-  color: "black",
+  attributes: [
+    { key: "size", value: "M" },
+    { key: "color", value: "black" },
+  ],
   available: true,
   price: Money.rehydrate({ amount: "19990.00", currency: "ARS" }),
   ...over,
@@ -49,7 +51,12 @@ describe("CatalogSnapshot.of", () => {
     if (!built.ok) return;
     expect(built.value.counts()).toEqual({ products: 2, variants: 2 });
     expect(built.value.product(asProductId("P1"))?.title).toBe("Product P1");
-    expect(built.value.product(asProductId("P1"))?.variants.map((v) => v.size)).toEqual(["M"]);
+    expect(built.value.product(asProductId("P1"))?.variants.map((v) => v.attributes)).toEqual([
+      [
+        { key: "size", value: "M" },
+        { key: "color", value: "black" },
+      ],
+    ]);
     expect(built.value.product(asProductId("P9"))).toBeUndefined();
   });
 
@@ -178,10 +185,47 @@ describe("CatalogSnapshot facts", () => {
       receivedAt,
       products: [{ ...product("P1"), attributes: [{ key: "fit", value: "slim" }] }],
     });
+    // Feature 029: an attribute of the variant counts as content too. Until the variant carried a
+    // free list, this case could only be noticed when the size or the colour changed — any other axis
+    // of any other vertical went through as "the same catalogue".
+    const reAxed = CatalogSnapshot.rehydrate({
+      merchantId: A,
+      capturedAt: receivedAt,
+      receivedAt,
+      products: [
+        product("P1", [
+          variant("P1-M", {
+            attributes: [
+              { key: "size", value: "M" },
+              { key: "color", value: "navy" },
+            ],
+          }),
+        ]),
+      ],
+    });
+    const reordered = CatalogSnapshot.rehydrate({
+      merchantId: A,
+      capturedAt: receivedAt,
+      receivedAt,
+      products: [
+        product("P1", [
+          variant("P1-M", {
+            attributes: [
+              { key: "color", value: "black" },
+              { key: "size", value: "M" },
+            ],
+          }),
+        ]),
+      ],
+    });
     expect(snapshot.sameContentAs(later)).toBe(true);
     expect(snapshot.sameContentAs(priced)).toBe(false);
     expect(snapshot.sameContentAs(unavailable)).toBe(false);
     expect(snapshot.sameContentAs(attributed)).toBe(false);
+    expect(snapshot.sameContentAs(reAxed)).toBe(false);
+    // Reordering is different content, exactly as it already was for the product's own attributes:
+    // one semantics of equality in the function, not two.
+    expect(snapshot.sameContentAs(reordered)).toBe(false);
   });
 
   it("rehydrate does not re-judge: duplicated ids come back as recorded", () => {

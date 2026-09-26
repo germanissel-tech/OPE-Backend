@@ -16,18 +16,7 @@ properties:
     description: Key/value pairs as the platform exposes them (fit, material, care); no normalisation.
     maxItems: 64
     items:
-      type: object
-      additionalProperties: false
-      required: [key, value]
-      properties:
-        key:
-          type: string
-          description: Attribute key as the platform names it.
-          maxLength: 64
-        value:
-          type: string
-          description: Attribute value as text.
-          maxLength: 512
+      $ref: ./CatalogAttribute.yaml
   variants:
     type: array
     description: The variants of the product (size and colour); a product without variants carries no availability nor price.

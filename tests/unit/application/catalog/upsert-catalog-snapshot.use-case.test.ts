@@ -28,8 +28,10 @@ const product = (id: string, amount = "10.00"): Product => ({
   variants: [
     {
       variantId: asVariantId(`${id}-M`),
-      size: "M",
-      color: "black",
+      attributes: [
+        { key: "size", value: "M" },
+        { key: "color", value: "black" },
+      ],
       available: true,
       price: Money.rehydrate({ amount, currency: "ARS" }),
     },

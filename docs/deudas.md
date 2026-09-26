@@ -27,26 +27,27 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                          | Origen                              | Estado         | Fecha      | Cierre    |
-| ---- | ------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
-| D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
-| D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema      | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter      | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
-| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga           | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
-| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan              | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
-| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `evaluada`     | 2026-09-25 | —         |
-| D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
-| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita          | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
+| Id   | Título                                                                                  | Origen                              | Estado         | Fecha      | Cierre    |
+| ---- | --------------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                         | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable              | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo          | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
+| D-04 | `config/` sin documentación ni esquema propio                                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
+| D-06 | Los directorios de primer nivel no se explican solos                                    | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema              | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter              | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                  | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                 | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada         | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                   | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                      | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa            | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación             | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                        | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `2837b69` |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                           | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
+| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita                  | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
+| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio | Feature 029 (Schemathesis)          | `implementada` | 2026-09-26 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -185,11 +186,27 @@ vocabulario de bloques— quedan cerradas. Lo que la tabla llamaba la variante *
 separó como D-16, porque no es un renombre. Una deuda que se cierra parcialmente se dice así, no se
 marca entera.
 
-D-16 sale de ahí. La enmienda **permitió** que una variante deje de exigir talle y color, pero eso no
-es un renombre: cambia la forma de lo que un merchant envía. La pregunta que hay que contestar antes de
-tocarlo, y que es el trabajo de verdad, es **cómo el claim de calce sabe cuál de los atributos de una
-variante es el que se recomienda** — hoy lo sabe porque el atributo se llama `size`. Se queda afuera de
-la 028 a propósito, que hace sólo los renombres.
+D-16 sale de ahí. La enmienda **permitió** que una variante deje de exigir talle y color, y la 028 la
+dejó afuera a propósito porque parecía necesitar una decisión de diseño antes: cómo sabría el claim de
+calce cuál de los atributos de una variante es el que se recomienda.
+
+**Al medirla, esa pregunta no existía.** Nada del camino de decisión leía `variant.size` ni
+`variant.color`: los únicos dos lugares que los tocaban eran la huella de contenido de la instantánea
+y el controller que los copiaba del DTO. El claim de calce no los miraba —la variante se identifica
+por su id, y el quality gate sólo exige que **haya** una variante en foco—, así que eran dos campos
+obligatorios que viajaban, se validaban, se guardaban y no los leía ninguna autoridad: el mismo caso
+que el campo del evento que la 028 borró.
+
+**Cerrada en la feature 029.** La variante declara `attributes`, con la misma forma que el producto, y
+esa forma se extrajo a un componente que los dos referencian —hasta entonces el producto la definía en
+línea y la variante la habría duplicado—. Se generalizó en vez de borrarse porque `01 §0.1`, enmendado
+el 2026-09-25, define la variante como «la combinación exacta de **atributos** que define un artículo
+vendible»: borrarlos la habría dejado como un id opaco mientras la fuente dice otra cosa.
+
+**Y apareció algo que la deuda no decía.** La huella de contenido de una instantánea **no veía** ningún
+eje que no fuera talle o color, así que dos catálogos del mismo instante que diferían en cualquier otro
+atributo se tomaban por el mismo. Ahora se distinguen. Es la única parte de la 029 que cambió
+comportamiento, y nadie la había nombrado.
 
 D-17 sale del mismo momento, y era incómoda: los documentos del MVP **no estaban bajo control de
 versiones** —no había `.git` en su directorio—. La regla que la 027 dejó escrita, «cuando el diseño y
@@ -240,6 +257,30 @@ Es pariente de D-13 —lo que dejó de estar conectado y ningún gate lo nota—
 se parezca: no comparar prosa contra prosa, sino exigir que cada afirmación que **deriva de un ADR**
 lo cite, y verificar que ese ADR no esté `reemplazada` ni contradiga la cita. Medir primero cuántas de
 las 56 derivan de un ADR es parte del trabajo.
+
+D-19 la encontró **Schemathesis**, no una persona, y vale la pena decir cómo: el gate de contrato es
+property-based, así que cada corrida genera cuerpos distintos. En la 028 pasó con 10 520 casos; en la
+029, con un cuerpo que traía `decisionPolicy.evidence: {}`, tres operaciones de configuración
+respondieron **500 `response-contract-violation`**. El bug estaba en `main` desde que existe el
+esquema de evidencia: nadie lo había generado antes.
+
+La causa era una línea del lector de la configuración: una clave **ausente** se convertía en `[]`. De
+ahí salían dos defectos, y el segundo es peor que el que se fue a buscar:
+
+1. **El eco violaba el contrato.** `PolicyEvidence` exige `minItems: 1`, así que el esquema obliga a
+   decir «ninguna barrera necesita esto» **omitiendo** la clave, y el lector convertía esa omisión en
+   lo único que el esquema rechaza. Publicar contestaba 500.
+2. **Declarar una de las dos claves borraba la otra, en silencio.** `PolicyInput.merge` es superficial,
+   así que el `evidence` declarado reemplazaba entero al de los defaults; con la clave ausente vuelta
+   `[]`, un merchant que declaraba `freshStockAndPrice` se quedaba sin `availableVariant` en su
+   política efectiva. Ninguna prueba lo cubría y nada chillaba.
+
+El arreglo es el que el nombre del campo pedía: **lo declarado es lo que el merchant mandó**. Una clave
+ausente se queda ausente, y `evidence` se mergea un nivel más profundo que el resto porque es el único
+campo declarado que es un objeto propio. Las dos pruebas nuevas son una por defecto.
+
+**Lo que esto deja como lección**: un gate property-based no es determinista, así que verde hoy no es
+verde siempre. Vale más cuando falla que cuando pasa.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

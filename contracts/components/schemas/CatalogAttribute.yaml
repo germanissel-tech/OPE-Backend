@@ -1,0 +1,13 @@
+type: object
+description: "A key/value pair as the platform exposes it, with no normalisation. Shared by the product and its variants so the shape is written once: a garment sends fabric and care, an appliance sends capacity and finish, and OPE does not need to know which is which."
+additionalProperties: false
+required: [key, value]
+properties:
+  key:
+    type: string
+    description: Attribute key as the platform names it.
+    maxLength: 64
+  value:
+    type: string
+    description: Attribute value as text.
+    maxLength: 512

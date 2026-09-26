@@ -25,8 +25,10 @@ const product: Product = {
   variants: [
     {
       variantId: V,
-      size: "M",
-      color: "black",
+      attributes: [
+        { key: "size", value: "M" },
+        { key: "color", value: "black" },
+      ],
       available: false,
       price: Money.rehydrate({ amount: "10.00", currency: "ARS" }),
     },

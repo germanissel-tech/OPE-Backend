@@ -19,8 +19,8 @@ export interface Attribute {
 
 export interface Variant {
   variantId: VariantId;
-  size: string;
-  color: string;
+  /** What tells this variant apart from its siblings, as the platform exposes it; a single one may declare none. */
+  attributes: readonly Attribute[];
   /** Guard (01 §4.3): `false` means "do not recommend"; no quantity exists. */
   available: boolean;
   price: Money;
@@ -126,7 +126,13 @@ function contentKey(products: readonly Product[]): string {
       p.productId,
       p.title,
       p.attributes.map((a) => [a.key, a.value]),
-      p.variants.map((v) => [v.variantId, v.size, v.color, v.available, v.price.amount, v.price.currency]),
+      p.variants.map((v) => [
+        v.variantId,
+        v.attributes.map((a) => [a.key, a.value]),
+        v.available,
+        v.price.amount,
+        v.price.currency,
+      ]),
     ]),
   );
 }

@@ -24,8 +24,7 @@ function toProduct(dto: ProductDto): Product {
     attributes: (dto.attributes ?? []).map((a) => ({ key: a.key, value: a.value })),
     variants: dto.variants.map((v) => ({
       variantId: asVariantId(v.variantId),
-      size: v.size,
-      color: v.color,
+      attributes: v.attributes ?? [],
       available: v.available,
       price: Money.rehydrate(v.price),
     })),
