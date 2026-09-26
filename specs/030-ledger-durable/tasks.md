@@ -183,12 +183,25 @@ reinicio y la próxima publicación.
 
 **Independent Test**: publicar, reiniciar, y consultar la verdad de una variante sin republicar.
 
-- [ ] T020 [US2] `src/interface-adapters/catalog/gateways/sqlite-catalog-store.ts` — `current`,
+- [x] T020 [US2] `src/interface-adapters/catalog/gateways/sqlite-catalog-store.ts` — `current`,
       `replace` y `receipts`, con el tope de recibos que la política del merchant fija.
-- [ ] T021 [US2] `src/composition/modules/catalog.ts` y el despliegue — la segunda tecnología.
-- [ ] T022 [US2] `tests/durability/` — publicar, reiniciar, y consultar la verdad de una variante con
+      El tope **llega con cada escritura** y no es una columna ni una constante: es política del
+      merchant (constitución XI). La instantánea y su recibo se escriben en **una transacción**,
+      porque una publicada cuyo recibo no quedó reportaría un nivel de sincronización que no es el
+      que ocurrió. `CatalogSnapshot` ganó su `record()`, la contraparte de `rehydrate` que ya
+      tenían `Order` y, desde US1, la decisión y la corroboración.
+- [x] T021 [US2] `src/composition/modules/catalog.ts` y el despliegue — la segunda tecnología.
+- [x] T022 [US2] `tests/durability/` — publicar, reiniciar, y consultar la verdad de una variante con
       la misma frescura; republicar la misma instantánea sigue siendo **repetición y no conflicto**; y
       el nivel de sincronización observado no cambia por el reinicio.
+      Y un caso que la tarea no pedía: **la poda cruzando el reinicio**. El tope de recibos no es
+      sólo cuántos se guardan sino cuáles, y un `DELETE` que se lleve los equivocados movería el
+      nivel observado sin que nada lo diga.
+
+      **Lo que esta prueba no hace, y conviene decirlo**: el recorrido de US2 por HTTP —publicar y
+      consultar la verdad de producto contra el servidor— no está; lo que hay es el puerto cruzando
+      el reinicio y, aparte, el despliegue durable arrancando entero (T019b). Alcanza para lo que la
+      historia promete, y no es lo mismo que haberlo visto de punta a punta.
 
 **Checkpoint**: la tienda sigue interviniendo después de un reinicio.
 

@@ -11,7 +11,6 @@
 import { accessModule } from "../modules/access.js";
 import { adminModule } from "../modules/admin.js";
 import { barrierModule } from "../modules/barrier.js";
-import { catalogModule } from "../modules/catalog.js";
 import { configurationModule } from "../modules/configuration.js";
 import { decisionModule } from "../modules/decision.js";
 import { ingestionModule } from "../modules/ingestion.js";
@@ -29,7 +28,6 @@ export const sharedModules = (config: AppConfig) =>
     systemModule,
     merchantModule,
     accessModule,
-    catalogModule,
     barrierModule,
     messagesModule,
     decisionModule,

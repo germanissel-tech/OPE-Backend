@@ -19,6 +19,7 @@
 // Leaving `storeComponents` out of this list does not compile: the three modules below ask for the
 // store and `deployment()` names the component nobody provides.
 import { deployment } from "../graph/index.js";
+import { catalogModule } from "../modules/catalog.js";
 import { experimentModule } from "../modules/experiment.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { outcomesModule } from "../modules/outcomes.js";
@@ -30,6 +31,7 @@ export const durableDeployment = (config: AppConfig) =>
   deployment([
     ...sharedModules(config),
     storeComponents(config),
+    catalogModule.with("sqlite"),
     experimentModule.with("sqlite"),
     ledgerModule.with("sqlite"),
     outcomesModule.with("sqlite"),

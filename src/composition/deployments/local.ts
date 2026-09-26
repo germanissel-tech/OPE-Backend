@@ -13,6 +13,7 @@
 // and leaving the call out does not compile: its type is then `ChooseATechnology`, which this list
 // does not accept.
 import { deployment } from "../graph/index.js";
+import { catalogModule } from "../modules/catalog.js";
 import { experimentModule } from "../modules/experiment.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { outcomesModule } from "../modules/outcomes.js";
@@ -22,6 +23,7 @@ import type { AppConfig } from "../config.js";
 export const localDeployment = (config: AppConfig) =>
   deployment([
     ...sharedModules(config),
+    catalogModule.with("memory"),
     experimentModule.with("memory"),
     ledgerModule.with("memory"),
     outcomesModule.with("memory"),

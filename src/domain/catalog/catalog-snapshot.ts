@@ -91,6 +91,20 @@ export class CatalogSnapshot {
     return new CatalogSnapshot(record);
   }
 
+  /**
+   * The record as a store would keep it: the counterpart of `rehydrate` (as `Order.record`). The
+   * index and the variant count are not in it — they are derived at construction, and writing them
+   * down would be two shapes of the same thing that nothing keeps in step.
+   */
+  record(): CatalogSnapshotRecord {
+    return {
+      merchantId: this.merchantId,
+      capturedAt: this.capturedAt,
+      receivedAt: this.receivedAt,
+      products: this.products,
+    };
+  }
+
   product(productId: ProductId): Product | undefined {
     return this.#byProduct.get(productId);
   }
