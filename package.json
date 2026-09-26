@@ -5,7 +5,7 @@
   "description": "OPE MVP backend. API-first: contracts/openapi.yaml is the source of truth for every HTTP surface.",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "exports": {
     ".": {

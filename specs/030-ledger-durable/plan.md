@@ -19,8 +19,8 @@ número en `research.md` (R-01).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 7 sobre Node 22 (`.nvmrc`), `strict`, `erasableSyntaxOnly`,
-`exactOptionalPropertyTypes`, ESM.
+**Language/Version**: TypeScript 7 sobre Node 24 (`.nvmrc`; subido desde 22 en T001), `strict`,
+`erasableSyntaxOnly`, `exactOptionalPropertyTypes`, ESM.
 
 **Primary Dependencies**: **ninguna nueva**. `node:sqlite` viene con Node; ver la pregunta abierta.
 
@@ -30,7 +30,7 @@ adelante con sus pruebas de concurrencia (**D-21**).
 **Testing**: Vitest. El proyecto `fast` sigue en memoria; la durabilidad tiene su propia suite que
 cruza reinicios (research R-06).
 
-**Target Platform**: Node 22 en Linux y Windows. El archivo del almacén es local al proceso.
+**Target Platform**: Node 24 en Linux y Windows. El archivo del almacén es local al proceso.
 
 **Project Type**: servicio HTTP con arquitectura en anillos (ADR-013).
 
@@ -91,10 +91,10 @@ runner de Vitest con su parche, Stryker— aparece ahí.
 Por eso el salto va **primero y solo**, antes de cualquier código de SQLite: si rompe algo, rompe algo
 que no tiene nada que ver con esta feature, y conviene saberlo con el diff más chico posible.
 
-**Y una limitación honesta de este entorno**: esta máquina corre Node 22 y `nvm` no responde desde la
-shell de la sesión, así que **no puedo verificar Node 24 localmente**. La verificación es de CI, salvo
-que lo instales vos —`! nvm install 24` y `! nvm use 24`—, en cuyo caso la cadena entera se puede
-correr acá antes de pushear.
+**Lo que era una limitación de este entorno, y dejó de serlo** (2026-09-26): la máquina corría Node 22
+y `nvm use` no tomaba efecto —`C:\Program Files\nodejs` era un directorio real del instalador MSI, que
+`nvm` no puede reemplazar por su enlace—. El dueño desinstaló el MSI y activó 24.21.0, así que la
+cadena entera **se corrió acá** (T002) y no quedó librada a CI.
 
 ## Project Structure
 

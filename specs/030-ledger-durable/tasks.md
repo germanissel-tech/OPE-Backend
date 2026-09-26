@@ -27,17 +27,28 @@ aplica; el que rige es el de anillos: infraestructura → gateways → composici
 
 ## Phase 1: Setup — el salto de Node, primero y solo
 
-- [ ] T001 `.nvmrc`, `package.json` (`engines`) y lo que CI lea de ahí — subir a **Node 24 LTS**.
+- [x] T001 `.nvmrc`, `package.json` (`engines`) y lo que CI lea de ahí — subir a **Node 24 LTS**.
       **Va en su propio commit y antes que cualquier código de SQLite**: si algo del stack se queja
       —el compilador nativo de TypeScript, el runner de Vitest con su parche, Stryker— conviene verlo
       con el diff más chico posible, porque no tendría nada que ver con esta feature.
-- [ ] T002 Verificar el salto corriendo **la cadena entera**: `format:check`, `quality`, `typecheck`,
+      **Los tres jobs de CI leen `node-version-file: .nvmrc`**, así que suben solos: no hubo que
+      tocar el workflow.
+- [x] T002 Verificar el salto corriendo **la cadena entera**: `format:check`, `quality`, `typecheck`,
       `build`, `test`, `test:tools`, `contract:check`, `test:contract`, `release-check`,
       `test:mutation`. En esta máquina hay que activar 24 con elevación (`nvm use 24.21.0`); si no se
       puede, **lo verifica CI y esta tarea lo dice** en vez de darlo por hecho.
-- [ ] T003 `patches/README.md` — revisar si el parche del runner de Vitest sigue aplicando en 24.
+      **Se pudo, y se corrió acá entera sobre v24.21.0**: 7 gates verdes, 1372 + 84 pruebas,
+      30/30 operaciones y 10 367 casos de contrato, `release-check` OK.
+      **Y una cosa que la tarea no había previsto**: `test:mutation` se **saltó** —«no production
+      lines», correcto, el diff no toca `src/`—, con lo cual la cadena tal como está escrita **no
+      ejercita a Stryker**, que era uno de los tres que este salto venía a mirar. Se forzó acotado
+      (`--files src/domain/shared-kernel/result.ts`): el runner arranca y todo mutante murió.
+- [x] T003 `patches/README.md` — revisar si el parche del runner de Vitest sigue aplicando en 24.
       `patch-package` falla en `postinstall` si deja de aplicar, así que T002 ya lo cubre; esta tarea
       es leer el resultado y, si cambió, actualizar la fila del inventario con su motivo.
+      **`npx patch-package` → `@stryker-mutator/vitest-runner@10.0.0 ✔`**: aplica igual y la fila no
+      cambia. El parche es sobre el compilado del paquete y no toca nada dependiente de la versión
+      de Node.
 
 **Checkpoint**: el repositorio corre sobre Node 24 y nada más se movió.
 
