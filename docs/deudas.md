@@ -27,28 +27,29 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                                  | Origen                              | Estado         | Fecha      | Cierre    |
-| ---- | --------------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                         | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable              | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo          | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
-| D-04 | `config/` sin documentación ni esquema propio                                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
-| D-06 | Los directorios de primer nivel no se explican solos                                    | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema              | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter              | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                  | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                 | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada         | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
-| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                   | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
-| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                      | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa            | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
-| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación             | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                        | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `2837b69` |
-| D-17 | La fuente de verdad del MVP no está bajo control de versiones                           | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
-| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen             | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
-| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio | Feature 029 (Schemathesis)          | `implementada` | 2026-09-26 | —         |
-| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir  | Revisión de deudas, 2026-09-26      | `abierta`      | 2026-09-26 | —         |
+| Id   | Título                                                                                       | Origen                              | Estado         | Fecha      | Cierre    |
+| ---- | -------------------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                              | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                   | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo               | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
+| D-04 | `config/` sin documentación ni esquema propio                                                | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                        | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
+| D-06 | Los directorios de primer nivel no se explican solos                                         | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                   | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                   | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                       | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                      | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada              | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                        | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                           | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                 | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                  | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                             | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `2837b69` |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
+| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                  | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
+| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio      | Feature 029 (Schemathesis)          | `implementada` | 2026-09-26 | —         |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir       | Revisión de deudas, 2026-09-26      | `abierta`      | 2026-09-26 | —         |
+| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después | Decisión del dueño, 2026-09-26      | `abierta`      | 2026-09-26 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -320,6 +321,28 @@ feature 013— y aplicarlo a la publicación de configuración cierra el agujero
 **Decisión del dueño (2026-09-26)**: se registra **y** se hace, en su propia feature. Qué otras
 operaciones de escritura son no idempotentes hay que contarlo al escribir la spec: la publicación de
 configuración es la que aparece, pero no se midió si es la única.
+
+D-21 no es un defecto: es **alcance que se decide dejar afuera**, con su motivo y su fecha, para que
+nadie lea después que el hito de persistencia está cerrado.
+
+La constitución fija «Persistencia: PostgreSQL (durable) + Redis (sesión caliente)» como decisión D1.
+Usar SQLite en desarrollo **no la contradice** —la constitución describe el stack de producción, y el
+despliegue local ya corre hoy sobre algo que tampoco es PostgreSQL: memoria—, y la arquitectura de
+composición lo previó: un módulo con dos tecnologías entra como `ledgerModule.with("postgres")` y **no
+compila si nadie elige**.
+
+Lo que sí queda pendiente es lo que el hito promete además de durabilidad: **atomicidad del
+presupuesto por sesión** y **la entrada de administración commiteada junto con la acción que
+registra** (la ventana que ADR-034 deja abierta). Eso es exactamente donde los dos motores más
+difieren —aislamiento, bloqueo, concurrencia, semántica de `ON CONFLICT`—, así que implementarlo y
+probarlo sobre SQLite deja sin verificar, en el motor real, justo lo que el hito existe para
+garantizar.
+
+**Motivo de la decisión (dueño, 2026-09-26)**: hoy no hay infraestructura para que CI levante un
+PostgreSQL, y la etapa es de implementación. Se acepta a sabiendas.
+
+**Lo que cierra esta deuda**: el gateway de PostgreSQL y las pruebas de atomicidad y concurrencia
+corriendo contra él, antes del primer piloto con tráfico real.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
