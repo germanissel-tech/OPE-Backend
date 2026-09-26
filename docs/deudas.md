@@ -46,8 +46,9 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación             | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
 | D-16 | El catálogo exige dos atributos de indumentaria en cada variante                        | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `2837b69` |
 | D-17 | La fuente de verdad del MVP no está bajo control de versiones                           | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
-| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita                  | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
+| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen             | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
 | D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio | Feature 029 (Schemathesis)          | `implementada` | 2026-09-26 | —         |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir  | Revisión de deudas, 2026-09-26      | `abierta`      | 2026-09-26 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -253,10 +254,27 @@ feature 022**. Sobrevivió seis features y pasó `check:adrs` sin despeinarse, p
 que es lo único que ese gate mira. Quien hubiera leído la constitución habría implementado una
 conversión que el código no hace, y habría tenido razón según el documento que manda.
 
-Es pariente de D-13 —lo que dejó de estar conectado y ningún gate lo nota— y la solución probablemente
-se parezca: no comparar prosa contra prosa, sino exigir que cada afirmación que **deriva de un ADR**
-lo cite, y verificar que ese ADR no esté `reemplazada` ni contradiga la cita. Medir primero cuántas de
-las 56 derivan de un ADR es parte del trabajo.
+**Medida el 2026-09-26, y la medición invirtió la solución propuesta.** Contadas por viñeta completa
+—no por línea, que es donde mi primer conteo se equivocó porque el documento envuelve a noventa y pico
+de caracteres— son **67 afirmaciones normativas**: **7** citan un ADR, **3** citan la fuente del MVP y
+**57 no citan nada**.
+
+Y el detalle que decide el diseño: **el gate que esta deuda imaginaba no habría atrapado el caso que la
+motivó.** La viñeta `Escalas`, antes de corregirse, **no citaba ADR-035** — decía lo suyo sin nombrar
+la decisión que la había reemplazado. Verificar «que cada ADR citado siga estando de acuerdo» la habría
+dejado pasar, porque no había cita. Hoy cita ADR-035 sólo porque la enmienda de la 028 se la puso.
+
+Así que el trabajo no es el script: es **hacer el documento citable**. Es la forma que ADR-008 le impuso
+al glosario —ningún sustantivo entra sin su nota con fuente— aplicada acá: ninguna afirmación normativa
+sin su fuente. Con eso el gate es fácil y además puede verificar que el ADR citado no esté
+`reemplazada`. Sin eso no hay nada que verificar.
+
+**Y hay un riesgo que la feature tiene que decidir antes de empezar**: puede haber afirmaciones que no
+se puedan rastrear a ninguna fuente. Inventarles una cita sería peor que no tenerla — sería darle
+autoridad falsa al documento que prevalece sobre todo. Qué se hace con ésas es la primera pregunta de
+la spec.
+
+**Decisión del dueño (2026-09-26)**: se hace, en su propia feature.
 
 D-19 la encontró **Schemathesis**, no una persona, y vale la pena decir cómo: el gate de contrato es
 property-based, así que cada corrida genera cuerpos distintos. En la 028 pasó con 10 520 casos; en la
@@ -281,6 +299,27 @@ campo declarado que es un objeto propio. Las dos pruebas nuevas son una por defe
 
 **Lo que esto deja como lección**: un gate property-based no es determinista, así que verde hoy no es
 verde siempre. Vale más cuando falla que cuando pasa.
+
+D-20 sale de contestar una pregunta que D-19 había dejado abierta: si el 500 ocurría **antes o
+después** de escribir. Es después, y está verificado en el log de la reproducción —`use case
+executed` y recién entonces `the handler response does not satisfy the contract`—, porque
+`validateResult` juzga la respuesta cuando el handler ya la produjo. No hay otra forma: una respuesta
+no se puede validar antes de existir.
+
+Así que la propiedad es del borde entero y conviene tenerla escrita: **toda
+`response-contract-violation` en una escritura le dice «error» a un cliente cuya acción ya ocurrió.**
+Eso cambia la gravedad de cada violación —no es «devolvimos un cuerpo feo», es «le mentimos a un
+cliente sobre su escritura»— y es un argumento más para tratarlas como severas, que es lo que la 029
+hizo.
+
+Lo que sí tiene arreglo es la consecuencia: **publicar una configuración no es idempotente**, así que
+un cliente que reintenta ante ese 500 crea una **segunda versión**. El mecanismo ya existe en el
+repositorio —`x-idempotency` con clave, primera respuesta y repetición, que `outcomes` usa desde la
+feature 013— y aplicarlo a la publicación de configuración cierra el agujero en vez de documentarlo.
+
+**Decisión del dueño (2026-09-26)**: se registra **y** se hace, en su propia feature. Qué otras
+operaciones de escritura son no idempotentes hay que contarlo al escribir la spec: la publicación de
+configuración es la que aparece, pero no se midió si es la única.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
