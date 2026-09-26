@@ -11,6 +11,7 @@ import type {
   DecisionPolicyDeclared,
   EvidenceProfileDeclared,
 } from "../../../domain/configuration/index.js";
+import type { EvidenceRequirements } from "../../../domain/decision/index.js";
 import type { Barrier } from "../../../domain/shared-kernel/index.js";
 
 const STRENGTHS: readonly RuleStrength[] = ["strong", "supporting"];
@@ -75,17 +76,21 @@ function weights(shape: Shape, raw: Raw, where: Field): { strong: number; suppor
   };
 }
 
-function evidence(
-  shape: Shape,
-  raw: Raw,
-  where: Field,
-): { freshStockAndPrice: Barrier[]; availableVariant: Barrier[] } {
+function evidence(shape: Shape, raw: Raw, where: Field): Partial<EvidenceRequirements> {
   const record = shape.recordAt(raw, "evidence", where);
   const field = at(where, "evidence");
   shape.closed(record, EVIDENCE_KEYS, field);
-  const list = (key: Key): Barrier[] =>
-    shape.has(record, key) ? (shape.strings(record, key, field) as Barrier[]) : [];
-  return { freshStockAndPrice: list("freshStockAndPrice"), availableVariant: list("availableVariant") };
+  // An absent key stays absent: what is declared is what the merchant sent, and turning an omission
+  // into an empty list both echoes back something the contract forbids (`minItems: 1`) and, merged
+  // over the defaults, silently empties the other key. The resolution supplies what is missing.
+  const list = (key: Key): Barrier[] | undefined =>
+    shape.has(record, key) ? (shape.strings(record, key, field) as Barrier[]) : undefined;
+  const fresh = list("freshStockAndPrice");
+  const variant = list("availableVariant");
+  return {
+    ...(fresh === undefined ? {} : { freshStockAndPrice: fresh }),
+    ...(variant === undefined ? {} : { availableVariant: variant }),
+  };
 }
 
 export function decisionPolicyDeclared(shape: Shape, value: unknown, where: Field): DecisionPolicyDeclared {

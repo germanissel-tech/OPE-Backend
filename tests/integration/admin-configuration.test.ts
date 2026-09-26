@@ -269,6 +269,21 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(unknownField.statusCode).toBe(400);
   });
 
+  it("an empty evidence object is published and echoed back without violating the contract (feature 029)", async () => {
+    // Found by Schemathesis: the reader turned an absent key into an empty list, the response echoed
+    // it, and `PolicyEvidence` forbids an empty list — so publishing answered 500
+    // response-contract-violation. What is declared is what the merchant sent.
+    const res = await configure({
+      declared: { decisionPolicy: { version: "d-evidence", evidence: {} } },
+      corrective: true,
+      reason: "test",
+    });
+    expect(res.statusCode).toBe(201);
+    expect(
+      (json(res) as { declared: { decisionPolicy?: { evidence?: unknown } } }).declared.decisionPolicy,
+    ).toEqual({ version: "d-evidence", evidence: {} });
+  });
+
   it("the barriers a merchant declares are bounded by the vocabulary, not by a number (feature 028)", async () => {
     // Removing the cap loosened nothing: what bounded the list was the vocabulary, and it still does.
     // Corrective, with their reason: the merchant has an active experiment, so any other version

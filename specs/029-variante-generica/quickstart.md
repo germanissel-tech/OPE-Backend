@@ -2,13 +2,19 @@
 
 Seis pasos. Cinco los decide un comando; el último lo decide leer.
 
-## 1. El canario: la variante no nombra una prenda
+## 1. El canario: la variante no tiene campos de indumentaria
 
 ```bash
-grep -nE "\bsize\b|\bcolor\b" contracts/components/schemas/CatalogVariant.yaml src/domain/catalog/*.ts
+grep -nE "^  (size|color):" contracts/components/schemas/CatalogVariant.yaml src/domain/catalog/catalog-snapshot.ts
 ```
 
 **Nada.** Mientras quede una ocurrencia, la feature no está hecha.
+
+**Pregunta por campos, no por palabras, y la primera versión preguntaba por palabras.** Daba dos
+aciertos falsos: el `.size` de un `Map` en el dominio, y el ejemplo «in apparel, size and colour» de
+la descripción del contrato — que es el mismo paréntesis que la fuente lleva desde la enmienda del
+2026-09-25, así que borrarlo haría al contrato **menos** fiel. Un canario que uno aprende a ignorar
+deja de ser un canario, que es lo que D-13 costó aprender.
 
 ## 2. El atributo está escrito una sola vez
 
@@ -56,6 +62,25 @@ obliga a traducir desde la ropa, quedó vocabulario que el `grep` del paso 1 no 
 
 Y leer la nota del glosario de `variante`: su cita tiene que ser la que la fuente dice **hoy**, no la
 que decía antes de la enmienda del 2026-09-25.
+
+## Estado, corrido el 2026-09-26
+
+Histórico y fechado (ADR-032): lo de abajo es lo que dio ese día, no una promesa.
+
+| Paso                                | Resultado                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| 1. la variante sin campos de prenda | ✅ cero, con el canario corregido (ver arriba)                                       |
+| 2. el atributo escrito una sola vez | ✅ producto y variante referencian el mismo componente; el límite, en un solo lugar  |
+| 3. una tienda que no vende ropa     | ✅ heladera aceptada, variante sin atributos aceptada, forma vieja `400` con puntero |
+| 4. la idempotencia ve el atributo   | ✅ verde, incluido el caso reordenado                                                |
+| 5. la decisión no cambió            | ✅ verde, y el catálogo del piloto sigue entrando en una operación                   |
+| 6. lo que ningún comando decide     | ✅ leído; ver abajo                                                                  |
+
+**El paso 6.** Leí la definición de variante como si vendiera heladeras y aguanta: dice «la
+combinación exacta de atributos que define un artículo vendible», con la ropa entre guiones como
+ejemplo y no como requisito, y agrega lo que un integrador necesita saber —que lo que la identifica es
+su id y que los atributos dicen qué la distingue, así que una variante única puede no declarar
+ninguno—. La nota del glosario cita ahora lo que la fuente dice, no lo que decía antes de la enmienda.
 
 ## Dónde se toca qué, después de esto
 

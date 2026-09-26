@@ -113,25 +113,34 @@ uno con la forma vieja, rechazado; y una decisión sobre ese catálogo, idéntic
 
 ## Phase 3: Cierre
 
-- [ ] T016 `docs/deudas.md` — D-16 a `implementada` con su commit.
-- [ ] T017 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión. La
+- [x] T016 `docs/deudas.md` — D-16 a `implementada` con su commit.
+- [x] T017 `CLAUDE.md` y `.claude/rules/` — **sólo si hace falta**, con el criterio de admisión. La
       hipótesis es que no: la regla sobre campos que nadie lee ya está en la 028 y su research, y el
       criterio de qué vocabulario es de quién está en `.claude/rules/contrato.md` desde la 027.
-- [ ] T018 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
+      **Resultado: no hizo falta nada.**
+- [x] T018 `npm run check:glossary`, `check:invariant-tests`, `check:identifiers`, `check:api-map`,
       `check:language`, `check:behaviour-constants`, `check:ports-bound` — los siete, uno por uno,
       antes de la cadena completa.
-- [ ] T019 Correr el quickstart **entero**, sus seis pasos, y dejar su tabla de estado **fechada**. El
+- [x] T019 Correr el quickstart **entero**, sus seis pasos, y dejar su tabla de estado **fechada**. El
       paso 6 no lo decide ningún comando: leer la definición de variante como si uno vendiera
       heladeras.
-- [ ] T020 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `build`, `test`,
+- [x] T020 Cadena completa como CI: `format:check`, `quality`, `typecheck`, `build`, `test`,
       `test:tools`, `contract:check`, `test:contract`, `release-check`. **`build` antes de
       `test:contract`**, que si no prueba el `dist/` anterior.
-- [ ] T021 `npm run test:mutation`. Por historia, el gate acotado
+      **`test:contract` falló, y no por esta feature**: Schemathesis generó un cuerpo con
+      `decisionPolicy.evidence: {}` y tres operaciones de configuración respondieron 500. El bug estaba
+      en `main`; se arregló acá y quedó como D-19, con sus dos pruebas. La segunda corrida: 30/30 y
+      10 495 casos.
+- [x] T021 `npm run test:mutation`. Por historia, el gate acotado
       (`--files <archivo>:<desde>-<hasta>`) sobre la huella de contenido, que es la línea con lógica;
       la corrida completa del diff, al cierre.
-- [ ] T022 **El canario**: `grep -nE "\bsize\b|\bcolor\b"` en
-      `contracts/components/schemas/CatalogVariant.yaml` y `src/domain/catalog/` tiene que dar
-      **nada**. Mientras quede una ocurrencia, la feature no está hecha.
+- [x] T022 **El canario**: `grep -nE "^  (size|color):"` en
+      `contracts/components/schemas/CatalogVariant.yaml` y `src/domain/catalog/catalog-snapshot.ts`
+      tiene que dar **nada**. Mientras quede una ocurrencia, la feature no está hecha.
+      **Corregido al ejecutarlo**: la versión escrita en el plan buscaba las **palabras** y daba dos
+      aciertos falsos —el `.size` de un `Map` y el ejemplo «in apparel, size and colour» de la
+      descripción, que es el paréntesis que la fuente lleva desde la enmienda—. Pregunta por campos,
+      no por palabras: un canario que uno aprende a ignorar deja de ser un canario.
 
 ---
 
