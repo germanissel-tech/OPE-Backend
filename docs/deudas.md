@@ -46,6 +46,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
 | D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `evaluada`     | 2026-09-25 | —         |
 | D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
+| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita          | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -218,6 +219,27 @@ La diferencia con D-13 es justo la que importa: allá el fixture **afirmaba** al
 vigilada) y acá el archivo no afirma nada. Lo que quedó de esto no es una deuda, es una lección sobre
 este registro: antes de escribir una fila hay que buscar si la práctica ya está documentada, porque
 una deuda inventada le cuesta credibilidad a las que sí existen.
+
+D-18 sale de la auditoría de cierre de la 028, y es incómoda por dónde está: **la constitución es el
+documento que prevalece sobre todo y el que menos verificación tiene.**
+
+- `check:adrs` le lee las citas `ADR-NNN` y comprueba que **el número exista**, no que lo que ella
+  afirma coincida con lo que ese ADR decidió.
+- `check:instructions` **no la cubre**: su política alcanza a `CLAUDE.md` y a las reglas acotadas, y la
+  constitución no está en la lista.
+
+La superficie sin vigilar son **56 afirmaciones normativas** y **10 ADR citados**.
+
+Su primera instancia se corrigió el mismo día que se encontró: la viñeta `Escalas` mandaba expresar
+porcentajes 0–100 en las superficies visibles y normalizar en el borde, y **ADR-035 abolió eso en la
+feature 022**. Sobrevivió seis features y pasó `check:adrs` sin despeinarse, porque ADR-035 existe —
+que es lo único que ese gate mira. Quien hubiera leído la constitución habría implementado una
+conversión que el código no hace, y habría tenido razón según el documento que manda.
+
+Es pariente de D-13 —lo que dejó de estar conectado y ningún gate lo nota— y la solución probablemente
+se parezca: no comparar prosa contra prosa, sino exigir que cada afirmación que **deriva de un ADR**
+lo cite, y verificar que ese ADR no esté `reemplazada` ni contradiga la cita. Medir primero cuántas de
+las 56 derivan de un ADR es parte del trabajo.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
