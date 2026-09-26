@@ -8,7 +8,7 @@ import type { Money, SessionId, VisitorId } from "../shared-kernel/index.js";
 export const EVENT_TYPES = [
   "product_viewed",
   "listing_viewed",
-  "size_selector_interacted",
+  "variant_selector_interacted",
   "variant_selected",
   "photo_interacted",
   "block_dwelled",
@@ -48,9 +48,7 @@ interface EventBase<T extends EventType> {
 
 export type ProductViewed = EventBase<"product_viewed">;
 export type ListingViewed = EventBase<"listing_viewed">;
-export interface SizeSelectorInteracted extends EventBase<"size_selector_interacted"> {
-  size: string;
-}
+export type VariantSelectorInteracted = EventBase<"variant_selector_interacted">;
 export interface VariantSelected extends EventBase<"variant_selected"> {
   selectedVariantId: string;
 }
@@ -61,7 +59,7 @@ export interface PhotoInteracted extends EventBase<"photo_interacted"> {
 }
 export const BLOCKS = [
   "description",
-  "size_guide",
+  "specifications",
   "reviews",
   "policies",
   "price",
@@ -100,7 +98,7 @@ export interface ExitSignaled extends EventBase<"exit_signaled"> {
 export type Event =
   | ProductViewed
   | ListingViewed
-  | SizeSelectorInteracted
+  | VariantSelectorInteracted
   | VariantSelected
   | PhotoInteracted
   | BlockDwelled

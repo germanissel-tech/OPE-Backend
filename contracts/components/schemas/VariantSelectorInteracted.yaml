@@ -1,12 +1,12 @@
 type: object
-description: Interaction with the size selector.
+description: The control that picks a variant was interacted with. What the system reads is that it happened and how often; which variant was chosen is `variant_selected`.
 additionalProperties: false
-required: [type, eventId, sessionId, visitorId, occurredAt, page, device, size]
+required: [type, eventId, sessionId, visitorId, occurredAt, page, device]
 properties:
   type:
     type: string
     description: Discriminator of the event type.
-    enum: [size_selector_interacted]
+    enum: [variant_selector_interacted]
   eventId:
     $ref: ./EventId.yaml
   sessionId:
@@ -24,7 +24,3 @@ properties:
     $ref: ./PageContext.yaml
   device:
     $ref: ./DeviceClass.yaml
-  size:
-    type: string
-    description: Label of the size interacted with, as the store shows it.
-    maxLength: 32

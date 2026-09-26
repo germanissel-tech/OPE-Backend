@@ -247,7 +247,6 @@ function selectionOf(
   }
   const chosen = verdict.blocked?.candidateId ?? verdict.chosen;
   const blocked = verdict.blocked;
-  // Stryker disable next-line BooleanLiteral: unreachable end to end until the message catalogue — every barrier has a claim-free information candidate the walk falls back to
   const commercialVerdict = blocked ? { blocked: true, reason: blocked.reason } : { blocked: false };
   return {
     candidates,

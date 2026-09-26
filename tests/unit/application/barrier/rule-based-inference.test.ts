@@ -2,13 +2,13 @@
 import { describe, expect, it } from "vitest";
 import { RuleBasedBarrierInference } from "../../../../src/application/barrier/index.js";
 import { Signals } from "../../../../src/domain/barrier/index.js";
-import { dwell, sizeSelector } from "../../../helpers/events.js";
+import { dwell, variantSelector } from "../../../helpers/events.js";
 import { testLevels } from "../../../helpers/test-app.js";
 
 describe("RuleBasedBarrierInference", () => {
   it("answers exactly what the rules infer", async () => {
     const rules = testLevels().defaults.values.decisionPolicy.rules;
-    const signals = Signals.of([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const signals = Signals.of([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     const product = { attributes: new Map<string, string>(), available: true };
     const inference = await new RuleBasedBarrierInference().infer({ rules, signals, product });
     expect(inference).toEqual(rules.infer(signals, product));

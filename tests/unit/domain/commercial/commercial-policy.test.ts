@@ -28,7 +28,7 @@ const base: CommercialPolicyRecord = {
   directIncentiveOnPrice: true,
   returnRisk: {
     all: [
-      { fact: "eventCount", type: "size_selector_interacted", min: 2 },
+      { fact: "eventCount", type: "variant_selector_interacted", min: 2 },
       { fact: "dwellSeconds", block: "policies" },
     ],
   },

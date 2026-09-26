@@ -43,9 +43,8 @@
     },
     "barriers": {
       "type": "array",
-      "description": "Barriers OPE may infer for the merchant; the others are never dominant.",
+      "description": "Barriers OPE may infer for the merchant; the others are never dominant. No upper bound of its own: with unique items over a closed vocabulary the list cannot exceed it, and a number here would say «a merchant picks at most N» while meaning «N exist» — two things that stop coinciding the day one more barrier exists.",
       "minItems": 1,
-      "maxItems": 3,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/Barrier"
@@ -870,7 +869,7 @@
       "description": "The merchant's anchor map (01 §3.1.1): where the SDK renders each anchor; an anchor absent here resolves by the SDK's own chain.",
       "additionalProperties": false,
       "properties": {
-        "size_selector": {
+        "variant_selector": {
           "$ref": "#/$defs/AnchorSelectors"
         },
         "price": {

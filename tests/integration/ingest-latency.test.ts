@@ -73,11 +73,11 @@ describe("latency of POST /v1/events (local profile)", () => {
     const page = { pageType: "product", productId: "SKU-1", variantId: "SKU-1-M" };
     const signals = (from: number, session: string): { events: unknown[] } => ({
       events: [
-        eventOf(from, { type: "size_selector_interacted", size: "M", page, sessionId: session }),
+        eventOf(from, { type: "variant_selector_interacted", page, sessionId: session }),
         eventOf(from + 1, { type: "photo_interacted", interaction: "zoom", page, sessionId: session }),
         eventOf(from + 2, {
           type: "block_dwelled",
-          block: "size_guide",
+          block: "specifications",
           dwellMs: 6000,
           page,
           sessionId: session,

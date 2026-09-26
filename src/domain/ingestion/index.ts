@@ -21,7 +21,7 @@ export type {
   ProductReturnedTo,
   ProductViewed,
   RemovedFromCart,
-  SizeSelectorInteracted,
+  VariantSelectorInteracted,
   VariantSelected,
 } from "./event.js";
 export {

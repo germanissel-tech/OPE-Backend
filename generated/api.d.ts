@@ -716,10 +716,10 @@ export type components = {
             all: components["schemas"]["NestedCondition"][];
         };
         /**
-         * @description Semantic anchor point where an intervention is (or was) rendered. The SDK resolves it with the merchant's anchor map.
+         * @description Semantic anchor point where an intervention is (or was) rendered. The SDK resolves it with the merchant's anchor map. `variant_selector` is the control that picks a variant — in apparel the size and colour selectors, which 01 §3 lists separately and this vocabulary covers with one name.
          * @enum {string}
          */
-        Anchor: "size_selector" | "price" | "cta" | "policies";
+        Anchor: "variant_selector" | "price" | "cta" | "policies";
         /** @description An unresolved anchor as the administration reads it (01 §3.1.1): the last time the SDK reported it and how many times, per anchor, page type and configuration version. */
         AnchorDiagnostic: {
             anchor: components["schemas"]["Anchor"];
@@ -753,7 +753,7 @@ export type components = {
             cta?: components["schemas"]["AnchorSelectors"];
             policies?: components["schemas"]["AnchorSelectors"];
             price?: components["schemas"]["AnchorSelectors"];
-            size_selector?: components["schemas"]["AnchorSelectors"];
+            variant_selector?: components["schemas"]["AnchorSelectors"];
         };
         /** @description The CSS selectors that resolve an anchor in the merchant's store, in order of preference. */
         AnchorSelectors: {
@@ -811,10 +811,10 @@ export type components = {
         /** @description Scroll and dwell over a block of the product page. */
         BlockDwelled: {
             /**
-             * @description Semantic block of the product page the visitor dwelled on.
+             * @description Semantic block of the product page the visitor dwelled on. `specifications` is where the page states whether the product will suit the buyer — the size chart of a garment, the dimensions of an appliance — which is why dwelling there is evidence of a fit doubt.
              * @enum {string}
              */
-            block: "description" | "size_guide" | "reviews" | "policies" | "price" | "gallery" | "cta";
+            block: "description" | "specifications" | "reviews" | "policies" | "price" | "gallery" | "cta";
             device: components["schemas"]["DeviceClass"];
             /** @description Milliseconds of dwell over the block. */
             dwellMs: number;
@@ -1178,7 +1178,7 @@ export type components = {
          *     The `mapping` is explicit so that the generated types carry the wire value; the server strips
          *     it before compiling the validators because Ajv does not support it (ADR-014).
          */
-        Event: components["schemas"]["ProductViewed"] | components["schemas"]["ListingViewed"] | components["schemas"]["SizeSelectorInteracted"] | components["schemas"]["VariantSelected"] | components["schemas"]["PhotoInteracted"] | components["schemas"]["BlockDwelled"] | components["schemas"]["CtaApproached"] | components["schemas"]["ProductReturnedTo"] | components["schemas"]["AddedToCart"] | components["schemas"]["RemovedFromCart"] | components["schemas"]["CheckoutAdvanced"] | components["schemas"]["ExitSignaled"];
+        Event: components["schemas"]["ProductViewed"] | components["schemas"]["ListingViewed"] | components["schemas"]["VariantSelectorInteracted"] | components["schemas"]["VariantSelected"] | components["schemas"]["PhotoInteracted"] | components["schemas"]["BlockDwelled"] | components["schemas"]["CtaApproached"] | components["schemas"]["ProductReturnedTo"] | components["schemas"]["AddedToCart"] | components["schemas"]["RemovedFromCart"] | components["schemas"]["CheckoutAdvanced"] | components["schemas"]["ExitSignaled"];
         /** @description Batch of events from **one** session. Every event must belong to the same visitor (`session-visitor-mismatch` otherwise). */
         EventBatch: {
             /** @description Events in the order the SDK captured them. Ordering comes from `occurredAt`, not from the position. */
@@ -1473,7 +1473,7 @@ export type components = {
             anchors?: components["schemas"]["AnchorMap"];
             /** @description What the merchant's own attribute labels correspond to in OPE's vocabulary; several labels may point at one value, one label at one only. */
             attributeLabels?: components["schemas"]["AttributeLabel"][];
-            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. No upper bound of its own: with unique items over a closed vocabulary the list cannot exceed it, and a number here would say «a merchant picks at most N» while meaning «N exist» — two things that stop coinciding the day one more barrier exists. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
             decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];
@@ -1882,26 +1882,6 @@ export type components = {
         };
         /** @description Identifier of the visit, generated by the SDK. Groups the behavioural sequence; it expires. */
         SessionId: string;
-        /** @description Interaction with the size selector. */
-        SizeSelectorInteracted: {
-            device: components["schemas"]["DeviceClass"];
-            eventId: components["schemas"]["EventId"];
-            /**
-             * Format: date-time
-             * @description Instant of the event according to the browser (RFC 3339). Accepted tolerance: up to 5 minutes in the future and 24 hours in the past relative to the backend clock; beyond that, `event-timestamp-out-of-range`.
-             */
-            occurredAt: string;
-            page: components["schemas"]["PageContext"];
-            sessionId: components["schemas"]["SessionId"];
-            /** @description Label of the size interacted with, as the store shows it. */
-            size: string;
-            /**
-             * @description Discriminator of the event type. (enum property replaced by openapi-typescript)
-             * @enum {string}
-             */
-            type: "size_selector_interacted";
-            visitorId: components["schemas"]["VisitorId"];
-        };
         /**
          * @description A page type where OPE may intervene: the product page or the cart.
          * @enum {string}
@@ -2017,6 +1997,24 @@ export type components = {
              * @enum {string}
              */
             type: "variant_selected";
+            visitorId: components["schemas"]["VisitorId"];
+        };
+        /** @description The control that picks a variant was interacted with. What the system reads is that it happened and how often; which variant was chosen is `variant_selected`. */
+        VariantSelectorInteracted: {
+            device: components["schemas"]["DeviceClass"];
+            eventId: components["schemas"]["EventId"];
+            /**
+             * Format: date-time
+             * @description Instant of the event according to the browser (RFC 3339). Accepted tolerance: up to 5 minutes in the future and 24 hours in the past relative to the backend clock; beyond that, `event-timestamp-out-of-range`.
+             */
+            occurredAt: string;
+            page: components["schemas"]["PageContext"];
+            sessionId: components["schemas"]["SessionId"];
+            /**
+             * @description Discriminator of the event type. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "variant_selector_interacted";
             visitorId: components["schemas"]["VisitorId"];
         };
         /** @description Pseudonymous, persistent identifier of the browser, generated by the SDK. Gives stability to the experimental assignment. Does not identify a person. */
@@ -2687,7 +2685,7 @@ export interface operations {
                      * @example {
                      *       "items": [
                      *         {
-                     *           "anchor": "size_selector",
+                     *           "anchor": "variant_selector",
                      *           "pageType": "product",
                      *           "configurationVersion": 3,
                      *           "lastSeenAt": "2026-09-20T12:00:00Z",
@@ -2785,7 +2783,7 @@ export interface operations {
                      *             "all": [
                      *               {
                      *                 "fact": "eventCount",
-                     *                 "type": "size_selector_interacted",
+                     *                 "type": "variant_selector_interacted",
                      *                 "min": 2
                      *               },
                      *               {
@@ -3697,7 +3695,7 @@ export interface operations {
                      *           "all": [
                      *             {
                      *               "fact": "eventCount",
-                     *               "type": "size_selector_interacted",
+                     *               "type": "variant_selector_interacted",
                      *               "min": 2
                      *             },
                      *             {
@@ -4110,7 +4108,7 @@ export interface operations {
                      *         "fallback": "es-AR"
                      *       },
                      *       "anchors": {
-                     *         "size_selector": {
+                     *         "variant_selector": {
                      *           "selectors": [
                      *             "#product-options-wrapper .swatch-attribute.size"
                      *           ]
@@ -4146,7 +4144,7 @@ export interface operations {
                  *       "configurationVersion": 3,
                  *       "unresolved": [
                  *         {
-                 *           "anchor": "size_selector",
+                 *           "anchor": "variant_selector",
                  *           "pageType": "product"
                  *         },
                  *         {

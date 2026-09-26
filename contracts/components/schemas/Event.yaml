@@ -9,7 +9,7 @@ type: object
 oneOf:
   - $ref: ./ProductViewed.yaml
   - $ref: ./ListingViewed.yaml
-  - $ref: ./SizeSelectorInteracted.yaml
+  - $ref: ./VariantSelectorInteracted.yaml
   - $ref: ./VariantSelected.yaml
   - $ref: ./PhotoInteracted.yaml
   - $ref: ./BlockDwelled.yaml
@@ -24,7 +24,7 @@ discriminator:
   mapping:
     product_viewed: ./ProductViewed.yaml
     listing_viewed: ./ListingViewed.yaml
-    size_selector_interacted: ./SizeSelectorInteracted.yaml
+    variant_selector_interacted: ./VariantSelectorInteracted.yaml
     variant_selected: ./VariantSelected.yaml
     photo_interacted: ./PhotoInteracted.yaml
     block_dwelled: ./BlockDwelled.yaml

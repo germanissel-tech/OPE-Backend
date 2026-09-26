@@ -41,10 +41,10 @@ describe("CANDIDATES", () => {
   it("declares the claims of the MVP catalogue (spec 012, Assumptions)", () => {
     const claims = Object.fromEntries(all.map((c) => [c.candidateId, c.claims.map((claim) => claim.kind)]));
     expect(claims).toEqual({
-      "fit.size_selector.information": [],
+      "fit.variant_selector.information": [],
       "fit.policies.reassurance": ["returns-policy"],
-      "fit.size_selector.uncertainty": ["product-attribute"],
-      "fit.size_selector.evidence": ["fit-data", "availability"],
+      "fit.variant_selector.uncertainty": ["product-attribute"],
+      "fit.variant_selector.evidence": ["fit-data", "availability"],
       "price.price.information": [],
       "price.price.evidence": ["current-price"],
       "price.price.incentive": ["incentive"],

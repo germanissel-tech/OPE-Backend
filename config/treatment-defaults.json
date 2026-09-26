@@ -14,21 +14,21 @@
     "version": "default-1",
     "rules": [
       {
-        "id": "fit.size-selector-twice",
+        "id": "fit.variant-selector-twice",
         "barrier": "fit",
         "strength": "strong",
         "when": {
           "all": [
-            { "fact": "eventCount", "type": "size_selector_interacted", "min": 2 },
+            { "fact": "eventCount", "type": "variant_selector_interacted", "min": 2 },
             { "not": { "fact": "sessionAddedToCart" } }
           ]
         }
       },
       {
-        "id": "fit.size-guide-read",
+        "id": "fit.specifications-read",
         "barrier": "fit",
         "strength": "strong",
-        "when": { "fact": "dwellSeconds", "block": "size_guide" }
+        "when": { "fact": "dwellSeconds", "block": "specifications" }
       },
       {
         "id": "fit.variants-compared",
@@ -59,7 +59,7 @@
               "first": { "type": "added_to_cart" },
               "then": { "type": "removed_from_cart" }
             },
-            { "not": { "fact": "dwellSeconds", "block": "size_guide" } },
+            { "not": { "fact": "dwellSeconds", "block": "specifications" } },
             { "not": { "fact": "dwellSeconds", "block": "policies" } }
           ]
         }
@@ -110,12 +110,12 @@
         }
       },
       {
-        "id": "returns.size-doubt-and-policies",
+        "id": "returns.variant-doubt-and-policies",
         "barrier": "returns",
         "strength": "strong",
         "when": {
           "all": [
-            { "fact": "eventCount", "type": "size_selector_interacted", "min": 2 },
+            { "fact": "eventCount", "type": "variant_selector_interacted", "min": 2 },
             { "fact": "dwellSeconds", "block": "policies" }
           ]
         }
@@ -155,7 +155,7 @@
     "directIncentiveOnPrice": true,
     "returnRisk": {
       "all": [
-        { "fact": "eventCount", "type": "size_selector_interacted", "min": 2 },
+        { "fact": "eventCount", "type": "variant_selector_interacted", "min": 2 },
         { "fact": "dwellSeconds", "block": "policies" }
       ]
     },

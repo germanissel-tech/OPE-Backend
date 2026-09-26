@@ -3,7 +3,7 @@
 // platform: replica of contracts/components/schemas/Anchor.yaml (the source); a test verifies
 // they match. A new anchor is a product feature (contract, glossary, SDK anchor map, messages),
 // never configuration.
-export const ANCHORS = ["size_selector", "price", "cta", "policies"] as const;
+export const ANCHORS = ["variant_selector", "price", "cta", "policies"] as const;
 export type Anchor = (typeof ANCHORS)[number];
 
 /** The kinds of incentive the commercial policy may grant: a proportional one in the MVP (03 §4.8). */

@@ -67,7 +67,7 @@ const exposureOf = (decisionId: string) => ({
   sessionId: "ses_00000001",
   visitorId: "vis_00000001",
   exposedAt: NOW,
-  anchor: "size_selector",
+  anchor: "variant_selector",
 });
 
 async function intervene(merchantId: string, decisionId: string): Promise<void> {
@@ -81,7 +81,11 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
       decidedAt: new Date(NOW),
     },
     "barrier-size",
-    { text: "If it does not fit, the exchange is free.", messageVersionId: "msg-1", anchor: "size_selector" },
+    {
+      text: "If it does not fit, the exchange is free.",
+      messageVersionId: "msg-1",
+      anchor: "variant_selector",
+    },
   );
   await app.resolve(DecisionLedgerPort).record(decision);
 }
@@ -89,7 +93,7 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
 /** A batch with one long dwell on the size guide: what makes the fit barrier fire. */
 const dwellOnSizeGuide = (from: number, page: Record<string, unknown>) => ({
   events: [
-    eventOf(from, { occurredAt: NOW, page, type: "block_dwelled", block: "size_guide", dwellMs: 6000 }),
+    eventOf(from, { occurredAt: NOW, page, type: "block_dwelled", block: "specifications", dwellMs: 6000 }),
   ],
 });
 
@@ -247,7 +251,7 @@ describe("isolation between merchants", () => {
           id: "fit.size-guide",
           barrier: "fit",
           strength: "strong",
-          when: { fact: "dwellSeconds", block: "size_guide" },
+          when: { fact: "dwellSeconds", block: "specifications" },
         },
         {
           id: "price.price",
@@ -356,7 +360,7 @@ describe("isolation between merchants", () => {
           id: "fit.size-guide",
           barrier: "fit",
           strength: "strong",
-          when: { fact: "dwellSeconds", block: "size_guide" },
+          when: { fact: "dwellSeconds", block: "specifications" },
         },
         {
           id: "price.price",

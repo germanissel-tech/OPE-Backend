@@ -112,7 +112,7 @@ function subtypeOf(event: Event): string | undefined {
       return event.signal;
     case "product_viewed":
     case "listing_viewed":
-    case "size_selector_interacted":
+    case "variant_selector_interacted":
     case "variant_selected":
     case "product_returned_to":
     case "added_to_cart":

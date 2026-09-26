@@ -20,7 +20,7 @@ const facts: DecisionFactsInput = {
   inference: {
     policyVersion: "default-1",
     confidences: { fit: 0.6, price: 0, returns: 0.2 },
-    matched: ["fit.size-guide-read", "fit.photo-zoomed"],
+    matched: ["fit.specifications-read", "fit.photo-zoomed"],
     barrier: "fit",
     trigger: "rules",
     evidence: { truth: "known", stockAndPrice: "fresh", available: true },
@@ -28,8 +28,8 @@ const facts: DecisionFactsInput = {
 };
 const intervention = {
   text: "If it does not fit, the exchange is free.",
-  messageVersionId: "msg_fit_size_selector_v0",
-  anchor: "size_selector" as const,
+  messageVersionId: "msg_fit_variant_selector_v0",
+  anchor: "variant_selector" as const,
 };
 
 function ids(): { next: () => ReturnType<typeof asDecisionId>; minted: number } {

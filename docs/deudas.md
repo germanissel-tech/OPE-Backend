@@ -31,7 +31,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | ---- | ------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
 | D-01 | La skill de auditoría de arquitectura está acoplada a este repo                 | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
 | D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable      | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `evaluada`     | 2026-09-21 | —         |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo  | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
 | D-04 | `config/` sin documentación ni esquema propio                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
 | D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
 | D-06 | Los directorios de primer nivel no se explican solos                            | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
@@ -40,17 +40,53 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos          | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
 | D-10 | El procedimiento del gate de mutación está escrito como una instrucción         | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
 | D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
-| D-12 | Los mutantes estáticos no se activan de forma fiable con el runner de Vitest    | ADR-016 (2026-09-21)                | `abierta`      | 2026-09-24 | —         |
-| D-13 | Ningún gate verifica que un fixture siga apuntando a algo que existe            | Feature 027 (al cerrar D-11)        | `abierta`      | 2026-09-25 | —         |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `abierta`      | 2026-09-25 | —         |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga           | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan              | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa    | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
 | D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación     | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                | Feature 028 (al enmendar la fuente) | `evaluada`     | 2026-09-25 | —         |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                   | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
+| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita          | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
 
+D-03 se **descartó el 2026-09-25**, en la evaluación de las deudas abiertas, y el motivo es de la
+constitución y no de conveniencia: Governance pide que toda complejidad añadida se justifique frente a
+la tesis del MVP —«¿contribuye a producir un número confiable de contribución incremental?»— y un
+scaffold para **otros** backends no contribuye. No es que esté mal hecho ni que falte: no es deuda de
+este producto. La idea sigue viva fuera de este registro; lo que deja de ser cierto es que OPE tenga
+algo pendiente por ella.
+
+Que haya estado cuatro días en `evaluada` sin que nadie la mirara es la señal: una fila que nadie
+puede cerrar porque no depende de este producto ensucia el registro cada vez que se lo revisa.
+
 D-12 estaba anotada en la decisión de ADR-016 del 2026-09-21 —«deuda anotada para la feature de
-calidad»— y nunca llegó al registro: exactamente el efecto que esta feature vino a corregir. Se
-registra tal como estaba escrita, sin decidir nada sobre ella.
+calidad»— y nunca llegó al registro: exactamente el efecto que la feature 026 vino a corregir.
+
+**Replanteada el 2026-09-25, después de medirla.** Decía «los mutantes estáticos no se activan de
+forma fiable con el runner de Vitest», que suena a bug ajeno esperando un arreglo río arriba. No lo
+es: Stryker está en su última versión y el parche que el repositorio lleva es por otra cosa.
+`ignoreStatic` es una **decisión de ADR-016 con su motivo** —cada mutante estático corre la suite
+entera y el runner los reporta como falsos supervivientes—, y lo que queda es su costo, que ahora está
+contado: **quince mutantes** en la última corrida acotada al diff, en código que corre fuera de toda
+prueba (el arranque, la semilla, los lectores de la configuración).
+
+Se revisa cuando ese código empiece a importar de verdad, que es el hito `persistence-and-resilience`:
+hoy el arranque es en memoria y lo que no juzga son quince mutantes de código que se reescribe en esa
+feature.
+
+**Y midiéndola apareció otra cosa**, que sí se arregló en el momento. Una excepción de
+`decision.service.ts` decía «unreachable end to end **until the message catalogue**», y el catálogo de
+mensajes llegó en la feature 027: la excepción nombraba un futuro que ya había ocurrido. Al quitarla,
+el mutante no murió —seguía sin cobertura—, así que el motivo no sólo estaba vencido: **escondía una
+prueba que faltaba**. La rama es alcanzable justamente desde la 027, porque una familia sin texto deja
+de ser candidata y la escalera puede quedarse con el incentivo y sin escalón al que caer. Con esa
+prueba escrita, el mutante muere.
+
+Es la misma familia que D-13: algo que dejó de ser cierto y ningún gate lo nota. Una excepción que
+nombra un evento futuro debería re-leerse el día que ese evento ocurre, y hoy no hay nada que lo
+recuerde.
 
 D-11 apareció **al separar**, no antes: ADR-033 reemplazó los perfiles por despliegues y la regla
 de dependency-cruiser se quedó apuntando a `src/composition/profiles/`, que ya no existe.
@@ -65,19 +101,31 @@ Cerrada en la feature 027 (pasando por ahí): la regla es `deployments-compose-m
 `composition/deployments/`, con su fixture renombrado, y el renombre queda registrado en la
 enmienda del 2026-09-24 de ADR-013.
 
-D-13 sale de ahí, y es la lección y no el caso: **nada verifica que un fixture siga apuntando a algo
-que existe.** El repositorio tiene fixtures para casi todo —reglas de arquitectura
-(`tests/architecture/fixtures/`), reglas de lint (`tests/lint/fixtures/`), reglas del contrato
-(`tests/contract-rules/fixtures/`), evaluaciones de la auditoría— y son su mejor idea: una regla sin
-fixture no se sabe si dispara. Pero un fixture **construye su propio sujeto**, así que sobrevive a
-que el sujeto real cambie de nombre o desaparezca, y entonces la prueba mide el fixture en vez de la
-regla. El síntoma es el peor posible: verde.
+D-13 sale de ahí, y **se replanteó el 2026-09-25 después de medirla**, porque como estaba escrita no
+se podía construir.
 
-No está claro qué lo verificaría, y por eso es una deuda y no un arreglo. Lo que D-11 sugiere es que
-hay algo comparable a lo que ya hacen `check:identifiers` (toda cita resuelve) y
-`check:behaviour-constants` (los archivos retirados no existen): **cada fixture nombra la ruta real
-que imita, y un gate comprueba que esa ruta exista**. Medir primero cuántos fixtures podrían
-declararla es parte del trabajo.
+Decía «nada verifica que un fixture siga apuntando a algo que existe». Al contar, de los directorios
+de `tests/architecture/fixtures/src/` y `tests/lint/fixtures/as-src/` que no tienen contraparte en
+`src/`, **casi todos son deliberados**: `interface-adapters/a`, `b`, `c` y `x` son nombres de módulo
+inventados para probar reglas _entre_ módulos, y `demo` y `some` lo mismo. Un fixture **tiene que**
+poder modelar algo que no existe: para eso existe. Ese gate habría sido casi todo excepciones, que es
+la forma más rápida de que un gate deje de significar algo.
+
+**Lo que sí se rompió en D-11 fue otro vínculo**: no fixture → ruta real, sino **regla → ruta real**.
+La regla de dependency-cruiser nombraba `src/composition/profiles/`, que ADR-033 había hecho
+desaparecer; el fixture sólo la mantuvo verde después. La regla es el que afirma algo sobre el
+repositorio, y es el que puede quedar afirmando sobre algo que ya no está.
+
+Así que la deuda es: **un gate que extraiga las rutas que nombran las reglas** —las de
+`.dependency-cruiser.cjs` y las de `ope/*`— y compruebe que resuelvan contra el disco, igual que
+`check:identifiers` hace con lo que cita la documentación. Sin excepciones esperadas, y habría
+atrapado D-11 el día del renombre en vez de dos features después.
+
+**Y un caso concreto que la medición dejó servido**, para mirar al construirlo:
+`tests/architecture/fixtures/src/composition/adapters/ok-adapter.ts` afirma que un adaptador entre dos
+módulos «vive en la composición (feature 018): no dispara ninguna regla», y `src/composition/` hoy no
+tiene `adapters/`. Puede ser legítimo —afirma que ese lugar sería válido— o puede ser el segundo caso
+de D-11.
 
 D-14 sale de una evaluación con el dueño sobre usar OPE en otro rubro. Lo medido, para no
 re-deducirlo:
@@ -107,6 +155,54 @@ Tres cosas que la evaluación descartó, con su motivo:
 `03 §9` dice que el piloto **no va a poder decir «qué pasa en otros rubros»**, así que esto no es una
 promesa incumplida: es acople que se decide cargar, con el mapa de dónde está.
 
+**Esa tabla se escribió sin abrir `01`, y dos de sus filas estaban mal.** Al arrancar la feature 028
+se fue a verificarla contra la fuente y apareció lo contrario de lo que decía: el anclaje no estaba
+«mal nombrado» —`01 §3` listaba «dónde están el selector de talle, el de color…»— y la variante no era
+una omisión nuestra, porque `01 §0.1` la definía como «la combinación exacta de talle y color». El
+núcleo no se había acoplado a la vertical: **estaba implementando la fuente con fidelidad.** Renombrar
+sin más habría separado el código de la fuente de verdad #2, que es exactamente el error que la 027
+enseñó a no cometer.
+
+Lo que la verificación sí encontró, y la tabla no tenía:
+
+- **`01` argumentaba a favor del renombre en la misma tabla**: dos filas arriba de «selector de talle»
+  dice que la normalización mínima produce «un vocabulario de eventos **estable, independiente de la
+  plataforma**».
+- **El contrato le debía un anclaje a la fuente**: `01 §3` listaba **cinco** puntos de anclaje y el
+  contrato publica **cuatro** —faltaba el del selector de color—. Generalizar los dos selectores en uno
+  cierra esa deuda sin agregar nada.
+
+Así que el orden correcto era al revés, y se hizo así: **la fuente se evaluó con el dueño y se enmendó
+el 2026-09-25** (catorce líneas en `01`, `02` y `03`; en cada caso lo que el documento decidía era
+genérico y lo que ejemplificaba era ropa, y la enmienda bajó la ropa a ejemplo). Recién con la fuente
+enmendada el renombre alinea en vez de divergir, y eso es la feature 028. La lección, que vale más que
+la fila: **antes de llamar deuda a un acople, hay que verificar si la fuente lo pide.**
+
+**Cerrada en la feature 028**, y conviene decir hasta dónde: de las cinco filas de la tabla de
+arriba, dos estaban mal medidas (las corrige el párrafo anterior y ADR-037), una era «de OPE y por
+diseño» y no había nada que hacer, y las dos que sí eran deuda —el anclaje con su evento y el
+vocabulario de bloques— quedan cerradas. Lo que la tabla llamaba la variante **no se cierra acá**: se
+separó como D-16, porque no es un renombre. Una deuda que se cierra parcialmente se dice así, no se
+marca entera.
+
+D-16 sale de ahí. La enmienda **permitió** que una variante deje de exigir talle y color, pero eso no
+es un renombre: cambia la forma de lo que un merchant envía. La pregunta que hay que contestar antes de
+tocarlo, y que es el trabajo de verdad, es **cómo el claim de calce sabe cuál de los atributos de una
+variante es el que se recomienda** — hoy lo sabe porque el atributo se llama `size`. Se queda afuera de
+la 028 a propósito, que hace sólo los renombres.
+
+D-17 sale del mismo momento, y era incómoda: los documentos del MVP **no estaban bajo control de
+versiones** —no había `.git` en su directorio—. La regla que la 027 dejó escrita, «cuando el diseño y
+la fuente no coinciden, se corrige el diseño», se apoyaba en documentos que podían cambiar sin que
+quedara registro de qué cambió, cuándo ni por qué.
+
+**Cerrada el mismo día, en la evaluación de deudas abiertas.** `ope/mvp/` es ahora un repositorio, con
+`backend/` ignorado porque ya tiene el suyo. Los respaldos con fecha que la enmienda había dejado
+permitieron algo mejor que empezar la historia hoy: el **primer** commit es el estado previo a la
+enmienda y el segundo es la enmienda, así que el cambio del 2026-09-25 quedó como un diff recuperable
+(`ef2c854`) y las copias `.bak` se borraron porque la historia las reemplaza. Las citas
+`mvp:01-...` siguen resolviendo y ningún gate de este repositorio cambió.
+
 D-15 se registró y se descartó el mismo día, y queda acá porque **descartar con el motivo vale más
 que borrar**: un commit de la 027 la nombra y alguien va a venir a buscarla.
 
@@ -123,6 +219,27 @@ La diferencia con D-13 es justo la que importa: allá el fixture **afirmaba** al
 vigilada) y acá el archivo no afirma nada. Lo que quedó de esto no es una deuda, es una lección sobre
 este registro: antes de escribir una fila hay que buscar si la práctica ya está documentada, porque
 una deuda inventada le cuesta credibilidad a las que sí existen.
+
+D-18 sale de la auditoría de cierre de la 028, y es incómoda por dónde está: **la constitución es el
+documento que prevalece sobre todo y el que menos verificación tiene.**
+
+- `check:adrs` le lee las citas `ADR-NNN` y comprueba que **el número exista**, no que lo que ella
+  afirma coincida con lo que ese ADR decidió.
+- `check:instructions` **no la cubre**: su política alcanza a `CLAUDE.md` y a las reglas acotadas, y la
+  constitución no está en la lista.
+
+La superficie sin vigilar son **56 afirmaciones normativas** y **10 ADR citados**.
+
+Su primera instancia se corrigió el mismo día que se encontró: la viñeta `Escalas` mandaba expresar
+porcentajes 0–100 en las superficies visibles y normalizar en el borde, y **ADR-035 abolió eso en la
+feature 022**. Sobrevivió seis features y pasó `check:adrs` sin despeinarse, porque ADR-035 existe —
+que es lo único que ese gate mira. Quien hubiera leído la constitución habría implementado una
+conversión que el código no hace, y habría tenido razón según el documento que manda.
+
+Es pariente de D-13 —lo que dejó de estar conectado y ningún gate lo nota— y la solución probablemente
+se parezca: no comparar prosa contra prosa, sino exigir que cada afirmación que **deriva de un ADR**
+lo cite, y verificar que ese ADR no esté `reemplazada` ni contradiga la cita. Medir primero cuántas de
+las 56 derivan de un ADR es parte del trabajo.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

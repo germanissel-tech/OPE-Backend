@@ -16,7 +16,7 @@ import {
   type MerchantProfile,
   type SaidWith,
 } from "../../../../src/domain/selection/index.js";
-import { dwell, sizeSelector } from "../../../helpers/events.js";
+import { dwell, variantSelector } from "../../../helpers/events.js";
 import { sayable } from "../../../helpers/sayable.js";
 import type { Barrier } from "../../../../src/domain/shared-kernel/index.js";
 
@@ -33,7 +33,7 @@ const noSignals = FactContext.of({
   readingSeconds: 5,
 });
 const risky = FactContext.of({
-  signals: Signals.of([sizeSelector(1), sizeSelector(2), dwell(3, "policies", 6000)]),
+  signals: Signals.of([variantSelector(1), variantSelector(2), dwell(3, "policies", 6000)]),
   product: { attributes: new Map() },
   readingSeconds: 5,
 });
@@ -46,7 +46,7 @@ const record: CommercialPolicyRecord = {
   directIncentiveOnPrice: true,
   returnRisk: {
     all: [
-      { fact: "eventCount", type: "size_selector_interacted", min: 2 },
+      { fact: "eventCount", type: "variant_selector_interacted", min: 2 },
       { fact: "dwellSeconds", block: "policies" },
     ],
   },
@@ -121,7 +121,7 @@ describe("CommercialPolicy.verdict — the ladder (user story 2)", () => {
       "1. fit: the lowest acceptable step, no incentive",
       base,
       input(),
-      intervene("fit.size_selector.information"),
+      intervene("fit.variant_selector.information"),
     ],
     [
       "2. price with the direct incentive, margin and ceiling → the incentive at the first step",
@@ -220,27 +220,27 @@ describe("CommercialPolicy.verdict — the gates, in order, keep what would have
     [
       "no experiment → no-active-experiment",
       input({}, ["arm"]),
-      { kind: "no-op", reason: "no-active-experiment", chosen: "fit.size_selector.information" },
+      { kind: "no-op", reason: "no-active-experiment", chosen: "fit.variant_selector.information" },
     ],
     [
       "CONTROL → control-arm",
       input({ arm: "CONTROL" }),
-      { kind: "no-op", reason: "control-arm", chosen: "fit.size_selector.information" },
+      { kind: "no-op", reason: "control-arm", chosen: "fit.variant_selector.information" },
     ],
     [
       "entered the checkout → high-intent",
       input({ enteredCheckout: true }),
-      { kind: "no-op", reason: "high-intent", chosen: "fit.size_selector.information" },
+      { kind: "no-op", reason: "high-intent", chosen: "fit.variant_selector.information" },
     ],
     [
       "session budget spent → session-budget-exhausted",
       input({ session: { interventions: 1 } }),
-      { kind: "no-op", reason: "session-budget-exhausted", chosen: "fit.size_selector.information" },
+      { kind: "no-op", reason: "session-budget-exhausted", chosen: "fit.variant_selector.information" },
     ],
     [
       "visitor fatigue → visitor-fatigue",
       input({ visitorInterventions: 3 }),
-      { kind: "no-op", reason: "visitor-fatigue", chosen: "fit.size_selector.information" },
+      { kind: "no-op", reason: "visitor-fatigue", chosen: "fit.variant_selector.information" },
     ],
     [
       "CONTROL with a blocked incentive keeps the block for the ledger",
@@ -334,7 +334,7 @@ describe("CommercialPolicy.verdict — the abandonment amplifies (user story 3, 
   it("with a single acceptable candidate the step-up keeps it", () => {
     const only = judgedOf("fit").filter((j) => j.candidate.step === "information");
     expect(base.verdict(input({ judged: only, abandoned: true }))).toEqual(
-      intervene("fit.size_selector.information"),
+      intervene("fit.variant_selector.information"),
     );
   });
 
@@ -351,14 +351,14 @@ describe("CommercialPolicy.verdict — the abandonment amplifies (user story 3, 
         candidateId: "fit.stray.incentive",
         barrier: "fit",
         step: "incentive",
-        anchor: "size_selector",
+        anchor: "variant_selector",
         claims: [{ kind: "incentive" }],
       },
       verdict: { acceptable: true },
     };
     expect(base.verdict(input({ judged: [stray, ...judgedOf("fit")] })).kind).toBe("intervene");
     expect(base.verdict(input({ judged: [...judgedOf("fit"), stray] }))).toEqual(
-      intervene("fit.size_selector.information"),
+      intervene("fit.variant_selector.information"),
     );
   });
 

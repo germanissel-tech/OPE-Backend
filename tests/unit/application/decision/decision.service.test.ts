@@ -48,7 +48,7 @@ import {
   cta,
   dwell,
   removedFromCart,
-  sizeSelector,
+  variantSelector,
   viewed,
 } from "../../../helpers/events.js";
 import {
@@ -109,6 +109,8 @@ interface Options {
   enabled?: boolean;
   /** The barriers the merchant enables (feature 017); all unless a test says otherwise. */
   barriers?: readonly Barrier[];
+  /** Which steps have a curated text (feature 027); all of them unless a test says otherwise. */
+  sayableSteps?: readonly string[];
   versions?: ConfigurationVersions;
 }
 
@@ -170,7 +172,10 @@ function subject(options: Options = {}) {
   const everySayable = {
     sayable: (request: MessageRequest) => {
       asked.push(request);
-      return Promise.resolve(sayable(request.candidates));
+      const steps = options.sayableSteps;
+      const said =
+        steps === undefined ? request.candidates : request.candidates.filter((c) => steps.includes(c.step));
+      return Promise.resolve(sayable(said));
     },
   };
   const inference: BarrierInference = {
@@ -245,23 +250,33 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
       locale: "es-AR",
     };
     const spoken = subject({ catalog: snapshot });
-    await spoken.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4, page)]);
+    await spoken.decide([
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
+      viewed(4, page),
+    ]);
     expect(spoken.asked.at(-1)?.locale).toBe("es-AR");
     // Absent and not empty: a language nobody declared is not a language to look up.
     const silent = subject({ catalog: snapshot });
-    await silent.decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000), viewed(4)]);
+    await silent.decide([
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
+      viewed(4),
+    ]);
     const last = silent.asked.at(-1);
     expect(last === undefined ? "no request" : "locale" in last).toBe(false);
   });
 
   it("assignment → session → truth → inference → record → session save, and INTERVENE with everything the ledger needs", async () => {
     const { decide, calls, decisions, sessions, visitors } = subject({ catalog: snapshot });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(calls).toEqual(["assign", "sessions.load", "truth", "infer", "record", "sessions.save"]);
     expect(decision.isIntervention()).toBe(true);
     expect(decision.isIntervention() && decision.intervention).toEqual({
-      anchor: "size_selector",
-      messageVersionId: "mv_fit.size_selector.information_test",
+      anchor: "variant_selector",
+      messageVersionId: "mv_fit.variant_selector.information_test",
       // The curated text travels with the intervention since feature 027: the SDK renders it
       // without a second round trip, and the version is what the ledger keeps.
       text: "A curated text.",
@@ -272,7 +287,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     expect(decision.inference).toEqual({
       policyVersion: "default-1",
       confidences: { fit: 0.8, price: 0, returns: 0 },
-      matched: ["fit.size-selector-twice", "fit.size-guide-read"],
+      matched: ["fit.variant-selector-twice", "fit.specifications-read"],
       barrier: "fit",
       trigger: "rules",
       evidence: { truth: "known", stockAndPrice: "fresh", available: true },
@@ -284,7 +299,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("while the experiment calibrates the decision is taken the same way and stamped as calibration (03 §4.10)", async () => {
     const { decide } = subject({ catalog: snapshot, phase: "calibration" });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.isIntervention()).toBe(true);
     expect(decision.phase).toBe("calibration");
     expect(decision.experiment).toEqual({ experimentId: "exp_00000001", arm: "TREATMENT" });
@@ -292,7 +307,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("a NO_OP without a candidate records the inference without a barrier key at all", async () => {
     const { decide } = subject({ catalog: snapshot });
-    const decision = await decide([sizeSelector(1)]);
+    const decision = await decide([variantSelector(1)]);
     expect(decision.reason).toBe("barrier-unclear");
     expect(Object.keys(decision.inference ?? {})).not.toContain("barrier");
     expect(decision.inference?.trigger).toBe("none");
@@ -300,22 +315,22 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("the ledger keeps the selection: every candidate judged, the chosen one and the commercial version (constitution IX)", async () => {
     const { decide } = subject({ catalog: snapshot });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.selection).toEqual({
       candidates: [
-        { candidateId: "fit.size_selector.information", step: "information", verdict: "acceptable" },
+        { candidateId: "fit.variant_selector.information", step: "information", verdict: "acceptable" },
         { candidateId: "fit.policies.reassurance", step: "reassurance", verdict: "acceptable" },
         // Feature 027: the uncertainty rung says what the garment is made of, and this product
         // carries no material, so the gate rejects it by the claim it could not sustain.
         {
-          candidateId: "fit.size_selector.uncertainty",
+          candidateId: "fit.variant_selector.uncertainty",
           step: "uncertainty",
           verdict: "unacceptable",
           reason: "attribute-unknown",
         },
-        { candidateId: "fit.size_selector.evidence", step: "evidence", verdict: "acceptable" },
+        { candidateId: "fit.variant_selector.evidence", step: "evidence", verdict: "acceptable" },
       ],
-      chosen: "fit.size_selector.information",
+      chosen: "fit.variant_selector.information",
       commercialVerdict: { blocked: false },
       commercialPolicyVersion: "commercial-default-1",
     });
@@ -323,10 +338,10 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("CONTROL records the selection too, with what would have been chosen", async () => {
     const { decide } = subject({ catalog: snapshot, arm: "CONTROL" });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.reason).toBe("control-arm");
     expect(decision.selection).toMatchObject({
-      chosen: "fit.size_selector.information",
+      chosen: "fit.variant_selector.information",
       commercialVerdict: { blocked: false },
     });
   });
@@ -336,9 +351,9 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
       catalog: snapshot,
       profile: { returnsPolicy: false, fitData: false, authorizedAttributes: [] },
     });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.isIntervention() && decision.intervention.messageVersionId).toBe(
-      "mv_fit.size_selector.information_test",
+      "mv_fit.variant_selector.information_test",
     );
     // One reason per rung, each naming what it could not sustain: the information rung claims
     // nothing, the others claim a policy, a material and fit data the profile never declared.
@@ -395,13 +410,13 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
     const { decide } = subject({ catalog: snapshot, decision: lenient });
     const page = { pageType: "product" as const, productId: "SKU-1" };
     const decision = await decide([
-      sizeSelector(1),
-      sizeSelector(2),
-      dwell(3, "size_guide", 6000),
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.selection?.candidates.at(-1)).toEqual({
-      candidateId: "fit.size_selector.evidence",
+      candidateId: "fit.variant_selector.evidence",
       step: "evidence",
       verdict: "unacceptable",
       reason: "variant-unavailable",
@@ -419,14 +434,14 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("CONTROL goes through the same inference and the ledger keeps it (constitution III)", async () => {
     const { decide } = subject({ catalog: snapshot, arm: "CONTROL" });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "control-arm" });
     expect(decision.inference).toMatchObject({ barrier: "fit", trigger: "rules", confidences: { fit: 0.8 } });
   });
 
   it("with the kill switch off → merchant-off before assigning: no experiment, no inference, recorded (feature 017)", async () => {
     const { decide, calls } = subject({ catalog: snapshot, enabled: false });
-    const decision = await decide([sizeSelector(1), sizeSelector(2)]);
+    const decision = await decide([variantSelector(1), variantSelector(2)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "merchant-off" });
     expect(decision.experiment).toBeUndefined();
     expect(decision.inference).toBeUndefined();
@@ -435,7 +450,7 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 
   it("without an active experiment → no-active-experiment, still inferred", async () => {
     const { decide } = subject({ catalog: snapshot, arm: "none" });
-    const decision = await decide([sizeSelector(1), sizeSelector(2)]);
+    const decision = await decide([variantSelector(1), variantSelector(2)]);
     expect(decision.reason).toBe("no-active-experiment");
     expect(decision.experiment).toBeUndefined();
     expect(decision.inference?.confidences.fit).toBe(0.4);
@@ -445,20 +460,32 @@ describe("DecisionService.decide — order of the authorities (constitution I)",
 describe("DecisionService.decide — evidence and session", () => {
   it("no catalogue → evidence-missing with the evidence recorded", async () => {
     const { decide } = subject();
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision.reason).toBe("evidence-missing");
     expect(decision.inference?.evidence).toEqual({ truth: "absent" });
     expect(decision.selection?.candidates).toEqual([]);
     expect(Object.keys(decision.selection ?? {})).not.toContain("chosen");
   });
 
+  it("the incentive blocked with no rung to fall back to → NO_OP commercial-policy-blocked, and the ledger says what blocked it", async () => {
+    // Reachable since feature 027: a family without a curated text is not a candidate, so the ladder
+    // can be left with the incentive alone and no lower rung to fall back to. Before the message
+    // catalogue every barrier always had a claim-free information candidate and this branch could
+    // not happen — the exception that said so outlived the feature that made it false.
+    const { decide } = subject({ catalog: snapshot, sayableSteps: ["incentive"] });
+    const decision = await decide([dwell(1, "price", 6000), cta(2)]);
+    expect(decision.isIntervention()).toBe(false);
+    expect(decision.reason).toBe("commercial-policy-blocked");
+    expect(decision.selection?.commercialVerdict).toMatchObject({ blocked: true });
+  });
+
   it("the unavailable variant in focus with fit → variant-unavailable", async () => {
     const { decide } = subject({ catalog: snapshot });
     const page = { pageType: "product" as const, productId: "SKU-1", variantId: "SKU-1-L" };
     const decision = await decide([
-      sizeSelector(1, "L"),
-      sizeSelector(2, "L"),
-      dwell(3, "size_guide", 6000),
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.reason).toBe("variant-unavailable");
@@ -473,9 +500,9 @@ describe("DecisionService.decide — evidence and session", () => {
     const { decide } = subject({ catalog: snapshot });
     const page = { pageType: "product" as const, productId: "SKU-1" };
     const decision = await decide([
-      sizeSelector(1),
-      sizeSelector(2),
-      dwell(3, "size_guide", 6000),
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
       viewed(4, page),
     ]);
     expect(decision.reason).toBe("evidence-missing");
@@ -484,9 +511,9 @@ describe("DecisionService.decide — evidence and session", () => {
 
   it("the session accumulates across batches: one signal per batch reaches the threshold on the second", async () => {
     const { decide } = subject({ catalog: snapshot });
-    expect((await decide([sizeSelector(1), sizeSelector(2)])).reason).toBe("barrier-unclear");
-    expect((await decide([dwell(10, "size_guide", 6000)])).isIntervention()).toBe(true);
-    expect((await decide([dwell(20, "size_guide", 6000)])).reason).toBe("session-budget-exhausted");
+    expect((await decide([variantSelector(1), variantSelector(2)])).reason).toBe("barrier-unclear");
+    expect((await decide([dwell(10, "specifications", 6000)])).isIntervention()).toBe(true);
+    expect((await decide([dwell(20, "specifications", 6000)])).reason).toBe("session-budget-exhausted");
   });
 
   it("an abandonment without a signal → returns reassurance", async () => {
@@ -499,9 +526,9 @@ describe("DecisionService.decide — evidence and session", () => {
   it("the checkout → high-intent", async () => {
     const { decide } = subject({ catalog: snapshot });
     const decision = await decide([
-      sizeSelector(1),
-      sizeSelector(2),
-      dwell(3, "size_guide", 6000),
+      variantSelector(1),
+      variantSelector(2),
+      dwell(3, "specifications", 6000),
       checkout(4),
     ]);
     expect(decision.reason).toBe("high-intent");
@@ -511,7 +538,7 @@ describe("DecisionService.decide — evidence and session", () => {
 describe("DecisionService.decide — the ledger is down (ADR-021)", () => {
   it("assignment not recorded → NO_OP ledger-unavailable, nothing recorded, no session touched", async () => {
     const { decide, calls, entries } = subject({ catalog: snapshot, arm: "down" });
-    const decision = await decide([sizeSelector(1)]);
+    const decision = await decide([variantSelector(1)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
     expect(calls).toEqual(["assign"]);
     expect(entries.map((e) => e.message)).toEqual(["assignment not recorded: ledger-unavailable"]);
@@ -519,11 +546,11 @@ describe("DecisionService.decide — the ledger is down (ADR-021)", () => {
 
   it("decision not recorded → NO_OP ledger-unavailable and the intervention is not counted against the session", async () => {
     const { decide, sessions, entries } = subject({ catalog: snapshot, ledgerDown: true });
-    const decision = await decide([sizeSelector(1), sizeSelector(2), dwell(3, "size_guide", 6000)]);
+    const decision = await decide([variantSelector(1), variantSelector(2), dwell(3, "specifications", 6000)]);
     expect(decision).toMatchObject({ outcome: "NO_OP", reason: "ledger-unavailable" });
     expect(decision.inference?.barrier).toBe("fit");
     expect(sessions.get("m_a/ses_00000001")?.interventions).toBe(0);
-    expect(sessions.get("m_a/ses_00000001")?.signals.count({ type: "size_selector_interacted" })).toBe(2);
+    expect(sessions.get("m_a/ses_00000001")?.signals.count({ type: "variant_selector_interacted" })).toBe(2);
     expect(entries.map((e) => e.message)).toEqual(["decision not recorded: ledger-unavailable"]);
   });
 });

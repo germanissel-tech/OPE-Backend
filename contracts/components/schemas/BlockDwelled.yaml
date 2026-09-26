@@ -26,8 +26,8 @@ properties:
     $ref: ./DeviceClass.yaml
   block:
     type: string
-    description: Semantic block of the product page the visitor dwelled on.
-    enum: [description, size_guide, reviews, policies, price, gallery, cta]
+    description: "Semantic block of the product page the visitor dwelled on. `specifications` is where the page states whether the product will suit the buyer — the size chart of a garment, the dimensions of an appliance — which is why dwelling there is evidence of a fit doubt."
+    enum: [description, specifications, reviews, policies, price, gallery, cta]
   dwellMs:
     type: integer
     description: Milliseconds of dwell over the block.

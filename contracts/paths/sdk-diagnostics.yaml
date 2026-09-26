@@ -23,7 +23,7 @@ post:
         example:
           configurationVersion: 3
           unresolved:
-            - anchor: size_selector
+            - anchor: variant_selector
               pageType: product
             - anchor: cta
               pageType: product

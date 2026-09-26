@@ -29,7 +29,7 @@ const facts: DecisionFacts = {
 const intervention = {
   text: "If it does not fit, the exchange is free.",
   messageVersionId: "msg-1",
-  anchor: "size_selector" as const,
+  anchor: "variant_selector" as const,
 };
 
 describe("NoOpDecision.of", () => {
@@ -82,7 +82,7 @@ describe("DecisionBase.rehydrate", () => {
     const inference = {
       policyVersion: "default-1",
       confidences: { fit: 0.4, price: 0.2, returns: 0 },
-      matched: ["fit.size-guide-read"],
+      matched: ["fit.specifications-read"],
       barrier: "fit" as const,
       trigger: "rules" as const,
       evidence: { truth: "absent" as const },
@@ -101,7 +101,7 @@ describe("DecisionBase.rehydrate", () => {
     const selection = {
       candidates: [
         {
-          candidateId: "fit.size_selector.information",
+          candidateId: "fit.variant_selector.information",
           step: "information",
           verdict: "acceptable" as const,
         },
@@ -112,7 +112,7 @@ describe("DecisionBase.rehydrate", () => {
           reason: "no-returns-policy",
         },
       ],
-      chosen: "fit.size_selector.information",
+      chosen: "fit.variant_selector.information",
       commercialVerdict: { blocked: false },
       commercialPolicyVersion: "commercial-default-1",
     };

@@ -41,7 +41,7 @@ get:
                 - en
               fallback: es-AR
             anchors:
-              size_selector:
+              variant_selector:
                 selectors:
                   - "#product-options-wrapper .swatch-attribute.size"
               price:

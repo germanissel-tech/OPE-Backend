@@ -35,10 +35,9 @@ function toDomainEvent(dto: EventDto): Event {
   switch (dto.type) {
     case "product_viewed":
     case "listing_viewed":
+    case "variant_selector_interacted":
     case "removed_from_cart":
       return { ...base, type: dto.type };
-    case "size_selector_interacted":
-      return { ...base, type: dto.type, size: dto.size };
     case "variant_selected":
       return { ...base, type: dto.type, selectedVariantId: dto.selectedVariantId };
     case "photo_interacted":
