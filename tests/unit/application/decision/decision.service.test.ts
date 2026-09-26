@@ -109,6 +109,8 @@ interface Options {
   enabled?: boolean;
   /** The barriers the merchant enables (feature 017); all unless a test says otherwise. */
   barriers?: readonly Barrier[];
+  /** Which steps have a curated text (feature 027); all of them unless a test says otherwise. */
+  sayableSteps?: readonly string[];
   versions?: ConfigurationVersions;
 }
 
@@ -170,7 +172,10 @@ function subject(options: Options = {}) {
   const everySayable = {
     sayable: (request: MessageRequest) => {
       asked.push(request);
-      return Promise.resolve(sayable(request.candidates));
+      const steps = options.sayableSteps;
+      const said =
+        steps === undefined ? request.candidates : request.candidates.filter((c) => steps.includes(c.step));
+      return Promise.resolve(sayable(said));
     },
   };
   const inference: BarrierInference = {
@@ -460,6 +465,18 @@ describe("DecisionService.decide — evidence and session", () => {
     expect(decision.inference?.evidence).toEqual({ truth: "absent" });
     expect(decision.selection?.candidates).toEqual([]);
     expect(Object.keys(decision.selection ?? {})).not.toContain("chosen");
+  });
+
+  it("the incentive blocked with no rung to fall back to → NO_OP commercial-policy-blocked, and the ledger says what blocked it", async () => {
+    // Reachable since feature 027: a family without a curated text is not a candidate, so the ladder
+    // can be left with the incentive alone and no lower rung to fall back to. Before the message
+    // catalogue every barrier always had a claim-free information candidate and this branch could
+    // not happen — the exception that said so outlived the feature that made it false.
+    const { decide } = subject({ catalog: snapshot, sayableSteps: ["incentive"] });
+    const decision = await decide([dwell(1, "price", 6000), cta(2)]);
+    expect(decision.isIntervention()).toBe(false);
+    expect(decision.reason).toBe("commercial-policy-blocked");
+    expect(decision.selection?.commercialVerdict).toMatchObject({ blocked: true });
   });
 
   it("the unavailable variant in focus with fit → variant-unavailable", async () => {
