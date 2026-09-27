@@ -2,3 +2,4 @@
 // composition wires. Presenters stay internal to the module.
 export * from "./controllers/upsert-catalog-snapshot.js";
 export * from "./gateways/memory-catalog-store.js";
+export * from "./gateways/sqlite-catalog-store.js";

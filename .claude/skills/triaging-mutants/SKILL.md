@@ -33,6 +33,17 @@ Clasificar **antes** de escribir nada es lo que evita el error caro: escribir un
 mutante equivalente produce una prueba que afirma la implementación en vez del comportamiento, y
 esa prueba vuelve a fallar con el próximo refactor legítimo.
 
+**Y el error caro en la otra dirección, que es más fácil de cometer**: un mutante sobre una rama que
+el **tipo** declara alcanzable es **real**, no equivalente, aunque ninguna entrada de hoy la tome.
+«Ninguna columna de este esquema es NOT NULL, así que la rama del null no se distingue» es un
+razonamiento sobre los datos de hoy; si la firma dice `string | number | null`, el null es parte del
+contrato y borrar la rama deja el tipo diciendo una cosa y el código haciendo otra. Lo que falta ahí
+es **la prueba del contrato** —una entrada que ejerza el caso declarado— y no una excepción.
+
+La pregunta que separa los dos casos: **¿lo que el mutante cambia puede llegar alguna vez, según lo
+que el código promete?** Si puede, es real y lo que falta es la prueba. Si no puede ni podría, es
+equivalente y lo que sobra es la rama.
+
 ### 3. Actuar según la clase
 
 - **Real** → la prueba que **pasa con el original y falla con el mutante**. Las dos mitades

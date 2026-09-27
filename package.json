@@ -5,7 +5,7 @@
   "description": "OPE MVP backend. API-first: contracts/openapi.yaml is the source of truth for every HTTP surface.",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "exports": {
     ".": {
@@ -45,6 +45,7 @@
     "dev": "cross-env OPE_MERCHANTS_FILE=config/dev-merchants.json OPE_ADMIN_OPERATORS_FILE=config/dev-operators.json tsx watch src/main.ts",
     "test": "vitest run --project fast",
     "test:tools": "vitest run --project tools",
+    "test:durability": "vitest run --project durability",
     "test:all": "vitest run",
     "test:scoped": "node scripts/test-scope.mjs",
     "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs",

@@ -48,6 +48,13 @@ paths:
 - **Una corrida larga se escribe a un archivo, nunca a una tubería**: pasarla por `tail` descarta lo
   único que hay que leer y obliga a repetirla. Y no se edita `src/` mientras corre: el veredicto deja
   de ser del código que quedó.
+- **La corrida local de esta máquina no es concluyente para el código que abre archivos.** Windows
+  no deja borrar un directorio que contiene un archivo abierto, así que el `rmSync` de un teardown
+  mata acá mutantes que en Linux —donde el borrado funciona igual— sobreviven. Pasó con el
+  `database.close()` del arranque fallido del almacén (feature 030): verde acá, superviviente en CI.
+  Cuando lo mutado sea un `close()`, un descriptor o un borrado, **la prueba tiene que observar el
+  efecto, no el síntoma del sistema de archivos**: para SQLite en WAL, que los archivos `-wal` y
+  `-shm` dejen de existir es portable y directo. Y ante la duda, **CI es el juez** (ADR-016).
 - **Ante un mutante que sobrevive, el procedimiento es una skill**: `triaging-mutants`
   (`.claude/skills/triaging-mutants/SKILL.md`). Cuatro pasos en orden —describir el daño observable,
   clasificar el mutante antes de tocar nada, la prueba o la reestructuración según la clase,

@@ -7,3 +7,4 @@ export * from "./controllers/list-experiments.js";
 export * from "./gateways/memory-assignment-ledger.js";
 export * from "./gateways/memory-experiment-store.js";
 export * from "./gateways/node-experiment-id-minter.js";
+export * from "./gateways/sqlite-assignment-ledger.js";

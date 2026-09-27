@@ -12,6 +12,7 @@ import { text } from "./env.js";
 import { readLevels, type ReleaseLevels } from "./levels-config.js";
 import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
+import { readStoreLocation, type StoreLocation } from "./sqlite-config.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 
@@ -29,6 +30,8 @@ export interface AppConfig {
   levels: ReleaseLevels;
   /** The curated texts of the release (feature 027). */
   corpus: readonly CorpusEntry[];
+  /** Where the durable store lives (feature 030); only a deployment that chooses it opens the file. */
+  store: StoreLocation;
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -52,6 +55,7 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     operators,
     levels,
     corpus: readCorpus(env, readFile, defaultLocaleOf(levels)),
+    store: readStoreLocation(env),
   };
 }
 

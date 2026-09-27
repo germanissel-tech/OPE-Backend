@@ -110,6 +110,13 @@ export function resolveScope(root, profile, args) {
 }
 
 /**
+ * How much output a gate may print. Node's default is 1 MiB and a command that exceeds it fails
+ * with `ENOBUFS`, not with truncated output — so the gate is reported degraded with a stack trace
+ * of `node:internal/child_process` as the reason, which says nothing about the gate.
+ */
+const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+/**
  * Runs one adapter on the files (protocol findings-v1).
  * @param {string} root
  * @param {Gate} gate
@@ -124,6 +131,7 @@ export function runGate(root, gate, files, listFile) {
     cwd: root,
     encoding: "utf8",
     shell: true,
+    maxBuffer: MAX_OUTPUT_BYTES,
   });
   const degraded = (/** @type {string} */ reason) => ({
     gate: gate.id,

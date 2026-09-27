@@ -4,3 +4,6 @@ export * from "./controllers/confirm-exposure.js";
 export * from "./gateways/memory-decision-ledger.js";
 export * from "./gateways/memory-exposure-ledger.js";
 export * from "./gateways/random-decision-ids.js";
+export * from "./gateways/durable-write.js";
+export * from "./gateways/sqlite-decision-ledger.js";
+export * from "./gateways/sqlite-exposure-ledger.js";

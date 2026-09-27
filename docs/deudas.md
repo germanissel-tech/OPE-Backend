@@ -27,27 +27,31 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                                  | Origen                              | Estado         | Fecha      | Cierre    |
-| ---- | --------------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ---------- | --------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                         | Revisión del dueño tras la 018      | `implementada` | 2026-09-21 | `5571829` |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable              | Evaluación con el dueño (D-01)      | `implementada` | 2026-09-21 | `eec62b3` |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo          | Evaluación con el dueño (D-02)      | `descartada`   | 2026-09-21 | —         |
-| D-04 | `config/` sin documentación ni esquema propio                                           | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `d37093b` |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                   | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `8ffe84e` |
-| D-06 | Los directorios de primer nivel no se explican solos                                    | Revisión del dueño, 2026-09-21      | `implementada` | 2026-09-21 | `cd292e0` |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema              | Feature 025                         | `implementada` | 2026-09-24 | `27bb238` |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter              | Feature 025                         | `implementada` | 2026-09-24 | `05959f8` |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                  | Feature 025                         | `implementada` | 2026-09-24 | `34c4299` |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                 | Feature 025                         | `implementada` | 2026-09-24 | `f4d6a8d` |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada         | Feature 026                         | `implementada` | 2026-09-24 | `ea3d111` |
-| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                   | ADR-016 (2026-09-21)                | `evaluada`     | 2026-09-24 | —         |
-| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                      | Feature 027 (al cerrar D-11)        | `evaluada`     | 2026-09-25 | —         |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa            | Evaluación con el dueño, 2026-09-25 | `implementada` | 2026-09-25 | `b238fdb` |
-| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación             | Feature 027 (US3)                   | `descartada`   | 2026-09-25 | —         |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                        | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `2837b69` |
-| D-17 | La fuente de verdad del MVP no está bajo control de versiones                           | Feature 028 (al enmendar la fuente) | `implementada` | 2026-09-25 | `ef2c854` |
-| D-18 | Nada verifica que la constitución siga de acuerdo con los ADR que cita                  | Feature 028 (auditoría de cierre)   | `abierta`      | 2026-09-25 | —         |
-| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio | Feature 029 (Schemathesis)          | `implementada` | 2026-09-26 | —         |
+| Id   | Título                                                                                       | Origen                                        | Estado         | Fecha      | Cierre                                                  |
+| ---- | -------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------- | ---------- | ------------------------------------------------------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                              | Revisión del dueño tras la 018                | `implementada` | 2026-09-21 | `5571829`                                               |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                   | Evaluación con el dueño (D-01)                | `implementada` | 2026-09-21 | `eec62b3`                                               |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo               | Evaluación con el dueño (D-02)                | `descartada`   | 2026-09-21 | —                                                       |
+| D-04 | `config/` sin documentación ni esquema propio                                                | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `d37093b`                                               |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                        | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `8ffe84e`                                               |
+| D-06 | Los directorios de primer nivel no se explican solos                                         | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `cd292e0`                                               |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                   | Feature 025                                   | `implementada` | 2026-09-24 | `27bb238`                                               |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                   | Feature 025                                   | `implementada` | 2026-09-24 | `05959f8`                                               |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                       | Feature 025                                   | `implementada` | 2026-09-24 | `34c4299`                                               |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                      | Feature 025                                   | `implementada` | 2026-09-24 | `f4d6a8d`                                               |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada              | Feature 026                                   | `implementada` | 2026-09-24 | `ea3d111`                                               |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                        | ADR-016 (2026-09-21)                          | `evaluada`     | 2026-09-24 | —                                                       |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                           | Feature 027 (al cerrar D-11)                  | `evaluada`     | 2026-09-25 | —                                                       |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                 | Evaluación con el dueño, 2026-09-25           | `implementada` | 2026-09-25 | `b238fdb`                                               |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                  | Feature 027 (US3)                             | `descartada`   | 2026-09-25 | —                                                       |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                             | Feature 028 (al enmendar la fuente)           | `implementada` | 2026-09-25 | `2837b69`                                               |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                | Feature 028 (al enmendar la fuente)           | `implementada` | 2026-09-25 | `ef2c854`                                               |
+| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                  | Feature 028 (auditoría de cierre)             | `abierta`      | 2026-09-25 | —                                                       |
+| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio      | Feature 029 (Schemathesis)                    | `implementada` | 2026-09-26 | —                                                       |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir       | Revisión de deudas, 2026-09-26                | `abierta`      | 2026-09-26 | —                                                       |
+| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después | Decisión del dueño, 2026-09-26                | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
+| D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo   | Revisión del esquema con el dueño, 2026-09-27 | `abierta`      | 2026-09-27 | —                                                       |
+| D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió         | Revisión del esquema con el dueño, 2026-09-27 | `abierta`      | 2026-09-27 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -253,10 +257,27 @@ feature 022**. Sobrevivió seis features y pasó `check:adrs` sin despeinarse, p
 que es lo único que ese gate mira. Quien hubiera leído la constitución habría implementado una
 conversión que el código no hace, y habría tenido razón según el documento que manda.
 
-Es pariente de D-13 —lo que dejó de estar conectado y ningún gate lo nota— y la solución probablemente
-se parezca: no comparar prosa contra prosa, sino exigir que cada afirmación que **deriva de un ADR**
-lo cite, y verificar que ese ADR no esté `reemplazada` ni contradiga la cita. Medir primero cuántas de
-las 56 derivan de un ADR es parte del trabajo.
+**Medida el 2026-09-26, y la medición invirtió la solución propuesta.** Contadas por viñeta completa
+—no por línea, que es donde mi primer conteo se equivocó porque el documento envuelve a noventa y pico
+de caracteres— son **67 afirmaciones normativas**: **7** citan un ADR, **3** citan la fuente del MVP y
+**57 no citan nada**.
+
+Y el detalle que decide el diseño: **el gate que esta deuda imaginaba no habría atrapado el caso que la
+motivó.** La viñeta `Escalas`, antes de corregirse, **no citaba ADR-035** — decía lo suyo sin nombrar
+la decisión que la había reemplazado. Verificar «que cada ADR citado siga estando de acuerdo» la habría
+dejado pasar, porque no había cita. Hoy cita ADR-035 sólo porque la enmienda de la 028 se la puso.
+
+Así que el trabajo no es el script: es **hacer el documento citable**. Es la forma que ADR-008 le impuso
+al glosario —ningún sustantivo entra sin su nota con fuente— aplicada acá: ninguna afirmación normativa
+sin su fuente. Con eso el gate es fácil y además puede verificar que el ADR citado no esté
+`reemplazada`. Sin eso no hay nada que verificar.
+
+**Y hay un riesgo que la feature tiene que decidir antes de empezar**: puede haber afirmaciones que no
+se puedan rastrear a ninguna fuente. Inventarles una cita sería peor que no tenerla — sería darle
+autoridad falsa al documento que prevalece sobre todo. Qué se hace con ésas es la primera pregunta de
+la spec.
+
+**Decisión del dueño (2026-09-26)**: se hace, en su propia feature.
 
 D-19 la encontró **Schemathesis**, no una persona, y vale la pena decir cómo: el gate de contrato es
 property-based, así que cada corrida genera cuerpos distintos. En la 028 pasó con 10 520 casos; en la
@@ -281,6 +302,107 @@ campo declarado que es un objeto propio. Las dos pruebas nuevas son una por defe
 
 **Lo que esto deja como lección**: un gate property-based no es determinista, así que verde hoy no es
 verde siempre. Vale más cuando falla que cuando pasa.
+
+D-20 sale de contestar una pregunta que D-19 había dejado abierta: si el 500 ocurría **antes o
+después** de escribir. Es después, y está verificado en el log de la reproducción —`use case
+executed` y recién entonces `the handler response does not satisfy the contract`—, porque
+`validateResult` juzga la respuesta cuando el handler ya la produjo. No hay otra forma: una respuesta
+no se puede validar antes de existir.
+
+Así que la propiedad es del borde entero y conviene tenerla escrita: **toda
+`response-contract-violation` en una escritura le dice «error» a un cliente cuya acción ya ocurrió.**
+Eso cambia la gravedad de cada violación —no es «devolvimos un cuerpo feo», es «le mentimos a un
+cliente sobre su escritura»— y es un argumento más para tratarlas como severas, que es lo que la 029
+hizo.
+
+Lo que sí tiene arreglo es la consecuencia: **publicar una configuración no es idempotente**, así que
+un cliente que reintenta ante ese 500 crea una **segunda versión**. El mecanismo ya existe en el
+repositorio —`x-idempotency` con clave, primera respuesta y repetición, que `outcomes` usa desde la
+feature 013— y aplicarlo a la publicación de configuración cierra el agujero en vez de documentarlo.
+
+**Decisión del dueño (2026-09-26)**: se registra **y** se hace, en su propia feature. Qué otras
+operaciones de escritura son no idempotentes hay que contarlo al escribir la spec: la publicación de
+configuración es la que aparece, pero no se midió si es la única.
+
+D-21 no es un defecto: es **alcance que se decide dejar afuera**, con su motivo y su fecha, para que
+nadie lea después que el hito de persistencia está cerrado.
+
+La constitución fija «Persistencia: PostgreSQL (durable) + Redis (sesión caliente)» como decisión D1.
+Usar SQLite en desarrollo **no la contradice** —la constitución describe el stack de producción, y el
+despliegue local ya corre hoy sobre algo que tampoco es PostgreSQL: memoria—, y la arquitectura de
+composición lo previó: un módulo con dos tecnologías entra como `ledgerModule.with("postgres")` y **no
+compila si nadie elige**.
+
+Lo que sí queda pendiente es lo que el hito promete además de durabilidad: **atomicidad del
+presupuesto por sesión** y **la entrada de administración commiteada junto con la acción que
+registra** (la ventana que ADR-034 deja abierta). Eso es exactamente donde los dos motores más
+difieren —aislamiento, bloqueo, concurrencia, semántica de `ON CONFLICT`—, así que implementarlo y
+probarlo sobre SQLite deja sin verificar, en el motor real, justo lo que el hito existe para
+garantizar.
+
+**Motivo de la decisión (dueño, 2026-09-26)**: hoy no hay infraestructura para que CI levante un
+PostgreSQL, y la etapa es de implementación. Se acepta a sabiendas.
+
+**Lo que cierra esta deuda**: el gateway de PostgreSQL y las pruebas de atomicidad y concurrencia
+corriendo contra él, antes del primer piloto con tráfico real.
+
+### Lo que la feature 030 dejó apoyado en «un solo proceso», medido al implementarla
+
+Tres cosas concretas, para que quien escriba el gateway de PostgreSQL no tenga que redescubrirlas:
+
+1. **`rowid` es el orden de inserción.** `bySession` responde «en el orden en que se registraron» y
+   la poda de recibos del catálogo elige «los últimos» con él. Es de SQLite y **no existe en
+   PostgreSQL**: ese gateway necesita su propia columna de orden, y decidirla es parte de su spec.
+2. **El primero/repetido/conflicto de la orden es un `SELECT` y un `INSERT` dentro de una
+   transacción.** Con un proceso y SQLite síncrono eso es atómico de verdad. Con dos procesos no lo
+   es por sí solo —hace falta `BEGIN IMMEDIATE` o el nivel de aislamiento equivalente—, y es
+   exactamente lo que `01 §6` pide: ningún paso entre mirar y escribir.
+3. **La idempotencia de exposiciones y corroboraciones se decide con `changes()`**, que es por
+   conexión. Dentro de una transacción es correcto; el equivalente en PostgreSQL es otro
+   (`RETURNING`, o `xmax`), y no es una traducción mecánica.
+
+**Lo que sí quedó verificado**: el costo de la escritura durable en el camino crítico, medido y
+fechado (ADR-038). Ese número **no** depende de PostgreSQL, pero tampoco vale para él.
+
+## D-22 — el contrato describe mal el holdout
+
+**Registrada primero con un diagnóstico equivocado, y corregida el mismo día.** Se escribió «el
+holdout no separa tráfico: nadie lo aparta» mirando sólo el código. Al ir a los ADR apareció que el
+comportamiento es el decidido, no un olvido:
+
+> **ADR-022**: «Holdout (DECIDIDO, ADR-026): todo merchant conserva un **grupo de control mínimo**,
+> `holdoutPercent` con 5 % por defecto; `treatmentPercent ≤ 100 − holdout`. El tope se aplica con la
+> configuración por API.» Y **ADR-031** lo repite: «el holdout se aplica al abrir un experimento por
+> API».
+
+El holdout **es** el grupo de control mínimo. Que esos visitantes caigan en `CONTROL` no es el hueco:
+es exactamente lo que garantiza que el brazo de comparación nunca sea demasiado chico, y el north
+star de `01` se calcula **por intención de tratar**, TREATMENT frente a CONTROL — la fuente no nombra
+un tercer grupo en ningún lado.
+
+**Lo que sí queda, y es de otra naturaleza**: la descripción del contrato dice «Share of the traffic
+kept out of every experiment», que se lee como un tercer destino que no existe ni debe existir. Lo que
+el valor hace es reservar una porción que el reparto no puede tomar, y esa porción **es control**.
+
+**Lo que la cierra**: corregir la descripción en `EffectiveConfiguration.yaml` y en
+`MerchantConfigurationDeclared.yaml` para que diga lo que el valor hace. Es un cambio de prosa del
+contrato, no de comportamiento.
+
+**La lección, que es la misma de D-14**: una deuda sobre una decisión de diseño se verifica contra su
+ADR antes de escribirla. El código dice qué hace; el ADR dice si eso es lo que se quiso.
+
+## D-23 — la exposición no dice cuándo llegó
+
+La orden y la corroboración guardan **dos** instantes: `confirmedAt`, el del hecho según el cliente,
+y `receivedAt`, cuándo OPE lo recibió — y la guarda de reloj compara uno contra otro. La exposición
+guarda sólo `exposedAt`, que es el que declara el SDK.
+
+**Qué significa**: de una exposición no se puede saber cuánto tardó en llegar, ni distinguir una
+confirmación de hace un segundo de una que el SDK acumuló y mandó mucho después. Para la cadena de
+evidencia alcanza —la exposición existe o no existe—, pero para una discusión sobre una cifra, el
+instante que hay es el que el cliente declaró y no uno que OPE haya medido.
+
+**Lo que la cerraría**: un `receivedAt` en `Exposure`, con el mismo criterio que la orden.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

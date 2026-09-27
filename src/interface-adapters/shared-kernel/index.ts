@@ -5,3 +5,5 @@ export * from "./random-id.js";
 export * from "./clock-tolerance.js";
 export * from "./system-clock.js";
 export * from "./windowed-map.js";
+export * from "./sql-store.js";
+export * from "./document.js";

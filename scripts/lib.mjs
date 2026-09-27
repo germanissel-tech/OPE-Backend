@@ -76,6 +76,17 @@ export function runCli(name, args, options = {}) {
 /** @typedef {{ status: number; stdout: string; stderr: string }} Captured */
 
 /**
+ * How much output a captured command may produce. Node's default is 1 MiB and a command that
+ * exceeds it fails with `ENOBUFS` — not with truncated output, which would at least be visible.
+ * The whole dependency graph of `src/` as JSON passed that line as the repository grew (feature
+ * 030), and the failure surfaced far from its cause: an audit gate reported "degraded" with a
+ * stack trace of `node:internal/child_process` as the reason.
+ *
+ * 64 MiB is well past anything a tool of this repository prints and still far from a runaway.
+ */
+const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+/**
  * Runs a command capturing stdout/stderr as UTF-8 text.
  * @param {string} cmd
  * @param {string[]} args
@@ -83,7 +94,12 @@ export function runCli(name, args, options = {}) {
  * @returns {Captured}
  */
 export function capture(cmd, args, options = {}) {
-  const result = spawnSync(cmd, args, { cwd: repoRoot, ...options, encoding: "utf8" });
+  const result = spawnSync(cmd, args, {
+    cwd: repoRoot,
+    maxBuffer: MAX_OUTPUT_BYTES,
+    ...options,
+    encoding: "utf8",
+  });
   if (result.error) throw result.error;
   return { status: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };
 }

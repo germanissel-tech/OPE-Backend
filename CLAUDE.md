@@ -32,17 +32,18 @@ El lazo de una historia: `npm run format:check`, `npm run quality`, `npm run typ
 Antes de cerrar la feature se agregan `npm run contract:check`, `npm run test:mutation`,
 `npm run test:contract` y `npm run release-check`.
 
-| Comando                           | Qué hace                                                                                                  |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `npm test`                        | Vitest, proyecto `fast`: unitarias, integración, contrato, gobernanza, arquitectura                       |
-| `npm run test:tools`              | Proyecto `tools`: auditoría, cadena de calidad, documentación. Sólo cuando el cambio toca una herramienta |
-| `npm run test:all`                | Los dos proyectos, como CI                                                                                |
-| `npm run build`                   | `tsc` a `dist/`                                                                                           |
-| `npm run dev`                     | El servidor real en memoria, sin mock (ADR-018)                                                           |
-| `npm run arch`                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                 |
-| `npm run format` / `format:check` | Prettier sobre todo / falla si algo difiere del formato canónico (ADR-011)                                |
-| `npm run lint:fix`                | Arregla lo que el lint puede arreglar solo                                                                |
-| `npm run release-check`           | `contract:check` más los marcadores en modo estricto: la puerta antes de publicar                         |
+| Comando                           | Qué hace                                                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                        | Vitest, proyecto `fast`: unitarias, integración, contrato, gobernanza, arquitectura                                 |
+| `npm run test:tools`              | Proyecto `tools`: auditoría, cadena de calidad, documentación. Sólo cuando el cambio toca una herramienta           |
+| `npm run test:durability`         | Proyecto `durability`: lo único que sólo se ve cruzando un reinicio. Es la única cobertura de los gateways durables |
+| `npm run test:all`                | Los dos proyectos, como CI                                                                                          |
+| `npm run build`                   | `tsc` a `dist/`                                                                                                     |
+| `npm run dev`                     | El servidor real, sin mock (ADR-018), sobre el almacén durable: un reinicio no borra lo que probaste                |
+| `npm run arch`                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                           |
+| `npm run format` / `format:check` | Prettier sobre todo / falla si algo difiere del formato canónico (ADR-011)                                          |
+| `npm run lint:fix`                | Arregla lo que el lint puede arreglar solo                                                                          |
+| `npm run release-check`           | `contract:check` más los marcadores en modo estricto: la puerta antes de publicar                                   |
 
 **Qué hace cada uno de los demás está en el inventario de `scripts/`**, que su propia prueba
 verifica fila por fila. No se copia acá: tenerlo en dos lugares fue lo que esta partición vino a
@@ -130,6 +131,10 @@ código. De cada una queda la línea que impide equivocarse antes de que llegue.
 - **Notas operativas del contrato**: el contrato es la **única fuente de verdad de toda la
   superficie HTTP**, y nada entra sin estar antes en su mapa. Cómo se escribe cada cosa —invariantes,
   consumidores, idempotencia, paginación— en `.claude/rules/contrato.md`.
+- **Cómo se escribe un gateway durable** (feature 030): el driver **llega por el enlace, no se
+  importa**; se escribe `entidad.record()` y al leer **toda clase anidada se rehidrata**, que es el
+  error que se ve bien en toda lectura y falla en la única escritura que importa. Detalle en
+  `.claude/rules/gateway-durable.md`.
 
 ## Reglas que fallan el build (no son sugerencias)
 

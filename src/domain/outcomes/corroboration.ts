@@ -53,4 +53,16 @@ export class Corroboration implements CorroborationRecord {
   static rehydrate(record: CorroborationRecord): Corroboration {
     return new Corroboration(record);
   }
+
+  /** The record as a ledger would store it: the counterpart of `rehydrate` (as `Order.record`). */
+  record(): CorroborationRecord {
+    return {
+      merchantId: this.merchantId,
+      orderId: this.orderId,
+      sessionId: this.sessionId,
+      visitorId: this.visitorId,
+      confirmedAt: this.confirmedAt,
+      receivedAt: this.receivedAt,
+    };
+  }
 }

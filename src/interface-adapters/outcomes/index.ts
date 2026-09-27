@@ -5,3 +5,5 @@ export * from "./controllers/notify-order.js";
 export * from "./controllers/notify-return.js";
 export * from "./gateways/memory-corroboration-ledger.js";
 export * from "./gateways/memory-order-ledger.js";
+export * from "./gateways/sqlite-order-ledger.js";
+export * from "./gateways/sqlite-corroboration-ledger.js";

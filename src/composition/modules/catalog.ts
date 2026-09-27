@@ -9,8 +9,13 @@ import {
   type ProductTruthService,
   type AttributeLabelReportService,
 } from "../../application/catalog/index.js";
-import { makeUpsertCatalogSnapshot, memoryCatalogStore } from "../../interface-adapters/catalog/index.js";
+import {
+  makeUpsertCatalogSnapshot,
+  memoryCatalogStore,
+  sqliteCatalogStore,
+} from "../../interface-adapters/catalog/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
+import { SqlStorePort } from "../release.js";
 import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
 export const CatalogStorePort = port("catalog.store")<CatalogStore>();
@@ -22,7 +27,12 @@ export const AttributeLabelReportPort = port("catalog.label-report")<AttributeLa
 export const ProductTruthPort = port("catalog.product-truth")<ProductTruthService>();
 
 export const catalogModule = compositionModule({
-  provides: [bind(CatalogStorePort, {}, () => memoryCatalogStore())],
+  provides: {
+    memory: [bind(CatalogStorePort, {}, () => memoryCatalogStore())],
+    sqlite: [
+      bind(CatalogStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) => sqliteCatalogStore(deps)),
+    ],
+  },
   assembles: [
     bind(
       ProductTruthPort,
