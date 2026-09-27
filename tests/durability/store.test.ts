@@ -1,7 +1,7 @@
 // The store itself: the schema it applies, the schema it refuses, and the file that outlives the
 // process that wrote it. Everything else in this suite is about a port; this one is about the
 // floor they all stand on, so when a gateway test fails it is not the first suspect.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -55,6 +55,24 @@ describe("the durable store", () => {
     other.close();
 
     expect(() => openSqliteStore({ file })).toThrow(/version 0.*expects 1/s);
+  });
+
+  it("closes the database when the start is refused, instead of leaving it open", () => {
+    // A refused start must not leave the connection behind. It is observable without reaching the
+    // driver: in WAL mode SQLite keeps `-wal` and `-shm` beside the file while a connection is
+    // open and removes them when it closes cleanly.
+    //
+    // **This is the case CI caught and this machine could not.** On Windows the teardown already
+    // killed it — a directory holding an open file cannot be removed — so the mutant that deletes
+    // the `close()` died here and survived on Linux, where the removal succeeds either way.
+    const foreign = openSqliteStore({ file });
+    foreign.run("PRAGMA user_version = 99", {});
+    foreign.close();
+
+    expect(() => openSqliteStore({ file })).toThrow(/version 99/);
+
+    expect(existsSync(`${file}-wal`)).toBe(false);
+    expect(existsSync(`${file}-shm`)).toBe(false);
   });
 
   it("rolls a transaction back when the work inside it throws", () => {
