@@ -18,7 +18,7 @@ lo demás viaja en `document`, tal como el dominio lo tiene.
 erDiagram
     decisions {
         TEXT merchant_id PK "toda lectura lo toma"
-        TEXT decision_id PK
+        TEXT decision_id PK "repetirla se rechaza: no se sobrescribe"
         TEXT session_id "índice decisions_by_session"
         TEXT document "razonamiento, candidatos, veredicto"
     }
@@ -84,25 +84,55 @@ política del merchant y no del esquema (constitución XI).
 
 ## Qué hace el arranque con esto
 
-`src/infrastructure/sqlite/open-store.ts` lee este directorio y toma la versión más alta como la
-que la build espera. Entonces:
+`src/infrastructure/sqlite/open-store.ts` lee este directorio y **pide las versiones en orden —1, 2,
+3— en vez de ordenar lo que encuentra**. `readdirSync` no promete ningún orden (ext4 responde en
+orden de hash), así que ordenar sería lo único entre una aplicación correcta y una silenciosa, y
+ninguna prueba puede desordenar un listado de directorio para demostrar que funciona. Pedirlas en
+turno no necesita comparador y encuentra gratis el otro error: **un hueco**, que es lo que parece una
+migración perdida en un merge. La última que pide es la versión que la build espera.
 
-- **Archivo vacío y sin tablas** → aplica todas las migraciones en orden.
+Entonces:
+
+- **Archivo vacío y sin tablas** → aplica todas, en ese orden.
 - **La versión que esperaba** → arranca.
+- **Un hueco en la numeración** (001 y 003, sin 002) → **no arranca**, nombrando la que falta.
 - **Cualquier otra cosa** —otra versión, o versión 0 con tablas adentro— → **no arranca, y dice qué
   esperaba** (FR-006). Un servidor que arranca sobre algo que no entiende es peor que uno que no
   arranca: falla más tarde y en otro lado.
+
+Un arranque rechazado **cierra la base que había abierto**; no deja la conexión detrás.
 
 **Hoy no hay migración de datos**: no hay nada en producción, así que la primera versión no convive
 con ninguna anterior. Cuando la haya, la decisión de cómo se migra se toma entonces y queda en su
 ADR; este directorio no la prejuzga.
 
+## Qué hace cada clave cuando la escritura se repite
+
+No es un detalle de implementación: es lo que hace de esto un ledger y no una tabla cualquiera, y
+cada tabla lo decide con su clave primaria, no con una lectura previa del llamador.
+
+| Tabla               | Una segunda escritura con la misma clave                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| `decisions`         | **se rechaza**: el ledger no se sobrescribe, y la escritura degrada a `NO_OP ledger-unavailable` |
+| `exposures`         | no hace nada y responde `already-recorded`: es la idempotencia de la confirmación                |
+| `corroborations`    | no hace nada y responde `repeated`: el primero gana                                              |
+| `assignments`       | no hace nada: el primer brazo gana, y por eso el visitante vuelve al mismo                       |
+| `orders`            | la decide el puerto dentro de una transacción: primero, repetido o **conflicto**, sin pisar nada |
+| `catalog_snapshots` | reemplaza: una publicación supersede a la anterior, que es lo que una instantánea significa      |
+| `catalog_receipts`  | no aplica: no tiene clave, es un append que se poda al tope que el merchant fija                 |
+
+`decisions` rechaza en vez de conservar en silencio porque un identificador repetido ahí no es una
+repetición: es un generador roto, y perder la evidencia de la primera decisión sería la peor forma
+de enterarse.
+
 ## Cómo se agrega una
 
-1. Un archivo nuevo, con el número siguiente, que termina en `PRAGMA user_version = NNN`.
+1. Un archivo nuevo, con **el número siguiente sin saltear ninguno**, que termina en
+   `PRAGMA user_version = NNN`. El arranque rechaza un hueco.
 2. Su fila en el inventario de abajo.
 3. La suite de durabilidad (`npm run test:durability`), que abre un almacén vacío y verifica que el
-   esquema que queda es el que la build espera.
+   esquema que queda es el que la build espera — y que la versión que el archivo fija es la que su
+   nombre anuncia.
 
 ## Inventario
 
