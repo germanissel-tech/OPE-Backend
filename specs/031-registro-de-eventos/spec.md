@@ -177,6 +177,17 @@ entraron, de qué tipos y en qué ventana de tiempo.
   cola.
 - **FR-016**: Las **siete tablas de la feature 030** DEBEN migrarse a esas dos reglas en una
   migración versionada, para que el esquema no conviva con dos criterios.
+- **FR-017**: La **duración de una sesión** la DEBE definir el backend —30 minutos de inactividad— y
+  DEBE viajar al SDK en la configuración que ya recibe, para que deje de ser una suposición.
+- **FR-018**: El estado caliente DEBE guardar **sólo las sesiones con actividad**, con expiración por
+  inactividad; una sesión desalojada NO DEBE perderse: se reconstruye del durable.
+- **FR-019**: Cuando el estado caliente no tiene la sesión, el sistema DEBE reconstruir **las señales
+  y las intervenciones** antes de decidir, y la decisión DEBE esperar a que termine.
+- **FR-020**: Las intervenciones de un visitante DEBEN poder buscarse **por visitante** en el ledger
+  de decisiones, que hoy sólo se indexa por decisión y por sesión.
+- **FR-021**: El apagado ordenado DEBE esperar a que la cola de escritura se vacíe.
+- **FR-022**: Si el proceso termina sin apagado ordenado, el sistema DEBE registrar **cuántos eventos
+  se perdieron**: el registro no promete completitud, promete saber dónde no la tiene.
 
 ### Key Entities
 
@@ -205,6 +216,10 @@ entraron, de qué tipos y en qué ventana de tiempo.
 - **SC-008**: De una decisión pasada puede reconstruirse con qué señales se tomó, **incluso después
   de un reinicio** — que hoy es imposible.
 - **SC-009**: Ninguna tabla del esquema queda fuera de las dos reglas de arquitectura.
+- **SC-010**: Después de un reinicio, un visitante que ya agotó su cupo diario de intervenciones
+  **sigue agotado** — que hoy no ocurre y nadie lo mide.
+- **SC-011**: Un hueco en el registro por una caída abrupta **se puede nombrar**: cuántos eventos y
+  en qué intervalo.
 
 ## Assumptions
 
@@ -320,33 +335,58 @@ unidad de análisis, así que su duración es el denominador de las cifras del p
 evento cuya sesión lleva más de la duración declarada sin actividad delata un SDK que no cumple, y
 hoy eso sería invisible.
 
+## Qué se pierde al reiniciar, y qué se hace (2026-09-27)
+
+Al medirlo apareció que un reinicio no pierde una cosa sino **tres, con ventanas muy distintas**:
+
+| Qué se pierde                  | Ventana      | Qué provoca                                             | De dónde se reconstruye |
+| ------------------------------ | ------------ | ------------------------------------------------------- | ----------------------- |
+| Señales de la sesión           | 30 min       | decide con menos señales de las que había               | los eventos             |
+| Intervenciones de la sesión    | 30 min       | el tope por sesión se reinicia                          | el ledger de decisiones |
+| **Fatiga por visitante**       | **24 h**     | **el visitante vuelve a recibir su cupo diario entero** | el ledger de decisiones |
+| Eventos encolados sin escribir | lo pendiente | huecos en el registro forense                           | nada                    |
+
+La tercera fila es la grave y **no estaba en ninguna deuda**: `VisitorState` guarda los instantes de
+las intervenciones aceptadas en una ventana de 24 horas y su comentario dice «a forgotten visitor
+starts over». Cada despliegue la borra entera, hoy, y nadie lo mide.
+
+**Decisión del dueño**: se rehidrata **todo** —señales e intervenciones— y **la decisión espera** a
+que la rehidratación termine.
+
+Esperar es una **excepción declarada** a «sin I/O de red saliente en el plano de decisión»: ocurre
+sólo cuando el estado caliente no tiene el dato, se documenta en su ADR al cerrar y se mide contra
+el motor real. En producción debería ser excepcional, porque el estado caliente vive fuera del
+proceso (Redis) y un reinicio del backend no lo pierde.
+
+Lo que hace posible esa reconstrucción ya existe en parte: **las intervenciones son decisiones
+durables desde la feature 030**. Lo único que falta es poder buscarlas **por visitante** — el ledger
+hoy indexa por decisión y por sesión.
+
+## Q3 — resuelta: la cola se drena, y el hueco se declara (2026-09-27)
+
+**Decisión del dueño**: al apagar, el apagado ordenado **espera a que la cola se vacíe** —el grafo ya
+cierra en orden inverso lo que creó, así que encaja sin inventar nada— y cubre el caso frecuente, que
+es el despliegue.
+
+Si el proceso muere **sin apagado ordenado** —sin memoria, terminado por el sistema, corte de
+energía— lo encolado se pierde, y entonces **el hueco queda declarado**: se cuenta lo recibido contra
+lo escrito y la diferencia se registra al volver.
+
+El registro **no promete completitud; promete saber dónde no la tiene**. Es la diferencia entre un
+registro en el que se puede confiar para investigar y uno que se lee como completo siendo parcial.
+
 ## Lo que sigue abierto
 
 ### La ventana caliente, ¿es parámetro por merchant?
 
-Hoy `sessionWindowMs` es de plataforma porque la memoria del proceso es **un único límite
-compartido** entre identificadores de evento, sesiones y visitantes (`identityCap`, 100 000). Un
-valor por merchant sobre un recurso compartido permite que uno consuma lo de los demás, y el que se
-queda afuera **no se entera**: su sesión se desaloja antes y decide con menos señales.
+Quedó sin decidir: la conversación derivó a la duración de sesión, que la condicionaba. Hoy
+`sessionWindowMs` es de plataforma porque la memoria del proceso es **un único límite compartido**
+entre identificadores de evento, sesiones y visitantes (`identityCap`, 100 000): un valor por
+merchant sobre un recurso compartido permite que uno consuma lo de los demás, y el que se queda
+afuera **no se entera**.
 
 El código ya anticipó la salida: «el día que el estado caliente salga del proceso, separarlos es un
 campo nuevo de este nivel, no un cambio de forma».
-
-### Qué pasa al reiniciar
-
-Con sesiones de 30 minutos, un reinicio pierde las sesiones activas de esa media hora. No es
-inocuo: **perder el conteo de intervenciones reinicia el tope por sesión**, así que esos visitantes
-pueden recibir más de las que la política permite, y nadie se entera. Hoy ya pasa en cada
-despliegue.
-
-Rehidratar necesita **dos fuentes**: los eventos (para las señales) y el ledger de decisiones (para
-cuántas intervenciones hubo y cuándo fue la última, que no salen de los clicks).
-
-### Q3 — ¿Qué pasa con lo que no se pudo registrar?
-
-Estar fuera del camino crítico significa que la escritura puede atrasarse, y un proceso que se apaga
-puede tener cosas encoladas. Para una decisión eso es irrelevante —y es el punto—; para un registro
-forense no: **un registro con huecos silenciosos se lee como completo**.
 
 ### El conteo agregado, cuando duela
 
