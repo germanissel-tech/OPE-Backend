@@ -18,9 +18,19 @@ import type { DecisionLedger } from "../../../application/ledger/index.js";
 /** The column every table of the ledger keeps the record in. */
 const DOCUMENT = "document";
 
+/**
+ * No `ON CONFLICT`: a decision already recorded is **not** overwritten, and the key refusing the
+ * write is what says so. The ledger is immutable, so a repeated identifier is not an update to
+ * accept quietly — it is a minted identifier that collided, and the only honest answer is the one
+ * the failure channel already has: the write did not happen, the decision degrades to `NO_OP` with
+ * `ledger-unavailable` (ADR-021) and the plane fails closed (constitution II).
+ *
+ * With 128-bit random identifiers this cannot happen. That is the point: if it ever does, it is a
+ * broken generator, and losing the evidence of the first decision would be the worst possible way
+ * to find out.
+ */
 const INSERT = `INSERT INTO decisions (merchant_id, decision_id, session_id, document)
-  VALUES (:merchant, :decision, :session, :document)
-  ON CONFLICT (merchant_id, decision_id) DO UPDATE SET document = excluded.document`;
+  VALUES (:merchant, :decision, :session, :document)`;
 
 const BY_ID = `SELECT document FROM decisions WHERE merchant_id = :merchant AND decision_id = :decision`;
 

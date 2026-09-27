@@ -109,6 +109,27 @@ describe("the decision ledger across a restart", () => {
     expect(await ledger.find(MERCHANT, asDecisionId("dec_00000006"))).toBeDefined();
   });
 
+  it("refuses to overwrite a decision already recorded, and keeps the first", async () => {
+    // The ledger is immutable: a repeated identifier is a broken generator, not an update. The
+    // answer is the failure channel the port already has, so the plane fails closed instead of
+    // losing the evidence of the first decision.
+    const first = intervened("dec_00000008", MERCHANT, "ses_00000001");
+    expect(await decisions().record(first)).toEqual({ ok: true, value: undefined });
+
+    fixture.restart();
+
+    const again = NoOpDecision.of(facts("dec_00000008", MERCHANT, "ses_00000002"), "control-arm");
+    const refused = await decisions().record(again);
+    expect(refused.ok).toBe(false);
+    expect(!refused.ok && refused.error.code).toBe("ledger-unavailable");
+
+    fixture.restart();
+
+    const held = await decisions().find(MERCHANT, asDecisionId("dec_00000008"));
+    expect(held?.outcome).toBe("INTERVENE");
+    expect(held?.sessionId).toBe("ses_00000001");
+  });
+
   it("degrades to the ledger's failure channel when the store refuses, and says why in the log", async () => {
     fixture.makeUnavailable();
 
