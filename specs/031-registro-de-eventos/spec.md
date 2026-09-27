@@ -30,6 +30,14 @@ sistema —correr el quickstart, mirar el esquema, preguntar por la auditoría, 
 ninguna de correr la cadena de gates sobre sí misma. Poder mirar lo que el sistema hace es lo que
 esta feature entrega.
 
+**Y hay algo que hoy no se puede hacer de ninguna manera.** El estado de sesión —las señales
+acumuladas sobre las que el plano decide— **vive en memoria y se pierde en cada reinicio**: es la
+feature siguiente del hito. La decisión guarda el resultado de la inferencia, no las señales que la
+alimentaron, y esas señales estaban en un `Map` que ya no existe. Así que **después de un deploy no
+hay forma de reconstruir con qué se decidió**. Con los eventos registrados sí la hay: de ellos se
+reconstruye el estado acumulado en cualquier punto de la sesión. Eso vuelve a este registro la
+única fuente capaz de explicar una decisión pasada, que es más de lo que «auditoría» sugiere.
+
 **Y una decisión del dueño que define la forma** (2026-09-27): el registro va **fuera del camino
 crítico**; los eventos se encolan y se escriben aparte. No es una concesión: es exactamente lo que
 `01 §P9` quiso desde el principio —«Decisión: síncrono, acotado, sin I/O de red. Medición:
@@ -158,6 +166,17 @@ entraron, de qué tipos y en qué ventana de tiempo.
   de eventos, la decisión, la exposición y la atribución DEBEN ser las mismas que hoy.
 - **FR-012**: DEBE poder contarse, por merchant, cuántos eventos entraron, de qué tipos y en qué
   ventana de tiempo, sin leer cada registro.
+- **FR-013**: DEBEN poder obtenerse los eventos de una **sesión**, en orden, para reconstruir con qué
+  se decidió — que es la pregunta que el lote solo no responde, porque la decisión es de la sesión.
+- **FR-014**: Toda tabla que esta feature cree o modifique DEBE tener **clave primaria
+  autoincremental propia**; lo que hoy es clave de negocio pasa a ser **índice UNIQUE** (regla de
+  arquitectura del dueño, 2026-09-27).
+- **FR-015**: Toda tabla que esta feature cree o modifique DEBE tener **`created_at` y `updated_at`**,
+  iguales al crear la fila (misma regla). En este registro los dos son además información: como la
+  escritura va encolada, `created_at` **no** es `received_at`, y su diferencia mide el atraso de la
+  cola.
+- **FR-016**: Las **siete tablas de la feature 030** DEBEN migrarse a esas dos reglas en una
+  migración versionada, para que el esquema no conviva con dos criterios.
 
 ### Key Entities
 
@@ -183,15 +202,20 @@ entraron, de qué tipos y en qué ventana de tiempo.
 - **SC-005**: Ninguna de las pruebas de comportamiento que ya existen cambia de expectativa.
 - **SC-006**: Reiniciar el servicio no pierde nada de lo que ya se había registrado.
 - **SC-007**: El volumen por merchant y por tipo se obtiene en una sola consulta.
+- **SC-008**: De una decisión pasada puede reconstruirse con qué señales se tomó, **incluso después
+  de un reinicio** — que hoy es imposible.
+- **SC-009**: Ninguna tabla del esquema queda fuera de las dos reglas de arquitectura.
 
 ## Assumptions
 
 - **El registro se alimenta de lo que el sistema ya recibe**; el SDK no cambia y el contrato de
   ingesta no gana campos.
 - **Un lote produce a lo sumo una decisión**, que es como funciona hoy.
-- **El vínculo es lote → decisión.** La decisión no se toma sobre el lote sino sobre el estado de
-  sesión acumulado, así que decir «estos eventos causaron esta decisión» sería falso; lo cierto es
-  «esta decisión se tomó cuando llegó este lote».
+- **La cardinalidad es doble y hay que decir las dos.** Cada lote **dispara** exactamente una
+  decisión; cada decisión se toma **sobre la sesión acumulada**, es decir sobre ese lote y todos los
+  anteriores (`SessionState`: «what the plane remembers of a session **between batches**», `01 §4.2`,
+  ADR-026). Mostrar el lote y decir «esto produjo la decisión» sería falso: lo cierto es «esta
+  decisión se disparó con este lote, y se tomó con todo lo que la sesión venía acumulando».
 - **El brazo se conoce en el momento de decidir** y no cambia para ese visitante mientras el
   experimento siga abierto (ADR-022).
 - **Los eventos no llevan datos personales**, y por eso registrarlos no cambia el perfil de
@@ -199,20 +223,46 @@ entraron, de qué tipos y en qué ventana de tiempo.
   (`01 §665`).
 - **Un solo proceso** escribe el registro, como el resto del almacén (**D-21**).
 
-## Lo abierto, que se decide con esta spec delante
+## Q1 — resuelta: una fila por evento (2026-09-27)
 
-Tres preguntas que cambian el alcance y que no tienen un valor por defecto razonable.
+**Decisión del dueño**: el registro es **una tabla de eventos**, y cada evento lleva su sesión, su
+lote, su decisión y su brazo.
 
-### Q1 — ¿La unidad de registro es cada evento o el lote?
+Se compararon tres formas **midiéndolas con el motor real**, con las dos reglas de arquitectura ya
+aplicadas y el archivo compactado:
 
-El dueño pidió explícitamente decidirlo con la spec escrita.
+| Forma            | Tamaño (piloto completo) | Contar por tipo | Buscar un evento |
+| ---------------- | ------------------------ | --------------- | ---------------- |
+| Sólo lotes       | 512 MB                   | 335 ms          | 135 ms           |
+| **Sólo eventos** | **749 MB**               | **7 ms**        | **0,1 ms**       |
+| Lote + evento    | 551 MB                   | 7 ms            | 8 ms             |
 
-| Opción                    | Qué habilita                                                                                                                          | Qué cuesta                                                                                                                           |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cada evento, una fila** | Contar por tipo y por tiempo directamente (US3, FR-012); buscar un evento por su identificador; el descarte por duplicado es una fila | Hasta cincuenta veces más filas que lotes, y el volumen es el del tráfico entero                                                     |
-| **El lote, una fila**     | Muchas menos filas; el vínculo con la decisión es natural, porque la decisión es del lote                                             | Contar por tipo obliga a abrir cada lote; buscar un evento suelto obliga a recorrer; un duplicado no tiene dónde ser una fila propia |
+**El almacenamiento no es criterio** (decisión del dueño, 2026-09-27): importa la performance. Eso
+descarta «sólo lotes», que era la más barata y la única lenta para dos de las cuatro preguntas.
 
-**Lo que no cambia con la respuesta**: el vínculo sigue siendo lote → decisión en los dos casos.
+Entre las otras dos la velocidad empata, así que la decisión fue de modelado, y la resolvió una
+observación del dueño que corrigió el argumento con que se defendía «lote + evento»: **una decisión
+no se toma sobre un lote sino sobre la sesión acumulada** (ver la suposición sobre la cardinalidad).
+El lote es lo que **dispara** una decisión, no aquello sobre lo que se decide. Reducido a
+disparador, no necesita tabla propia: el único caso que la justificaba era el lote rechazado, que
+queda como su motivo repetido en cada evento — repetición que no cuesta, porque el almacenamiento
+no es criterio.
+
+**Lo medido, para que el plan no lo re-deduzca:**
+
+- **Un índice equivocado es peor que ninguno.** La consulta de US3 sobre 2 M eventos cuesta 507 ms
+  sin índice útil, **1 703 ms** con `(merchant_id, type)` y **107 ms** con el índice de cobertura
+  `(merchant_id, created_at, type)`. El plan se verifica, no se supone.
+- Los dos timestamps de la regla 2 ocupan ~50 bytes, pero en una tabla de **filas grandes** empujan
+  sobre el umbral de paginación de SQLite y llegan a costar **684 bytes por fila**. Con filas
+  chicas —el caso de esta decisión— el efecto no aparece.
+- La PK autoincremental de la regla 1 **no cuesta nada** en SQLite: `INTEGER PRIMARY KEY` es el
+  `rowid` que ya existía. Y **salda una de las tres deudas de D-21**: el `rowid` implícito que hoy
+  da el orden de inserción no existe en PostgreSQL; una columna autoincremental sí.
+
+## Lo que sigue abierto
+
+Dos preguntas que cambian el alcance y que no tienen un valor por defecto razonable.
 
 ### Q2 — ¿Cuánto se retiene?
 
@@ -241,4 +291,4 @@ completo.
   defecto, es de otra feature y se registra como deuda — esta feature lo hace **visible**, que es
   justamente lo que justifica que exista.
 - **No cambia el SDK ni el contrato de ingesta.**
-- **PostgreSQL** (**D-21**).
+- **PostgreSQL** (**D-21**), aunque la clave autoincremental de FR-014 salda una de sus tres deudas.

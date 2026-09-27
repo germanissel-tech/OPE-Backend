@@ -33,19 +33,23 @@
 
 ## Notes
 
-**Las tres preguntas abiertas son deliberadas y están en la spec como sección propia (`Lo abierto`),
-no como marcadores sueltos en el texto.** Las tres cambian el alcance y ninguna tiene un valor por
-defecto razonable:
+**Q1 quedó resuelta el 2026-09-27** (una fila por evento), midiendo las tres formas con el motor
+real en vez de estimarlas. Quedan dos preguntas abiertas, deliberadas y en su propia sección:
 
-- **Q1 — evento o lote**: el dueño pidió explícitamente decidirlo con la spec delante.
 - **Q2 — retención**: el MVP nunca la decidió y con eventos el volumen es el del tráfico entero.
 - **Q3 — lo que no se pudo registrar**: un registro forense con huecos silenciosos es peor que no
   tenerlo, porque se lo lee como completo.
 
-Hasta que las tres tengan respuesta, la spec **no está lista para `/speckit-plan`**: Q1 decide la
-forma del dato, Q2 decide si hace falta una poda (y entonces qué la gobierna, porque ninguna
-política vive en el código, constitución XI) y Q3 decide qué garantía promete FR-001.
+Hasta que las dos tengan respuesta, la spec **no está lista para `/speckit-plan`**: Q2 decide si
+hace falta una poda y qué la gobierna (ninguna política vive en el código, constitución XI) y Q3
+decide qué garantía promete FR-001.
 
-**Sobre SC-004**: se escribió como «no empeora de forma apreciable» y no con un número nuevo, porque
-el número de referencia es el de la feature 030 y la comparación se hace contra esa tabla, en la
-misma corrida. Fijar un umbral distinto acá sería inventar un presupuesto que `01 §4.6` no da.
+**Sobre el alcance que creció durante la conversación.** La feature incorporó dos reglas de
+arquitectura del dueño (FR-014, FR-015) y la migración del esquema de la 030 para cumplirlas
+(FR-016). Eso es más de lo que el título sugiere, y es deliberado: dejar siete tablas con un
+criterio y las nuevas con otro es exactamente lo que un lector del esquema no espera encontrar.
+
+**Sobre mediciones que hubo que rehacer tres veces.** La comparación de Q1 tuvo dos sesgos
+sucesivos a favor de la opción que parecía mejor —primero índices desiguales, después campos del
+evento contados como del lote— y los dos se corrigieron midiendo de nuevo. El script quedó en el
+scratchpad de la sesión; los números de la spec son los de la tercera corrida.
