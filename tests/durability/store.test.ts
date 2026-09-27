@@ -101,6 +101,28 @@ describe("the durable store", () => {
     }
   });
 
+  it("hands a null back as a null, and refuses a value of a kind it never writes", () => {
+    // No column of this schema is nullable, but `SqlStore` is what every durable gateway is
+    // written against: a nullable column or an outer join will read one. Found by reading
+    // `sqlite_master`, whose `sql` is null for an implicit index — the store threw.
+    const store = openSqliteStore({ file });
+    try {
+      // The aliases avoid SQLite's keywords (`nothing` is one, from `DO NOTHING`).
+      expect(store.all("SELECT NULL AS absent, 'text' AS present, 1 AS quantity")).toEqual([
+        { absent: null, present: "text", quantity: 1 },
+      ]);
+      // A blob is a different matter: it is a store this build did not write, and the read says so
+      // instead of carrying it further.
+      expect(() => store.all("SELECT x'00' AS bytes")).toThrow(
+        /holds a object, which this schema never writes/,
+      );
+    } finally {
+      // In a `finally` because a failing expectation above would otherwise leave the file open,
+      // and on Windows the teardown cannot remove a directory that holds one.
+      store.close();
+    }
+  });
+
   it("puts a file in WAL, and leaves a memory database alone", () => {
     // WAL is what lets a read run while a write is in flight and what survives a process that
     // dies mid-write, so it is not decoration: a store that quietly fell back to the rollback

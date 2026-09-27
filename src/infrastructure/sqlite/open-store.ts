@@ -173,8 +173,11 @@ function rowOf(raw: Readonly<Record<string, unknown>>): SqlRow {
 }
 
 function valueOf(column: string, value: unknown): SqlValue {
-  // `null` is not among them: every column of the schema is NOT NULL, so one coming back would be
-  // a store this build did not write — the same case as a blob.
-  if (typeof value === "string" || typeof value === "number") return value;
+  // `null` is one of them, although every column of *this* schema is NOT NULL: `SqlStore` is the
+  // interface every durable gateway is written against, and a query may well read a nullable
+  // column or an outer join. Refusing it because today's tables happen not to need it would be a
+  // trap for the next gateway — and it was one already: reading `sqlite_master`, whose `sql` is
+  // null for an implicit index, threw.
+  if (value === null || typeof value === "string" || typeof value === "number") return value;
   throw new Error(`Column ${column} holds a ${typeof value}, which this schema never writes.`);
 }

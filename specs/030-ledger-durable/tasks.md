@@ -334,3 +334,16 @@ Uno por T001 (el salto de Node, solo), uno por historia, y los del cierre.
       el que uno supone.
 
       **Resultado: todo mutante del diff muere.**
+
+      **Y una clasificación que estuvo mal, encontrada al revisar el esquema con el dueño antes
+      del PR.** Entre los «equivalentes» puse el `value === null` de `valueOf` razonando que toda
+      columna de este esquema es NOT NULL — cierto, y no era el punto: `SqlValue` **declara**
+      `string | number | null`, así que el null es parte del contrato del almacén aunque las tablas
+      de hoy no lo usen. Quitarlo dejó el tipo diciendo una cosa y la implementación haciendo otra,
+      y se vio al primer intento de leer `sqlite_master` —cuyo `sql` es null en un índice
+      implícito—: el almacén lanzó. Restituido, con la prueba que lo mata (un `SELECT NULL`, y un
+      blob que sigue rechazándose).
+
+      **La lección, que quedó en la skill**: un mutante sobre una rama que el **tipo** declara
+      alcanzable es **real**, no equivalente, aunque ninguna entrada de hoy la tome. Lo que falta
+      entonces es la prueba del contrato, no una excepción.
