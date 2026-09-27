@@ -260,22 +260,100 @@ no es criterio.
   `rowid` que ya existía. Y **salda una de las tres deudas de D-21**: el `rowid` implícito que hoy
   da el orden de inserción no existe en PostgreSQL; una columna autoincremental sí.
 
+## Q2 — resuelta: no se borra nada (2026-09-27)
+
+**Decisión del dueño**: el histórico se conserva completo, para análisis futuros. Lo que hace falta
+no es podar sino **tener a mano la ventana vigente**, y eso resultó ser otra cosa.
+
+Lo medido que sostiene la decisión: **guardar todo no encarece leer lo reciente**. Con 10 millones
+de eventos guardados, traer los de una sesión cuesta **0,2 ms** y los de una decisión **0,2 ms**;
+no se degradan con el volumen porque el índice hace el trabajo. La única consulta que sí se degrada
+es el **conteo agregado** —447 ms con 1 millón, 4,7 s con 10— y ésa no se arregla borrando: se
+arregla con totales mantenidos aparte, que queda anotado abajo.
+
+`01 §10.6` decía «ventana acotada; después queda el estado derivado» y marcaba los plazos como
+PROPUESTO, a resolver con **D5** (régimen de datos personales). Esta decisión no la contradice: lo
+que se acota es **la ventana caliente**, no el histórico. Si D5 termina exigiendo borrar, se borra
+por obligación legal y no por diseño.
+
+## La arquitectura que salió de tensionar el patrón
+
+Lo que parecía una cosa son **dos puertos con garantías distintas**, y separarlos disuelve la
+tensión entre «escribir sin frenar» y «leer al día»:
+
+|               | **Registro durable**               | **Ventana caliente**                       |
+| ------------- | ---------------------------------- | ------------------------------------------ |
+| Qué guarda    | todo, para siempre                 | sólo las sesiones con actividad            |
+| Quién lo lee  | quien investiga o analiza          | el plano de decisión                       |
+| Garantía      | nada se pierde                     | puede perderse; **no es fuente de verdad** |
+| Escritura     | fuera del camino crítico, encolada | inmediata, en memoria                      |
+| En producción | PostgreSQL                         | Redis o memoria del proceso                |
+
+Eso es lo que la constitución ya fija: «Redis es estado caliente de sesión, acotado y con
+expiración; MUST NOT ser fuente de verdad durable. PostgreSQL es la fuente durable». Y el plano de
+decisión sigue **sin I/O de red saliente**, porque lee lo caliente y no el durable.
+
+**Una advertencia sobre medir esto**: los números de arriba son de SQLite local. En producción la
+ventana vive detrás de red y el orden de magnitud es otro; esa medición se hace contra el motor
+real y hoy no lo tenemos (**D-21**).
+
+## La duración de una sesión la define el backend (2026-09-27)
+
+**Decisión del dueño**: **30 minutos de inactividad**, definidos por el backend; **el SDK se ajusta
+a este diseño**. Viaja en `getSdkConfig`, que es donde el backend ya le dice al SDK lo que necesita
+para funcionar — un campo nuevo, no una operación nueva.
+
+Antes esto era una suposición no verificada: el backend asumía 24 horas (`sessionWindowMs`) y el
+SDK —que no está construido— podía hacer otra cosa.
+
+**Lo que esa decisión simplifica.** Con sesiones de 30 minutos, el TTL de la ventana caliente cubre
+la sesión entera: cuando un visitante vuelve más tarde trae una sesión nueva y no hay nada que
+recuperar. **Rehidratar desde el durable pasa a hacer falta sólo después de un reinicio**, no en la
+operación normal.
+
+**Lo que arrastra, y hay que decirlo.** El tope de intervenciones **por sesión** se reinicia en cada
+sesión nueva, así que un visitante que navega toda la tarde atraviesa varias: el límite efectivo
+pasa a ser la **fatiga por visitante**, que tiene su propia ventana de 24 horas. Y la sesión es la
+unidad de análisis, así que su duración es el denominador de las cifras del piloto.
+
+**Y algo que se gana**: con los eventos registrados se puede **verificar que el SDK obedece**. Un
+evento cuya sesión lleva más de la duración declarada sin actividad delata un SDK que no cumple, y
+hoy eso sería invisible.
+
 ## Lo que sigue abierto
 
-Dos preguntas que cambian el alcance y que no tienen un valor por defecto razonable.
+### La ventana caliente, ¿es parámetro por merchant?
 
-### Q2 — ¿Cuánto se retiene?
+Hoy `sessionWindowMs` es de plataforma porque la memoria del proceso es **un único límite
+compartido** entre identificadores de evento, sesiones y visitantes (`identityCap`, 100 000). Un
+valor por merchant sobre un recurso compartido permite que uno consuma lo de los demás, y el que se
+queda afuera **no se entera**: su sesión se desaloja antes y decide con menos señales.
 
-El ledger es append-only y no poda **por diseño**, y ese diseño se pensó para decisiones. El MVP
-nunca decidió retención y la 030 lo dejó explícitamente afuera. Con eventos, el volumen es el del
-tráfico entero, así que la pregunta deja de ser postergable.
+El código ya anticipó la salida: «el día que el estado caliente salga del proceso, separarlos es un
+campo nuevo de este nivel, no un cambio de forma».
+
+### Qué pasa al reiniciar
+
+Con sesiones de 30 minutos, un reinicio pierde las sesiones activas de esa media hora. No es
+inocuo: **perder el conteo de intervenciones reinicia el tope por sesión**, así que esos visitantes
+pueden recibir más de las que la política permite, y nadie se entera. Hoy ya pasa en cada
+despliegue.
+
+Rehidratar necesita **dos fuentes**: los eventos (para las señales) y el ledger de decisiones (para
+cuántas intervenciones hubo y cuándo fue la última, que no salen de los clicks).
 
 ### Q3 — ¿Qué pasa con lo que no se pudo registrar?
 
-Estar fuera del camino crítico significa que el registro puede atrasarse, y un proceso que se apaga
+Estar fuera del camino crítico significa que la escritura puede atrasarse, y un proceso que se apaga
 puede tener cosas encoladas. Para una decisión eso es irrelevante —y es el punto—; para un registro
-forense no lo es: un registro con huecos silenciosos es peor que no tenerlo, porque se lo lee como
-completo.
+forense no: **un registro con huecos silenciosos se lee como completo**.
+
+### El conteo agregado, cuando duela
+
+Medido: 447 ms con 1 millón de eventos, 4,7 s con 10 millones. Las consultas forenses no se degradan;
+ésta sí. Cuando pase de segundos, la respuesta son **totales mantenidos aparte** — y entonces hay que
+decidir la ventana de agregación, que es una política y no vive en el código (constitución XI). No se
+hace antes de que el número lo pida.
 
 ## Lo que esta feature NO hace, y por qué
 
