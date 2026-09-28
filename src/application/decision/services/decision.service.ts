@@ -91,7 +91,15 @@ export class DecisionService implements DecisionPlane {
     const whose = { merchantId, sessionId, visitorId };
     // The versions the decision is taken with come first: every outcome stamps them (01 §14.2).
     const merchant = await policies.policiesFor(merchantId);
-    const facts: DecisionFactsInput = { ...whose, decidedAt: now, configuration: merchant.versions };
+    const facts: DecisionFactsInput = {
+      ...whose,
+      decidedAt: now,
+      configuration: merchant.versions,
+      // How many events the batch that triggered this decision carried (feature 031). It is here and
+      // nowhere else because this is the one durable, synchronous record of that batch: with it, a hole
+      // in the event register can be named **in events** and not only in batches (FR-018).
+      eventsInBatch: batch.events.length,
+    };
 
     // The kill switch comes before the assignment: off, nothing is assigned, nothing is consumed.
     if (!merchant.enabled) return recorder.record(facts, { kind: "no-op", reason: MERCHANT_OFF });

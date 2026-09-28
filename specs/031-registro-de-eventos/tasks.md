@@ -223,17 +223,35 @@ todavía.
       nadie elige, que es la garantía que ADR-033 da.
       **La ingesta salió de `sharedModules`**, que es la lista de los módulos que no tienen nada que
       elegir: ahora tiene dos tecnologías, así que es decisión de cada despliegue.
-- [ ] T019 `src/application/ingestion/use-cases/ingest-batch.use-case.ts` — el **punto 1**: después de
+- [x] T019 `src/application/ingestion/use-cases/ingest-batch.use-case.ts` — el **punto 1**: después de
       `decisionPlane.decide`, porque el `decisionId` y el brazo no existen antes (research R-01). Encola
-      una fila por evento con su `disposition` —`accepted` o `duplicate`, que salen del mismo
-      `results`—, su `receivedAt`, su decisión y su brazo. El caso de uso queda en **cinco**
-      dependencias, dentro del máximo de seis de ADR-023.
-- [ ] T020 `src/domain/ledger/decision.ts` — `DecisionFacts` gana **cuántos eventos traía el lote**. Es
+      una fila por evento con su `disposition` —`accepted` o `duplicate`—, su `receivedAt`, su decisión
+      y su brazo.
+      **Seis dependencias, no cinco**: research R-01 se olvidó del generador de `BatchId`. Seis es el
+      **máximo** que ADR-023 permite, así que queda dicho en el tipo — lo próximo que necesite una
+      dependencia acá se resuelve extrayendo un servicio, no relajando el límite.
+      Y dos cosas que escribí mal y corregí antes de que el gate las viera, porque son supervivientes
+      conocidos de este repo (`.claude/rules/gates-de-calidad.md`): el spread condicional del brazo
+      —ahora se pasa el valor, y el tipo ya lo admite ausente— y un `??` inalcanzable al buscar la
+      disposición por índice. Lo segundo se arregló en la raíz: `dispositionsOf` devuelve el **evento**
+      junto a su estado, así que no hay búsqueda por índice ni fallback para un caso imposible.
+- [x] T020 `src/domain/ledger/decision.ts` — `DecisionFacts` gana **cuántos eventos traía el lote**. Es
       lo que permite nombrar el hueco en eventos y no sólo en lotes (research R-10). No cambia ningún
       veredicto ni ninguna respuesta, así que no viola FR-011 — y T021 lo verifica en vez de afirmarlo.
-- [ ] T021 `npm test` — **ninguna prueba de comportamiento cambia de expectativa** (SC-005). Si hay que
+      **El campo es opcional, y la primera versión lo hizo obligatorio.** Requerirlo rompió nueve
+      archivos de prueba, y esa churn era la señal: una decisión registrada **antes** de esta feature no
+      tiene el campo, y `rehydrate` no juzga lo que lee (ADR-024), así que un campo obligatorio sería un
+      tipo que **miente sobre el histórico** que el sistema promete conservar. Donde falta, el hueco es
+      nombrable en lotes y no en eventos, que es la verdad sobre esas filas.
+      Y no hizo falta agregarlo al puerto del plano: el request ya lleva el lote entero.
+- [x] T021 `npm test` — **ninguna prueba de comportamiento cambia de expectativa** (SC-005). Si hay que
       tocar una, el registro dejó de ser un observador puro y eso es un defecto de esta feature, no una
       expectativa a actualizar.
+      **Verificado contra el diff y no de memoria**: el único archivo de prueba preexistente que cambió
+      es el del caso de uso, con 60 líneas agregadas y **dos borradas** — un import reordenado y el
+      `return` del fixture. Ni una expectativa se movió. 1423 pruebas del proyecto `fast`, 68 de
+      durabilidad, 7 gates, arquitectura sin violaciones, y el gate de mutación sin supervivientes sobre
+      el caso de uso, la decisión y el servicio del plano.
 
 **Checkpoint**: lo que el SDK manda se escribe, sobrevive a un reinicio, y la decisión no se enteró.
 

@@ -73,6 +73,8 @@ export const ingestionModule = compositionModule({
           tolerance: ClockTolerancePort,
           eventDedup: EventDedupPort,
           decisionPlane: DecisionPlanePort,
+          eventLog: EventLogPort,
+          batchIds: BatchIdsPort,
         },
         // The name of the log is the name of the use case, which is not this operationId.
         { name: "ingestBatch", build: (deps) => new IngestBatchUseCase(deps) },
