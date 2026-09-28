@@ -19,9 +19,8 @@ import {
   type VisitorId,
 } from "../../../domain/shared-kernel/index.js";
 import type { Event, RecordedEvent } from "../../../domain/ingestion/index.js";
-import type { SessionEvents } from "../../ingestion/index.js";
-import type { PastDecisions } from "../../ledger/index.js";
 import type { Logger } from "../../shared-kernel/index.js";
+import type { PastActivity } from "../ports/past-activity.js";
 import type { SessionStateStore } from "../ports/session-state-store.js";
 import type { VisitorStateStore } from "../ports/visitor-state-store.js";
 
@@ -30,6 +29,12 @@ export interface Remembered {
   visitor: VisitorState;
   /** Interventions the visitor received within the window, across sessions (fatigue, ADR-027). */
   visitorInterventions: number;
+  /**
+   * The register could not be read, so the session carries only the signals of the current batch
+   * (FR-015). The decision records it so that analysis does not read it as a visit with no activity —
+   * which is a different and false thing, and the only way to tell them apart afterwards.
+   */
+  signalsIncomplete?: boolean | undefined;
 }
 
 export interface Whose {
@@ -74,10 +79,8 @@ export interface StateServiceDependencies {
   visitors: VisitorStateStore;
   /** The two durations of the platform (level 1). */
   limits: StateLimits;
-  /** The register of what arrived, to replay the signals of a forgotten session (feature 032, FR-004). */
-  events: SessionEvents;
-  /** What was already decided: the interventions of the session and of the visitor (FR-005, FR-007). */
-  decisions: PastDecisions;
+  /** The three durable reads a forgotten state is rebuilt from, each able to say it could not answer. */
+  past: PastActivity;
   /** Where a session that outlived its own duration is reported (FR-003): an SDK not holding its end. */
   logger: Logger;
 }
@@ -100,6 +103,12 @@ export interface StateServiceDependencies {
 const replayed = (arrivals: readonly RecordedEvent[]): readonly Event[] =>
   arrivals.filter((arrival) => arrival.disposition !== "rejected").map((arrival) => arrival.event);
 
+/** A session and whether the register was short when it was put back together. */
+interface Rebuilt {
+  state: SessionState;
+  signalsIncomplete?: boolean | undefined;
+}
+
 export class States implements StateService {
   readonly #deps: StateServiceDependencies;
 
@@ -116,9 +125,10 @@ export class States implements StateService {
     // old two answers were right, and it stays.
     const known = visitor.value;
     return ok({
-      session: session.value,
+      session: session.value.state,
       visitor: known,
       visitorInterventions: known.countSince(now, this.#deps.limits.visitorWindowMs),
+      signalsIncomplete: session.value.signalsIncomplete,
     });
   }
 
@@ -140,32 +150,45 @@ export class States implements StateService {
     ]);
   }
 
-  /** From memory, or rebuilt; `undefined` never leaves this method. */
-  async #session(
-    { merchantId, sessionId }: Whose,
-    now: Date,
-  ): Promise<Result<SessionState, StateUnavailable>> {
+  /**
+   * From memory, or rebuilt; `undefined` never leaves this method.
+   *
+   * **The two reads it makes fail differently, and that is the answer of Q1.** The decisions carry the
+   * interventions the caps are counted from: nothing can stand in for them, so a failure degrades
+   * (FR-013). The arrivals carry the signals: without them the session absorbs the ones of the current
+   * batch, which is what the system does in every session today, so a failure is reported in the record
+   * and the decision goes on (FR-015). Degrading for signals would cost interventions that are being
+   * emitted right now and buy no correctness at all.
+   */
+  async #session({ merchantId, sessionId }: Whose, now: Date): Promise<Result<Rebuilt, StateUnavailable>> {
     const hot = await this.#deps.sessions.load(merchantId, sessionId);
     if (!hot.ok) return hot;
-    if (hot.value !== undefined) return ok(hot.value);
-    const [arrivals, decided] = await Promise.all([
-      this.#deps.events.bySession(merchantId, sessionId),
-      this.#deps.decisions.bySession(merchantId, sessionId),
+    if (hot.value !== undefined) return ok({ state: hot.value });
+    const [read, decided] = await Promise.all([
+      this.#deps.past.arrivalsOf(merchantId, sessionId),
+      this.#deps.past.decisionsOf(merchantId, sessionId),
     ]);
+    if (!decided.ok) return decided;
+    const arrivals = read.ok ? read.value : [];
+    const signalsIncomplete = !read.ok;
     // When the session last moved. Not `now`: the cooldown and the window are measured from it, and
     // stamping the current instant would make an old session look fresh. With nothing in the register
-    // there is nothing saying the session ever moved, so `now` is the honest answer for that case.
+    // there is nothing saying the session ever moved, so `now` is the honest answer for that case —
+    // and that is also the honest answer when the register could not be read at all.
     const movedAt = arrivals.at(-1)?.receivedAt;
-    if (movedAt !== undefined && this.#over(movedAt, now)) return ok(SessionState.empty(now));
-    const interventions = decided.filter((decision) => decision.isIntervention());
-    return ok(
-      SessionState.rehydrate({
+    if (movedAt !== undefined && this.#over(movedAt, now)) {
+      return ok({ state: SessionState.empty(now), signalsIncomplete });
+    }
+    const interventions = decided.value.filter((decision) => decision.isIntervention());
+    return ok({
+      state: SessionState.rehydrate({
         signals: Signals.of(replayed(arrivals)),
         interventions: interventions.length,
         updatedAt: movedAt ?? now,
         lastInterventionAt: interventions.at(-1)?.decidedAt,
       }),
-    );
+      signalsIncomplete,
+    });
   }
 
   /**
@@ -202,10 +225,13 @@ export class States implements StateService {
     // The window bounds the read, it does not apply the rule: `countSince` does that, on whatever the
     // store hands back. See `VisitorDecisions.byVisitor`.
     const since = new Date(now.getTime() - this.#deps.limits.visitorWindowMs);
-    const past = await this.#deps.decisions.byVisitor(merchantId, visitorId, since);
+    const past = await this.#deps.past.decisionsOfVisitor(merchantId, visitorId, since);
+    // No half measure on this side: these are the interventions the fatigue limit counts, and a visitor
+    // whose past cannot be read is not a visitor with a clean slate (FR-013).
+    if (!past.ok) return past;
     return ok(
       VisitorState.rehydrate({
-        interventions: past.filter((decision) => decision.isIntervention()).map((d) => d.decidedAt),
+        interventions: past.value.filter((d) => d.isIntervention()).map((d) => d.decidedAt),
       }),
     );
   }

@@ -10,12 +10,14 @@ import {
   type MessagePlane,
   type PolicyDirectory,
   type SessionStateStore,
+  type PastActivity,
   type StateLimits,
   type StateService,
   type VisitorStateStore,
   type VisitorWindow,
 } from "../../application/decision/index.js";
 import {
+  durablePastActivity,
   memorySessionStateStore,
   memoryVisitorStateStore,
   sessionWindowOf,
@@ -47,6 +49,12 @@ const DecisionStatePort = port("decision.state")<StateService>();
  * service takes the durations and not the two window objects: a capacity is a bound of the stores.
  */
 const StateLimitsPort = port("decision.state-limits")<StateLimits>();
+/**
+ * The three durable reads a forgotten state is rebuilt from, as values rather than exceptions. It is a
+ * component of this module because turning a throw into a `StateUnavailable` is translation, and the
+ * plane must depend on reads that answer: see the port and `durablePastActivity`.
+ */
+export const PastActivityPort = port("decision.past-activity")<PastActivity>();
 
 export const decisionModule = compositionModule({
   provides: [
@@ -69,6 +77,13 @@ export const decisionModule = compositionModule({
     ),
   ],
   assembles: [
+    // The plane does not write through these: what is durable is already written by the ledger and by
+    // the register, and writing it twice would make two truths that can disagree.
+    bind(
+      PastActivityPort,
+      { events: EventLogPort, decisions: DecisionLedgerPort, logger: LoggerPort },
+      (deps) => durablePastActivity(deps),
+    ),
     bind(StateLimitsPort, { platform: PlatformConfigurationPort }, ({ platform }) => ({
       visitorWindowMs: platform.visitorWindowMs,
       sessionDurationMs: platform.sessionDurationMs,
@@ -79,10 +94,7 @@ export const decisionModule = compositionModule({
         sessions: SessionStatePort,
         visitors: VisitorStatePort,
         limits: StateLimitsPort,
-        // The two durable reads a forgotten state is rebuilt from (feature 032). The plane does not
-        // write through them: what is durable is already written by the ledger and by the register.
-        events: EventLogPort,
-        decisions: DecisionLedgerPort,
+        past: PastActivityPort,
         logger: LoggerPort,
       },
       (deps) => new States(deps),

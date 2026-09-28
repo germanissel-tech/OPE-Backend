@@ -97,6 +97,19 @@ export interface DecisionFacts {
    * in batches only, which is the truth about those rows.
    */
   eventsInBatch?: number | undefined;
+  /**
+   * The register of events could not be read while this session was being rebuilt, so the decision was
+   * taken with the signals of its own batch and nothing before it (feature 032, FR-015).
+   *
+   * **It is here so that analysis can tell two things apart that otherwise look identical**: a visit
+   * where nothing happened before this batch, and a visit whose history could not be read. Without it
+   * the second is silently counted as the first, which is a false figure in the one place — the pilot —
+   * where figures are the product.
+   *
+   * Absent means the signals were whole, which is every decision the system has recorded so far and
+   * nearly every one it will. Only the exception says so, so no document grows a field to say "normal".
+   */
+  signalsIncomplete?: true | undefined;
   /** `calibration` while the open experiment is calibrating (03 §4.10); absent in accumulation or without an experiment. */
   phase?: DecisionPhase | undefined;
   /** The experiment and arm the visitor was assigned to; absent when the merchant has no active experiment. */
@@ -129,6 +142,7 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly selection?: DecisionSelection;
   readonly locale?: string;
   readonly eventsInBatch?: number;
+  readonly signalsIncomplete?: true;
   abstract readonly outcome: DecisionOutcome;
   /** Why this outcome: a NO_OP reason of the catalogue, or the reason of the intervention. */
   abstract readonly reason: string;
@@ -146,6 +160,7 @@ export abstract class DecisionBase implements DecisionFacts {
     if (facts.selection) this.selection = facts.selection;
     if (facts.locale !== undefined) this.locale = facts.locale;
     if (facts.eventsInBatch !== undefined) this.eventsInBatch = facts.eventsInBatch;
+    if (facts.signalsIncomplete !== undefined) this.signalsIncomplete = facts.signalsIncomplete;
   }
 
   /** A recorded decision comes back as what it was; a record that fits no shape is corrupt. */
@@ -188,6 +203,7 @@ export abstract class DecisionBase implements DecisionFacts {
       selection: this.selection,
       locale: this.locale,
       eventsInBatch: this.eventsInBatch,
+      signalsIncomplete: this.signalsIncomplete,
       intervention: this.isIntervention() ? this.intervention : undefined,
     };
   }

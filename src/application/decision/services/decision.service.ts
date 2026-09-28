@@ -110,6 +110,9 @@ export class DecisionService implements DecisionPlane {
     // II, FR-013) — and records the degraded decision, because one is still a decision (IX).
     if (!recalled.ok) return recorder.record(facts, { kind: "no-op", reason: STATE_UNAVAILABLE });
     const remembered = recalled.value;
+    // FR-015: the register was short, so this decision saw only its own batch. Recorded rather than
+    // degraded — the other half of the asymmetry, whose argument is in `state.service.ts`.
+    if (remembered.signalsIncomplete) facts.signalsIncomplete = true;
     const session = remembered.session.absorb(Signals.of(batch.events), now);
 
     const focus = batch.focus();

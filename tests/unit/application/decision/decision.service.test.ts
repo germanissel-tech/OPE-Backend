@@ -227,9 +227,12 @@ function subject(options: Options = {}) {
       },
       logger: silentLogger(),
       // This suite is about the orchestrator over hot state, so nothing durable answers: rebuilding is
-      // the subject of `state.service.test.ts` and the durability suite.
-      events: { bySession: () => Promise.resolve([]) },
-      decisions: { bySession: () => Promise.resolve([]), byVisitor: () => Promise.resolve([]) },
+      // the subject of state.service.test.ts and the durability suite.
+      past: {
+        arrivalsOf: () => Promise.resolve(ok([])),
+        decisionsOf: () => Promise.resolve(ok([])),
+        decisionsOfVisitor: () => Promise.resolve(ok([])),
+      },
     }),
     // Since feature 027 the plane asks one service for the inference and for what can be said:
     // a family without a curated text is not a candidate (01 §322), so the corpus is consulted

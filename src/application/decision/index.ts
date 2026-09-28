@@ -2,6 +2,7 @@
 // its ports (ADR-026); the windows it applies are the platform's (constitution XI).
 export type { MessagePlane, MessageRequest } from "./ports/message-plane.js";
 export type { MerchantPolicies, PolicyDirectory, PolicySet, PolicySource } from "./ports/policy-directory.js";
+export type { PastActivity, Read } from "./ports/past-activity.js";
 export type { Recalled, SessionStateStore, SessionWindow } from "./ports/session-state-store.js";
 export type { VisitorStateStore, VisitorWindow } from "./ports/visitor-state-store.js";
 export { States } from "./services/state.service.js";

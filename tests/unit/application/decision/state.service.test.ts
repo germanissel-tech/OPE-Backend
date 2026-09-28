@@ -6,7 +6,11 @@
 // remembered decides, forgotten rebuilds, failed degrades. The third one is the reason the shape
 // changed at all — without it a failed read and a new visitor are the same value.
 import { describe, expect, it } from "vitest";
-import { States, type StateServiceDependencies } from "../../../../src/application/decision/index.js";
+import {
+  States,
+  type StateServiceDependencies,
+  type PastActivity,
+} from "../../../../src/application/decision/index.js";
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { SessionState, StateUnavailable } from "../../../../src/domain/decision/index.js";
 import {
@@ -22,15 +26,19 @@ import {
   type Decision,
   type DecisionFacts,
 } from "../../../../src/domain/ledger/index.js";
-import { asMerchantId, asSessionId, asVisitorId, fail } from "../../../../src/domain/shared-kernel/index.js";
+import {
+  asMerchantId,
+  asSessionId,
+  asVisitorId,
+  fail,
+  ok,
+} from "../../../../src/domain/shared-kernel/index.js";
 import { silentLogger } from "../../../../src/infrastructure/logging/pino-logger.js";
 import { memorySessionStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-session-state-store.js";
 import { memoryVisitorStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-visitor-state-store.js";
 import { addedToCart, checkout, variantSelector } from "../../../helpers/events.js";
 import { testVisitorWindow } from "../../../helpers/platform.js";
 import { testLevels } from "../../../helpers/test-app.js";
-import type { SessionEvents } from "../../../../src/application/ingestion/index.js";
-import type { SessionDecisions, VisitorDecisions } from "../../../../src/application/ledger/index.js";
 
 const now = new Date("2026-09-19T12:00:00.000Z");
 const later = (ms: number): Date => new Date(now.getTime() + ms);
@@ -41,10 +49,7 @@ const whose = {
 };
 
 /** Nothing durable: what every test of the hot path had implicitly before this feature. */
-const nothingDurable = (): Pick<StateServiceDependencies, "events" | "decisions"> => ({
-  events: { bySession: () => Promise.resolve([]) },
-  decisions: { bySession: () => Promise.resolve([]), byVisitor: () => Promise.resolve([]) },
-});
+const nothingDurable = (): Pick<StateServiceDependencies, "past"> => ({ past: pastActivity().port });
 
 /** Built inside each test: what a file evaluates while it loads is static for the mutation gate. */
 function subject(over: Partial<StateServiceDependencies> = {}) {
@@ -108,23 +113,37 @@ function arrival(event: Event, disposition: RecordedEvent["disposition"]): Recor
     : ({ ...base, disposition, decisionId: asDecisionId("dec_00000001") } satisfies DecidedArrival);
 }
 
-const register = (rows: readonly RecordedEvent[]): SessionEvents => ({
-  bySession: () => Promise.resolve(rows),
-});
-
 /**
- * The two reads of the ledger. `byVisitor` **honours `since`**, like both real gateways do, and that is
- * not decoration: a double that ignored it let a mutant turn `now - window` into `now + window` and
- * nothing noticed, because the exact cut happens later in `countSince` either way. `asked` keeps the
- * instant the service passed, so a test can say what the window was.
+ * The three durable reads, as one double.
+ *
+ * Two things about it are deliberate. `decisionsOfVisitor` **honours `since`**, like both real gateways
+ * do: a double that ignored it let a mutant turn `now - window` into `now + window` and nothing
+ * noticed, because the exact cut happens later in `countSince` either way. And `failing` names **which**
+ * read cannot answer, one at a time, because the whole point of the port is that the three do not fail
+ * the same way — a double where they failed together could not tell FR-013 from FR-015.
  */
-function recordedDecisions(session: readonly Decision[], visitor: readonly Decision[] = []) {
+interface PastOptions {
+  arrivals?: readonly RecordedEvent[];
+  session?: readonly Decision[];
+  visitor?: readonly Decision[];
+  failing?: "arrivals" | "session" | "visitor";
+}
+
+function pastActivity(over: PastOptions = {}) {
   const asked: Date[] = [];
-  const port: SessionDecisions & VisitorDecisions = {
-    bySession: () => Promise.resolve(session),
-    byVisitor: (_m, _v, since) => {
+  const port: PastActivity = {
+    arrivalsOf: () =>
+      Promise.resolve(
+        over.failing === "arrivals" ? fail(new StateUnavailable("session")) : ok(over.arrivals ?? []),
+      ),
+    decisionsOf: () =>
+      Promise.resolve(
+        over.failing === "session" ? fail(new StateUnavailable("session")) : ok(over.session ?? []),
+      ),
+    decisionsOfVisitor: (_merchantId, _visitorId, since) => {
       asked.push(since);
-      return Promise.resolve(visitor.filter((decision) => decision.decidedAt >= since));
+      if (over.failing === "visitor") return Promise.resolve(fail(new StateUnavailable("visitor")));
+      return Promise.resolve(ok((over.visitor ?? []).filter((decision) => decision.decidedAt >= since)));
     },
   };
   return { port, asked };
@@ -179,11 +198,10 @@ describe("States", () => {
       const last = checkout(3);
       const arrived = [arrival(first, "accepted"), arrival(second, "accepted"), arrival(last, "accepted")];
       const { service } = subject({
-        events: register(arrived),
-        decisions: recordedDecisions([
-          intervened("dec_00000002"),
-          NoOpDecision.of(facts("dec_00000003"), "control-arm"),
-        ]).port,
+        past: pastActivity({
+          arrivals: arrived,
+          session: [intervened("dec_00000002"), NoOpDecision.of(facts("dec_00000003"), "control-arm")],
+        }).port,
       });
 
       const { session } = await recalled(service);
@@ -208,15 +226,14 @@ describe("States", () => {
 
     it("rebuilds the visitor from the interventions of the ledger, across sessions", async () => {
       const earlier = later(-1000);
-      const ledger = recordedDecisions(
-        [],
-        [
+      const ledger = pastActivity({
+        visitor: [
           intervened("dec_00000004", earlier),
           intervened("dec_00000005", now),
           NoOpDecision.of(facts("dec_00000006"), "visitor-fatigue"),
         ],
-      );
-      const { service, window } = subject({ decisions: ledger.port });
+      });
+      const { service, window } = subject({ past: ledger.port });
 
       const { visitor, visitorInterventions } = await recalled(service);
       expect(visitor.interventions).toEqual([earlier, now]);
@@ -229,11 +246,10 @@ describe("States", () => {
 
     it("asks the ledger only for the window, so an intervention older than it never arrives", async () => {
       const window = testVisitorWindow();
-      const ledger = recordedDecisions(
-        [],
-        [intervened("dec_00000007", later(-window.ttlMs - 1)), intervened("dec_00000008", now)],
-      );
-      const { service } = subject({ decisions: ledger.port });
+      const ledger = pastActivity({
+        visitor: [intervened("dec_00000007", later(-window.ttlMs - 1)), intervened("dec_00000008", now)],
+      });
+      const { service } = subject({ past: ledger.port });
 
       const { visitor, visitorInterventions } = await recalled(service);
       expect(visitor.interventions).toEqual([now]);
@@ -258,8 +274,10 @@ describe("States", () => {
       const duration = testLevels().platform.sessionDurationMs;
       const logged: { fields: Record<string, unknown>; message: string }[] = [];
       const { service } = subject({
-        events: register([{ ...stale, receivedAt: later(-duration) }]),
-        decisions: recordedDecisions([intervened("dec_00000009")]).port,
+        past: pastActivity({
+          arrivals: [{ ...stale, receivedAt: later(-duration) }],
+          session: [intervened("dec_00000009")],
+        }).port,
         logger: {
           info: () => undefined,
           warn: (fields, message) => logged.push({ fields, message }),
@@ -286,8 +304,10 @@ describe("States", () => {
       const duration = testLevels().platform.sessionDurationMs;
       const fresh = arrival(addedToCart(9), "accepted");
       const { service } = subject({
-        events: register([{ ...fresh, receivedAt: later(1 - duration) }]),
-        decisions: recordedDecisions([intervened("dec_00000010")]).port,
+        past: pastActivity({
+          arrivals: [{ ...fresh, receivedAt: later(1 - duration) }],
+          session: [intervened("dec_00000010")],
+        }).port,
       });
 
       const { session } = await recalled(service);
@@ -302,7 +322,7 @@ describe("States", () => {
       const once = variantSelector(3);
       const again = variantSelector(4);
       const { service } = subject({
-        events: register([arrival(once, "accepted"), arrival(again, "duplicate")]),
+        past: pastActivity({ arrivals: [arrival(once, "accepted"), arrival(again, "duplicate")] }).port,
       });
 
       const { session } = await recalled(service);
@@ -316,7 +336,7 @@ describe("States", () => {
       const absorbed = variantSelector(5);
       const refused = checkout(6);
       const { service } = subject({
-        events: register([arrival(absorbed, "accepted"), arrival(refused, "rejected")]),
+        past: pastActivity({ arrivals: [arrival(absorbed, "accepted"), arrival(refused, "rejected")] }).port,
       });
 
       const { session } = await recalled(service);
@@ -355,17 +375,73 @@ describe("States", () => {
       expect(result.ok ? undefined : result.error.details).toMatchObject({ path: "session" });
     });
 
+    it("degrades when the interventions of the session cannot be read", async () => {
+      // FR-013, the half that has to fail closed: these are the interventions the session budget is
+      // counted from, and nothing can stand in for them. Answering with zero would mean handing out a
+      // fresh budget every time the store hiccups.
+      const { service } = subject({ past: pastActivity({ failing: "session" }).port });
+
+      const result = await service.recall(whose, now);
+      expect(result.ok).toBe(false);
+      expect(result.ok ? undefined : result.error.code).toBe("state-unavailable");
+    });
+
+    it("degrades when the interventions of the visitor cannot be read", async () => {
+      // The same on the other side, and it matters more: the visitor cap is what keeps a chain of
+      // failures from having no ceiling at all.
+      const { service } = subject({ past: pastActivity({ failing: "visitor" }).port });
+
+      const result = await service.recall(whose, now);
+      expect(result.ok ? undefined : result.error.details).toMatchObject({ path: "visitor" });
+    });
+
+    it("decides with the current batch when the signals cannot be read, and says the signals were short", async () => {
+      // FR-015, the half that does **not** degrade, and the whole argument of the asymmetry in one test:
+      // the session comes back with its budget intact — read from the ledger, which answered — and with
+      // no signals, which is what every session of this system looks like on its first batch. Refusing
+      // to decide here would cost interventions that are being emitted right now and buy nothing.
+      const { service } = subject({
+        past: pastActivity({
+          failing: "arrivals",
+          session: [intervened("dec_00000011")],
+        }).port,
+      });
+
+      const recall = await recalled(service);
+      expect(recall.session.signals.isEmpty()).toBe(true);
+      // The cap held: one intervention, from the read that did answer.
+      expect(recall.session.interventions).toBe(1);
+      // And the decision will carry it, so analysis does not read this as a visit where nothing happened.
+      expect(recall.signalsIncomplete).toBe(true);
+    });
+
+    it("does not say the signals were short when they were whole", async () => {
+      // The pair of the test above: a flag that were always set would say nothing, and a flag that were
+      // never set would be unreachable. Both are killed by having the two cases.
+      const { service } = subject({ past: pastActivity({ session: [intervened("dec_00000012")] }).port });
+
+      expect((await recalled(service)).signalsIncomplete).toBe(false);
+    });
+
     it("does not read what is durable when memory already has the answer", async () => {
       // This is SC-004 at the unit level: the normal case must not pay for the rebuild. A rebuild that
       // ran anyway would still return the right state, so nothing else here would notice.
+      //
+      // The two **session** reads are counted and the visitor one is not: nothing remembered an
+      // intervention here, so the visitor is legitimately still forgotten and its read does happen.
       let durableReads = 0;
-      const counted: SessionEvents = {
-        bySession: () => {
+      const counted: PastActivity = {
+        arrivalsOf: () => {
           durableReads += 1;
-          return Promise.resolve([]);
+          return Promise.resolve(ok([]));
         },
+        decisionsOf: () => {
+          durableReads += 1;
+          return Promise.resolve(ok([]));
+        },
+        decisionsOfVisitor: () => Promise.resolve(ok([])),
       };
-      const { service } = subject({ events: counted });
+      const { service } = subject({ past: counted });
       const session = SessionState.empty(now).absorb(Signals.of([addedToCart(7)]), now);
       await service.remember(whose, { session });
       durableReads = 0;

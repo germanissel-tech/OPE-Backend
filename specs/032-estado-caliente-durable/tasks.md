@@ -200,16 +200,16 @@ siguiente es la misma.
 señales best-effort**, y el motivo es la asimetría: sin los topes el sistema hace algo que nunca hizo; sin
 las señales hace lo que está en producción hoy.
 
-- [ ] T032 [P] `tests/durability/` — con el almacén caído: la decisión **degrada a `NO_OP
+- [x] T032 [P] `tests/durability/` — con el almacén caído: la decisión **degrada a `NO_OP
 state-unavailable`**, la decisión **se emite y se registra**, y **no** se responde un error HTTP. Un
       500 acá significaría un defecto, y una degradación se registra (FR-013, precedente de
       `ledger-unavailable`).
-- [ ] T033 [P] Con las **señales** ilegibles pero los topes legibles: se decide con el lote actual —que es
+- [x] T033 [P] Con las **señales** ilegibles pero los topes legibles: se decide con el lote actual —que es
       lo que el sistema hace hoy en toda sesión— y la decisión **registra que las señales quedaron
       incompletas** (FR-015), para que el análisis no las cuente como una sesión sin actividad.
-- [ ] T034 El motivo registrado **no es `barrier-unclear`**, y eso se prueba: confundirlos convertiría una
+- [x] T034 El motivo registrado **no es `barrier-unclear`**, y eso se prueba: confundirlos convertiría una
       falla de infraestructura en un dato falso del piloto, y nadie tendría con qué distinguirlos después.
-- [ ] T035 Dejar escrito —en el código y en el ADR— que **el plazo de FR-016 no existe hoy**: `SqlStore` es
+- [x] T035 Dejar escrito —en el código y en el ADR— que **el plazo de FR-016 no existe hoy**: `SqlStore` es
       síncrono y una lectura síncrona devuelve o lanza, así que «tardó demasiado» no puede ocurrir. La mitad
       que sí ocurre está cubierta; el plazo es de la spec del gateway de PostgreSQL (research R-03).
 
