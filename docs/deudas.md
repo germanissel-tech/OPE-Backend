@@ -349,11 +349,16 @@ corriendo contra él, antes del primer piloto con tráfico real.
 
 ### Lo que la feature 030 dejó apoyado en «un solo proceso», medido al implementarla
 
-Tres cosas concretas, para que quien escriba el gateway de PostgreSQL no tenga que redescubrirlas:
+Tres cosas concretas, para que quien escriba el gateway de PostgreSQL no tenga que redescubrirlas.
+**De las tres, la feature 031 saldó la primera**; las otras dos siguen abiertas y son las que hacen que
+esta deuda no se cierre.
 
-1. **`rowid` es el orden de inserción.** `bySession` responde «en el orden en que se registraron» y
-   la poda de recibos del catálogo elige «los últimos» con él. Es de SQLite y **no existe en
-   PostgreSQL**: ese gateway necesita su propia columna de orden, y decidirla es parte de su spec.
+1. ~~**`rowid` es el orden de inserción.**~~ **Saldado por la feature 031** (migración `002`,
+   2026-09-28). Las dos reglas de arquitectura del dueño dieron a **toda** tabla su propia clave
+   primaria autoincremental, así que el orden de inserción es ahora una columna que el esquema declara:
+   las tres consultas que nombraban `rowid` —`bySession` de las decisiones, la de las corroboraciones y
+   la poda de recibos del catálogo— nombran `id`. **El gateway de PostgreSQL ya no tiene que decidir una
+   columna de orden**, que era lo que esta parte de la deuda le dejaba.
 2. **El primero/repetido/conflicto de la orden es un `SELECT` y un `INSERT` dentro de una
    transacción.** Con un proceso y SQLite síncrono eso es atómico de verdad. Con dos procesos no lo
    es por sí solo —hace falta `BEGIN IMMEDIATE` o el nivel de aislamiento equivalente—, y es

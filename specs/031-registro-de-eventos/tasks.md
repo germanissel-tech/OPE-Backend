@@ -422,24 +422,56 @@ completitud; promete saber dónde no la tiene.**
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T041 **Medir SC-004**: el p95 del lote de ingesta contra lo que la 030 midió (memoria 0,90–1,35 ms;
+- [x] T041 **Medir SC-004**: el p95 del lote de ingesta contra lo que la 030 midió (memoria 0,90–1,35 ms;
       SQLite 1,94–2,72 ms) sobre el presupuesto de 150 ms de `01 §4.6`. Es la verificación de FR-007, y
       el número se publica con lo que es: SQLite local, no el motor de producción (**D-21**).
-- [ ] T042 `docs/adr/039-*.md` — el ADR de las tres decisiones transversales de esta feature, juntas
+      **Tres corridas, la misma prueba que usó ADR-038, con el registro enganchado**: memoria
+      0,97–1,36 ms, SQLite 1,91–2,25 ms. **SC-004 se cumple** — no empeoró de forma apreciable, que es lo
+      que FR-007 predecía: lo único que el registro agrega al camino crítico es un `push` a un arreglo.
+      La cifra de SQLite cae en el extremo bajo del rango de la 030 y **no se lee como una mejora**: es
+      ruido entre corridas, y decir otra cosa sería atribuirle a esta feature algo que no hizo.
+- [x] T042 `docs/adr/039-*.md` — el ADR de las tres decisiones transversales de esta feature, juntas
       porque salen del mismo razonamiento: el registro vive en el **camino de medición** (`01 §P9`, la
       primera vez que ese principio se cumple entero), hace falta una **quinta identidad** y por qué las
       cuatro no alcanzan, y el runner **aplica migraciones hacia adelante**. Con la evidencia, como
       ADR-038.
-- [ ] T043 [P] `docs/deudas.md` — cerrar la parte de **D-21** que esta feature salda: el orden de
+- [x] T043 [P] `docs/deudas.md` — cerrar la parte de **D-21** que esta feature salda: el orden de
       inserción deja de apoyarse en el `rowid` implícito de SQLite, que no existe en PostgreSQL. Las
       otras dos siguen abiertas y se dice cuáles.
-- [ ] T044 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `migrations/` ya en T006,
+- [x] T044 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `migrations/` ya en T006,
       más `tests/` si la suite gana archivos y `config/` por las dos entradas nuevas.
-- [ ] T045 Correr el **quickstart** de punta a punta, los ocho pasos, y **anotar lo que aparezca**. Es la
+      **Nada nuevo hizo falta, y lo verifiqué en vez de suponerlo**: los ADR no se inventarían uno por uno
+      (`docs/README.md` tiene una fila para `adr/` entero, y `check:adrs` verifica su frontmatter), la
+      suite no ganó directorios —los archivos nuevos caen en `durability/`, `integration/` y `unit/`, que
+      ya tienen su fila— y los dos valores de la cola **no fueron a `config/`** sino a la composición
+      (T013). `check:adrs` da 39 ADR y 1416 citas sin romper; `check:identifiers`, 644 citados y 0
+      desconocidos.
+- [x] T045 Correr el **quickstart** de punta a punta, los ocho pasos, y **anotar lo que aparezca**. Es la
       tarea que la 030 demostró que no es ceremonia: sus cuatro arreglos posteriores al verde salieron de
       usar el sistema, ninguno de correr la cadena de gates sobre sí misma.
-- [ ] T046 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
+      **Y volvió a pasar: encontró un falso verde que ningún gate podía ver.** Los cinco filtros `-t` de
+      los pasos 2 a 7 estaban en español —«esquema», «registro», …— y los nombres de las pruebas están en
+      inglés (ADR-015), así que **no coincidían con nada**. Lo grave no es el typo:
+      `vitest run -t "<algo que no existe>"` **sale con 0 y corre cero pruebas**, así que alguien
+      siguiendo el quickstart habría visto «sin fallas» en seis pasos seguidos. Ahora los pasos apuntan a
+      **rutas de archivo**, que no se rompen en silencio.
+      Segundo hallazgo: el `EXPLAIN` del paso 8 consultaba por `created_at`, que la corrección del índice
+      (T013) volvió falso.
+      **Y lo que el quickstart confirmó contra el servidor real**, que es para lo que existe: tráfico por
+      HTTP deja las tres disposiciones en el registro (2 aceptados, 2 duplicados, 2 rechazados); el plan
+      dice `USING COVERING INDEX received_events_volume`; y **un almacén de la 030 en versión 1 arrancó,
+      migró a 2, y su decisión quedó con `id = 1` y el `created_at` de la migración** — la afirmación
+      central del paso 1, verificada y no supuesta.
+- [x] T046 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
       `release-check`.
+      **Toda verde**: `contract:check` (mapa en 30 operaciones, 39 ADR y 1416 citas sin romper, 644
+      identificadores citados y 0 desconocidos), `test:all` **1604 pruebas en 178 archivos**,
+      `test:mutation` sobre el diff con **1302 mutantes muertos y 0 supervivientes**, `test:contract`
+      **10 457 casos generados y 10 457 pasados**, y `release-check` OK.
+      `test:contract` pidió un `npm run build` primero —`dist/` era más viejo que el fuente y habría
+      probado el build anterior—, lo cual es el gate haciendo exactamente lo que tiene que hacer.
+      Los dos avisos de `release-check` son preexistentes y no de esta feature: un `PROPUESTO` en ADR-020
+      y la marca `building` del contrato, que se quita antes del primer piloto.
 
 ---
 

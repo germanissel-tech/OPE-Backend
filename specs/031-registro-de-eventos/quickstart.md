@@ -21,7 +21,7 @@ y mirar que el servidor levanta.
 ## 2. Ninguna tabla queda fuera de las dos reglas
 
 ```bash
-npx vitest run --project durability -t "esquema"
+npx vitest run --project durability tests/durability/store.test.ts
 ```
 
 Las ocho tablas —las siete de la 030 más el registro— tienen clave primaria autoincremental y sus dos
@@ -31,7 +31,7 @@ es lo que quedó, no lo que el archivo dice.
 ## 3. Un lote ingresado deja rastro de cada evento
 
 ```bash
-npx vitest run --project durability -t "registro"
+npx vitest run --project durability tests/durability/event-log.test.ts
 ```
 
 Ingestar un lote, esperar a que la cola se vacíe, y leer lo recibido con el mismo contenido: cada evento
@@ -40,7 +40,7 @@ con su identificador, su tipo, su instante declarado y **cuándo OPE lo recibió
 ## 4. Del click al veredicto, y al revés
 
 ```bash
-npx vitest run --project durability -t "trazabilidad"
+npx vitest run tests/integration/event-register.test.ts
 ```
 
 De la decisión a sus eventos y de un evento a su decisión, con el brazo con el que entró (historia 1). Y
@@ -49,7 +49,7 @@ sin brazo cuando no había experimento activo, que es distinto de `CONTROL` y no
 ## 5. Lo descartado también está
 
 ```bash
-npx vitest run --project durability -t "descarte"
+npx vitest run tests/integration/event-register.test.ts tests/unit/application/ingestion
 ```
 
 Los dos tramos que hoy son invisibles (historia 2): el duplicado queda como repetición —y se llega a su
@@ -71,7 +71,7 @@ dejó de ser un observador puro y eso es un defecto de esta feature, no una expe
 ## 7. El apagado no pierde lo encolado, y una caída sí — y lo dice
 
 ```bash
-npx vitest run --project durability -t "apagado"
+npx vitest run --project durability tests/durability/restart.test.ts tests/durability/event-log.test.ts
 ```
 
 Dos casos y son opuestos a propósito (Q3): el apagado ordenado **drena la cola** y no se pierde nada
@@ -94,10 +94,32 @@ por merchant (historia 3, SC-007). Y con `EXPLAIN QUERY PLAN` delante, la misma 
 R-06), así que acá se verifica el plan y no se supone.
 
 ```bash
-node -e "const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('data/ope.db');console.log(d.prepare('EXPLAIN QUERY PLAN SELECT type, COUNT(*) FROM received_events WHERE merchant_id=? AND created_at BETWEEN ? AND ? GROUP BY type').all('m-uno','2026-01-01','2026-12-31'))"
+node -e "const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('data/ope.db');console.log(d.prepare('EXPLAIN QUERY PLAN SELECT type, COUNT(*) FROM received_events WHERE merchant_id=? AND received_at BETWEEN ? AND ? GROUP BY type').all('m-uno','2026-01-01','2026-12-31'))"
 ```
 
 Si dice `SCAN received_events`, el índice no se está usando y los 107 ms medidos no se van a cumplir.
+
+**Y la ventana va sobre `received_at`, no sobre `created_at`**: FR-012 pregunta cuántos eventos entraron,
+así que el instante que importa es cuándo OPE los recibió y no cuándo la cola los escribió.
+
+---
+
+## Lo que correr este quickstart encontró, y que ningún gate había visto
+
+**Los cinco filtros `-t` de los pasos 2 a 7 no coincidían con ningún nombre de prueba.** Estaban escritos
+en español —«esquema», «registro», «trazabilidad», «descarte», «apagado»— y los nombres de las pruebas
+están en inglés (ADR-015). Y lo grave no es el typo:
+
+```bash
+npx vitest run --project durability -t "esto no existe"   # → exit 0, 79 pruebas saltadas
+```
+
+**Un filtro que no coincide sale con 0 y no corre nada**, así que alguien siguiendo el quickstart habría
+visto «sin fallas» en seis pasos seguidos y concluido que la feature funciona. Un verde falso es peor que
+un rojo.
+
+Ahora los pasos apuntan a **rutas de archivo**, que es lo que no se rompe en silencio: renombrar una
+prueba invalida un filtro por nombre sin avisar, mover un archivo falla en el acto.
 
 ---
 
