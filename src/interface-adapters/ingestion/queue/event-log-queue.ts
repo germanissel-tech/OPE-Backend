@@ -78,6 +78,9 @@ export function queuedEventLog(deps: EventLogQueueDeps): EventLogQueue {
       clearInterval(timer);
       flush();
     },
+    // Asked at start-up, when nothing is queued yet, so the queue has nothing to add to the answer —
+    // and asking it later would report its own backlog as a hole (see the port).
+    unrecorded: () => deps.writer.unrecorded(),
     byDecision: (merchantId, decisionId) => deps.writer.byDecision(merchantId, decisionId),
     bySession: (merchantId, sessionId) => deps.writer.bySession(merchantId, sessionId),
     byEvent: (merchantId, eventId) => deps.writer.byEvent(merchantId, eventId),

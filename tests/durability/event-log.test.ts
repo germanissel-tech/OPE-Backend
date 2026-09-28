@@ -122,6 +122,81 @@ describe("sqliteEventLog", () => {
     });
   });
 
+  describe("what it knows it is missing (Q3, FR-018)", () => {
+    // **The promise of this feature in one sentence: the register does not promise completeness, it
+    // promises to know where it does not have it.** These two cases are opposites on purpose, because
+    // only together do they say something — one shows nothing is lost when the shutdown is orderly, the
+    // other shows what is lost when it is not, and that it can be named.
+    //
+    // A decision's write is synchronous and the register's is queued, so the ledger is the surviving
+    // half: a decision that declares how many events its batch carried and has no events in the
+    // register is a batch that arrived and was never written.
+    const decisionRow = (id: string, events: number | undefined, at: string): void => {
+      const document: Record<string, unknown> = { decidedAt: { $date: at } };
+      if (events !== undefined) document["eventsInBatch"] = events;
+      fixture.store.run(
+        `INSERT INTO decisions (merchant_id, decision_id, session_id, document)
+         VALUES ('m-one', :id, 'ses_00000001', :document)`,
+        { id, document: JSON.stringify(document) },
+      );
+    };
+
+    it("says nothing when every decision has its events, which is what an orderly shutdown leaves", async () => {
+      const log = sqliteEventLog({ store: fixture.store, logger: fixture.logger });
+      decisionRow("dec_00000001", 1, "2026-09-28T12:00:00.000Z");
+      log.record([decided()]);
+
+      expect(await log.unrecorded()).toBeUndefined();
+    });
+
+    it("names the hole in events and in an interval when a run died holding them", () => {
+      // Two decisions written, their events never. This is what a process killed without draining
+      // leaves behind, and what SC-010 asks to be nameable.
+      const log = sqliteEventLog({ store: fixture.store, logger: fixture.logger });
+      decisionRow("dec_lost_a", 3, "2026-09-28T12:00:00.000Z");
+      decisionRow("dec_lost_b", 5, "2026-09-28T13:00:00.000Z");
+
+      return log.unrecorded().then((hole) => {
+        expect(hole).toEqual({
+          batches: 2,
+          events: 8,
+          from: new Date("2026-09-28T12:00:00.000Z"),
+          to: new Date("2026-09-28T13:00:00.000Z"),
+        });
+      });
+    });
+
+    it("does not count decisions recorded before this feature as a hole", async () => {
+      // They have no events in the register and never will, which is expected and not a loss. It is
+      // what `eventsInBatch` being optional is **for**: the absence of the field says "this row predates
+      // the register", so a first start after upgrading does not report the whole history as missing.
+      const log = sqliteEventLog({ store: fixture.store, logger: fixture.logger });
+      decisionRow("dec_old_a", undefined, "2026-01-01T00:00:00.000Z");
+      decisionRow("dec_old_b", undefined, "2026-02-01T00:00:00.000Z");
+
+      expect(await log.unrecorded()).toBeUndefined();
+    });
+
+    it("counts only the decisions whose events are missing, not the ones that are there", async () => {
+      const log = sqliteEventLog({ store: fixture.store, logger: fixture.logger });
+      decisionRow("dec_00000001", 1, "2026-09-28T12:00:00.000Z");
+      log.record([decided()]);
+      decisionRow("dec_lost", 4, "2026-09-28T14:00:00.000Z");
+
+      const hole = await log.unrecorded();
+      expect(hole?.batches).toBe(1);
+      expect(hole?.events).toBe(4);
+    });
+
+    it("survives a restart with the same answer, because both halves are on the file", async () => {
+      decisionRow("dec_lost", 6, "2026-09-28T12:00:00.000Z");
+      fixture.restart();
+
+      const hole = await sqliteEventLog({ store: fixture.store, logger: fixture.logger }).unrecorded();
+      expect(hole?.events).toBe(6);
+    });
+  });
+
   it("writes a rejected batch with no decision, which the column admits for exactly that", async () => {
     sqliteEventLog({ store: fixture.store, logger: fixture.logger }).record([rejected()]);
     fixture.restart();

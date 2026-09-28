@@ -384,18 +384,37 @@ encontrar los dos con su motivo.
 **Propósito**: no es una historia, es la promesa que hace confiable a las tres. El registro **no promete
 completitud; promete saber dónde no la tiene.**
 
-- [ ] T037 `tests/durability/...` — los dos casos, opuestos a propósito y antes de lo que los hace pasar:
+- [x] T037 `tests/durability/...` — los dos casos, opuestos a propósito y antes de lo que los hace pasar:
       apagado ordenado **no pierde nada**; terminación abrupta pierde lo encolado y al volver **el hueco
       queda nombrado** — cuántos eventos y en qué intervalo (SC-010).
-- [ ] T038 El apagado ordenado drena la cola (FR-017): la cola se cierra **antes** del almacén porque el
+- [x] T038 El apagado ordenado drena la cola (FR-017): la cola se cierra **antes** del almacén porque el
       grafo cierra en orden inverso a la creación, y eso sale de T017 y no de una lista que alguien
       tenga que mantener.
-- [ ] T039 La reconciliación al arrancar (FR-018): una decisión **sin sus eventos registrados** es un
+      **Probado donde importa**: en `tests/durability/restart.test.ts`, el único que corre el despliegue
+      durable de punta a punta. Si el orden estuviera al revés el drenaje escribiría a un almacén cerrado
+      —el gateway lo loguearía y lo tragaría— y la prueba no encontraría las filas. Y de paso verifica
+      que la reconciliación del arranque siguiente no reporta nada, porque no hay nada que reportar.
+- [x] T039 La reconciliación al arrancar (FR-018): una decisión **sin sus eventos registrados** es un
       lote que llegó y no se escribió, y su `decidedAt` da el intervalo. El conteo es en eventos gracias
       a T020. Se registra al volver.
-- [ ] T040 Dejar escrito en el código y en el ADR que **los dos tramos no tienen la misma garantía**: los
+      Es un `unrecorded()` del puerto, una consulta agregada sobre las dos tablas, y corre **en el
+      arranque y sólo ahí**: es lo que vuelve sólida la respuesta, porque en ese momento no hay nada
+      encolado — preguntarlo con el proceso andando reportaría el atraso de la cola como un hueco.
+      **Tres cosas que valen decirse.** (1) `eventsInBatch IS NOT NULL` es lo que deja afuera a las
+      decisiones **anteriores a esta feature**: no tienen eventos en el registro y nunca los tendrán, y
+      es exactamente para eso que el campo quedó opcional en T020 — sin eso, el primer arranque después
+      de actualizar reportaría todo el histórico como perdido. (2) La consulta se verificó primero en un
+      script aparte, porque el conteo y el instante viven dentro del documento JSON y la fecha va marcada
+      como `{"$date": …}`. (3) **Su costo es un recorrido completo de las decisiones, una vez, al
+      arrancar**, y queda declarado en vez de optimizado a ciegas: acotarlo requeriría una columna de
+      instante en `decisions`, y el número es lo que debería pedirla.
+      No es una negativa a arrancar: un hueco en la medición no impide servir, y esconderlo sería lo
+      contrario de lo que el registro promete.
+- [x] T040 Dejar escrito en el código y en el ADR que **los dos tramos no tienen la misma garantía**: los
       lotes aceptados se reconcilian contra el ledger, los rechazados se cuentan desde el log operativo
       porque no dejan decisión (research R-10). Se declara, no se promedia.
+      Escrito en la documentación del puerto, que es donde lo lee quien use `unrecorded()`. Lo del ADR va
+      en T042.
 
 **Checkpoint**: lo que el registro no sabe, lo dice.
 

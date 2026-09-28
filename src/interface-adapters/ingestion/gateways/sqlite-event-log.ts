@@ -13,7 +13,7 @@
 // arrival, so the store decides whether one is a repetition — which is what happens when a queue hands
 // the same arrival over twice.
 import { fromDocument, toDocument, type SqlParams, type SqlRow } from "../../shared-kernel/index.js";
-import type { EventLog, EventTypeCount, TimeWindow } from "../../../application/ingestion/index.js";
+import type { EventLog, EventTypeCount, Hole, TimeWindow } from "../../../application/ingestion/index.js";
 import type { EventId, EventType, RecordedEvent } from "../../../domain/ingestion/index.js";
 import type { DecisionId } from "../../../domain/ledger/index.js";
 import type { MerchantId, SessionId } from "../../../domain/shared-kernel/index.js";
@@ -40,9 +40,46 @@ const VOLUME = `SELECT type, COUNT(*) AS count FROM received_events
   WHERE merchant_id = :merchant AND received_at >= :from AND received_at <= :to
   GROUP BY type`;
 
+/**
+ * What arrived and was never written (FR-018). A decision that **declares how many events its batch
+ * carried** and has no events in the register is a batch that arrived and was lost — because the
+ * decision's write is synchronous and the register's is queued.
+ *
+ * Three things about this query are the answer and not incidental:
+ *
+ * - `eventsInBatch IS NOT NULL` is what keeps decisions **recorded before feature 031** out of the
+ *   count. They have no events in the register and never will, and that is expected rather than a
+ *   hole; the field is optional for exactly this reason (see `DecisionFacts`).
+ * - The counted events come from the ledger, which is why the number is in events and not only in
+ *   batches: the rows that would say how many are the ones that are missing.
+ * - It reads the two tables because the comparison **is** the question. Going through the ledger's
+ *   port instead would mean adding a read that exists only for this and that would read the same two
+ *   tables from one table further away.
+ *
+ * **Its cost is a full pass over the decisions**, once, at start-up. That is declared rather than
+ * optimised away: the bound would be "decisions after the last recorded event", and `decidedAt` lives
+ * inside the document where no index reaches it. When a start-up spends noticeable time here, the fix
+ * is an instant column on `decisions`, and the number is what should ask for it.
+ */
+const UNRECORDED = `SELECT
+    COUNT(*) AS batches,
+    SUM(json_extract(d.document, '$.eventsInBatch')) AS events,
+    MIN(json_extract(d.document, '$.decidedAt."$date"')) AS first,
+    MAX(json_extract(d.document, '$.decidedAt."$date"')) AS last
+  FROM decisions d
+  WHERE json_extract(d.document, '$.eventsInBatch') IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM received_events r
+      WHERE r.merchant_id = d.merchant_id AND r.decision_id = d.decision_id
+    )`;
+
 const DOCUMENT = "document";
 const TYPE = "type";
 const COUNT = "count";
+const BATCHES = "batches";
+const EVENTS = "events";
+const FIRST = "first";
+const LAST = "last";
 
 /** The document holds the whole arrival, so a new field of the domain travels without this file knowing. */
 const arrivalOf = (document: unknown): RecordedEvent =>
@@ -92,6 +129,19 @@ export function sqliteEventLog(deps: DurableGatewayDeps): EventLog {
       read(BY_SESSION, { merchant: merchantId, session: sessionId }),
     byEvent: (merchantId: MerchantId, eventId: EventId) =>
       read(BY_EVENT, { merchant: merchantId, event: eventId }),
+    unrecorded(): Promise<Hole | undefined> {
+      const [row] = deps.store.all(UNRECORDED, {});
+      const batches = Number(row?.[BATCHES] ?? 0);
+      // Nothing missing is the ordinary answer, and the aggregate says so with zero batches — the other
+      // three columns are then null, which is why the count is what decides and not they.
+      if (batches === 0) return Promise.resolve(undefined);
+      return Promise.resolve({
+        batches,
+        events: Number(row?.[EVENTS] ?? 0),
+        from: new Date(String(row?.[FIRST])),
+        to: new Date(String(row?.[LAST])),
+      });
+    },
     volume(merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> {
       const rows = deps.store.all(VOLUME, {
         merchant: merchantId,

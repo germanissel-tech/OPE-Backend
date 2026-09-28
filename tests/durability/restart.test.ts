@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { durableDeployment } from "../../src/composition/deployments/durable.js";
 import { replace } from "../../src/composition/graph/index.js";
+import { EventLogPort } from "../../src/composition/modules/ingestion.js";
 import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
@@ -84,5 +85,24 @@ describe("the server across a restart", () => {
     // server answers a request signed with the same key as before.
     const again = await postEvents(app.app, batchOf(2, 1), { key: "key-a-1" });
     expect(again.statusCode).toBe(202);
+  });
+
+  it("still knows what the SDK sent before the restart, because stopping drained the queue", async () => {
+    // Feature 031, FR-017 and FR-009 at the same time, end to end and through the real deployment —
+    // which is where the ordering matters: the register's queue is created **after** the store, so the
+    // graph closing in reverse creation order drains it **before** closing what it writes to. Get that
+    // backwards and this test finds it, because the drain would write to a closed store.
+    const response = await postEvents(app.app, batchOf(2, 1), { key: "key-a-1" });
+    const { decision } = json(response) as IngestResult;
+
+    await app.close();
+    app = await boot();
+
+    const arrived = await app.resolve(EventLogPort).byDecision(MERCHANT, asDecisionId(decision.decisionId));
+    expect(arrived).toHaveLength(2);
+    expect(arrived.map((row) => row.position)).toEqual([0, 1]);
+    // And nothing is reported as missing, because nothing was: the reconciliation of FR-018 runs at
+    // every boot and this one is clean.
+    expect(await app.resolve(EventLogPort).unrecorded()).toBeUndefined();
   });
 });

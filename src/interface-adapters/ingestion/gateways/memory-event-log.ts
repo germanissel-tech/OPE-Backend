@@ -42,6 +42,12 @@ export function memoryEventLog(): EventLog {
       of(merchantId, (row) => row.event.sessionId === sessionId),
     byEvent: (merchantId: MerchantId, eventId: EventId) =>
       of(merchantId, (row) => row.event.eventId === eventId),
+    /**
+     * Nothing, always, and that is the truth here rather than a stub: a restart of a deployment with
+     * everything in memory loses the register **and** the decisions ledger, so there is no surviving
+     * side to compare the other against. A hole needs one half to outlive the process.
+     */
+    unrecorded: () => Promise.resolve(undefined),
     volume(merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> {
       const counted = new Map<EventType, number>();
       for (const row of rows) {

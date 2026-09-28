@@ -19,6 +19,7 @@ import {
 } from "./graph/index.js";
 import { ImportConfigurationPort } from "./modules/configuration.js";
 import { ImportExperimentsPort } from "./modules/experiment.js";
+import { EventLogPort } from "./modules/ingestion.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
 import { LoggerPort } from "./modules/shared-kernel.js";
 import { ContractPort, type SqlStorePort } from "./release.js";
@@ -103,6 +104,32 @@ export async function importSeed(
   }
 }
 
+/**
+ * Says what the previous run lost, if it lost anything (feature 031, FR-018).
+ *
+ * **Here and not anywhere else, because here nothing is queued yet.** The register is written from a
+ * queue, so while the process runs a decision without its events may simply be a write on its way;
+ * at start-up it can only be a batch that arrived and was never written, which is what a process
+ * killed without an orderly shutdown leaves behind.
+ *
+ * It is a log line and not a refusal to start: a hole in the measurement does not make the server
+ * unable to serve, and hiding it would be the opposite of what the register promises — it does not
+ * promise completeness, it promises to know where it does not have it (Q3).
+ */
+async function reportWhatWasLost(graph: Pick<Instance<DeployedComponents>, "resolve">): Promise<void> {
+  const hole = await graph.resolve(EventLogPort).unrecorded();
+  if (hole === undefined) return;
+  graph.resolve(LoggerPort).error(
+    {
+      events: hole.events,
+      batches: hole.batches,
+      from: hole.from.toISOString(),
+      to: hole.to.toISOString(),
+    },
+    "The event register is missing what a previous run held when it stopped without draining.",
+  );
+}
+
 export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides = {}): Promise<App> {
   const graph = instantiate((overrides.deployment ?? localDeployment)(config), overrides.ports ?? []);
   // Builds everything the deployment binds: a cycle is found here, and what is created is
@@ -110,6 +137,7 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
   graph.resolveAll();
   const definition = graph.resolve(ContractPort);
   await importSeed(config, graph);
+  await reportWhatWasLost(graph);
   const wired = graph.wire();
   const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
   assertEveryOperationWired(definition, handlers);
