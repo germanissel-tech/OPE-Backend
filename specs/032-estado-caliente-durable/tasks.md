@@ -141,17 +141,17 @@ cosmético:
 **Independent Test**: agotar el presupuesto de una sesión, reiniciar, y ver que la siguiente decisión sigue
 degradando por presupuesto agotado y no interviene otra vez.
 
-- [ ] T020 [P] [US1] `tests/durability/restart.test.ts` — el escenario 1 de la historia y el daño real: una
+- [x] T020 [P] [US1] `tests/durability/restart.test.ts` — el escenario 1 de la historia y el daño real: una
       sesión que agotó su presupuesto **sigue agotada** después del reinicio. Con el despliegue durable de
       punta a punta, por HTTP, que es el único lugar donde se ve lo que un deploy hace.
-- [ ] T021 [P] [US1] `tests/durability/restart.test.ts` — el escenario 2: un visitante que agotó su cupo del
+- [x] T021 [P] [US1] `tests/durability/restart.test.ts` — el escenario 2: un visitante que agotó su cupo del
       día **sigue agotado**. Es el tope que cruza visitas y el único que impide que una cadena de
       despliegues no tenga techo.
-- [ ] T022 [P] [US1] El escenario 3: dos merchants con actividad, y ninguna reconstrucción lee nada del
+- [x] T022 [P] [US1] El escenario 3: dos merchants con actividad, y ninguna reconstrucción lee nada del
       otro. Cruzando el reinicio, que es donde un índice mal puesto lo rompería.
-- [ ] T023 [US1] `EXPLAIN QUERY PLAN` sobre las tres lecturas de la reconstrucción, sobre una tabla **con
+- [x] T023 [US1] `EXPLAIN QUERY PLAN` sobre las tres lecturas de la reconstrucción, sobre una tabla **con
       filas** porque SQLite planifica distinto una vacía. Si alguna dice `SCAN`, el índice no sirve.
-- [ ] T024 [US1] `npm run test:mutation` acotado al diff de la historia.
+- [x] T024 [US1] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: la historia 1 funciona sola y es la feature mínima entregable — el daño comercial que
 ocurre hoy en cada despliegue deja de ocurrir.
