@@ -33,6 +33,23 @@
 
 ## Notes
 
+**Implementada el 2026-09-28, 46 de 46 tareas.** Cadena de cierre verde: `contract:check`, `test:all`
+(1604 pruebas en 178 archivos), `test:mutation` (1302 mutantes muertos, 0 supervivientes),
+`test:contract` (10 457 casos generados y pasados) y `release-check` OK. El p95 de la ingesta no empeoró
+de forma apreciable (SC-004, ADR-039).
+
+**Lo que quedó abierto no son cabos sueltos: es alcance con su motivo y su disparador.** Ninguno se
+puede cerrar en esta rama, y conviene que se lea por qué en vez de que parezca olvido:
+
+| Qué                                                     | Por qué no se cierra                                                                                                                                                             |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D-21**, sus otras dos partes                          | necesitan **PostgreSQL**, que el proyecto no tiene. Es alcance que el dueño dejó afuera con su fecha. Esta feature saldó la primera de las tres                                  |
+| **D-24**, el tope diario sin medición                   | necesita **tráfico del piloto**. Medirlo con tráfico sintético sería inventar el dato, que es peor que no tenerlo                                                                |
+| El **conteo agregado** (447 ms con 1 M, 4,7 s con 10 M) | su disparador es «cuando pase de segundos» y **no se alcanzó**. Hacerlo ahora obliga además a decidir una ventana de agregación, que es una política del dueño (constitución XI) |
+| No hay **API para leer el registro**                    | la spec lo excluye en letra: «No analiza nada. Deja el dato». Abrirla es otra feature, no un pendiente de ésta                                                                   |
+| El **atraso de la cola** se mide y no alerta            | la spec no pidió alertas; el dato está (`created_at` − `received_at`) para cuando alguien las quiera                                                                             |
+| El **recorrido completo** de la reconciliación          | declarado con su disparador en ADR-039: acotarlo pide una columna de instante en `decisions`, y el número es lo que debería pedirla                                              |
+
 **Planificada el 2026-09-27.** El plan pasó el Constitution Check sobre los once principios citando la
 v1.4.4, con dos ⚠️ que se justifican en vez de esconderse —la identidad nueva (VI) y dos valores de
 configuración nuevos (XI)— y encontró **dos cosas que la spec no podía ver**: que el runner de migraciones
