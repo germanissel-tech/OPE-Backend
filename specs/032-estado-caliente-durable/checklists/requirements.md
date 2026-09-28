@@ -15,7 +15,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -62,14 +62,26 @@ faltantes cuesta intervenciones y no compra corrección.
 **Y la pregunta descubrió dos cosas que no eran opciones, y ahora son requisitos.** Los puertos
 devuelven `Promise<State | undefined>`, donde `undefined` es «no lo recuerdo»: cuando ese `load` lea
 del durable, **una falla y un visitante nuevo darían el mismo valor**, y el sistema trataría la falla
-como visitante nuevo devolviéndole el cupo (FR-011). Y hoy una excepción del almacén llega al borde
+como visitante nuevo devolviéndole el cupo (FR-012). Y hoy una excepción del almacén llega al borde
 HTTP y el SDK recibe un 500 sin decisión ni fila en el ledger, lo que contradice el precedente de
-`ledger-unavailable` (FR-012). Ninguna respuesta a Q1 era aplicable sin esos dos arreglos.
+`ledger-unavailable` (FR-013). Ninguna respuesta a Q1 era aplicable sin esos dos arreglos.
 
-**Una pregunta abierta, deliberada y en su propia sección:**
+**Q2 quedó resuelta el 2026-09-27: los tres valores siguen de plataforma.** Lo que la hizo decidible
+fue separar lo que la pregunta mezclaba: «la ventana» eran tres parámetros de naturaleza distinta —dos
+de comportamiento y uno de recurso compartido—, y cada uno se queda por un motivo propio, escrito en la
+spec. Queda declarado el acoplamiento que eso deja: un merchant no puede pedir «3 cada 12 horas», porque
+el numerador de la fatiga es suyo y el denominador es de la plataforma. No es deuda: nadie lo pidió, y el
+día que se pida los dos valores se mueven juntos.
 
-- **Q2 — la ventana por merchant**: depende de si el estado caliente sale del proceso, porque hoy la
-  memoria es un límite único compartido.
+**Y la pregunta encontró que la feature era más chica de lo que su FR-001 decía.**
+`PlatformConfiguration.sessionWindowMs` ya está en el contrato y ya viaja al SDK dentro de
+`EffectiveConfiguration`; su valor es 24 horas. Así que la duración de sesión es en gran parte un cambio
+de valor, no un campo nuevo. Lo que sí hace falta es partir ese campo en dos (FR-002), porque hoy significa
+la regla de negocio **y** la retención en memoria, y después de esta feature dejan de coincidir: una sesión
+viva se puede desalojar sin perderla, y confundirlas haría que ajustar memoria cambiara una regla de negocio.
+
+**La spec no tiene preguntas abiertas.** Lo que queda sin cuantificar está dicho como tal: el costo de la
+espera de reconstrucción y el plazo de FR-016, los dos por **D-21**.
 
 **Lo que esta spec declara y no puede cuantificar todavía.** Esperar la reconstrucción es una
 excepción a «sin I/O de red saliente en el plano de decisión». Está declarada, y su costo **no está

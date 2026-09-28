@@ -55,7 +55,7 @@ y su instante, y las decisiones son durables desde la feature 030. El dato está
 
 Y para la mitad que más muerde, **ya se puede buscar**: el ledger indexa las decisiones por sesión,
 así que las intervenciones de una sesión son una consulta que hoy existe. Lo único que falta es el
-índice por visitante, para el tope que cruza visitas (FR-006).
+índice por visitante, para el tope que cruza visitas (FR-007).
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -137,7 +137,7 @@ antes de la primera decisión correcta.
 - **El durable no responde al reconstruir** → resuelto (2026-09-27): los topes son obligatorios y las
   señales best-effort. Ver «Qué pasa si la reconstrucción falla», más abajo.
 - **El durable contesta que no hay nada** → es el caso más común y **no es una falla**: el visitante
-  llega por primera vez. Se arranca vacío. Distinguirlo de una falla es FR-011.
+  llega por primera vez. Se arranca vacío. Distinguirlo de una falla es FR-012.
 - **Arranque en frío con mucho tráfico** → todas las sesiones activas piden reconstrucción a la vez.
 - **Una sesión más vieja que su duración** → no se reconstruye: es otra visita, y el SDK debería
   haberle dado otro identificador. Que llegue es señal de un SDK que no cumple, y se registra.
@@ -149,44 +149,56 @@ antes de la primera decisión correcta.
 ### Functional Requirements
 
 - **FR-001**: La **duración de una sesión** la DEBE definir el backend —**30 minutos de
-  inactividad**— y DEBE viajar al SDK en la configuración que ya recibe, para que deje de ser una
-  suposición del backend sobre algo que decide el cliente.
-- **FR-002**: El estado caliente DEBE guardar **sólo las sesiones con actividad**, con expiración por
+  inactividad**— y DEBE viajar al SDK en la configuración que ya recibe. **El canal ya existe**:
+  `PlatformConfiguration.sessionWindowMs` está en el contrato, viaja dentro de
+  `EffectiveConfiguration` y hoy vale 24 horas (`config/platform.json`). Así que esto es en gran
+  parte un cambio de valor, no un campo nuevo.
+- **FR-002**: Ese único campo DEBE partirse en **dos**, porque significa dos cosas que esta feature
+  separa: la **duración de la sesión** —regla de negocio: pasado el plazo es otra visita y el SDK acuña
+  otro `sessionId`— y la **retención caliente** —cuánto se guarda en memoria antes de desalojar—. Hoy
+  coinciden porque el almacén caliente es la única noción de sesión que existe; después de esta feature
+  una sesión viva se puede desalojar sin perderla, y confundirlas haría que ajustar memoria cambiara
+  una regla de negocio.
+- **FR-003**: El estado caliente DEBE guardar **sólo las sesiones con actividad**, con expiración por
   inactividad.
-- **FR-003**: Una sesión desalojada o perdida NO DEBE quedar perdida: DEBE reconstruirse del durable
+- **FR-004**: Una sesión desalojada o perdida NO DEBE quedar perdida: DEBE reconstruirse del durable
   cuando llega un evento suyo.
-- **FR-004**: La reconstrucción DEBE recuperar **las señales** (de los eventos registrados por la 031) **y las intervenciones** (del ledger de decisiones).
-- **FR-005**: La decisión DEBE esperar a que la reconstrucción termine, para que el resultado sea el
+- **FR-005**: La reconstrucción DEBE recuperar **las señales** (de los eventos registrados por la 031) **y las intervenciones** (del ledger de decisiones).
+- **FR-006**: La decisión DEBE esperar a que la reconstrucción termine, para que el resultado sea el
   mismo que sin el desalojo.
-- **FR-006**: Las intervenciones de un visitante DEBEN poder buscarse **por visitante** en el ledger
+- **FR-007**: Las intervenciones de un visitante DEBEN poder buscarse **por visitante** en el ledger
   de decisiones, que hoy sólo se indexa por decisión y por sesión.
-- **FR-007**: **Los dos topes DEBEN sobrevivir a un reinicio**: el presupuesto de intervenciones de la
+- **FR-008**: **Los dos topes DEBEN sobrevivir a un reinicio**: el presupuesto de intervenciones de la
   sesión —que es el que bloquea en casi todo el tráfico— y la fatiga por visitante dentro de su
   ventana de 24 horas, que es el único que cruza visitas.
-- **FR-008**: El aislamiento entre merchants DEBE valer en la reconstrucción: ninguna lectura devuelve
+- **FR-009**: El aislamiento entre merchants DEBE valer en la reconstrucción: ninguna lectura devuelve
   nada de otro merchant.
-- **FR-009**: El comportamiento observable NO DEBE cambiar cuando el estado **sí** está en memoria:
+- **FR-010**: El comportamiento observable NO DEBE cambiar cuando el estado **sí** está en memoria:
   esta feature sólo cambia qué pasa cuando no está.
-- **FR-010**: Toda tabla que esta feature cree o modifique DEBE cumplir las dos reglas de
+- **FR-011**: Toda tabla que esta feature cree o modifique DEBE cumplir las dos reglas de
   arquitectura del dueño: clave primaria autoincremental con índice UNIQUE donde hoy hay clave de
   negocio, y `created_at` / `updated_at` iguales al crear.
-- **FR-011**: Los puertos del estado caliente DEBEN poder decir **«no se pudo determinar»**, distinto
+- **FR-012**: Los puertos del estado caliente DEBEN poder decir **«no se pudo determinar»**, distinto
   de «no lo recuerdo». Hoy los dos son el mismo `undefined`, y eso hace que una falla del almacén se
   lea como un visitante nuevo — el daño que esta feature vino a impedir, por otra puerta.
-- **FR-012**: Cuando no se puedan leer **las intervenciones** —de la sesión o del visitante—, la
+- **FR-013**: Cuando no se puedan leer **las intervenciones** —de la sesión o del visitante—, la
   decisión DEBE degradar a `NO_OP` con un motivo propio, emitiendo y registrando la decisión. NO DEBE
   responder un error HTTP: en este sistema un 500 significa un defecto, y una degradación se registra
   (precedente de `ledger-unavailable`, `01 §4.7`).
-- **FR-013**: El motivo nuevo DEBE ser propio y NO DEBE reusar `barrier-unclear`, que significa «no
+- **FR-014**: El motivo nuevo DEBE ser propio y NO DEBE reusar `barrier-unclear`, que significa «no
   había evidencia suficiente»: confundirlos convertiría una falla de infraestructura en un dato falso
   del piloto. Se agrega a `contracts/no-op-reasons.yaml`, que es la fuente, y es un cambio compatible
   (ADR-014).
-- **FR-014**: Cuando no se puedan leer **las señales**, la decisión DEBE tomarse con las del lote
+- **FR-015**: Cuando no se puedan leer **las señales**, la decisión DEBE tomarse con las del lote
   actual —que es lo que el sistema hace hoy en toda sesión— y la decisión DEBE registrar que las
   señales quedaron incompletas, para que el análisis no las cuente como una sesión sin actividad.
-- **FR-015**: «No contestó» DEBE tener una definición: un plazo, que es **una entrada de configuración
+- **FR-016**: «No contestó» DEBE tener una definición: un plazo, que es **una entrada de configuración
   de plataforma y no una constante** (constitución XI, ADR-031). Su valor no se puede fijar con
   evidencia todavía (**D-21**), así que entra con un default declarado como tal y se ajusta al medir.
+- **FR-017**: Los tres valores que Q2 puso en duda —duración de sesión, ventana del visitante y
+  capacidad— SIGUEN siendo de plataforma (nivel 1). El nivel 1 se define en el contrato como «the
+  values of the platform that no merchant overrides», así que moverlos sería cambiar lo que el nivel
+  significa, no reubicar un número.
 
 ### Key Entities
 
@@ -271,18 +283,37 @@ Dos semánticas de falla en la misma reconstrucción, y un campo nuevo en la dec
 las señales quedaron incompletas. Es más código y más superficie de prueba que una regla única, y se
 paga a cambio de no apagar intervenciones por la mitad que no protege nada.
 
-## Lo abierto
+## La ventana caliente sigue siendo de plataforma
 
-### Q2 — ¿La ventana caliente es parámetro por merchant?
+Decidido por el dueño el **2026-09-27**: ninguno de los tres valores pasa a ser por merchant.
 
-Quedó abierta en la conversación del 2026-09-27. Hoy es de plataforma porque la memoria del proceso
-es **un único límite compartido** entre identificadores de evento, sesiones y visitantes: un valor
-por merchant sobre un recurso compartido permite que uno consuma lo de los demás, y el que se queda
-afuera no se entera.
+### Lo que la pregunta estaba mezclando
 
-El propio código anticipó la salida: «el día que el estado caliente salga del proceso, separarlos es
-un campo nuevo de este nivel, no un cambio de forma». Si esta feature saca el estado del proceso, la
-pregunta se puede responder; si no, conviene dejarla donde está.
+«La ventana» eran tres parámetros de naturaleza distinta, y confundirlos era lo que hacía difícil la
+respuesta:
+
+| Parámetro                              | Qué es                                                            | Por qué se queda                                                                                                                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Duración de sesión** (30 min)        | comportamiento                                                    | es inofensiva para los demás merchants y tiene caso de producto real, pero **nadie la pidió distinta**, y hacerla por merchant ahora convierte los 30 minutos de una regla del backend en un default |
+| **Ventana del visitante** (24 h)       | comportamiento, atado al nombre                                   | `interventionsPerVisitorPerDay` promete **un día**; separar el numerador (del merchant) del denominador (de la plataforma) invita a configurar «3» y recibir una ventana que no se eligió            |
+| **Capacidad** (`identityCap`, 100 000) | **recurso compartido** entre ids de evento, sesiones y visitantes | un valor por merchant sobre un pool común deja que uno le cobre a los demás, y el que se queda afuera no se entera                                                                                   |
+
+### Lo que esta feature sí cambia del tercero, y conviene saber
+
+Hoy llegar al tope de capacidad **pierde estado en silencio y devuelve cupo**: un problema de
+corrección. Después de esta feature llegar al tope **cuesta una reconstrucción**. El problema del
+recurso compartido no desaparece: se transforma de «el merchant desplazado interviene de más sin que
+nadie se entere» a «los demás pagan una lectura al durable», sobre un presupuesto de 150 ms. Sigue
+siendo un motivo para no repartirlo por merchant, con otra consecuencia.
+
+### El acoplamiento que queda declarado, y su disparador
+
+El numerador de la fatiga es del merchant (`interventionsPerVisitorPerDay` en `commercialPolicy`) y su
+denominador es de la plataforma (`visitorWindowMs`). Hoy concuerdan —3 en 24 horas **es** «por día»—, y
+quedan acoplados a propósito. La consecuencia, dicha para que no sorprenda: **un merchant no puede pedir
+«3 cada 12 horas»**. El día que alguien lo pida, los dos valores se mueven juntos al mismo nivel; no es
+una deuda porque nadie lo pidió, y el código ya anticipó la salida: «el día que el estado caliente salga
+del proceso, separarlos es un campo nuevo de este nivel, no un cambio de forma».
 
 ## Lo que esta feature NO hace, y por qué
 
