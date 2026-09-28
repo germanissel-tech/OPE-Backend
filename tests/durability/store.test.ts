@@ -1,7 +1,7 @@
 // The store itself: the schema it applies, the schema it refuses, and the file that outlives the
 // process that wrote it. Everything else in this suite is about a port; this one is about the
 // floor they all stand on, so when a gateway test fails it is not the first suspect.
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -9,6 +9,21 @@ import { openSqliteStore } from "../../src/infrastructure/sqlite/open-store.js";
 
 /** SQLite own name for a database that never touches disk; the store takes it verbatim. */
 const IN_MEMORY = ":memory:";
+
+/**
+ * The seven tables feature 030 created, which feature 031 rebuilt to the owner's two rules. Written
+ * out rather than read from the schema on purpose: a test that asks the store which tables it has
+ * would pass against a store that lost one.
+ */
+const TABLES_OF_THE_LEDGER = [
+  "decisions",
+  "exposures",
+  "orders",
+  "corroborations",
+  "assignments",
+  "catalog_snapshots",
+  "catalog_receipts",
+] as const;
 
 describe("the durable store", () => {
   let dir: string;
@@ -44,7 +59,10 @@ describe("the durable store", () => {
     foreign.run("PRAGMA user_version = 99", {});
     foreign.close();
 
-    expect(() => openSqliteStore({ file })).toThrow(/version 99.*expects 1/s);
+    // The expected version is not written out here on purpose: it goes up with every migration, and
+    // a test that spells it makes each one break two assertions that were not about it. What matters
+    // is that the refusal names **both** numbers.
+    expect(() => openSqliteStore({ file })).toThrow(/version 99.*expects \d+/s);
   });
 
   it("refuses a database that is not ours rather than applying the schema over it", () => {
@@ -54,7 +72,7 @@ describe("the durable store", () => {
     other.run("PRAGMA user_version = 0", {});
     other.close();
 
-    expect(() => openSqliteStore({ file })).toThrow(/version 0.*expects 1/s);
+    expect(() => openSqliteStore({ file })).toThrow(/version 0.*expects \d+/s);
   });
 
   it("closes the database when the start is refused, instead of leaving it open", () => {
@@ -152,6 +170,143 @@ describe("the durable store", () => {
     const inMemory = openSqliteStore({ file: IN_MEMORY });
     expect(inMemory.all("PRAGMA journal_mode")).toEqual([{ journal_mode: "memory" }]);
     inMemory.close();
+  });
+
+  describe("the migration of this repository, against a store that already has rows", () => {
+    // **Not a fake schema: the real files.** The suite's other stores are created fresh and get every
+    // migration in one go, which is the one case that cannot show whether a rebuild works. This one
+    // opens a store with only `001`, fills all seven tables, and then lets `002` upgrade it — which is
+    // what happens on the machine of anyone who ran feature 030.
+    let schema: string;
+    const REAL = path.resolve("migrations");
+
+    /** Copies the real migration files up to `upTo` into the directory the store is opened against. */
+    const withMigrationsUpTo = (upTo: number): void => {
+      for (const name of readdirSync(REAL)) {
+        const version = /^(\d{3})-/.exec(name)?.[1];
+        if (version !== undefined && Number(version) <= upTo) {
+          copyFileSync(path.join(REAL, name), path.join(schema, name));
+        }
+      }
+    };
+
+    beforeEach(() => {
+      schema = mkdtempSync(path.join(tmpdir(), "ope-real-migrations-"));
+    });
+
+    afterEach(() => {
+      rmSync(schema, { recursive: true, force: true });
+    });
+
+    it("upgrades a populated version-1 store and loses nothing", () => {
+      withMigrationsUpTo(1);
+      const before = openSqliteStore({ file, migrations: schema });
+      expect(before.all("PRAGMA user_version")).toEqual([{ user_version: 1 }]);
+      // One row in each of the seven, so the rebuild has something to carry over everywhere.
+      before.run(
+        "INSERT INTO decisions (merchant_id, decision_id, session_id, document) VALUES ('m-1','d-1','s-1','{}')",
+        {},
+      );
+      before.run("INSERT INTO exposures (merchant_id, decision_id, document) VALUES ('m-1','d-1','{}')", {});
+      before.run("INSERT INTO orders (merchant_id, order_id, document) VALUES ('m-1','o-1','{}')", {});
+      before.run(
+        "INSERT INTO corroborations (merchant_id, order_id, session_id, document) VALUES ('m-1','o-1','s-1','{}')",
+        {},
+      );
+      before.run(
+        "INSERT INTO assignments (merchant_id, experiment_id, visitor_id, document) VALUES ('m-1','e-1','v-1','{}')",
+        {},
+      );
+      before.run("INSERT INTO catalog_snapshots (merchant_id, document) VALUES ('m-1','{}')", {});
+      before.run(
+        "INSERT INTO catalog_receipts (merchant_id, received_at) VALUES ('m-1','2026-09-27T00:00:00.000Z')",
+        {},
+      );
+      before.close();
+
+      withMigrationsUpTo(2);
+      const after = openSqliteStore({ file, migrations: schema });
+      try {
+        expect(after.all("PRAGMA user_version")).toEqual([{ user_version: 2 }]);
+        for (const table of TABLES_OF_THE_LEDGER) {
+          expect(after.all(`SELECT COUNT(*) AS n FROM ${table}`)).toEqual([{ n: 1 }]);
+        }
+        // The register is there and empty: nothing invented rows for it.
+        expect(after.all("SELECT COUNT(*) AS n FROM received_events")).toEqual([{ n: 0 }]);
+        // And the row that was written under version 1 kept what it said.
+        expect(after.all("SELECT decision_id, session_id, document FROM decisions")).toEqual([
+          { decision_id: "d-1", session_id: "s-1", document: "{}" },
+        ]);
+      } finally {
+        after.close();
+      }
+    });
+
+    it("gives every table the two rules of the owner, and the same instant on a new row", () => {
+      withMigrationsUpTo(2);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        for (const table of [...TABLES_OF_THE_LEDGER, "received_events"]) {
+          const columns = store.all(`SELECT name, type, pk FROM pragma_table_info('${table}')`);
+          // Rule 1: its own autoincrementing primary key, and it is the only primary-key column.
+          expect(columns.filter((c) => c["pk"] === 1)).toEqual([{ name: "id", type: "INTEGER", pk: 1 }]);
+          expect(
+            store.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'`),
+          ).toHaveLength(1);
+          // Rule 2: both timestamps exist.
+          const names = columns.map((c) => c["name"]);
+          expect(names).toContain("created_at");
+          expect(names).toContain("updated_at");
+        }
+        // Rule 2, the part that is a behaviour and not a column: equal when the row is created.
+        store.run(
+          "INSERT INTO decisions (merchant_id, decision_id, session_id, document) VALUES ('m-1','d-2','s-1','{}')",
+          {},
+        );
+        const [row] = store.all("SELECT created_at, updated_at FROM decisions WHERE decision_id = 'd-2'");
+        expect(row?.["created_at"]).toBe(row?.["updated_at"]);
+        expect(row?.["created_at"]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      } finally {
+        store.close();
+      }
+    });
+
+    it("keeps the uniqueness the primary keys used to give, now as indexes", () => {
+      withMigrationsUpTo(2);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        store.run(
+          "INSERT INTO decisions (merchant_id, decision_id, session_id, document) VALUES ('m-1','d-1','s-1','{}')",
+          {},
+        );
+        // The business key moved from PRIMARY KEY to a UNIQUE index; what it guarantees did not move.
+        expect(() => {
+          store.run(
+            "INSERT INTO decisions (merchant_id, decision_id, session_id, document) VALUES ('m-1','d-1','s-2','{}')",
+            {},
+          );
+        }).toThrow(/UNIQUE/i);
+        // And the register is the opposite on purpose: the same event arriving twice is two rows.
+        const arrival = (batch: string, position: number): void => {
+          store.run(
+            `INSERT INTO received_events (merchant_id, batch_id, position, event_id, session_id, type, received_at, disposition, document)
+             VALUES ('m-1', :batch, :position, 'evt-1', 's-1', 'product_viewed', '2026-09-27T00:00:00.000Z', 'accepted', '{}')`,
+            { batch, position },
+          );
+        };
+        arrival("b-1", 0);
+        arrival("b-2", 0);
+        expect(store.all("SELECT COUNT(*) AS n FROM received_events WHERE event_id = 'evt-1'")).toEqual([
+          { n: 2 },
+        ]);
+        // What the register does refuse is the same arrival twice, which is the idempotency of the write.
+        expect(() => {
+          arrival("b-1", 0);
+        }).toThrow(/UNIQUE/i);
+      } finally {
+        store.close();
+      }
+    });
   });
 
   describe("a build with more than one migration", () => {

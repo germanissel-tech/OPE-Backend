@@ -81,7 +81,7 @@ todavía.
 
 ### El esquema
 
-- [ ] T004 `migrations/002-*.sql` — dos cosas en una migración porque son un solo cambio de criterio
+- [x] T004 `migrations/002-*.sql` — dos cosas en una migración porque son un solo cambio de criterio
       (FR-016): **las siete tablas de la 030 reformadas** a clave primaria autoincremental (lo que era
       clave de negocio pasa a índice UNIQUE) con `created_at` y `updated_at`, y la tabla
       **`received_events`** con sus cinco índices, tal como `data-model.md` los fija.
@@ -90,12 +90,37 @@ todavía.
       R-03). Los timestamps de las filas que ya existan valen **el instante de la migración**, y el
       comentario del archivo lo dice, porque su instante real no existe e inventarle otro sería escribir
       un dato falso en un registro de auditoría.
-- [ ] T005 [P] `tests/durability/store.test.ts` — que **ninguna** de las ocho tablas queda fuera de las
+      **Tres cosas que la tarea no había previsto, y las tres eran necesarias.** (1) Los `INSERT` de los
+      gateways no listan las columnas nuevas y son `NOT NULL`, así que **fallarían todos**: los dos
+      timestamps van con `DEFAULT` en el esquema, y hay un motivo de fondo —son hechos **del
+      almacenamiento**, no del dominio, mientras un instante que el dominio significa llega por el
+      puerto `Clock`—. Así ningún gateway puede olvidarlos y la regla de que son iguales al crear se
+      cumple por construcción. (2) Un `DEFAULT` no se dispara en un `UPDATE`, así que los dos únicos
+      lugares que actualizan una fila —la devolución de una orden y una instantánea republicada— mueven
+      `updated_at` ellos mismos. (3) **Tres gateways nombraban `rowid`**, el implícito de SQLite que
+      PostgreSQL no tiene: ahora nombran `id`, y ésa es la deuda de D-21 que esta migración salda.
+- [x] T005 `tests/durability/store.test.ts` — que **ninguna** de las ocho tablas queda fuera de las
       dos reglas (SC-009), leyendo el **esquema del almacén** y no la migración: lo que importa es lo que
       quedó. Y que las filas que había antes de migrar siguen ahí con su contenido.
-- [ ] T006 [P] `migrations/README.md` — la fila del inventario de `002` y la tabla de «qué hace una
+      **Lo importante es cómo se prueba**: la suite crea almacenes nuevos que reciben las dos
+      migraciones juntas, que es justo el caso que **no puede** mostrar si una reconstrucción funciona.
+      Así que la prueba copia **los archivos de migración reales** —no un esquema falso—, abre un almacén
+      con sólo `001`, llena las siete tablas, y deja que `002` lo suba: lo que le pasa a la máquina de
+      cualquiera que corrió la 030. Tres casos: nada se pierde, las ocho tablas cumplen las dos reglas y
+      un `INSERT` nuevo deja los dos timestamps iguales, y la unicidad que daban las claves primarias
+      sigue valiendo como índice — con `received_events` probando **lo contrario a propósito**, que el
+      mismo evento dos veces son dos filas y lo que se rechaza es la misma llegada dos veces.
+      Dos pruebas viejas hubo que arreglar: fijaban el número de versión esperado (`expects 1`), así que
+      **cada migración las rompería**. Ahora afirman que el rechazo nombra los dos números, que es lo que
+      importaba.
+- [x] T006 `migrations/README.md` — la fila del inventario de `002` y la tabla de «qué hace una
       segunda escritura con la misma clave» extendida con `received_events`. Sin cifras de estado
       (ADR-032); `tests/docs/readmes.test.ts` es el gate.
+      **Y los dos diagramas Mermaid, que el cambio volvió falsos**: describían claves primarias de
+      negocio que ya no existen. El ER ahora dibuja índices únicos, omite las tres columnas que **todas**
+      las tablas comparten para no repetirlas ocho veces, y agrega `received_events` con su vínculo a la
+      decisión. Detalle del gate: el inventario se lee de `git ls-files`, así que una migración nueva no
+      cuenta hasta estar rastreada — la prueba dice «está en el inventario pero no en el directorio».
 
 ### La identidad y la entidad
 

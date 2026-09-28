@@ -24,7 +24,10 @@ const BY_ID = `SELECT document FROM orders WHERE merchant_id = :merchant AND ord
 
 const INSERT = `INSERT INTO orders (merchant_id, order_id, document) VALUES (:merchant, :order, :document)`;
 
-const UPDATE = `UPDATE orders SET document = :document WHERE merchant_id = :merchant AND order_id = :order`;
+// `updated_at` is set here and not by a default: a DEFAULT only fires on an insert, and this is the
+// one write of this schema that is not an append (ADR-028's RETURNED state).
+const UPDATE = `UPDATE orders SET document = :document, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  WHERE merchant_id = :merchant AND order_id = :order`;
 
 export function sqliteOrderLedger(deps: DurableGatewayDeps): OrderLedger {
   const existing = (merchantId: MerchantId, orderId: OrderId): Order | undefined => {
