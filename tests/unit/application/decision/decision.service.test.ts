@@ -40,6 +40,7 @@ import {
   type SessionId,
   type VisitorId,
 } from "../../../../src/domain/shared-kernel/index.js";
+import { silentLogger } from "../../../../src/infrastructure/logging/pino-logger.js";
 import { memoryDecisionLedger } from "../../../../src/interface-adapters/ledger/gateways/memory-decision-ledger.js";
 import {
   BASE,
@@ -220,7 +221,11 @@ function subject(options: Options = {}) {
     state: new States({
       sessions: sessionStore,
       visitors: visitorStore,
-      visitorWindow: testVisitorWindow(),
+      limits: {
+        visitorWindowMs: testVisitorWindow().ttlMs,
+        sessionDurationMs: testLevels().platform.sessionDurationMs,
+      },
+      logger: silentLogger(),
       // This suite is about the orchestrator over hot state, so nothing durable answers: rebuilding is
       // the subject of `state.service.test.ts` and the durability suite.
       events: { bySession: () => Promise.resolve([]) },

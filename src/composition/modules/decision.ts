@@ -10,6 +10,7 @@ import {
   type MessagePlane,
   type PolicyDirectory,
   type SessionStateStore,
+  type StateLimits,
   type StateService,
   type VisitorStateStore,
   type VisitorWindow,
@@ -27,7 +28,7 @@ import { ProductTruthPort } from "./catalog.js";
 import { AssignmentPort } from "./experiment.js";
 import { DecisionPlanePort, EventLogPort } from "./ingestion.js";
 import { DecisionLedgerPort, DecisionRecorderPort } from "./ledger.js";
-import { ClockPort } from "./shared-kernel.js";
+import { ClockPort, LoggerPort } from "./shared-kernel.js";
 
 export const SessionStatePort = port("decision.sessions")<SessionStateStore>();
 export const VisitorStatePort = port("decision.visitors")<VisitorStateStore>();
@@ -41,6 +42,11 @@ export const MessagePlanePort = port("decision.messages")<MessagePlane>();
 const CandidatesPort = port("decision.candidates")<Candidates>();
 /** Session and visitor state as one authority. */
 const DecisionStatePort = port("decision.state")<StateService>();
+/**
+ * The two durations of level 1 the state service measures with (feature 032). Its own component so the
+ * service takes the durations and not the two window objects: a capacity is a bound of the stores.
+ */
+const StateLimitsPort = port("decision.state-limits")<StateLimits>();
 
 export const decisionModule = compositionModule({
   provides: [
@@ -63,16 +69,21 @@ export const decisionModule = compositionModule({
     ),
   ],
   assembles: [
+    bind(StateLimitsPort, { platform: PlatformConfigurationPort }, ({ platform }) => ({
+      visitorWindowMs: platform.visitorWindowMs,
+      sessionDurationMs: platform.sessionDurationMs,
+    })),
     bind(
       DecisionStatePort,
       {
         sessions: SessionStatePort,
         visitors: VisitorStatePort,
-        visitorWindow: VisitorWindowPort,
+        limits: StateLimitsPort,
         // The two durable reads a forgotten state is rebuilt from (feature 032). The plane does not
         // write through them: what is durable is already written by the ledger and by the register.
         events: EventLogPort,
         decisions: DecisionLedgerPort,
+        logger: LoggerPort,
       },
       (deps) => new States(deps),
     ),

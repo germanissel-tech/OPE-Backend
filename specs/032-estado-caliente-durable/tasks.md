@@ -165,14 +165,14 @@ ocurre hoy en cada despliegue deja de ocurrir.
 **Independent Test**: acumular señales, forzar que la sesión salga de memoria, y comprobar que la decisión
 siguiente es la misma.
 
-- [ ] T025 [P] [US2] `tests/durability/state-reconstruction.test.ts` — SC-002 completo: la misma secuencia
+- [x] T025 [P] [US2] `tests/durability/state-reconstruction.test.ts` — SC-002 completo: la misma secuencia
       de eventos con y sin desalojo produce **la misma decisión**, comparando el veredicto y su motivo.
-- [ ] T026 [P] [US2] Una sesión que **nunca existió** se crea vacía sin buscar nada — el caso más común y
+- [x] T026 [P] [US2] Una sesión que **nunca existió** se crea vacía sin buscar nada — el caso más común y
       el que no es una falla (FR-012, el segundo escenario de la historia).
-- [ ] T027 [US2] Una sesión **más vieja que su duración** no se reconstruye: es otra visita y el SDK debería
+- [x] T027 [US2] Una sesión **más vieja que su duración** no se reconstruye: es otra visita y el SDK debería
       haberle dado otro identificador. Que llegue **se registra**, porque es un SDK que no cumple y eso es
       información, no ruido.
-- [ ] T028 [US2] `npm run test:mutation` acotado al diff de la historia.
+- [x] T028 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las historias 1 y 2 funcionan, cada una por su cuenta.
 

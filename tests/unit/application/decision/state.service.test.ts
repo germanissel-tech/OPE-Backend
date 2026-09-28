@@ -23,10 +23,12 @@ import {
   type DecisionFacts,
 } from "../../../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId, asVisitorId, fail } from "../../../../src/domain/shared-kernel/index.js";
+import { silentLogger } from "../../../../src/infrastructure/logging/pino-logger.js";
 import { memorySessionStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-session-state-store.js";
 import { memoryVisitorStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-visitor-state-store.js";
 import { addedToCart, checkout, variantSelector } from "../../../helpers/events.js";
 import { testVisitorWindow } from "../../../helpers/platform.js";
+import { testLevels } from "../../../helpers/test-app.js";
 import type { SessionEvents } from "../../../../src/application/ingestion/index.js";
 import type { SessionDecisions, VisitorDecisions } from "../../../../src/application/ledger/index.js";
 
@@ -51,7 +53,8 @@ function subject(over: Partial<StateServiceDependencies> = {}) {
   const service = new States({
     sessions: memorySessionStateStore(clock, { ttlMs: window.ttlMs, maxSessions: 100 }),
     visitors: memoryVisitorStateStore(clock, window),
-    visitorWindow: window,
+    limits: { visitorWindowMs: window.ttlMs, sessionDurationMs: testLevels().platform.sessionDurationMs },
+    logger: silentLogger(),
     ...nothingDurable(),
     ...over,
   });
@@ -83,7 +86,14 @@ const intervened = (id: string, at: Date = now): Decision =>
   });
 
 let arrivals = 0;
-/** One row of the register, with the disposition the test is about. */
+/**
+ * One row of the register, with the disposition the test is about.
+ *
+ * `receivedAt` counts up from a minute before `now` and is **not** the instant of the event: it is when
+ * OPE received it, and the rebuild measures the age of the session from it. The event helpers date their
+ * events a day before `now`, so reusing that here made every rebuilt session look older than its own
+ * duration — which the rule of FR-003 then correctly discarded, and three tests said so.
+ */
 function arrival(event: Event, disposition: RecordedEvent["disposition"]): RecordedEvent {
   arrivals += 1;
   const base = {
@@ -91,7 +101,7 @@ function arrival(event: Event, disposition: RecordedEvent["disposition"]): Recor
     batchId: asBatchId(`bat_${String(arrivals).padStart(8, "0")}`),
     position: 0,
     event,
-    receivedAt: event.occurredAt,
+    receivedAt: later(arrivals * 1000 - 60_000),
   };
   return disposition === "rejected"
     ? { ...base, disposition, rejectedBy: "session-visitor-mismatch" }
@@ -167,12 +177,9 @@ describe("States", () => {
       const first = variantSelector(1);
       const second = addedToCart(2);
       const last = checkout(3);
+      const arrived = [arrival(first, "accepted"), arrival(second, "accepted"), arrival(last, "accepted")];
       const { service } = subject({
-        events: register([
-          arrival(first, "accepted"),
-          arrival(second, "accepted"),
-          arrival(last, "accepted"),
-        ]),
+        events: register(arrived),
         decisions: recordedDecisions([
           intervened("dec_00000002"),
           NoOpDecision.of(facts("dec_00000003"), "control-arm"),
@@ -192,11 +199,11 @@ describe("States", () => {
       // is `decision.isIntervention()` and not a filter written here.
       expect(session.interventions).toBe(1);
       expect(session.lastInterventionAt).toEqual(now);
-      // When the session last moved, which is the arrival of its last event and **not** now: the
-      // cooldown and the window are measured from it, so stamping the current instant would make an
-      // old session look fresh.
-      expect(session.updatedAt).toEqual(last.occurredAt);
-      expect(session.updatedAt).not.toEqual(second.occurredAt);
+      // When the session last moved, which is when its **last arrival** was received and not now: the
+      // cooldown, the window and the duration are measured from it, so stamping the current instant
+      // would make an old session look fresh.
+      expect(session.updatedAt).toEqual(arrived[2]?.receivedAt);
+      expect(session.updatedAt).not.toEqual(arrived[1]?.receivedAt);
     });
 
     it("rebuilds the visitor from the interventions of the ledger, across sessions", async () => {
@@ -241,6 +248,51 @@ describe("States", () => {
       expect(session.interventions).toBe(0);
       expect(session.lastInterventionAt).toBeUndefined();
       expect(visitor.interventions).toEqual([]);
+    });
+
+    it("does not rebuild a session older than its duration: it is another visit", async () => {
+      // FR-003. The register still has the rows, and that is exactly why the rule is needed: replaying
+      // them would carry yesterday's signals into today's decision. The SDK owed this visit a new
+      // `sessionId`, and what arrived instead is a client not holding its end of the rule.
+      const stale = arrival(addedToCart(8), "accepted");
+      const duration = testLevels().platform.sessionDurationMs;
+      const logged: { fields: Record<string, unknown>; message: string }[] = [];
+      const { service } = subject({
+        events: register([{ ...stale, receivedAt: later(-duration) }]),
+        decisions: recordedDecisions([intervened("dec_00000009")]).port,
+        logger: {
+          info: () => undefined,
+          warn: (fields, message) => logged.push({ fields, message }),
+          error: () => undefined,
+        },
+      });
+
+      const { session } = await recalled(service);
+      // Empty, not rebuilt: no signals and no spent budget carried over from the visit before.
+      expect(session.signals.isEmpty()).toBe(true);
+      expect(session.interventions).toBe(0);
+      expect(session.lastInterventionAt).toBeUndefined();
+      expect(session.updatedAt).toBe(now);
+      // And it is reported, because an SDK reusing an expired identifier is information, not noise.
+      expect(logged).toHaveLength(1);
+      expect(logged[0]?.fields).toMatchObject({ inactivityMs: duration, sessionDurationMs: duration });
+    });
+
+    it("rebuilds a session one millisecond short of its duration, which is the boundary", async () => {
+      // The pair of the test above, and the reason there are two: one millisecond of difference is a
+      // session either rebuilt or thrown away, so `>` and `>=` have to be told apart by a test rather
+      // than by reading the code. At exactly the duration the session is over — the duration is the
+      // inactivity **after which** it ends.
+      const duration = testLevels().platform.sessionDurationMs;
+      const fresh = arrival(addedToCart(9), "accepted");
+      const { service } = subject({
+        events: register([{ ...fresh, receivedAt: later(1 - duration) }]),
+        decisions: recordedDecisions([intervened("dec_00000010")]).port,
+      });
+
+      const { session } = await recalled(service);
+      expect(session.signals.count({ type: "added_to_cart" })).toBe(1);
+      expect(session.interventions).toBe(1);
     });
 
     it("replays the duplicates, because the plane absorbed them too", async () => {

@@ -7,6 +7,7 @@ export type { VisitorStateStore, VisitorWindow } from "./ports/visitor-state-sto
 export { States } from "./services/state.service.js";
 export type {
   Remembered,
+  StateLimits,
   StateService,
   StateServiceDependencies,
   ToRemember,

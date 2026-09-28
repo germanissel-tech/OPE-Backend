@@ -21,8 +21,9 @@ import {
 import type { Event, RecordedEvent } from "../../../domain/ingestion/index.js";
 import type { SessionEvents } from "../../ingestion/index.js";
 import type { PastDecisions } from "../../ledger/index.js";
+import type { Logger } from "../../shared-kernel/index.js";
 import type { SessionStateStore } from "../ports/session-state-store.js";
-import type { VisitorStateStore, VisitorWindow } from "../ports/visitor-state-store.js";
+import type { VisitorStateStore } from "../ports/visitor-state-store.js";
 
 export interface Remembered {
   session: SessionState;
@@ -52,15 +53,33 @@ export interface StateService {
   remember(whose: Whose, state: ToRemember): Promise<void>;
 }
 
+/**
+ * The two durations of level 1 this service measures with. It takes the durations and not the two
+ * window objects on purpose: how many sessions or visitors an instance holds is a bound of the
+ * **stores**, and a service that received it could read a capacity it has no business knowing.
+ */
+export interface StateLimits {
+  /** How long an intervention of a visitor keeps counting for the fatigue limit. */
+  visitorWindowMs: number;
+  /**
+   * Inactivity after which a session is over and the SDK owes a new `sessionId` (feature 032, FR-001).
+   * It is **not** how long the backend remembers one: that is retention and it lives in the
+   * environment, which is the split this feature made.
+   */
+  sessionDurationMs: number;
+}
+
 export interface StateServiceDependencies {
   sessions: SessionStateStore;
   visitors: VisitorStateStore;
-  /** The visitor window of the platform (level 1). */
-  visitorWindow: VisitorWindow;
+  /** The two durations of the platform (level 1). */
+  limits: StateLimits;
   /** The register of what arrived, to replay the signals of a forgotten session (feature 032, FR-004). */
   events: SessionEvents;
   /** What was already decided: the interventions of the session and of the visitor (FR-005, FR-007). */
   decisions: PastDecisions;
+  /** Where a session that outlived its own duration is reported (FR-003): an SDK not holding its end. */
+  logger: Logger;
 }
 
 /**
@@ -99,7 +118,7 @@ export class States implements StateService {
     return ok({
       session: session.value,
       visitor: known,
-      visitorInterventions: known.countSince(now, this.#deps.visitorWindow.ttlMs),
+      visitorInterventions: known.countSince(now, this.#deps.limits.visitorWindowMs),
     });
   }
 
@@ -107,7 +126,7 @@ export class States implements StateService {
     // Only the hot side. What is durable is already written by the ledger and by the register, and
     // writing it a second time here would create two truths that can disagree — and it would put a
     // write on the decision path, which is the line `01 §P9` draws.
-    const { sessions, visitors, visitorWindow } = this.#deps;
+    const { sessions, visitors, limits } = this.#deps;
     const intervention = state.intervention;
     await Promise.all([
       sessions.save(merchantId, sessionId, state.session),
@@ -116,7 +135,7 @@ export class States implements StateService {
         : visitors.save(
             merchantId,
             visitorId,
-            intervention.visitor.withIntervention(intervention.at, visitorWindow.ttlMs),
+            intervention.visitor.withIntervention(intervention.at, limits.visitorWindowMs),
           ),
     ]);
   }
@@ -133,18 +152,43 @@ export class States implements StateService {
       this.#deps.events.bySession(merchantId, sessionId),
       this.#deps.decisions.bySession(merchantId, sessionId),
     ]);
+    // When the session last moved. Not `now`: the cooldown and the window are measured from it, and
+    // stamping the current instant would make an old session look fresh. With nothing in the register
+    // there is nothing saying the session ever moved, so `now` is the honest answer for that case.
+    const movedAt = arrivals.at(-1)?.receivedAt;
+    if (movedAt !== undefined && this.#over(movedAt, now)) return ok(SessionState.empty(now));
     const interventions = decided.filter((decision) => decision.isIntervention());
     return ok(
       SessionState.rehydrate({
         signals: Signals.of(replayed(arrivals)),
         interventions: interventions.length,
-        // When the session last moved, which is not the same as now: the cooldown and the window are
-        // measured from it, and stamping the current instant would make an old session look fresh.
-        // A session with no arrivals has not moved, so `now` is the honest answer for it.
-        updatedAt: arrivals.at(-1)?.receivedAt ?? now,
+        updatedAt: movedAt ?? now,
         lastInterventionAt: interventions.at(-1)?.decidedAt,
       }),
     );
+  }
+
+  /**
+   * Whether a session the register still has is **over**, in which case it is not rebuilt: it is
+   * another visit, and the SDK owed it a new `sessionId` (FR-001, FR-003). Rebuilding it would carry
+   * yesterday's signals into today's decision.
+   *
+   * `>=` and not `>` because the duration is the inactivity **after which** the session is over, so at
+   * exactly that much it already is. The boundary is worth a test either way: one millisecond of
+   * difference is a session either rebuilt or discarded.
+   *
+   * That it arrived at all **is reported**, because an SDK not holding its end of the rule is
+   * information and not noise — and this is the only place that can see it.
+   */
+  #over(movedAt: Date, now: Date): boolean {
+    const inactivityMs = now.getTime() - movedAt.getTime();
+    const { sessionDurationMs } = this.#deps.limits;
+    if (inactivityMs < sessionDurationMs) return false;
+    this.#deps.logger.warn(
+      { inactivityMs, sessionDurationMs },
+      "a session arrived after its duration had passed; the SDK should have minted a new sessionId",
+    );
+    return true;
   }
 
   /** From memory, or rebuilt from the interventions the ledger has for the visitor. */
@@ -157,7 +201,7 @@ export class States implements StateService {
     if (hot.value !== undefined) return ok(hot.value);
     // The window bounds the read, it does not apply the rule: `countSince` does that, on whatever the
     // store hands back. See `VisitorDecisions.byVisitor`.
-    const since = new Date(now.getTime() - this.#deps.visitorWindow.ttlMs);
+    const since = new Date(now.getTime() - this.#deps.limits.visitorWindowMs);
     const past = await this.#deps.decisions.byVisitor(merchantId, visitorId, since);
     return ok(
       VisitorState.rehydrate({
