@@ -21,46 +21,70 @@ El plano de decisión recuerda dos cosas entre un lote y el siguiente, y las dos
   cuánto se demoró en cada bloque, en qué orden—, cuántas intervenciones ya recibió y cuándo fue la
   última.
 - **El estado del visitante**: los instantes de las intervenciones aceptadas dentro de una ventana de
-  **24 horas**. Es lo que evita mostrarle lo mismo a la misma persona todo el día.
+  **24 horas**.
 
 Los dos son _hot, bounded state_ detrás de un puerto, y los dos dicen lo mismo en su comentario: **«a
 forgotten visitor starts over»**.
 
-**Eso significa que cada despliegue le devuelve el cupo diario a todos los visitantes.** Alguien que
-ya recibió las intervenciones que la política le permite, después de un deploy vuelve a estar
-disponible para todas otra vez. Pasa hoy, en cada despliegue, y **no aparece en ninguna deuda ni en
-ninguna métrica**: no hay forma de enterarse.
+**Eso significa que cada despliegue le devuelve el cupo a todo el mundo**, y pasa hoy, en cada
+despliegue, sin aparecer en ninguna métrica: no hay forma de enterarse.
 
-Hay una segunda pérdida, más chica: las señales de las sesiones activas. Decidir con menos señales
+### Cuál de los dos topes muerde, que no es el que parece
+
+La política comercial (`01 §4.5`, ADR-027) aplica los dos límites, pero con los valores vigentes
+—`interventionsPerSession: 1`, `cooldownSeconds: 0`, `interventionsPerVisitorPerDay: 3`— **el que
+bloquea en casi todo el tráfico es el de sesión**: una sola intervención por visita.
+
+Para que el tope diario llegue a disparar, la misma persona tiene que abrir **cuatro visitas
+separadas en un día**. Es el techo de un caso raro, y su valor es además un default que ninguna
+medición respalda (**D-24**).
+
+Entonces el daño de un reinicio entra sobre todo por el estado de **sesión**: el visitante que ya
+recibió su única intervención de la visita puede recibir otra en el siguiente lote, porque el
+presupuesto volvió a cero. Eso le pasa a cualquier visitante activo, no al que vuelve cuatro veces.
+
+El estado de visitante importa igual, y por otra cosa: es el único tope que cruza visitas, así que sin
+él **una cadena de despliegues no tiene techo alguno** — cada uno devuelve el cupo diario completo.
+
+Hay una tercera pérdida, la más chica: las señales de las sesiones activas. Decidir con menos señales
 de las que hubo lleva a `NO_OP`, que es el estado por defecto del sistema — molesta menos que
 intervenir de más.
 
 **Lo que hace esto reparable ahora**: una intervención **es** una decisión con veredicto `INTERVENE`
-y su instante, y las decisiones son durables desde la feature 030. El dato está; lo que falta es
-poder buscarlo por visitante.
+y su instante, y las decisiones son durables desde la feature 030. El dato está entero.
+
+Y para la mitad que más muerde, **ya se puede buscar**: el ledger indexa las decisiones por sesión,
+así que las intervenciones de una sesión son una consulta que hoy existe. Lo único que falta es el
+índice por visitante, para el tope que cruza visitas (FR-006).
 
 ## User Scenarios & Testing _(mandatory)_
 
-### User Story 1 - El cupo del visitante sobrevive al despliegue (Priority: P1)
+### User Story 1 - Los topes de intervención sobreviven al despliegue (Priority: P1)
 
-Un visitante recibió durante la mañana las intervenciones que su merchant permite por día. Al
-mediodía hay un deploy. Hoy, a la tarde, vuelve a recibirlas todas de nuevo: para el sistema es un
-visitante que nunca vio nada.
+Un visitante está navegando y ya recibió la intervención que le corresponde en esta visita. Al
+minuto siguiente hay un deploy. Su próximo lote de eventos llega a un sistema que no sabe que ya
+intervino, y el presupuesto de la sesión volvió a cero: puede recibir otra en la misma visita.
 
-Después de esta historia sigue agotado, porque el sistema lo reconstruye de lo que registró.
+Ése es el caso frecuente. El otro, más raro pero sin techo: el visitante que agotó su cupo del día
+vuelve a tenerlo entero después de cada despliegue, y con varios despliegues en un día no hay
+límite que lo pare.
 
-**Why this priority**: es el daño real y es comercial. Intervenir de más es lo que la política
-existe para impedir, y hoy un despliegue la anula sin dejar rastro.
+Después de esta historia los dos topes se respetan, porque el sistema los reconstruye de lo que
+registró.
 
-**Independent Test**: agotar el cupo de un visitante, reiniciar el servicio y comprobar que la
-siguiente decisión sigue siendo `NO_OP` por fatiga.
+**Why this priority**: es el daño real y es comercial. Una intervención puede llevar incentivo, y
+`01 §4.5` bloquea lo que destruye contribución aunque convierta; hoy un despliegue anula ese bloqueo
+sin dejar rastro.
+
+**Independent Test**: agotar el presupuesto de una sesión, reiniciar el servicio y comprobar que la
+siguiente decisión sigue siendo `NO_OP` por presupuesto agotado y no una segunda intervención.
 
 **Acceptance Scenarios**:
 
-1. **Given** un visitante que agotó su cupo diario, **When** el servicio se reinicia, **Then** la
-   siguiente decisión sigue degradando por fatiga y no interviene.
-2. **Given** una sesión que ya alcanzó su tope de intervenciones, **When** el servicio se reinicia,
-   **Then** el tope se respeta y no vuelve a cero.
+1. **Given** una sesión que ya alcanzó su presupuesto de intervenciones, **When** el servicio se
+   reinicia, **Then** la siguiente decisión degrada por presupuesto agotado y no interviene.
+2. **Given** un visitante que agotó su cupo diario, **When** el servicio se reinicia, **Then** la
+   siguiente decisión sigue degradando por fatiga y el cupo no vuelve a cero.
 3. **Given** dos merchants con actividad, **When** cualquiera reconstruye su estado, **Then** no lee
    nada del otro.
 
@@ -134,7 +158,9 @@ antes de la primera decisión correcta.
   mismo que sin el desalojo.
 - **FR-006**: Las intervenciones de un visitante DEBEN poder buscarse **por visitante** en el ledger
   de decisiones, que hoy sólo se indexa por decisión y por sesión.
-- **FR-007**: La fatiga por visitante DEBE sobrevivir a un reinicio dentro de su ventana de 24 horas.
+- **FR-007**: **Los dos topes DEBEN sobrevivir a un reinicio**: el presupuesto de intervenciones de la
+  sesión —que es el que bloquea en casi todo el tráfico— y la fatiga por visitante dentro de su
+  ventana de 24 horas, que es el único que cruza visitas.
 - **FR-008**: El aislamiento entre merchants DEBE valer en la reconstrucción: ninguna lectura devuelve
   nada de otro merchant.
 - **FR-009**: El comportamiento observable NO DEBE cambiar cuando el estado **sí** está en memoria:
@@ -152,8 +178,9 @@ antes de la primera decisión correcta.
 
 ## Success Criteria _(mandatory)_
 
-- **SC-001**: Después de un reinicio, un visitante que agotó su cupo diario **sigue agotado** — que
-  hoy no ocurre y nadie mide.
+- **SC-001**: Después de un reinicio, una sesión que agotó su presupuesto **sigue agotada** y un
+  visitante que agotó su cupo del día **sigue agotado** — ninguna de las dos cosas ocurre hoy, y
+  nadie las mide.
 - **SC-002**: Una sesión que sale de memoria y vuelve produce **la misma decisión** que si no hubiera
   salido.
 - **SC-003**: En memoria están las sesiones con actividad y no las inactivas.

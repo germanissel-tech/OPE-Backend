@@ -39,6 +39,20 @@ la propia 030 había rechazado mezclar por el mismo motivo — con todo junto, u
 no puede decir qué rompió qué. Las decisiones tomadas en esa conversación están registradas acá con
 su fecha y no se rediscuten.
 
+**Una corrección del 2026-09-27, a pedido del dueño: «¿por qué motivo limitaríamos las intervenciones
+a un visitante?»** La respuesta obligó a mirar los valores en vez de suponerlos, y la primera
+redacción de esta spec estaba apuntando al tope equivocado. Con `interventionsPerSession: 1` y una
+sesión de 30 minutos, **el tope diario de 3 sólo dispara si la misma persona abre cuatro visitas en un
+día**: el que bloquea en casi todo el tráfico es el presupuesto por sesión. La historia P1 se reescribió
+alrededor de ése, con el cupo diario como el segundo tope de la misma historia —el único que cruza
+visitas, y por eso el que impide que una cadena de despliegues no tenga techo—, y el 3 sin medición
+quedó registrado como **D-24**, que sólo se puede cerrar con los datos que entrega la 031.
+
+De paso quedó descartado un argumento que yo estaba dando por bueno: que la dosis variable rompe la
+medición. No la rompe — el piloto compara por intención de tratar y la dosis real es parte del
+tratamiento. Lo que se pierde es más chico y más honesto de decir: la cifra publicada deja de describir
+la política configurada.
+
 **Dos preguntas abiertas, deliberadas y en su propia sección:**
 
 - **Q1 — qué pasa si la reconstrucción falla**: decidir con estado vacío permite intervenir de más,
