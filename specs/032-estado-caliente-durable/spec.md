@@ -134,8 +134,10 @@ antes de la primera decisión correcta.
 
 ### Edge Cases
 
-- **El durable no responde al reconstruir** → la decisión no puede esperar para siempre. Qué se
-  hace es la pregunta abierta **Q1** de esta spec.
+- **El durable no responde al reconstruir** → resuelto (2026-09-27): los topes son obligatorios y las
+  señales best-effort. Ver «Qué pasa si la reconstrucción falla», más abajo.
+- **El durable contesta que no hay nada** → es el caso más común y **no es una falla**: el visitante
+  llega por primera vez. Se arranca vacío. Distinguirlo de una falla es FR-011.
 - **Arranque en frío con mucho tráfico** → todas las sesiones activas piden reconstrucción a la vez.
 - **Una sesión más vieja que su duración** → no se reconstruye: es otra visita, y el SDK debería
   haberle dado otro identificador. Que llegue es señal de un SDK que no cumple, y se registra.
@@ -168,6 +170,23 @@ antes de la primera decisión correcta.
 - **FR-010**: Toda tabla que esta feature cree o modifique DEBE cumplir las dos reglas de
   arquitectura del dueño: clave primaria autoincremental con índice UNIQUE donde hoy hay clave de
   negocio, y `created_at` / `updated_at` iguales al crear.
+- **FR-011**: Los puertos del estado caliente DEBEN poder decir **«no se pudo determinar»**, distinto
+  de «no lo recuerdo». Hoy los dos son el mismo `undefined`, y eso hace que una falla del almacén se
+  lea como un visitante nuevo — el daño que esta feature vino a impedir, por otra puerta.
+- **FR-012**: Cuando no se puedan leer **las intervenciones** —de la sesión o del visitante—, la
+  decisión DEBE degradar a `NO_OP` con un motivo propio, emitiendo y registrando la decisión. NO DEBE
+  responder un error HTTP: en este sistema un 500 significa un defecto, y una degradación se registra
+  (precedente de `ledger-unavailable`, `01 §4.7`).
+- **FR-013**: El motivo nuevo DEBE ser propio y NO DEBE reusar `barrier-unclear`, que significa «no
+  había evidencia suficiente»: confundirlos convertiría una falla de infraestructura en un dato falso
+  del piloto. Se agrega a `contracts/no-op-reasons.yaml`, que es la fuente, y es un cambio compatible
+  (ADR-014).
+- **FR-014**: Cuando no se puedan leer **las señales**, la decisión DEBE tomarse con las del lote
+  actual —que es lo que el sistema hace hoy en toda sesión— y la decisión DEBE registrar que las
+  señales quedaron incompletas, para que el análisis no las cuente como una sesión sin actividad.
+- **FR-015**: «No contestó» DEBE tener una definición: un plazo, que es **una entrada de configuración
+  de plataforma y no una constante** (constitución XI, ADR-031). Su valor no se puede fijar con
+  evidencia todavía (**D-21**), así que entra con un default declarado como tal y se ajusta al medir.
 
 ### Key Entities
 
@@ -187,6 +206,10 @@ antes de la primera decisión correcta.
 - **SC-004**: El comportamiento con el estado en memoria no cambia en nada.
 - **SC-005**: El costo de una decisión que tuvo que reconstruir **está medido y publicado**, contra
   el motor real y no contra el perfil de desarrollo.
+- **SC-006**: Con el durable caído, **ninguna decisión interviene sin saber los topes** y **ninguna
+  responde un error**: todas quedan registradas con su motivo.
+- **SC-007**: Una falla de la reconstrucción **se distingue en el ledger** de una sesión sin barrera
+  clara y de un visitante nuevo. Es lo que permite que las cifras del piloto no mezclen las tres.
 
 ## Assumptions
 
@@ -215,17 +238,40 @@ pierde.
 SQLite local no sirve —no hay red— y el motor real no está disponible (**D-21**). El número se toma
 cuando exista, y hasta entonces la excepción está declarada pero no cuantificada.
 
+## Qué pasa si la reconstrucción falla
+
+Decidido por el dueño el **2026-09-27**: **los topes son obligatorios, las señales best-effort.**
+
+### Lo que la pregunta descubrió, y que no era una opción
+
+Los puertos del estado caliente devuelven hoy `Promise<State | undefined>`. `undefined` significa «no
+lo recuerdo», y es el caso normal: el primer evento de una visita. Cuando ese `load` empiece a leer del
+durable, **una falla y un visitante nuevo darían el mismo valor** — y el sistema trataría la falla como
+un visitante nuevo, devolviéndole el cupo entero. Es el daño de esta feature reapareciendo por la puerta
+de atrás, y ninguna respuesta a la pregunta es aplicable sin arreglarlo primero (**FR-011**).
+
+Y hoy, si el almacén lanza, la excepción llega hasta el borde HTTP y el SDK recibe un **500** por todo
+el lote: sin decisión y sin fila en el ledger. Eso queda descartado por precedente, no por gusto — un
+500 en este sistema significa un defecto, y una degradación se registra (**FR-012**).
+
+### Por qué las dos mitades no son simétricas
+
+| Lectura                                     | Qué protege                                   | Si falla                                                                                      |
+| ------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Las intervenciones** (sesión y visitante) | la garantía **nueva** que esta feature agrega | nada la supla: hay que degradar                                                               |
+| **Las señales**                             | la **mejora** de la calidad de la decisión    | la sesión igual absorbe las del lote actual, que es lo que el sistema hace hoy en toda sesión |
+
+Ahí está el motivo de la asimetría, y es el único argumento que importa: **sin los topes, el sistema
+hace algo que nunca hizo y que no queremos. Sin las señales, hace lo que viene haciendo en producción.**
+Degradar por señales faltantes no compra corrección, cuesta intervenciones que hoy sí se emiten.
+
+### Lo que cuesta, dicho de frente
+
+Dos semánticas de falla en la misma reconstrucción, y un campo nuevo en la decisión para declarar que
+las señales quedaron incompletas. Es más código y más superficie de prueba que una regla única, y se
+paga a cambio de no apagar intervenciones por la mitad que no protege nada.
+
 ## Lo abierto
-
-### Q1 — ¿Qué pasa si la reconstrucción falla o tarda demasiado?
-
-La decisión espera, pero no puede esperar para siempre. Si el durable no responde, hay dos caminos y
-ninguno es obviamente correcto:
-
-- **Decidir con estado vacío**: el visitante podría recibir de más, que es justo lo que esta feature
-  vino a evitar.
-- **Degradar a `NO_OP`**: no interviene, que es el estado por defecto del sistema y falla cerrado
-  (constitución II) — al precio de no intervenir cuando quizás correspondía.
 
 ### Q2 — ¿La ventana caliente es parámetro por merchant?
 

@@ -53,11 +53,21 @@ medición. No la rompe — el piloto compara por intención de tratar y la dosis
 tratamiento. Lo que se pierde es más chico y más honesto de decir: la cifra publicada deja de describir
 la política configurada.
 
-**Dos preguntas abiertas, deliberadas y en su propia sección:**
+**Q1 quedó resuelta el 2026-09-27: los topes obligatorios, las señales best-effort.** Lo que la hizo
+decidible no fue comparar las dos opciones en abstracto, sino mirar qué pasa con cada lectura: sin las
+intervenciones el sistema hace algo que nunca hizo; sin las señales, la sesión igual absorbe las del
+lote actual y el sistema queda en el comportamiento que hoy está en producción. Degradar por señales
+faltantes cuesta intervenciones y no compra corrección.
 
-- **Q1 — qué pasa si la reconstrucción falla**: decidir con estado vacío permite intervenir de más,
-  que es lo que la feature vino a evitar; degradar a `NO_OP` falla cerrado y puede no intervenir
-  cuando correspondía. Ninguna es obviamente correcta.
+**Y la pregunta descubrió dos cosas que no eran opciones, y ahora son requisitos.** Los puertos
+devuelven `Promise<State | undefined>`, donde `undefined` es «no lo recuerdo»: cuando ese `load` lea
+del durable, **una falla y un visitante nuevo darían el mismo valor**, y el sistema trataría la falla
+como visitante nuevo devolviéndole el cupo (FR-011). Y hoy una excepción del almacén llega al borde
+HTTP y el SDK recibe un 500 sin decisión ni fila en el ledger, lo que contradice el precedente de
+`ledger-unavailable` (FR-012). Ninguna respuesta a Q1 era aplicable sin esos dos arreglos.
+
+**Una pregunta abierta, deliberada y en su propia sección:**
+
 - **Q2 — la ventana por merchant**: depende de si el estado caliente sale del proceso, porque hoy la
   memoria es un límite único compartido.
 
