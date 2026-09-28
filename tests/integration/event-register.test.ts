@@ -145,6 +145,57 @@ describe("the event register, end to end", () => {
     expect(arrivals.map((row) => row.disposition)).toEqual(["accepted", "duplicate"]);
   });
 
+  describe("what was discarded (US2)", () => {
+    it("tells a merchant that sent nothing from one whose traffic was refused", async () => {
+      // **SC-003, and it is impossible today.** A refused batch gets a `422` and leaves nothing behind,
+      // so the operator sees the same silence in both cases — and only one of the two has a fix.
+      const refused = await postEvents(
+        app.app,
+        { events: [eventOf(1, { visitorId: "vis_00000001" }), eventOf(2, { visitorId: "vis_00000002" })] },
+        { key: KEY_A },
+      );
+      expect(refused.statusCode).toBe(422);
+      await drained();
+
+      // A: refused traffic, and the register says so with the invariant that refused it.
+      const rows = await log.bySession(A, asSessionId("ses_00000001"));
+      expect(rows).toHaveLength(2);
+      expect(rows.every((row) => row.disposition === "rejected")).toBe(true);
+      // B: nothing at all, which is the other answer and now a different one.
+      expect(await log.bySession(B, asSessionId("ses_00000001"))).toEqual([]);
+    });
+
+    it("names the invariant that refused the batch, not just that something failed", async () => {
+      // Two different invariants, so the register has to distinguish them: an operator fixes a clock
+      // and a mixed batch in completely different ways.
+      const stale = "2020-01-01T00:00:00.000Z";
+      await postEvents(app.app, { events: [eventOf(7, { occurredAt: stale })] }, { key: KEY_A });
+      await drained();
+
+      const [row] = await log.byEvent(A, asEventId("evt_00000007"));
+      expect(row?.disposition).toBe("rejected");
+      if (row?.disposition !== "rejected") return;
+      expect(row.rejectedBy).toBe("event-timestamp-out-of-range");
+    });
+
+    it("keeps a refused batch out of the accepted counts, because it was not accepted", async () => {
+      // The register is not a second source of truth about what OPE acted on: the volume of FR-012
+      // counts arrivals, and the disposition is what separates them. Recording the refusal must not
+      // make it look like traffic that entered.
+      await postEvents(app.app, batchOf(2), { key: KEY_A });
+      await postEvents(
+        app.app,
+        { events: [eventOf(8, { visitorId: "vis_00000001" }), eventOf(9, { visitorId: "vis_00000002" })] },
+        { key: KEY_A },
+      );
+      await drained();
+
+      const rows = await log.bySession(A, asSessionId("ses_00000001"));
+      expect(rows.filter((row) => row.disposition === "accepted")).toHaveLength(2);
+      expect(rows.filter((row) => row.disposition === "rejected")).toHaveLength(2);
+    });
+  });
+
   describe("with an experiment running", () => {
     // The whole reason FR-004 exists: the pilot compares CONTROL against TREATMENT, so what arrived has
     // to say which one it arrived with. A separate app because the merchant needs an experiment, and

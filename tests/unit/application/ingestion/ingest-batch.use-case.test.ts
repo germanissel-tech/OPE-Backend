@@ -150,14 +150,42 @@ describe("IngestBatchUseCase", () => {
       expect(recorded.arm).toBeUndefined();
     });
 
-    it("records nothing when an invariant refused the batch — that is US2 and not built yet", async () => {
-      // Written now because it is the difference between "not yet" and "silently dropped": today the
-      // rejected path returns before the register is reached, and this test is what will have to change
-      // when the second enqueue point arrives (T027).
+    it("records a batch an invariant refused, with the invariant and no decision", async () => {
+      // The traffic that is most invisible today: OPE answers `422` and nothing is left behind, so an
+      // operator sees silence and cannot tell it from a merchant that sent nothing (FR-006).
+      const { useCase, eventLog } = subject();
+      const result = await useCase.execute({ merchantId: A, events: [event(1, 1), event(2, 2)] });
+      expect(result.ok).toBe(false);
+
+      const rows = await eventLog.byEvent(A, asEventId("evt_00000001"));
+      expect(rows).toHaveLength(1);
+      const [row] = rows;
+      expect(row?.disposition).toBe("rejected");
+      if (row?.disposition !== "rejected") return;
+      expect(row.rejectedBy).toBe("session-visitor-mismatch");
+    });
+
+    it("records every event of a refused batch, showing the mismatch that refused it", async () => {
+      // **Showing the mismatch is the point.** The invariant fired *because* the batch mixed visitors,
+      // so there is no single visitor of the batch to name — each row carries its own, and that is
+      // exactly what an operator needs to fix the integration (research R-07).
       const { useCase, eventLog } = subject();
       await useCase.execute({ merchantId: A, events: [event(1, 1), event(2, 2)] });
 
-      expect(await eventLog.byEvent(A, asEventId("evt_00000001"))).toEqual([]);
+      const rows = await eventLog.bySession(A, asSessionId("ses_00000001"));
+      expect(rows).toHaveLength(2);
+      expect(rows.map((row) => row.position)).toEqual([0, 1]);
+      expect(rows.map((row) => row.event.visitorId)).toEqual([
+        asVisitorId("vis_00000001"),
+        asVisitorId("vis_00000002"),
+      ]);
+    });
+
+    it("leaves a refused batch unreachable from any decision, because it produced none", async () => {
+      const { useCase, eventLog } = subject();
+      await useCase.execute({ merchantId: A, events: [event(1, 1), event(2, 2)] });
+
+      expect(await eventLog.byDecision(A, asDecisionId("dec_00000001"))).toEqual([]);
     });
   });
 });

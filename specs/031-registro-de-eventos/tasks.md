@@ -311,26 +311,38 @@ registro: un registro que sólo guarda lo aceptado muestra el tráfico que OPE e
 **Independent Test**: mandar un lote con un evento repetido y otro con un instante fuera de tolerancia, y
 encontrar los dos con su motivo.
 
-- [ ] T027 [P] [US2] `tests/durability/...` — los cuatro escenarios, antes de la implementación: la
+- [x] T027 [P] [US2] `tests/durability/...` — los cuatro escenarios, antes de la implementación: la
       repetición registrada como repetición y no como evento nuevo, el instante fuera de tolerancia con
       su invariante, el lote que mezcla sesiones con **los `session_id` de cada evento** —que es lo que
       permite _mostrar_ la mezcla en vez de esconderla (research R-07)—, y que consta que **no produjo
       decisión**.
-- [ ] T028 [P] [US2] `tests/integration/...` — el caso que SC-003 pide y que hoy es imposible:
+- [x] T028 [P] [US2] `tests/integration/...` — el caso que SC-003 pide y que hoy es imposible:
       **distinguir un merchant sin tráfico de uno cuyo tráfico se descartó**. Es la prueba que justifica
       la historia.
-- [ ] T029 [US2] `ingest-batch.use-case.ts` — el **punto 2**: el `return fail(batch.error)`, que es el
+- [x] T029 [US2] `ingest-batch.use-case.ts` — el **punto 2**: el `return fail(batch.error)`, que es el
       único lugar donde se sabe qué llegó y qué invariante lo rechazó (research R-01). Ese camino **no
       pasa por el plano de decisión**, así que las filas van sin `decisionId` y sin brazo, y eso es
       exactamente lo que FR-006 pide poder ver.
-- [ ] T030 [US2] `sqlite-event-log.ts` y su par — `byEvent`, con el índice `(merchant_id, event_id)`
+      La unión discriminada de T010 es lo que lo vuelve seguro: la rama rechazada **no puede** nombrar
+      una decisión, así que no hay forma de escribir acá una fila que diga algo falso sobre por qué el
+      tráfico no intervino. Y lo que quedó registrado es **la mezcla misma** —cada fila con su sesión y
+      su visitante—, que es lo que un operador necesita para arreglar la integración; la prueba que
+      escribí primero afirmaba dos sesiones distintas y la corrida la corrigió: el helper varía el
+      **visitante**.
+- [x] T030 [US2] `sqlite-event-log.ts` y su par — `byEvent`, con el índice `(merchant_id, event_id)`
       **no único**. La no-unicidad **es el diseño**: un reintento del SDK trae el mismo `eventId` y cada
       llegada es un hecho (research R-04). Es lo que reconstruye la referencia al duplicado sin tocar el
       puerto de deduplicación (research R-08).
-- [ ] T031 [US2] Que la referencia al duplicado **puede faltar** y eso está bien: si la llegada original
+      **Ya implementado en T015/T016**, como `byDecision` y `bySession`: el puerto se escribió entero.
+      Se marca hecho y se dice.
+- [x] T031 [US2] Que la referencia al duplicado **puede faltar** y eso está bien: si la llegada original
       cayó fuera del registro, queda la repetición con su motivo y sin puntero (research R-08). Es
       coherente con Q3 y se prueba, no se asume.
-- [ ] T032 [US2] `npm run test:mutation` acotado al diff de la historia.
+      Va en el contrato compartido, así que lo verifican **las tres** implementaciones: la repetición
+      contesta con su disposición y simplemente no hay nada antes. Una que se presentara como primera
+      llegada sería lo contrario de lo que el registro promete.
+- [x] T032 [US2] `npm run test:mutation` acotado al diff de la historia.
+      **Cero supervivientes, exit 0**, sobre el diff completo.
 
 **Checkpoint**: las historias 1 y 2 funcionan, cada una por su cuenta.
 

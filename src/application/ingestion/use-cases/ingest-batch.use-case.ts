@@ -85,7 +85,28 @@ export class IngestBatchUseCase implements UseCase<IngestBatchRequest, IngestBat
       pastMs: tolerance.eventPastMs(),
       futureMs: tolerance.skewMs(),
     });
-    if (!batch.ok) return fail(batch.error);
+    if (!batch.ok) {
+      // **The second place the register is written, and the only one that can see this traffic.** This
+      // path never reaches the decision plane, so there is no decision and never will be — which is
+      // precisely what FR-006 asks to be able to see. Today OPE answers `422` and leaves nothing
+      // behind, so an operator sees silence and cannot tell it from a merchant that sent nothing.
+      //
+      // The events are recorded as they arrived, each with its own session and visitor: the invariant
+      // fired *because* they did not agree, so there is no single one of the batch to name, and showing
+      // the mismatch is what makes the register useful here (research R-07).
+      eventLog.record(
+        events.map((event, position) => ({
+          merchantId,
+          batchId,
+          position,
+          event,
+          receivedAt: now,
+          disposition: "rejected" as const,
+          rejectedBy: batch.error.code,
+        })),
+      );
+      return fail(batch.error);
+    }
     const dispositions = dispositionsOf(
       batch.value,
       await eventDedup.claim(merchantId, batch.value.eventIds()),

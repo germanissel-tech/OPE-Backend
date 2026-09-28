@@ -232,6 +232,23 @@ export function anEventLog(open: () => LogUnderTest): void {
     ]);
   });
 
+  it("answers a repetition whose original is missing, without pretending it is the first", async () => {
+    // **The reference to the original can be absent, and that is correct** (research R-08). The pointer
+    // is not stored: it is rebuilt by asking for every arrival of the event id, and the first one is the
+    // original. If that first arrival never made it — lost to an abrupt shutdown — the repetition is
+    // still there with its own disposition and there is simply nothing before it.
+    //
+    // Which is coherent with Q3: the register does not promise completeness, it promises to know where
+    // it does not have it. A duplicate that claimed to be a first arrival would be the opposite.
+    const under = open();
+    under.log.record([decided({ batchId: asBatchId("bat_only_the_retry"), disposition: "duplicate" })]);
+    await under.settle();
+
+    const arrivals = await under.log.byEvent(ONE, asEventId("evt_00000001"));
+    expect(arrivals).toHaveLength(1);
+    expect(arrivals[0]?.disposition).toBe("duplicate");
+  });
+
   it("answers nothing for what it never recorded, which is not an error", async () => {
     const { log } = open();
     expect(await log.byDecision(ONE, asDecisionId("dec_never"))).toEqual([]);
