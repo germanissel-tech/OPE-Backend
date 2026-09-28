@@ -199,6 +199,7 @@ function subject(options: Options = {}) {
       },
       find: (m, id) => decisions.find(m, id),
       bySession: (m, sid) => decisions.bySession(m, sid),
+      byVisitor: (m, vid, since) => decisions.byVisitor(m, vid, since),
     },
     decisionIds: { next: () => asDecisionId(`dec_${String(++minted).padStart(8, "0")}`) },
     logger,

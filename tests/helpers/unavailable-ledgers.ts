@@ -55,6 +55,7 @@ export const unavailableDecisionLedger = (): DecisionLedger => ({
   record: unavailable,
   find: nothing,
   bySession: none,
+  byVisitor: none,
 });
 
 export const unavailableExposureLedger = (): ExposureLedger => ({ record: unavailable, find: nothing });
