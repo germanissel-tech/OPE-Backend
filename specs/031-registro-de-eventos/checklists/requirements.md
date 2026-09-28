@@ -15,7 +15,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -33,23 +33,38 @@
 
 ## Notes
 
-**Q1 quedó resuelta el 2026-09-27** (una fila por evento), midiendo las tres formas con el motor
-real en vez de estimarlas. Quedan dos preguntas abiertas, deliberadas y en su propia sección:
+**Planificada el 2026-09-27.** El plan pasó el Constitution Check sobre los once principios citando la
+v1.4.4, con dos ⚠️ que se justifican en vez de esconderse —la identidad nueva (VI) y dos valores de
+configuración nuevos (XI)— y encontró **dos cosas que la spec no podía ver**: que el runner de migraciones
+no sabe migrar hacia adelante (la 030 declaró «nada que migrar»), y que registrar los duplicados impide
+que el `eventId` sea clave única del registro. Las dos están en `research.md` y cambian el tamaño de la
+feature.
 
-- **Q2 — retención**: el MVP nunca la decidió y con eventos el volumen es el del tráfico entero.
-- **Q3 — lo que no se pudo registrar**: un registro forense con huecos silenciosos es peor que no
-  tenerlo, porque se lo lee como completo.
+**Lista para `/speckit-plan` desde el 2026-09-27.** Las tres preguntas que abrió esta spec quedaron
+resueltas por el dueño, midiendo en vez de estimando:
 
-Hasta que las dos tengan respuesta, la spec **no está lista para `/speckit-plan`**: Q2 decide si
-hace falta una poda y qué la gobierna (ninguna política vive en el código, constitución XI) y Q3
-decide qué garantía promete FR-001.
+- **Q1 — la unidad de registro**: una fila por evento. Se compararon tres formas con el motor real.
+- **Q2 — la retención**: no se borra nada. Guardar todo no encarece leer lo reciente; la única
+  consulta que se degrada con el volumen es el conteo agregado, y ésa no se arregla borrando.
+- **Q3 — lo encolado al morir el proceso**: el apagado ordenado drena la cola; una caída abrupta
+  pierde lo pendiente y **el hueco queda declarado**.
 
-**Sobre el alcance que creció durante la conversación.** La feature incorporó dos reglas de
-arquitectura del dueño (FR-014, FR-015) y la migración del esquema de la 030 para cumplirlas
-(FR-016). Eso es más de lo que el título sugiere, y es deliberado: dejar siete tablas con un
-criterio y las nuevas con otro es exactamente lo que un lector del esquema no espera encontrar.
+**Lo único que queda anotado no es una pregunta abierta sino una decisión diferida con su
+disparador**, como hizo ADR-038 con el desacople del ledger: los totales agregados se mantienen
+aparte cuando el conteo pase de segundos (medido: 447 ms con 1 millón de eventos, 4,7 s con 10). No
+antes de que el número lo pida.
 
-**Sobre mediciones que hubo que rehacer tres veces.** La comparación de Q1 tuvo dos sesgos
-sucesivos a favor de la opción que parecía mejor —primero índices desiguales, después campos del
-evento contados como del lote— y los dos se corrigieron midiendo de nuevo. El script quedó en el
-scratchpad de la sesión; los números de la spec son los de la tercera corrida.
+**El alcance creció y después se partió.** Esta spec llegó a veintidós requisitos y siete frentes, y
+dos de ellos eran la feature siguiente del hito. Se separó en la **032** el mismo día, con el corte
+por dependencia: ésta entrega el dato, aquélla lo consume.
+
+**Sobre mediciones que hubo que rehacer.** La comparación de Q1 se rehizo tres veces por sesgos
+sucesivos a favor de la opción que parecía mejor —índices desiguales, después campos del evento
+contados como del lote—, y más adelante otras dos mediciones salieron mal por índices faltantes. Los
+números de la spec son los de la última corrida, con todos los índices que el diseño llevaría. El
+script quedó en el scratchpad de la sesión.
+
+**Y un error de fondo que el dueño corrigió**: por un rato estuve decidiendo arquitectura con
+números de SQLite, cuando en producción va PostgreSQL y la misma escritura pasa a ser I/O de red
+desde el plano de decisión — que la constitución prohíbe. Lo que el diseño fija son puertos y
+garantías; qué motor los sirve es del despliegue.

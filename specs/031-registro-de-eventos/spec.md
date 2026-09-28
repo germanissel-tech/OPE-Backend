@@ -331,16 +331,10 @@ registro en el que se puede confiar para investigar y uno que se lee como comple
 
 ## Lo que sigue abierto
 
-### La ventana caliente, ¿es parámetro por merchant?
+### La ventana caliente por merchant — **se mudó a la 032**
 
-Quedó sin decidir: la conversación derivó a la duración de sesión, que la condicionaba. Hoy
-`sessionWindowMs` es de plataforma porque la memoria del proceso es **un único límite compartido**
-entre identificadores de evento, sesiones y visitantes (`identityCap`, 100 000): un valor por
-merchant sobre un recurso compartido permite que uno consuma lo de los demás, y el que se queda
-afuera **no se entera**.
-
-El código ya anticipó la salida: «el día que el estado caliente salga del proceso, separarlos es un
-campo nuevo de este nivel, no un cambio de forma».
+Estaba acá porque la conversación la abrió acá, y no pertenece: la ventana caliente es de la feature
+**032**, y esta feature no puede responderla ni la necesita para nada de lo que entrega.
 
 ### El conteo agregado, cuando duela
 
