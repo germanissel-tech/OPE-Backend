@@ -11,6 +11,7 @@ import { loadContract } from "../infrastructure/http/load-contract.js";
 import { openSqliteStore } from "../infrastructure/sqlite/open-store.js";
 import { bind, compositionModule, port } from "./graph/index.js";
 import type { AppConfig, ReleaseLevels } from "./config.js";
+import type { EventLogTuning } from "./event-log-config.js";
 import type { PlatformConfiguration } from "../domain/configuration/index.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { ContractDocument } from "../infrastructure/http/build-server.js";
@@ -33,6 +34,13 @@ export const OperatorsPort = port("release.operators")<readonly Operator[]>();
  * nothing asks for it, nothing is missing.
  */
 export const SqlStorePort = port("release.store")<SqlStore>();
+/**
+ * How the register's queue is tuned (feature 031). It travels here and not through the three levels
+ * of configuration because it is a value of the **environment**, like the location of the store:
+ * nothing a merchant or a visitor observes changes with it. `event-log-config.ts` has the argument,
+ * including the consequence that settled it.
+ */
+export const EventLogTuningPort = port("release.event-log-tuning")<EventLogTuning>();
 
 export const releaseComponents = (config: AppConfig) =>
   compositionModule({
@@ -42,6 +50,7 @@ export const releaseComponents = (config: AppConfig) =>
       bind(PlatformConfigurationPort, { levels: ReleaseLevelsPort }, ({ levels }) => levels.platform),
       bind(OperatorsPort, {}, () => config.operators),
       bind(CorpusPort, {}, () => config.corpus),
+      bind(EventLogTuningPort, {}, () => config.eventLog),
     ],
   });
 

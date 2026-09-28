@@ -64,7 +64,7 @@ erDiagram
         INTEGER position UK "su lugar en la llegada: esto es lo único"
         TEXT event_id "índice NO único: cada llegada es un hecho"
         TEXT session_id "índice por sesión, lo que lee la feature 032"
-        TEXT type "índice de cobertura con created_at"
+        TEXT type "índice de cobertura con received_at"
         TEXT received_at "cuándo llegó; su resta con created_at es el atraso de la cola"
         TEXT disposition "accepted · duplicate · rejected"
         TEXT decision_id "ausente sólo si el lote fue rechazado"

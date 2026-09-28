@@ -3,3 +3,6 @@
 export * from "./controllers/ingest-events.js";
 export * from "./gateways/memory-event-dedup.js";
 export * from "./gateways/random-batch-ids.js";
+export * from "./gateways/memory-event-log.js";
+export * from "./gateways/sqlite-event-log.js";
+export * from "./queue/event-log-queue.js";

@@ -15,6 +15,7 @@
 import { deployment } from "../graph/index.js";
 import { catalogModule } from "../modules/catalog.js";
 import { experimentModule } from "../modules/experiment.js";
+import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { outcomesModule } from "../modules/outcomes.js";
 import { sharedModules } from "./shared-modules.js";
@@ -25,6 +26,7 @@ export const localDeployment = (config: AppConfig) =>
     ...sharedModules(config),
     catalogModule.with("memory"),
     experimentModule.with("memory"),
+    ingestionModule.with("memory"),
     ledgerModule.with("memory"),
     outcomesModule.with("memory"),
   ]);

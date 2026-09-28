@@ -219,6 +219,12 @@ CREATE INDEX received_events_by_event ON received_events (merchant_id, event_id)
 -- same query costs 507 ms with no useful index, 1 703 ms with `(merchant_id, type)` — worse than
 -- none — and 107 ms with this one (research R-06). Its column order is the query's: equality,
 -- then range, then what is grouped.
-CREATE INDEX received_events_volume ON received_events (merchant_id, created_at, type);
+--
+-- **The range is `received_at` and not `created_at`**, which the data model of this feature had the
+-- other way round. FR-012 asks how many events *entered* and how they are spread over time, and that
+-- is when OPE received them; `created_at` is when the queue got around to writing them, so a window
+-- over it would smear the traffic of a merchant by the lag of a buffer of ours. `created_at` keeps its
+-- own job, which is exactly to be subtracted from this one to measure that lag (FR-015).
+CREATE INDEX received_events_volume ON received_events (merchant_id, received_at, type);
 
 PRAGMA user_version = 2;

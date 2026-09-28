@@ -45,6 +45,9 @@ describe("readConfig", () => {
       // Where a durable deployment would keep its store. Reading it costs nothing and opens
       // nothing: only a deployment that includes `storeComponents` ever touches the file.
       store: { file: path.resolve("data/ope.db") },
+      // How the register's queue is tuned (feature 031). Like the store's location it is a value of
+      // the environment, so it is read here and not in the three levels of configuration.
+      eventLog: { maxArrivals: 10_000, flushIntervalMs: 250 },
     });
     expect(corpus.length).toBeGreaterThan(0);
     expect(corpus.every((entry) => entry.text.value.length > 0)).toBe(true);

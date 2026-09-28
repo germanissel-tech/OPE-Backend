@@ -79,7 +79,7 @@ CREATE UNIQUE INDEX received_events_arrival   ON received_events (merchant_id, b
 CREATE INDEX received_events_by_decision      ON received_events (merchant_id, decision_id);
 CREATE INDEX received_events_by_session       ON received_events (merchant_id, session_id, id);
 CREATE INDEX received_events_by_event         ON received_events (merchant_id, event_id);
-CREATE INDEX received_events_volume           ON received_events (merchant_id, created_at, type);
+CREATE INDEX received_events_volume           ON received_events (merchant_id, received_at, type);
 ```
 
 ### Por qué cada columna está afuera del `document`
@@ -87,16 +87,16 @@ CREATE INDEX received_events_volume           ON received_events (merchant_id, c
 La 030 fijó el criterio: columnas para el merchant y para la clave por la que el puerto busca; todo lo
 demás viaja en `document`. Cada columna de acá tiene su consulta:
 
-| Columna                | Qué consulta la pide                                                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `merchant_id`          | el aislamiento, que es el predicado de todas (FR-008)                                                                                  |
-| `batch_id`, `position` | la unicidad de la llegada — la idempotencia de la escritura (research R-04)                                                            |
-| `decision_id`          | los eventos de una decisión y la decisión de un evento (FR-003)                                                                        |
-| `session_id`           | los eventos de una sesión en orden (FR-013), el insumo de la 032                                                                       |
-| `event_id`             | todas las llegadas de un evento: es lo que reconstruye la referencia al duplicado sin tocar el puerto de deduplicación (research R-08) |
-| `type`, `created_at`   | el volumen por merchant y tipo, con índice de cobertura (FR-012)                                                                       |
-| `received_at`          | FR-002, y con `created_at` mide el atraso de la cola (FR-015)                                                                          |
-| `disposition`          | distinguir aceptado, duplicado y rechazado sin abrir el documento                                                                      |
+| Columna                | Qué consulta la pide                                                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `merchant_id`          | el aislamiento, que es el predicado de todas (FR-008)                                                                                                                                                                                                                                                              |
+| `batch_id`, `position` | la unicidad de la llegada — la idempotencia de la escritura (research R-04)                                                                                                                                                                                                                                        |
+| `decision_id`          | los eventos de una decisión y la decisión de un evento (FR-003)                                                                                                                                                                                                                                                    |
+| `session_id`           | los eventos de una sesión en orden (FR-013), el insumo de la 032                                                                                                                                                                                                                                                   |
+| `event_id`             | todas las llegadas de un evento: es lo que reconstruye la referencia al duplicado sin tocar el puerto de deduplicación (research R-08)                                                                                                                                                                             |
+| `type`, `received_at`  | el volumen por merchant y tipo, con índice de cobertura (FR-012). **Corregido en la implementación**: la ventana va sobre `received_at` y no sobre `created_at`, porque FR-012 pregunta cuántos eventos **entraron** — usar el instante en que la cola escribió mezclaría su atraso en la distribución del tráfico |
+| `received_at`          | FR-002, y con `created_at` mide el atraso de la cola (FR-015)                                                                                                                                                                                                                                                      |
+| `disposition`          | distinguir aceptado, duplicado y rechazado sin abrir el documento                                                                                                                                                                                                                                                  |
 
 `visitor_id`, `page`, `dwellMs` y el resto del evento van en `document`: ninguna consulta de las historias
 busca por ellos, y sacarlos a columnas obligaría a mantener dos formas del mismo dominio en paso, que es la

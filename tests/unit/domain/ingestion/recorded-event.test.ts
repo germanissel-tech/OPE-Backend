@@ -15,7 +15,7 @@ import {
   type RejectedArrival,
 } from "../../../../src/domain/ingestion/index.js";
 import { asDecisionId } from "../../../../src/domain/ledger/index.js";
-import { asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, asSessionId, asVisitorId } from "../../../../src/domain/shared-kernel/index.js";
 
 const now = new Date("2026-09-28T12:00:00.000Z");
 
@@ -30,7 +30,13 @@ const event = (over: Partial<ProductViewed> = {}): Event => ({
   ...over,
 });
 
-const arrival = { batchId: asBatchId("bat_00000001"), position: 0, event: event(), receivedAt: now };
+const arrival = {
+  merchantId: asMerchantId("m-one"),
+  batchId: asBatchId("bat_00000001"),
+  position: 0,
+  event: event(),
+  receivedAt: now,
+};
 
 describe("a recorded arrival", () => {
   it("keeps the client's instant and OPE's, which are two different facts", () => {

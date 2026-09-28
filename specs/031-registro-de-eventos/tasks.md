@@ -160,37 +160,69 @@ todavía.
 
 ### El puerto, sus dos implementaciones y la cola
 
-- [ ] T011 `src/application/ingestion/ports/event-log.ts` — el puerto como `data-model.md` lo fija.
+- [x] T011 `src/application/ingestion/ports/event-log.ts` — el puerto como `data-model.md` lo fija.
       **`record(...)` devuelve `void`, no `Promise`, y no tiene canal de fallo**, y el comentario explica
       el mecanismo: un tipo que se puede esperar invita a esperarlo, y ahí se pierde FR-007. El
       requisito deja de depender de que alguien se acuerde.
-- [ ] T012 `src/interface-adapters/ingestion/queue/` — la cola: encolar es una operación en memoria que
+- [x] T012 `src/interface-adapters/ingestion/queue/` — la cola: encolar es una operación en memoria que
       **no espera**, vaciar corre aparte. Implementa `Closeable` para drenar al cerrar (FR-017). El
       drenaje **tiene techo**: `SHUTDOWN_TIMEOUT_MS` son 10 s y pasado el plazo el proceso sale con 1
       (research R-09), así que lo que no alcance a salir se trata como lo de una caída abrupta en vez de
       colgar el apagado.
-- [ ] T013 [P] `config/platform.json` y su esquema — el **tamaño de la cola** y su **intervalo de
-      vaciado** como entradas del nivel plataforma, no constantes: son reglas del despliegue y
-      `check:behaviour-constants` rechaza la constante (constitución XI, ADR-031).
-- [ ] T014 `tests/unit/.../event-log.test.ts` — **antes de las dos implementaciones**: un solo contrato
+      **Una decisión que la tarea no nombraba: qué hace una cola llena.** Esperar lugar es lo único que
+      FR-007 prohíbe, así que **descarta y lo dice** — y descarta la llegada **nueva** y no la más vieja,
+      porque lo encolado está más cerca de escribirse. Es una pérdida que la reconciliación de FR-018 no
+      puede ver —la decisión a la que pertenece se escribió perfectamente—, así que se avisa en el
+      momento en vez de contarse para después.
+      **Y dos mutantes obligaron a probar efectos, no llamadas** (`.claude/rules/gates-de-calidad.md`):
+      sin `clearInterval` la cola seguía escribiendo después de cerrada, y sin `unref` el timer
+      **retendría el event loop** — o sea que un proceso sin nada más que hacer no saldría. El segundo se
+      observa sin lanzar un proceso: Node lista los recursos que mantienen vivo el loop, y un timer sin
+      referencia no está entre ellos.
+- [x] T013 ~~`config/platform.json` y su esquema — el **tamaño de la cola** y su **intervalo de
+      vaciado** como entradas del nivel plataforma~~ → **`src/composition/event-log-config.ts`, y la
+      tarea estaba equivocada.** Son valores del **entorno**, no de comportamiento, como la ruta del
+      almacén que la 030 ya decidió así: nada que un merchant o un visitante observe cambia con ellos
+      (FR-007, FR-009, FR-011) y no son parte del tratamiento que se congela en el piloto.
+      **Lo que lo cerró fue la consecuencia**: el nivel 1 **se publica al SDK** dentro de
+      `EffectiveConfiguration`, cuyo DTO es el record entero y cuyo esquema no admite propiedades
+      extra. Ponerlos ahí obligaba a contarle a cada merchant el tamaño de un buffer nuestro y **a
+      tocar el contrato**, que el plan prometió no tocar. Y `check:behaviour-constants` no lo exigía:
+      es una lista de nombres retirados, no una regla general — lo verifiqué en vez de suponerlo.
+- [x] T014 `tests/unit/.../event-log.test.ts` — **antes de las dos implementaciones**: un solo contrato
       de pruebas que se corre contra ambas, para que no puedan divergir. Es lo que hizo que en la 030 la
       memoria y SQLite terminaran rechazando igual una sobreescritura, en vez de que el comportamiento
       dependiera del despliegue.
-- [ ] T015 [P] `src/interface-adapters/ingestion/gateways/memory-event-log.ts` — la implementación del
+      **Corre contra tres cosas y no dos**: la memoria, la durable, y **la cola envolviendo a la
+      memoria** — porque envolver no debe cambiar ninguna respuesta, y es la única línea del contrato
+      que sabe que una cola podría existir (`settle`).
+      **Y el gate de mutación encontró que le faltaban dos casos, los dos la misma omisión**: cada
+      prueba tenía **una** fila por merchant y toda ventana cubría todo lo registrado, así que una
+      lectura que ignoraba su clave respondía igual que una que la respetaba, y un filtro que dejaba
+      pasar todo era indistinguible de uno que filtraba. Se agregaron dos filas por merchant bajo claves
+      distintas, y una ventana con sus dos bordes y sus dos afueras.
+- [x] T015 [P] `src/interface-adapters/ingestion/gateways/memory-event-log.ts` — la implementación del
       lazo local y del proyecto `fast`. Existe para que ninguna prueba unitaria tenga que abrir un
       almacén, que es lo que mantiene rápido el lazo que el gate de mutación necesita (ADR-016).
-- [ ] T016 [P] `src/interface-adapters/ingestion/gateways/sqlite-event-log.ts` — la durable, con el patrón
+- [x] T016 [P] `src/interface-adapters/ingestion/gateways/sqlite-event-log.ts` — la durable, con el patrón
       de `.claude/rules/gateway-durable.md`: el driver **llega por el enlace**, se escribe
       `entidad.record()`, y al leer **toda clase anidada se rehidrata** — el error que se ve bien en toda
       lectura y falla en la única escritura que importa.
 
 ### El cableado y el punto de encolado del camino aceptado
 
-- [ ] T017 `src/composition/modules/ingestion.ts` — el puerto nuevo con sus dos tecnologías, elegidas por
+- [x] T017 `src/composition/modules/ingestion.ts` — el puerto nuevo con sus dos tecnologías, elegidas por
       el despliegue (`ADR-033`, `.with("sqlite")`), y la cola en el grafo **después** del almacén, para
       que el cierre en orden inverso drene antes de cerrarlo (research R-09).
-- [ ] T018 [P] `src/composition/deployments/{local,durable}.ts` — cada despliegue elige. No compila si
+      **La cola es la misma en los dos despliegues**: lo que la tecnología elige es sólo qué escribe
+      detrás. Un despliegue que escribiera directo sería uno donde FR-007 no vale.
+      Y el gate de duplicación tuvo razón sobre lo primero que escribí: los dos enlaces que no dependen
+      de la tecnología estaban repetidos en las dos ramas, que es peor que repetición — dos lugares que
+      mantener en paso para algo que no tiene motivo para diferir.
+- [x] T018 [P] `src/composition/deployments/{local,durable}.ts` — cada despliegue elige. No compila si
       nadie elige, que es la garantía que ADR-033 da.
+      **La ingesta salió de `sharedModules`**, que es la lista de los módulos que no tienen nada que
+      elegir: ahora tiene dos tecnologías, así que es decisión de cada despliegue.
 - [ ] T019 `src/application/ingestion/use-cases/ingest-batch.use-case.ts` — el **punto 1**: después de
       `decisionPlane.decide`, porque el `decisionId` y el brazo no existen antes (research R-01). Encola
       una fila por evento con su `disposition` —`accepted` o `duplicate`, que salen del mismo

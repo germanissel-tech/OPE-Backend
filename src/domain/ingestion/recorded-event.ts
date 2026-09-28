@@ -19,12 +19,18 @@
 import type { Event } from "./event.js";
 import type { BatchId } from "./ids.js";
 import type { DecisionId } from "../ledger/index.js";
-import type { Arm } from "../shared-kernel/index.js";
+import type { Arm, MerchantId } from "../shared-kernel/index.js";
 
 /** What became of an event: it entered, it had already been seen, or its batch was refused. */
 export type Disposition = "accepted" | "duplicate" | "rejected";
 
 interface Arrival {
+  /**
+   * Whose traffic it is. It lives **in** the fact rather than beside it, so a queue holding arrivals
+   * of several merchants stays a flat list and every row is self-describing: the isolation of
+   * constitution V travels with the row instead of depending on who passes it along.
+   */
+  merchantId: MerchantId;
   /** The arrival it came in. */
   batchId: BatchId;
   /** Its place in that arrival; with `batchId` it identifies the row. */
