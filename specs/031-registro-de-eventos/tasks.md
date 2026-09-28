@@ -124,21 +124,39 @@ todavía.
 
 ### La identidad y la entidad
 
-- [ ] T007 [P] `src/domain/ingestion/ids.ts` — `BatchId` junto a `EventId`, con su `asBatchId`. Vive acá
+- [x] T007 [P] `src/domain/ingestion/ids.ts` — `BatchId` junto a `EventId`, con su `asBatchId`. Vive acá
       y no en el shared kernel porque tiene un dueño claro: la ingesta acuña la llegada (research R-05).
       El comentario dice **qué identifica y qué no**, porque la constitución VI avisa que colapsar
       identidades es el error más caro: identifica **una llegada**, no un evento, no una sesión.
-- [ ] T008 [P] `src/application/ingestion/ports/batch-id-generator.ts` — el puerto que acuña, con la
+- [x] T008 [P] `src/application/ingestion/ports/batch-id-generator.ts` — el puerto que acuña, con la
       forma de `DecisionIdGenerator`: quien acuña un id lo pide por un puerto del dueño, nunca al
       kernel.
-- [ ] T009 `tests/unit/domain/ingestion/recorded-event.test.ts` — **antes de la entidad**: las tres
+      **Y su implementación y su enlace se adelantaron desde T017**, porque el gate
+      `check:ports-bound` no admite un puerto declarado sin enlazar: un archivo de puerto solo es
+      «código muerto» para `check:dead-code` y la cadena no pasa. `randomBatchIds` con la forma de
+      `randomDecisionIds` (UUID v4 sin guiones, prefijo `bat_`), enlazado en el módulo de composición.
+- [x] T009 `tests/unit/domain/ingestion/recorded-event.test.ts` — **antes de la entidad**: las tres
       invariantes en sus dos sentidos, y que `rehydrate` acepta lo que `of` rechazaría, porque un cambio
       de reglas no debe romper la lectura de un histórico que la feature promete conservar entero.
-- [ ] T010 `src/domain/ingestion/recorded-event.ts` — la entidad, **clase porque tiene reglas**
-      (ADR-024): `private constructor`, `of(...)` que devuelve `Result`, `rehydrate` que **no re-juzga**
-      y `record()`. Las tres invariantes de `data-model.md`, y la primera es la que importa:
-      `rejected` ⟺ `rejectedBy` presente ⟺ `decisionId` ausente, porque una fila que dice «rechazado» y
-      trae una decisión es un dato falso sobre por qué el tráfico no intervino.
+      **Las pruebas quedaron cortas, y ése es el hallazgo** (ver T010): las reglas que importaban son
+      errores de compilación, así que lo que las afirma son cuatro casos `@ts-expect-error` que rompen
+      el build en vez de una corrida. Escribiéndolas encontré además que una de ellas contradecía la
+      regla que yo mismo había escrito —afirmaba un evento **aceptado sin decisión**, y no existe: el
+      plano siempre responde una, degradada a `NO_OP ledger-unavailable` si el ledger no puede
+      registrar—. El único caso sin decisión ni brazo es el rechazado.
+- [x] T010 `src/domain/ingestion/recorded-event.ts` — **no es una clase: es una unión discriminada de
+      tipos, y eso corrige el `data-model.md` de esta feature.** Se escribió como clase con tres reglas,
+      y dos gates la rechazaron por el mismo motivo: una clase necesita un error, un error del dominio
+      **tiene que figurar en el catálogo público de tipos de problema** (`tests/unit/domain/error-codes`)
+      y éste no lo emitiría ningún endpoint, porque no es un error de negocio sino **un error de
+      programación**.
+      ADR-024 pide hacer el estado ilegal **irrepresentable** antes de pedir una regla, así que
+      `DecidedArrival | RejectedArrival` convierte las dos reglas que importaban en errores de
+      compilación y no queda nada que validar en runtime. Con eso desaparecen la clase, el error, su
+      entrada en el catálogo —y el contrato **sigue sin tocarse**, como el plan prometió—. Queda un
+      valor sin reglas, como `Exposure` y `Assignment`, que ADR-024 dice no envolver por uniformidad.
+      La tercera regla (`position >= 0`) se fue con la clase: la produce un `map` sobre el lote, así que
+      era una guarda contra un error de programación que ningún llamador puede cometer.
 
 ### El puerto, sus dos implementaciones y la cola
 

@@ -9,9 +9,20 @@ modifique: clave primaria autoincremental propia, y `created_at` / `updated_at` 
 
 ## La entidad: una llegada registrada
 
-`RecordedEvent` — un evento **tal como llegó**, en una llegada concreta. Es una **clase** y no un tipo,
-porque tiene reglas (ADR-024): `of(...)` devuelve `Result`, `rehydrate` no vuelve a juzgar, y `record()`
-da la forma que el gateway escribe.
+> **Corregido durante la implementación (2026-09-28).** Esta sección decía «una **clase** porque tiene
+> reglas», con `of`/`rehydrate`/`record` y tres invariantes de runtime. Dos gates lo rechazaron por el
+> mismo motivo: una clase necesita un error, y **un error del dominio tiene que figurar en el catálogo
+> público de tipos de problema**, mientras que éste no lo emitiría ningún endpoint porque no es un error
+> de negocio sino de programación. ADR-024 pide hacer el estado ilegal **irrepresentable** antes de
+> pedir una regla, así que es una **unión discriminada de tipos**: las dos reglas que importaban son
+> errores de compilación, no queda nada que validar, y el contrato sigue sin tocarse. Lo que sigue
+> describe el diseño que quedó; el párrafo tachado se conserva porque el motivo del cambio vale más que
+> la versión limpia.
+
+`RecordedEvent` — un evento **tal como llegó**, en una llegada concreta. Es
+`DecidedArrival | RejectedArrival`, un valor **sin reglas**, como `Exposure` y `Assignment`: ADR-024 dice
+no envolverlo por uniformidad. Quien lo lee lo estrecha por `disposition`, que es para lo que existe una
+unión discriminada, y no hay función auxiliar porque el dominio no exporta funciones sueltas.
 
 Lo que la distingue de `Event`, que ya existe en el dominio de ingesta: `Event` es lo que el contrato
 declara; `RecordedEvent` es **un hecho de recepción** — el mismo evento puede tener varias, y cada una es
@@ -28,16 +39,20 @@ una fila.
 | `decisionId`  | `DecisionId \| undefined`                 | ausente **sólo** cuando el lote fue rechazado, porque entonces no hubo decisión                   |
 | `arm`         | `Arm \| undefined`                        | `CONTROL` o `TREATMENT`; ausente cuando no había experimento activo — **no se inventa `CONTROL`** |
 
-### Las invariantes de `of(...)`, que son las que la clase existe para sostener
+### Lo que el compilador impide, y que eran las invariantes
 
-1. `disposition === "rejected"` ⟺ `rejectedBy` presente ⟺ `decisionId` ausente. Las tres van juntas: una
-   fila que dice «rechazado» y trae una decisión es un dato falso sobre por qué el tráfico no intervino.
-2. `position` ≥ 0 y `event` no vacío.
-3. `arm` presente sólo si `decisionId` presente: el brazo lo conoce la decisión, así que sin decisión no
-   hay brazo que declarar.
+Las dos ramas de la unión son lo que cierra cada forma de escribir una mentira, y no compila ninguna:
 
-`rehydrate` **no** re-juzga ninguna: lo leído se registró cuando era válido, y volver a juzgarlo haría que
-un cambio de reglas rompiera la lectura de un histórico que la feature promete conservar entero (Q2).
+1. **Una fila rechazada no puede nombrar una decisión**, ni una decidida nombrar una invariante. Es la
+   que más importa: decir «rechazado» y a la vez nombrar una decisión es un dato falso sobre por qué el
+   tráfico no intervino, que es justamente la pregunta que el registro existe para responder.
+2. **Una fila decidida no puede omitir su decisión**: el plano siempre responde una, degradada a
+   `NO_OP ledger-unavailable` si el ledger no puede registrar (ADR-021), pero responde.
+3. **El brazo sólo existe en la rama que tiene decisión**, porque el brazo lo conoce la decisión.
+
+Y como no hay `of(...)`, tampoco hay `rehydrate` que pudiera re-juzgar: **leer no valida nada**, que es
+lo que la feature necesitaba para que un cambio de reglas no rompa la lectura de un histórico que promete
+conservar entero (Q2). Lo que antes era una decisión de diseño la da ahora la forma del tipo.
 
 ---
 

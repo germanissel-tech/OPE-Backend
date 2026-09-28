@@ -2,3 +2,4 @@
 // composition wires. Presenters stay internal to the module.
 export * from "./controllers/ingest-events.js";
 export * from "./gateways/memory-event-dedup.js";
+export * from "./gateways/random-batch-ids.js";
