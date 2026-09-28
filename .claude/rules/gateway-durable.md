@@ -56,7 +56,16 @@ primeras son las que se equivocan.
 ## El esquema y sus migraciones
 
 Una migración es `migrations/NNN-<nombre>.sql` y termina en `PRAGMA user_version = NNN`. Columnas
-sólo para el merchant y la clave que el puerto busca; el resto es el documento. El arranque aplica
-el esquema a un archivo vacío, acepta la versión que espera y **rechaza todo lo demás diciendo qué
-esperaba** —incluida la versión 0 con tablas adentro, que es una base ajena en nuestra ruta—.
-`migrations/README.md` tiene el detalle y el inventario.
+sólo para el merchant y la clave que el puerto busca; el resto es el documento.
+
+El arranque tiene cuatro salidas y conviene saber cuál es cuál: aplica **todo** el esquema a un
+archivo vacío; aplica **sólo lo pendiente** a un archivo entre 1 y la versión esperada, cada
+migración en su transacción (feature 031); usa el que ya está en la esperada; y **rechaza todo lo
+demás diciendo qué esperaba** —una versión mayor que la que el build conoce, y la versión 0 con
+tablas adentro, que es una base ajena en nuestra ruta—.
+
+Por eso una migración que **reconstruye** una tabla —crear, copiar, borrar, renombrar, que es lo que
+SQLite obliga para agregar una clave primaria— es segura contra un almacén con datos: la transacción
+la hace entera o ninguna. Sin ella el almacén quedaría en una forma que no es ni la vieja ni la
+nueva, con `user_version` diciendo la vieja, y el arranque siguiente correría la misma migración
+sobre los restos. `migrations/README.md` tiene el detalle y el inventario.

@@ -94,17 +94,24 @@ migración perdida en un merge. La última que pide es la versión que la build 
 Entonces:
 
 - **Archivo vacío y sin tablas** → aplica todas, en ese orden.
-- **La versión que esperaba** → arranca.
+- **Una versión entre 1 y la esperada** → aplica **sólo las pendientes**, cada una en su transacción.
+  Estar al día no es un caso especial: es ese mismo recorrido sin encontrar nada que hacer.
 - **Un hueco en la numeración** (001 y 003, sin 002) → **no arranca**, nombrando la que falta.
-- **Cualquier otra cosa** —otra versión, o versión 0 con tablas adentro— → **no arranca, y dice qué
-  esperaba** (FR-006). Un servidor que arranca sobre algo que no entiende es peor que uno que no
-  arranca: falla más tarde y en otro lado.
+- **Cualquier otra cosa** —una versión mayor que la que la build conoce, o versión 0 con tablas
+  adentro— → **no arranca, y dice qué esperaba** (FR-006). Un servidor que arranca sobre algo que no
+  entiende es peor que uno que no arranca: falla más tarde y en otro lado.
 
 Un arranque rechazado **cierra la base que había abierto**; no deja la conexión detrás.
 
-**Hoy no hay migración de datos**: no hay nada en producción, así que la primera versión no convive
-con ninguna anterior. Cuando la haya, la decisión de cómo se migra se toma entonces y queda en su
-ADR; este directorio no la prejuzga.
+**Cada migración va en su propia transacción**, y eso es lo que vuelve segura una que **reconstruye**
+una tabla —crear, copiar, borrar, renombrar, que es lo que SQLite obliga para agregar una clave
+primaria—: se aplica entera o ninguna. Sin la transacción, un fallo a mitad dejaría el almacén en una
+forma que no es ni la vieja ni la nueva, con `user_version` diciendo la vieja, y el arranque
+siguiente correría la misma migración sobre los restos.
+
+**La migración hacia adelante llegó en la feature 031.** La 030 la había dejado afuera con su motivo
+—no había datos en ninguna parte, así que un almacén sólo podía estar vacío o al día— y la segunda
+migración del repositorio volvió ordinario el caso de un almacén una versión atrás.
 
 ## Qué hace cada clave cuando la escritura se repite
 

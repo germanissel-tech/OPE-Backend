@@ -193,6 +193,60 @@ describe("the durable store", () => {
       );
     });
 
+    it("applies only the pending migration to a store one version behind, and keeps its rows", () => {
+      // **The case feature 030 left out and 031 needs.** That feature declared "nothing to
+      // migrate" because there was no data anywhere, so a store could only be empty or current.
+      // The second migration of this repository makes a store that is one version behind an
+      // ordinary thing, and the old runner refused to start against it.
+      migration("001", "CREATE TABLE step (a TEXT);");
+      const before = openSqliteStore({ file, migrations: schema });
+      before.run("INSERT INTO step (a) VALUES (:a)", { a: "written under version 1" });
+      before.close();
+
+      migration("002", "ALTER TABLE step ADD COLUMN b TEXT;");
+      const after = openSqliteStore({ file, migrations: schema });
+      expect(after.all("PRAGMA user_version")).toEqual([{ user_version: 2 }]);
+      // The row has to survive: a migration that starts from scratch is not a migration.
+      expect(after.all("SELECT a, b FROM step")).toEqual([{ a: "written under version 1", b: null }]);
+      after.close();
+    });
+
+    it("does nothing to a store already at the expected version", () => {
+      // Re-running 002 would throw outright (a duplicate column), so a clean reopen is the
+      // observation: the runner asks for what is pending, not for everything it has.
+      migration("001", "CREATE TABLE step (a TEXT);");
+      migration("002", "ALTER TABLE step ADD COLUMN b TEXT;");
+      const first = openSqliteStore({ file, migrations: schema });
+      first.run("INSERT INTO step (a, b) VALUES (:a, :b)", { a: "1", b: "2" });
+      first.close();
+
+      const reopened = openSqliteStore({ file, migrations: schema });
+      expect(reopened.all("SELECT a, b FROM step")).toEqual([{ a: "1", b: "2" }]);
+      reopened.close();
+    });
+
+    it("leaves nothing behind when a pending migration fails halfway", () => {
+      // Each migration runs in its own transaction, and this is the case that makes that matter:
+      // the 002 of this repository rebuilds seven tables, so a failure in the middle without a
+      // rollback would leave a schema that is neither the old one nor the new one — and the
+      // version would still say the old one, so the next start would try again over the debris.
+      migration("001", "CREATE TABLE step (a TEXT);");
+      const before = openSqliteStore({ file, migrations: schema });
+      before.run("INSERT INTO step (a) VALUES (:a)", { a: "survives" });
+      before.close();
+
+      migration("002", "CREATE TABLE half (b TEXT);\nCREATE TABLE half (b TEXT);");
+      expect(() => openSqliteStore({ file, migrations: schema })).toThrow();
+
+      // Nothing of the failed migration is left, and the store is still usable as version 1.
+      migration("002", "ALTER TABLE step ADD COLUMN b TEXT;");
+      const recovered = openSqliteStore({ file, migrations: schema });
+      expect(recovered.all("PRAGMA user_version")).toEqual([{ user_version: 2 }]);
+      expect(recovered.all("SELECT a FROM step")).toEqual([{ a: "survives" }]);
+      expect(recovered.all("SELECT name FROM sqlite_master WHERE name = 'half'")).toEqual([]);
+      recovered.close();
+    });
+
     it("refuses a build whose migrations do not leave the version their names announce", () => {
       // A migration named 002 that forgets to bump `user_version` leaves the store one version
       // behind for ever, and every later start would try to apply it again.

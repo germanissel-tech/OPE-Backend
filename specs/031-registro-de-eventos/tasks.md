@@ -34,21 +34,41 @@ adaptadores → composición.
 002** y en su propio commit, por el mismo argumento con que la 030 separó el salto de Node: cambia cómo
 **todo** almacén se abre, y si rompe algo, rompe algo que no tiene nada que ver con esta feature.
 
-- [ ] T001 `tests/durability/store.test.ts` — las pruebas del runner **primero, y tienen que fallar**:
+- [x] T001 `tests/durability/store.test.ts` — las pruebas del runner **primero, y tienen que fallar**:
       son cuatro casos porque son cuatro caminos distintos. Archivo vacío (aplica todas), archivo en la
       última versión (no hace nada), archivo **una versión atrás** (aplica sólo la pendiente y conserva
       las filas que tenía), y archivo en una versión **mayor** (se niega, y el mensaje dice qué
       esperaba). **El tercero es el que hoy no existe y es el motivo de esta fase**: tiene que fallar
       antes de T002 y pasar después, y las otras tres tienen que pasar en los dos momentos — son el
       control de que el cambio no rompió lo que ya funcionaba.
-- [ ] T002 `src/infrastructure/sqlite/open-store.ts` — `prepareSchema` aprende a aplicar **las
+      **Verificado con `git stash`** sobre el cambio de T002: los dos casos nuevos fallan sin él y
+      pasan con él. El de «ya al día» **pasa en los dos momentos**, y se dice en vez de contarlo como
+      si probara algo: no es una capacidad nueva sino un guardia de regresión. Se agregó un cuarto
+      caso que la tarea no pedía —una migración pendiente que falla a medias no deja nada—, porque la
+      002 reconstruye siete tablas y sin transacción un fallo a mitad dejaría un esquema que no es ni
+      el viejo ni el nuevo.
+- [x] T002 `src/infrastructure/sqlite/open-store.ts` — `prepareSchema` aprende a aplicar **las
       migraciones pendientes**: las de versión mayor a la que el archivo declara, cada una en su
       transacción, verificando al final que la versión resultante es la esperada (research R-02). Se
       **conserva** la negativa a arrancar para los dos casos que la justificaban: una versión mayor que
       la que este build conoce, y una versión 0 con tablas adentro, que es otra base de datos en esa
       ruta.
-- [ ] T003 Correr la cadena del lazo con el runner cambiado y **nada más**: `format:check`, `quality`,
+      **Dos cosas que la tarea no había previsto.** El lint rechazó `BEGIN`/`COMMIT`/`ROLLBACK`
+      repetidos, y tenía razón sobre algo real: la transacción de la migración era la misma que
+      `SqlStore.transaction` ya hacía, así que salió un `inTransaction` que las dos usan — el
+      duplicado era la transacción, no los literales. Y **un mutante sobrevivió**
+      (`found < expected` → `<=`): era **equivalente**, porque un `return` temprano volvía inalcanzable
+      ese borde. Se reestructuró en vez de excepcionarlo —estar al día dejó de ser un caso especial y
+      pasó a ser el recorrido sin nada pendiente—, y el mutante murió. La razón queda en el código,
+      donde alguien podría volver a «simplificarlo».
+- [x] T003 Correr la cadena del lazo con el runner cambiado y **nada más**: `format:check`, `quality`,
       `typecheck`, `test`, `test:durability`. Si algo se movió, se ve acá con el diff más chico posible.
+      **Verde**: 7 gates, 1380 pruebas del proyecto `fast` **sin una sola expectativa cambiada**, 50 de
+      durabilidad (eran 47), y el gate de mutación acotado sin supervivientes. Más `check:language` y
+      las 45 de documentación, por los dos documentos que el cambio volvió falsos y hubo que corregir:
+      la sección de migraciones de `.claude/rules/gateway-durable.md` y la del arranque en
+      `migrations/README.md`, que decían que el arranque rechaza todo lo que no sea la versión
+      esperada.
 
 **Checkpoint**: un almacén de la feature 030 puede subir de versión, y no hay ninguna migración nueva
 todavía.
