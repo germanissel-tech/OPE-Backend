@@ -13,10 +13,8 @@ export interface SessionDecisions {
   bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly Decision[]>;
 }
 
-export interface DecisionLedger extends SessionDecisions {
-  record(decision: Decision): Promise<RecordResult>;
-  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;
-
+/** What the ledger knows of a visitor: the question the fatigue limit asks (feature 032, FR-007). */
+export interface VisitorDecisions {
   /**
    * The decisions of a visitor of the merchant since an instant, oldest first (feature 032, FR-007).
    * What it is for is the fatigue limit, which counts the interventions a visitor received across
@@ -33,4 +31,16 @@ export interface DecisionLedger extends SessionDecisions {
    * a rule of the domain, and a store that filtered by it would be that rule written a second time.
    */
   byVisitor(merchantId: MerchantId, visitorId: VisitorId, since: Date): Promise<readonly Decision[]>;
+}
+
+/**
+ * The two reads a forgotten state is rebuilt from (feature 032): what the session already received and
+ * what the visitor did. Named as one thing because it is one job — whoever rebuilds asks both and
+ * writes neither, so depending on the whole ledger would hand it a `record` it must not call.
+ */
+export interface PastDecisions extends SessionDecisions, VisitorDecisions {}
+
+export interface DecisionLedger extends SessionDecisions, VisitorDecisions {
+  record(decision: Decision): Promise<RecordResult>;
+  find(merchantId: MerchantId, decisionId: DecisionId): Promise<Decision | undefined>;
 }

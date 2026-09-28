@@ -72,62 +72,62 @@ cosmético:
 
 ### El esquema y la lectura por visitante
 
-- [ ] T006 `tests/durability/store.test.ts` — **antes de la migración**: un almacén en versión 2 sube a 3,
+- [x] T006 `tests/durability/store.test.ts` — **antes de la migración**: un almacén en versión 2 sube a 3,
       sus decisiones quedan intactas y **ninguna fila tiene el visitante vacío**. Ese último es el que
       importa: un relleno que falla no rompe nada, hace que la lectura por visitante mienta en silencio.
-- [ ] T007 `migrations/003-*.sql` — `decisions` gana `visitor_id` **`NOT NULL`** con su índice
+- [x] T007 `migrations/003-*.sql` — `decisions` gana `visitor_id` **`NOT NULL`** con su índice
       `decisions_by_visitor`, rellenado desde el documento con `json_extract`. **Reconstruye la tabla y no
       usa `ALTER TABLE ADD COLUMN`**, y el motivo está en `data-model.md`: la columna quedaría nullable para
       siempre, y una fila con el visitante en `NULL` es un tope que deja de aplicarse sin que nada falle.
       Los `created_at` **se copian**: esta migración no es cuándo la fila apareció.
-- [ ] T008 [P] `migrations/README.md` — la fila del inventario de `003` y el diagrama ER con la columna
+- [x] T008 [P] `migrations/README.md` — la fila del inventario de `003` y el diagrama ER con la columna
       nueva. Sin cifras de estado (ADR-032); `tests/docs/readmes.test.ts` es el gate, y recordar que lee de
       `git ls-files`: una migración sin rastrear no cuenta.
-- [ ] T009 `tests/durability/ledger.test.ts` — **antes de la lectura**: las intervenciones de un visitante,
+- [x] T009 `tests/durability/ledger.test.ts` — **antes de la lectura**: las intervenciones de un visitante,
       cruzando un reinicio, con aislamiento por merchant, y **verificando su plan de consulta**: tiene que
       decir `decisions_by_visitor` y no `SCAN decisions`. En esta familia de features un índice equivocado ya
       salió más de tres veces peor que ninguno.
-- [ ] T010 `src/application/ledger/ports/decision-ledger.ts` y sus dos gateways — la lectura por visitante
+- [x] T010 `src/application/ledger/ports/decision-ledger.ts` y sus dos gateways — la lectura por visitante
       (FR-007), acotada a una ventana porque la fatiga cuenta dentro de 24 h y traer todo el histórico de un
       visitante para descartarlo sería trabajo tirado en el camino de decisión.
 
 ### La tercera respuesta de los puertos
 
-- [ ] T011 `src/domain/decision/errors.ts` y `contracts/problem-types.yaml` — `StateUnavailable`, con el
+- [x] T011 `src/domain/decision/errors.ts` y `contracts/problem-types.yaml` — `StateUnavailable`, con el
       **mismo slug** que el motivo de `NO_OP` porque nombran la misma cosa desde los dos lados. Va al
       catálogo aunque ningún endpoint lo emita, que es la regla de `entidad.md`.
-- [ ] T012 `tests/unit/application/decision/` — **antes de cambiar los puertos**: las tres respuestas y sus
+- [x] T012 `tests/unit/application/decision/` — **antes de cambiar los puertos**: las tres respuestas y sus
       tres consecuencias. Recordado decide, olvidado reconstruye, **fallado degrada** — y el tercero es el
       que hoy no se puede expresar.
-- [ ] T013 `session-state-store.ts` y `visitor-state-store.ts` — `load` devuelve
+- [x] T013 `session-state-store.ts` y `visitor-state-store.ts` — `load` devuelve
       `Promise<Result<State | undefined, StateUnavailable>>`. Tres respuestas, tres valores (FR-012).
       **Es un adelanto de un punto del hito, no un invento de esta feature**: «puertos de lectura con canal
       de fallo» ya está declarado en `durable-write.ts` como trabajo de `persistence-and-resilience`, y acá
       se hace **en los dos que lo necesitan ahora**. Los demás siguen lanzando, y el comentario lo dice para
       que después no parezca que estos dos son la excepción.
-- [ ] T014 [P] Los gateways en memoria de los dos puertos — devuelven `ok(...)`, y **nunca fallan**, porque
+- [x] T014 [P] Los gateways en memoria de los dos puertos — devuelven `ok(...)`, y **nunca fallan**, porque
       un `Map` no puede: el canal de fallo existe para el durable y en memoria es una rama muerta que se
       declara como tal.
 
 ### La reconstrucción
 
-- [ ] T015 `tests/unit/application/decision/` — **antes del servicio**, y el caso que decide SC-002: los
+- [x] T015 `tests/unit/application/decision/` — **antes del servicio**, y el caso que decide SC-002: los
       eventos `duplicate` **se replican** y los `rejected` **no**. Dos pruebas y no una, porque los dos
       errores devuelven un estado plausible: con los rechazados adentro la sesión vuelve con señales que
       nunca tuvo; sin los duplicados, con menos de las que tuvo.
-- [ ] T016 `src/application/decision/services/state.service.ts` — `recall` reconstruye cuando la memoria
+- [x] T016 `src/application/decision/services/state.service.ts` — `recall` reconstruye cuando la memoria
       dice «no lo recuerdo»: las señales de `EventLog.bySession`, las intervenciones de la sesión de
       `DecisionLedger.bySession` —que **existe desde la 030**— y las del visitante de la lectura nueva.
       El servicio queda en **cinco** dependencias. El filtro de `disposition` va **en un solo lugar**, con
       su razonamiento al lado.
-- [ ] T017 `remember` sigue guardando en caliente y nada más: lo durable ya lo escriben el ledger y el
+- [x] T017 `remember` sigue guardando en caliente y nada más: lo durable ya lo escriben el ledger y el
       registro, y escribir dos veces lo mismo crearía dos verdades que pueden discrepar.
-- [ ] T018 [P] `src/composition/` — el cableado de las dos dependencias nuevas del servicio. La
+- [x] T018 [P] `src/composition/` — el cableado de las dos dependencias nuevas del servicio. La
       **retención caliente** ya entró en la fase 1 como `OPE_SESSION_RETENTION_MS`
       (`state-retention-config.ts`), con el argumento de `event-log-config.ts`: no cambia ninguna
       respuesta, así que no va a los tres niveles ni al contrato. El motivo de que se adelantara está en
       la nota de la fase 1.
-- [ ] T019 `npm test` — **ninguna prueba de comportamiento cambia de expectativa** (FR-010, SC-004). Si hay
+- [x] T019 `npm test` — **ninguna prueba de comportamiento cambia de expectativa** (FR-010, SC-004). Si hay
       que tocar una, esta feature se metió en el caso normal, que no debía tocar.
 
 **Checkpoint**: lo durable se puede leer, y una sesión olvidada se puede reconstruir.

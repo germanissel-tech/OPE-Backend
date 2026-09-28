@@ -25,8 +25,8 @@ import { PlatformConfigurationPort, StateRetentionPort } from "../release.js";
 import { BarrierInferencePort } from "./barrier.js";
 import { ProductTruthPort } from "./catalog.js";
 import { AssignmentPort } from "./experiment.js";
-import { DecisionPlanePort } from "./ingestion.js";
-import { DecisionRecorderPort } from "./ledger.js";
+import { DecisionPlanePort, EventLogPort } from "./ingestion.js";
+import { DecisionLedgerPort, DecisionRecorderPort } from "./ledger.js";
 import { ClockPort } from "./shared-kernel.js";
 
 export const SessionStatePort = port("decision.sessions")<SessionStateStore>();
@@ -65,7 +65,15 @@ export const decisionModule = compositionModule({
   assembles: [
     bind(
       DecisionStatePort,
-      { sessions: SessionStatePort, visitors: VisitorStatePort, visitorWindow: VisitorWindowPort },
+      {
+        sessions: SessionStatePort,
+        visitors: VisitorStatePort,
+        visitorWindow: VisitorWindowPort,
+        // The two durable reads a forgotten state is rebuilt from (feature 032). The plane does not
+        // write through them: what is durable is already written by the ledger and by the register.
+        events: EventLogPort,
+        decisions: DecisionLedgerPort,
+      },
       (deps) => new States(deps),
     ),
     bind(

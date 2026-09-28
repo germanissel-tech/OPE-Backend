@@ -21,6 +21,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "idempotency-conflict": Object.freeze({ status: 409, title: "Same identity, different content" }),
   "ledger-unavailable": Object.freeze({ status: 503, title: "The ledger is not available" }),
   "store-unavailable": Object.freeze({ status: 503, title: "The store is not available" }),
+  "state-unavailable": Object.freeze({ status: 503, title: "The state the caps are counted from could not be read" }),
   "invalid-treatment-share": Object.freeze({ status: 422, title: "The treatment share of an experiment is out of range" }),
   "treatment-share-too-fine": Object.freeze({ status: 422, title: "The treatment share is finer than the split can resolve" }),
   "invalid-seed": Object.freeze({ status: 422, title: "The seed of an experiment is empty" }),

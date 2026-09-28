@@ -15,3 +15,7 @@ export type {
 // The error classes stay inside the module: nobody outside builds or narrows on them (the
 // configuration reads `code` and `details`); the union is the public shape.
 export type { DecisionError } from "./errors.js";
+// `StateUnavailable` is the declared exception to the line above, because it is not a policy that
+// failed to hold: it is the third answer of the two state stores (feature 032, FR-012), so a port
+// names it in its `Result` and a gateway constructs it.
+export { StateUnavailable } from "./errors.js";

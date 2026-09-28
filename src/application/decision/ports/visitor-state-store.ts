@@ -1,6 +1,7 @@
 // Visitor state store port (constitution IV: hot, bounded, expiring): what the plane remembers
 // of a visitor across sessions, per merchant. Keyed by merchant and visitor; a visitor of
 // another merchant does not exist for whoever asks (constitution V).
+import type { Recalled } from "./session-state-store.js";
 import type { VisitorState } from "../../../domain/decision/index.js";
 import type { MerchantId, VisitorId } from "../../../domain/shared-kernel/index.js";
 
@@ -13,6 +14,7 @@ export interface VisitorWindow {
 }
 
 export interface VisitorStateStore {
-  load(merchantId: MerchantId, visitorId: VisitorId): Promise<VisitorState | undefined>;
+  /** The same three answers as the session store, for the same reason: see `Recalled`. */
+  load(merchantId: MerchantId, visitorId: VisitorId): Promise<Recalled<VisitorState>>;
   save(merchantId: MerchantId, visitorId: VisitorId, state: VisitorState): Promise<void>;
 }

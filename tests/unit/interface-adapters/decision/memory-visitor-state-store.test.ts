@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { VisitorState } from "../../../../src/domain/decision/index.js";
 import { asMerchantId, asVisitorId, hours } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryVisitorStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-visitor-state-store.js";
+import { stateOf } from "../../../helpers/state.js";
 
 const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
@@ -23,9 +24,9 @@ describe("memoryVisitorStateStore", () => {
     const { store: s } = store();
     const state = VisitorState.empty().withIntervention(t0, DAY);
     await s.save(A, V1, state);
-    expect(await s.load(A, V1)).toBe(state);
-    expect(await s.load(B, V1)).toBeUndefined();
-    expect(await s.load(A, V2)).toBeUndefined();
+    expect(stateOf(await s.load(A, V1))).toBe(state);
+    expect(stateOf(await s.load(B, V1))).toBeUndefined();
+    expect(stateOf(await s.load(A, V2))).toBeUndefined();
   });
 
   it("forgets a visitor whose last intervention is older than the window", async () => {
@@ -34,10 +35,10 @@ describe("memoryVisitorStateStore", () => {
     advance(hours(1));
     await s.save(A, V2, VisitorState.empty().withIntervention(at(hours(1)), DAY));
     advance(hours(24));
-    expect(await s.load(A, V1)).toBeUndefined();
-    expect(await s.load(A, V2)).toBeDefined();
+    expect(stateOf(await s.load(A, V1))).toBeUndefined();
+    expect(stateOf(await s.load(A, V2))).toBeDefined();
     advance(hours(25));
-    expect(await s.load(A, V2)).toBeUndefined();
+    expect(stateOf(await s.load(A, V2))).toBeUndefined();
   });
 
   it("keeps at most the window's visitors per merchant, dropping the least recently saved", async () => {
@@ -47,7 +48,7 @@ describe("memoryVisitorStateStore", () => {
     await s.save(A, V2, fresh());
     await s.save(A, V1, fresh());
     await s.save(A, asVisitorId("vis_00000003"), fresh());
-    expect(await s.load(A, V2)).toBeUndefined();
-    expect(await s.load(A, V1)).toBeDefined();
+    expect(stateOf(await s.load(A, V2))).toBeUndefined();
+    expect(stateOf(await s.load(A, V1))).toBeDefined();
   });
 });

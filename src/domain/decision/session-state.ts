@@ -13,8 +13,15 @@ export interface SessionStateRecord {
   signals: Signals;
   interventions: number;
   updatedAt: Date;
-  /** When the ledger last accepted an intervention of this session; the cooldown counts from here. */
-  lastInterventionAt?: Date;
+  /**
+   * When the ledger last accepted an intervention of this session; the cooldown counts from here.
+   *
+   * `| undefined` on purpose: whoever rebuilds a session from what is durable has the value or has
+   * nothing, and being able to pass it straight through keeps the absence guarded **once**, at the
+   * border where it is observed. A conditional spread here instead would be two branches with the
+   * same input, which is one of the survivors this repository produces over and over.
+   */
+  lastInterventionAt?: Date | undefined;
 }
 
 export class SessionState {

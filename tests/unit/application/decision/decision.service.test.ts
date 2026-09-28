@@ -145,7 +145,7 @@ function subject(options: Options = {}) {
   const sessions = new Map<string, SessionState>();
   const visitors = new Map<string, VisitorState>();
   const visitorStore: VisitorStateStore = {
-    load: (m: MerchantId, v: VisitorId) => Promise.resolve(visitors.get(`${m}/${v}`)),
+    load: (m: MerchantId, v: VisitorId) => Promise.resolve(ok(visitors.get(`${m}/${v}`))),
     save: (m: MerchantId, v: VisitorId, state) => {
       visitors.set(`${m}/${v}`, state);
       return Promise.resolve();
@@ -154,7 +154,7 @@ function subject(options: Options = {}) {
   const sessionStore: SessionStateStore = {
     load: (m: MerchantId, s: SessionId) => {
       calls.push("sessions.load");
-      return Promise.resolve(sessions.get(`${m}/${s}`));
+      return Promise.resolve(ok(sessions.get(`${m}/${s}`)));
     },
     save: (m: MerchantId, s: SessionId, state) => {
       calls.push("sessions.save");
@@ -221,6 +221,10 @@ function subject(options: Options = {}) {
       sessions: sessionStore,
       visitors: visitorStore,
       visitorWindow: testVisitorWindow(),
+      // This suite is about the orchestrator over hot state, so nothing durable answers: rebuilding is
+      // the subject of `state.service.test.ts` and the durability suite.
+      events: { bySession: () => Promise.resolve([]) },
+      decisions: { bySession: () => Promise.resolve([]), byVisitor: () => Promise.resolve([]) },
     }),
     // Since feature 027 the plane asks one service for the inference and for what can be said:
     // a family without a curated text is not a candidate (01 §322), so the corpus is consulted

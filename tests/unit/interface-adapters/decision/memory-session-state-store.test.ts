@@ -5,6 +5,7 @@ import { SessionState } from "../../../../src/domain/decision/index.js";
 import { asMerchantId, asSessionId, hours } from "../../../../src/domain/shared-kernel/index.js";
 import { memorySessionStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-session-state-store.js";
 import { addedToCart } from "../../../helpers/events.js";
+import { stateOf } from "../../../helpers/state.js";
 const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
 const S1 = asSessionId("ses_00000001");
@@ -23,9 +24,9 @@ describe("memorySessionStateStore", () => {
     const { store: s } = store();
     const state = SessionState.empty(t0).absorb(Signals.of([addedToCart(1)]), t0);
     await s.save(A, S1, state);
-    expect(await s.load(A, S1)).toBe(state);
-    expect(await s.load(B, S1)).toBeUndefined();
-    expect(await s.load(A, S2)).toBeUndefined();
+    expect(stateOf(await s.load(A, S1))).toBe(state);
+    expect(stateOf(await s.load(B, S1))).toBeUndefined();
+    expect(stateOf(await s.load(A, S2))).toBeUndefined();
   });
 
   it("forgets a session untouched for the window; a save refreshes it", async () => {
@@ -34,8 +35,8 @@ describe("memorySessionStateStore", () => {
     advance(hours(23));
     await s.save(A, S2, SessionState.empty(at(hours(23))));
     advance(hours(24));
-    expect(await s.load(A, S1)).toBeUndefined();
-    expect(await s.load(A, S2)).toBeDefined();
+    expect(stateOf(await s.load(A, S1))).toBeUndefined();
+    expect(stateOf(await s.load(A, S2))).toBeDefined();
   });
 
   it("keeps at most the window's sessions per merchant, dropping the least recently saved", async () => {
@@ -44,9 +45,9 @@ describe("memorySessionStateStore", () => {
     await s.save(A, S2, SessionState.empty(t0));
     await s.save(A, S1, SessionState.empty(t0));
     await s.save(A, asSessionId("ses_00000003"), SessionState.empty(t0));
-    expect(await s.load(A, S2)).toBeUndefined();
-    expect(await s.load(A, S1)).toBeDefined();
+    expect(stateOf(await s.load(A, S2))).toBeUndefined();
+    expect(stateOf(await s.load(A, S1))).toBeDefined();
     await s.save(B, S2, SessionState.empty(t0));
-    expect(await s.load(B, S2)).toBeDefined();
+    expect(stateOf(await s.load(B, S2))).toBeDefined();
   });
 });

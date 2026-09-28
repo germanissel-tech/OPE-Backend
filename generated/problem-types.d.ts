@@ -21,6 +21,7 @@ export declare const PROBLEM_TYPES: {
   readonly "idempotency-conflict": { readonly status: 409; readonly title: "Same identity, different content" };
   readonly "ledger-unavailable": { readonly status: 503; readonly title: "The ledger is not available" };
   readonly "store-unavailable": { readonly status: 503; readonly title: "The store is not available" };
+  readonly "state-unavailable": { readonly status: 503; readonly title: "The state the caps are counted from could not be read" };
   readonly "invalid-treatment-share": { readonly status: 422; readonly title: "The treatment share of an experiment is out of range" };
   readonly "treatment-share-too-fine": { readonly status: 422; readonly title: "The treatment share is finer than the split can resolve" };
   readonly "invalid-seed": { readonly status: 422; readonly title: "The seed of an experiment is empty" };
