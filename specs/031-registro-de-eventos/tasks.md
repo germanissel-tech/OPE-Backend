@@ -354,15 +354,26 @@ encontrar los dos con su motivo.
 
 **Independent Test**: ingestar tráfico de dos merchants y obtener por cada uno su volumen por tipo.
 
-- [ ] T033 [US3] `tests/durability/...` — los dos escenarios, antes de la consulta: conteos separados por
-      merchant sin que ninguno incluya al otro, y la distribución por tipo legible en **una sola
-      consulta** (SC-007).
-- [ ] T034 [US3] `sqlite-event-log.ts` y su par — `volume`, con el índice **de cobertura**
-      `(merchant_id, created_at, type)`. La cobertura no es un detalle: medido, la misma consulta cuesta
-      507 ms sin índice útil, **1 703 ms** con `(merchant_id, type)` y **107 ms** con éste.
-- [ ] T035 [US3] `EXPLAIN QUERY PLAN` sobre la consulta de volumen: tiene que usar
+- [x] T033 [US3] ~~`tests/durability/...`~~ → **el contrato compartido y `tests/integration/`**, que es
+      donde faltaban. Los dos escenarios —conteos separados por merchant y la distribución por tipo en
+      **una sola consulta** (SC-007)— ya los cubría el contrato en las tres implementaciones, así que lo
+      que esta historia necesitaba era el **camino completo**: dos merchants con tráfico real por HTTP,
+      varios tipos, y cada uno con sus propios conteos.
+      **Y una afirmación de diseño que no estaba escrita en ninguna parte: el volumen cuenta lo que
+      llegó, no lo que se aceptó.** Un duplicado y un lote rechazado **costaron trabajo** igual que uno
+      aceptado, y FR-012 existe para dimensionar carga; `disposition` es lo que separa las tres para
+      quien pregunte otra cosa. Queda probado, no sólo dicho.
+- [x] T034 [US3] `sqlite-event-log.ts` y su par — `volume`, con el índice **de cobertura**
+      `(merchant_id, received_at, type)` —y no `created_at`, como esta tarea decía: ver la corrección de
+      T013—. La cobertura no es un detalle: medido, la misma consulta cuesta 507 ms sin índice útil,
+      **1 703 ms** con `(merchant_id, type)` y **107 ms** con éste.
+      **Ya implementado en T015/T016**, como las otras tres lecturas.
+- [x] T035 [US3] `EXPLAIN QUERY PLAN` sobre la consulta de volumen: tiene que usar
       `received_events_volume`. Es la tarea que la medición de R-06 hizo obligatoria.
-- [ ] T036 [US3] `npm run test:mutation` acotado al diff de la historia.
+      **Hecho en T025**, junto con las otras tres consultas, y con la aserción verificada aparte: un plan
+      sin índice dice literalmente `SCAN <tabla>`.
+- [x] T036 [US3] `npm run test:mutation` acotado al diff de la historia.
+      **Cero supervivientes, exit 0**, sobre el diff completo.
 
 **Checkpoint**: las tres historias funcionan de forma independiente.
 

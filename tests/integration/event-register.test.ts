@@ -196,6 +196,64 @@ describe("the event register, end to end", () => {
     });
   });
 
+  describe("how much work this is (US3)", () => {
+    const WIDE = { from: new Date(0), to: new Date(Date.UTC(2100, 0, 1)) };
+
+    it("counts by merchant and by type, separately, in one answer", async () => {
+      // The Independent Test of the story: traffic from two merchants, several types, and each merchant
+      // gets its own counts. It is what has to be known before a pilot — what is going to land on this.
+      await postEvents(
+        app.app,
+        {
+          events: [eventOf(1), eventOf(2), eventOf(3, { type: "variant_selector_interacted" })],
+        },
+        { key: KEY_A },
+      );
+      await postEvents(app.app, batchOf(1), { key: KEY_B });
+      await drained();
+
+      const forA = new Map((await log.volume(A, WIDE)).map((v) => [v.type, v.count]));
+      expect(forA.get("product_viewed")).toBe(2);
+      expect(forA.get("variant_selector_interacted")).toBe(1);
+      // And nothing of the other merchant leaks into the count, which is where a missing predicate in an
+      // aggregate hides best: the number is still plausible.
+      const forB = new Map((await log.volume(B, WIDE)).map((v) => [v.type, v.count]));
+      expect(forB.get("product_viewed")).toBe(1);
+      expect(forB.has("variant_selector_interacted")).toBe(false);
+    });
+
+    it("counts what arrived, not what was accepted — because that is what the work was", async () => {
+      // A design statement worth pinning down: the volume of FR-012 exists to size the load, and a
+      // duplicate and a refused batch **cost work** just like an accepted one. So all three are counted,
+      // and `disposition` is what separates them for whoever asks a different question.
+      await postEvents(app.app, batchOf(1), { key: KEY_A });
+      await postEvents(app.app, batchOf(1), { key: KEY_A });
+      await postEvents(
+        app.app,
+        { events: [eventOf(5, { visitorId: "vis_00000001" }), eventOf(6, { visitorId: "vis_00000002" })] },
+        { key: KEY_A },
+      );
+      await drained();
+
+      // One accepted, one duplicate, two rejected: four arrivals of work.
+      const counted = new Map((await log.volume(A, WIDE)).map((v) => [v.type, v.count]));
+      expect(counted.get("product_viewed")).toBe(4);
+    });
+
+    it("counts within the window asked for, which is how the distribution over time is read", async () => {
+      // FR-012 asks for the spread over time too, and the window is over `received_at` — when OPE
+      // received it — so a merchant's traffic is not smeared by the lag of a queue of ours.
+      await postEvents(app.app, batchOf(2), { key: KEY_A });
+      await drained();
+
+      const before = { from: new Date(0), to: new Date(Date.parse(NOW) - 1) };
+      expect(await log.volume(A, before)).toEqual([]);
+      expect(await log.volume(A, { from: new Date(NOW), to: new Date(NOW) })).toEqual([
+        { type: "product_viewed", count: 2 },
+      ]);
+    });
+  });
+
   describe("with an experiment running", () => {
     // The whole reason FR-004 exists: the pilot compares CONTROL against TREATMENT, so what arrived has
     // to say which one it arrived with. A separate app because the merchant needs an experiment, and
