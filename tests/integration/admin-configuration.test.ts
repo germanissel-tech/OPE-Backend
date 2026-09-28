@@ -103,7 +103,7 @@ describe("the levels of the release (scenario 4)", () => {
     const platform = await admin(app.app, "GET", "/v1/admin/platform-configuration", { as: "ops-a" });
     expect(platform.statusCode).toBe(200);
     expect(json(platform)).toMatchObject({
-      version: "platform-1",
+      version: "platform-2",
       dedupWindow: { ttlMs: 86_400_000, maxIds: 100_000 },
       clockSkewToleranceMs: 300_000,
       rotationGraceMaxMs: 604_800_000,
@@ -135,10 +135,10 @@ describe("a merchant without a version (scenario 1)", () => {
     ) as { merchant: { merchantId: string }; credentials: { ingestKey: string } };
     const id = created.merchant.merchantId;
     const configuration = await configurationOf(id);
-    expect(configuration.versions).toEqual({ platform: "platform-1", defaults: "defaults-1" });
+    expect(configuration.versions).toEqual({ platform: "platform-2", defaults: "defaults-1" });
     expect(configuration.declared).toEqual({});
     expect(configuration.effective.freshness).toEqual({ catalogMs: 129_600_000, stockAndPriceMs: 900_000 });
-    expect(configuration.effective.platform.version).toBe("platform-1");
+    expect(configuration.effective.platform.version).toBe("platform-2");
     const res = await postEvents(app.app, { events: [priceRead(1)] }, { key: created.credentials.ingestKey });
     expect(res.statusCode).toBe(202);
     const decision = (json(res) as IngestResult).decision;
@@ -146,22 +146,22 @@ describe("a merchant without a version (scenario 1)", () => {
     const kept = await app
       .resolve(DecisionLedgerPort)
       .find(asMerchantId(id), asDecisionId(decision.decisionId));
-    expect(kept?.configuration).toEqual({ platform: "platform-1", defaults: "defaults-1" });
-    expect(JSON.stringify(json(res))).not.toMatch(/platform-1|defaults-1/);
+    expect(kept?.configuration).toEqual({ platform: "platform-2", defaults: "defaults-1" });
+    expect(JSON.stringify(json(res))).not.toMatch(/platform-2|defaults-1/);
   });
 });
 
 describe("publishing a version (scenarios 2, 3, 7)", () => {
   it("the seed is the version 1; a version that declares the freshness and the languages is numbered, the previous one stays, the next decision stamps and obeys it", async () => {
     const before = await configurationOf();
-    expect(before.versions).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 1 });
+    expect(before.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 1 });
     expect(before.declared).toEqual({
       evidenceProfile: { returnsPolicy: true, fitData: true },
       holdoutShare: 0,
     });
     const fresh = await decide("ses_00000001");
     expect((await recorded(fresh.decision.decisionId))?.configuration).toEqual({
-      platform: "platform-1",
+      platform: "platform-2",
       defaults: "defaults-1",
       merchant: 1,
     });
@@ -196,7 +196,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     });
 
     const after = await configurationOf();
-    expect(after.versions).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 2 });
+    expect(after.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 2 });
     expect(after.effective.freshness).toEqual({ catalogMs: 129_600_000, stockAndPriceMs: ONE_MINUTE });
     expect(after.effective.locales).toEqual({ supported: ["es-AR", "en"], fallback: "es-AR" });
     expect(after.effective.evidenceProfile).toEqual({
@@ -214,9 +214,9 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     const stale = await decide("ses_00000002");
     expect(stale.decision).toMatchObject({ outcome: "NO_OP", reason: "evidence-stale" });
     const kept = await recorded(stale.decision.decisionId);
-    expect(kept?.configuration).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 2 });
+    expect(kept?.configuration).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 2 });
     expect(kept?.inference?.evidence).toMatchObject({ stockAndPrice: "stale" });
-    expect(JSON.stringify(stale)).not.toMatch(/platform-1|defaults-1|"merchant"/);
+    expect(JSON.stringify(stale)).not.toMatch(/platform-2|defaults-1|"merchant"/);
   });
 
   it("publishing what the version in force declares repeats it with 200 and the same number; the log names the version and the reason", async () => {

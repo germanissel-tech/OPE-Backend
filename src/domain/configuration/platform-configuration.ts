@@ -19,7 +19,12 @@ export interface PlatformConfigurationRecord {
   clockSkewToleranceMs: number;
   /** How far into the past an event instant may sit (late uploads). */
   eventPastToleranceMs: number;
-  sessionWindowMs: number;
+  /**
+   * Inactivity after which a session is over and the SDK mints a new `sessionId`. It is **not** how
+   * long the backend keeps the session in memory: that is retention, it lives in the environment, and
+   * holding both in one field is the ambiguity feature 032 exists to split.
+   */
+  sessionDurationMs: number;
   visitorWindowMs: number;
   signatureWindowMs: number;
   rotationGraceMaxMs: number;
@@ -33,7 +38,12 @@ const POSITIVE_PROBLEM = "must be a positive integer";
 /** A whole number of at least zero: the platform counts and windows are integers. */
 const isWhole = (value: number): boolean => Number.isInteger(value) && value >= 0;
 /** The fields that must be positive, and the ones that may be zero. */
-const POSITIVE = ["sessionWindowMs", "visitorWindowMs", "signatureWindowMs", "eventPastToleranceMs"] as const;
+const POSITIVE = [
+  "sessionDurationMs",
+  "visitorWindowMs",
+  "signatureWindowMs",
+  "eventPastToleranceMs",
+] as const;
 const NON_NEGATIVE = ["clockSkewToleranceMs", "rotationGraceMaxMs"] as const;
 
 export class PlatformConfiguration {
@@ -41,7 +51,7 @@ export class PlatformConfiguration {
   readonly dedupWindow: DedupWindowRecord;
   readonly clockSkewToleranceMs: number;
   readonly eventPastToleranceMs: number;
-  readonly sessionWindowMs: number;
+  readonly sessionDurationMs: number;
   readonly visitorWindowMs: number;
   readonly signatureWindowMs: number;
   readonly rotationGraceMaxMs: number;
@@ -54,7 +64,7 @@ export class PlatformConfiguration {
     this.dedupWindow = { ...record.dedupWindow };
     this.clockSkewToleranceMs = record.clockSkewToleranceMs;
     this.eventPastToleranceMs = record.eventPastToleranceMs;
-    this.sessionWindowMs = record.sessionWindowMs;
+    this.sessionDurationMs = record.sessionDurationMs;
     this.visitorWindowMs = record.visitorWindowMs;
     this.signatureWindowMs = record.signatureWindowMs;
     this.rotationGraceMaxMs = record.rotationGraceMaxMs;
@@ -114,7 +124,7 @@ export class PlatformConfiguration {
       dedupWindow: { ...this.dedupWindow },
       clockSkewToleranceMs: this.clockSkewToleranceMs,
       eventPastToleranceMs: this.eventPastToleranceMs,
-      sessionWindowMs: this.sessionWindowMs,
+      sessionDurationMs: this.sessionDurationMs,
       visitorWindowMs: this.visitorWindowMs,
       signatureWindowMs: this.signatureWindowMs,
       rotationGraceMaxMs: this.rotationGraceMaxMs,

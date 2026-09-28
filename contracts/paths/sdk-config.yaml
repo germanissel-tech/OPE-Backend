@@ -29,7 +29,7 @@ get:
           example:
             enabled: true
             versions:
-              platform: platform-1
+              platform: platform-2
               defaults: defaults-1
               merchant: 3
             surfaces:

@@ -83,7 +83,7 @@ describe("GET /v1/sdk/config (scenarios 1, 2)", () => {
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(json(res)).toEqual({
       enabled: true,
-      versions: { platform: "platform-1", defaults: "defaults-1", merchant: 1 },
+      versions: { platform: "platform-2", defaults: "defaults-1", merchant: 1 },
       surfaces: ["product", "cart"],
       locales: { supported: ["es-AR", "en"], fallback: "es-AR" },
       anchors: ANCHORS,
@@ -192,7 +192,7 @@ describe("isolation (scenario 4)", () => {
   it("the key of B sees and affects only what is of B; an operator scoped to A cannot read the diagnostics of B", async () => {
     await report({ unresolved: [{ anchor: "price", pageType: "product" }] });
     const ofB = json(await config({ key: "key-b-1" })) as SdkConfig;
-    expect(ofB.versions).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 1 });
+    expect(ofB.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 1 });
     expect(ofB).not.toHaveProperty("anchors");
     expect(
       (await report({ unresolved: [{ anchor: "cta", pageType: "cart" }] }, { key: "key-b-1" })).statusCode,

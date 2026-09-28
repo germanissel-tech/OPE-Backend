@@ -31,25 +31,38 @@ cambio se diseñó en `contracts/` durante el plan y se aplica en la fase 1, **a
 viejo. Va en su propio commit por el mismo argumento con que la 031 separó el runner de migraciones y la
 030 el salto de Node: si algo se mueve, conviene verlo con el diff más chico posible.
 
-- [ ] T001 `contracts/no-op-reasons.yaml` — el motivo `state-unavailable` con su emisor y su descripción,
+- [x] T001 `contracts/no-op-reasons.yaml` — el motivo `state-unavailable` con su emisor y su descripción,
       tal como `contracts/README.md` lo fija. Es un cambio **compatible** (ADR-014): el contrato declara
       `Decision.reason` como string con patrón, no como enum.
-- [ ] T002 `src/domain/shared-kernel/no-op-reasons.ts` — la réplica del catálogo. El archivo dice que es una
+- [x] T002 `src/domain/shared-kernel/no-op-reasons.ts` — la réplica del catálogo. El archivo dice que es una
       réplica y una prueba verifica que coinciden, así que esto no es duplicación sino la copia que el gate
       vigila.
-- [ ] T003 `contracts/components/schemas/PlatformConfiguration.yaml` — `sessionWindowMs` pasa a
+- [x] T003 `contracts/components/schemas/PlatformConfiguration.yaml` — `sessionWindowMs` pasa a
       **`sessionDurationMs`**, con la descripción que dice qué es: la regla del backend que el SDK obedece,
       no una observación del cliente. **El renombre no es cosmético**: ese nombre es el que produjo la
       ambigüedad que FR-002 viene a partir, y cuesta cero porque ningún merchant consume el contrato
       (`info.x-stability: building`, ADR-003).
-- [ ] T004 `config/platform.json` — el valor pasa de 86 400 000 a **1 800 000** (30 minutos), que es la
+- [x] T004 `config/platform.json` — el valor pasa de 86 400 000 a **1 800 000** (30 minutos), que es la
       decisión del dueño (FR-001). Y el dominio, la configuración y todo lo que leía el campo viejo: el
       compilador los nombra uno por uno, que es para lo que sirve el renombre.
-- [ ] T005 Correr la cadena con el contrato cambiado y **nada más**: `contract:check`, `format:check`,
+- [x] T005 Correr la cadena con el contrato cambiado y **nada más**: `contract:check`, `format:check`,
       `typecheck`, `quality`, `test`, `test:contract`. `contract:diff` va a reportar el cambio incompatible
       y **aceptarlo** por la marca `building`; que lo reporte es lo correcto, no un problema a silenciar.
 
 **Checkpoint**: el contrato dice lo que va a significar, y nada más se movió.
+
+**Dos cosas que la fase 1 tuvo que hacer y esta lista no previó**, las dos porque el renombre no era
+cosmético:
+
+- **La retención caliente entró acá, no en T018.** `composition/modules/decision.ts` usaba el campo
+  viejo como TTL del almacén en memoria, así que renombrarlo y nada más habría bajado la retención de
+  24 h a 30 minutos **sin reconstrucción todavía** — un cambio de comportamiento justo en la fase que
+  promete no tener ninguno. Entró como `OPE_SESSION_RETENTION_MS` con el default de un día, con lo que
+  la fase 1 no cambia ninguna respuesta. T018 queda reducido al cableado de las dependencias nuevas.
+- **La versión del nivel 1 subió a `platform-2`.** Una decisión registra con qué configuración se tomó
+  (constitución IX), y dos corridas con `platform-1` y duraciones de sesión distintas serían
+  indistinguibles en el ledger. `info.version` del contrato subió a 1.10.0, que es el bump MINOR que
+  ADR-003 pide para un cambio incompatible con la marca `building`.
 
 ---
 
@@ -109,9 +122,11 @@ viejo. Va en su propio commit por el mismo argumento con que la 031 separó el r
       su razonamiento al lado.
 - [ ] T017 `remember` sigue guardando en caliente y nada más: lo durable ya lo escriben el ledger y el
       registro, y escribir dos veces lo mismo crearía dos verdades que pueden discrepar.
-- [ ] T018 [P] `src/composition/` — la **retención caliente** entra como entorno, con el argumento de
-      `event-log-config.ts`: no cambia ninguna respuesta, así que no va a los tres niveles ni al contrato.
-      Y el cableado de las dos dependencias nuevas del servicio.
+- [ ] T018 [P] `src/composition/` — el cableado de las dos dependencias nuevas del servicio. La
+      **retención caliente** ya entró en la fase 1 como `OPE_SESSION_RETENTION_MS`
+      (`state-retention-config.ts`), con el argumento de `event-log-config.ts`: no cambia ninguna
+      respuesta, así que no va a los tres niveles ni al contrato. El motivo de que se adelantara está en
+      la nota de la fase 1.
 - [ ] T019 `npm test` — **ninguna prueba de comportamiento cambia de expectativa** (FR-010, SC-004). Si hay
       que tocar una, esta feature se metió en el caso normal, que no debía tocar.
 

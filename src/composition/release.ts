@@ -12,6 +12,7 @@ import { openSqliteStore } from "../infrastructure/sqlite/open-store.js";
 import { bind, compositionModule, port } from "./graph/index.js";
 import type { AppConfig, ReleaseLevels } from "./config.js";
 import type { EventLogTuning } from "./event-log-config.js";
+import type { StateRetention } from "./state-retention-config.js";
 import type { PlatformConfiguration } from "../domain/configuration/index.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { ContractDocument } from "../infrastructure/http/build-server.js";
@@ -41,6 +42,12 @@ export const SqlStorePort = port("release.store")<SqlStore>();
  * including the consequence that settled it.
  */
 export const EventLogTuningPort = port("release.event-log-tuning")<EventLogTuning>();
+/**
+ * How long the plane keeps a session and a visitor in memory (feature 032). Environment for the same
+ * reason, and the argument is in `state-retention-config.ts`: it used to be level 1, and splitting it
+ * from the duration of a session is what made it stop being something a merchant observes.
+ */
+export const StateRetentionPort = port("release.state-retention")<StateRetention>();
 
 export const releaseComponents = (config: AppConfig) =>
   compositionModule({
@@ -51,6 +58,7 @@ export const releaseComponents = (config: AppConfig) =>
       bind(OperatorsPort, {}, () => config.operators),
       bind(CorpusPort, {}, () => config.corpus),
       bind(EventLogTuningPort, {}, () => config.eventLog),
+      bind(StateRetentionPort, {}, () => config.stateRetention),
     ],
   });
 

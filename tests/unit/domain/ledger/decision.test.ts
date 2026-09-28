@@ -24,7 +24,7 @@ const facts: DecisionFacts = {
   sessionId: asSessionId("ses_00000001"),
   visitorId: asVisitorId("vis_00000001"),
   decidedAt: now,
-  configuration: { platform: "platform-1", defaults: "defaults-1" },
+  configuration: { platform: "platform-2", defaults: "defaults-1" },
 };
 const intervention = {
   text: "If it does not fit, the exchange is free.",

@@ -89,7 +89,7 @@ export type Key =
   | "maxIds"
   | "clockSkewToleranceMs"
   | "eventPastToleranceMs"
-  | "sessionWindowMs"
+  | "sessionDurationMs"
   | "visitorWindowMs"
   | "signatureWindowMs"
   | "rotationGraceMaxMs"

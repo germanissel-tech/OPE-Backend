@@ -13,7 +13,7 @@ const policies = (): PolicySet => ({
   commercial: testLevels().defaults.values.commercialPolicy,
   profile: EMPTY_PROFILE,
   barriers: BARRIERS,
-  versions: { platform: "platform-1", defaults: "defaults-1" },
+  versions: { platform: "platform-2", defaults: "defaults-1" },
 });
 const on = testMerchant({ merchantId: "m_on" });
 const switched = testMerchant({ merchantId: "m_off" }).switched(false);

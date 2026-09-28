@@ -30,7 +30,7 @@ const facts = (id: string, over: Partial<DecisionFacts> = {}): DecisionFacts => 
   sessionId: S,
   visitorId: asVisitorId("vis_00000001"),
   decidedAt: new Date("2026-09-19T12:00:00.000Z"),
-  configuration: { platform: "platform-1", defaults: "defaults-1" },
+  configuration: { platform: "platform-2", defaults: "defaults-1" },
   ...over,
 });
 const experiment = { experimentId: asExperimentId("exp_1"), arm: "TREATMENT" as const };

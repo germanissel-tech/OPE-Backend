@@ -39,7 +39,7 @@ function facts(id: string, merchantId = MERCHANT, sessionId = "ses_00000001") {
     sessionId: asSessionId(sessionId),
     visitorId: asVisitorId("vis_00000001"),
     decidedAt: new Date(NOW),
-    configuration: { platform: "platform-1", defaults: "defaults-1" },
+    configuration: { platform: "platform-2", defaults: "defaults-1" },
   };
 }
 

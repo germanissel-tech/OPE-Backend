@@ -7,7 +7,7 @@ required:
   - dedupWindow
   - eventPastToleranceMs
   - clockSkewToleranceMs
-  - sessionWindowMs
+  - sessionDurationMs
   - visitorWindowMs
   - signatureWindowMs
   - rotationGraceMaxMs
@@ -32,9 +32,13 @@ properties:
     description: Milliseconds an instant a client declares may sit in the future.
     minimum: 0
     maximum: 31536000000
-  sessionWindowMs:
+  sessionDurationMs:
     type: integer
-    description: Milliseconds a session is remembered since its last batch.
+    description: "Milliseconds of inactivity after which a session is over and the SDK must mint a new
+      `sessionId`. It is a rule of the backend that the SDK obeys, not an observation the client makes
+      (feature 032). It used to be called `sessionWindowMs` and meant two things at once — this rule and
+      how long the backend keeps the session in memory; those are now separate, and the second one is not
+      published because nothing a merchant observes depends on it."
     minimum: 1
     maximum: 31536000000
   visitorWindowMs:

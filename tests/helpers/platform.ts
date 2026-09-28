@@ -29,4 +29,4 @@ export const TEST_CATALOG_POLICIES: CatalogPolicies = {
 };
 
 /** The versions a decision stamps when the merchant published none: the ones the release declares. */
-export const TEST_VERSIONS: ConfigurationVersions = { platform: "platform-1", defaults: "defaults-1" };
+export const TEST_VERSIONS: ConfigurationVersions = { platform: "platform-2", defaults: "defaults-1" };

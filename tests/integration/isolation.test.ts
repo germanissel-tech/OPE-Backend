@@ -75,7 +75,7 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
     {
       decisionId: asDecisionId(decisionId),
       merchantId: asMerchantId(merchantId),
-      configuration: { platform: "platform-1", defaults: "defaults-1" },
+      configuration: { platform: "platform-2", defaults: "defaults-1" },
       sessionId: asSessionId("ses_00000001"),
       visitorId: asVisitorId("vis_00000001"),
       decidedAt: new Date(NOW),

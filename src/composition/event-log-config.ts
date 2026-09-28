@@ -12,8 +12,8 @@
 // `EffectiveConfiguration`, whose DTO is the whole record and whose schema admits no extra property.
 // A queue size in level 1 would therefore have to be added to the contract — telling every merchant
 // about the size of a buffer of ours — and this feature does not touch the contract.
-import { ConfigError, type Variable } from "./config-error.js";
-import { A_NUMBER, text } from "./env.js";
+import { whole } from "./env.js";
+import type { Variable } from "./config-error.js";
 
 const MAX_VARIABLE = "OPE_EVENT_LOG_MAX" satisfies Variable;
 const INTERVAL_VARIABLE = "OPE_EVENT_LOG_FLUSH_MS" satisfies Variable;
@@ -32,15 +32,6 @@ export interface EventLogTuning {
   readonly maxArrivals: number;
   /** How often what is pending is written. */
   readonly flushIntervalMs: number;
-}
-
-/** A whole number of at least one, or the server does not start naming the variable. */
-function whole(env: NodeJS.ProcessEnv, name: Variable, fallback: number): number {
-  const declared = text(env, name);
-  if (declared === undefined) return fallback;
-  const parsed = Number(declared);
-  if (!Number.isInteger(parsed) || parsed < 1) throw new ConfigError(name, A_NUMBER);
-  return parsed;
 }
 
 export function readEventLogTuning(env: NodeJS.ProcessEnv): EventLogTuning {

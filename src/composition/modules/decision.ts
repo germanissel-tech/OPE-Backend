@@ -21,7 +21,7 @@ import {
   visitorWindowOf,
 } from "../../interface-adapters/decision/index.js";
 import { bind, compositionModule, port } from "../graph/index.js";
-import { PlatformConfigurationPort } from "../release.js";
+import { PlatformConfigurationPort, StateRetentionPort } from "../release.js";
 import { BarrierInferencePort } from "./barrier.js";
 import { ProductTruthPort } from "./catalog.js";
 import { AssignmentPort } from "./experiment.js";
@@ -47,8 +47,16 @@ export const decisionModule = compositionModule({
     bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
       visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
     ),
-    bind(SessionStatePort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
-      memorySessionStateStore(clock, sessionWindowOf(platform.sessionWindowMs, platform.identityCap())),
+    // The retention comes from the environment and the capacity from level 1, and they are two
+    // different things on purpose: how long a session is remembered is nobody's business outside
+    // this process, while how many an instance holds is a published limit. The duration of a
+    // session (`platform.sessionDurationMs`) is a third thing and is deliberately not here — it is
+    // a rule the SDK obeys, and reading it as a retention is the confusion feature 032 undid.
+    bind(
+      SessionStatePort,
+      { clock: ClockPort, platform: PlatformConfigurationPort, retention: StateRetentionPort },
+      ({ clock, platform, retention }) =>
+        memorySessionStateStore(clock, sessionWindowOf(retention.sessionMs, platform.identityCap())),
     ),
     bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
       memoryVisitorStateStore(clock, window),
