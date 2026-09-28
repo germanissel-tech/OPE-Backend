@@ -51,3 +51,6 @@ reasons:
   - slug: message-unavailable
     emitter: selection
     description: No candidate of the dominant barrier has a curated text for the page's language and the merchant's voice (01 §322); the family is not a candidate, so nothing is shown. Distinct from no-acceptable-candidate, which is every candidate rejected for lack of evidence.
+  - slug: state-unavailable
+    emitter: orchestrator
+    description: The interventions the caps are counted from could not be read — the hot state did not have them and the durable store did not answer. The decision degrades rather than intervene without knowing what the visitor already received (feature 032). Distinct from barrier-unclear, which is a lack of evidence and not a failure to read.

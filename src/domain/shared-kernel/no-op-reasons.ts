@@ -17,5 +17,6 @@ export const NO_OP_REASONS = [
   "visitor-fatigue",
   "merchant-off",
   "message-unavailable",
+  "state-unavailable",
 ] as const;
 export type NoOpReason = (typeof NO_OP_REASONS)[number];
