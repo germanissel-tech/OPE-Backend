@@ -15,8 +15,9 @@ import {
   queuedEventLog,
   randomBatchIds,
   sqliteEventLog,
+  type EventLogQueue,
 } from "../../interface-adapters/ingestion/index.js";
-import { bind, compositionModule, served, port } from "../graph/index.js";
+import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { EventLogTuningPort, PlatformConfigurationPort, SqlStorePort } from "../release.js";
 import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
@@ -30,7 +31,20 @@ const BatchIdsPort = port("ingestion.batch-ids")<BatchIdGenerator>();
  *
  * It is created **after** the store, so the graph — which closes in reverse creation order — drains it
  * before closing what it writes to (FR-017).
+ *
+ * **Two ports, one instance**, which is what `bindAll` is for: the queue is what the graph drains and
+ * the log is what the use case depends on, and they are the same object resolved once.
+ *
+ * Why not one port typed as the queue: that was tried and `check:ports-bound` was right to refuse it —
+ * the port a use case depends on belongs to the application, and naming an adapters type there inverts
+ * the dependency the ring rules keep pointing inwards. Why not a second binding that hands the first
+ * one on: the graph memoises per binding, so the same object would be collected as closable twice.
+ *
+ * What the second view buys is a handle for whoever legitimately needs the queue **as a queue**, and
+ * feature 032 needs exactly that: a fake clock can make a session go quiet but cannot make the flush
+ * interval fire, so a test that evicts a session flushes the register the way real time would have.
  */
+export const EventLogQueuePort = port("ingestion.event-log-queue")<EventLogQueue>();
 export const EventLogPort = port("ingestion.event-log")<EventLog>();
 
 /**
@@ -51,14 +65,16 @@ export const ingestionModule = compositionModule({
   provides: {
     memory: [
       ...whicheverTechnology,
-      bind(EventLogPort, { logger: LoggerPort, tuning: EventLogTuningPort }, ({ logger, tuning }) =>
-        queuedEventLog({ writer: memoryEventLog(), logger, ...tuning }),
+      bindAll(
+        [EventLogQueuePort, EventLogPort],
+        { logger: LoggerPort, tuning: EventLogTuningPort },
+        ({ logger, tuning }) => queuedEventLog({ writer: memoryEventLog(), logger, ...tuning }),
       ),
     ],
     sqlite: [
       ...whicheverTechnology,
-      bind(
-        EventLogPort,
+      bindAll(
+        [EventLogQueuePort, EventLogPort],
         { store: SqlStorePort, logger: LoggerPort, tuning: EventLogTuningPort },
         ({ store, logger, tuning }) =>
           queuedEventLog({ writer: sqliteEventLog({ store, logger }), logger, ...tuning }),

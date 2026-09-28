@@ -182,13 +182,13 @@ siguiente es la misma.
 
 **Goal**: el estado caliente guarda las sesiones con actividad, y las quietas dejan lugar sin perderse.
 
-- [ ] T029 [P] [US3] `tests/unit/interface-adapters/` — una sesión sin actividad durante el tiempo de
+- [x] T029 [P] [US3] `tests/unit/interface-adapters/` — una sesión sin actividad durante el tiempo de
       expiración sale de memoria, y **su siguiente evento la recupera**. Las dos mitades: que salga y que
       vuelva; una sola no dice nada.
-- [ ] T030 [US3] La expiración por inactividad con la **retención caliente** de T018, separada de la
+- [x] T030 [US3] La expiración por inactividad con la **retención caliente** de T018, separada de la
       duración de la sesión (FR-003). Lo que cambia acá es memoria, no una regla de negocio — que es todo el
       motivo de haber partido el campo.
-- [ ] T031 [US3] `npm run test:mutation` acotado al diff de la historia.
+- [x] T031 [US3] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las tres historias funcionan de forma independiente.
 
