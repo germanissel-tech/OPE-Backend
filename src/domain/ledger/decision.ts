@@ -83,6 +83,20 @@ export interface DecisionFacts {
   decidedAt: Date;
   /** The three versions the decision was taken with (01 §14.2): platform, treatment defaults and, if any, the merchant's. */
   configuration: ConfigurationVersions;
+  /**
+   * How many events the batch that triggered this decision carried (feature 031).
+   *
+   * It lives here because **this is the only durable, synchronous record of that batch**: the event
+   * register is written from a queue and can lose what it holds, so reconciling the two at start-up is
+   * what names a hole — and without this number the hole could only be named in batches, while SC-010
+   * asks for events. It changes no verdict and no response.
+   *
+   * **Optional, and not for convenience**: a decision recorded before this feature does not have one,
+   * `rehydrate` does not judge what it reads (ADR-024), and a required field would therefore be a type
+   * that lies about the history this system promises to keep. Where it is absent the hole is nameable
+   * in batches only, which is the truth about those rows.
+   */
+  eventsInBatch?: number | undefined;
   /** `calibration` while the open experiment is calibrating (03 §4.10); absent in accumulation or without an experiment. */
   phase?: DecisionPhase | undefined;
   /** The experiment and arm the visitor was assigned to; absent when the merchant has no active experiment. */
@@ -114,6 +128,7 @@ export abstract class DecisionBase implements DecisionFacts {
   readonly inference?: DecisionInference;
   readonly selection?: DecisionSelection;
   readonly locale?: string;
+  readonly eventsInBatch?: number;
   abstract readonly outcome: DecisionOutcome;
   /** Why this outcome: a NO_OP reason of the catalogue, or the reason of the intervention. */
   abstract readonly reason: string;
@@ -130,6 +145,7 @@ export abstract class DecisionBase implements DecisionFacts {
     if (facts.inference) this.inference = facts.inference;
     if (facts.selection) this.selection = facts.selection;
     if (facts.locale !== undefined) this.locale = facts.locale;
+    if (facts.eventsInBatch !== undefined) this.eventsInBatch = facts.eventsInBatch;
   }
 
   /** A recorded decision comes back as what it was; a record that fits no shape is corrupt. */
@@ -171,6 +187,7 @@ export abstract class DecisionBase implements DecisionFacts {
       inference: this.inference,
       selection: this.selection,
       locale: this.locale,
+      eventsInBatch: this.eventsInBatch,
       intervention: this.isIntervention() ? this.intervention : undefined,
     };
   }

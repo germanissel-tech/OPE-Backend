@@ -25,4 +25,10 @@ export class EventTimestampOutOfRange extends DomainError {
   }
 }
 
+// Feature 031 wanted a third error here — a row of the register that says something untrue about why
+// traffic was not intervened — and it does not exist on purpose. Two gates said why: an error of the
+// domain has to appear in the public catalogue of problem types, and that one would never be emitted
+// by any endpoint, because it is not a business error but a programming mistake. So the shape of
+// `RecordedEvent` makes it a compile error instead (see `recorded-event.ts`).
+
 export type IngestionError = SessionVisitorMismatch | EventTimestampOutOfRange;

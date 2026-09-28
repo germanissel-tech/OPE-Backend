@@ -21,6 +21,7 @@
 import { deployment } from "../graph/index.js";
 import { catalogModule } from "../modules/catalog.js";
 import { experimentModule } from "../modules/experiment.js";
+import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { outcomesModule } from "../modules/outcomes.js";
 import { storeComponents } from "../release.js";
@@ -33,6 +34,9 @@ export const durableDeployment = (config: AppConfig) =>
     storeComponents(config),
     catalogModule.with("sqlite"),
     experimentModule.with("sqlite"),
+    // Ingestion is here because of the register (feature 031). Its queue is the same in both
+    // deployments; what the technology chooses is only what the queue writes to.
+    ingestionModule.with("sqlite"),
     ledgerModule.with("sqlite"),
     outcomesModule.with("sqlite"),
   ]);

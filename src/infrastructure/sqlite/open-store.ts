@@ -28,10 +28,11 @@ export interface SqliteOptions {
 /**
  * A store that is ready to be written to, or a refusal to start.
  *
- * An empty database gets the schema; one that already carries the expected version is used as it
- * is; **anything else stops the server and says what it expected** (FR-006). It is the rule that
- * already governs the configuration and the seed: a server running on something it does not
- * understand is worse than one that does not run, because it fails later and somewhere else.
+ * An empty database gets the whole schema; one some versions behind gets only what it is missing;
+ * one that already carries the expected version is used as it is; **anything else stops the server
+ * and says what it expected** (FR-006). It is the rule that already governs the configuration and
+ * the seed: a server running on something it does not understand is worse than one that does not
+ * run, because it fails later and somewhere else.
  */
 export function openSqliteStore(options: SqliteOptions): SqlStore {
   const dir = options.migrations ?? DEFAULT_MIGRATIONS_DIR;
@@ -97,25 +98,71 @@ interface Migration {
 function prepareSchema(database: DatabaseSync, migrations: readonly Migration[], file: string): void {
   const expected = migrations[migrations.length - 1]?.version ?? 0;
   const found = userVersion(database);
-  if (found === expected) return;
   // A fresh file reports version 0 **and** holds nothing. A version 0 with tables in it is some
   // other database that happens to live at this path, and applying the schema over it would be
   // the silent corruption this check exists to prevent.
   // Stryker disable next-line ConditionalExpression: opening the store runs in a test hook, so the vitest runner cannot activate this reliably (ADR-016); applying it by hand does kill tests
-  if (found === 0 && isEmpty(database)) {
-    for (const migration of migrations) database.exec(readFileSync(migration.file, "utf8"));
-    const applied = userVersion(database);
-    if (applied !== expected) {
-      throw new Error(
-        `The migrations of this build leave schema version ${applied}, not the ${expected} their names announce.`,
-      );
-    }
-    return;
+  const fresh = found === 0 && isEmpty(database);
+  // Anything from 1 up to the expected version is **our** store, at or behind this build. Feature
+  // 030 could refuse everything but the expected one, because it declared there was nothing to
+  // migrate anywhere; from the second migration on, a store some versions behind is the ordinary
+  // case, and refusing it would make every schema change a manual procedure nobody wrote down.
+  const ours = found > 0 && found <= expected;
+  if (!fresh && !ours) {
+    throw new Error(
+      `The store at ${file} holds schema version ${found}, and this build expects ${expected}. ` +
+        `It was not migrated and it was not replaced, so nothing was written.`,
+    );
   }
-  throw new Error(
-    `The store at ${file} holds schema version ${found}, and this build expects ${expected}. ` +
-      `It was not migrated and it was not replaced, so nothing was written.`,
-  );
+  // Only what is missing — and a store already at the expected version is **not a special case**,
+  // it is this loop finding nothing to do. Writing it as an early return above instead left the
+  // `found === expected` boundary unreachable here, so `<` and `<=` became indistinguishable and a
+  // mutant of the comparison survived: the branch that could not be observed was the one saying
+  // too much.
+  for (const migration of migrations) {
+    if (migration.version > found) applyMigration(database, migration);
+  }
+  const applied = userVersion(database);
+  if (applied !== expected) {
+    throw new Error(
+      `The migrations of this build leave schema version ${applied}, not the ${expected} their names announce.`,
+    );
+  }
+}
+
+/**
+ * All of the work, or none of it.
+ *
+ * The two callers need the same three words in the same order, and writing them twice is what the
+ * magic-string rule catches: they are not two transactions that happen to look alike, they are one.
+ * A migration cannot go through `SqlStore.transaction` instead, because it runs while the schema is
+ * still being prepared and there is no store yet — only the driver.
+ */
+function inTransaction<T>(database: DatabaseSync, work: () => T): T {
+  database.exec("BEGIN");
+  try {
+    const result = work();
+    database.exec("COMMIT");
+    return result;
+  } catch (failure) {
+    database.exec("ROLLBACK");
+    throw failure;
+  }
+}
+
+/**
+ * One migration, all of it or none of it.
+ *
+ * The transaction is what makes a migration that rebuilds tables safe to run against a store with
+ * data in it: SQLite cannot add a primary key to an existing table, so such a migration creates,
+ * copies, drops and renames. Halfway through that without a rollback the store would be neither the
+ * old shape nor the new one — and `user_version` would still say the old one, so the next start
+ * would run the same migration again over the debris.
+ */
+function applyMigration(database: DatabaseSync, migration: Migration): void {
+  inTransaction(database, () => {
+    database.exec(readFileSync(migration.file, "utf8"));
+  });
 }
 
 function userVersion(database: DatabaseSync): number {
@@ -141,17 +188,7 @@ function storeOn(database: DatabaseSync): SqlStore {
     run: (sql, params) => {
       database.prepare(sql).run({ ...params });
     },
-    transaction: (work) => {
-      database.exec("BEGIN");
-      try {
-        const result = work();
-        database.exec("COMMIT");
-        return result;
-      } catch (failure) {
-        database.exec("ROLLBACK");
-        throw failure;
-      }
-    },
+    transaction: (work) => inTransaction(database, work),
     close: () => {
       database.close();
     },

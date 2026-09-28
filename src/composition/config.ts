@@ -9,6 +9,7 @@ import path from "node:path";
 import { ConfigError } from "./config-error.js";
 import { readCorpus } from "./corpus-config.js";
 import { text } from "./env.js";
+import { readEventLogTuning, type EventLogTuning } from "./event-log-config.js";
 import { readLevels, type ReleaseLevels } from "./levels-config.js";
 import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
@@ -32,6 +33,8 @@ export interface AppConfig {
   corpus: readonly CorpusEntry[];
   /** Where the durable store lives (feature 030); only a deployment that chooses it opens the file. */
   store: StoreLocation;
+  /** How the register's queue is tuned (feature 031): environment, like the store's location. */
+  eventLog: EventLogTuning;
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -56,6 +59,7 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     levels,
     corpus: readCorpus(env, readFile, defaultLocaleOf(levels)),
     store: readStoreLocation(env),
+    eventLog: readEventLogTuning(env),
   };
 }
 

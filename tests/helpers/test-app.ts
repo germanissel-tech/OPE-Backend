@@ -182,6 +182,10 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   // The local deployment does not open a store, so this is never read here. It is in the shape
   // because the configuration carries it; a test that wants durability builds its own.
   store: { file: ":memory:" },
+  // The register's queue, tuned so a test never has to wait for an interval: it flushes on `close`,
+  // and an integration test that wants what was recorded asks for it after the app is stopped — or
+  // reaches the queue and flushes. An hour is "never on its own".
+  eventLog: { maxArrivals: 10_000, flushIntervalMs: 3_600_000 },
   ...over,
 });
 

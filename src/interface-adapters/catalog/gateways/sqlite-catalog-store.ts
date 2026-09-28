@@ -17,23 +17,33 @@ const RECEIVED_AT = "received_at";
 
 const CURRENT = `SELECT document FROM catalog_snapshots WHERE merchant_id = :merchant`;
 
-/** One row per merchant, replaced whole: a publication supersedes the previous snapshot. */
+/**
+ * One row per merchant, replaced whole: a publication supersedes the previous snapshot. The
+ * conflict branch sets `updated_at` itself, because the column's DEFAULT only fires on the insert
+ * — so a republished snapshot keeps the `created_at` of the first one and moves only `updated_at`,
+ * which is what the two columns are for.
+ */
 const REPLACE = `INSERT INTO catalog_snapshots (merchant_id, document) VALUES (:merchant, :document)
-  ON CONFLICT (merchant_id) DO UPDATE SET document = excluded.document`;
+  ON CONFLICT (merchant_id) DO UPDATE
+  SET document = excluded.document, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`;
 
 const ADD_RECEIPT = `INSERT INTO catalog_receipts (merchant_id, received_at) VALUES (:merchant, :receivedAt)`;
 
 /**
- * Keeps the last `:kept` receipts of the merchant and deletes the rest. `rowid` is the order of
+ * Keeps the last `:kept` receipts of the merchant and deletes the rest. `id` is the order of
  * arrival, so "the last few" needs no instant comparison — two publications of the same instant
  * (a replay) stay in the order they were received.
+ *
+ * It used to say `rowid`, SQLite's implicit column, which **PostgreSQL does not have**: one of the
+ * three things debt D-21 left resting on this engine. The migration 002 gave every table its own
+ * autoincrementing `id`, so the order is now a column the schema declares (feature 031, FR-014).
  */
-const PRUNE_RECEIPTS = `DELETE FROM catalog_receipts WHERE merchant_id = :merchant AND rowid NOT IN (
-    SELECT rowid FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY rowid DESC LIMIT :kept
+const PRUNE_RECEIPTS = `DELETE FROM catalog_receipts WHERE merchant_id = :merchant AND id NOT IN (
+    SELECT id FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY id DESC LIMIT :kept
   )`;
 
 /** Oldest first, which is the order the port promises. */
-const RECEIPTS = `SELECT received_at FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY rowid`;
+const RECEIPTS = `SELECT received_at FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY id`;
 
 export function sqliteCatalogStore(deps: DurableGatewayDeps): CatalogStore {
   return {

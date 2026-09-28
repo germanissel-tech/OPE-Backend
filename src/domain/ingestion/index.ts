@@ -35,8 +35,9 @@ export {
 } from "./event.js";
 export { EventTimestampOutOfRange, SessionVisitorMismatch } from "./errors.js";
 export type { IngestionError } from "./errors.js";
+export type { DecidedArrival, Disposition, RecordedEvent, RejectedArrival } from "./recorded-event.js";
 export { EventBatch } from "./event-batch.js";
 export type { TimestampTolerance } from "./event-batch.js";
 export type { ProductFocus } from "./event-batch.js";
-export { asEventId } from "./ids.js";
-export type { EventId } from "./ids.js";
+export { asBatchId, asEventId } from "./ids.js";
+export type { BatchId, EventId } from "./ids.js";

@@ -10,50 +10,69 @@ arranque la lee.
 
 ## La forma de hoy
 
-En cada tabla hay columnas para **dos cosas nada más**: el merchant, que toda lectura toma y que es
-de lo que está hecho el aislamiento (constitución V), y **la clave por la que el puerto busca**. Todo
-lo demás viaja en `document`, tal como el dominio lo tiene.
+Toda tabla lleva **su propia clave primaria autoincremental** y **`created_at` / `updated_at`**, las
+dos reglas de arquitectura del dueño (2026-09-27, migración `002`); lo que era clave de negocio es
+ahora un **índice UNIQUE**, que garantiza lo mismo sin ser la identidad de la fila. Fuera de eso hay
+columnas para **dos cosas nada más**: el merchant, que toda lectura toma y que es de lo que está hecho
+el aislamiento (constitución V), y **la clave o el campo por el que el puerto busca**. Todo lo demás
+viaja en `document`, tal como el dominio lo tiene.
+
+Para no repetir cinco columnas iguales en cada caja, el diagrama las omite: **todas las tablas tienen
+`id`, `created_at` y `updated_at`**, y lo que se dibuja es lo que las distingue.
 
 ```mermaid
 erDiagram
     decisions {
-        TEXT merchant_id PK "toda lectura lo toma"
-        TEXT decision_id PK "repetirla se rechaza: no se sobrescribe"
-        TEXT session_id "índice decisions_by_session"
+        TEXT merchant_id UK "toda lectura lo toma"
+        TEXT decision_id UK "repetirla se rechaza: no se sobrescribe"
+        TEXT session_id "índice decisions_by_session, ordenado por id"
         TEXT document "razonamiento, candidatos, veredicto"
     }
     exposures {
-        TEXT merchant_id PK
-        TEXT decision_id PK "la clave es la idempotencia"
+        TEXT merchant_id UK
+        TEXT decision_id UK "el índice único es la idempotencia"
         TEXT document "ancla e instante"
     }
     orders {
-        TEXT merchant_id PK
-        TEXT order_id PK
+        TEXT merchant_id UK
+        TEXT order_id UK
         TEXT document "total, líneas, correlación, devolución"
     }
     corroborations {
-        TEXT merchant_id PK
-        TEXT order_id PK
-        TEXT session_id PK "el primero gana"
+        TEXT merchant_id UK
+        TEXT order_id UK
+        TEXT session_id UK "el primero gana"
         TEXT document "lo que el SDK vio"
     }
     assignments {
-        TEXT merchant_id PK
-        TEXT experiment_id PK
-        TEXT visitor_id PK "el primero gana"
+        TEXT merchant_id UK
+        TEXT experiment_id UK
+        TEXT visitor_id UK "el primero gana"
         TEXT document "el brazo y su instante"
     }
     catalog_snapshots {
-        TEXT merchant_id PK
+        TEXT merchant_id UK "una fila por merchant"
         TEXT document "productos y variantes"
     }
     catalog_receipts {
         TEXT merchant_id "índice catalog_receipts_by_merchant"
-        TEXT received_at "sin clave: es un append"
+        TEXT received_at "sin índice único: dos recibos iguales son dos recibos"
+    }
+    received_events {
+        TEXT merchant_id UK "el aislamiento, también acá"
+        TEXT batch_id UK "la llegada, acuñada por OPE al recibir"
+        INTEGER position UK "su lugar en la llegada: esto es lo único"
+        TEXT event_id "índice NO único: cada llegada es un hecho"
+        TEXT session_id "índice por sesión, lo que lee la feature 032"
+        TEXT type "índice de cobertura con received_at"
+        TEXT received_at "cuándo llegó; su resta con created_at es el atraso de la cola"
+        TEXT disposition "accepted · duplicate · rejected"
+        TEXT decision_id "ausente sólo si el lote fue rechazado"
+        TEXT document "el evento como el contrato lo admite"
     }
 
     decisions ||--o| exposures : "se mostró de verdad"
+    decisions ||--o{ received_events : "con qué llegó"
     orders ||--o{ corroborations : "la sostienen"
     catalog_snapshots ||--o{ catalog_receipts : "cuándo llegó cada una"
 ```
@@ -77,10 +96,21 @@ mismo dominio** en paso — la duplicación que ADR-024 evita en el código. La 
 que una devolución sí actualiza: eso es la máquina de estados de ADR-028, no una edición de lo que la
 plataforma mandó.
 
-**Dos cosas que no son columnas y podrían parecerlo.** El orden de inserción no lo lleva ninguna: es
-el `rowid` de SQLite, así que «en el orden en que se registraron» no depende de un contador que
-pueda discrepar de la realidad. Y cuántos recibos se guardan **llega con cada escritura**, porque es
-política del merchant y no del esquema (constitución XI).
+**Dos cosas sobre el orden y la política.** «En el orden en que se registraron» lo da el `id`, que es
+monotónico por inserción, así que ninguna columna tiene que llevar un contador que pueda discrepar de
+la realidad. Antes lo daba el `rowid` **implícito** de SQLite, que PostgreSQL no tiene: una de las
+tres cosas que la deuda **D-21** dejó apoyadas en el motor, y que la migración `002` saldó. Y cuántos
+recibos se guardan **llega con cada escritura**, porque es política del merchant y no del esquema
+(constitución XI).
+
+**Y una sobre los dos timestamps.** Vienen del almacén, como `DEFAULT` del esquema, no del reloj
+inyectado — y ahí está la línea entre las dos clases de tiempo. Un instante que el **dominio**
+significa (`decidedAt`, `confirmedAt`, el `received_at` de un evento) llega por el puerto `Clock` y
+vive donde el dominio lo pone, porque una prueba tiene que poder decidirlo. `created_at` y
+`updated_at` dicen cuándo se escribió **la fila**, que sólo el almacén sabe; como defaults, ningún
+gateway puede olvidarlos y la regla de que son iguales al crear se cumple **por construcción**. Los
+dos únicos lugares que actualizan una fila —la devolución de una orden y una instantánea
+republicada— mueven `updated_at` ellos mismos, porque un `DEFAULT` no se dispara en un `UPDATE`.
 
 ## Qué hace el arranque con esto
 
@@ -94,36 +124,50 @@ migración perdida en un merge. La última que pide es la versión que la build 
 Entonces:
 
 - **Archivo vacío y sin tablas** → aplica todas, en ese orden.
-- **La versión que esperaba** → arranca.
+- **Una versión entre 1 y la esperada** → aplica **sólo las pendientes**, cada una en su transacción.
+  Estar al día no es un caso especial: es ese mismo recorrido sin encontrar nada que hacer.
 - **Un hueco en la numeración** (001 y 003, sin 002) → **no arranca**, nombrando la que falta.
-- **Cualquier otra cosa** —otra versión, o versión 0 con tablas adentro— → **no arranca, y dice qué
-  esperaba** (FR-006). Un servidor que arranca sobre algo que no entiende es peor que uno que no
-  arranca: falla más tarde y en otro lado.
+- **Cualquier otra cosa** —una versión mayor que la que la build conoce, o versión 0 con tablas
+  adentro— → **no arranca, y dice qué esperaba** (FR-006). Un servidor que arranca sobre algo que no
+  entiende es peor que uno que no arranca: falla más tarde y en otro lado.
 
 Un arranque rechazado **cierra la base que había abierto**; no deja la conexión detrás.
 
-**Hoy no hay migración de datos**: no hay nada en producción, así que la primera versión no convive
-con ninguna anterior. Cuando la haya, la decisión de cómo se migra se toma entonces y queda en su
-ADR; este directorio no la prejuzga.
+**Cada migración va en su propia transacción**, y eso es lo que vuelve segura una que **reconstruye**
+una tabla —crear, copiar, borrar, renombrar, que es lo que SQLite obliga para agregar una clave
+primaria—: se aplica entera o ninguna. Sin la transacción, un fallo a mitad dejaría el almacén en una
+forma que no es ni la vieja ni la nueva, con `user_version` diciendo la vieja, y el arranque
+siguiente correría la misma migración sobre los restos.
+
+**La migración hacia adelante llegó en la feature 031.** La 030 la había dejado afuera con su motivo
+—no había datos en ninguna parte, así que un almacén sólo podía estar vacío o al día— y la segunda
+migración del repositorio volvió ordinario el caso de un almacén una versión atrás.
 
 ## Qué hace cada clave cuando la escritura se repite
 
 No es un detalle de implementación: es lo que hace de esto un ledger y no una tabla cualquiera, y
 cada tabla lo decide con su clave primaria, no con una lectura previa del llamador.
 
-| Tabla               | Una segunda escritura con la misma clave                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| `decisions`         | **se rechaza**: el ledger no se sobrescribe, y la escritura degrada a `NO_OP ledger-unavailable` |
-| `exposures`         | no hace nada y responde `already-recorded`: es la idempotencia de la confirmación                |
-| `corroborations`    | no hace nada y responde `repeated`: el primero gana                                              |
-| `assignments`       | no hace nada: el primer brazo gana, y por eso el visitante vuelve al mismo                       |
-| `orders`            | la decide el puerto dentro de una transacción: primero, repetido o **conflicto**, sin pisar nada |
-| `catalog_snapshots` | reemplaza: una publicación supersede a la anterior, que es lo que una instantánea significa      |
-| `catalog_receipts`  | no aplica: no tiene clave, es un append que se poda al tope que el merchant fija                 |
+| Tabla               | Una segunda escritura con la misma clave                                                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `decisions`         | **se rechaza**: el ledger no se sobrescribe, y la escritura degrada a `NO_OP ledger-unavailable`                                                                                     |
+| `exposures`         | no hace nada y responde `already-recorded`: es la idempotencia de la confirmación                                                                                                    |
+| `corroborations`    | no hace nada y responde `repeated`: el primero gana                                                                                                                                  |
+| `assignments`       | no hace nada: el primer brazo gana, y por eso el visitante vuelve al mismo                                                                                                           |
+| `orders`            | la decide el puerto dentro de una transacción: primero, repetido o **conflicto**, sin pisar nada                                                                                     |
+| `catalog_snapshots` | reemplaza: una publicación supersede a la anterior, que es lo que una instantánea significa                                                                                          |
+| `catalog_receipts`  | no aplica: no tiene clave, es un append que se poda al tope que el merchant fija                                                                                                     |
+| `received_events`   | **la clave no es el evento sino la llegada**: el mismo `event_id` dos veces son dos filas, y eso es lo que hace forense al registro; lo que se rechaza es la misma llegada dos veces |
 
 `decisions` rechaza en vez de conservar en silencio porque un identificador repetido ahí no es una
 repetición: es un generador roto, y perder la evidencia de la primera decisión sería la peor forma
 de enterarse.
+
+`received_events` es la excepción deliberada de esta tabla, y por el motivo contrario: un reintento
+del SDK trae el mismo `event_id`, y **cada llegada es un hecho** que el registro existe para
+conservar. Si el evento fuera único no se podría registrar un duplicado, que es la mitad de lo que
+hace útil al registro (feature 031, FR-005). Lo único es `(merchant_id, batch_id, position)`, que es
+la identidad de una llegada y la idempotencia de su escritura.
 
 ## Cómo se agrega una
 
@@ -136,6 +180,7 @@ de enterarse.
 
 ## Inventario
 
-| Entrada                      | Qué es                                                                                                                                               | Versión que deja | Fuente o derivado | Quién lo lee                                       | Verificación                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | -------------------------------------------------- | -------------------------------- |
-| `001-ledger-and-catalog.sql` | La primera forma: una tabla por entidad del ledger —decisiones, exposiciones, órdenes, corroboraciones, asignaciones— más el catálogo y sus recibos. | 1                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| Entrada                                      | Qué es                                                                                                                                                                                                                                               | Versión que deja | Fuente o derivado | Quién lo lee                                       | Verificación                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | -------------------------------------------------- | -------------------------------- |
+| `001-ledger-and-catalog.sql`                 | La primera forma: una tabla por entidad del ledger —decisiones, exposiciones, órdenes, corroboraciones, asignaciones— más el catálogo y sus recibos.                                                                                                 | 1                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| `002-received-events-and-surrogate-keys.sql` | El registro de lo que el SDK manda (`received_events`, una fila por evento y por llegada), y las dos reglas de arquitectura del dueño aplicadas a las siete tablas anteriores: clave primaria autoincremental propia, y `created_at` / `updated_at`. | 2                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |

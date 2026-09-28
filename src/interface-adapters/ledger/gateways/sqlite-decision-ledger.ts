@@ -2,9 +2,10 @@
 // another merchant's decision does not exist for whoever asks— and the same secondary read by
 // session, which here is an index instead of a second map.
 //
-// `bySession` answers "in the order they were recorded", and that order is SQLite's `rowid`: it is
-// monotonic per insert, so nothing has to carry a counter that could disagree with what actually
-// happened.
+// `bySession` answers "in the order they were recorded", and that order is the table's own `id`: it
+// is monotonic per insert, so nothing has to carry a counter that could disagree with what actually
+// happened. It used to be SQLite's implicit `rowid`, which **PostgreSQL does not have** — one of the
+// three things debt D-21 left resting on this engine, and what migration 002 settled (feature 031).
 //
 // **The document comes from `decision.record()`, not from a copy made here.** Listing the fields
 // in the gateway would put the shape of the domain in the one place that cannot be kept in step
@@ -35,7 +36,7 @@ const INSERT = `INSERT INTO decisions (merchant_id, decision_id, session_id, doc
 const BY_ID = `SELECT document FROM decisions WHERE merchant_id = :merchant AND decision_id = :decision`;
 
 const BY_SESSION = `SELECT document FROM decisions
-  WHERE merchant_id = :merchant AND session_id = :session ORDER BY rowid`;
+  WHERE merchant_id = :merchant AND session_id = :session ORDER BY id`;
 
 export function sqliteDecisionLedger(deps: DurableGatewayDeps): DecisionLedger {
   return {
