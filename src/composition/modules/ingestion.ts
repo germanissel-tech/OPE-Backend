@@ -31,7 +31,7 @@ const BatchIdsPort = port("ingestion.batch-ids")<BatchIdGenerator>();
  * It is created **after** the store, so the graph — which closes in reverse creation order — drains it
  * before closing what it writes to (FR-017).
  */
-const EventLogPort = port("ingestion.event-log")<EventLog>();
+export const EventLogPort = port("ingestion.event-log")<EventLog>();
 
 /**
  * What this module provides the same way whichever technology it is asked for. Only the register has

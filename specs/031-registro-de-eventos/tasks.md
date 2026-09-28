@@ -265,23 +265,39 @@ el brazo con el que entró.
 **Independent Test**: ingestar un lote, esperar a que la cola se vacíe, y recorrer el vínculo en los dos
 sentidos.
 
-- [ ] T022 [P] [US1] `tests/durability/event-log.test.ts` — los cinco escenarios de aceptación de la
+- [x] T022 [P] [US1] `tests/durability/event-log.test.ts` — los cinco escenarios de aceptación de la
       historia, **cruzando un reinicio** (FR-009): el contenido igual, de la decisión a los eventos, de
       un evento a su decisión **incluida la que resultó `NO_OP`**, el brazo, y el aislamiento entre dos
       merchants. Se escriben antes de las consultas y tienen que fallar.
-- [ ] T023 [P] [US1] `tests/integration/...` — que un lote **sin experimento activo** se registra **sin
+      **Ya estaban, escritas en el bloque anterior con el contrato compartido**, así que lo que la
+      historia necesitaba de verdad era lo que ninguna prueba de gateway puede dar: **el camino
+      completo**. Salió `tests/integration/event-register.test.ts`, que hace un `POST` real, deja que la
+      cola drene al parar la app —lo que ejercita FR-017 de paso— y recorre el vínculo en los dos
+      sentidos.
+- [x] T023 [P] [US1] `tests/integration/...` — que un lote **sin experimento activo** se registra **sin
       brazo**, y no con `CONTROL` inventado. Es la distinción que la spec marcó como caso borde y la
       que haría falsa toda lectura del piloto si se perdiera.
-- [ ] T024 [US1] `sqlite-event-log.ts` y su par en memoria — `byDecision` y `bySession`, con los índices
+      **Y los dos brazos reales**, que era lo que faltaba: un experimento activo y visitantes elegidos
+      con la función de asignación del dominio, para no adivinar en qué brazo cae cada uno. La primera
+      versión de la prueba del «sin brazo» usaba el merchant A, que **sí** tiene experimento por
+      defecto — lo corrigió la corrida, no la lectura.
+- [x] T024 [US1] `sqlite-event-log.ts` y su par en memoria — `byDecision` y `bySession`, con los índices
       `(merchant_id, decision_id)` y `(merchant_id, session_id, id)`. El segundo es el que la **032**
       va a consumir para reconstruir señales, y el `id` en el índice es lo que da el orden de llegada
       sin que ninguna columna lleve un contador que pueda discrepar con la realidad.
-- [ ] T025 [US1] Verificar con `EXPLAIN QUERY PLAN` que las dos consultas usan su índice, no que lo
+      **Ya implementado en T015/T016**: el puerto se escribió entero, no por historia. Se marca hecho y
+      se dice, en vez de contarlo como trabajo de esta fase.
+- [x] T025 [US1] Verificar con `EXPLAIN QUERY PLAN` que las dos consultas usan su índice, no que lo
       tienen: en esta feature un índice equivocado salió **más de tres veces peor que ninguno**
       (research R-06). Si dice `SCAN`, el índice no sirve. Va después de las pruebas porque el plan se
       verifica sobre una tabla con datos.
-- [ ] T026 [US1] `npm run test:mutation` acotado al diff de la historia. Ningún mutante de las líneas
+      Cuatro consultas y no dos —las tres lecturas por clave más el volumen—, sobre una tabla con 200
+      filas, porque SQLite planifica distinto una vacía. **Y verifiqué que la aserción discrimina**: un
+      plan sin índice dice literalmente `SCAN <tabla>`, comprobado aparte, así que `not.toContain` no
+      es una afirmación vacía.
+- [x] T026 [US1] `npm run test:mutation` acotado al diff de la historia. Ningún mutante de las líneas
       propias sobrevive; si sobrevive, la skill `triaging-mutants` y su orden de cuatro pasos.
+      **Cero supervivientes, exit 0**, sobre el diff completo de la rama.
 
 **Checkpoint**: la historia 1 funciona sola y es la feature mínima entregable.
 
