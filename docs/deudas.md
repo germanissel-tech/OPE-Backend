@@ -27,32 +27,33 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                                        | Origen                                        | Estado         | Fecha      | Cierre                                                  |
-| ---- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------- | ---------- | ------------------------------------------------------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                               | Revisión del dueño tras la 018                | `implementada` | 2026-09-21 | `5571829`                                               |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                    | Evaluación con el dueño (D-01)                | `implementada` | 2026-09-21 | `eec62b3`                                               |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo                | Evaluación con el dueño (D-02)                | `descartada`   | 2026-09-21 | —                                                       |
-| D-04 | `config/` sin documentación ni esquema propio                                                 | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `d37093b`                                               |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                         | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `8ffe84e`                                               |
-| D-06 | Los directorios de primer nivel no se explican solos                                          | Revisión del dueño, 2026-09-21                | `implementada` | 2026-09-21 | `cd292e0`                                               |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                    | Feature 025                                   | `implementada` | 2026-09-24 | `27bb238`                                               |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                    | Feature 025                                   | `implementada` | 2026-09-24 | `05959f8`                                               |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                        | Feature 025                                   | `implementada` | 2026-09-24 | `34c4299`                                               |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                       | Feature 025                                   | `implementada` | 2026-09-24 | `f4d6a8d`                                               |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada               | Feature 026                                   | `implementada` | 2026-09-24 | `ea3d111`                                               |
-| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                         | ADR-016 (2026-09-21)                          | `evaluada`     | 2026-09-24 | —                                                       |
-| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                            | Feature 027 (al cerrar D-11)                  | `evaluada`     | 2026-09-25 | —                                                       |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                  | Evaluación con el dueño, 2026-09-25           | `implementada` | 2026-09-25 | `b238fdb`                                               |
-| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                   | Feature 027 (US3)                             | `descartada`   | 2026-09-25 | —                                                       |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                              | Feature 028 (al enmendar la fuente)           | `implementada` | 2026-09-25 | `2837b69`                                               |
-| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                 | Feature 028 (al enmendar la fuente)           | `implementada` | 2026-09-25 | `ef2c854`                                               |
-| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                   | Feature 028 (auditoría de cierre)             | `abierta`      | 2026-09-25 | —                                                       |
-| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio       | Feature 029 (Schemathesis)                    | `implementada` | 2026-09-26 | —                                                       |
-| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir        | Revisión de deudas, 2026-09-26                | `abierta`      | 2026-09-26 | —                                                       |
-| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después  | Decisión del dueño, 2026-09-26                | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
-| D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo    | Revisión del esquema con el dueño, 2026-09-27 | `abierta`      | 2026-09-27 | —                                                       |
-| D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió          | Revisión del esquema con el dueño, 2026-09-27 | `abierta`      | 2026-09-27 | —                                                       |
-| D-24 | El tope diario por visitante es un default sin medición, y con 1 por sesión casi nunca muerde | Revisión de la 032 con el dueño, 2026-09-27   | `abierta`      | 2026-09-27 | —                                                       |
+| Id   | Título                                                                                             | Origen                                           | Estado         | Fecha      | Cierre                                                  |
+| ---- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------- | ---------- | ------------------------------------------------------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                                    | Revisión del dueño tras la 018                   | `implementada` | 2026-09-21 | `5571829`                                               |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                         | Evaluación con el dueño (D-01)                   | `implementada` | 2026-09-21 | `eec62b3`                                               |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo                     | Evaluación con el dueño (D-02)                   | `descartada`   | 2026-09-21 | —                                                       |
+| D-04 | `config/` sin documentación ni esquema propio                                                      | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `d37093b`                                               |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                              | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `8ffe84e`                                               |
+| D-06 | Los directorios de primer nivel no se explican solos                                               | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `cd292e0`                                               |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                         | Feature 025                                      | `implementada` | 2026-09-24 | `27bb238`                                               |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                         | Feature 025                                      | `implementada` | 2026-09-24 | `05959f8`                                               |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                             | Feature 025                                      | `implementada` | 2026-09-24 | `34c4299`                                               |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                            | Feature 025                                      | `implementada` | 2026-09-24 | `f4d6a8d`                                               |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada                    | Feature 026                                      | `implementada` | 2026-09-24 | `ea3d111`                                               |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                              | ADR-016 (2026-09-21)                             | `evaluada`     | 2026-09-24 | —                                                       |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                                 | Feature 027 (al cerrar D-11)                     | `evaluada`     | 2026-09-25 | —                                                       |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                       | Evaluación con el dueño, 2026-09-25              | `implementada` | 2026-09-25 | `b238fdb`                                               |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                        | Feature 027 (US3)                                | `descartada`   | 2026-09-25 | —                                                       |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                                   | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `2837b69`                                               |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                      | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `ef2c854`                                               |
+| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                        | Feature 028 (auditoría de cierre)                | `abierta`      | 2026-09-25 | —                                                       |
+| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio            | Feature 029 (Schemathesis)                       | `implementada` | 2026-09-26 | —                                                       |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir             | Revisión de deudas, 2026-09-26                   | `abierta`      | 2026-09-26 | —                                                       |
+| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después       | Decisión del dueño, 2026-09-26                   | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
+| D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo         | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
+| D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió               | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
+| D-24 | El tope diario por visitante es un default sin medición, y con 1 por sesión casi nunca muerde      | Revisión de la 032 con el dueño, 2026-09-27      | `abierta`      | 2026-09-27 | —                                                       |
+| D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -437,6 +438,24 @@ llevar incentivo, y `01 §4.5` bloquea lo que destruye contribución aunque conv
 medición que parecía apoyarlo es el más débil de los tres: el piloto compara por intención de tratar, así
 que la dosis real es parte del tratamiento y la comparación sigue siendo válida. Lo que se pierde con una
 dosis inflada es más chico y más concreto: **la cifra publicada deja de describir la política configurada**.
+
+## D-25 — CI corre sobre cosas con fecha de vencimiento
+
+Las anotaciones del CI de la feature 031 (2026-09-28) avisan tres cosas. **Ninguna falla nada hoy**, y
+dos tienen fecha, que es lo que las vuelve deuda y no ruido: cuando venzan, el workflow se rompe sin que
+nadie haya tocado el repositorio.
+
+| Qué                                                                                                                                                                       | Dónde                                                         | Qué pasa cuando venza                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node 20 deprecado** en cinco actions: `actions/checkout@v4`, `actions/setup-node@v4`, `actions/upload-artifact@v4`, `actions/cache/restore@v4`, `actions/cache/save@v4` | `.github/workflows/ci.yml`                                    | hoy el runner las fuerza a Node 24 y avisa; cuando deje de forzarlas, fallan. La salida es subir a `@v5` cuando esté disponible para cada una                                                                 |
+| **`ubuntu-latest` migra a Ubuntu 26** el 19 de octubre de 2026                                                                                                            | los **tres** jobs de `ci.yml`                                 | el cambio de imagen llega solo. Lo que puede moverse con ella es el compilador nativo de TypeScript, el runner de Vitest con su parche y Stryker — los tres que la 030 miró al subir a Node 24                |
+| El caché de `astral-sh/setup-uv@v5` **nunca se invalida**                                                                                                                 | `ci.yml:44`, `enable-cache: true` sin `cache-dependency-glob` | no vence: es un caché que no sirve. El proyecto no tiene `uv.lock` ni `requirements*.txt` —Schemathesis se instala por `uv` sin archivo de dependencias—, así que la opción es fijar el glob o sacar el caché |
+
+**Por qué se anota y no se arregla acá**: la feature 031 no toca CI, y cambiar cinco versiones de action
+en la misma PR que una feature mezcla dos revisiones que no tienen nada que ver. Es una rama corta y
+propia, y conviene hacerla **antes del 19 de octubre**, corriendo la cadena entera sobre la imagen nueva
+— que es el procedimiento que la 030 ya usó para el salto de Node: primero y solo, con el diff más chico
+posible, porque si algo del stack se queja no tiene nada que ver con la feature en curso.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
