@@ -11,7 +11,7 @@ Seis almacenes que hoy viven en memoria pasan al almacén durable —merchants c
 **Dos resultados de la investigación gobiernan el plan:**
 
 1. **El camino caliente se resuelve con un índice en memoria sobre un almacén que es la fuente** (R-02), y no consultando por petición. El argumento no es el costo de hoy sino el de mañana: consultar pone **un viaje de red por petición** el día que el almacén sea remoto (**D-21**).
-2. **La historia 4 —la auditoría atómica— no entra** (R-05), y el motivo es verificable: `SqlStore.transaction` es síncrona y el caso de uso es asincrónico, así que no hay forma de componer la transacción sin volver la auditoría no transversal. La spec autorizó este resultado. Comparte causa raíz con la atomicidad del presupuesto por sesión, y las dos quedan como una feature del hito.
+2. **La historia 4 —la auditoría atómica— no entra** (R-05). El obstáculo es verificable: `SqlStore.transaction` es síncrona y el caso de uso es asincrónico. Al tensionarlo apareció una salida que **no deforma el diseño** —un ámbito de transacción asincrónico con el almacén haciendo la cola, en la enmienda de R-05— y el motivo de dejarla afuera pasó a ser de alcance y no de imposibilidad: esta feature ya tiene su propio riesgo de camino caliente y dos riesgos de latencia se estorban al medirlos. Queda como **D-28**, con su diseño escrito, y comparte el mismo puerto con la atomicidad del presupuesto por sesión — lo que las vuelve una feature y no dos.
 
 ## Technical Context
 
@@ -196,8 +196,9 @@ esta lupa:
 
 Lo único que suma son más `strftime` y más `AUTOINCREMENT`: **más de lo mismo que ya hay que traducir**.
 
-**Y una cosa que conviene tener escrita porque cambia una prioridad.** R-05 dejó afuera la auditoría
-atómica porque `SqlStore.transaction` es síncrona. Con un driver de PostgreSQL —asíncrono— esa
-restricción **no existe**. Así que ese pendiente del hito no es «lo mismo pero después»: es un problema
-que el cambio de motor resuelve de paso, y eso es un argumento a favor de esperar en vez de inventar
-ahora una forma retorcida de esquivarlo.
+**Y una cosa que conviene tener escrita.** R-05 dejó afuera la auditoría atómica porque
+`SqlStore.transaction` es síncrona, y su enmienda encontró una salida que funciona sobre SQLite sin
+deformar nada. Lo que el cambio de motor aporta ahí no es la solución sino **simplificarla**: con un pool
+asincrónico, `scope` es `BEGIN`/`COMMIT` y el `enter()` que hace la cola **desaparece**. O sea que el
+puerto sobrevive al cambio de motor y sólo se le cae la mitad específica de SQLite — por eso hacerlo
+antes no es trabajo que se tire, y por eso tampoco urge adelantarlo.

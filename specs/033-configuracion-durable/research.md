@@ -95,7 +95,7 @@ Lo que cada una necesita más allá de la forma habitual —clave propia, `creat
 
 ---
 
-## R-05 — La auditoría atómica no entra, y el motivo es que la transacción es síncrona
+## R-05 — La auditoría atómica no entra en esta feature, y la salida que apareció al tensionarlo
 
 **Esta es la historia 4 de la spec, y no entra.** La spec autorizó este resultado —«si el plan encuentra que no entra, partirlo es un resultado legítimo y se dice»—, así que acá está el análisis.
 
@@ -112,22 +112,45 @@ Que la acción administrativa y su entrada en el registro queden **las dos o nin
 
 El caso de uso es `async` y escribe por puertos que devuelven `Promise`. Envolver un `await` en una transacción síncrona no es incómodo: **es inseguro**. Un `await` cede al bucle de eventos, y otra petición podría escribir **dentro** de la transacción abierta, que es exactamente el peligro contra el que el comentario advierte.
 
-### Las alternativas, y por qué ninguna es un ajuste
+### Las alternativas evaluadas primero, y por qué ninguna alcanzaba
 
-| Alternativa                                                                    | Por qué no acá                                                                                                                                            |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Que cada gateway de escritura reciba la entrada y la escriba en su transacción | la auditoría deja de ser transversal y pasa a elegirla cada gateway, que es lo que ADR-023 y ADR-034 construyeron para evitar; y es viral: siete gateways |
-| Un puerto «unidad de trabajo» con `run(work)` que el decorador use             | el `work` tendría que ser síncrono para envolver la transacción, y el caso de uso no lo es                                                                |
-| Reordenar: escribir la entrada antes de ejecutar                               | una acción que falla dejaría constancia de algo que no ocurrió, que es peor que la ventana                                                                |
-| Partir cada caso de uso en «decidir» (async) y «escribir» (un bloque síncrono) | **es la que funciona**, y es un cambio de forma de todos los casos de uso de administración más el decorador. Es una feature, no una tarea                |
+| Alternativa                                                                    | Por qué no acá                                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Que cada gateway de escritura reciba la entrada y la escriba en su transacción | la auditoría deja de ser transversal y pasa a elegirla cada gateway, que es lo que ADR-023 y ADR-034 construyeron para evitar; y es viral: siete gateways                               |
+| Un puerto «unidad de trabajo» con `run(work)` que el decorador use             | el `work` tendría que ser síncrono para envolver la transacción, y el caso de uso no lo es. **Es el que termina sirviendo**, pero necesita que el almacén haga la cola: ver la enmienda |
+| Reordenar: escribir la entrada antes de ejecutar                               | una acción que falla dejaría constancia de algo que no ocurrió, que es peor que la ventana                                                                                              |
+| Partir cada caso de uso en «decidir» (async) y «escribir» (un bloque síncrono) | funciona y es un cambio de forma de **todos** los casos de uso de administración más el decorador. Se descarta por eso: la enmienda consigue lo mismo sin tocar ninguno                 |
 
 ### Qué se hace entonces
 
-**La historia 4 sale de esta feature y se registra**, con el mismo trato que la feature 032 le dio al plazo de FR-016: la mitad que sí ocurre ya está cubierta —una acción que no se puede auditar **no empieza**, porque el decorador pregunta antes— y lo que queda abierto es la caída **durante** la acción.
+**La historia 4 sale de esta feature**, con el mismo trato que la feature 032 le dio al plazo de FR-016: la mitad que sí ocurre ya está cubierta —una acción que no se puede auditar **no empieza**, porque el decorador pregunta antes— y lo que queda abierto es la caída **durante** la acción.
 
 Lo que esta feature sí aporta a eso: al volverse durable el registro, la ventana pasa de «se pierde todo al reiniciar» a «una entrada puede faltar». Es estrictamente mejor, y no es lo que la historia pedía.
 
-**Y la decisión del alcance del hito se conserva**: `persistence-and-resilience` sigue nombrando esta pieza, junto con la atomicidad del presupuesto por sesión, y las dos comparten la misma causa raíz — **no hay forma de componer una transacción sobre puertos asincrónicos con este almacén**. Eso las vuelve una feature, no dos, y es un hallazgo de esta investigación.
+### Enmienda (2026-09-29) — sí hay una salida, y sale de tensionar esto
+
+La primera versión de este apartado concluía que **no hay forma** de componer la transacción con este almacén. Eso era demasiado fuerte: al buscarla en serio apareció, y dos ideas que parecían salidas y no lo son son lo que la deja ver.
+
+**Lo que no sirve, con su motivo:**
+
+- **«En realidad nadie se interpone».** Los gateways de SQLite son sincrónicos de hecho y asincrónicos sólo de tipo, y ningún caso de uso de admin hace I/O real, así que tienta pensar que todo corre en un solo drenaje de microtareas. **Falso**: las microtareas drenan antes de la próxima macrotarea, pero la cola **no es de una sola petición**. Un `POST /v1/events` a mitad de su cadena de `await` tiene su continuación en esa misma cola, y su `store.run` cae adentro de la transacción.
+- **Una segunda conexión para el camino de admin.** SQLite admite un solo escritor, `DatabaseSync` es síncrono y la transacción de admin se sostiene a través de `await`. El `run` del ledger **bloquea el bucle** esperando el lock y la transacción de admin no puede avanzar: deadlock. Con `busy_timeout` corto no hay deadlock pero sí lo otro — **toda escritura del SDK durante una acción de admin degradaría a `ledger-unavailable`**, o sea publicar una configuración apagaría decisiones.
+
+**Lo que sí sirve: un ámbito de transacción asincrónico, con el almacén haciendo la cola.** Tres piezas, y ninguna toca los casos de uso ni el dominio:
+
+1. **El almacén gana dos métodos** y conserva la `transaction` síncrona tal como está —la orden sigue decidiendo primero/repetido/conflicto ahí adentro y esa propiedad no se pierde—: `scope(work)` abre, espera y cierra o revierte; `enter()` resuelve ya, salvo que haya un scope abierto, y entonces resuelve cuando cierra.
+2. **Cada gateway durable espera su turno** con un `await store.enter()` antes de tocar el almacén. Una línea, mecánico, sin cambiar ninguna forma.
+3. **El olvido no puede ser silencioso**: con `AsyncLocalStorage` (`node:async_hooks`), `run` y `all` **lanzan** si hay un scope abierto que no es el propio. Un gateway al que le falte el `enter()` falla fuerte en la primera prueba en vez de escribir dentro de la transacción de otro, y eso es un error de programación, que en este proyecto se lanza.
+
+Con eso el decorador queda como tenía que quedar, con un puerto del kernel: envuelve `inner.execute` y `log.record` en un `scope`, y si el registro no acepta, lanza y el scope **revierte la acción**. `writable()` desaparece: la transacción lo subsume.
+
+**El borde filoso, que hay que resolver con esto y no después.** La cola del registro de eventos vacía **por temporizador** —una macrotarea— y su `flush()` es **sincrónico** a propósito (`record` devuelve `void` para que nadie pueda esperarlo), así que no puede hacer `await enter()`. Si dispara con un scope abierto, con la guarda lanza. La salida es buena y son pocas líneas: si el almacén está ocupado, la cola **se queda con las llegadas pendientes y reintenta en el próximo intervalo**, que es exactamente para lo que existe una cola.
+
+**Y esto cambia el argumento de esperar a PostgreSQL, sin cambiar la decisión de no hacerlo acá.** Lo que antes decía este apartado era que hacerlo ahora exigía deformar el diseño; con esta forma no lo exige. El argumento que queda es otro y es de alcance: **el puerto es exactamente lo que PostgreSQL va a necesitar igual** —lo único específico de SQLite es su implementación, porque el driver es síncrono y comparte conexión; con un pool, `scope` es `BEGIN`/`COMMIT` y `enter()` desaparece—, **así que nada de este trabajo se tira**, y por lo tanto tampoco urge adelantarlo.
+
+**Por qué no entra en esta feature**: la 033 ya tiene su propio riesgo de camino caliente (el índice de R-02) y se verifica de otra manera. Dos riesgos de latencia en la misma feature se estorban al medirlos. Queda registrada como **D-28** con este diseño, para que la spec que la tome no vuelva a derivarlo.
+
+**Lo que se conserva de la conclusión original**: la auditoría atómica y la atomicidad del presupuesto por sesión comparten causa raíz —las dos necesitan componer una transacción sobre puertos asincrónicos— así que el mismo `UnitOfWork` sirve a las dos. Eso las vuelve **una** feature y no dos, y sigue siendo un hallazgo de esta investigación.
 
 ---
 
