@@ -13,6 +13,7 @@
 import { asOperatorId } from "../../../domain/operator/index.js";
 import {
   descending,
+  fetched,
   fromDocument,
   pageTo,
   stored,
@@ -51,17 +52,17 @@ const entryOf = (row: SqlRow): AdminEntry => fromDocument(String(row[DOCUMENT]))
 export function sqliteAdminLog(deps: DurableGatewayDeps): AdminLog {
   const paged = (sql: string, merchantId: string | undefined, query: Parameters<AdminLog["list"]>[0]) => {
     const window = descending(query);
-    const rows = deps.store.all(sql, {
-      ...(merchantId === undefined ? {} : { merchant: merchantId }),
-      below: window.below,
-      limit: window.limit,
-    });
-    return Promise.resolve(
-      pageTo(
+    return fetched(deps, () => {
+      const rows = deps.store.all(sql, {
+        ...(merchantId === undefined ? {} : { merchant: merchantId }),
+        below: window.below,
+        limit: window.limit,
+      });
+      return pageTo(
         rows.map((row) => ({ key: Number(row["id"]), item: entryOf(row) })),
         window,
-      ),
-    );
+      );
+    });
   };
   return {
     // The audit trail writes the actor as text (the kernel cannot see the identity it belongs to,

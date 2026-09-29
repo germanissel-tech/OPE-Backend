@@ -15,6 +15,7 @@
 // `replace` answers nothing, and a catalogue is ingested whether or not this was written (feature 027).
 // The cause still goes to the log, which is the only place it can go.
 import {
+  fetched,
   pageOf,
   fromDocument,
   stored,
@@ -65,14 +66,17 @@ export function sqliteUnmappedValueLog(deps: SqliteUnmappedValuesDeps): Unmapped
       });
       // Nothing is answered on purpose: the port promises nothing and the catalogue is already ingested.
     },
-    pendingOf: (merchantId, mapped, query) => {
+    pendingOf: (merchantId, mapped, query) =>
       // Newest first for the reader, and without what the merchant maps today: mapping a value takes it
       // off the report without republishing the catalogue, which is how an operator sees the fix landed.
-      const pending = of(merchantId)
-        .filter((value) => !mapped.has(value.label))
-        .reverse();
-      return Promise.resolve(pageOf(pending, query));
-    },
+      fetched(deps, () =>
+        pageOf(
+          of(merchantId)
+            .filter((value) => !mapped.has(value.label))
+            .reverse(),
+          query,
+        ),
+      ),
   };
 }
 

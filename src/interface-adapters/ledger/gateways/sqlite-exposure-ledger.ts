@@ -7,7 +7,7 @@
 // `ON CONFLICT DO NOTHING` plus the count of what changed is what decides it in **one** statement:
 // asking first and writing after would leave a gap, and the whole point of a key is that the
 // store decides, not the caller.
-import { toDocument, fromDocument } from "../../shared-kernel/index.js";
+import { fetched, toDocument, fromDocument } from "../../shared-kernel/index.js";
 import { attempted, type DurableGatewayDeps } from "./durable-write.js";
 import type { ExposureLedger } from "../../../application/ledger/index.js";
 import type { Exposure } from "../../../domain/ledger/index.js";
@@ -37,11 +37,10 @@ export function sqliteExposureLedger(deps: DurableGatewayDeps): ExposureLedger {
           return deps.store.all(CHANGED)[0]?.["changed"] === 1 ? "recorded" : "already-recorded";
         }),
       ),
-    find: (merchantId, decisionId) => {
-      const rows = deps.store.all(BY_DECISION, { merchant: merchantId, decision: decisionId });
-      return Promise.resolve(
-        rows.length === 0 ? undefined : (fromDocument(String(rows[0]?.["document"])) as Exposure),
-      );
-    },
+    find: (merchantId, decisionId) =>
+      fetched(deps, () => {
+        const rows = deps.store.all(BY_DECISION, { merchant: merchantId, decision: decisionId });
+        return rows.length === 0 ? undefined : (fromDocument(String(rows[0]?.["document"])) as Exposure);
+      }),
   };
 }

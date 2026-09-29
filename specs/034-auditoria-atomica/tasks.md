@@ -33,33 +33,33 @@ dispara. Que eso esté dicho es lo que evita que alguien busque el paso que falt
 terminarla, **nada haya cambiado de comportamiento**: todas las escrituras y lecturas esperan un turno que
 todavía nadie retiene.
 
-- [ ] T001 `tests/durability/unit-of-work.test.ts` — **antes del mecanismo**, y contra un almacén de
+- [x] T001 `tests/durability/unit-of-work.test.ts` — **antes del mecanismo**, y contra un almacén de
       verdad: lo escrito dentro de una unidad que aborta **no queda**; lo de una que cierra sí; dos
       unidades seguidas no se pisan; y una unidad que termina deja el almacén escribible otra vez. Es la
       única prueba que puede decir que la reversión revierte.
-- [ ] T002 `src/infrastructure/sqlite/open-store.ts` — `scope`, `enter`, `busy` y el guardia con
+- [x] T002 `src/infrastructure/sqlite/open-store.ts` — `scope`, `enter`, `busy` y el guardia con
       `AsyncLocalStorage`. **La `transaction` síncrona no se toca**: la orden sigue decidiendo
       primero/repetido/conflicto ahí adentro. Lo que hay que no equivocarse: `enter()` resuelve **ya** para
       el dueño de la unidad y espera para todos los demás, y esa distinción es lo único que el almacén no
       puede saber sin el contexto asincrónico.
-- [ ] T003 `src/interface-adapters/shared-kernel/sql-store.ts` — los tres miembros en el vocabulario que un
+- [x] T003 `src/interface-adapters/shared-kernel/sql-store.ts` — los tres miembros en el vocabulario que un
       gateway recibe, con el motivo de `busy` escrito donde está: es sincrónico porque la cola del registro
       no puede esperar a nadie (ADR-039), y un `await` ahí sería una regresión del principio IV.
-- [ ] T004 `tests/helpers/sql-store.ts` — el doble de `SqlStore` **en un solo lugar**. Hoy hay dos escritos
+- [x] T004 `tests/helpers/sql-store.ts` — el doble de `SqlStore` **en un solo lugar**. Hoy hay dos escritos
       a mano en unitarias y los tres miembros nuevos los multiplican; el momento de juntarlos es antes de
       agregarlos, no después.
-- [ ] T005 `src/interface-adapters/shared-kernel/durable-store.ts` — el turno de **todas** las escrituras
+- [x] T005 `src/interface-adapters/shared-kernel/durable-store.ts` — el turno de **todas** las escrituras
       de **todos** los gateways, en `tried`, que es donde desembocan `stored` y `attempted`. Una línea, y
       es el pago del trabajo que la 033 hizo al mudar esos envoltorios al kernel del anillo.
-- [ ] T006 `tests/unit/interface-adapters/shared-kernel/durable-store.test.ts` — que una escritura espera su
+- [x] T006 `tests/unit/interface-adapters/shared-kernel/durable-store.test.ts` — que una escritura espera su
       turno y que el fallo sigue traduciéndose igual. Con el doble de T004.
-- [ ] T007 Los sitios de **lectura** de los gateways durables — el envoltorio simétrico al de escritura.
+- [x] T007 Los sitios de **lectura** de los gateways durables — el envoltorio simétrico al de escritura.
       Una lectura dentro de la transacción de otro ve lo que esa transacción **no commiteó**, así que
       también espera. **Las dos lecturas del arranque no esperan** —los índices en memoria de merchants y
       experimentos (ADR-041)— y eso va escrito donde están: en el arranque no hay unidad posible.
-- [ ] T008 `tests/durability/unit-of-work.test.ts` — el guardia: con una unidad ajena abierta, escribir o
+- [x] T008 `tests/durability/unit-of-work.test.ts` — el guardia: con una unidad ajena abierta, escribir o
       leer sin turno **lanza**. Es el caso que hace que T007 no dependa de la memoria de nadie.
-- [ ] T009 Correr `npm test` y `npm run test:durability` **sin nada más**: el mecanismo está y ninguna
+- [x] T009 Correr `npm test` y `npm run test:durability` **sin nada más**: el mecanismo está y ninguna
       expectativa cambió. Es el checkpoint más barato de la feature y el que separa un problema del
       mecanismo de un problema del decorador.
 

@@ -4,9 +4,11 @@
 //
 // `node:sqlite` is synchronous and stable since Node 24, which is why the repository moved there:
 // the feature adds no dependency at all.
+import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { StoreUnavailable, fail, ok } from "../../domain/shared-kernel/index.js";
 import type { SqlRow, SqlStore, SqlValue } from "../../interface-adapters/shared-kernel/index.js";
 
 /** Where the versioned schema lives, relative to the working directory, as every other release file. */
@@ -14,6 +16,17 @@ const DEFAULT_MIGRATIONS_DIR = "migrations";
 
 /** SQLite's own name for a database that never touches disk. */
 const IN_MEMORY = ":memory:";
+
+/**
+ * The three words of a transaction, named once because they are written from two places —the synchronous
+ * transaction and the unit of work— and they are the same transaction seen from two kinds of caller.
+ */
+const BEGIN = "BEGIN";
+const COMMIT = "COMMIT";
+const ROLLBACK = "ROLLBACK";
+
+/** How much of a statement an error quotes: enough to find it, not enough to dump a document. */
+const STATEMENT_IN_ERROR = 60;
 
 /** A migration is `NNN-<name>.sql`, and `NNN` is the version of the schema it leaves behind. */
 const MIGRATION_FILE = /^(\d{3})-[a-z0-9-]+\.sql$/;
@@ -139,13 +152,13 @@ function prepareSchema(database: DatabaseSync, migrations: readonly Migration[],
  * still being prepared and there is no store yet — only the driver.
  */
 function inTransaction<T>(database: DatabaseSync, work: () => T): T {
-  database.exec("BEGIN");
+  database.exec(BEGIN);
   try {
     const result = work();
-    database.exec("COMMIT");
+    database.exec(COMMIT);
     return result;
   } catch (failure) {
-    database.exec("ROLLBACK");
+    database.exec(ROLLBACK);
     throw failure;
   }
 }
@@ -174,21 +187,121 @@ function userVersion(database: DatabaseSync): number {
 const isEmpty = (database: DatabaseSync): boolean =>
   database.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().length === 0;
 
+/**
+ * The unit of work that is open right now, if there is one, and who owns it.
+ *
+ * **`AsyncLocalStorage` is what distinguishes the owner from everybody else**, and without that
+ * distinction the guard below could not exist: a flag alone cannot tell "I am inside my own unit" from "I
+ * found somebody else's open", so it would either block the owner — a deadlock — or protect nobody.
+ *
+ * It is the first use of `node:async_hooks` in the repository, and it is here because this is the ring
+ * that hosts technology (ADR-013).
+ */
+const openUnit = new AsyncLocalStorage<Unit>();
+
+/** One unit of work, as everybody else sees it: the promise that resolves when it closes. */
+interface Unit {
+  readonly closed: Promise<void>;
+}
+
+/**
+ * The store as a gateway sees it: statements, the synchronous transaction, and the unit of work that
+ * feature 034 added so that an asynchronous caller can compose several writes into one.
+ *
+ * **`held` is deliberately a single slot and not a queue of units.** There is one writer in SQLite and one
+ * process in this deployment (D-21), so two units at once are not a case to support but a case to make
+ * impossible: the second waits for the first through the same turn everybody else waits for.
+ */
 function storeOn(database: DatabaseSync): SqlStore {
-  return {
+  let held: Unit | undefined;
+
+  /**
+   * The guard. A statement from outside the open unit would land **inside** somebody else's transaction —
+   * it would be committed or reverted by a decision that is not its own, and a read would see what that
+   * transaction has not committed. Whoever forgot to wait its turn has a programming error, and in this
+   * project those are thrown (ADR-023).
+   */
+  const mine = (): boolean => held === undefined || openUnit.getStore() === held;
+  const guard = (sql: string): void => {
+    if (mine()) return;
+    throw new Error(
+      `A unit of work is open and this statement did not wait its turn: ${sql.trimStart().slice(0, STATEMENT_IN_ERROR)}`,
+    );
+  };
+
+  const all = (sql: string, params?: Readonly<Record<string, SqlValue>>): readonly SqlRow[] => {
+    guard(sql);
     // A statement with no parameters is given an empty set rather than no argument at all: the
     // driver accepts it and answers the same, so the branch that told the two cases apart could
     // not change anything. The copy is what turns the readonly record into the mutable one the
     // named-parameter overload asks for.
-    all: (sql, params) =>
-      database
-        .prepare(sql)
-        .all({ ...params })
-        .map(rowOf),
-    run: (sql, params) => {
-      database.prepare(sql).run({ ...params });
-    },
+    return database
+      .prepare(sql)
+      .all({ ...params })
+      .map(rowOf);
+  };
+
+  const run = (sql: string, params?: Readonly<Record<string, SqlValue>>): void => {
+    guard(sql);
+    database.prepare(sql).run({ ...params });
+  };
+
+  /**
+   * Opens the transaction **synchronously** and then runs the asynchronous work inside it.
+   *
+   * The `BEGIN` is not deferred on purpose: between calling this and its first `await` nothing else may
+   * write, and a `BEGIN` that waited for a tick would leave exactly that gap. What the unit adds over
+   * `transaction` is only that the work may await; the atomicity is the same one the engine already gave.
+   */
+  const scope: SqlStore["scope"] = async (work) => {
+    // A unit that finds another open waits for its turn like everybody else, so `held` is never
+    // overwritten and the second unit does not nest inside the first.
+    await enter();
+    let close = (): void => undefined;
+    const closed = new Promise<void>((resolve) => {
+      close = resolve;
+    });
+    const unit: Unit = { closed };
+    held = unit;
+    database.exec(BEGIN);
+    // A field and not a local `let`, and that is not a style choice: assigned only inside the callback,
+    // a local stays narrowed to `false` for the compiler and the two branches below read as dead code.
+    const reverting = { asked: false };
+    const abort = (): void => {
+      reverting.asked = true;
+    };
+    try {
+      const value = await openUnit.run(unit, () => work(abort));
+      // `abort` is the caller saying "revert", and it is the only failure this unit reports: anything
+      // else the work throws is a programming error and travels as one.
+      database.exec(reverting.asked ? ROLLBACK : COMMIT);
+      return reverting.asked ? fail(new StoreUnavailable()) : ok(value);
+    } catch (failure) {
+      database.exec(ROLLBACK);
+      throw failure;
+    } finally {
+      // **In a `finally` and not after each branch**: a unit that ended without releasing its turn stops
+      // every write of the process, which is the one failure of this file nothing else would catch
+      // (FR-012).
+      held = undefined;
+      close();
+    }
+  };
+
+  /** The turn: at once unless somebody else's unit is open, and then when it closes. */
+  async function enter(): Promise<void> {
+    // A `while` and not an `if`: between this unit closing and this caller running, another one may have
+    // opened, and waiting for the first is not waiting for the second.
+    while (held !== undefined && openUnit.getStore() !== held) await held.closed;
+  }
+
+  return {
+    all,
+    run,
     transaction: (work) => inTransaction(database, work),
+    scope,
+    enter,
+    busy: () => !mine(),
     close: () => {
       database.close();
     },

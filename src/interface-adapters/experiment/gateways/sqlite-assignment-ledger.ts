@@ -6,7 +6,7 @@
 // used to be assigned again, possibly to the other arm. So the experiment did not just forget
 // what it had measured — it started measuring something else, and nothing said so.
 import { attempted, type DurableGatewayDeps } from "../../ledger/index.js";
-import { fromDocument, toDocument } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
 import type { AssignmentLedger } from "../../../application/experiment/index.js";
 import type { Assignment } from "../../../domain/experiment/index.js";
 
@@ -28,15 +28,14 @@ export function sqliteAssignmentLedger(deps: DurableGatewayDeps): AssignmentLedg
           document: toDocument({ ...assignment }),
         });
       }),
-    find: (merchantId, experimentId, visitorId) => {
-      const rows = deps.store.all(BY_VISITOR, {
-        merchant: merchantId,
-        experiment: experimentId,
-        visitor: visitorId,
-      });
-      return Promise.resolve(
-        rows.length === 0 ? undefined : (fromDocument(String(rows[0]?.["document"])) as Assignment),
-      );
-    },
+    find: (merchantId, experimentId, visitorId) =>
+      fetched(deps, () => {
+        const rows = deps.store.all(BY_VISITOR, {
+          merchant: merchantId,
+          experiment: experimentId,
+          visitor: visitorId,
+        });
+        return rows.length === 0 ? undefined : (fromDocument(String(rows[0]?.["document"])) as Assignment);
+      }),
   };
 }

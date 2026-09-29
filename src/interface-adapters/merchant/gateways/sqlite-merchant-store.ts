@@ -58,6 +58,11 @@ export function sqliteMerchantStore(deps: SqliteMerchantStoreDeps): MerchantStor
   // The index is filled once, when the gateway is built. From here it is maintained by the writes
   // below, so nothing reads the table again for the life of the process.
   //
+  // **And it is the one read of this gateway that does not wait its turn** (feature 034): it happens at
+  // boot, where the store is opened and nothing else runs, so there is no unit of work to be inside of —
+  // and asking for a turn before anything could hold one would be a line that reads as a precaution
+  // against something impossible.
+  //
   // **This read is the one place where the gateway throws instead of degrading**, and that is right: it
   // happens at boot, and a server that cannot read its merchants must not start (the same rule the store
   // applies to a schema it does not expect). A write that fails later is a different fact and degrades.

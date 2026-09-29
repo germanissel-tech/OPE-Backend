@@ -12,7 +12,7 @@
 // with it: the day the domain gains a field it would be dropped silently, noticed by whichever
 // test happened to carry it. The entity knows its own record, as `Order` already did.
 import { DecisionBase, type Decision, type DecisionRecord } from "../../../domain/ledger/index.js";
-import { fromDocument, toDocument } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
 import { attempted, type DurableGatewayDeps } from "./durable-write.js";
 import type { DecisionLedger } from "../../../application/ledger/index.js";
 
@@ -63,15 +63,15 @@ export function sqliteDecisionLedger(deps: DurableGatewayDeps): DecisionLedger {
         });
       }),
     find: (merchantId, decisionId) =>
-      Promise.resolve(first(deps.store.all(BY_ID, { merchant: merchantId, decision: decisionId }))),
+      fetched(deps, () => first(deps.store.all(BY_ID, { merchant: merchantId, decision: decisionId }))),
     bySession: (merchantId, sessionId) =>
-      Promise.resolve(
+      fetched(deps, () =>
         deps.store
           .all(BY_SESSION, { merchant: merchantId, session: sessionId })
           .map((row) => decisionOf(row[DOCUMENT])),
       ),
     byVisitor: (merchantId, visitorId, since) =>
-      Promise.resolve(
+      fetched(deps, () =>
         deps.store
           .all(BY_VISITOR, {
             merchant: merchantId,

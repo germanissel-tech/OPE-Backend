@@ -23,6 +23,7 @@ import {
 } from "../../../domain/configuration/index.js";
 import {
   descending,
+  fetched,
   fromDocument,
   pageTo,
   stored,
@@ -72,24 +73,24 @@ export function sqliteConfigurationStore(deps: DurableGatewayDeps): Configuratio
           return numbered;
         }),
       ),
-    latestOf: (merchantId) => {
-      const rows = deps.store.all(LATEST, { merchant: merchantId });
-      const row = rows[0];
-      return Promise.resolve(row === undefined ? undefined : versionOf(row));
-    },
+    latestOf: (merchantId) =>
+      fetched(deps, () => {
+        const row = deps.store.all(LATEST, { merchant: merchantId })[0];
+        return row === undefined ? undefined : versionOf(row);
+      }),
     versionsOf: (merchantId, query) => {
       const window = descending(query);
-      const rows = deps.store.all(VERSIONS, {
-        merchant: merchantId,
-        below: window.below,
-        limit: window.limit,
-      });
-      return Promise.resolve(
-        pageTo(
+      return fetched(deps, () => {
+        const rows = deps.store.all(VERSIONS, {
+          merchant: merchantId,
+          below: window.below,
+          limit: window.limit,
+        });
+        return pageTo(
           rows.map((row) => ({ key: Number(row["version"]), item: versionOf(row) })),
           window,
-        ),
-      );
+        );
+      });
     },
   };
 }
