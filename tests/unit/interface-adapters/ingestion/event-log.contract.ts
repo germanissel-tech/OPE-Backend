@@ -216,9 +216,77 @@ export function anEventLog(open: () => LogUnderTest): void {
     expect(await under.log.volume(ONE, { from: at(1), to: at(9) })).toEqual([]);
   });
 
+  it("answers the ids of a merchant since an instant, most recent first", async () => {
+    // What rebuilds the deduplication window after a restart (feature 033). The order is the promise:
+    // the window keeps the most recent ids, so a rebuild that read them oldest first would fill it with
+    // the ones about to expire.
+    const under = open();
+    under.log.record([
+      decided({
+        batchId: asBatchId("bat_1"),
+        event: event({ eventId: asEventId("evt_1") }),
+        receivedAt: at(0),
+      }),
+      decided({
+        batchId: asBatchId("bat_2"),
+        event: event({ eventId: asEventId("evt_2") }),
+        receivedAt: at(10),
+      }),
+      decided({
+        batchId: asBatchId("bat_3"),
+        event: event({ eventId: asEventId("evt_3") }),
+        receivedAt: at(20),
+      }),
+    ]);
+    await under.settle();
+
+    expect(await under.log.idsSince(ONE, at(0), 10)).toEqual(["evt_3", "evt_2", "evt_1"]);
+  });
+
+  it("stops at the limit, keeping the most recent, and leaves out what is older than asked", async () => {
+    // Both bounds are the window's own, so both are checked. The instant is inclusive on its edge, like
+    // the window of `volume`: an arrival exactly at it is inside.
+    const under = open();
+    under.log.record([
+      decided({
+        batchId: asBatchId("bat_1"),
+        event: event({ eventId: asEventId("evt_1") }),
+        receivedAt: at(0),
+      }),
+      decided({
+        batchId: asBatchId("bat_2"),
+        event: event({ eventId: asEventId("evt_2") }),
+        receivedAt: at(10),
+      }),
+      decided({
+        batchId: asBatchId("bat_3"),
+        event: event({ eventId: asEventId("evt_3") }),
+        receivedAt: at(20),
+      }),
+    ]);
+    await under.settle();
+
+    expect(await under.log.idsSince(ONE, at(0), 2)).toEqual(["evt_3", "evt_2"]);
+    expect(await under.log.idsSince(ONE, at(10), 10)).toEqual(["evt_3", "evt_2"]);
+    expect(await under.log.idsSince(ONE, at(21), 10)).toEqual([]);
+  });
+
+  it("answers an id once per arrival, because an arrival is a fact", async () => {
+    // The port says so rather than de-duplicating: whoever rebuilds a set does not care, and a
+    // `DISTINCT` here would hide which of the two this read promises.
+    const under = open();
+    under.log.record([
+      decided({ batchId: asBatchId("bat_1"), receivedAt: at(0) }),
+      decided({ batchId: asBatchId("bat_2"), receivedAt: at(10) }),
+    ]);
+    await under.settle();
+
+    expect(await under.log.idsSince(ONE, at(0), 10)).toEqual(["evt_00000001", "evt_00000001"]);
+  });
+
   it("shows nothing of another merchant, on every read", async () => {
-    // Constitution V, and it is checked on **all four** reads rather than a sample: an isolation that
-    // holds on three of them is not isolation.
+    // Constitution V, and it is checked on **all five** reads rather than a sample: an isolation that
+    // holds on four of them is not isolation.
     const { log, settle } = open();
     log.record([decided(), decided({ merchantId: OTHER, batchId: asBatchId("bat_other") })]);
     await settle();
@@ -230,6 +298,7 @@ export function anEventLog(open: () => LogUnderTest): void {
     expect(await log.volume(OTHER, { from: at(0), to: new Date(Date.UTC(2100, 0, 1)) })).toEqual([
       { type: "product_viewed", count: 1 },
     ]);
+    expect(await log.idsSince(OTHER, at(0), 10)).toEqual(["evt_00000001"]);
   });
 
   it("answers a repetition whose original is missing, without pretending it is the first", async () => {

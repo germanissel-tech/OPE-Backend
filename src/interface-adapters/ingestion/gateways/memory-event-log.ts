@@ -48,6 +48,22 @@ export function memoryEventLog(): EventLog {
      * side to compare the other against. A hole needs one half to outlive the process.
      */
     unrecorded: () => Promise.resolve(undefined),
+    idsSince(merchantId: MerchantId, since: Date, limit: number): Promise<EventId[]> {
+      // Most recent first and capped, which is the order and the bound the rebuild of the window needs.
+      // Insertion order is arrival order, so reversing is "most recent first" without comparing
+      // instants, and the slice is what keeps a rebuilt window the size the platform promises.
+      //
+      // Reversed rather than walked backwards by index, and that is not a matter of taste: an index
+      // needs a guard for `undefined` (`noUncheckedIndexedAccess`), and that guard made the mutant that
+      // starts the walk one past the end **behave the same** — a survivor no test could ever kill,
+      // because the code said something no input could distinguish.
+      const ids = [...rows]
+        .reverse()
+        .filter((row) => row.merchantId === merchantId && row.receivedAt.getTime() >= since.getTime())
+        .slice(0, limit)
+        .map((row) => row.event.eventId);
+      return Promise.resolve(ids);
+    },
     volume(merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> {
       const counted = new Map<EventType, number>();
       for (const row of rows) {

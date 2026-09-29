@@ -109,6 +109,7 @@ erDiagram
         TEXT merchant_id UK
         TEXT anchor UK
         TEXT surface UK "la clave del upsert"
+        INTEGER configuration_version UK "0 = el SDK no la dijo"
         INTEGER count "columna: el almacén la incrementa"
     }
     unmapped_values {
@@ -227,7 +228,7 @@ cada tabla lo decide con su clave primaria, no con una lectura previa del llamad
 | `merchant_configurations` | **se rechaza**: publicar es agregar una versión, no pisar una. La efectiva es la de versión máxima                                                                                   |
 | `experiments`             | **se rechaza**: el identificador lo acuña OPE                                                                                                                                        |
 | `admin_entries`           | no aplica: no tiene clave. Dos acciones idénticas del mismo operador en el mismo instante son dos acciones, igual que dos llegadas de un evento                                      |
-| `anchor_diagnostics`      | **acumula**: `count = count + 1` sobre `(merchant, anclaje, superficie)`. Es la única tabla que modifica un valor al repetirse, y lo hace el almacén                                 |
+| `anchor_diagnostics`      | **acumula**: `count = count + 1` sobre `(merchant, anclaje, superficie, versión)`. Es la única tabla que modifica un valor al repetirse, y lo hace el almacén                        |
 | `unmapped_values`         | no aplica: el puerto **reemplaza** el conjunto del merchant, en una transacción, porque un reemplazo a medias deja un conjunto que nunca existió                                     |
 
 `decisions` rechaza en vez de conservar en silencio porque un identificador repetido ahí no es una

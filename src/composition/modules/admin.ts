@@ -28,6 +28,8 @@ import {
   memoryUnmappedValueLog,
   sdkConfigurationOf,
   sqliteAdminLog,
+  sqliteAnchorDiagnosticsStore,
+  sqliteUnmappedValueLog,
 } from "../../interface-adapters/admin/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { PlatformConfigurationPort, SqlStorePort } from "../release.js";
@@ -44,35 +46,52 @@ const UnmappedValuesPort = port("admin.unmapped-values")<UnmappedValueLog>();
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
 /**
- * What this module provides whatever serves the log — and **it is still in memory in both deployments**,
- * which is the remaining half of the milestone: the two observation stores are what user story 3 of this
- * feature makes durable, and until then a deploy still empties the two lists the panel shows.
+ * What this module provides the same way whichever technology it is asked for: what the SDK may see of
+ * the configuration of its merchant, which is a view over the resolution and keeps nothing of its own.
  *
- * Spread into the two technologies rather than assembled, for the reason the configuration module writes
- * in full: `providedPorts` is what a test reset replaces, and these hold state.
+ * Everything else here **does** differ, because everything else here holds state. And it is `provides`
+ * and not `assembles` for the reason the configuration module writes in full: `providedPorts` is what a
+ * test reset replaces, and a component that remembers has to be replaced.
  */
-const observations = [
-  bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-    memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
-  ),
-  bind(UnmappedValuesPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-    memoryUnmappedValueLog(platform.unmappedValuesKept),
-  ),
+const whicheverTechnology = [
   bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     sdkConfigurationOf(configuration),
   ),
 ] as const;
 
+/** How many of each the platform keeps per merchant: level 1 of the configuration, not a constant. */
+const CAPS = { platform: PlatformConfigurationPort } as const;
+
 export const adminModule = compositionModule({
-  // One instance, two views: what the administration reads and what every module writes through the
-  // kernel's port (ADR-034). What the technology chooses is where the entries land (feature 033).
+  // One instance, two views of the log: what the administration reads and what every module writes
+  // through the kernel's port (ADR-034). What the technology chooses is where the three land — the
+  // record of what an operator did, and the two lists of what was observed of a merchant's traffic.
   provides: {
-    memory: [bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()), ...observations],
+    memory: [
+      ...whicheverTechnology,
+      bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
+      bind(AnchorDiagnosticsPort, CAPS, ({ platform }) =>
+        memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+      ),
+      bind(UnmappedValuesPort, CAPS, ({ platform }) => memoryUnmappedValueLog(platform.unmappedValuesKept)),
+    ],
     sqlite: [
+      ...whicheverTechnology,
       bindAll([AdminLogPort, AuditTrailPort], { store: SqlStorePort, logger: LoggerPort }, (deps) =>
         sqliteAdminLog(deps),
       ),
-      ...observations,
+      bind(
+        AnchorDiagnosticsPort,
+        { ...CAPS, store: SqlStorePort, logger: LoggerPort },
+        ({ platform, store, logger }) =>
+          sqliteAnchorDiagnosticsStore({ store, logger, kept: platform.anchorDiagnosticsKept }),
+      ),
+      bind(
+        UnmappedValuesPort,
+        { ...CAPS, store: SqlStorePort, logger: LoggerPort },
+        ({ platform, store, logger }) =>
+          sqliteUnmappedValueLog({ store, logger, kept: platform.unmappedValuesKept }),
+      ),
     ],
   },
   assembles: [

@@ -158,36 +158,36 @@ duplicado.
 
 ### Las dos listas del panel
 
-- [ ] T026 [P] [US3] `tests/durability/admin-observations.test.ts` — **antes de los gateways**: los
+- [x] T026 [P] [US3] `tests/durability/admin-observations.test.ts` — **antes de los gateways**: los
       diagnósticos siguen con su conteo y un reporte posterior al reinicio **acumula sobre lo que ya
       había**. Ese «acumula» es el caso que distingue un `upsert` de un `insert`.
-- [ ] T027 [US3] `src/interface-adapters/admin/gateways/sqlite-anchor-diagnostics-store.ts` — único por
+- [x] T027 [US3] `src/interface-adapters/admin/gateways/sqlite-anchor-diagnostics-store.ts` — único por
       `(merchant, anclaje, superficie)` y **`count` incrementado en el almacén**
       (`ON CONFLICT … DO UPDATE SET count = count + 1`): hacerlo leyendo y escribiendo es otra carrera. El
       tope por merchant **llega con cada escritura**, porque es política y no esquema (constitución XI).
-- [ ] T028 [US3] `src/interface-adapters/admin/gateways/sqlite-unmapped-value-log.ts` — `replace` borra el
+- [x] T028 [US3] `src/interface-adapters/admin/gateways/sqlite-unmapped-value-log.ts` — `replace` borra el
       conjunto del merchant y escribe el nuevo **en una transacción**: un reemplazo a medias deja un
       conjunto que nunca existió.
-- [ ] T029 [P] [US3] `tests/durability/admin-observations.test.ts` — el tope de valores sin mapear se aplica
+- [x] T029 [P] [US3] `tests/durability/admin-observations.test.ts` — el tope de valores sin mapear se aplica
       **sobre lo conservado**, no sobre lo que llegó en esta corrida.
 
 ### La ventana de deduplicación, recuperable
 
-- [ ] T030 [US3] `src/application/ingestion/ports/event-log.ts` y sus dos gateways — la lectura de los
+- [x] T030 [US3] `src/application/ingestion/ports/event-log.ts` y sus dos gateways — la lectura de los
       identificadores de un merchant dentro de una ventana, acotada al tope. **No existe hoy** (`volume`
       devuelve conteos por tipo, no ids) y **el índice que necesita ya existe**:
       `received_events_volume (merchant_id, received_at, type)` sirve por su prefijo.
-- [ ] T031 [P] [US3] `tests/unit/interface-adapters/ingestion/` — **antes del envoltorio**: se reconstruye
+- [x] T031 [P] [US3] `tests/unit/interface-adapters/ingestion/` — **antes del envoltorio**: se reconstruye
       **una vez por merchant y por arranque**, se respeta el tope con los más recientes, y **si la lectura
       falla el `claim` sigue respondiendo**. El tercero es el que importa: degradar la ingesta porque una
       reconstrucción de medición falló sería la mezcla que `01 §P9` existe para evitar.
-- [ ] T032 [US3] `src/interface-adapters/ingestion/gateways/recovering-event-dedup.ts` — el envoltorio
+- [x] T032 [US3] `src/interface-adapters/ingestion/gateways/recovering-event-dedup.ts` — el envoltorio
       sobre la deduplicación en memoria, como `queuedEventLog` envuelve el registro. El gancho es el primer
       `claim` de cada merchant desde el arranque.
-- [ ] T033 [US3] `tests/durability/event-dedup.test.ts` — **SC-006 por los dos lados**: un evento reenviado
+- [x] T033 [US3] `tests/durability/event-dedup.test.ts` — **SC-006 por los dos lados**: un evento reenviado
       tras el reinicio cuenta como duplicado **y** el primer lote de un merchant no tarda apreciablemente
       más que el siguiente. Una sola mitad deja pasar el diseño equivocado.
-- [ ] T034 [US3] `npm run test:mutation` acotado al diff de la historia.
+- [x] T034 [US3] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las tres historias funcionan de forma independiente.
 

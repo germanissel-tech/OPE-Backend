@@ -104,19 +104,30 @@ CREATE INDEX admin_entries_by_merchant ON admin_entries (merchant_id, id);
 -- the store has to increment it (`ON CONFLICT … DO UPDATE SET count = count + 1`): doing it by reading
 -- and then writing is another race.
 --
+-- **The configuration version is part of the key, and `0` means the SDK did not say which one it had.**
+-- Two things forced it. The port keys on anchor, surface **and** version — a report that arrives without
+-- a version is its own row, which the SDK surface has asserted since feature 027 — so leaving the version
+-- out of the index would merge two counts that are deliberately separate. And it cannot be a nullable
+-- column either: SQLite treats NULLs as distinct in a unique index, so every versionless report would
+-- insert a row of its own instead of incrementing the one that is there. A published version is 1 or
+-- more, because the store numbers them from one, so `0` is free to mean "not said" and the document keeps
+-- the field absent.
+--
 -- How many are kept per merchant is not in the schema: it arrives with every write, because it is policy
 -- (constitution XI), like the cap on catalogue receipts.
 CREATE TABLE anchor_diagnostics (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  merchant_id TEXT NOT NULL,
-  anchor      TEXT NOT NULL,
-  surface     TEXT NOT NULL,
-  count       INTEGER NOT NULL,
-  document    TEXT NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-  updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  merchant_id           TEXT NOT NULL,
+  anchor                TEXT NOT NULL,
+  surface               TEXT NOT NULL,
+  configuration_version INTEGER NOT NULL,
+  count                 INTEGER NOT NULL,
+  document              TEXT NOT NULL,
+  created_at            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
-CREATE UNIQUE INDEX anchor_diagnostics_key ON anchor_diagnostics (merchant_id, anchor, surface);
+CREATE UNIQUE INDEX anchor_diagnostics_key
+  ON anchor_diagnostics (merchant_id, anchor, surface, configuration_version);
 
 -- The attribute labels that arrived in a catalogue and that the merchant's map does not translate. The
 -- port **replaces** the merchant's whole set, so there is no key to conflict on: the gateway deletes the

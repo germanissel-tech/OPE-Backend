@@ -524,24 +524,36 @@ describe("the durable store", () => {
 
     it("accumulates a diagnostic on its key instead of writing a second row", () => {
       // The count is a column and the store increments it, because doing it by reading and writing is
-      // another race. The key is the one the port upserts on.
+      // another race. The key is the one the port upserts on, **version included**: a report that says
+      // which configuration it had loaded is a different row from one that does not, and `0` is what the
+      // schema uses for "not said" — a nullable column would make every versionless report its own row,
+      // because a unique index of SQLite treats NULLs as distinct.
       withMigrationsUpTo(4);
       const store = openSqliteStore({ file, migrations: schema });
       try {
-        const seen = (anchor: string, surface: string): void => {
+        const seen = (anchor: string, surface: string, version = 0): void => {
           store.run(
-            `INSERT INTO anchor_diagnostics (merchant_id, anchor, surface, count, document)
-             VALUES ('m-1', :anchor, :surface, 1, '{}')
-             ON CONFLICT (merchant_id, anchor, surface) DO UPDATE SET count = count + 1`,
-            { anchor, surface },
+            `INSERT INTO anchor_diagnostics
+               (merchant_id, anchor, surface, configuration_version, count, document)
+             VALUES ('m-1', :anchor, :surface, :version, 1, '{}')
+             ON CONFLICT (merchant_id, anchor, surface, configuration_version)
+               DO UPDATE SET count = count + 1`,
+            { anchor, surface, version },
           );
         };
         seen("variant_selector", "product");
         seen("variant_selector", "product");
         seen("variant_selector", "cart");
-        expect(store.all("SELECT anchor, surface, count FROM anchor_diagnostics ORDER BY surface")).toEqual([
-          { anchor: "variant_selector", surface: "cart", count: 1 },
-          { anchor: "variant_selector", surface: "product", count: 2 },
+        seen("variant_selector", "product", 3);
+        expect(
+          store.all(
+            `SELECT anchor, surface, configuration_version AS version, count
+             FROM anchor_diagnostics ORDER BY surface, version`,
+          ),
+        ).toEqual([
+          { anchor: "variant_selector", surface: "cart", version: 0, count: 1 },
+          { anchor: "variant_selector", surface: "product", version: 0, count: 2 },
+          { anchor: "variant_selector", surface: "product", version: 3, count: 1 },
         ]);
       } finally {
         store.close();

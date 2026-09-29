@@ -77,10 +77,13 @@ CREATE INDEX admin_entries_by_merchant ON admin_entries (merchant_id, id);
 ### `anchor_diagnostics`
 
 ```sql
-CREATE UNIQUE INDEX anchor_diagnostics_key ON anchor_diagnostics (merchant_id, anchor, surface);
+CREATE UNIQUE INDEX anchor_diagnostics_key
+  ON anchor_diagnostics (merchant_id, anchor, surface, configuration_version);
 ```
 
-La clave es la del `upsert`: acumula un conteo sobre `(merchant, anclaje, superficie)`. **El conteo es columna y no documento**, y es la única vez que un contador sale del documento en este esquema: el `upsert` tiene que incrementarlo en el almacén (`ON CONFLICT … DO UPDATE SET count = count + 1`), porque hacerlo leyendo y escribiendo es otra carrera.
+**Enmienda (2026-09-29, al implementar la historia 3): la versión de configuración va en la clave.** Este documento la dejaba afuera y eso era un error: el puerto acumula sobre anclaje, superficie **y versión** —un reporte que no dice qué versión tenía cargada es una fila propia, y lo afirma `tests/integration/sdk-config.test.ts` desde la 027—, así que la clave de tres habría fusionado dos conteos que están separados a propósito. Tampoco alcanza con una columna nullable: un índice único de SQLite trata los NULL como distintos, de modo que **cada** reporte sin versión insertaría su propia fila en vez de incrementar la que ya está. La columna es `NOT NULL` y `0` significa «no la dijo», que está libre porque una versión publicada es 1 o más. Se corrigió la migración `004` en vez de agregar una `005`: nadie la había aplicado todavía fuera de esta rama.
+
+La clave es la del `upsert`: acumula un conteo sobre `(merchant, anclaje, superficie, versión)`. **El conteo es columna y no documento**, y es la única vez que un contador sale del documento en este esquema: el `upsert` tiene que incrementarlo en el almacén (`ON CONFLICT … DO UPDATE SET count = count + 1`), porque hacerlo leyendo y escribiendo es otra carrera.
 
 El tope por merchant (`anchorDiagnosticsKept`, nivel 1) se aplica al escribir, como el de los recibos del catálogo: **llega con cada escritura**, porque es política y no esquema (constitución XI).
 
