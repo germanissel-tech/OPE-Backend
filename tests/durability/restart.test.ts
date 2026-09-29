@@ -128,10 +128,13 @@ describe("the server across a restart", () => {
     await app.close();
     app = await boot();
 
-    // The merchants and experiments are rebuilt from the seed at every start and are *not*
-    // durable yet (spec, "what this feature does not do"). Booting a second time over a store
-    // that is no longer empty is where that combination would break, so it is asserted: the
-    // server answers a request signed with the same key as before.
+    // Booting a second time over a store that is no longer empty is where the seed and the ledger
+    // meet, so it is asserted: the server answers a request signed with the same key as before.
+    //
+    // **What makes it answer changed with feature 033, and the assertion did not.** The merchants used
+    // to be rebuilt from the file at every start; now the file is read only into an empty store and what
+    // answers is the row the first boot wrote. Both readings pass this test, which is why the suite also
+    // asks the question that separates them ("the merchant of the seed keeps authenticating").
     const again = await postEvents(app.app, batchOf(2, 1), { key: "key-a-1" });
     expect(again.statusCode).toBe(202);
   });
@@ -234,7 +237,23 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
   const A = withCaps("m_a", "key-a-1", "platform-a-1", 3);
   const B = withCaps("m_b", "key-b-1", "platform-b-1", 3);
 
-  /** Closes what is running and boots on the same file: the restart, and also the first boot with caps. */
+  /**
+   * The **first** boot of one of these tests, on a file of its own.
+   *
+   * It used to be a `reboot` over the file the `beforeEach` had already booted on, and feature 033 broke
+   * that: the configuration of a merchant is now durable, and a seed is imported only into a store that
+   * has none (SC-008). So the policies of the default merchants stayed in force and the caps declared
+   * here never took effect — which is what a deliberate decision looks like from a test that was
+   * relying on a restart emptying the store. It went unnoticed in two of these tests because the
+   * default caps are close enough that their assertions passed anyway.
+   */
+  const start = async (merchants: MerchantSpec[]): Promise<void> => {
+    await app.close();
+    file = path.join(dir, `caps-${merchants.map((merchant) => merchant.merchantId).join("-")}.db`);
+    app = await boot([], { merchants });
+  };
+
+  /** Closes what is running and boots **on the same file**: the restart itself. */
   const reboot = async (merchants: MerchantSpec[]): Promise<void> => {
     await app.close();
     app = await boot([], { merchants });
@@ -244,7 +263,7 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
     // The damage this feature exists to undo, in five lines: today the restart empties the hot state,
     // the session comes back looking untouched and the visitor is intervened a second time — which is
     // the one thing the budget exists to prevent, and it happened on **every** deploy.
-    await reboot([A, B]);
+    await start([A, B]);
     await stock("platform-a-1");
     expect((await decide("key-a-1", wantsToBuy(1, "ses_00000001"))).outcome).toBe("INTERVENE");
     expect(await decide("key-a-1", wantsToBuy(10, "ses_00000001"))).toMatchObject({
@@ -265,7 +284,7 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
     // The cap that crosses visits, and the only one that keeps a chain of deploys from having no
     // ceiling at all: without it, ten deploys in a day are ten quotas for the same person.
     const oncePerDay = withCaps("m_a", "key-a-1", "platform-a-1", 1);
-    await reboot([oncePerDay, B]);
+    await start([oncePerDay, B]);
     await stock("platform-a-1");
     expect((await decide("key-a-1", wantsToBuy(1, "ses_00000001"))).outcome).toBe("INTERVENE");
     expect(await decide("key-a-1", wantsToBuy(10, "ses_00000002"))).toMatchObject({
@@ -287,7 +306,7 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
     // Isolation across the restart, which is where a wrong index would break it: the reconstruction
     // reads by session and by visitor, and both keys start with the merchant. A query that forgot it
     // would let the spent budget of A fatigue the visitor of B — both use the same identifiers.
-    await reboot([A, B]);
+    await start([A, B]);
     await stock("platform-a-1");
     await stock("platform-b-1");
     expect((await decide("key-a-1", wantsToBuy(1, "ses_00000001"))).outcome).toBe("INTERVENE");
@@ -312,7 +331,7 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
     // A plan is asked of a table that **has rows**: SQLite plans an empty one differently, so the same
     // assertion against a fresh store would pass while saying nothing. Three reads, three indexes —
     // and a `SCAN` in any of them turns a rebuild on the decision path into a full table read.
-    await reboot([A, B]);
+    await start([A, B]);
     await stock("platform-a-1");
     for (let n = 0; n < 12; n += 1) {
       await decide("key-a-1", wantsToBuy(n * 2 + 1, `ses_0000000${n % 4}`, `vis_0000000${n % 3}`));

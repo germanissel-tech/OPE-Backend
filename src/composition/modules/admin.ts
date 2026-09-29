@@ -27,14 +27,15 @@ import {
   memoryAnchorDiagnosticsStore,
   memoryUnmappedValueLog,
   sdkConfigurationOf,
+  sqliteAdminLog,
 } from "../../interface-adapters/admin/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
-import { PlatformConfigurationPort } from "../release.js";
+import { PlatformConfigurationPort, SqlStorePort } from "../release.js";
 import { AttributeLabelReportPort } from "./catalog.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
-import { AuditTrailPort, ClockPort } from "./shared-kernel.js";
+import { AuditTrailPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 
 export const AdminLogPort = port("admin.log")<AdminLog>();
 const AnchorDiagnosticsPort = port("admin.diagnostics")<AnchorDiagnosticsStore>();
@@ -42,21 +43,38 @@ const UnmappedValuesPort = port("admin.unmapped-values")<UnmappedValueLog>();
 /** What the SDK may see of the configuration of its merchant. */
 const SdkConfigurationPort = port("admin.sdk-configuration")<SdkConfigurationSource>();
 
+/**
+ * What this module provides whatever serves the log — and **it is still in memory in both deployments**,
+ * which is the remaining half of the milestone: the two observation stores are what user story 3 of this
+ * feature makes durable, and until then a deploy still empties the two lists the panel shows.
+ *
+ * Spread into the two technologies rather than assembled, for the reason the configuration module writes
+ * in full: `providedPorts` is what a test reset replaces, and these hold state.
+ */
+const observations = [
+  bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+    memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+  ),
+  bind(UnmappedValuesPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+    memoryUnmappedValueLog(platform.unmappedValuesKept),
+  ),
+  bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    sdkConfigurationOf(configuration),
+  ),
+] as const;
+
 export const adminModule = compositionModule({
-  provides: [
-    // One instance, two views: what the administration reads and what every module writes
-    // through the kernel's port (ADR-034).
-    bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
-    bind(AnchorDiagnosticsPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
-    ),
-    bind(UnmappedValuesPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      memoryUnmappedValueLog(platform.unmappedValuesKept),
-    ),
-    bind(SdkConfigurationPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-      sdkConfigurationOf(configuration),
-    ),
-  ],
+  // One instance, two views: what the administration reads and what every module writes through the
+  // kernel's port (ADR-034). What the technology chooses is where the entries land (feature 033).
+  provides: {
+    memory: [bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()), ...observations],
+    sqlite: [
+      bindAll([AdminLogPort, AuditTrailPort], { store: SqlStorePort, logger: LoggerPort }, (deps) =>
+        sqliteAdminLog(deps),
+      ),
+      ...observations,
+    ],
+  },
   assembles: [
     bind(
       AttributeLabelReportPort,

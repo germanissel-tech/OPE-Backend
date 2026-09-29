@@ -120,28 +120,28 @@ una consola sobre algo que se borra.
 **Independent Test**: publicar dos versiones y abrir un experimento con asignaciones, reiniciar, y que las
 versiones estén con su orden y su autoría y que un visitante ya asignado vuelva al mismo brazo.
 
-- [ ] T017 [P] [US2] `tests/durability/configuration-store.test.ts` — **antes del gateway**: dos versiones
+- [x] T017 [P] [US2] `tests/durability/configuration-store.test.ts` — **antes del gateway**: dos versiones
       con su orden, su operador, su instante y su motivo, y **la efectiva es la de versión máxima**. Sin
       bandera de «vigente», que sería un segundo lugar donde decir lo mismo.
-- [ ] T018 [US2] `src/interface-adapters/configuration/gateways/sqlite-configuration-store.ts` — único por
+- [x] T018 [US2] `src/interface-adapters/configuration/gateways/sqlite-configuration-store.ts` — único por
       `(merchant, version)`; `versionsOf` pagina por versión descendente.
-- [ ] T019 [P] [US2] `tests/durability/experiment-store.test.ts` — **antes del gateway**: un experimento
+- [x] T019 [P] [US2] `tests/durability/experiment-store.test.ts` — **antes del gateway**: un experimento
       calibrando sigue calibrando, con su reparto, su semilla, su muestra y sus reinicios de ventana. Y si
       alguna parte de su documento es una clase, se nombra y se rehidrata — la misma trampa que T006.
-- [ ] T020 [US2] `src/interface-adapters/experiment/gateways/sqlite-experiment-store.ts` — único por
+- [x] T020 [US2] `src/interface-adapters/experiment/gateways/sqlite-experiment-store.ts` — único por
       `(merchant, experiment)`. El estado **no** es columna: `listOf` trae los del merchant y filtra el
       llamador.
-- [ ] T021 [US2] `tests/durability/experiment-store.test.ts` — **SC-004, la incoherencia que esto arregla**:
+- [x] T021 [US2] `tests/durability/experiment-store.test.ts` — **SC-004, la incoherencia que esto arregla**:
       ninguna asignación queda apuntando a un experimento inexistente después de un reinicio, y un
       visitante ya asignado vuelve al mismo brazo. Hoy no se nota en los merchants de la semilla porque el
       archivo trae los mismos identificadores; con uno creado por la API, el identificador se perdía.
-- [ ] T022 [US2] `src/interface-adapters/admin/gateways/sqlite-admin-log.ts` — append-only, **sin clave de
+- [x] T022 [US2] `src/interface-adapters/admin/gateways/sqlite-admin-log.ts` — append-only, **sin clave de
       negocio y sin índice único**: dos acciones idénticas del mismo operador en el mismo instante son dos
       acciones. `merchant_id` nullable porque la ausencia **significa** una acción de plataforma.
-- [ ] T023 [US2] `tests/durability/admin-log.test.ts` — el registro global y el del merchant después de un
+- [x] T023 [US2] `tests/durability/admin-log.test.ts` — el registro global y el del merchant después de un
       reinicio, con el aislamiento: el de un merchant trae sólo las suyas y **ninguna de plataforma**.
-- [ ] T024 [US2] `src/composition/` — las tres tecnologías en `deployments/durable.ts` y sus módulos.
-- [ ] T025 [US2] `npm run test:mutation` acotado al diff de la historia.
+- [x] T024 [US2] `src/composition/` — las tres tecnologías en `deployments/durable.ts` y sus módulos.
+- [x] T025 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las historias 1 y 2 funcionan, cada una por su cuenta.
 

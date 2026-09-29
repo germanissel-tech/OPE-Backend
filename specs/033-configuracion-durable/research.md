@@ -55,6 +55,16 @@ Y deja de serlo **exactamente** cuando hay dos procesos: el índice del proceso 
 
 `ConfigurationStore`, `ExperimentStore`, `AdminLog`, `AnchorDiagnosticsStore` y `UnmappedValueLog` se leen en operaciones de administración y en la resolución de configuración, no en cada petición. Van al almacén directo, como los seis gateways de la 030. **No se les pone índice porque no lo necesitan**, y ponerlo por simetría sería memoria y complejidad a cambio de nada.
 
+#### Enmienda (2026-09-29, al implementar la historia 2): eran cuatro, no cinco
+
+Al escribir el gateway de experimentos se verificó dónde se lee cada puerto, y el párrafo de arriba **está mal en uno**: `ExperimentStore` implementa además `ExperimentDirectory`, y su `activeFor(merchantId)` lo llama `Assignments.assign`, que el plano de decisión invoca **en toda decisión** (`decision.service.ts:100`, antes del recall). No es una lectura de administración: es la misma clase de camino caliente que motivó este research, y peor por su forma — no es una lectura por clave sino **todas las filas de experimentos del merchant**, que se rehidratan y se juzgan para encontrar el abierto.
+
+Los otros cuatro sí son fríos, y `ConfigurationStore` lo es por una razón que conviene no perder: `Configurations` resuelve la configuración efectiva de un merchant **una vez** y la sirve de memoria (`#effective`), así que `latestOf` se pregunta una vez por merchant y por proceso, y otra vez cuando se publica. El experimento no tiene esa memoización y por eso no hereda la conclusión.
+
+**Decisión: el gateway de experimentos lleva el mismo índice que el de merchants**, con el mismo argumento y el mismo límite (un proceso; D-21). La diferencia con el de merchants es dónde se juzga el conjunto: `open` lee los experimentos del merchant **de la tabla, dentro de la transacción**, porque «a lo sumo uno abierto» es un invariante que tiene que decidir el almacén y no una vista de él. Esa lectura es de administración y por lo tanto fría.
+
+**Cómo se detectó, que es lo que vale para la próxima**: no por una medición, sino por buscar a los llamadores de cada puerto antes de escribir su gateway. La afirmación original era plausible —cuatro de cinco eran ciertas— y una medición de la ingesta no la habría contradicho, porque la decisión no se toma en el mismo camino que se midió en SC-002.
+
 ---
 
 ## R-03 — La reconstrucción de la ventana de deduplicación

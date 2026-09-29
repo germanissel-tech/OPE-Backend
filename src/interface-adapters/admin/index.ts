@@ -10,3 +10,4 @@ export * from "./gateways/memory-admin-log.js";
 export * from "./gateways/memory-anchor-diagnostics-store.js";
 export * from "./gateways/memory-unmapped-value-log.js";
 export * from "./gateways/sdk-configuration.js";
+export * from "./gateways/sqlite-admin-log.js";

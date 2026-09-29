@@ -11,7 +11,9 @@
 // `modulesWith("sqlite")` gives each module `Chosen<M, "sqlite">` and not the union of both. Taking the
 // union instead would typecheck and would quietly say that a deployment provides whichever of the two,
 // which is exactly the promise the typed graph exists to keep exact (ADR-033).
+import { adminModule } from "../modules/admin.js";
 import { catalogModule } from "../modules/catalog.js";
+import { configurationModule } from "../modules/configuration.js";
 import { experimentModule } from "../modules/experiment.js";
 import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
@@ -23,7 +25,9 @@ export type Technology = "memory" | "sqlite";
 
 export const modulesWith = <T extends Technology>(technology: T) =>
   [
+    adminModule.with(technology),
     catalogModule.with(technology),
+    configurationModule.with(technology),
     experimentModule.with(technology),
     // Ingestion is in this list because of the register (feature 031). Its queue is the same in both
     // deployments; what the technology chooses is only what the queue writes to.
