@@ -219,21 +219,21 @@ state-unavailable`**, la decisión **se emite y se registra**, y **no** se respo
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T036 **Medir SC-005**: el p95 de una decisión **que tuvo que reconstruir**, contra el de una que no.
+- [x] T036 **Medir SC-005**: el p95 de una decisión **que tuvo que reconstruir**, contra el de una que no.
       No hay presupuesto declarado porque no hay base de comparación; el número se publica con lo que es —
       SQLite local, sin red, o sea **no el caso que importa** (**D-21**).
-- [ ] T037 `docs/adr/040-*.md` — el ADR de las decisiones transversales: la decisión **espera** I/O
+- [x] T037 `docs/adr/040-*.md` — el ADR de las decisiones transversales: la decisión **espera** I/O
       (excepción al principio IV, declarada y **sin cuantificar**, con el trato de ADR-038 menos el número);
       los puertos de lectura ganan canal de fallo **en dos de muchos**, como adelanto del hito; y el plazo de
       FR-016 diferido al gateway de PostgreSQL con su motivo técnico.
-- [ ] T038 [P] `docs/deudas.md` — lo que esta feature deja anotado, si algo: el costo sin medir de la
+- [x] T038 [P] `docs/deudas.md` — lo que esta feature deja anotado, si algo: el costo sin medir de la
       espera, y lo que el arranque en frío bajo carga no se puede saber hoy.
-- [ ] T039 [P] Los READMEs que el cambio toca, con su inventario (ADR-032). `migrations/` ya en T008;
+- [x] T039 [P] Los READMEs que el cambio toca, con su inventario (ADR-032). `migrations/` ya en T008;
       verificar `contracts/` por el campo renombrado y `config/` por el valor.
-- [ ] T040 Correr el **quickstart** de punta a punta, los siete pasos, y **anotar lo que aparezca**. En las
+- [x] T040 Correr el **quickstart** de punta a punta, los siete pasos, y **anotar lo que aparezca**. En las
       dos features anteriores encontró lo que ningún gate veía — la última vez, seis pasos que daban verde
       sin ejecutar nada.
-- [ ] T041 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
+- [x] T041 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
       `release-check`.
 
 ---

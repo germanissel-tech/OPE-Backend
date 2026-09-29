@@ -54,6 +54,8 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió               | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
 | D-24 | El tope diario por visitante es un default sin medición, y con 1 por sesión casi nunca muerde      | Revisión de la 032 con el dueño, 2026-09-27      | `abierta`      | 2026-09-27 | —                                                       |
 | D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
+| D-26 | Lo que la decisión paga por reconstruir está medido en la máquina que no importa                   | Feature 032 (SC-005, ADR-040)                    | `abierta`      | 2026-09-28 | —                                                       |
+| D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez    | Feature 032 (borde de la spec)                   | `abierta`      | 2026-09-28 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -456,6 +458,44 @@ en la misma PR que una feature mezcla dos revisiones que no tienen nada que ver.
 propia, y conviene hacerla **antes del 19 de octubre**, corriendo la cadena entera sobre la imagen nueva
 — que es el procedimiento que la 030 ya usó para el salto de Node: primero y solo, con el diff más chico
 posible, porque si algo del stack se queja no tiene nada que ver con la feature en curso.
+
+## D-26 — Lo que la decisión paga por reconstruir está medido en la máquina que no importa
+
+La feature 032 puso una lectura durable en el camino de decisión (ADR-040, decisión 1) y la midió:
+cuatro corridas, el p50 de una decisión que reconstruye quedó **entre +0,03 y +0,78 ms** sobre una que
+no, y el p95 osciló entre −7,9 y +2,1 ms. Menos de un milisegundo donde se ve, ruido en p95.
+
+**Y eso vale poco, que es el punto de la deuda.** Es SQLite local, sin red, en una laptop. Las dos
+consultas de la reconstrucción están indexadas y su plan está verificado, así que contra este almacén el
+costo es el de dos lecturas de índice — pero contra un Postgres remoto cada una es un viaje de red, y
+ahí la pregunta cambia de escala, no de grado.
+
+**Qué haría falta para cerrarla**: el gateway de PostgreSQL (**D-21**) y la misma medición contra él. Hasta
+entonces la excepción al principio IV está declarada **sin cuantificar**, que es distinto de cuantificada
+mal: ADR-038 pudo nombrar un disparador porque tenía una base de comparación, y acá no hay ninguna.
+
+**Lo que sí quedó descartado con lo medido**: que reconstruir cambie el orden de magnitud de la petición.
+Eso no es nada, pero tampoco es un presupuesto.
+
+## D-27 — Nadie sabe qué cuesta un arranque en frío con tráfico
+
+La spec lo anotó como borde y sigue abierto: en un arranque con tráfico real **todas las sesiones activas
+piden reconstrucción a la vez**. Cada una son dos consultas indexadas, así que el problema no es una
+consulta cara sino muchas juntas contra un almacén recién abierto, con el caché de páginas vacío.
+
+**Por qué no se puede medir hoy.** Haría falta saber cuántas sesiones hay activas en el momento de un
+despliegue, y eso es una cifra de piloto: depende del tráfico del merchant y de la duración de la sesión,
+que recién ahora son treinta minutos. Inventar un número y medir contra él daría un resultado con la
+misma precisión que el número inventado.
+
+**Qué la vuelve menos grave de lo que suena**, y conviene tenerlo escrito para no sobredimensionarla: la
+reconstrucción sólo ocurre en el **primer** lote de cada sesión después del arranque, y a partir de ahí
+esa sesión está en memoria. El pico es de una vez, no sostenido. Y si la lectura no contesta, la respuesta
+ya está definida y no es un 500: degrada con motivo (ADR-040, decisión 3).
+
+**Qué haría falta para cerrarla**: tráfico de piloto, o la decisión del dueño de aceptar el pico sin
+medirlo. Lo que **no** hace falta es una decisión de diseño nueva: las tres alternativas al desacople ya
+están evaluadas y descartadas en ADR-040.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
