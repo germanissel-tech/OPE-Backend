@@ -33,18 +33,18 @@ otra feature.
 
 **⚠️ CRÍTICO**: ninguna historia puede empezar hasta que esto esté.
 
-- [ ] T001 `tests/durability/store.test.ts` — **antes de la migración**: un almacén en versión 3 sube a 4,
-      **lo que ya tenía queda intacto**, y las seis tablas nuevas quedan vacías. Es la primera migración de
+- [x] T001 `tests/durability/store.test.ts` — **antes de la migración**: un almacén en versión 3 sube a 4,
+      **lo que ya tenía queda intacto**, y las siete tablas nuevas quedan vacías. Es la primera migración de
       la serie que **sólo crea**, así que el caso a verificar no es un traspaso sino que no toca nada.
-- [ ] T002 `migrations/004-*.sql` — las seis tablas de `data-model.md`. Lo que hay que no equivocarse:
+- [x] T002 `migrations/004-*.sql` — las siete tablas de `data-model.md`. Lo que hay que no equivocarse:
       `merchant_origins` con **índice único global sobre `origin`** (un origen pertenece a un solo
       merchant, desactivados incluidos); `anchor_diagnostics` único por merchant, anclaje y superficie con
       **`count` como columna**; `admin_entries` **sin** clave de negocio y con `merchant_id` nullable; y
       **ningún índice por huella de credencial**, que es deliberado y va dicho en el archivo.
-- [ ] T003 [P] `migrations/README.md` — la fila del inventario de `004` y el diagrama ER con las seis
+- [x] T003 [P] `migrations/README.md` — la fila del inventario de `004` y el diagrama ER con las siete
       tablas. Sin cifras de estado (ADR-032); `tests/docs/readmes.test.ts` es el gate, y lee de
       `git ls-files`: **una migración sin rastrear no cuenta** (lo encontró la 032).
-- [ ] T004 Correr `npm run test:durability` y `npm test` con la migración y **nada más**: el esquema sube
+- [x] T004 Correr `npm run test:durability` y `npm test` con la migración y **nada más**: el esquema sube
       y nada cambia de comportamiento. Es el checkpoint más barato de toda la feature y el que aísla un
       problema de esquema de un problema de gateway.
 

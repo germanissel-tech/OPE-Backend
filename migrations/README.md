@@ -13,9 +13,19 @@ arranque la lee.
 Toda tabla lleva **su propia clave primaria autoincremental** y **`created_at` / `updated_at`**, las
 dos reglas de arquitectura del dueño (2026-09-27, migración `002`); lo que era clave de negocio es
 ahora un **índice UNIQUE**, que garantiza lo mismo sin ser la identidad de la fila. Fuera de eso hay
-columnas para **dos cosas nada más**: el merchant, que toda lectura toma y que es de lo que está hecho
-el aislamiento (constitución V), y **la clave o el campo por el que el puerto busca**. Todo lo demás
-viaja en `document`, tal como el dominio lo tiene.
+columnas para **cuatro cosas y ninguna más**, y las dos últimas llegaron con la migración `004`:
+
+1. **el merchant**, que toda lectura toma y que es de lo que está hecho el aislamiento (constitución V);
+2. **la clave o el campo por el que el puerto busca**;
+3. **un campo por el que una lectura filtra o pagina** — `merchants.status`, porque el estado es lo
+   primero que un panel filtra;
+4. **un valor que el almacén tiene que modificar en la escritura** — `anchor_diagnostics.count`, que un
+   `upsert` incrementa, porque leerlo y escribirlo desde el llamador es una carrera.
+
+Todo lo demás viaja en `document`, tal como el dominio lo tiene. **Y un campo puede estar en los dos
+lados**: los orígenes de un merchant son columna en `merchant_origins` y viajan también en su documento,
+porque el documento es `record()`. No son dos verdades — la tabla existe para que un índice haga cumplir
+una unicidad **entre** merchants, y se escribe en la misma transacción.
 
 Para no repetir cinco columnas iguales en cada caja, el diagrama las omite: **todas las tablas tienen
 `id`, `created_at` y `updated_at`**, y lo que se dibuja es lo que las distingue.
@@ -72,8 +82,46 @@ erDiagram
         TEXT document "el evento como el contrato lo admite"
     }
 
+    merchants {
+        TEXT merchant_id UK "toda lectura lo toma"
+        TEXT status "columna porque la paginación filtra por él"
+        TEXT document "orígenes, huellas de credencial, creación"
+    }
+    merchant_origins {
+        TEXT merchant_id "índice por merchant"
+        TEXT origin UK "único entre TODOS los merchants, desactivados incluidos"
+    }
+    merchant_configurations {
+        TEXT merchant_id UK
+        INTEGER version UK "la efectiva es la máxima; no hay bandera de vigente"
+        TEXT document "lo que declaró, con su operador y su motivo"
+    }
+    experiments {
+        TEXT merchant_id UK
+        TEXT experiment_id UK
+        TEXT document "reparto, semilla, muestra, cortes, ciclo de vida"
+    }
+    admin_entries {
+        TEXT merchant_id "NULLABLE: su ausencia es una acción de plataforma"
+        TEXT document "operador, operación, resultado, motivo"
+    }
+    anchor_diagnostics {
+        TEXT merchant_id UK
+        TEXT anchor UK
+        TEXT surface UK "la clave del upsert"
+        INTEGER count "columna: el almacén la incrementa"
+    }
+    unmapped_values {
+        TEXT merchant_id "índice por merchant; replace cambia el conjunto entero"
+    }
+
     decisions ||--o| exposures : "se mostró de verdad"
     decisions ||--o{ received_events : "con qué llegó"
+    merchants ||--o{ merchant_origins : "habla por"
+    merchants ||--o{ merchant_configurations : "declaró"
+    merchants ||--o{ experiments : "reparte"
+    merchants ||--o{ anchor_diagnostics : "no se pudo resolver"
+    merchants ||--o{ unmapped_values : "llegó sin correspondencia"
     orders ||--o{ corroborations : "la sostienen"
     catalog_snapshots ||--o{ catalog_receipts : "cuándo llegó cada una"
 ```
@@ -91,11 +139,19 @@ flowchart LR
     O -.->|"la misma fila, actualizada"| R["la devolución<br/><i>dentro del documento de la orden</i>"]
 ```
 
-**Por qué no se desarma cada entidad en columnas**: el ledger es inmutable y append-only, así que no
-hay actualizaciones parciales que lo justifiquen, y desarmarlo obligaría a mantener **dos formas del
-mismo dominio** en paso — la duplicación que ADR-024 evita en el código. La excepción es `orders`,
-que una devolución sí actualiza: eso es la máquina de estados de ADR-028, no una edición de lo que la
-plataforma mandó.
+**Por qué no se desarma cada entidad en columnas**: desarmarla obligaría a mantener **dos formas del
+mismo dominio** en paso — la duplicación que ADR-024 evita en el código— y el documento es `record()`,
+así que un campo nuevo del dominio viaja sin que ningún gateway se entere.
+
+Eso vale igual para lo que **sí se actualiza**, y conviene separar las dos clases porque son distintas:
+
+- **El ledger es inmutable y append-only**, así que no hay actualizaciones parciales que justifiquen
+  desarmarlo. La única excepción es `orders`, que una devolución actualiza — y eso es la máquina de
+  estados de ADR-028, no una edición de lo que la plataforma mandó.
+- **Lo que un operador configura cambia por naturaleza** (migración `004`): un merchant rota una
+  credencial, se apaga, se desactiva. Se reescribe su documento entero, que es lo que `record()`
+  devuelve, y nunca un campo suelto — así no hay dos formas del dominio que mantener en paso. La
+  configuración es la que no cambia: publicar **agrega una versión**, no pisa la anterior.
 
 **Dos cosas sobre el orden y la política.** «En el orden en que se registraron» lo da el `id`, que es
 monotónico por inserción, así que ninguna columna tiene que llevar un contador que pueda discrepar de
@@ -156,16 +212,23 @@ migración del repositorio volvió ordinario el caso de un almacén una versión
 No es un detalle de implementación: es lo que hace de esto un ledger y no una tabla cualquiera, y
 cada tabla lo decide con su clave primaria, no con una lectura previa del llamador.
 
-| Tabla               | Una segunda escritura con la misma clave                                                                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `decisions`         | **se rechaza**: el ledger no se sobrescribe, y la escritura degrada a `NO_OP ledger-unavailable`                                                                                     |
-| `exposures`         | no hace nada y responde `already-recorded`: es la idempotencia de la confirmación                                                                                                    |
-| `corroborations`    | no hace nada y responde `repeated`: el primero gana                                                                                                                                  |
-| `assignments`       | no hace nada: el primer brazo gana, y por eso el visitante vuelve al mismo                                                                                                           |
-| `orders`            | la decide el puerto dentro de una transacción: primero, repetido o **conflicto**, sin pisar nada                                                                                     |
-| `catalog_snapshots` | reemplaza: una publicación supersede a la anterior, que es lo que una instantánea significa                                                                                          |
-| `catalog_receipts`  | no aplica: no tiene clave, es un append que se poda al tope que el merchant fija                                                                                                     |
-| `received_events`   | **la clave no es el evento sino la llegada**: el mismo `event_id` dos veces son dos filas, y eso es lo que hace forense al registro; lo que se rechaza es la misma llegada dos veces |
+| Tabla                     | Una segunda escritura con la misma clave                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `decisions`               | **se rechaza**: el ledger no se sobrescribe, y la escritura degrada a `NO_OP ledger-unavailable`                                                                                     |
+| `exposures`               | no hace nada y responde `already-recorded`: es la idempotencia de la confirmación                                                                                                    |
+| `corroborations`          | no hace nada y responde `repeated`: el primero gana                                                                                                                                  |
+| `assignments`             | no hace nada: el primer brazo gana, y por eso el visitante vuelve al mismo                                                                                                           |
+| `orders`                  | la decide el puerto dentro de una transacción: primero, repetido o **conflicto**, sin pisar nada                                                                                     |
+| `catalog_snapshots`       | reemplaza: una publicación supersede a la anterior, que es lo que una instantánea significa                                                                                          |
+| `catalog_receipts`        | no aplica: no tiene clave, es un append que se poda al tope que el merchant fija                                                                                                     |
+| `received_events`         | **la clave no es el evento sino la llegada**: el mismo `event_id` dos veces son dos filas, y eso es lo que hace forense al registro; lo que se rechaza es la misma llegada dos veces |
+| `merchants`               | **se rechaza**: el identificador lo acuña OPE, así que repetirlo es un generador roto                                                                                                |
+| `merchant_origins`        | **se rechaza**, y es la única unicidad **entre** merchants del esquema: un origen habla por uno solo, desactivados incluidos                                                         |
+| `merchant_configurations` | **se rechaza**: publicar es agregar una versión, no pisar una. La efectiva es la de versión máxima                                                                                   |
+| `experiments`             | **se rechaza**: el identificador lo acuña OPE                                                                                                                                        |
+| `admin_entries`           | no aplica: no tiene clave. Dos acciones idénticas del mismo operador en el mismo instante son dos acciones, igual que dos llegadas de un evento                                      |
+| `anchor_diagnostics`      | **acumula**: `count = count + 1` sobre `(merchant, anclaje, superficie)`. Es la única tabla que modifica un valor al repetirse, y lo hace el almacén                                 |
+| `unmapped_values`         | no aplica: el puerto **reemplaza** el conjunto del merchant, en una transacción, porque un reemplazo a medias deja un conjunto que nunca existió                                     |
 
 `decisions` rechaza en vez de conservar en silencio porque un identificador repetido ahí no es una
 repetición: es un generador roto, y perder la evidencia de la primera decisión sería la peor forma
@@ -188,8 +251,9 @@ la identidad de una llegada y la idempotencia de su escritura.
 
 ## Inventario
 
-| Entrada                                      | Qué es                                                                                                                                                                                                                                               | Versión que deja | Fuente o derivado | Quién lo lee                                       | Verificación                     |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | -------------------------------------------------- | -------------------------------- |
-| `001-ledger-and-catalog.sql`                 | La primera forma: una tabla por entidad del ledger —decisiones, exposiciones, órdenes, corroboraciones, asignaciones— más el catálogo y sus recibos.                                                                                                 | 1                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
-| `002-received-events-and-surrogate-keys.sql` | El registro de lo que el SDK manda (`received_events`, una fila por evento y por llegada), y las dos reglas de arquitectura del dueño aplicadas a las siete tablas anteriores: clave primaria autoincremental propia, y `created_at` / `updated_at`. | 2                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
-| `003-decisions-by-visitor.sql`               | `visitor_id` sale del documento a una columna `NOT NULL` con su índice `decisions_by_visitor`: la lectura que el tope de fatiga necesita para sobrevivir un reinicio.                                                                                | 3                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| Entrada                                            | Qué es                                                                                                                                                                                                                                                                                                               | Versión que deja | Fuente o derivado | Quién lo lee                                       | Verificación                     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | -------------------------------------------------- | -------------------------------- |
+| `001-ledger-and-catalog.sql`                       | La primera forma: una tabla por entidad del ledger —decisiones, exposiciones, órdenes, corroboraciones, asignaciones— más el catálogo y sus recibos.                                                                                                                                                                 | 1                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| `002-received-events-and-surrogate-keys.sql`       | El registro de lo que el SDK manda (`received_events`, una fila por evento y por llegada), y las dos reglas de arquitectura del dueño aplicadas a las siete tablas anteriores: clave primaria autoincremental propia, y `created_at` / `updated_at`.                                                                 | 2                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| `003-decisions-by-visitor.sql`                     | `visitor_id` sale del documento a una columna `NOT NULL` con su índice `decisions_by_visitor`: la lectura que el tope de fatiga necesita para sobrevivir un reinicio.                                                                                                                                                | 3                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| `004-merchants-configuration-and-observations.sql` | Lo que un operador configura y lo que se observó del tráfico de un merchant: el merchant con sus orígenes en tabla propia, su configuración con todas sus versiones, sus experimentos, el registro de administración, el diagnóstico de anclajes y los valores sin mapear. **La primera de la serie que sólo crea.** | 4                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |

@@ -6,7 +6,7 @@
 
 ---
 
-## Las seis tablas
+## Las siete tablas, para seis almacenes
 
 La convención es la de `migrations/README.md`: clave propia autoincremental, `created_at` y `updated_at` con su default, el merchant, **la clave por la que el puerto busca**, y todo lo demás en `document`. Lo que sigue es sólo lo que se sale de eso o lo que hay que elegir.
 

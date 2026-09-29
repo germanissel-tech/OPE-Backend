@@ -64,7 +64,7 @@ specs/033-configuracion-durable/
 ├── spec.md              # Fase de especificación
 ├── research.md          # Fase 0 — seis preguntas, dos deciden la forma
 ├── plan.md              # Este archivo
-├── data-model.md        # Fase 1 — las seis tablas y la reconstrucción de la ventana
+├── data-model.md        # Fase 1 — las siete tablas y la reconstrucción de la ventana
 ├── quickstart.md        # Fase 1 — cómo verificarlo, terminando en usarlo
 └── checklists/
     └── requirements.md
@@ -76,7 +76,7 @@ specs/033-configuracion-durable/
 
 ```text
 migrations/
-└── 004-*.sql                                   # seis tablas; la primera de la serie que sólo crea
+└── 004-*.sql                                   # siete tablas; la primera de la serie que sólo crea
 
 src/application/
 ├── ingestion/ports/event-log.ts                # + la lectura de ids por merchant y ventana
@@ -123,7 +123,7 @@ Completa en [research.md](./research.md). Seis preguntas: cuánto ya existe (R-0
 
 ## Fase 1 — Diseño
 
-- [data-model.md](./data-model.md) — las seis tablas con lo propio de cada una, el índice en memoria y la reconstrucción de la ventana. Ninguna entidad nueva: las seis ya existen y ninguna cambia de forma.
+- [data-model.md](./data-model.md) — las siete tablas con lo propio de cada una, el índice en memoria y la reconstrucción de la ventana. Ninguna entidad nueva: las seis ya existen y ninguna cambia de forma.
 - [quickstart.md](./quickstart.md) — siete pasos, el último usando el servidor: dar de alta un merchant, apagar, prender, y que siga ahí.
 - **Sin `contracts/`**, por el motivo de arriba.
 
@@ -131,7 +131,7 @@ Completa en [research.md](./research.md). Seis preguntas: cuánto ya existe (R-0
 
 Ningún veredicto cambia, y dos se confirman con lo que el diseño concretó:
 
-- **Principio V** se refuerza: cada una de las seis tablas lleva el merchant en su clave de búsqueda, y la única unicidad global —el origen— es la que el aislamiento necesita para que un origen no hable por dos merchants.
+- **Principio V** se refuerza: cada una de las siete tablas lleva el merchant en su clave de búsqueda, y la única unicidad global —el origen— es la que el aislamiento necesita para que un origen no hable por dos merchants.
 - **Principio IV** sigue siendo la única excepción, y el diseño la **reduce** respecto de lo que la spec temía: la deduplicación, que se consulta por evento y habría sido la excepción más caliente de todas, se resuelve como recuperable y no toca el almacén por evento.
 
 **Y una cosa que el diseño confirma y conviene decir**: no hay ninguna entidad nueva ni ningún cambio de forma en las seis que se guardan. Esta feature es de infraestructura y de arranque, no de dominio — el dominio ya estaba listo para que alguien guardara sus entidades, con su `record()` y su `rehydrate` (ADR-024).
