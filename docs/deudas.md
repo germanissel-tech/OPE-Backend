@@ -56,8 +56,9 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando        | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
 | D-26 | Lo que la decisión paga por reconstruir está medido en la máquina que no importa                          | Feature 032 (SC-005, ADR-040)                    | `abierta`      | 2026-09-28 | —                                                       |
 | D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez           | Feature 032 (borde de la spec)                   | `abierta`      | 2026-09-28 | —                                                       |
-| D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y dos garantías del hito la esperan      | Feature 033 (research R-05 y su enmienda)        | `abierta`      | 2026-09-29 | ADR-034 (la ventana que deja abierta)                   |
+| D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y la auditoría atómica la espera         | Feature 033 (research R-05 y su enmienda)        | `abierta`      | 2026-09-29 | feature 034 (en curso)                                  |
 | D-29 | El registro de administración dice `importMerchants accepted` en cada arranque, y la semilla no se aplicó | Feature 033 (quickstart, paso 7)                 | `abierta`      | 2026-09-29 | SC-008 (la línea del arranque que sí lo dice)           |
+| D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28) | `abierta`      | 2026-09-29 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -516,14 +517,17 @@ ya está definida y no es un 500: degrada con motivo (ADR-040, decisión 3).
 medirlo. Lo que **no** hace falta es una decisión de diseño nueva: las tres alternativas al desacople ya
 están evaluadas y descartadas en ADR-040.
 
-## D-28 — Una transacción no se puede componer sobre puertos asincrónicos, y hay dos garantías esperándola
+## D-28 — Una transacción no se puede componer sobre puertos asincrónicos, y hay una garantía esperándola
 
-Dos cosas que el hito `persistence-and-resilience` promete siguen sin hacerse, y **son la misma cosa**:
+Lo que el hito `persistence-and-resilience` promete y sigue sin hacerse: **la entrada de administración commiteada junto con la acción que registra** — la ventana que ADR-034 deja abierta. Hoy una acción que no se puede auditar **no empieza** (el decorador pregunta antes), y lo que queda abierto es que el registro se caiga **durante** la acción.
 
-- **La entrada de administración commiteada junto con la acción que registra** — la ventana que ADR-034 deja abierta: hoy una acción que no se puede auditar **no empieza** (el decorador pregunta antes), y lo que queda abierto es que el registro se caiga **durante** la acción.
-- **La atomicidad del presupuesto por sesión.**
+### Enmienda (2026-09-29, al abrir la feature 034): eran dos garantías y es una
 
-Las dos necesitan lo mismo: **componer una transacción sobre varias escrituras que pasan por puertos asincrónicos**. Y eso hoy no se puede, por un motivo concreto: `SqlStore.transaction` es **síncrona** —`transaction<T>(work: () => T): T`— y el caso de uso es `async`. Envolver un `await` en una transacción síncrona no es incómodo, es **inseguro**: el `await` cede al bucle de eventos y otra petición puede escribir **dentro** de la transacción abierta.
+Esta deuda afirmaba que **la atomicidad del presupuesto por sesión** era «la misma cosa». Se verificó antes de escribir la spec de la 034 y **es falso**: la secuencia del camino de decisión es `recall` (memoria, con reconstrucción durable) → `judge` → `record` (ledger) → `remember` (memoria), y lo que falta ahí es exclusión entre dos lotes de **la misma sesión** que se intercalan en sus `await`. Una transacción de SQLite no serializa una escritura en memoria.
+
+Para que sirviera habría que contar el presupuesto desde el ledger **dentro** del scope y abrir un scope **en cada decisión**: una transacción de escritura en el camino caliente, sobre un motor con un solo escritor, que serializaría todas las decisiones del almacén — lo contrario de lo que el principio IV admite. Se resuelve con exclusión mutua por sesión dentro del proceso, misma frontera que todo lo demás (**D-21**), y por eso salió de acá a **D-30**.
+
+**Lo que queda en D-28 es la auditoría atómica**, y eso sí necesita **componer una transacción sobre varias escrituras que pasan por puertos asincrónicos**. Hoy no se puede, por un motivo concreto: `SqlStore.transaction` es **síncrona** —`transaction<T>(work: () => T): T`— y el caso de uso es `async`. Envolver un `await` en una transacción síncrona no es incómodo, es **inseguro**: el `await` cede al bucle de eventos y otra petición puede escribir **dentro** de la transacción abierta.
 
 ### Lo que se descartó al tensionarlo (feature 033, research R-05)
 
@@ -547,9 +551,40 @@ El decorador queda con un puerto del kernel: envuelve `inner.execute` y `log.rec
 
 La feature 033 ya tiene su propio riesgo de camino caliente —el índice en memoria de los merchants— y se verifica de otra manera. **Dos riesgos de latencia en la misma feature se estorban al medirlos**, y el criterio de aceptación de la 033 es una medición.
 
-**Qué haría falta para cerrarla**: su propia feature, con este diseño y su prueba del borde filoso. No hace falta ninguna decisión de diseño nueva.
+**Qué haría falta para cerrarla**: su propia feature, con este diseño y su prueba del borde filoso. No hace falta ninguna decisión de diseño nueva — **la toma la feature 034**, en curso desde 2026-09-29.
 
 **Y una cosa que conviene saber antes de programarla**: el puerto sobrevive al cambio de motor. Con PostgreSQL, `scope` es `BEGIN`/`COMMIT` sobre un cliente del pool y el `enter()` que hace la cola **desaparece** — es la mitad específica de SQLite. Nada del trabajo se tira, y por eso tampoco urge adelantarlo a D-21.
+
+## D-30 — el presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan
+
+**Salió de verificar una afirmación de D-28** antes de escribir la spec de la feature 034, y lo que se
+encontró es que las dos garantías que esa deuda juntaba no comparten mecanismo.
+
+El camino de decisión hace, en este orden: `recall` del estado de sesión y visitante (memoria, con
+reconstrucción durable cuando falta), `judge` —que es donde el tope de intervenciones por sesión se
+compara—, `record` de la decisión en el ledger, y `remember` del estado actualizado. Entre el primer
+paso y el último hay varios `await`, así que **dos lotes de la misma sesión que llegan juntos pueden
+leer los dos el mismo conteo** y los dos intervenir. El tope dice uno y salieron dos.
+
+**Qué tan grave es**: necesita dos peticiones de la misma sesión solapadas en el tiempo, que es lo que
+hace un SDK que reintenta o una pestaña duplicada, no el caso común. Lo que se gasta de más es una
+intervención por sesión y por carrera, y el ledger la registra — así que se ve, no se pierde. Es del
+lado que gasta un cupo y no del que ensucia una cifra, que es lo que la hace peor que la deduplicación
+(ADR-040) y por eso está acá.
+
+**Con qué no se arregla**, para no volver a derivarlo: con una transacción del almacén. Lo que se
+consume es un conteo **en memoria**; una transacción de SQLite no lo serializa. Para que sirviera habría
+que contar el presupuesto desde el ledger dentro de la transacción y abrir una **en cada decisión**, o
+sea poner una escritura serializada en el camino caliente sobre un motor con un solo escritor. El
+principio IV no lo admite y ADR-041 acaba de medir lo poco que el camino tolera.
+
+**Con qué sí**: exclusión mutua por sesión dentro del proceso — las decisiones de una misma sesión se
+atienden de a una, y las de sesiones distintas no se estorban. Misma frontera que el resto del hito: con
+dos procesos hace falta otra cosa (**D-21**).
+
+**Lo que haría falta para cerrarla**: medir primero si la carrera es alcanzable con tráfico real del SDK
+—cuántas peticiones de una misma sesión se solapan— y después su propia feature. La medición es parte de
+la deuda: sin ella, el arreglo es una defensa contra algo que nadie vio pasar.
 
 ## D-29 — el registro de administración dice que importó la semilla en cada arranque, y no la importó
 
