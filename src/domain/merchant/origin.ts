@@ -19,6 +19,19 @@ export class Origin {
     return new Origin(`${scheme.toLowerCase()}://${authority.toLowerCase()}`);
   }
 
+  /**
+   * An origin a store already kept, **without judging it again** (ADR-024). It exists because
+   * `JSON.parse` returns plain objects and an origin that comes back as one has no `equals`: a merchant
+   * read from the store would list fine and authenticate nothing.
+   *
+   * It does **not** call `parse`: what was recorded was canonical when it was parsed the first time, and
+   * re-parsing here would be the creation rule written twice — in the one place that cannot be kept in
+   * step with it.
+   */
+  static rehydrate(value: string): Origin {
+    return new Origin(value);
+  }
+
   equals(other: Origin): boolean {
     return this.value === other.value;
   }

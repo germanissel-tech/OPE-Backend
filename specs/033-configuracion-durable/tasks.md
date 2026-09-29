@@ -61,50 +61,52 @@ antes del reinicio responda `202`.
 
 ### El gateway y lo que se rompe en silencio
 
-- [ ] T005 [US1] `tests/durability/merchant-store.test.ts` — **antes del gateway**, y el caso que decide la
+- [x] T005 [US1] `tests/durability/merchant-store.test.ts` — **antes del gateway**, y el caso que decide la
       historia: un merchant leído del almacén **autentica**. No que exista, no que se liste: que
       `allowsOrigin` y la resolución por huella funcionen. Es donde se ve si los orígenes se rehidrataron.
-- [ ] T006 [US1] `src/interface-adapters/merchant/gateways/sqlite-merchant-store.ts` — el gateway.
+- [x] T006 [US1] `src/interface-adapters/merchant/gateways/sqlite-merchant-store.ts` — el gateway.
       **`Origin` es una clase con `equals` y `JSON.parse` no devuelve clases**: un merchant leído sin
       rehidratar sus orígenes se lista bien, se ve bien en el panel y **no autentica ninguna petición**.
       El síntoma no aparece al leer. `Credential` es un tipo y las fechas vuelven marcadas, así que ésos
       vuelven solos.
-- [ ] T007 [US1] `tests/durability/merchant-store.test.ts` — la unicidad de origen, **cruzando el
+- [x] T007 [US1] `tests/durability/merchant-store.test.ts` — la unicidad de origen, **cruzando el
       reinicio** y **alcanzando a los desactivados**: el origen de un merchant desactivado sigue reservado.
       Lo decide el índice y no una lectura previa, que es la carrera que `01 §6` prohíbe.
-- [ ] T008 [US1] La gracia de una credencial rotada como **instante**: una gracia vencida durante el
+- [x] T008 [US1] La gracia de una credencial rotada como **instante**: una gracia vencida durante el
       apagado no autentica al volver. El apagado no es un temporizador que se pausa.
 
 ### El índice en memoria, que es el riesgo de la feature
 
-- [ ] T009 [US1] `tests/unit/interface-adapters/merchant/` — **antes del índice**: los tres mapas se llenan
+- [x] T009 [US1] `tests/unit/interface-adapters/merchant/` — **antes del índice**: los tres mapas se llenan
       al abrir, se actualizan **después** de una escritura exitosa y **no** después de una fallida. El
       segundo es el que importa: un índice que se actualiza antes de que el almacén acepte es una verdad
       que el almacén no tiene.
-- [ ] T010 [US1] El índice en `sqlite-merchant-store.ts`: por identificador, por huella y por origen.
+- [x] T010 [US1] El índice en `sqlite-merchant-store.ts`: por identificador, por huella y por origen.
       **Y el comentario que dice exactamente cuándo deja de ser correcto** — con dos procesos, el índice
       de uno no ve el alta del otro y un merchant recién creado autenticaría en un nodo y no en el otro
       (**D-21**). Va en el gateway y no sólo en la investigación, porque es ahí donde alguien lo va a leer.
-- [ ] T011 [US1] `tests/durability/merchant-store.test.ts` — que el índice **se reconstruye al abrir**:
+- [x] T011 [US1] `tests/durability/merchant-store.test.ts` — que el índice **se reconstruye al abrir**:
       tras un reinicio, un merchant escrito antes resuelve por huella y por origen sin que nadie lo haya
       tocado en este proceso.
 
 ### El cableado, la semilla y la medición
 
-- [ ] T012 [US1] `src/composition/` — `merchantModule.with("sqlite")` en `deployments/durable.ts` y la
+- [x] T012 [US1] `src/composition/` — `merchantModule.with("sqlite")` en `deployments/durable.ts` y la
       tecnología en su módulo. Un módulo con dos tecnologías **no compila si nadie elige** (ADR-033), así
       que olvidarse falla en compilación.
-- [ ] T013 [US1] `src/composition/bootstrap.ts` — la línea que hoy falta (SC-008). `importSeed` ya conserva
-      lo que hay; lo que se agrega es que **lo diga** cuando no se aplica, con cuántos merchants ya había y
-      que la vía es la API. Hoy `if (imported > 0)` calla justo en el caso que confunde.
-- [ ] T014 [US1] `tests/durability/` — el arranque en sus **dos** situaciones: almacén vacío que importa, y
+- [x] T013 [US1] `src/composition/bootstrap.ts` — la línea que hoy falta (SC-008). `importSeed` ya conserva
+      lo que hay; lo que se agrega es que **lo diga** cuando no se aplica, y que la vía es la API. Hoy
+      `if (imported > 0)` calla justo en el caso que confunde. **Sin la cifra, decidido al implementar**:
+      el caso de uso responde `skipped` y nada más, y contar los merchants en el arranque sólo para poner
+      un número en una línea de log es trabajo por una línea; lo que faltaba era el motivo.
+- [x] T014 [US1] `tests/durability/` — el arranque en sus **dos** situaciones: almacén vacío que importa, y
       almacén con merchants que no importa y lo dice. Una sola no dice nada: el silencio es el defecto.
-- [ ] T015 [US1] `tests/durability/ingest-latency.test.ts` — **SC-002, la condición de aceptación**: el p95
+- [x] T015 [US1] `tests/durability/ingest-latency.test.ts` — **SC-002, la condición de aceptación**: el p95
       de la ingesta con el almacén durable contra el mismo con todo en memoria, **en la misma corrida**.
       Acá es donde el índice se justifica o no; si esto empeora de forma apreciable, la feature no está
       terminada. Y la lección de la 032: comparar dos cosas que no arrastran la misma historia da una
       diferencia que no significa nada.
-- [ ] T016 [US1] `npm run test:mutation` acotado al diff de la historia.
+- [x] T016 [US1] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: la historia 1 funciona sola y **es la feature mínima entregable** — un panel deja de ser
 una consola sobre algo que se borra.

@@ -13,7 +13,6 @@ import { adminModule } from "../modules/admin.js";
 import { barrierModule } from "../modules/barrier.js";
 import { configurationModule } from "../modules/configuration.js";
 import { decisionModule } from "../modules/decision.js";
-import { merchantModule } from "../modules/merchant.js";
 import { messagesModule } from "../modules/messages.js";
 import { kernelModule } from "../modules/shared-kernel.js";
 import { systemModule } from "../modules/system.js";
@@ -25,7 +24,6 @@ export const sharedModules = (config: AppConfig) =>
     releaseComponents(config),
     kernelModule,
     systemModule,
-    merchantModule,
     accessModule,
     barrierModule,
     messagesModule,

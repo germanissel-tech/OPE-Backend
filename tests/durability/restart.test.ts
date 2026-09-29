@@ -10,10 +10,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { durableDeployment } from "../../src/composition/deployments/durable.js";
-import { replace } from "../../src/composition/graph/index.js";
+import { replace, type Override } from "../../src/composition/graph/index.js";
 import { EventLogPort } from "../../src/composition/modules/ingestion.js";
 import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
-import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
+import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { SqlStorePort } from "../../src/composition/release.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId, asSessionId } from "../../src/domain/shared-kernel/index.js";
@@ -30,6 +30,7 @@ import {
   type MerchantSpec,
   type TestConfig,
 } from "../helpers/test-app.js";
+import { recordingLogger } from "../helpers/unavailable-ledgers.js";
 import type { components } from "#generated/api.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
@@ -46,9 +47,9 @@ let app: App;
  * The clock is fixed because the batches of the helpers are dated, not because anything here is
  * about time — with the real clock every event is too far in the past to be accepted.
  */
-async function boot(over: TestConfig = {}): Promise<App> {
+async function boot(ports: readonly Override[] = [], over: TestConfig = {}): Promise<App> {
   return startTestApp(
-    { deployment: durableDeployment, ports: [replace(ClockPort, fixedClock())] },
+    { deployment: durableDeployment, ports: [replace(ClockPort, fixedClock()), ...ports] },
     { store: { file }, ...over },
   );
 }
@@ -83,6 +84,42 @@ describe("the server across a restart", () => {
     expect(found?.decisionId).toBe(decision.decisionId);
     expect(found?.outcome).toBe(decision.outcome);
     expect(found?.reason).toBe(decision.reason);
+  });
+
+  it("says what it did with the seed, in both situations", async () => {
+    // SC-008, and **the second half is the whole point**: the seed is imported only into an empty store
+    // and that has not changed, but a store that already holds merchants used to make this silent. So
+    // editing the file after the first boot did nothing and said nothing, and finding that out was a
+    // discovery rather than a log line.
+    const NOT_APPLIED =
+      "merchant seed not applied: the store already holds merchants; change them through the administration API";
+    const recorder = recordingLogger();
+    const said = (): string[] => recorder.entries.map((entry) => entry.message);
+
+    // A file of its own, because the boot of the setup already seeded the shared one: asking an
+    // already-seeded store what it does with the seed can only ever see the second branch.
+    await app.close();
+    file = path.join(dir, "seed.db");
+    app = await boot([replace(LoggerPort, recorder.logger)]);
+    expect(said()).toContain("merchant seed imported");
+    expect(said()).not.toContain(NOT_APPLIED);
+
+    recorder.entries.length = 0;
+    await app.close();
+    app = await boot([replace(LoggerPort, recorder.logger)]);
+
+    expect(said()).toContain(NOT_APPLIED);
+    expect(said()).not.toContain("merchant seed imported");
+  });
+
+  it("the merchant of the seed keeps authenticating after the restart", async () => {
+    // The seed is not re-imported, so what answers is the row the first boot wrote. That is the
+    // difference between «the seed runs every time» and «the store is the source»: if the merchant
+    // authenticates here, it is because the table holds it.
+    await app.close();
+    app = await boot();
+
+    expect((await postEvents(app.app, batchOf(1, 500), { key: "key-a-1" })).statusCode).toBe(202);
   });
 
   it("re-imports the seed onto a store that already holds the ledger, and starts", async () => {
@@ -200,7 +237,7 @@ describe("the caps survive the deploy (feature 032, US1)", () => {
   /** Closes what is running and boots on the same file: the restart, and also the first boot with caps. */
   const reboot = async (merchants: MerchantSpec[]): Promise<void> => {
     await app.close();
-    app = await boot({ merchants });
+    app = await boot([], { merchants });
   };
 
   it("a session that spent its budget is still spent after the restart", async () => {

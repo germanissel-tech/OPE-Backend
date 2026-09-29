@@ -33,9 +33,11 @@ import {
   makeSetKillSwitch,
   memoryMerchantStore,
   nodeCredentialMinter,
+  sqliteMerchantStore,
 } from "../../interface-adapters/merchant/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
-import { AuditPort, ClockPort } from "./shared-kernel.js";
+import { SqlStorePort } from "../release.js";
+import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
 export const MerchantStorePort = port("merchant.store")<MerchantStore>();
@@ -57,12 +59,25 @@ export const ImportMerchantsPort =
   port("merchant.import")<UseCase<ImportMerchantsRequest, ImportMerchantsResponse>>();
 
 export const merchantModule = compositionModule({
-  provides: [
-    // One instance, two views: what the administration writes and what the access module
-    // reads. The store in memory satisfies both, so it is bound once for the two.
-    bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
-    bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
-  ],
+  provides: {
+    memory: [
+      // One instance, two views: what the administration writes and what the access module
+      // reads. The store in memory satisfies both, so it is bound once for the two.
+      bindAll([MerchantStorePort, MerchantDirectoryPort], {}, () => memoryMerchantStore()),
+      bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
+    ],
+    sqlite: [
+      // The same two views, and the durable store answers them from an in-memory index that the
+      // composition hands it: a gateway does not import another gateway (ADR-013), and the store in
+      // memory already **is** that index. Why the reads do not touch the table is in the gateway.
+      bindAll(
+        [MerchantStorePort, MerchantDirectoryPort],
+        { store: SqlStorePort, logger: LoggerPort },
+        ({ store, logger }) => sqliteMerchantStore({ store, logger, index: memoryMerchantStore() }),
+      ),
+      bind(CredentialMinterPort, {}, () => nodeCredentialMinter),
+    ],
+  },
   assembles: [
     bind(ScopedMerchantPort, { merchants: MerchantStorePort }, (deps) => new ScopedMerchants(deps)),
     bind(
