@@ -66,9 +66,10 @@ El ciclo de vida, el reparto, la semilla, la muestra, los cortes y los reinicios
 ### `admin_entries`
 
 ```sql
-CREATE INDEX admin_entries_recent ON admin_entries (id);
 CREATE INDEX admin_entries_by_merchant ON admin_entries (merchant_id, id);
 ```
+
+**Enmienda (2026-09-29, al verificar los planes de consulta): el índice por instante no existe.** Este documento proponía además `admin_entries_recent ON (id)` y era peso muerto: `id INTEGER PRIMARY KEY` **es** el rowid, así que la lectura global —más recientes primero, reanudando por debajo de una fila— la resuelve la clave de la tabla (`SEARCH admin_entries USING INTEGER PRIMARY KEY (rowid<?)`, verificado en `tests/durability/query-plans.test.ts`). Un índice sobre `id` habría sido una segunda copia del orden que la tabla ya tiene, pagada en cada `append` y usada por nadie. Se corrigió la migración `004`, como la columna de más arriba y por el mismo motivo. Los demás índices de la serie se verificaron uno por uno: los seis restantes los usa una lectura o una escritura de las que este documento describe.
 
 **Sin clave de negocio y sin índice único**: dos acciones idénticas del mismo operador en el mismo instante son dos acciones, igual que en `received_events` dos llegadas del mismo evento son dos llegadas. Append-only y **sin poda** (FR-009): la retención es permanente y queda declarada.
 

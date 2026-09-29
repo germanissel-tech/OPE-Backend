@@ -96,7 +96,11 @@ CREATE TABLE admin_entries (
   created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
-CREATE INDEX admin_entries_recent ON admin_entries (id);
+-- **One index and not two**: the global read — newest first, resuming below a row — goes through the
+-- table's own key, because `id INTEGER PRIMARY KEY` **is** the rowid and SQLite searches it directly
+-- (`SEARCH admin_entries USING INTEGER PRIMARY KEY (rowid<?)`, verified in `tests/durability/`). An
+-- index on `id` would be a second copy of the table's own order, paid on every append and used by
+-- nothing. The one by merchant earns its place: without it, a merchant's log would scan.
 CREATE INDEX admin_entries_by_merchant ON admin_entries (merchant_id, id);
 
 -- The anchors the SDK could not resolve, per surface. The key is the one the port upserts on, and

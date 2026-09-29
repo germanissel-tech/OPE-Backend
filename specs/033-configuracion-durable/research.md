@@ -95,7 +95,7 @@ Lo que cada una necesita más allá de la forma habitual —clave propia, `creat
 | `merchant_origins`        | **una fila por origen**, con índice **único global** sobre el origen: un origen pertenece a un solo merchant, desactivados incluidos. No va en el documento porque la unicidad es lo que hay que hacer cumplir |
 | `merchant_configurations` | único por `(merchant, version)`; la efectiva es la de versión máxima                                                                                                                                           |
 | `experiments`             | único por `(merchant, experiment)`                                                                                                                                                                             |
-| `admin_entries`           | append-only, sin clave de negocio; índices por instante y por `(merchant, instante)`                                                                                                                           |
+| `admin_entries`           | append-only, sin clave de negocio; un índice por `(merchant, instante)` — el global lo resuelve la clave de la tabla (enmienda en `data-model.md`)                                                             |
 | `anchor_diagnostics`      | único por `(merchant, anclaje, superficie)`, porque `upsert` acumula un conteo sobre esa clave                                                                                                                 |
 | `unmapped_values`         | por merchant; `replace` reemplaza el conjunto del merchant                                                                                                                                                     |
 

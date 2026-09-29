@@ -195,12 +195,12 @@ duplicado.
 
 ## Phase 5: Los planes de consulta, sobre tablas con filas
 
-- [ ] T035 `tests/durability/` — `EXPLAIN QUERY PLAN` de las lecturas nuevas **sobre tablas con filas**,
+- [x] T035 `tests/durability/` — `EXPLAIN QUERY PLAN` de las lecturas nuevas **sobre tablas con filas**,
       porque SQLite planifica distinto una vacía y la misma aserción contra un almacén fresco pasa sin
       decir nada (lo aprendió la 032). Las que importan: la unicidad de origen, las versiones de
       configuración por merchant, el registro por merchant, el `upsert` del diagnóstico, y la lectura
       nueva del registro de eventos. Si alguna dice `SCAN`, el índice no sirve.
-- [ ] T036 **SC-011, el inventario completo**: una prueba que recorre los puertos de almacenamiento y
+- [x] T036 **SC-011, el inventario completo**: una prueba que recorre los puertos de almacenamiento y
       falla si alguno no está clasificado —ya durable, esta feature, recuperable, configuración del
       despliegue—. Es lo que vuelve verificable «todo persiste»; sin eso es una afirmación que la próxima
       feature vuelve a descubrir incompleta, **que es lo que pasó al escribir esta spec**.
