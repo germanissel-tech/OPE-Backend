@@ -96,8 +96,32 @@ export async function importSeed(
       "merchant seed not applied: the store already holds merchants; change them through the administration API",
     );
   }
+  // **The same silence the merchants had, and feature 033 gave it to two more stores.** The
+  // configuration and the experiments of a merchant are now durable too, so from the second boot their
+  // part of the seed is also kept rather than applied — and until this line existed, editing a declared
+  // value in the file and restarting did nothing and said nothing. Said once at the end, because what a
+  // reader needs is that the file stopped being the source, not one line per merchant.
+  const kept = await importWhatEachMerchantDeclares(config, actor, graph);
+  if (kept.configurations || kept.experiments) {
+    logger.info(
+      kept,
+      "seed not applied to what the store already holds; change it through the administration API",
+    );
+  }
+}
+
+/** The branch a use case of the seed answers when the store already held what the file brings. */
+const SKIPPED = "skipped";
+
+/** What of each merchant's own seed was kept rather than applied, for the line `importSeed` writes. */
+async function importWhatEachMerchantDeclares(
+  config: AppConfig,
+  actor: Operator,
+  graph: Pick<Instance<DeployedComponents>, "resolve">,
+): Promise<{ configurations: boolean; experiments: boolean }> {
   const importConfiguration = graph.resolve(ImportConfigurationPort);
   const importExperiments = graph.resolve(ImportExperimentsPort);
+  const kept = { configurations: false, experiments: false };
   for (const [i, merchant] of config.merchants.entries()) {
     if (Object.keys(merchant.declared).length > 0) {
       const configured = await importConfiguration.execute({
@@ -109,12 +133,15 @@ export async function importSeed(
         const { pointer, problem } = configured.error.details;
         throw new ConfigError(`merchants[${i}].${String(pointer)}`, `is invalid (${String(problem)})`);
       }
+      if (SKIPPED in configured.value) kept.configurations = true;
     }
     const experiments = merchant.experiments.all();
     if (experiments.length === 0) continue;
     const opened = await importExperiments.execute({ actor, merchantId: merchant.merchantId, experiments });
     if (!opened.ok) throw new Error(`The experiment seed was rejected: ${opened.error.code}.`);
+    if (SKIPPED in opened.value) kept.experiments = true;
   }
+  return kept;
 }
 
 /**

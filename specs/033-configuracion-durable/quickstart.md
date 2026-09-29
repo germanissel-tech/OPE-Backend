@@ -70,10 +70,10 @@ SC-010 y **SC-002, que es la condición de aceptación de la feature**. Ninguna 
 rm -rf data && npm run dev
 ```
 
-**Lo primero es ver qué dice el arranque de la semilla** (SC-008), que es una de las cosas que esta feature agrega:
+**Lo primero es ver qué dice el arranque de la semilla** (SC-008), que es una de las cosas que esta feature agrega. Corrido el 2026-09-29, lo que sale es esto —y es el texto real, no el de este quickstart antes de correrlo—:
 
-```
-merchant seed imported   merchants=1        ← primer arranque, almacén vacío
+```json
+{ "merchants": 1, "msg": "merchant seed imported" }
 ```
 
 Dar de alta un merchant por la API y guardarse lo que devuelve, **porque las credenciales viajan una sola vez**:
@@ -95,11 +95,14 @@ curl -X POST "$B/v1/admin/merchants/$M/experiments" -H "$A" -H 'content-type: ap
   -d '{"treatmentShare":0.5,"seed":"demo-seed","targetSample":1000}'
 ```
 
-**Apagar con Ctrl+C, volver a levantar**, y mirar las dos cosas:
+**Apagar con Ctrl+C, volver a levantar**, y mirar las dos cosas. El arranque dice **dos** líneas, no una — la segunda apareció al implementar, porque la configuración declarada y los experimentos de la semilla también se conservan desde esta feature:
 
+```json
+{"msg":"merchant seed not applied: the store already holds merchants; change them through the administration API"}
+{"configurations":true,"experiments":true,"msg":"seed not applied to what the store already holds; change it through the administration API"}
 ```
-merchant seed NOT applied   merchants=2   ← el arranque lo dice, que es lo que hoy falta
-```
+
+**Sin cifra de cuántos merchants hay**, y es deliberado: el caso de uso responde «no se aplicó» y nada más, y contar los merchants en el arranque para poner un número en un log es trabajo por una línea. Lo que faltaba era el motivo.
 
 ```bash
 curl "$B/v1/admin/merchants/$M" -H "$A"                       # existe
@@ -127,7 +130,15 @@ curl -X POST "$B/v1/events" -H 'content-type: application/json' \
   -H 'Origin: https://tienda-demo.example' -d '{"events":[ ... ]}'
 ```
 
-Un `202` es la feature: **la credencial emitida antes del reinicio sigue autenticando**. Hoy eso es un `401`, porque el merchant no existe.
+Un `202` es la feature: **la credencial emitida antes del reinicio sigue autenticando**. Antes de esta feature eso era un `401`, porque el merchant no existía.
+
+**Y lo que la corrida del 2026-09-29 dejó claro, porque un lector podía leerlo como un fracaso**: la respuesta trae `{"accepted":3,...}` y una decisión `NO_OP` con motivo `control-arm`. Eso no es un fallo — el experimento se abrió con `treatmentShare: 0.5` y ese visitante cayó en el brazo de control. Lo que prueba la feature es el `202` y el `accepted`, no el `outcome`. Para que además intervenga, el experimento va con `"treatmentShare": 1`.
+
+**Un paso más, que cuesta un `curl` y es la mitad de SC-006 que sí se ve a ojo**: apagar, levantar y **reenviar el mismo lote**. Sale así, y sin la reconstrucción de la ventana saldría `accepted:3`:
+
+```json
+{"accepted":0,"duplicates":3,"results":[{"eventId":"evt_qs000001","status":"duplicate"}, ...]}
+```
 
 Y mirar el almacén, que es donde se ve si los orígenes quedaron donde tienen que quedar:
 
@@ -141,6 +152,21 @@ console.table(d.prepare('SELECT operation, outcome, merchant_id FROM admin_entri
 ```
 
 ---
+
+## Lo que apareció al correrlo (2026-09-29)
+
+Los siete pasos corrieron completos contra el servidor real, y el paso 7 encontró lo que ningún gate
+veía — que es exactamente para lo que existe.
+
+- **Las dos líneas del arranque y su texto exacto**, arriba. La segunda no estaba planeada: la escribió
+  la implementación al ver que la configuración y los experimentos de la semilla quedaban tan silenciosos
+  como habían quedado los merchants.
+- **`NO_OP control-arm` no es un fallo**, y estaba escrito de forma que podía leerse como uno.
+- **El registro de administración dice que importó la semilla en cada arranque, y no la importó.** Tras
+  tres arranques el almacén tenía doce entradas, de las cuales **seis** dicen `importMerchants`,
+  `importMerchantConfiguration` e `importExperiments` con resultado `accepted` en arranques donde la
+  semilla no se aplicó. Es real, es permanente —el registro no se poda— y el arreglo honesto toca el
+  contrato, que esta feature declaró no tocar. Queda como **D-29** con sus dos salidas.
 
 ## Lo que este quickstart **no** puede mostrar, y hay que saberlo
 

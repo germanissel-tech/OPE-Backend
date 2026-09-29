@@ -1,6 +1,6 @@
 // The merchants on the durable store (feature 033), **and the only gateway of this repository that
-// answers its reads from memory**. That is the decision of research R-02 and it needs its reason here,
-// because a gateway that does not read its own table looks wrong until you know why.
+// answers its reads from memory**. The decision and its limit are **ADR-041**; the reason is repeated
+// here because a gateway that does not read its own table looks wrong until you know why.
 //
 // **What it resolves.** Every request of the SDK and of the platform resolves the merchant by the
 // fingerprint of its credential **before the body is validated** (`IngestKeyResolver`,

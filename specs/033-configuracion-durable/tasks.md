@@ -211,22 +211,22 @@ duplicado.
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T037 `docs/adr/041-*.md` — la **tercera** excepción al principio IV: una lectura local en el borde de
+- [x] T037 `docs/adr/041-*.md` — la **tercera** excepción al principio IV: una lectura local en el borde de
       autenticación de todo request. Con el trato de ADR-038 y ADR-040 —nombrada, medida contra la única
       base que hay, con su costo real abierto— más las dos alternativas de R-02 y por qué el índice gana
       por lo que cuesta **mañana** y no por lo que cuesta hoy.
-- [ ] T038 [P] `migrations/README.md` — **mudar ahí el inventario de portabilidad** que hoy vive en el
+- [x] T038 [P] `migrations/README.md` — **mudar ahí el inventario de portabilidad** que hoy vive en el
       plan. Un plan se archiva con su feature y ese inventario no caduca; el README es documento vivo y
       tiene un gate que lo verifica. Sin cifras de cuántas veces aparece cada construcción: eso lo informa
       un `grep`.
-- [ ] T039 [P] `docs/deudas.md` — lo que esta feature deja anotado, si algo. **D-28 ya está** (la auditoría
+- [x] T039 [P] `docs/deudas.md` — lo que esta feature deja anotado, si algo. **D-28 ya está** (la auditoría
       atómica con su diseño) y **D-21 gana** lo que el índice en memoria le apoya encima.
-- [ ] T040 [P] Los READMEs que el cambio toca, con su inventario (ADR-032). `migrations/` en T003 y T038;
+- [x] T040 [P] Los READMEs que el cambio toca, con su inventario (ADR-032). `migrations/` en T003 y T038;
       verificar `tests/` por las suites nuevas y `config/` si algo del archivo semilla cambió de rol.
-- [ ] T041 Correr el **quickstart** de punta a punta, los siete pasos, y **anotar lo que aparezca**. En las
+- [x] T041 Correr el **quickstart** de punta a punta, los siete pasos, y **anotar lo que aparezca**. En las
       tres features anteriores encontró lo que ningún gate veía — la última vez, un paso que seguido al pie
       no llegaba a intervenir nunca.
-- [ ] T042 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
+- [x] T042 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
       `release-check`.
 
 ---

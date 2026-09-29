@@ -2,7 +2,8 @@
 // have been durable since feature 030 and the definition was not, so a restart left assignments naming
 // an experiment that no longer existed (SC-004).
 //
-// **It answers its reads from an in-memory index, like the merchants' gateway and for the same reason.**
+// **It answers its reads from an in-memory index, like the merchants' gateway and for the same reason**
+// (**ADR-041**).
 // This store is also an `ExperimentDirectory`, and `activeFor` is asked by `Assignments.assign` on
 // **every decision** — not in an administration operation. Research R-02 had put this port among the
 // cold ones and its amendment of 2026-09-29 says why that was wrong: the read is not even a lookup by

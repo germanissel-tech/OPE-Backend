@@ -39,7 +39,7 @@ Seis preguntas. La segunda decide la forma de la feature y la quinta **cambia su
 | Coherencia con dos procesos         | correcta                                                     | **el índice de un proceso no ve la escritura del otro** |
 | Memoria                             | nada                                                         | proporcional a la cantidad de merchants, no al tráfico  |
 
-**Decisión: el índice en memoria.** Y el argumento que decide no es el costo hoy sino el de mañana: contra SQLite local las dos son baratas, pero la primera pone **un viaje de red por petición** el día que el almacén sea remoto, y ese día es D-21. Elegir la primera sería elegir rehacerla.
+**Decisión: el índice en memoria** (registrada como **ADR-041**, que es su casa viva: este research se archiva con la feature)**.** Y el argumento que decide no es el costo hoy sino el de mañana: contra SQLite local las dos son baratas, pero la primera pone **un viaje de red por petición** el día que el almacén sea remoto, y ese día es D-21. Elegir la primera sería elegir rehacerla.
 
 ### Por qué es sólido, y exactamente cuándo deja de serlo
 

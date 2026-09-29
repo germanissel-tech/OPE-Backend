@@ -12,6 +12,11 @@ Todo lo que hay acá es **fuente**: se edita a mano y se commitea. Cambiar un ar
 es un deploy, no una operación; nada de lo que un operador hace a un merchant (crear, rotar,
 apagar, dar de baja, publicar configuración) requiere tocar este directorio ni reiniciar.
 
+**Y la semilla se lee una sola vez en la vida de un almacén** (feature 033): a un store que ya tiene
+merchants no se le aplica, así que editar el archivo después del primer arranque no cambia nada —
+lo mismo vale para la configuración declarada y los experimentos que trae. El arranque **lo dice en
+el log**, que es la diferencia entre una decisión y un descubrimiento; para cambiar algo hay API.
+
 ## Inventario
 
 | Entrada                   | Qué es                                                                                                                                                                                                                                                                                                                                                                                          | Fuente o derivado | Quién lo lee                                                                                                                                                                 | Verificación                                                                                                                                 | Variable de entorno                                       | Cuándo se lee                                                                                                   |

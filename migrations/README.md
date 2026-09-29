@@ -241,6 +241,65 @@ conservar. Si el evento fuera único no se podría registrar un duplicado, que e
 hace útil al registro (feature 031, FR-005). Lo único es `(merchant_id, batch_id, position)`, que es
 la identidad de una llegada y la idempotencia de su escritura.
 
+## Qué habrá que traducir al cambiar de motor
+
+La pregunta es del dueño, al revisar el modelo de datos de la feature 033: si el esquema —tablas,
+campos, relaciones— es independiente del motor. La respuesta es que **el modelo sí y la escritura no**,
+y hasta esa feature la respuesta estaba repartida entre este README, **D-21** y los ADR de las features
+030 a 032, una pieza por vez. Vive acá porque no caduca con ninguna feature.
+
+### Lo que viaja igual
+
+Qué tablas hay, cuál es la clave de negocio de cada una, qué tiene que ser único, qué índice necesita
+cada lectura, y qué campo vive en el documento porque nadie lo busca. Eso es todo lo que las secciones
+de arriba describen, y se reescribe en otro motor sin volver a pensarlo.
+
+### Lo que hay que traducir
+
+| Construcción                                           | Por qué es del motor          | En PostgreSQL                                                                               |
+| ------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| `INTEGER PRIMARY KEY AUTOINCREMENT`                    | la palabra es de SQLite       | `GENERATED ALWAYS AS IDENTITY`                                                              |
+| `strftime('%Y-%m-%dT%H:%M:%fZ', 'now')` como `DEFAULT` | función de SQLite             | `now()`, y probablemente una columna `timestamptz` en vez de texto                          |
+| `PRAGMA user_version`                                  | **no existe fuera de SQLite** | una tabla de migraciones aplicadas; es el mecanismo de versionado, no el esquema            |
+| `json_extract(document, '$.x')`                        | función de SQLite             | `document::jsonb ->> 'x'`, y el documento probablemente pasa a `jsonb`                      |
+| `ON CONFLICT (…) DO NOTHING` / `DO UPDATE`             | —                             | **igual**. Es lo único de esta lista que no cambia (en MySQL sí: `ON DUPLICATE KEY UPDATE`) |
+
+**Cuántas veces aparece cada una no se escribe acá**: es una cifra de estado y se desactualiza sola. La
+informa un `grep -rE "AUTOINCREMENT|strftime|json_extract|PRAGMA user_version" migrations/ src/`.
+
+### La suposición que el DDL no muestra, y es la que más cuesta encontrar
+
+**Los instantes se guardan como texto ISO y se comparan lexicográficamente.** La ventana del visitante
+se acota con `created_at >= :since` y la reconstrucción de la deduplicación con `received_at >= :since`,
+y las dos funcionan porque ISO-8601 en UTC ordena igual como texto que como fecha.
+
+Sobrevive a PostgreSQL con columnas `text`. Lo que cambia si esas columnas pasan a `timestamptz` es el
+binding del parámetro, no la consulta — y es justo el tipo de cosa que no se ve leyendo el esquema, así
+que queda escrita.
+
+### Lo que ya se saldó, para no buscarlo dos veces
+
+El orden de inserción se leía del `rowid` **implícito** de SQLite, que PostgreSQL no tiene; la migración
+`002` lo cambió por una columna `id` explícita. Es una de las tres cosas que D-21 había dejado apoyadas
+en el motor, y la única de las tres que ya no está.
+
+**Ojo con el otro lado de esa columna**: `id INTEGER PRIMARY KEY` **es** el rowid, así que un índice
+sobre `id` no agrega nada y se paga en cada escritura. La lectura global del registro de administración
+lo aprovecha (`SEARCH admin_entries USING INTEGER PRIMARY KEY`) y por eso no tiene índice propio; en
+PostgreSQL, donde la clave primaria es un índice como cualquier otro, la conclusión es la misma pero el
+mecanismo no.
+
+### Lo que no dependía del motor y conviene no re-discutir
+
+Tres decisiones del esquema se revisaron con esta lupa y viajan tal cual, una de ellas con **más**
+fuerza afuera que acá:
+
+- `merchant_origins` con `UNIQUE (origin)`: que la unicidad la haga cumplir un índice y no una lectura
+  previa es más importante con concurrencia real, no menos.
+- `anchor_diagnostics` con `count = count + 1` en el conflicto: misma sintaxis, mismo motivo.
+- «La configuración efectiva es la de versión máxima, sin bandera de vigente» es una decisión de modelo
+  y no toca el motor.
+
 ## Cómo se agrega una
 
 1. Un archivo nuevo, con **el número siguiente sin saltear ninguno**, que termina en

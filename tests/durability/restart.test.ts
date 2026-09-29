@@ -93,6 +93,8 @@ describe("the server across a restart", () => {
     // discovery rather than a log line.
     const NOT_APPLIED =
       "merchant seed not applied: the store already holds merchants; change them through the administration API";
+    const REST_NOT_APPLIED =
+      "seed not applied to what the store already holds; change it through the administration API";
     const recorder = recordingLogger();
     const said = (): string[] => recorder.entries.map((entry) => entry.message);
 
@@ -103,6 +105,7 @@ describe("the server across a restart", () => {
     app = await boot([replace(LoggerPort, recorder.logger)]);
     expect(said()).toContain("merchant seed imported");
     expect(said()).not.toContain(NOT_APPLIED);
+    expect(said()).not.toContain(REST_NOT_APPLIED);
 
     recorder.entries.length = 0;
     await app.close();
@@ -110,6 +113,12 @@ describe("the server across a restart", () => {
 
     expect(said()).toContain(NOT_APPLIED);
     expect(said()).not.toContain("merchant seed imported");
+    // And the same for what feature 033 made durable besides the merchants: the configuration a
+    // merchant declares and its experiments are kept too, so the file stopped being the source for
+    // those as well — which is what nobody would find out without this line.
+    expect(said()).toContain(REST_NOT_APPLIED);
+    const kept = recorder.entries.find((entry) => entry.message === REST_NOT_APPLIED);
+    expect(kept?.fields).toEqual({ configurations: true, experiments: true });
   });
 
   it("the merchant of the seed keeps authenticating after the restart", async () => {
