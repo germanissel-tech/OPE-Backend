@@ -135,3 +135,69 @@ Ningún veredicto cambia, y dos se confirman con lo que el diseño concretó:
 - **Principio IV** sigue siendo la única excepción, y el diseño la **reduce** respecto de lo que la spec temía: la deduplicación, que se consulta por evento y habría sido la excepción más caliente de todas, se resuelve como recuperable y no toca el almacén por evento.
 
 **Y una cosa que el diseño confirma y conviene decir**: no hay ninguna entidad nueva ni ningún cambio de forma en las seis que se guardan. Esta feature es de infraestructura y de arranque, no de dominio — el dominio ya estaba listo para que alguien guardara sus entidades, con su `record()` y su `rehydrate` (ADR-024).
+
+---
+
+## Qué habrá que traducir al cambiar de motor
+
+**Por qué esta sección existe acá.** La pregunta la hizo el dueño al revisar el modelo de datos: si el
+esquema —tablas, campos, relaciones— es independiente del motor. La respuesta es que **el modelo sí y la
+escritura no**, y hasta ahora eso estaba repartido entre `migrations/README.md`, D-21 y los ADR de las
+tres features anteriores, una pieza por vez. Juntarlo en un lugar lo vuelve revisable de una vez, que es
+el mismo argumento por el que esta feature tiene la tabla de las cuatro columnas.
+
+**Y su casa definitiva no es este archivo.** Un plan se archiva con su feature; este inventario no
+caduca. Al cerrar, va a `migrations/README.md`, que es documento vivo y tiene un gate que lo verifica.
+
+### Lo que viaja igual
+
+Qué tablas hay, cuál es la clave de negocio de cada una, qué tiene que ser único, qué índice necesita
+cada lectura, y qué campo vive en el documento porque nadie lo busca. **Todo `data-model.md` es eso.** Se
+reescribe en otro motor sin volver a pensarlo.
+
+### Lo que hay que traducir
+
+| Construcción                                           | Por qué es del motor          | En PostgreSQL                                                                               |
+| ------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| `INTEGER PRIMARY KEY AUTOINCREMENT`                    | la palabra es de SQLite       | `GENERATED ALWAYS AS IDENTITY`                                                              |
+| `strftime('%Y-%m-%dT%H:%M:%fZ', 'now')` como `DEFAULT` | función de SQLite             | `now()`, y probablemente una columna `timestamptz` en vez de texto                          |
+| `PRAGMA user_version`                                  | **no existe fuera de SQLite** | una tabla de migraciones aplicadas; es el mecanismo de versionado, no el esquema            |
+| `json_extract(document, '$.x')`                        | función de SQLite             | `document::jsonb ->> 'x'`, y el documento probablemente pasa a `jsonb`                      |
+| `ON CONFLICT (…) DO NOTHING` / `DO UPDATE`             | —                             | **igual**. Es lo único de esta lista que no cambia (en MySQL sí: `ON DUPLICATE KEY UPDATE`) |
+
+**Cuántas veces aparece cada una no se escribe acá**: es una cifra de estado y se desactualiza sola. La
+informa un `grep -rE "AUTOINCREMENT|strftime|json_extract|PRAGMA user_version" migrations/ src/`.
+
+### La suposición que el DDL no muestra, y es la que más cuesta encontrar
+
+**Los instantes se guardan como texto ISO y se comparan lexicográficamente.** La feature 032 acota la
+ventana del visitante con `created_at >= :since`, y eso funciona porque ISO-8601 en UTC ordena igual como
+texto que como fecha.
+
+Sobrevive a PostgreSQL con columnas `text`. Lo que cambia si esas columnas pasan a `timestamptz` es el
+binding del parámetro, no la consulta — y es justo el tipo de cosa que no se ve leyendo el esquema, así
+que queda escrita.
+
+### Lo que ya se saldó, para no buscarlo dos veces
+
+El orden de inserción se leía del `rowid` **implícito** de SQLite, que PostgreSQL no tiene. La migración
+`002` lo cambió por una columna `id` explícita (feature 031). Está en `migrations/README.md` como una de
+las tres cosas que D-21 había dejado apoyadas en el motor.
+
+### Qué agrega esta feature al inventario, y qué no
+
+**No agrega ninguna dependencia nueva del motor.** Las decisiones de `data-model.md` se revisaron con
+esta lupa:
+
+- `merchant_origins` con `UNIQUE (origin)` viaja tal cual, y su motivo —que la unicidad la haga cumplir
+  un índice y no una lectura previa— es **más** fuerte en PostgreSQL, no menos.
+- `anchor_diagnostics` con `count = count + 1` en el conflicto: misma sintaxis.
+- «La efectiva es la de versión máxima, sin bandera de vigente» es una decisión de modelo.
+
+Lo único que suma son más `strftime` y más `AUTOINCREMENT`: **más de lo mismo que ya hay que traducir**.
+
+**Y una cosa que conviene tener escrita porque cambia una prioridad.** R-05 dejó afuera la auditoría
+atómica porque `SqlStore.transaction` es síncrona. Con un driver de PostgreSQL —asíncrono— esa
+restricción **no existe**. Así que ese pendiente del hito no es «lo mismo pero después»: es un problema
+que el cambio de motor resuelve de paso, y eso es un argumento a favor de esperar en vez de inventar
+ahora una forma retorcida de esquivarlo.
