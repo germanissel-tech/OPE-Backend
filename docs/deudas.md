@@ -27,35 +27,37 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 
 ## Registro
 
-| Id   | Título                                                                                             | Origen                                           | Estado         | Fecha      | Cierre                                                  |
-| ---- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------- | ---------- | ------------------------------------------------------- |
-| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                                    | Revisión del dueño tras la 018                   | `implementada` | 2026-09-21 | `5571829`                                               |
-| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                         | Evaluación con el dueño (D-01)                   | `implementada` | 2026-09-21 | `eec62b3`                                               |
-| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo                     | Evaluación con el dueño (D-02)                   | `descartada`   | 2026-09-21 | —                                                       |
-| D-04 | `config/` sin documentación ni esquema propio                                                      | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `d37093b`                                               |
-| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                              | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `8ffe84e`                                               |
-| D-06 | Los directorios de primer nivel no se explican solos                                               | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `cd292e0`                                               |
-| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                         | Feature 025                                      | `implementada` | 2026-09-24 | `27bb238`                                               |
-| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                         | Feature 025                                      | `implementada` | 2026-09-24 | `05959f8`                                               |
-| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                             | Feature 025                                      | `implementada` | 2026-09-24 | `34c4299`                                               |
-| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                            | Feature 025                                      | `implementada` | 2026-09-24 | `f4d6a8d`                                               |
-| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada                    | Feature 026                                      | `implementada` | 2026-09-24 | `ea3d111`                                               |
-| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                              | ADR-016 (2026-09-21)                             | `evaluada`     | 2026-09-24 | —                                                       |
-| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                                 | Feature 027 (al cerrar D-11)                     | `evaluada`     | 2026-09-25 | —                                                       |
-| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                       | Evaluación con el dueño, 2026-09-25              | `implementada` | 2026-09-25 | `b238fdb`                                               |
-| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                        | Feature 027 (US3)                                | `descartada`   | 2026-09-25 | —                                                       |
-| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                                   | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `2837b69`                                               |
-| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                      | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `ef2c854`                                               |
-| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                        | Feature 028 (auditoría de cierre)                | `abierta`      | 2026-09-25 | —                                                       |
-| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio            | Feature 029 (Schemathesis)                       | `implementada` | 2026-09-26 | —                                                       |
-| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir             | Revisión de deudas, 2026-09-26                   | `abierta`      | 2026-09-26 | —                                                       |
-| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después       | Decisión del dueño, 2026-09-26                   | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
-| D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo         | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
-| D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió               | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
-| D-24 | El tope diario por visitante es un default sin medición, y con 1 por sesión casi nunca muerde      | Revisión de la 032 con el dueño, 2026-09-27      | `abierta`      | 2026-09-27 | —                                                       |
-| D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
-| D-26 | Lo que la decisión paga por reconstruir está medido en la máquina que no importa                   | Feature 032 (SC-005, ADR-040)                    | `abierta`      | 2026-09-28 | —                                                       |
-| D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez    | Feature 032 (borde de la spec)                   | `abierta`      | 2026-09-28 | —                                                       |
+| Id   | Título                                                                                                    | Origen                                           | Estado         | Fecha      | Cierre                                                  |
+| ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------- | ---------- | ------------------------------------------------------- |
+| D-01 | La skill de auditoría de arquitectura está acoplada a este repo                                           | Revisión del dueño tras la 018                   | `implementada` | 2026-09-21 | `5571829`                                               |
+| D-02 | No hay skill de acondicionamiento: un proyecto no puede volverse auditable                                | Evaluación con el dueño (D-01)                   | `implementada` | 2026-09-21 | `eec62b3`                                               |
+| D-03 | `engineering-baseline`: scaffold opinado con la cadena de calidad de este repo                            | Evaluación con el dueño (D-02)                   | `descartada`   | 2026-09-21 | —                                                       |
+| D-04 | `config/` sin documentación ni esquema propio                                                             | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `d37093b`                                               |
+| D-05 | `contracts/` sin README ni tabla de extensiones `x-*`                                                     | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `8ffe84e`                                               |
+| D-06 | Los directorios de primer nivel no se explican solos                                                      | Revisión del dueño, 2026-09-21                   | `implementada` | 2026-09-21 | `cd292e0`                                               |
+| D-07 | `Convenciones` mezcla reglas que se obedecen con descripciones del sistema                                | Feature 025                                      | `implementada` | 2026-09-24 | `27bb238`                                               |
+| D-08 | `Gates de calidad` mezcla la regla de mutación con los umbrales del linter                                | Feature 025                                      | `implementada` | 2026-09-24 | `05959f8`                                               |
+| D-09 | `Anillos y módulos` mezcla la tabla de anillos con la lista de módulos                                    | Feature 025                                      | `implementada` | 2026-09-24 | `34c4299`                                               |
+| D-10 | El procedimiento del gate de mutación está escrito como una instrucción                                   | Feature 025                                      | `implementada` | 2026-09-24 | `f4d6a8d`                                               |
+| D-11 | Un fixture con el nombre viejo mantenía verde una regla que ya no vigilaba nada                           | Feature 026                                      | `implementada` | 2026-09-24 | `ea3d111`                                               |
+| D-12 | Quince mutantes de arranque, semilla y lectores que ningún gate juzga                                     | ADR-016 (2026-09-21)                             | `evaluada`     | 2026-09-24 | —                                                       |
+| D-13 | Ninguna regla verifica que las rutas que ella misma nombra existan                                        | Feature 027 (al cerrar D-11)                     | `evaluada`     | 2026-09-25 | —                                                       |
+| D-14 | El núcleo conoce la vertical: el vocabulario de OPE nombra conceptos de ropa                              | Evaluación con el dueño, 2026-09-25              | `implementada` | 2026-09-25 | `b238fdb`                                               |
+| D-15 | Ningún gate verifica que un componente del contrato lo use alguna operación                               | Feature 027 (US3)                                | `descartada`   | 2026-09-25 | —                                                       |
+| D-16 | El catálogo exige dos atributos de indumentaria en cada variante                                          | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `2837b69`                                               |
+| D-17 | La fuente de verdad del MVP no está bajo control de versiones                                             | Feature 028 (al enmendar la fuente)              | `implementada` | 2026-09-25 | `ef2c854`                                               |
+| D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                               | Feature 028 (auditoría de cierre)                | `abierta`      | 2026-09-25 | —                                                       |
+| D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio                   | Feature 029 (Schemathesis)                       | `implementada` | 2026-09-26 | —                                                       |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir                    | Revisión de deudas, 2026-09-26                   | `abierta`      | 2026-09-26 | —                                                       |
+| D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después              | Decisión del dueño, 2026-09-26                   | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
+| D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo                | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
+| D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió                      | Revisión del esquema con el dueño, 2026-09-27    | `abierta`      | 2026-09-27 | —                                                       |
+| D-24 | El tope diario por visitante es un default sin medición, y con 1 por sesión casi nunca muerde             | Revisión de la 032 con el dueño, 2026-09-27      | `abierta`      | 2026-09-27 | —                                                       |
+| D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando        | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
+| D-26 | Lo que la decisión paga por reconstruir está medido en la máquina que no importa                          | Feature 032 (SC-005, ADR-040)                    | `abierta`      | 2026-09-28 | —                                                       |
+| D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez           | Feature 032 (borde de la spec)                   | `abierta`      | 2026-09-28 | —                                                       |
+| D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y dos garantías del hito la esperan      | Feature 033 (research R-05 y su enmienda)        | `abierta`      | 2026-09-29 | ADR-034 (la ventana que deja abierta)                   |
+| D-29 | El registro de administración dice `importMerchants accepted` en cada arranque, y la semilla no se aplicó | Feature 033 (quickstart, paso 7)                 | `abierta`      | 2026-09-29 | SC-008 (la línea del arranque que sí lo dice)           |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -370,8 +372,25 @@ esta deuda no se cierre.
    conexión. Dentro de una transacción es correcto; el equivalente en PostgreSQL es otro
    (`RETURNING`, o `xmax`), y no es una traducción mecánica.
 
+### Y lo que la feature 033 le apoyó encima: dos índices en memoria (2026-09-29)
+
+Los gateways durables de **merchants** y de **experimentos** no leen su propia tabla: llenan un índice en
+memoria al arrancar y lo mantiene la misma operación que escribe. La decisión, con su medición y sus dos
+alternativas, es **ADR-041**; lo que le toca a esta deuda es la consecuencia.
+
+**Deja de ser correcto exactamente cuando hay dos procesos**: el índice de A no ve el alta que hizo B,
+así que un merchant recién creado autenticaría en un nodo y no en el otro, y un experimento abierto en
+uno no repartiría en el otro. No es una sorpresa a descubrir: es lo mismo que los tres puntos de arriba,
+con una diferencia práctica que conviene tener anotada — **los tres primeros se arreglan con la
+traducción del gateway, y éste no**. Hace falta una decisión de diseño: invalidar el índice entre
+procesos, o consultar y aceptar el viaje de red en el borde de autenticación de toda petición.
+
+Y con esto **el segundo proceso ya no divide sólo ledgers**, que es lo que cambia para quien lea esta
+deuda buscando cuánto trabajo es.
+
 **Lo que sí quedó verificado**: el costo de la escritura durable en el camino crítico, medido y
-fechado (ADR-038). Ese número **no** depende de PostgreSQL, pero tampoco vale para él.
+fechado (ADR-038), y el de estas dos lecturas (ADR-041). Esos números **no** dependen de PostgreSQL,
+pero tampoco valen para él.
 
 ## D-22 — el contrato describe mal el holdout
 
@@ -496,6 +515,86 @@ ya está definida y no es un 500: degrada con motivo (ADR-040, decisión 3).
 **Qué haría falta para cerrarla**: tráfico de piloto, o la decisión del dueño de aceptar el pico sin
 medirlo. Lo que **no** hace falta es una decisión de diseño nueva: las tres alternativas al desacople ya
 están evaluadas y descartadas en ADR-040.
+
+## D-28 — Una transacción no se puede componer sobre puertos asincrónicos, y hay dos garantías esperándola
+
+Dos cosas que el hito `persistence-and-resilience` promete siguen sin hacerse, y **son la misma cosa**:
+
+- **La entrada de administración commiteada junto con la acción que registra** — la ventana que ADR-034 deja abierta: hoy una acción que no se puede auditar **no empieza** (el decorador pregunta antes), y lo que queda abierto es que el registro se caiga **durante** la acción.
+- **La atomicidad del presupuesto por sesión.**
+
+Las dos necesitan lo mismo: **componer una transacción sobre varias escrituras que pasan por puertos asincrónicos**. Y eso hoy no se puede, por un motivo concreto: `SqlStore.transaction` es **síncrona** —`transaction<T>(work: () => T): T`— y el caso de uso es `async`. Envolver un `await` en una transacción síncrona no es incómodo, es **inseguro**: el `await` cede al bucle de eventos y otra petición puede escribir **dentro** de la transacción abierta.
+
+### Lo que se descartó al tensionarlo (feature 033, research R-05)
+
+- **«En realidad nadie se interpone».** Los gateways de SQLite son sincrónicos de hecho y asincrónicos sólo de tipo, y ningún caso de uso de administración hace I/O real, así que tienta creer que todo corre en un solo drenaje de microtareas. **No**: la cola de microtareas no es de una sola petición, y un `POST /v1/events` a mitad de sus `await` tiene su continuación ahí mismo.
+- **Una segunda conexión para el camino de administración.** SQLite admite un solo escritor, `DatabaseSync` es síncrono y la transacción se sostiene a través de `await`: el `run` del ledger **bloquea el bucle** esperando el lock y la transacción no puede avanzar. Deadlock; y con `busy_timeout` corto, toda escritura del SDK durante una acción de administración degradaría a `ledger-unavailable` — publicar una configuración apagaría decisiones.
+- **Partir cada caso de uso en «decidir» y «escribir».** Funciona, y es un cambio de forma de **todos** los casos de uso de administración más el decorador.
+
+### El diseño que sí funciona, para que no se vuelva a derivar
+
+Tres piezas, y ninguna toca los casos de uso ni el dominio:
+
+1. **El almacén gana dos métodos y conserva la `transaction` síncrona** tal como está —la orden sigue decidiendo primero/repetido/conflicto ahí adentro—: `scope(work)` abre, espera y cierra o revierte; `enter()` resuelve ya, salvo que haya un scope abierto, y entonces resuelve cuando cierra.
+2. **Cada gateway durable espera su turno** con un `await store.enter()` antes de tocar el almacén. Una línea por gateway, sin cambiar ninguna forma.
+3. **El olvido no puede ser silencioso**: con `AsyncLocalStorage`, `run` y `all` **lanzan** si hay un scope abierto que no es el propio. A un gateway al que le falte el `enter()` le falla la primera prueba en vez de escribir dentro de la transacción de otro, y eso es un error de programación, que en este proyecto se lanza.
+
+El decorador queda con un puerto del kernel: envuelve `inner.execute` y `log.record` en un `scope`, y si el registro no acepta, lanza y el scope **revierte la acción**. `writable()` desaparece porque la transacción lo subsume.
+
+**El borde filoso, que hay que resolver con esto y no después**: la cola del registro de eventos vacía **por temporizador** y su `flush()` es **sincrónico** a propósito (`record` devuelve `void` para que nadie pueda esperarlo), así que no puede hacer `await enter()`. La salida son pocas líneas y es lo que una cola sabe hacer: si el almacén está ocupado, se queda con las llegadas pendientes y reintenta en el próximo intervalo.
+
+### Por qué se registra en vez de hacerse en la 033
+
+La feature 033 ya tiene su propio riesgo de camino caliente —el índice en memoria de los merchants— y se verifica de otra manera. **Dos riesgos de latencia en la misma feature se estorban al medirlos**, y el criterio de aceptación de la 033 es una medición.
+
+**Qué haría falta para cerrarla**: su propia feature, con este diseño y su prueba del borde filoso. No hace falta ninguna decisión de diseño nueva.
+
+**Y una cosa que conviene saber antes de programarla**: el puerto sobrevive al cambio de motor. Con PostgreSQL, `scope` es `BEGIN`/`COMMIT` sobre un cliente del pool y el `enter()` que hace la cola **desaparece** — es la mitad específica de SQLite. Nada del trabajo se tira, y por eso tampoco urge adelantarlo a D-21.
+
+## D-29 — el registro de administración dice que importó la semilla en cada arranque, y no la importó
+
+**La encontró el quickstart de la feature 033, en el paso que ningún gate reemplaza**: levantar el
+servidor de verdad, dar de alta un merchant por la API, apagar, prender y mirar. Las tres entradas más
+nuevas del registro de administración, tras el segundo arranque, son del **sistema**:
+
+```
+importExperiments            accepted   dev-merchant
+importMerchantConfiguration  accepted   dev-merchant
+importMerchants              accepted
+```
+
+Y la semilla **no se aplicó**: dos líneas más arriba, el mismo arranque lo dice. No es que el
+decorador mienta sobre el caso de uso —el `import` respondió `skipped`, que es un éxito— es que el
+registro no puede distinguir «importé» de «no había nada que importar». La única señal es la **ausencia**
+del campo `result`, y nadie lee una ausencia.
+
+**Por qué ahora es deuda y antes no.** Antes de esta feature los merchants se reconstruían del archivo
+en cada arranque, así que la entrada era **cierta**: el arranque los importaba de verdad. Ahora la
+semilla se lee una sola vez en la vida del almacén, el registro es **durable y no se poda** (FR-009), y
+esas tres entradas se acumulan a razón de una a tres **por despliegue, para siempre**. Lo que se
+ensucia es justo el lugar donde alguien busca «quién cambió esto».
+
+**Medido al encontrarla**: tres arranques del servidor de desarrollo dejaron doce entradas, de las
+cuales **seis** son de arranques que no importaron nada.
+
+**Por qué no se arregló acá.** El arreglo honesto es que la entrada diga qué pasó —`{skipped: true}`, o
+cuántos importó— y `result` es un esquema **publicado** (`AdminResult`, que `GET /v1/admin/log`
+devuelve). Eso es un cambio de contrato, y esta feature declaró en su plan que no toca HTTP: el
+Constitution Check se apoya en eso y el orden de seis pasos de `.claude/rules/contrato.md` no se
+dispara. Meterlo por la ventana sería peor que anotarlo.
+
+**Las dos salidas, para que la spec que la tome no las derive de nuevo**:
+
+1. **Agregar al resultado lo que la acción hizo** (`skipped`, o el conteo). Cambio menor del contrato,
+   y el registro queda legible sin que nadie tenga que saber esta historia.
+2. **No registrar una acción que no hizo nada.** Es más limpio de leer y más discutible: obliga al
+   decorador de auditoría a mirar la forma de la respuesta, que hoy no conoce, y ADR-034 dice que una
+   acción de administración que no se puede auditar no ocurre — no dice qué hacer con una que ocurrió y
+   no hizo nada.
+
+**Lo que ya está y no hace falta rehacer**: el arranque dice en el log qué hizo con la semilla, en sus
+dos situaciones y para los tres almacenes (SC-008). Esta deuda es sobre el **registro de
+administración**, que es otro lector y otro destino.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

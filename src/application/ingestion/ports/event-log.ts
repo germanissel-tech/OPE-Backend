@@ -93,6 +93,22 @@ export interface EventLog extends SessionEvents {
   volume(merchantId: MerchantId, window: TimeWindow): Promise<readonly EventTypeCount[]>;
 
   /**
+   * The ids a merchant's events arrived with since an instant, **most recent first and at most
+   * `limit`** of them: what rebuilds the deduplication window of a merchant after a restart
+   * (feature 033, US3).
+   *
+   * **The two bounds are the window's own and not a convenience.** The deduplication window keeps ids
+   * for a time and up to a count, both declared by the platform (level 1), so a rebuild that read more
+   * than that would hand back a window larger than the one the system promises — a different promise,
+   * arrived at by accident. `limit` is therefore that count, and `since` that time.
+   *
+   * An id repeats in the answer as often as it arrived, because an arrival is a fact and the register
+   * keeps every one (FR-005). Whoever rebuilds a set does not care; saying so here is cheaper than a
+   * `DISTINCT` that would hide which of the two this port promises.
+   */
+  idsSince(merchantId: MerchantId, since: Date, limit: number): Promise<readonly EventId[]>;
+
+  /**
    * What the register is missing, or nothing when it is whole (FR-018).
    *
    * **Asked at start-up and only there**, which is what makes the answer sound: at that moment nothing

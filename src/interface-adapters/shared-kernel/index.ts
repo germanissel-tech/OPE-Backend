@@ -7,3 +7,4 @@ export * from "./system-clock.js";
 export * from "./windowed-map.js";
 export * from "./sql-store.js";
 export * from "./document.js";
+export * from "./durable-store.js";

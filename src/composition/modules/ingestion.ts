@@ -11,6 +11,7 @@ import {
 import {
   makeIngestEvents,
   memoryEventDedup,
+  recoveringEventDedup,
   memoryEventLog,
   queuedEventLog,
   randomBatchIds,
@@ -48,16 +49,12 @@ export const EventLogQueuePort = port("ingestion.event-log-queue")<EventLogQueue
 export const EventLogPort = port("ingestion.event-log")<EventLog>();
 
 /**
- * What this module provides the same way whichever technology it is asked for. Only the register has
- * two, so listing these twice would be the duplication the gate is right about — and worse than
- * repetition, it would be two places to keep in step for something that has no reason to differ.
+ * What this module provides the same way whichever technology it is asked for. Two of its three
+ * components do differ — the register writes where the deployment says, and the deduplication window is
+ * rebuilt only where there is something to rebuild from — and who mints the identity of an arrival has
+ * no reason to.
  */
-const whicheverTechnology = [
-  bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
-    memoryEventDedup(clock, platform.dedupWindow),
-  ),
-  bind(BatchIdsPort, {}, () => randomBatchIds),
-] as const;
+const whicheverTechnology = [bind(BatchIdsPort, {}, () => randomBatchIds)] as const;
 /** What decides a batch; the decision module binds it. */
 export const DecisionPlanePort = port("ingestion.decision-plane")<DecisionPlane>();
 
@@ -65,6 +62,11 @@ export const ingestionModule = compositionModule({
   provides: {
     memory: [
       ...whicheverTechnology,
+      // Nothing to rebuild from: a deployment with everything in memory loses the register in the same
+      // restart that loses the window, so wrapping it would be a rebuild out of what was also forgotten.
+      bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
+        memoryEventDedup(clock, platform.dedupWindow),
+      ),
       bindAll(
         [EventLogQueuePort, EventLogPort],
         { logger: LoggerPort, tuning: EventLogTuningPort },
@@ -73,6 +75,26 @@ export const ingestionModule = compositionModule({
     ],
     sqlite: [
       ...whicheverTechnology,
+      // The window is still answered from memory — it is a `Map.get` on the path of every batch — and
+      // what the restart lost is rebuilt from the register the first time each merchant appears
+      // (feature 033, US3). Recoverable, not durable, and the gateway says what that is worth.
+      bind(
+        EventDedupPort,
+        {
+          clock: ClockPort,
+          platform: PlatformConfigurationPort,
+          register: EventLogPort,
+          logger: LoggerPort,
+        },
+        ({ clock, platform, register, logger }) =>
+          recoveringEventDedup({
+            dedup: memoryEventDedup(clock, platform.dedupWindow),
+            register,
+            clock,
+            window: platform.dedupWindow,
+            logger,
+          }),
+      ),
       bindAll(
         [EventLogQueuePort, EventLogPort],
         { store: SqlStorePort, logger: LoggerPort, tuning: EventLogTuningPort },

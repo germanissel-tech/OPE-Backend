@@ -30,6 +30,7 @@ import {
   memoryExperimentStore,
   nodeExperimentIdMinter,
   sqliteAssignmentLedger,
+  sqliteExperimentStore,
 } from "../../interface-adapters/experiment/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
 import { SqlStorePort } from "../release.js";
@@ -60,10 +61,10 @@ const experimentId = <E extends DomainError>(r: Result<Experiment, E>): AuditRes
 
 export const experimentModule = compositionModule({
   provides: {
-    // The experiments themselves stay in memory in both: they are rebuilt from the seed at every
-    // start and that works (spec, "what this feature does not do"). What changes is where the
-    // **assignments** go, because those are not rebuilt from anything — losing one moves a
-    // visitor between arms (ADR-022).
+    // **The two halves are durable now** (feature 033). Until then the assignments were and the
+    // definition was not, which is not two independent gaps: a restart left assignments naming an
+    // experiment that no longer existed, and it did not show on the seeded merchants because the
+    // file brings the same identifiers back. One created through the API had nothing to come back.
     memory: [
       // One instance, two views: what the administration writes and what the assignment reads.
       bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
@@ -71,7 +72,14 @@ export const experimentModule = compositionModule({
       bind(AssignmentLedgerPort, {}, () => memoryAssignmentLedger()),
     ],
     sqlite: [
-      bindAll([ExperimentStorePort, ExperimentDirectoryPort], {}, () => memoryExperimentStore()),
+      // The same two views over the store, answering from an in-memory index the composition hands
+      // it — a gateway does not import another gateway (ADR-013). Why this one has an index and the
+      // configuration does not is in the gateway: `activeFor` is asked on every decision.
+      bindAll(
+        [ExperimentStorePort, ExperimentDirectoryPort],
+        { store: SqlStorePort, logger: LoggerPort },
+        ({ store, logger }) => sqliteExperimentStore({ store, logger, index: memoryExperimentStore() }),
+      ),
       bind(ExperimentIdsPort, {}, () => nodeExperimentIdMinter),
       bind(AssignmentLedgerPort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
         sqliteAssignmentLedger(deps),

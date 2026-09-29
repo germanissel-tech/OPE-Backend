@@ -85,5 +85,10 @@ export function queuedEventLog(deps: EventLogQueueDeps): EventLogQueue {
     bySession: (merchantId, sessionId) => deps.writer.bySession(merchantId, sessionId),
     byEvent: (merchantId, eventId) => deps.writer.byEvent(merchantId, eventId),
     volume: (merchantId, window) => deps.writer.volume(merchantId, window),
+    // What is still queued is **not** in this answer, and that is the honest shape of the rebuild it
+    // serves (feature 033): it is asked the first time a merchant appears after a start, when nothing
+    // of that merchant is queued yet. Draining here to be thorough would make a read of the
+    // measurement side write, which is the one thing this queue exists to keep off the hot path.
+    idsSince: (merchantId, since, limit) => deps.writer.idsSince(merchantId, since, limit),
   };
 }

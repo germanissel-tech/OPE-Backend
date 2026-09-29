@@ -9,11 +9,8 @@
 // The list has no significant order. What is resolved first is decided by dependency; the order
 // only fixes the order of creation that the shutdown reverses.
 import { accessModule } from "../modules/access.js";
-import { adminModule } from "../modules/admin.js";
 import { barrierModule } from "../modules/barrier.js";
-import { configurationModule } from "../modules/configuration.js";
 import { decisionModule } from "../modules/decision.js";
-import { merchantModule } from "../modules/merchant.js";
 import { messagesModule } from "../modules/messages.js";
 import { kernelModule } from "../modules/shared-kernel.js";
 import { systemModule } from "../modules/system.js";
@@ -25,12 +22,8 @@ export const sharedModules = (config: AppConfig) =>
     releaseComponents(config),
     kernelModule,
     systemModule,
-    merchantModule,
     accessModule,
     barrierModule,
     messagesModule,
     decisionModule,
-
-    configurationModule,
-    adminModule,
   ] as const;

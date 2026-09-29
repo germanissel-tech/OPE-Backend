@@ -25,6 +25,24 @@ const TABLES_OF_THE_LEDGER = [
   "catalog_receipts",
 ] as const;
 
+/**
+ * The seven tables feature 033 created for its **six** stores — the origins of a merchant get one of
+ * their own, because their uniqueness is between merchants and only an index can enforce it. What an
+ * operator configures, plus what was observed of a merchant's traffic.
+ *
+ * Written out for the same reason as the list above: a test that asked the store which tables it has
+ * would pass against a store that lost one.
+ */
+const TABLES_OF_THE_CONFIGURATION = [
+  "merchants",
+  "merchant_origins",
+  "merchant_configurations",
+  "experiments",
+  "admin_entries",
+  "anchor_diagnostics",
+  "unmapped_values",
+] as const;
+
 describe("the durable store", () => {
   let dir: string;
   let file: string;
@@ -138,9 +156,13 @@ describe("the durable store", () => {
   });
 
   it("hands a null back as a null, and refuses a value of a kind it never writes", () => {
-    // No column of this schema is nullable, but `SqlStore` is what every durable gateway is
-    // written against: a nullable column or an outer join will read one. Found by reading
-    // `sqlite_master`, whose `sql` is null for an implicit index — the store threw.
+    // `SqlStore` is what every durable gateway is written against, and a nullable column or an outer
+    // join will read a null. Found by reading `sqlite_master`, whose `sql` is null for an implicit
+    // index — the store threw.
+    //
+    // When this was written no column of the schema was nullable. Since feature 033 one is:
+    // `admin_entries.merchant_id`, where the absence **means** an action of the platform and not of a
+    // merchant. So this stopped being a guard for a case that could not happen.
     const store = openSqliteStore({ file });
     try {
       // The aliases avoid SQLite's keywords (`nothing` is one, from `DO NOTHING`).
@@ -372,6 +394,167 @@ describe("the durable store", () => {
             {},
           );
         }).toThrow(/NOT NULL/i);
+      } finally {
+        store.close();
+      }
+    });
+    it("upgrades a populated version-3 store by only adding: what it already held is untouched", () => {
+      // Migration 004 is the first of this series that **only creates**. The two before it rebuilt
+      // tables — copy, drop, rename — so what they had to prove was that nothing was lost in the
+      // traspaso. Here the thing to prove is the opposite and it is easy to get wrong by writing a
+      // migration that reaches for a table it has no business touching.
+      withMigrationsUpTo(3);
+      const before = openSqliteStore({ file, migrations: schema });
+      expect(before.all("PRAGMA user_version")).toEqual([{ user_version: 3 }]);
+      // One row in each of the seven, plus one arrival, so "untouched" has something to be about.
+      before.run(
+        `INSERT INTO decisions (merchant_id, decision_id, session_id, visitor_id, document)
+         VALUES ('m-1','d-1','s-1','v-1','{}')`,
+        {},
+      );
+      before.run("INSERT INTO exposures (merchant_id, decision_id, document) VALUES ('m-1','d-1','{}')", {});
+      before.run("INSERT INTO orders (merchant_id, order_id, document) VALUES ('m-1','o-1','{}')", {});
+      before.run(
+        "INSERT INTO corroborations (merchant_id, order_id, session_id, document) VALUES ('m-1','o-1','s-1','{}')",
+        {},
+      );
+      before.run(
+        "INSERT INTO assignments (merchant_id, experiment_id, visitor_id, document) VALUES ('m-1','e-1','v-1','{}')",
+        {},
+      );
+      before.run("INSERT INTO catalog_snapshots (merchant_id, document) VALUES ('m-1','{}')", {});
+      before.run(
+        "INSERT INTO catalog_receipts (merchant_id, received_at) VALUES ('m-1','2026-09-29T00:00:00.000Z')",
+        {},
+      );
+      before.run(
+        `INSERT INTO received_events (merchant_id, batch_id, position, event_id, session_id, type, received_at, disposition, document)
+         VALUES ('m-1','b-1',0,'evt-1','s-1','product_viewed','2026-09-29T00:00:00.000Z','accepted','{}')`,
+        {},
+      );
+      const [decision] = before.all("SELECT created_at, document FROM decisions WHERE decision_id = 'd-1'");
+      before.close();
+
+      withMigrationsUpTo(4);
+      const after = openSqliteStore({ file, migrations: schema });
+      try {
+        expect(after.all("PRAGMA user_version")).toEqual([{ user_version: 4 }]);
+        // Every table that existed still holds its row, and the decision kept its instant: nothing
+        // was rebuilt, so nothing regenerated a timestamp.
+        for (const table of [...TABLES_OF_THE_LEDGER, "received_events"]) {
+          expect(after.all(`SELECT COUNT(*) AS n FROM ${table}`)).toEqual([{ n: 1 }]);
+        }
+        expect(after.all("SELECT created_at, document FROM decisions WHERE decision_id = 'd-1'")).toEqual([
+          decision,
+        ]);
+        // And the six new ones are there and empty: nothing invented rows for them.
+        for (const table of TABLES_OF_THE_CONFIGURATION) {
+          expect(after.all(`SELECT COUNT(*) AS n FROM ${table}`)).toEqual([{ n: 0 }]);
+        }
+      } finally {
+        after.close();
+      }
+    });
+
+    it("gives the six new tables the two rules of the owner", () => {
+      withMigrationsUpTo(4);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        for (const table of TABLES_OF_THE_CONFIGURATION) {
+          const columns = store.all(`SELECT name, type, pk FROM pragma_table_info('${table}')`);
+          expect(columns.filter((c) => c["pk"] === 1)).toEqual([{ name: "id", type: "INTEGER", pk: 1 }]);
+          const names = columns.map((c) => c["name"]);
+          expect(names).toContain("created_at");
+          expect(names).toContain("updated_at");
+        }
+      } finally {
+        store.close();
+      }
+    });
+
+    it("reserves an origin for one merchant only, deactivated ones included", () => {
+      // The one uniqueness of this schema that is **between** merchants, and the reason the origins
+      // live in their own table: inside a document no index can enforce it, and enforcing it by
+      // reading before writing is the race `01 §6` forbids.
+      withMigrationsUpTo(4);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        const claim = (merchant: string, origin: string): void => {
+          store.run("INSERT INTO merchant_origins (merchant_id, origin) VALUES (:m, :o)", {
+            m: merchant,
+            o: origin,
+          });
+        };
+        claim("m-1", "https://a.example");
+        expect(() => {
+          claim("m-2", "https://a.example");
+        }).toThrow(/UNIQUE/i);
+        // Two merchants can hold different origins, which is what makes the index a rule and not a lock.
+        claim("m-2", "https://b.example");
+        expect(store.all("SELECT COUNT(*) AS n FROM merchant_origins")).toEqual([{ n: 2 }]);
+      } finally {
+        store.close();
+      }
+    });
+
+    it("accepts an administration entry with no merchant, and two identical ones", () => {
+      // `merchant_id` is the first nullable column of this schema, and the absence **means** something:
+      // an action of the platform and not of a merchant. And the log is append-only with no business
+      // key, so two identical actions are two actions — same decision as `received_events`.
+      withMigrationsUpTo(4);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        const entry = (merchant: string | null): void => {
+          store.run(
+            "INSERT INTO admin_entries (merchant_id, document) VALUES (:m, '{}')",
+            merchant === null ? { m: null } : { m: merchant },
+          );
+        };
+        entry(null);
+        entry(null);
+        entry("m-1");
+        expect(store.all("SELECT COUNT(*) AS n FROM admin_entries")).toEqual([{ n: 3 }]);
+        expect(store.all("SELECT COUNT(*) AS n FROM admin_entries WHERE merchant_id = 'm-1'")).toEqual([
+          { n: 1 },
+        ]);
+      } finally {
+        store.close();
+      }
+    });
+
+    it("accumulates a diagnostic on its key instead of writing a second row", () => {
+      // The count is a column and the store increments it, because doing it by reading and writing is
+      // another race. The key is the one the port upserts on, **version included**: a report that says
+      // which configuration it had loaded is a different row from one that does not, and `0` is what the
+      // schema uses for "not said" — a nullable column would make every versionless report its own row,
+      // because a unique index of SQLite treats NULLs as distinct.
+      withMigrationsUpTo(4);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        const seen = (anchor: string, surface: string, version = 0): void => {
+          store.run(
+            `INSERT INTO anchor_diagnostics
+               (merchant_id, anchor, surface, configuration_version, count, document)
+             VALUES ('m-1', :anchor, :surface, :version, 1, '{}')
+             ON CONFLICT (merchant_id, anchor, surface, configuration_version)
+               DO UPDATE SET count = count + 1`,
+            { anchor, surface, version },
+          );
+        };
+        seen("variant_selector", "product");
+        seen("variant_selector", "product");
+        seen("variant_selector", "cart");
+        seen("variant_selector", "product", 3);
+        expect(
+          store.all(
+            `SELECT anchor, surface, configuration_version AS version, count
+             FROM anchor_diagnostics ORDER BY surface, version`,
+          ),
+        ).toEqual([
+          { anchor: "variant_selector", surface: "cart", version: 0, count: 1 },
+          { anchor: "variant_selector", surface: "product", version: 0, count: 2 },
+          { anchor: "variant_selector", surface: "product", version: 3, count: 1 },
+        ]);
       } finally {
         store.close();
       }

@@ -26,19 +26,20 @@ import {
   makeListConfigurationVersions,
   makePublishMerchantConfiguration,
   memoryConfigurationStore,
+  sqliteConfigurationStore,
   policySourceOf,
   releaseConfigurationLevels,
   switchAwarePolicyDirectory,
   messageSettingsOf,
 } from "../../interface-adapters/configuration/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
-import { ReleaseLevelsPort } from "../release.js";
+import { ReleaseLevelsPort, SqlStorePort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
-import { AuditPort, ClockPort } from "./shared-kernel.js";
+import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
@@ -51,32 +52,55 @@ export const ImportConfigurationPort =
     UseCase<ImportMerchantConfigurationRequest, ImportMerchantConfigurationResponse>
   >();
 
+/**
+ * What this module provides whatever serves the versions: the levels of the release, the resolution and
+ * the four read views its consumers declare. Written once and spread into the two technologies, because
+ * the day a fifth view is added, adding it under one and forgetting the other is a deployment that
+ * silently lacks it.
+ *
+ * **And they stay in `provides` rather than moving to `assembles`, which is not a matter of taste.**
+ * `providedPorts` is what a test replaces when it resets the components (`sharedTestApp`), and
+ * `Configurations` **memoises** the effective configuration of every merchant. Under `assembles` that
+ * memo outlives the reset, and the next test is served the configuration of the previous one — which is
+ * exactly what happened when it was tried (feature 033, US2).
+ */
+const resolution = [
+  bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
+    releaseConfigurationLevels(release),
+  ),
+  bind(
+    ConfigurationServicePort,
+    { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
+    (deps) => new Configurations(deps),
+  ),
+  bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    catalogPoliciesOf(configuration),
+  ),
+  bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    holdoutSourceOf(configuration),
+  ),
+  bind(MessageDirectoryPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    messageSettingsOf(configuration),
+  ),
+  bind(
+    PolicyDirectoryPort,
+    { configuration: ConfigurationServicePort, merchants: MerchantStorePort },
+    ({ configuration, merchants }) => switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
+  ),
+] as const;
+
 export const configurationModule = compositionModule({
-  provides: [
-    bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
-      releaseConfigurationLevels(release),
-    ),
-    bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
-    bind(
-      ConfigurationServicePort,
-      { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
-      (deps) => new Configurations(deps),
-    ),
-    bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-      catalogPoliciesOf(configuration),
-    ),
-    bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-      holdoutSourceOf(configuration),
-    ),
-    bind(MessageDirectoryPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
-      messageSettingsOf(configuration),
-    ),
-    bind(
-      PolicyDirectoryPort,
-      { configuration: ConfigurationServicePort, merchants: MerchantStorePort },
-      ({ configuration, merchants }) => switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
-    ),
-  ],
+  // The only component with a technology to choose is the store of the published versions; the rest is
+  // the same in every deployment and is spread in from `resolution`.
+  provides: {
+    memory: [bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()), ...resolution],
+    sqlite: [
+      bind(ConfigurationStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
+        sqliteConfigurationStore(deps),
+      ),
+      ...resolution,
+    ],
+  },
   assembles: [
     bind(
       ImportConfigurationPort,

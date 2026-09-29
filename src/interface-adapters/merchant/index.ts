@@ -10,3 +10,4 @@ export * from "./controllers/rotate-platform-secret.js";
 export * from "./controllers/set-kill-switch.js";
 export * from "./gateways/memory-merchant-store.js";
 export * from "./gateways/node-credential-minter.js";
+export * from "./gateways/sqlite-merchant-store.js";

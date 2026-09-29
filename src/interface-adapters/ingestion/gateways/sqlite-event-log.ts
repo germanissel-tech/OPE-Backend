@@ -35,6 +35,17 @@ const BY_SESSION = `SELECT document FROM received_events
 const BY_EVENT = `SELECT document FROM received_events
   WHERE merchant_id = :merchant AND event_id = :event ${ORDERED}`;
 
+/**
+ * The ids of a merchant since an instant, most recent first and capped: what rebuilds the deduplication
+ * window (feature 033). **It needed no index of its own** — `received_events_volume` is
+ * `(merchant_id, received_at, type)` and this uses its `(merchant_id, received_at)` prefix, which is
+ * exactly the range asked for. `event_id` is not in that index, so the rows are visited; the `LIMIT` is
+ * what bounds how many, and it is the window's own cap rather than a number chosen here.
+ */
+const IDS_SINCE = `SELECT event_id FROM received_events
+  WHERE merchant_id = :merchant AND received_at >= :since
+  ORDER BY received_at DESC, id DESC LIMIT :limit`;
+
 /** The one query the covering index exists for: equality, then the range, then what is grouped. */
 const VOLUME = `SELECT type, COUNT(*) AS count FROM received_events
   WHERE merchant_id = :merchant AND received_at >= :from AND received_at <= :to
@@ -74,6 +85,7 @@ const UNRECORDED = `SELECT
     )`;
 
 const DOCUMENT = "document";
+const EVENT_ID = "event_id";
 const TYPE = "type";
 const COUNT = "count";
 const BATCHES = "batches";
@@ -141,6 +153,14 @@ export function sqliteEventLog(deps: DurableGatewayDeps): EventLog {
         from: new Date(String(row?.[FIRST])),
         to: new Date(String(row?.[LAST])),
       });
+    },
+    idsSince(merchantId: MerchantId, since: Date, limit: number): Promise<EventId[]> {
+      const rows = deps.store.all(IDS_SINCE, {
+        merchant: merchantId,
+        since: since.toISOString(),
+        limit,
+      });
+      return Promise.resolve(rows.map((row) => String(row[EVENT_ID]) as EventId));
     },
     volume(merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> {
       const rows = deps.store.all(VOLUME, {

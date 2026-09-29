@@ -80,11 +80,48 @@ export async function importSeed(
   const seeds = config.merchants.map((m) => m.seed);
   const imported = await graph.resolve(ImportMerchantsPort).execute({ actor, seeds });
   if (!imported.ok) throw new Error(`The merchant seed was rejected: ${imported.error.code}.`);
-  if ("imported" in imported.value && imported.value.imported > 0) {
-    graph.resolve(LoggerPort).info({ merchants: imported.value.imported }, "merchant seed imported");
+  // **Both branches say something, and the second one is the point** (feature 033, SC-008). The seed is
+  // imported only into an empty store and that has not changed; what had changed is that a store which
+  // already holds merchants made this silent, so editing the file after the first boot did nothing and
+  // said nothing. Now the log names the situation, and the way to change anything is the API.
+  const logger = graph.resolve(LoggerPort);
+  if ("imported" in imported.value) {
+    logger.info({ merchants: imported.value.imported }, "merchant seed imported");
+  } else {
+    // Without a count, and on purpose: the use case answers `skipped` and nothing else, and counting the
+    // merchants at boot just to put a number in a log line is work for a line. What the reader needs is
+    // the reason, which is what was missing.
+    logger.info(
+      {},
+      "merchant seed not applied: the store already holds merchants; change them through the administration API",
+    );
   }
+  // **The same silence the merchants had, and feature 033 gave it to two more stores.** The
+  // configuration and the experiments of a merchant are now durable too, so from the second boot their
+  // part of the seed is also kept rather than applied — and until this line existed, editing a declared
+  // value in the file and restarting did nothing and said nothing. Said once at the end, because what a
+  // reader needs is that the file stopped being the source, not one line per merchant.
+  const kept = await importWhatEachMerchantDeclares(config, actor, graph);
+  if (kept.configurations || kept.experiments) {
+    logger.info(
+      kept,
+      "seed not applied to what the store already holds; change it through the administration API",
+    );
+  }
+}
+
+/** The branch a use case of the seed answers when the store already held what the file brings. */
+const SKIPPED = "skipped";
+
+/** What of each merchant's own seed was kept rather than applied, for the line `importSeed` writes. */
+async function importWhatEachMerchantDeclares(
+  config: AppConfig,
+  actor: Operator,
+  graph: Pick<Instance<DeployedComponents>, "resolve">,
+): Promise<{ configurations: boolean; experiments: boolean }> {
   const importConfiguration = graph.resolve(ImportConfigurationPort);
   const importExperiments = graph.resolve(ImportExperimentsPort);
+  const kept = { configurations: false, experiments: false };
   for (const [i, merchant] of config.merchants.entries()) {
     if (Object.keys(merchant.declared).length > 0) {
       const configured = await importConfiguration.execute({
@@ -96,12 +133,15 @@ export async function importSeed(
         const { pointer, problem } = configured.error.details;
         throw new ConfigError(`merchants[${i}].${String(pointer)}`, `is invalid (${String(problem)})`);
       }
+      if (SKIPPED in configured.value) kept.configurations = true;
     }
     const experiments = merchant.experiments.all();
     if (experiments.length === 0) continue;
     const opened = await importExperiments.execute({ actor, merchantId: merchant.merchantId, experiments });
     if (!opened.ok) throw new Error(`The experiment seed was rejected: ${opened.error.code}.`);
+    if (SKIPPED in opened.value) kept.experiments = true;
   }
+  return kept;
 }
 
 /**
