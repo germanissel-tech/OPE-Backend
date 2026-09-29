@@ -18,7 +18,7 @@ import { TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 
 const A = asMerchantId("m_a");
 const VIEW: SdkConfigurationView = {
-  versions: { platform: "platform-1", defaults: "defaults-1", merchant: 2 },
+  versions: { platform: "platform-2", defaults: "defaults-1", merchant: 2 },
   surfaces: ["product"],
   locales: { supported: ["es-AR"] },
   anchors: { price: { selectors: [".price"] } },

@@ -135,8 +135,8 @@ describe("sqliteEventLog", () => {
       const document: Record<string, unknown> = { decidedAt: { $date: at } };
       if (events !== undefined) document["eventsInBatch"] = events;
       fixture.store.run(
-        `INSERT INTO decisions (merchant_id, decision_id, session_id, document)
-         VALUES ('m-one', :id, 'ses_00000001', :document)`,
+        `INSERT INTO decisions (merchant_id, decision_id, session_id, visitor_id, document)
+         VALUES ('m-one', :id, 'ses_00000001', 'vis_00000001', :document)`,
         { id, document: JSON.stringify(document) },
       );
     };

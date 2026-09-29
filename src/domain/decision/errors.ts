@@ -39,5 +39,25 @@ export class InvalidPolicyEvidence extends DomainError {
   }
 }
 
+/**
+ * What the plane could not read (feature 032, FR-012). It is the **third** answer of the two state
+ * stores, and it exists because the other two were about to become indistinguishable: once `load`
+ * reads from a durable store, `undefined` would mean both "this visitor is new" and "the store did not
+ * answer", and the system would treat a failure as a new visitor and hand them the whole quota.
+ *
+ * Its `code` is the same slug as the `NO_OP` reason the decision degrades to, because the two name the
+ * same thing from the two sides: this is what the store says, that is what the SDK hears.
+ *
+ * Like the rest of this file it never travels over HTTP — the decision degrades rather than fail — and
+ * it is in the catalogue anyway, which is the rule `entidad.md` fixes for every `DomainError`.
+ */
+export class StateUnavailable extends DomainError {
+  readonly code = "state-unavailable" as const;
+  readonly module = MODULE;
+  constructor(what: "session" | "visitor") {
+    super(`The ${what} state could not be read.`, { path: what });
+  }
+}
+
 export type DecisionError =
   InvalidPolicyVersion | InvalidPolicyThreshold | InvalidPolicyPriority | InvalidPolicyEvidence;

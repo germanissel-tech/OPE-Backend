@@ -186,6 +186,9 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   // and an integration test that wants what was recorded asks for it after the app is stopped — or
   // reaches the queue and flushes. An hour is "never on its own".
   eventLog: { maxArrivals: 10_000, flushIntervalMs: 3_600_000 },
+  // A day of hot retention, which is what the server does by default: a test with a fixed clock
+  // never reaches it, and one that wants a forgotten session empties the store instead of waiting.
+  stateRetention: { sessionMs: 86_400_000 },
   ...over,
 });
 

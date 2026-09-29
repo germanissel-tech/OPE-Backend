@@ -9,23 +9,22 @@
 // nothing about a product; an assignment the ledger could not record degrades to NO_OP
 // `ledger-unavailable` (ADR-021); and only an intervention the ledger accepted counts against
 // the session and visitor budgets — they measure what the visitor saw.
-import { FactContext, Signals, type ProductFacts } from "../../../domain/barrier/index.js";
+import { FactContext, Signals } from "../../../domain/barrier/index.js";
 import { asProductId, asVariantId } from "../../../domain/catalog/index.js";
+import { evidenceOf, outcomeOf, selectionOf, triggerOf, type Evidence } from "./decision-shapes.js";
 import type { CandidatesService } from "./candidates.service.js";
 import type { StateService } from "./state.service.js";
-import type { CommercialVerdict, Trigger } from "../../../domain/commercial/index.js";
-import type { SessionState, TruthSummary } from "../../../domain/decision/index.js";
+import type { CommercialVerdict } from "../../../domain/commercial/index.js";
+import type { SessionState } from "../../../domain/decision/index.js";
 import type { ProductFocus } from "../../../domain/ingestion/index.js";
 import type {
   Decision,
   DecisionInference,
   DecisionPhase,
   DecisionSelection,
-  EvidenceRecord,
 } from "../../../domain/ledger/index.js";
-import type { GateEvidence, Judged } from "../../../domain/selection/index.js";
-import type { Arm, Barrier, MerchantId, NoOpReason } from "../../../domain/shared-kernel/index.js";
-import type { ProductTruth, ProductTruthService } from "../../catalog/index.js";
+import type { Arm, MerchantId, NoOpReason } from "../../../domain/shared-kernel/index.js";
+import type { ProductTruthService } from "../../catalog/index.js";
 import type { AssignmentService } from "../../experiment/index.js";
 import type { DecisionPlane, DecisionRequest } from "../../ingestion/index.js";
 import type { DecisionFactsInput, DecisionOutcomeInput, DecisionRecorder } from "../../ledger/index.js";
@@ -42,16 +41,10 @@ export interface DecisionServiceDependencies {
 
 const PAGE_CONTEXT_INCOMPLETE: NoOpReason = "page-context-incomplete";
 const MERCHANT_OFF: NoOpReason = "merchant-off";
+/** Feature 032, FR-013: the interventions the caps are counted from could not be read. */
+const STATE_UNAVAILABLE: NoOpReason = "state-unavailable";
 /** The phase a decision records while the experiment calibrates (03 §4.10). */
 const CALIBRATION: DecisionPhase = "calibration";
-
-/** The product truth of the focus as the authorities need it: facts for the rules, a summary for the barrier verdict, evidence for the gate, a record for the ledger. */
-interface Evidence {
-  product: ProductFacts;
-  truth: TruthSummary;
-  gate: GateEvidence;
-  record: EvidenceRecord;
-}
 
 /** The context the orchestrator carries through the authorities of one batch. */
 interface Context {
@@ -112,7 +105,14 @@ export class DecisionService implements DecisionPlane {
       if (phase === CALIBRATION) facts.phase = CALIBRATION;
     }
 
-    const remembered = await memory.recall(whose, now);
+    const recalled = await memory.recall(whose, now);
+    // Nothing could say what this visitor already received, so the plane fails closed (constitution
+    // II, FR-013) — and records the degraded decision, because one is still a decision (IX).
+    if (!recalled.ok) return recorder.record(facts, { kind: "no-op", reason: STATE_UNAVAILABLE });
+    const remembered = recalled.value;
+    // FR-015: the register was short, so this decision saw only its own batch. Recorded rather than
+    // degraded — the other half of the asymmetry, whose argument is in `state.service.ts`.
+    if (remembered.signalsIncomplete) facts.signalsIncomplete = true;
     const session = remembered.session.absorb(Signals.of(batch.events), now);
 
     const focus = batch.focus();
@@ -219,78 +219,4 @@ export class DecisionService implements DecisionPlane {
         : await truth.lookup(merchantId, productId, asVariantId(focus.variantId));
     return evidenceOf(found);
   }
-}
-
-/** What put the barrier on the table: the rules, the abandonment fallback, or nothing. */
-function triggerOf(inferred: Barrier | undefined, selected: Barrier | undefined): Trigger {
-  if (inferred !== undefined) return "rules";
-  return selected === undefined ? "none" : "abandonment";
-}
-
-/** The barrier of the chosen candidate is the reason of an INTERVENE (contract: Decision.reason). */
-function outcomeOf(verdict: CommercialVerdict): DecisionOutcomeInput {
-  return verdict.kind === "no-op"
-    ? { kind: "no-op", reason: verdict.reason }
-    : { kind: "intervene", reason: verdict.barrier, intervention: verdict.intervention };
-}
-
-function selectionOf(
-  judged: readonly Judged[],
-  verdict: CommercialVerdict,
-  version: string,
-): DecisionSelection {
-  const candidates = judged.map(({ candidate, verdict: gate }) => ({
-    candidateId: candidate.candidateId,
-    step: candidate.step,
-    verdict: gate.acceptable ? ("acceptable" as const) : ("unacceptable" as const),
-    ...(gate.acceptable ? {} : { reason: gate.reason }),
-  }));
-  if (verdict.kind === "intervene") {
-    return {
-      candidates,
-      chosen: verdict.candidateId,
-      commercialVerdict: { blocked: false },
-      commercialPolicyVersion: version,
-    };
-  }
-  const chosen = verdict.blocked?.candidateId ?? verdict.chosen;
-  const blocked = verdict.blocked;
-  const commercialVerdict = blocked ? { blocked: true, reason: blocked.reason } : { blocked: false };
-  return {
-    candidates,
-    ...(chosen === undefined ? {} : { chosen }),
-    commercialVerdict,
-    commercialPolicyVersion: version,
-  };
-}
-
-function evidenceOf(found: ProductTruth): Evidence {
-  if (found.kind === "unknown") {
-    const attributes = new Map<string, string>();
-    return {
-      product: { attributes },
-      truth: { kind: found.reason },
-      // Stryker disable next-line BooleanLiteral: the decision policy refuses an unknown truth before the gate sees it
-      gate: { attributes, stockAndPriceFresh: false },
-      record: { truth: found.reason },
-    };
-  }
-  const attributes = new Map(found.product.attributes.map((a) => [a.key, a.value]));
-  const stockAndPrice = found.stockAndPrice;
-  const stockAndPriceFresh = stockAndPrice === "fresh";
-  if (found.kind === "known-product") {
-    return {
-      product: { attributes },
-      truth: { kind: found.kind, stockAndPrice },
-      gate: { attributes, stockAndPriceFresh },
-      record: { truth: found.kind, stockAndPrice },
-    };
-  }
-  const available = found.variant.available;
-  return {
-    product: { attributes, available },
-    truth: { kind: found.kind, stockAndPrice, available },
-    gate: { attributes, stockAndPriceFresh, available },
-    record: { truth: found.kind, stockAndPrice, available },
-  };
 }

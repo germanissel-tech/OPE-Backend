@@ -18,6 +18,7 @@ import {
 } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { corpusEntryOf } from "../helpers/sayable.js";
+import { stateOf } from "../helpers/state.js";
 import {
   admin,
   batchOf,
@@ -75,7 +76,7 @@ async function intervene(merchantId: string, decisionId: string): Promise<void> 
     {
       decisionId: asDecisionId(decisionId),
       merchantId: asMerchantId(merchantId),
-      configuration: { platform: "platform-1", defaults: "defaults-1" },
+      configuration: { platform: "platform-2", defaults: "defaults-1" },
       sessionId: asSessionId("ses_00000001"),
       visitorId: asVisitorId("vis_00000001"),
       decidedAt: new Date(NOW),
@@ -320,17 +321,17 @@ describe("isolation between merchants", () => {
     const again = json(await postEvents(app.app, batch(2), { key: A.key })) as IngestResult;
     expect(again.decision.reason).toBe("barrier-unclear");
     expect(
-      await app.resolve(SessionStatePort).load(asMerchantId(A.id), asSessionId("ses_00000001")),
+      stateOf(await app.resolve(SessionStatePort).load(asMerchantId(A.id), asSessionId("ses_00000001"))),
     ).toMatchObject({
       interventions: 0,
     });
     expect(
-      await app.resolve(SessionStatePort).load(asMerchantId(B.id), asSessionId("ses_00000001")),
+      stateOf(await app.resolve(SessionStatePort).load(asMerchantId(B.id), asSessionId("ses_00000001"))),
     ).toMatchObject({
       interventions: 1,
     });
     expect(
-      await app.resolve(SessionStatePort).load(asMerchantId("m_c"), asSessionId("ses_00000001")),
+      stateOf(await app.resolve(SessionStatePort).load(asMerchantId("m_c"), asSessionId("ses_00000001"))),
     ).toBeUndefined();
   });
 
@@ -417,7 +418,7 @@ describe("isolation between merchants", () => {
       .find(asMerchantId(B.id), asDecisionId(inB.decision.decisionId));
     expect(ledgerB?.isIntervention()).toBe(false);
     expect(
-      await app.resolve(SessionStatePort).load(asMerchantId(B.id), asSessionId("ses_00000001")),
+      stateOf(await app.resolve(SessionStatePort).load(asMerchantId(B.id), asSessionId("ses_00000001"))),
     ).toMatchObject({ interventions: 0 });
     expect(JSON.stringify(inB)).not.toContain(A.id);
   });
@@ -493,12 +494,12 @@ describe("isolation between merchants", () => {
     const againB = json(await postEvents(app.app, price(10, "ses_00000002"), { key: B.key })) as IngestResult;
     expect(againB.decision.outcome).toBe("INTERVENE");
     expect(
-      await app.resolve(VisitorStatePort).load(asMerchantId(A.id), asVisitorId("vis_00000001")),
+      stateOf(await app.resolve(VisitorStatePort).load(asMerchantId(A.id), asVisitorId("vis_00000001"))),
     ).toMatchObject({
       interventions: [new Date(NOW)],
     });
     expect(
-      await app.resolve(VisitorStatePort).load(asMerchantId("m_c"), asVisitorId("vis_00000001")),
+      stateOf(await app.resolve(VisitorStatePort).load(asMerchantId("m_c"), asVisitorId("vis_00000001"))),
     ).toBeUndefined();
   });
 

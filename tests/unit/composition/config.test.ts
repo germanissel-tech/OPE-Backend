@@ -48,6 +48,9 @@ describe("readConfig", () => {
       // How the register's queue is tuned (feature 031). Like the store's location it is a value of
       // the environment, so it is read here and not in the three levels of configuration.
       eventLog: { maxArrivals: 10_000, flushIntervalMs: 250 },
+      // How long the plane keeps a session in memory (feature 032). Environment for the same reason,
+      // and a day by default because that is what the single field it was split out of used to hold.
+      stateRetention: { sessionMs: 86_400_000 },
     });
     expect(corpus.length).toBeGreaterThan(0);
     expect(corpus.every((entry) => entry.text.value.length > 0)).toBe(true);
@@ -55,7 +58,7 @@ describe("readConfig", () => {
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {
     const files: Record<string, string> = {
-      [path.resolve("p.json")]: JSON.stringify({ ...testLevels().platform.record(), version: "platform-2" }),
+      [path.resolve("p.json")]: JSON.stringify({ ...testLevels().platform.record(), version: "platform-3" }),
       [path.resolve("d.json")]: JSON.stringify({
         ...testLevels().defaults.record(),
         version: "defaults-2",
@@ -63,7 +66,9 @@ describe("readConfig", () => {
       }),
     };
     const read = (file: string): string => files[file] ?? noFile(file);
-    expect(readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform.version).toBe("platform-2");
+    // A version the repository file does not have, which is the whole point: it proves the level came
+    // from the variable and not from `config/platform.json`.
+    expect(readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform.version).toBe("platform-3");
     expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
       "treatmentDefaults.holdoutShare is invalid (must be a fraction between 0 and 1).",
     );
@@ -78,10 +83,10 @@ describe("readConfig", () => {
     );
     files[path.resolve("p.json")] = JSON.stringify({
       ...testLevels().platform.record(),
-      sessionWindowMs: "1d",
+      sessionDurationMs: "1d",
     });
     expect(() => readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read)).toThrow(
-      "platform.sessionWindowMs is invalid (must be a number).",
+      "platform.sessionDurationMs is invalid (must be a number).",
     );
     files[path.resolve("p.json")] = "{nope";
     expect(() => readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read)).toThrow(

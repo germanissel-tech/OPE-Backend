@@ -28,11 +28,13 @@ describe("config/platform.json (level 1)", () => {
   it("resolves with the values the platform published so far: a day of dedup, five minutes of skew, a week of grace", () => {
     const loaded = readPlatformConfiguration(read(PLATFORM));
     expect(loaded.ok, loaded.ok ? "" : loaded.error.message).toBe(true);
-    expect(platform().version).toBe("platform-1");
+    expect(platform().version).toBe("platform-2");
     expect(platform().dedupWindow).toEqual({ ttlMs: hours(24), maxIds: 100_000 });
     expect(platform().clockSkewToleranceMs).toBe(minutes(5));
     expect(platform().eventPastToleranceMs).toBe(hours(24));
-    expect(platform().sessionWindowMs).toBe(hours(24));
+    // Thirty minutes, and it is the one value of this file that is not a day: the duration of a
+    // session is a rule the SDK obeys (FR-001, feature 032), not a retention like the rest.
+    expect(platform().sessionDurationMs).toBe(minutes(30));
     expect(platform().visitorWindowMs).toBe(hours(24));
     expect(platform().signatureWindowMs).toBe(minutes(5));
     expect(platform().rotationGraceMaxMs).toBe(hours(168));
@@ -42,12 +44,12 @@ describe("config/platform.json (level 1)", () => {
 
   it("a value out of its range, an unknown field or a missing one fails naming the field", () => {
     const raw = read(PLATFORM) as Record<string, unknown>;
-    const zero = readPlatformConfiguration({ ...raw, sessionWindowMs: 0 });
-    expect(zero.ok ? undefined : zero.error.details).toMatchObject({ pointer: "sessionWindowMs" });
+    const zero = readPlatformConfiguration({ ...raw, sessionDurationMs: 0 });
+    expect(zero.ok ? undefined : zero.error.details).toMatchObject({ pointer: "sessionDurationMs" });
     const unknown = readPlatformConfiguration({ ...raw, retries: 3 });
     expect(unknown.ok ? undefined : unknown.error.details).toMatchObject({ pointer: "retries" });
     const { version, ...noVersion } = raw;
-    expect(version).toBe("platform-1");
+    expect(version).toBe("platform-2");
     const missing = readPlatformConfiguration(noVersion);
     expect(missing.ok ? undefined : missing.error.details).toMatchObject({ pointer: "version" });
   });

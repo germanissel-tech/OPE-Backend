@@ -205,7 +205,7 @@ describe("calibration, activation and the frozen configuration (scenarios 2, 3, 
     const result = await decide();
     const kept = await recorded(result.decision.decisionId);
     expect(kept?.phase).toBeUndefined();
-    expect(kept?.configuration).toEqual({ platform: "platform-1", defaults: "defaults-1", merchant: 2 });
+    expect(kept?.configuration).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 2 });
     const frozen = await configure({ holdoutShare: 0, freshness: { stockAndPriceMs: 300_000 } });
     expect(frozen.statusCode).toBe(409);
     expect(problemOf(frozen)).toMatchObject({ type: "urn:ope:problem:configuration-frozen" });

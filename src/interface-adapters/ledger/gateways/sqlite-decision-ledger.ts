@@ -30,13 +30,25 @@ const DOCUMENT = "document";
  * broken generator, and losing the evidence of the first decision would be the worst possible way
  * to find out.
  */
-const INSERT = `INSERT INTO decisions (merchant_id, decision_id, session_id, document)
-  VALUES (:merchant, :decision, :session, :document)`;
+const INSERT = `INSERT INTO decisions (merchant_id, decision_id, session_id, visitor_id, document)
+  VALUES (:merchant, :decision, :session, :visitor, :document)`;
 
 const BY_ID = `SELECT document FROM decisions WHERE merchant_id = :merchant AND decision_id = :decision`;
 
 const BY_SESSION = `SELECT document FROM decisions
   WHERE merchant_id = :merchant AND session_id = :session ORDER BY id`;
+
+/**
+ * The fatigue read (feature 032). `created_at` is in the index `decisions_by_visitor` and is why this
+ * is a range and not a scan of everything the visitor ever produced; ordering by it rather than by
+ * `id` is what lets the planner walk the index without a sort, and the two agree because a row's
+ * timestamp is monotonic with its insertion.
+ *
+ * Bounding by the row's instant instead of the decision's can only include more than the window, never
+ * less — the migration has the argument — and the exact cut belongs to the domain either way.
+ */
+const BY_VISITOR = `SELECT document FROM decisions
+  WHERE merchant_id = :merchant AND visitor_id = :visitor AND created_at >= :since ORDER BY created_at`;
 
 export function sqliteDecisionLedger(deps: DurableGatewayDeps): DecisionLedger {
   return {
@@ -46,6 +58,7 @@ export function sqliteDecisionLedger(deps: DurableGatewayDeps): DecisionLedger {
           merchant: decision.merchantId,
           decision: decision.decisionId,
           session: decision.sessionId,
+          visitor: decision.visitorId,
           document: toDocument(decision.record()),
         });
       }),
@@ -55,6 +68,16 @@ export function sqliteDecisionLedger(deps: DurableGatewayDeps): DecisionLedger {
       Promise.resolve(
         deps.store
           .all(BY_SESSION, { merchant: merchantId, session: sessionId })
+          .map((row) => decisionOf(row[DOCUMENT])),
+      ),
+    byVisitor: (merchantId, visitorId, since) =>
+      Promise.resolve(
+        deps.store
+          .all(BY_VISITOR, {
+            merchant: merchantId,
+            visitor: visitorId,
+            since: since.toISOString(),
+          })
           .map((row) => decisionOf(row[DOCUMENT])),
       ),
   };

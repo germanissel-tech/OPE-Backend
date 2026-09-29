@@ -7,7 +7,7 @@ const WINDOW_KEYS: readonly Key[] = ["ttlMs", "maxIds"];
 const NUMBER_KEYS = [
   "clockSkewToleranceMs",
   "eventPastToleranceMs",
-  "sessionWindowMs",
+  "sessionDurationMs",
   "visitorWindowMs",
   "signatureWindowMs",
   "rotationGraceMaxMs",

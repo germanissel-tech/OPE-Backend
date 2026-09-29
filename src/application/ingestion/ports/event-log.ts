@@ -59,7 +59,16 @@ export interface Hole {
   to: Date;
 }
 
-export interface EventLog {
+/** What the register knows of a session: what feature 032 reads to rebuild one that was forgotten. */
+export interface SessionEvents {
+  /**
+   * Everything recorded for a session, in arrival order (FR-013 of feature 031). The order is part of
+   * the promise because the signals are rebuilt by replaying it.
+   */
+  bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly RecordedEvent[]>;
+}
+
+export interface EventLog extends SessionEvents {
   /**
    * Takes an arrival to be written. Returns **immediately** and never fails: see the note above.
    *
@@ -71,12 +80,6 @@ export interface EventLog {
 
   /** Everything recorded for a decision, in arrival order (FR-003). */
   byDecision(merchantId: MerchantId, decisionId: DecisionId): Promise<readonly RecordedEvent[]>;
-
-  /**
-   * Everything recorded for a session, in arrival order (FR-013). This is what feature 032 reads to
-   * rebuild the signals a decision was taken with, which is why the order is part of the promise.
-   */
-  bySession(merchantId: MerchantId, sessionId: SessionId): Promise<readonly RecordedEvent[]>;
 
   /**
    * **Every** arrival of one event id, oldest first (FR-005). More than one is the normal answer: a

@@ -24,6 +24,19 @@ export function text(env: NodeJS.ProcessEnv, name: Variable): string | undefined
   return value === undefined || value === "" ? undefined : value;
 }
 
+/**
+ * A whole number of at least one, or the server does not start naming the variable. Every variable
+ * of the environment that is a count or a duration goes through here, so a typo is a refusal to
+ * start and never a silent fallback to the default.
+ */
+export function whole(env: NodeJS.ProcessEnv, name: Variable, fallback: number): number {
+  const declared = text(env, name);
+  if (declared === undefined) return fallback;
+  const parsed = Number(declared);
+  if (!Number.isInteger(parsed) || parsed < 1) throw new ConfigError(name, A_NUMBER);
+  return parsed;
+}
+
 /** A file may name its JSON Schema (`$schema`, for the editor); the readers are closed-shape and never see it. */
 export function withoutSchemaReference(value: unknown): unknown {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return value;

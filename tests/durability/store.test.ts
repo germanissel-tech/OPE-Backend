@@ -307,6 +307,75 @@ describe("the durable store", () => {
         store.close();
       }
     });
+    it("upgrades a populated version-2 store, fills the visitor of every decision and loses nothing", () => {
+      // Migration 003 pulls `visitorId` out of the document into a column of its own. The assertion
+      // that matters is not that the upgrade works but that **no row is left with an empty visitor**:
+      // a fill that silently misses one does not break anything — it makes the read by visitor lie,
+      // and a cap that stops applying is exactly the damage this feature exists to undo.
+      withMigrationsUpTo(2);
+      const before = openSqliteStore({ file, migrations: schema });
+      expect(before.all("PRAGMA user_version")).toEqual([{ user_version: 2 }]);
+      // Two merchants and two visitors, so the fill has to read each document and not one of them.
+      const decided = (merchant: string, decision: string, session: string, visitor: string): void => {
+        before.run(
+          `INSERT INTO decisions (merchant_id, decision_id, session_id, document)
+           VALUES (:merchant, :decision, :session, :document)`,
+          { merchant, decision, session, document: JSON.stringify({ visitorId: visitor, outcome: "NO_OP" }) },
+        );
+      };
+      decided("m-1", "d-1", "s-1", "v-1");
+      decided("m-1", "d-2", "s-1", "v-2");
+      decided("m-2", "d-3", "s-2", "v-3");
+      // A row in a table this migration does not touch, to see that rebuilding one leaves the rest alone.
+      before.run("INSERT INTO exposures (merchant_id, decision_id, document) VALUES ('m-1','d-1','{}')", {});
+      const [written] = before.all("SELECT created_at FROM decisions WHERE decision_id = 'd-1'");
+      before.close();
+
+      withMigrationsUpTo(3);
+      const after = openSqliteStore({ file, migrations: schema });
+      try {
+        expect(after.all("PRAGMA user_version")).toEqual([{ user_version: 3 }]);
+        // Not one row with the visitor missing, blank or the string SQLite would write for a JSON null.
+        expect(
+          after.all(
+            `SELECT COUNT(*) AS n FROM decisions WHERE visitor_id IS NULL OR visitor_id = '' OR visitor_id = 'null'`,
+          ),
+        ).toEqual([{ n: 0 }]);
+        expect(after.all("SELECT decision_id, visitor_id FROM decisions ORDER BY id")).toEqual([
+          { decision_id: "d-1", visitor_id: "v-1" },
+          { decision_id: "d-2", visitor_id: "v-2" },
+          { decision_id: "d-3", visitor_id: "v-3" },
+        ]);
+        // The document is untouched: the column is a copy for the index, not a move.
+        expect(after.all("SELECT document FROM decisions WHERE decision_id = 'd-3'")).toEqual([
+          { document: JSON.stringify({ visitorId: "v-3", outcome: "NO_OP" }) },
+        ]);
+        // And `created_at` is carried over, not regenerated: this migration is not when the row appeared.
+        expect(after.all("SELECT created_at FROM decisions WHERE decision_id = 'd-1'")).toEqual([written]);
+        // And the table this migration does not name kept its row: rebuilding one is not rebuilding all.
+        expect(after.all("SELECT decision_id FROM exposures")).toEqual([{ decision_id: "d-1" }]);
+      } finally {
+        after.close();
+      }
+    });
+
+    it("refuses a decision without a visitor, instead of writing a row the read by visitor cannot find", () => {
+      withMigrationsUpTo(3);
+      const store = openSqliteStore({ file, migrations: schema });
+      try {
+        // `NOT NULL` is the whole reason the table is rebuilt rather than altered: a gateway that
+        // forgets the visitor fails here, when it is a bug, and not months later as a cap that
+        // quietly stopped counting.
+        expect(() => {
+          store.run(
+            "INSERT INTO decisions (merchant_id, decision_id, session_id, document) VALUES ('m-1','d-9','s-1','{}')",
+            {},
+          );
+        }).toThrow(/NOT NULL/i);
+      } finally {
+        store.close();
+      }
+    });
   });
 
   describe("a build with more than one migration", () => {

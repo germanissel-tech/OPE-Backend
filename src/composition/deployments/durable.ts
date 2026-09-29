@@ -13,8 +13,11 @@
 //   - the experiments, the merchants and the configuration, which are rebuilt from the seed at
 //     every start — that works today, and losing a published version is the third feature of the
 //     milestone;
-//   - the session and visitor state, which is the next feature and brings the atomicity of the
-//     per-session budget with it.
+//   - the session and visitor state, which is **still hot and still not the source of truth**
+//     (constitution IV). Feature 032 did not make it durable; it made it **recoverable**: a state
+//     memory has forgotten is rebuilt from the register and the ledger, so the caps survive a deploy
+//     without the hot side ever becoming a second truth. What is still open there is the atomicity
+//     of the per-session budget, which needs the transaction of `persistence-and-resilience`.
 //
 // Leaving `storeComponents` out of this list does not compile: the three modules below ask for the
 // store and `deployment()` names the component nobody provides.

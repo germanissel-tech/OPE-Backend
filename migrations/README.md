@@ -26,6 +26,7 @@ erDiagram
         TEXT merchant_id UK "toda lectura lo toma"
         TEXT decision_id UK "repetirla se rechaza: no se sobrescribe"
         TEXT session_id "índice decisions_by_session, ordenado por id"
+        TEXT visitor_id "índice decisions_by_visitor con created_at: el tope de fatiga"
         TEXT document "razonamiento, candidatos, veredicto"
     }
     exposures {
@@ -139,6 +140,13 @@ primaria—: se aplica entera o ninguna. Sin la transacción, un fallo a mitad d
 forma que no es ni la vieja ni la nueva, con `user_version` diciendo la vieja, y el arranque
 siguiente correría la misma migración sobre los restos.
 
+**Por qué el índice del visitante lleva `created_at` y no el instante de la decisión.** La fatiga
+cuenta dentro de 24 h, y ese instante —`decidedAt`— vive **dentro del documento**, donde ningún índice
+lo alcanza. El de la fila sí está indexado, y acotar por él es sólido **en una sola dirección**: una
+fila se escribe _después_ de la decisión que registra, así que `created_at >= since` puede dejar pasar
+de más pero nunca de menos. El corte exacto se queda donde ya estaba, en `VisitorState.countSince`, y
+el índice es una optimización y nunca la regla.
+
 **La migración hacia adelante llegó en la feature 031.** La 030 la había dejado afuera con su motivo
 —no había datos en ninguna parte, así que un almacén sólo podía estar vacío o al día— y la segunda
 migración del repositorio volvió ordinario el caso de un almacén una versión atrás.
@@ -184,3 +192,4 @@ la identidad de una llegada y la idempotencia de su escritura.
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | -------------------------------------------------- | -------------------------------- |
 | `001-ledger-and-catalog.sql`                 | La primera forma: una tabla por entidad del ledger —decisiones, exposiciones, órdenes, corroboraciones, asignaciones— más el catálogo y sus recibos.                                                                                                 | 1                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
 | `002-received-events-and-surrogate-keys.sql` | El registro de lo que el SDK manda (`received_events`, una fila por evento y por llegada), y las dos reglas de arquitectura del dueño aplicadas a las siete tablas anteriores: clave primaria autoincremental propia, y `created_at` / `updated_at`. | 2                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |
+| `003-decisions-by-visitor.sql`               | `visitor_id` sale del documento a una columna `NOT NULL` con su índice `decisions_by_visitor`: la lectura que el tope de fatiga necesita para sobrevivir un reinicio.                                                                                | 3                | fuente            | `src/infrastructure/sqlite/open-store.ts` al abrir | `tests/durability/store.test.ts` |

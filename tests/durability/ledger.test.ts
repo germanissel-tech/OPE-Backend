@@ -9,7 +9,7 @@ import {
   type Decision,
   type Exposure,
 } from "../../src/domain/ledger/index.js";
-import { asMerchantId, asSessionId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import { asMerchantId, asSessionId, asVisitorId, hours } from "../../src/domain/shared-kernel/index.js";
 import { sqliteDecisionLedger, sqliteExposureLedger } from "../../src/interface-adapters/ledger/index.js";
 import { restartableStore, type Restartable } from "./store-fixture.js";
 
@@ -32,19 +32,19 @@ const decisions = (): ReturnType<typeof sqliteDecisionLedger> =>
 const exposures = (): ReturnType<typeof sqliteExposureLedger> =>
   sqliteExposureLedger({ store: fixture.store, logger: fixture.logger });
 
-function facts(id: string, merchantId = MERCHANT, sessionId = "ses_00000001") {
+function facts(id: string, merchantId = MERCHANT, sessionId = "ses_00000001", visitorId = "vis_00000001") {
   return {
     decisionId: asDecisionId(id),
     merchantId,
     sessionId: asSessionId(sessionId),
-    visitorId: asVisitorId("vis_00000001"),
+    visitorId: asVisitorId(visitorId),
     decidedAt: new Date(NOW),
-    configuration: { platform: "platform-1", defaults: "defaults-1" },
+    configuration: { platform: "platform-2", defaults: "defaults-1" },
   };
 }
 
-const intervened = (id: string, merchantId = MERCHANT, sessionId?: string): Decision =>
-  InterveneDecision.of(facts(id, merchantId, sessionId), "barrier-fit", {
+const intervened = (id: string, merchantId = MERCHANT, sessionId?: string, visitorId?: string): Decision =>
+  InterveneDecision.of(facts(id, merchantId, sessionId, visitorId), "barrier-fit", {
     text: "If it does not fit, the exchange is free.",
     messageVersionId: "msg-1",
     anchor: "variant_selector",
@@ -107,6 +107,84 @@ describe("the decision ledger across a restart", () => {
     expect(await ledger.find(OTHER, asDecisionId("dec_00000006"))).toBeUndefined();
     expect(await ledger.bySession(OTHER, asSessionId("ses_00000001"))).toEqual([]);
     expect(await ledger.find(MERCHANT, asDecisionId("dec_00000006"))).toBeDefined();
+  });
+
+  it("answers byVisitor across the restart, and tells one merchant's visitor from another's", async () => {
+    // This is the read the fatigue limit needs and the reason feature 032 exists: without it the
+    // count of what a visitor already received lived only in memory, so a restart handed them their
+    // whole quota back.
+    const ledger = decisions();
+    await ledger.record(intervened("dec_00000010", MERCHANT, "ses_00000010", "vis_00000002"));
+    await ledger.record(intervened("dec_00000011", MERCHANT, "ses_00000011", "vis_00000002"));
+    await ledger.record(intervened("dec_00000012", MERCHANT, "ses_00000012", "vis_00000003"));
+    // The same visitor identifier under another merchant, which must not be found (constitution V).
+    await ledger.record(intervened("dec_00000013", OTHER, "ses_00000013", "vis_00000002"));
+    // A NO_OP of the same visitor: the port answers every outcome, because which ones count is
+    // `decision.isIntervention()`, a rule of the domain and not of the store.
+    await ledger.record(
+      NoOpDecision.of(facts("dec_00000014", MERCHANT, "ses_00000014", "vis_00000002"), "control-arm"),
+    );
+
+    fixture.restart();
+
+    const since = new Date(Date.parse(NOW) - hours(24));
+    const mine = await decisions().byVisitor(MERCHANT, asVisitorId("vis_00000002"), since);
+    // Two sessions of this visitor plus the NO_OP, oldest first; not the other visitor's, not the
+    // other merchant's.
+    expect(mine.map((d) => d.decisionId)).toEqual(["dec_00000010", "dec_00000011", "dec_00000014"]);
+    expect(mine.filter((d) => d.isIntervention()).map((d) => d.decisionId)).toEqual([
+      "dec_00000010",
+      "dec_00000011",
+    ]);
+    expect(await decisions().byVisitor(OTHER, asVisitorId("vis_00000003"), since)).toEqual([]);
+  });
+
+  it("leaves outside the window what the window excludes", async () => {
+    await decisions().record(intervened("dec_00000015", MERCHANT, "ses_00000015", "vis_00000004"));
+    await decisions().record(intervened("dec_00000016", MERCHANT, "ses_00000016", "vis_00000004"));
+    // The row's own timestamp is what the index ranges over, so this is the thing to age. Reaching
+    // for the column directly is the only way: nothing in the domain can write a past `created_at`,
+    // which is exactly the property that makes the bound sound.
+    fixture.store.run(
+      "UPDATE decisions SET created_at = '2020-01-01T00:00:00.000Z' WHERE decision_id = 'dec_00000015'",
+      {},
+    );
+
+    fixture.restart();
+
+    const recent = await decisions().byVisitor(
+      MERCHANT,
+      asVisitorId("vis_00000004"),
+      new Date("2026-01-01T00:00:00.000Z"),
+    );
+    expect(recent.map((d) => d.decisionId)).toEqual(["dec_00000016"]);
+    // And with a wide enough window the aged one is there again: it was excluded, not lost.
+    const all = await decisions().byVisitor(
+      MERCHANT,
+      asVisitorId("vis_00000004"),
+      new Date("2019-01-01T00:00:00.000Z"),
+    );
+    expect(all.map((d) => d.decisionId)).toEqual(["dec_00000015", "dec_00000016"]);
+  });
+
+  it("walks the visitor index instead of scanning the table", async () => {
+    // An index the planner does not use is an index that does not exist, and in this family of
+    // features a wrong index has already cost more than a missing one. The plan is asserted rather
+    // than the timing: a timing assertion on a table with three rows says nothing.
+    await decisions().record(intervened("dec_00000017", MERCHANT, "ses_00000017", "vis_00000005"));
+    const plan = fixture.store
+      .all(
+        `EXPLAIN QUERY PLAN SELECT document FROM decisions
+         WHERE merchant_id = :merchant AND visitor_id = :visitor AND created_at >= :since
+         ORDER BY created_at`,
+        { merchant: MERCHANT, visitor: "vis_00000005", since: NOW },
+      )
+      .map((row) => String(row["detail"]))
+      .join(" | ");
+    expect(plan).toContain("decisions_by_visitor");
+    expect(plan).not.toContain("SCAN decisions");
+    // And no sort step: ordering by the third column of the index is why the order is free.
+    expect(plan).not.toMatch(/USE TEMP B-TREE FOR ORDER BY/i);
   });
 
   it("refuses to overwrite a decision already recorded, and keeps the first", async () => {

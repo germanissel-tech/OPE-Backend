@@ -2,9 +2,10 @@
 import { describe, expect, it } from "vitest";
 import { Signals } from "../../../../src/domain/barrier/index.js";
 import { SessionState } from "../../../../src/domain/decision/index.js";
-import { asMerchantId, asSessionId, hours } from "../../../../src/domain/shared-kernel/index.js";
+import { asMerchantId, asSessionId, hours, minutes } from "../../../../src/domain/shared-kernel/index.js";
 import { memorySessionStateStore } from "../../../../src/interface-adapters/decision/gateways/memory-session-state-store.js";
 import { addedToCart } from "../../../helpers/events.js";
+import { stateOf } from "../../../helpers/state.js";
 const A = asMerchantId("m_a");
 const B = asMerchantId("m_b");
 const S1 = asSessionId("ses_00000001");
@@ -23,9 +24,9 @@ describe("memorySessionStateStore", () => {
     const { store: s } = store();
     const state = SessionState.empty(t0).absorb(Signals.of([addedToCart(1)]), t0);
     await s.save(A, S1, state);
-    expect(await s.load(A, S1)).toBe(state);
-    expect(await s.load(B, S1)).toBeUndefined();
-    expect(await s.load(A, S2)).toBeUndefined();
+    expect(stateOf(await s.load(A, S1))).toBe(state);
+    expect(stateOf(await s.load(B, S1))).toBeUndefined();
+    expect(stateOf(await s.load(A, S2))).toBeUndefined();
   });
 
   it("forgets a session untouched for the window; a save refreshes it", async () => {
@@ -34,8 +35,25 @@ describe("memorySessionStateStore", () => {
     advance(hours(23));
     await s.save(A, S2, SessionState.empty(at(hours(23))));
     advance(hours(24));
-    expect(await s.load(A, S1)).toBeUndefined();
-    expect(await s.load(A, S2)).toBeDefined();
+    expect(stateOf(await s.load(A, S1))).toBeUndefined();
+    expect(stateOf(await s.load(A, S2))).toBeDefined();
+  });
+
+  it("applies the retention it was given and knows nothing of how long a session lasts", async () => {
+    // Feature 032. The `ttlMs` this store receives is the **retention** — how long an instance holds a
+    // session — and since this feature that is a value of the environment, no longer the same number as
+    // the duration of a session in level 1.
+    //
+    // Five minutes here against the thirty the release publishes, which is the case that could not exist
+    // while one field held both: the session leaves memory **while it is still the same visit**. What
+    // the store does about that is nothing, and that is the point — a session it forgot is one the state
+    // service rebuilds, and the store has no opinion on whether the visit is over.
+    const { store: s, advance } = store({ ttlMs: minutes(5), maxSessions: 100 });
+    await s.save(A, S1, SessionState.empty(t0));
+    advance(minutes(4));
+    expect(stateOf(await s.load(A, S1))).toBeDefined();
+    advance(minutes(6));
+    expect(stateOf(await s.load(A, S1))).toBeUndefined();
   });
 
   it("keeps at most the window's sessions per merchant, dropping the least recently saved", async () => {
@@ -44,9 +62,9 @@ describe("memorySessionStateStore", () => {
     await s.save(A, S2, SessionState.empty(t0));
     await s.save(A, S1, SessionState.empty(t0));
     await s.save(A, asSessionId("ses_00000003"), SessionState.empty(t0));
-    expect(await s.load(A, S2)).toBeUndefined();
-    expect(await s.load(A, S1)).toBeDefined();
+    expect(stateOf(await s.load(A, S2))).toBeUndefined();
+    expect(stateOf(await s.load(A, S1))).toBeDefined();
     await s.save(B, S2, SessionState.empty(t0));
-    expect(await s.load(B, S2)).toBeDefined();
+    expect(stateOf(await s.load(B, S2))).toBeDefined();
   });
 });

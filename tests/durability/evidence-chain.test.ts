@@ -42,7 +42,7 @@ describe("the whole evidence chain across a restart", () => {
         sessionId: SESSION,
         visitorId: VISITOR,
         decidedAt: NOW,
-        configuration: { platform: "platform-1", defaults: "defaults-1" },
+        configuration: { platform: "platform-2", defaults: "defaults-1" },
         inference: {
           policyVersion: "policy-1",
           // The three barriers of the MVP, and only those (constitution, contract vocabulary).

@@ -16,7 +16,8 @@ export type Variable =
   | "OPE_MESSAGE_CORPUS"
   | "OPE_STORE"
   | "OPE_EVENT_LOG_MAX"
-  | "OPE_EVENT_LOG_FLUSH_MS";
+  | "OPE_EVENT_LOG_FLUSH_MS"
+  | "OPE_SESSION_RETENTION_MS";
 
 /** A field inside the merchants configuration, as a path from `merchants[i]`. */
 export type MerchantField = `merchants[${number}]${string}`;

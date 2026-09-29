@@ -1709,8 +1709,8 @@ export type components = {
             retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
             rotationGraceMaxMs: number;
-            /** @description Milliseconds a session is remembered since its last batch. */
-            sessionWindowMs: number;
+            /** @description Milliseconds of inactivity after which a session is over and the SDK must mint a new `sessionId`. It is a rule of the backend that the SDK obeys, not an observation the client makes (feature 032). It used to be called `sessionWindowMs` and meant two things at once — this rule and how long the backend keeps the session in memory; those are now separate, and the second one is not published because nothing a merchant observes depends on it. */
+            sessionDurationMs: number;
             /** @description Milliseconds a platform signature's timestamp may sit from the server clock, either way (ADR-029). */
             signatureWindowMs: number;
             /** @description Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused. */
@@ -2826,14 +2826,14 @@ export interface operations {
                      *           "fallback": "es-AR"
                      *         },
                      *         "platform": {
-                     *           "version": "platform-1",
+                     *           "version": "platform-2",
                      *           "dedupWindow": {
                      *             "ttlMs": 86400000,
                      *             "maxIds": 100000
                      *           },
                      *           "eventPastToleranceMs": 86400000,
                      *           "clockSkewToleranceMs": 300000,
-                     *           "sessionWindowMs": 86400000,
+                     *           "sessionDurationMs": 1800000,
                      *           "visitorWindowMs": 86400000,
                      *           "signatureWindowMs": 300000,
                      *           "rotationGraceMaxMs": 604800000,
@@ -2854,7 +2854,7 @@ export interface operations {
                      *         }
                      *       },
                      *       "versions": {
-                     *         "platform": "platform-1",
+                     *         "platform": "platform-2",
                      *         "defaults": "defaults-1",
                      *         "merchant": 1
                      *       }
@@ -3594,14 +3594,14 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "version": "platform-1",
+                     *       "version": "platform-2",
                      *       "dedupWindow": {
                      *         "ttlMs": 86400000,
                      *         "maxIds": 100000
                      *       },
                      *       "eventPastToleranceMs": 86400000,
                      *       "clockSkewToleranceMs": 300000,
-                     *       "sessionWindowMs": 86400000,
+                     *       "sessionDurationMs": 1800000,
                      *       "visitorWindowMs": 86400000,
                      *       "signatureWindowMs": 300000,
                      *       "rotationGraceMaxMs": 604800000,
@@ -4092,7 +4092,7 @@ export interface operations {
                      * @example {
                      *       "enabled": true,
                      *       "versions": {
-                     *         "platform": "platform-1",
+                     *         "platform": "platform-2",
                      *         "defaults": "defaults-1",
                      *         "merchant": 3
                      *       },

@@ -14,6 +14,7 @@ import { readLevels, type ReleaseLevels } from "./levels-config.js";
 import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
 import { readStoreLocation, type StoreLocation } from "./sqlite-config.js";
+import { readStateRetention, type StateRetention } from "./state-retention-config.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 
@@ -35,6 +36,8 @@ export interface AppConfig {
   store: StoreLocation;
   /** How the register's queue is tuned (feature 031): environment, like the store's location. */
   eventLog: EventLogTuning;
+  /** How long the plane keeps state in memory (feature 032): environment, like the queue above. */
+  stateRetention: StateRetention;
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -60,6 +63,7 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     corpus: readCorpus(env, readFile, defaultLocaleOf(levels)),
     store: readStoreLocation(env),
     eventLog: readEventLogTuning(env),
+    stateRetention: readStateRetention(env),
   };
 }
 

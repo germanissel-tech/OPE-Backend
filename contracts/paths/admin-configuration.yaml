@@ -167,13 +167,13 @@ get:
                   - en
                 fallback: es-AR
               platform:
-                version: platform-1
+                version: platform-2
                 dedupWindow:
                   ttlMs: 86400000
                   maxIds: 100000
                 eventPastToleranceMs: 86400000
                 clockSkewToleranceMs: 300000
-                sessionWindowMs: 86400000
+                sessionDurationMs: 1800000
                 visitorWindowMs: 86400000
                 signatureWindowMs: 300000
                 rotationGraceMaxMs: 604800000
@@ -181,7 +181,7 @@ get:
                 retryAfterSeconds: 5
             declared: *a1
             versions:
-              platform: platform-1
+              platform: platform-2
               defaults: defaults-1
               merchant: 1
     "400":

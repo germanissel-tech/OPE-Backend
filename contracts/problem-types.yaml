@@ -53,6 +53,9 @@ types:
   - slug: store-unavailable
     status: 503
     title: The store is not available
+  - slug: state-unavailable
+    status: 503
+    title: The state the caps are counted from could not be read
   - slug: invalid-treatment-share
     status: 422
     title: The treatment share of an experiment is out of range

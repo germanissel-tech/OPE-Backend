@@ -15,7 +15,7 @@ const facts = (id: string, over: Partial<DecisionFacts> = {}): DecisionFacts => 
   sessionId: S,
   visitorId: asVisitorId("vis_0001"),
   decidedAt: new Date("2026-09-19T12:00:00.000Z"),
-  configuration: { platform: "platform-1", defaults: "defaults-1" },
+  configuration: { platform: "platform-2", defaults: "defaults-1" },
   ...over,
 });
 
@@ -39,6 +39,39 @@ describe("memoryDecisionLedger", () => {
     expect(await ledger.bySession(A, asSessionId("sess_0002"))).toEqual([elsewhere]);
     expect(await ledger.bySession(B, S)).toEqual([foreign]);
     expect(await ledger.bySession(A, asSessionId("sess_none"))).toEqual([]);
+  });
+
+  it("byVisitor: the decisions of the visitor since an instant, per merchant", async () => {
+    // Two of the same visitor, so the accumulation is exercised and not just the first write; and
+    // the same visitor identifier under another merchant, which is the isolation of constitution V.
+    const ledger = memoryDecisionLedger();
+    const V = asVisitorId("vis_0001");
+    const first = NoOpDecision.of(facts("dec_1"), "control-arm");
+    const second = NoOpDecision.of(
+      facts("dec_2", { sessionId: asSessionId("sess_0002") }),
+      "visitor-fatigue",
+    );
+    const other = NoOpDecision.of(facts("dec_3", { visitorId: asVisitorId("vis_0002") }), "control-arm");
+    const foreign = NoOpDecision.of(facts("dec_4", { merchantId: B }), "control-arm");
+    for (const d of [first, second, other, foreign]) await ledger.record(d);
+    const wide = new Date("2026-09-18T12:00:00.000Z");
+    expect(await ledger.byVisitor(A, V, wide)).toEqual([first, second]);
+    expect(await ledger.byVisitor(A, asVisitorId("vis_0002"), wide)).toEqual([other]);
+    expect(await ledger.byVisitor(B, V, wide)).toEqual([foreign]);
+    expect(await ledger.byVisitor(A, asVisitorId("vis_none"), wide)).toEqual([]);
+  });
+
+  it("byVisitor: `since` is inclusive, and what is older than it is left out", async () => {
+    // The boundary is asserted on purpose: off by one here is a cap that counts one intervention too
+    // few or too many, which is the whole subject of this feature.
+    const ledger = memoryDecisionLedger();
+    const V = asVisitorId("vis_0001");
+    const at = new Date("2026-09-19T12:00:00.000Z");
+    const older = NoOpDecision.of(facts("dec_1", { decidedAt: new Date(at.getTime() - 1) }), "control-arm");
+    const exactly = NoOpDecision.of(facts("dec_2"), "control-arm");
+    for (const d of [older, exactly]) await ledger.record(d);
+    expect(await ledger.byVisitor(A, V, at)).toEqual([exactly]);
+    expect(await ledger.byVisitor(A, V, new Date(at.getTime() + 1))).toEqual([]);
   });
 
   it("re-recording a decision does not duplicate it in the session", async () => {
