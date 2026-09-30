@@ -87,10 +87,10 @@ pase la fecha real del archivo.
 
 **Independent Test**: provocar una corrida caída en modo informativo y ver que el resultado no es un éxito.
 
-- [ ] T009 [US3] `scripts/mutation-diff.mjs` — en el modo informativo: **capturar** el código de salida, que
+- [x] T009 [US3] `scripts/mutation-diff.mjs` — en el modo informativo: **capturar** el código de salida, que
       hoy se descarta, y pasar por la misma regla. Sus supervivientes siguen siendo informativos; la
       ausencia de corrida no lo es (FR-006).
-- [ ] T010 [US3] Comprobar que `--check-report` **no** cambió: `npm run check:mutation-report` pasa. Su
+- [x] T010 [US3] Comprobar que `--check-report` **no** cambió: `npm run check:mutation-report` pasa. Su
       trabajo es mirar el último reporte, así que la frescura no le aplica (research R-01) — y es la parte
       del diseño más fácil de romper sin darse cuenta, porque su fallo aparecería recién en
       `release-check`.

@@ -426,12 +426,23 @@ function checkReportMode(json) {
 /**
  * `--all`: everything mutated, survivors informative; a leaked disable comment or a run without
  * tests still fails.
+ *
+ * **It used to be worse off than the gate** (feature 035): it threw the exit code away, so a run that never
+ * got to judge reported the figures of the previous sweep and **succeeded**. Its survivors stay
+ * informative — nobody blocks a change on them — but the absence of a run is not an informative result, it
+ * is the absence of one.
  * @param {boolean} json
  * @returns {number}
  */
 function allMode(json) {
   // Its own incremental file: the informative sweep must not feed verdicts into the blocking gate.
-  runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]);
+  const missing = runFor(() =>
+    runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]),
+  );
+  if (missing !== null) {
+    emit({ mode: "informative", status: "fail", findings: [], error: missing }, json);
+    return 1;
+  }
   const report = readReport();
   const leaked = ignoredOutsideDisable(report, sourceOf);
   const error = guardZeroTests(report) ?? leakedError(leaked);
