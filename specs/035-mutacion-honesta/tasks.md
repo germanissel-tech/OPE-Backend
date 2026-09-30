@@ -101,17 +101,17 @@ pase la fecha real del archivo.
 
 ## Phase 5: Lo que queda dicho
 
-- [ ] T011 `docs/adr/016-gates-de-calidad.md` — una **enmienda corta**: una corrida que no termina no tiene
+- [x] T011 `docs/adr/016-gates-de-calidad.md` — una **enmienda corta**: una corrida que no termina no tiene
       veredicto, y el gate lo dice en vez de informar el reporte anterior. Va en ADR-016 porque es la
       política del gate de mutación y es donde alguien la busca; no amerita un ADR nuevo, porque no decide
       nada transversal que no estuviera ya decidido ahí.
-- [ ] T012 [P] `.claude/rules/gates-de-calidad.md` — la línea que impide volver a equivocarse: **si la
+- [x] T012 [P] `.claude/rules/gates-de-calidad.md` — la línea que impide volver a equivocarse: **si la
       corrida no termina, no hay cifras**, y el reporte en disco es de otra corrida. La regla llega cuando
       alguien trabaja sobre los gates, que es exactamente quien necesita saberlo.
-- [ ] T013 [P] `docs/deudas.md` — **D-31 cerrada**, con el commit, y la fila a `implementada`.
-- [ ] T014 Correr el **quickstart** de punta a punta, los cinco pasos, y anotar lo que aparezca. En las
+- [x] T013 [P] `docs/deudas.md` — **D-31 cerrada**, con el commit, y la fila a `implementada`.
+- [x] T014 Correr el **quickstart** de punta a punta, los cinco pasos, y anotar lo que aparezca. En las
       cinco features anteriores encontró algo que ningún gate veía.
-- [ ] T015 La cadena de cierre: `format:check`, `quality`, `typecheck`, `test:all` y `release-check`
+- [x] T015 La cadena de cierre: `format:check`, `quality`, `typecheck`, `test:all` y `release-check`
       (`contract:check` incluido ahí). La prueba de este cambio corre en **`npm test`**, el proyecto `fast`,
       porque es donde vive `tests/governance/mutation-diff.test.ts` — el plan dijo `tools` al principio y era
       falso.

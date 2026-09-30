@@ -9,9 +9,12 @@ Cinco pasos. **El paso 4 es el que ningún gate reemplaza**: provocar una corrid
 npx vitest run --project fast tests/governance/mutation-diff.test.ts
 ```
 
-Los tres casos nuevos: código de salida distinto de 0 (el archivo no se mira), reporte con fecha anterior al
-arranque con código 0, y el reporte de esta corrida, que se lee. Más el borde de FR-005: **la misma fecha
-que el arranque cuenta como de esta corrida**, que es el sesgo seguro.
+Dos grupos. **La regla**, con valores: código de salida distinto de 0 (el archivo no se mira ni para
+descartarlo), código 0 sin reporte, código 0 con reporte anterior al arranque, el reporte de esta corrida, y
+el borde de FR-005 —la misma fecha que el arranque cuenta como de esta corrida, que es el sesgo seguro—. Y
+**la fecha de un archivo de verdad**, que es la mitad que ninguna prueba con números alcanza: que
+`mtimeMs` sea comparable con el reloj. Un `Date` o segundos ahí harían ver todo reporte como ajeno, y el
+gate se negaría a informar un veredicto que sí tenía.
 
 ## 2. El camino feliz no cambió de texto
 
@@ -39,16 +42,17 @@ auditoría sin que nada más cambie — se puede ver corriendo la skill de audit
 encontró: **hacer que Stryker no llegue a juzgar**, con un reporte anterior en disco.
 
 ```bash
-# 1. Una corrida que sí termina, para que quede un reporte con cifras.
-npm run test:mutation
+# 1. Una corrida que sí termina, para que quede un reporte con cifras. **Con `--files` y no a secas**:
+#    `npm run test:mutation` se saltea cuando el diff no toca `src/`, que es justo el caso de un cambio
+#    de herramienta como éste, y entonces no deja ningún reporte que confundir después.
+node scripts/mutation-diff.mjs --files src/domain/shared-kernel/rate.ts:1-20
 
-# 2. Una corrida que no puede terminar: un tiempo de espera imposible para la corrida inicial.
-npx stryker run stryker.config.json --dryRunTimeoutMinutes 0.05
+# 2. Un tiempo de espera imposible para la corrida inicial, en la configuración, y el mismo comando.
+#    Stryker sale distinto de 0 sin juzgar nada, con el reporte del paso 1 todavía en disco.
 ```
 
-Con eso Stryker sale distinto de 0. Corriendo el gate en esa condición —la forma directa es dejar el
-tiempo de espera imposible en la configuración por un momento y correr `npm run test:mutation`— lo que
-tiene que verse es:
+Con eso Stryker sale distinto de 0. Lo que tiene que verse, **en las dos rutas** —el gate y la barrida
+informativa (`--all`), que es la que salía con éxito— es:
 
 ```
 test:mutation — the mutation run did not finish (exit code N); nothing on disk is its verdict.
@@ -71,6 +75,32 @@ npm run release-check
 `--check-report` mira el **último** reporte a propósito: no corre Stryker y la frescura no le aplica
 (research R-01). Es la parte del diseño más fácil de romper sin darse cuenta, porque el fallo aparecería al
 final de la cadena y no acá — por eso se corre en el quickstart.
+
+---
+
+## La corrida del 2026-09-30 (histórica y fechada)
+
+Los cinco pasos en esta máquina. Lo que encontró está corregido arriba, en el paso al que pertenece.
+
+| Paso                       | Resultado                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1 · la regla sola          | 21 pruebas en el archivo de gobernanza, 9 de ellas nuevas                                            |
+| 2 · el camino feliz        | `every mutant died.` en 14 min 20 s sobre `rate.ts`; con este diff, se saltea con su motivo          |
+| 3 · la forma para máquinas | `{"gate":"mutation","mode":"blocking","status":"pass","findings":[]}`                                |
+| 4 · la corrida caída       | `the mutation run did not finish (exit code 1); nothing on disk is its verdict`, exit 1, cero cifras |
+| 5 · el último reporte      | `check:mutation-report` y `release-check: OK`                                                        |
+
+Dos cosas que sólo aparecieron acá:
+
+1. **El primer comando del paso 4 no producía ningún reporte**: `npm run test:mutation` se saltea cuando
+   el diff no toca `src/`, que es exactamente el caso de un cambio de herramienta como éste. Sin reporte
+   en disco no hay nada que el paso 4 pueda confundir, así que el paso no probaba lo que dice. Corregido a
+   `--files`, que es cómo se consiguió el reporte de verdad.
+2. **El modo informativo salía 0 con una corrida caída**, no sólo informaba cifras viejas. Estaba escrito
+   en la spec como hipótesis de la fase 0 y acá se vio: ahora sale 1.
+
+Y lo que confirmó: en las dos rutas, la condición que en la feature 034 imprimía cifras de otra corrida
+ahora imprime por qué no hay veredicto, como **última línea** y sin ninguna cifra.
 
 ---
 

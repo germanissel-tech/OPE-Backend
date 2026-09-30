@@ -45,6 +45,13 @@ paths:
   re-juzga sólo esas líneas mientras el código está fresco; la corrida completa del diff se guarda
   para el cierre. Sin rangos re-juzga el archivo entero con `--force`, que puede costar más que el
   diff completo.
+- **Si la corrida no termina, no hay cifras que leer** (feature 035, ADR-016 enmendado). Un código de
+  salida distinto de 0 de Stryker significa **que no llegó a juzgar**, nunca «sobrevivieron mutantes»: el
+  gate lo dice con su código y no lee el reporte, porque el que quedó en disco es de la **corrida
+  anterior**. Pasó dos veces en la 034, y la segunda dijo «0 supervivientes». Así que ante un rojo del
+  gate, la pregunta es primero **si hubo veredicto** y después cuáles sobrevivieron; y ante un verde
+  sospechoso, que el reporte sea de esta corrida ya lo comprueba el gate por su fecha. `--check-report`
+  es la excepción: su trabajo **es** mirar el último reporte.
 - **Una corrida larga se escribe a un archivo, nunca a una tubería**: pasarla por `tail` descarta lo
   único que hay que leer y obliga a repetirla. Y no se edita `src/` mientras corre: el veredicto deja
   de ser del código que quedó.

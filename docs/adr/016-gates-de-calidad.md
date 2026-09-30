@@ -87,3 +87,34 @@ Decisión (dueño, 2026-09-21):
   arranque vuelva a medirse).
 
 La regla de fondo no cambia: un cambio no entra a `main` con un mutante real vivo en sus líneas.
+
+## Enmienda 2026-09-30 — una corrida que no termina no tiene veredicto
+
+El gate lee su veredicto del reporte JSON que Stryker deja en disco (Stryker 10 no ofrece `--break`
+en su CLI). Lo que faltaba decir es **de qué corrida** es ese archivo: cuando una corrida no llega a
+juzgar, el reporte que queda es el de la anterior, y el gate informaba esas cifras como si fueran de
+ésta. Pasó dos veces en el cierre de la feature 034 —una diciendo «3 supervivientes» sobre líneas
+borradas ese mismo día y otra, peor, diciendo **«0 supervivientes»**— y quedó registrado como **D-31**.
+
+No fue un verde falso: el gate mira el código de salida y falló las dos veces. Lo que estaba mal era
+lo que **decía**, sobre una corrida de doce minutos que se lee por su última línea.
+
+Decisión (feature 035):
+
+- **Un código de salida distinto de 0 significa que la corrida no terminó**, nunca «sobrevivieron
+  mutantes» — la configuración no fija umbral que rompa. Entonces el gate lo dice con su código y
+  **no lee el reporte**: un número que no se produjo no se informa ni se calcula.
+- **El reporte se fecha.** Si su fecha de modificación es anterior al instante en que arrancó la
+  corrida, es de otra corrida y el gate lo dice, sea cual sea el código de salida. La comparación es
+  estricta —un reporte escrito en el mismo instante es de esta corrida— porque las fechas de archivo
+  no tienen la misma resolución en todos lados y un gate que falla cuando no debe cuesta más que el
+  defecto que arregla; el margen real es de minutos contra milisegundos.
+- **Las dos rutas que corren Stryker**, la bloqueante y la informativa. La informativa estaba peor:
+  descartaba el código de salida y podía informar cifras viejas **saliendo con éxito**.
+- **`--check-report` queda afuera**, y no por olvido: su trabajo es revisar el **último** reporte, así
+  que la frescura no le aplica. La frescura es propiedad de una corrida, no del archivo.
+
+Lo que no cambia: qué cuenta como superviviente, `ignoreStatic`, los mutadores excluidos, las
+excepciones en línea y los tiempos de espera. Y la regla de fondo sigue igual — un cambio no entra a
+`main` con un mutante real vivo en sus líneas—; lo que se agrega es que **el gate no afirma nada que no
+haya verificado**.
