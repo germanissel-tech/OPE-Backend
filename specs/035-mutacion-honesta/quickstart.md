@@ -6,7 +6,7 @@ Cinco pasos. **El paso 4 es el que ningún gate reemplaza**: provocar una corrid
 ## 1. La regla, sola
 
 ```bash
-npx vitest run --project tools tests/governance/mutation-diff.test.ts
+npx vitest run --project fast tests/governance/mutation-diff.test.ts
 ```
 
 Los tres casos nuevos: código de salida distinto de 0 (el archivo no se mira), reporte con fecha anterior al

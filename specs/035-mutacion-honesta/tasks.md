@@ -22,14 +22,14 @@ fecha del reporte, responda **por qué no hay veredicto** o nada.
 
 **Independent Test**: la prueba de gobernanza la llama con valores y no lanza ningún proceso.
 
-- [ ] T001 `tests/governance/mutation-diff.test.ts` — **antes de la regla**, los cuatro casos de la tabla de
+- [x] T001 `tests/governance/mutation-diff.test.ts` — **antes de la regla**, los cuatro casos de la tabla de
       `data-model.md`: código distinto de 0 (con reporte en disco, para que se vea que **no lo mira**),
       código 0 sin reporte, código 0 con reporte **anterior** al arranque, y código 0 con reporte de esta
       corrida. Más el borde de **FR-005**: `mtime` **igual** al arranque cuenta como de esta corrida.
-- [ ] T002 `scripts/mutation-diff.mjs` — la función exportada, con su JSDoc (`checkJs` lo exige en toda
+- [x] T002 `scripts/mutation-diff.mjs` — la función exportada, con su JSDoc (`checkJs` lo exige en toda
       función exportada) y el orden de preguntas de la tabla: con código distinto de 0 **no se consulta el
       archivo** (FR-003). El mensaje de «no escribió reporte» es el que ya existe hoy, movido acá.
-- [ ] T003 Correr `npx vitest run --project tools tests/governance/mutation-diff.test.ts`: los casos nuevos
+- [x] T003 Correr `npx vitest run --project fast tests/governance/mutation-diff.test.ts`: los casos nuevos
       pasan y **ninguno de los existentes cambia de expectativa** (SC-003).
 
 **Checkpoint**: la regla está fijada y no hay cableado todavía; el gate se comporta exactamente como antes.
@@ -107,11 +107,13 @@ pase la fecha real del archivo.
 - [ ] T013 [P] `docs/deudas.md` — **D-31 cerrada**, con el commit, y la fila a `implementada`.
 - [ ] T014 Correr el **quickstart** de punta a punta, los cinco pasos, y anotar lo que aparezca. En las
       cinco features anteriores encontró algo que ningún gate veía.
-- [ ] T015 La cadena de cierre: `format:check`, `quality`, `typecheck`, `test:all` (incluye el proyecto
-      `tools`, que es donde vive la prueba de este cambio), `contract:check` y `release-check`.
+- [ ] T015 La cadena de cierre: `format:check`, `quality`, `typecheck`, `test:all` y `release-check`
+      (`contract:check` incluido ahí). La prueba de este cambio corre en **`npm test`**, el proyecto `fast`,
+      porque es donde vive `tests/governance/mutation-diff.test.ts` — el plan dijo `tools` al principio y era
+      falso.
       **Y una cosa que hay que decir en vez de fingir**: `test:mutation` sobre el diff de esta feature
       **se saltea**, porque no hay nada de `src/` que mutilar — el gate no puede juzgar su propio cambio.
-      Lo que lo juzga es el proyecto `tools` y el quickstart, y el hecho de que el gate siga funcionando
+      Lo que lo juzga es el proyecto `fast` y el quickstart, y el hecho de que el gate siga funcionando
       sobre el diff de la próxima feature.
 
 ---

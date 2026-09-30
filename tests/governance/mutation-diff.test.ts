@@ -41,6 +41,12 @@ interface Module {
     report: Report,
     readSource: (file: string) => string,
   ) => { file: string; line: number; message: string }[];
+  noVerdict: (run: {
+    status: number;
+    startedAtMs: number;
+    reportFile: string;
+    reportMtimeMs: number | null;
+  }) => string | null;
 }
 
 let mod: Module;
@@ -214,5 +220,56 @@ describe("guardZeroTests", () => {
       "mutation/EqualityOperator",
       "mutation/EqualityOperator",
     ]);
+  });
+});
+
+// Feature 035 (D-31): whether what is on disk is the verdict of the run that just happened.
+//
+// **The gate used to answer this question by not asking it.** It read the report Stryker leaves behind
+// without wondering which run wrote it, so a run that never got to judge reported the figures of the
+// previous one — once as three survivors on lines that had been deleted that same day, and once, worse,
+// as "0 mutant(s) survived", which is the number whoever runs the gate is hoping to see.
+describe("noVerdict", () => {
+  const REPORT = "reports/mutation/report.json";
+  const STARTED = 1_000_000;
+  const run = (over: Partial<Parameters<Module["noVerdict"]>[0]>) =>
+    mod.noVerdict({
+      status: 0,
+      startedAtMs: STARTED,
+      reportFile: REPORT,
+      reportMtimeMs: STARTED + 1_000,
+      ...over,
+    });
+
+  it("says the run did not finish, with its code, and does not look at the report at all", () => {
+    // The report here is **fresh**: if the answer were about the file, this would be a verdict. It is not,
+    // and that is the order the rule promises — a number that was not produced is not even computed.
+    expect(run({ status: 7 })).toBe(
+      "the mutation run did not finish (exit code 7); nothing on disk is its verdict",
+    );
+    expect(run({ status: 1, reportMtimeMs: null })).toBe(
+      "the mutation run did not finish (exit code 1); nothing on disk is its verdict",
+    );
+  });
+
+  it("says the run wrote no report when there is none", () => {
+    expect(run({ reportMtimeMs: null })).toBe(`Stryker wrote no report at ${REPORT}`);
+  });
+
+  it("says the report belongs to a previous run when it is older than this one", () => {
+    expect(run({ reportMtimeMs: STARTED - 1 })).toBe(
+      `the report at ${REPORT} is older than this run: it belongs to a previous one`,
+    );
+  });
+
+  it("treats a report written in the same instant as this run's, which is the safe bias", () => {
+    // **FR-005, and the bias is deliberate.** File timestamps do not have the same resolution everywhere,
+    // and a gate that fails because two instants landed together would cost more than the defect it fixes.
+    // The real margin is minutes against milliseconds, so the doubt is resolved towards "it is ours".
+    expect(run({ reportMtimeMs: STARTED })).toBeNull();
+  });
+
+  it("answers nothing when the run finished and wrote its own report", () => {
+    expect(run({})).toBeNull();
   });
 });

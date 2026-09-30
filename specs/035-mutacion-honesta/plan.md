@@ -24,8 +24,11 @@ exportada (ADR-011, ADR-012). No hay TypeScript en `scripts/`.
 
 **Storage**: N/A. El único archivo en juego es `reports/mutation/report.json`, que Stryker escribe.
 
-**Testing**: Vitest, proyecto `tools` (`tests/governance/mutation-diff.test.ts`), llamando funciones
-exportadas puras — el idioma que ese archivo ya usa.
+**Testing**: Vitest, proyecto **`fast`** (`tests/governance/mutation-diff.test.ts`), llamando funciones
+exportadas puras — el idioma que ese archivo ya usa. La primera versión de este plan dijo `tools` y es
+falso: de `tests/governance/` el proyecto `tools` incluye **sólo** `quality.test.ts`, que es la que corre la
+cadena entera. Lo demás de esa carpeta lo juzga `npm test`, que es mejor noticia de lo que parece — la
+prueba de este cambio corre en el lazo de cada historia y no sólo cuando alguien toca una herramienta.
 
 **Target Platform**: la cadena de calidad local y CI (Linux). El fechado tiene que tolerar la resolución de
 fechas de los dos.
