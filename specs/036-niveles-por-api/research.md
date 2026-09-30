@@ -32,7 +32,7 @@ al publicar un nivel. La respuesta se calcula cuando se necesita, con lo que ya 
 
 ---
 
-## R-02 — El nivel de plataforma está horneado en el grafo: **ocho** sitios, y ése es el trabajo
+## R-02 — El nivel de plataforma está horneado en el grafo: **once** sitios, y ése es el trabajo
 
 El nivel de defaults se lee por un puerto y la resolución lo pide cuando lo necesita. **El de plataforma
 también, para la resolución** — pero sus otros consumidores reciben el **valor** cuando el servidor se
