@@ -18,15 +18,17 @@ const DEFAULT_MIGRATIONS_DIR = "migrations";
 const IN_MEMORY = ":memory:";
 
 /**
- * The three words of a transaction, named once because they are written from two places —the synchronous
- * transaction and the unit of work— and they are the same transaction seen from two kinds of caller.
+ * The three words of a transaction, which only the unit of work writes: it is the one place that has to
+ * open a transaction and leave it open across an `await`, and the only reason the words are named rather
+ * than written where they are used is that the rollback happens twice, for two different reasons.
  */
 const BEGIN = "BEGIN";
 const COMMIT = "COMMIT";
 const ROLLBACK = "ROLLBACK";
-
-/** How much of a statement an error quotes: enough to find it, not enough to dump a document. */
-const STATEMENT_IN_ERROR = 60;
+/** The one savepoint name: the calls nest like the stack, and SQLite acts on the most recent of a name. */
+const SAVEPOINT = "ope_unit";
+/** What the guard quotes when the statement is not a statement but the transaction itself. */
+const TRANSACTION = "a transaction";
 
 /** A migration is `NNN-<name>.sql`, and `NNN` is the version of the schema it leaves behind. */
 const MIGRATION_FILE = /^(\d{3})-[a-z0-9-]+\.sql$/;
@@ -108,6 +110,50 @@ interface Migration {
   readonly file: string;
 }
 
+/**
+ * All of the work, or none of it, **whether or not a transaction is already open** — which is what every
+ * durable gateway needs: the order decides first / repeat / conflict in one of these, and the merchant
+ * writes its row and its origin claims in one.
+ *
+ * It is also how a **migration** runs, which is the same need one step earlier: all of it or none of it,
+ * against a store that may already hold rows. There used to be a second helper with `BEGIN`/`COMMIT`/
+ * `ROLLBACK` for that one, and the mutation gate is what said it had to go: its rollback could not be
+ * observed, because a failed migration closes the database on the way out and closing rolls back anyway.
+ * Through the savepoint the rollback is the difference between an empty store and a half-migrated one,
+ * which is exactly what the case is about.
+ *
+ * **A savepoint and not a `BEGIN`, always, and that is a simplification and not a compromise.** Inside an
+ * open unit of work a second `BEGIN` is an error in SQLite —"cannot start a transaction within a
+ * transaction"— and the first version of feature 034 found it the moment the seed ran. The branch that
+ * chose between the two was then removed for a better reason than tidiness: **the outermost savepoint of a
+ * connection with no transaction open behaves exactly like one**, so the branch was a distinction nothing
+ * could observe, and the mutation gate said so by surviving both sides of it.
+ *
+ * And joining the open transaction instead of nesting would have kept the unit atomic while quietly
+ * breaking the gateway's own promise: a write that fails halfway —an origin already taken— throws, its
+ * transaction rolls back, and the gateway turns that into the failure its port declares. Without the
+ * savepoint the half-written row would stay inside the unit and be committed with it.
+ *
+ * **The name is always the same**, because SQLite rolls back to and releases the **most recent** savepoint
+ * of a name, and the calls nest like the stack they are on. A counter would have been a second thing to
+ * keep in step for nothing.
+ */
+function inSavepoint<T>(database: DatabaseSync, work: () => T): T {
+  database.exec(`SAVEPOINT ${SAVEPOINT}`);
+  try {
+    const result = work();
+    // Not hygiene: for the **outermost** savepoint of a connection, which is what a migration is, this
+    // release is the commit. Nested inside a unit it only pops a name the unit would drop anyway.
+    database.exec(`RELEASE ${SAVEPOINT}`);
+    return result;
+  } catch (failure) {
+    database.exec(`ROLLBACK TO ${SAVEPOINT}`);
+    // Stryker disable next-line CallExpression: the rollback above is what undoes the work; this release only pops the name, which the enclosing unit drops on its way out and a failed migration drops by closing the database — nothing this repository does can observe it
+    database.exec(`RELEASE ${SAVEPOINT}`);
+    throw failure;
+  }
+}
+
 function prepareSchema(database: DatabaseSync, migrations: readonly Migration[], file: string): void {
   const expected = migrations[migrations.length - 1]?.version ?? 0;
   const found = userVersion(database);
@@ -144,36 +190,20 @@ function prepareSchema(database: DatabaseSync, migrations: readonly Migration[],
 }
 
 /**
- * All of the work, or none of it.
- *
- * The two callers need the same three words in the same order, and writing them twice is what the
- * magic-string rule catches: they are not two transactions that happen to look alike, they are one.
- * A migration cannot go through `SqlStore.transaction` instead, because it runs while the schema is
- * still being prepared and there is no store yet — only the driver.
- */
-function inTransaction<T>(database: DatabaseSync, work: () => T): T {
-  database.exec(BEGIN);
-  try {
-    const result = work();
-    database.exec(COMMIT);
-    return result;
-  } catch (failure) {
-    database.exec(ROLLBACK);
-    throw failure;
-  }
-}
-
-/**
  * One migration, all of it or none of it.
  *
- * The transaction is what makes a migration that rebuilds tables safe to run against a store with
+ * The savepoint is what makes a migration that rebuilds tables safe to run against a store with
  * data in it: SQLite cannot add a primary key to an existing table, so such a migration creates,
  * copies, drops and renames. Halfway through that without a rollback the store would be neither the
  * old shape nor the new one — and `user_version` would still say the old one, so the next start
  * would run the same migration again over the debris.
+ *
+ * It goes through the same helper as every gateway although nothing is open yet, because at the
+ * outermost level a savepoint **is** a transaction, and one mechanism that is exercised by everything
+ * beats two that are exercised half each.
  */
 function applyMigration(database: DatabaseSync, migration: Migration): void {
-  inTransaction(database, () => {
+  inSavepoint(database, () => {
     database.exec(readFileSync(migration.file, "utf8"));
   });
 }
@@ -199,51 +229,58 @@ const isEmpty = (database: DatabaseSync): boolean =>
  */
 const openUnit = new AsyncLocalStorage<Unit>();
 
-/** One unit of work, as everybody else sees it: the promise that resolves when it closes. */
+/**
+ * What the guard throws. A statement from outside the open unit would land **inside** somebody else's
+ * transaction — committed or reverted by a decision that is not its own — and a read would see what that
+ * transaction has not committed. Whoever did not wait its turn has a programming error, and in this project
+ * those are thrown (ADR-023) so that the first test of a gateway that forgot fails instead of passing.
+ */
+const notYourTurn = (sql: string): Error =>
+  new Error(`A unit of work is open and this statement did not wait its turn: ${sql}`);
+
+/** One unit of work: the promise that resolves when it closes, and what runs only if it commits. */
 interface Unit {
   readonly closed: Promise<void>;
+  /** Work that is not part of the transaction and only makes sense once it is real: see `committed`. */
+  readonly afterwards: (() => void)[];
 }
 
 /**
- * The store as a gateway sees it: statements, the synchronous transaction, and the unit of work that
- * feature 034 added so that an asynchronous caller can compose several writes into one.
+ * The half of the store that decides **who may write right now** (feature 034): the unit of work, the turn
+ * everybody else waits for, the guard, and the transaction — which is where the two halves meet.
  *
  * **`held` is deliberately a single slot and not a queue of units.** There is one writer in SQLite and one
  * process in this deployment (D-21), so two units at once are not a case to support but a case to make
  * impossible: the second waits for the first through the same turn everybody else waits for.
  */
-function storeOn(database: DatabaseSync): SqlStore {
+function unitsOn(database: DatabaseSync) {
   let held: Unit | undefined;
 
   /**
-   * The guard. A statement from outside the open unit would land **inside** somebody else's transaction —
-   * it would be committed or reverted by a decision that is not its own, and a read would see what that
-   * transaction has not committed. Whoever forgot to wait its turn has a programming error, and in this
-   * project those are thrown (ADR-023).
+   * The unit this caller is inside of, or nothing.
+   *
+   * **One predicate and not three comparisons**, and the mutation gate is what asked for it: written
+   * inline, `openUnit.getStore() === held` could be replaced by a constant in each of the three places
+   * without any test noticing — each one was still right for the cases the tests covered. With one
+   * predicate there is one thing to get wrong and every caller gets it wrong together.
+   *
+   * **And there is no `held !== undefined` in front of the comparison, on purpose.** It reads like the
+   * safe thing to write and it is dead weight: with no unit open, `getStore()` is `undefined` too, the
+   * comparison holds and what comes back is `held` — which is the `undefined` the guard would have
+   * returned. The gate said so by surviving its mutation, and a check no test can distinguish is a check
+   * that will be read as meaning something.
    */
-  const mine = (): boolean => held === undefined || openUnit.getStore() === held;
+  const holding = (): Unit | undefined => (openUnit.getStore() === held ? held : undefined);
+  /**
+   * The unit **in the way**: the open one when it is not this caller's, and nothing otherwise.
+   *
+   * It answers with the unit and not with a boolean because whoever asks has to wait for **that** unit,
+   * and a version that tested one thing and awaited another could spin instead of waiting — a hang rather
+   * than a wrong answer, which is the worse of the two and the one a mutant found.
+   */
+  const blocking = (): Unit | undefined => (holding() === undefined ? held : undefined);
   const guard = (sql: string): void => {
-    if (mine()) return;
-    throw new Error(
-      `A unit of work is open and this statement did not wait its turn: ${sql.trimStart().slice(0, STATEMENT_IN_ERROR)}`,
-    );
-  };
-
-  const all = (sql: string, params?: Readonly<Record<string, SqlValue>>): readonly SqlRow[] => {
-    guard(sql);
-    // A statement with no parameters is given an empty set rather than no argument at all: the
-    // driver accepts it and answers the same, so the branch that told the two cases apart could
-    // not change anything. The copy is what turns the readonly record into the mutable one the
-    // named-parameter overload asks for.
-    return database
-      .prepare(sql)
-      .all({ ...params })
-      .map(rowOf);
-  };
-
-  const run = (sql: string, params?: Readonly<Record<string, SqlValue>>): void => {
-    guard(sql);
-    database.prepare(sql).run({ ...params });
+    if (blocking() !== undefined) throw notYourTurn(sql);
   };
 
   /**
@@ -261,7 +298,7 @@ function storeOn(database: DatabaseSync): SqlStore {
     const closed = new Promise<void>((resolve) => {
       close = resolve;
     });
-    const unit: Unit = { closed };
+    const unit: Unit = { closed, afterwards: [] };
     held = unit;
     database.exec(BEGIN);
     // A field and not a local `let`, and that is not a style choice: assigned only inside the callback,
@@ -275,7 +312,10 @@ function storeOn(database: DatabaseSync): SqlStore {
       // `abort` is the caller saying "revert", and it is the only failure this unit reports: anything
       // else the work throws is a programming error and travels as one.
       database.exec(reverting.asked ? ROLLBACK : COMMIT);
-      return reverting.asked ? fail(new StoreUnavailable()) : ok(value);
+      if (reverting.asked) return fail(new StoreUnavailable());
+      // Only now: what mirrors the store is allowed to change once the store really changed.
+      for (const after of unit.afterwards) after();
+      return ok(value);
     } catch (failure) {
       database.exec(ROLLBACK);
       throw failure;
@@ -290,18 +330,67 @@ function storeOn(database: DatabaseSync): SqlStore {
 
   /** The turn: at once unless somebody else's unit is open, and then when it closes. */
   async function enter(): Promise<void> {
-    // A `while` and not an `if`: between this unit closing and this caller running, another one may have
-    // opened, and waiting for the first is not waiting for the second.
-    while (held !== undefined && openUnit.getStore() !== held) await held.closed;
+    // It looks again after each wait and not once: between one unit closing and this caller running,
+    // another may have opened, and having waited for the first is not having waited for the second.
+    for (let unit = blocking(); unit !== undefined; unit = blocking()) await unit.closed;
   }
 
+  /**
+   * The synchronous transaction, with **two ways of being atomic** — and this is the part the derived
+   * design of D-28 did not have. Outside a unit it is the transaction it always was; inside one it is a
+   * savepoint, for the reason written above `inSavepoint`.
+   */
+  const transaction = <T>(work: () => T): T => {
+    // **And the guard is here and not only on the statements inside.** A savepoint nests without
+    // complaining, so a gateway that forgot its turn and wrote nothing but a transaction would be told
+    // nothing — and the first version of this file was exactly that, which is why the case in
+    // `tests/durability/unit-of-work.test.ts` opens one with an empty body.
+    guard(TRANSACTION);
+    return inSavepoint(database, work);
+  };
+
   return {
-    all,
-    run,
-    transaction: (work) => inTransaction(database, work),
+    guard,
+    transaction,
+    committed: (after: () => void): void => {
+      const unit = holding();
+      if (unit === undefined) after();
+      else unit.afterwards.push(after);
+    },
     scope,
     enter,
-    busy: () => !mine(),
+    busy: () => blocking() !== undefined,
+  };
+}
+
+/**
+ * The store as a gateway sees it: two statements over the driver, plus the unit of work and the turn that
+ *  keeps. The two halves are separate because they are two subjects — what a statement is, and
+ * who may run one right now.
+ */
+function storeOn(database: DatabaseSync): SqlStore {
+  const units = unitsOn(database);
+  return {
+    all: (sql, params) => {
+      units.guard(sql);
+      // A statement with no parameters is given an empty set rather than no argument at all: the
+      // driver accepts it and answers the same, so the branch that told the two cases apart could
+      // not change anything. The copy is what turns the readonly record into the mutable one the
+      // named-parameter overload asks for.
+      return database
+        .prepare(sql)
+        .all({ ...params })
+        .map(rowOf);
+    },
+    run: (sql, params) => {
+      units.guard(sql);
+      database.prepare(sql).run({ ...params });
+    },
+    transaction: units.transaction,
+    committed: units.committed,
+    scope: units.scope,
+    enter: units.enter,
+    busy: units.busy,
     close: () => {
       database.close();
     },

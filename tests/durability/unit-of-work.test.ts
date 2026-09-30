@@ -10,6 +10,7 @@ import { restartableStore, type Restartable } from "./store-fixture.js";
 
 /** A row of a table with no business key, so an insert is only an insert. */
 const INSERT = `INSERT INTO admin_entries (merchant_id, document) VALUES (:merchant, '{}')`;
+const CLAIM_ORIGIN = `INSERT INTO merchant_origins (merchant_id, origin) VALUES (:merchant, :origin)`;
 const COUNT = `SELECT COUNT(*) AS n FROM admin_entries WHERE merchant_id = :merchant`;
 
 /** Yields to the event loop, which is where everything this file is about happens. */
@@ -137,8 +138,8 @@ describe("the unit of work of the store", () => {
 
     expect(() => {
       fixture.store.run(INSERT, { merchant: "intruder" });
-    }).toThrow();
-    expect(() => fixture.store.all(COUNT, { merchant: "intruder" })).toThrow();
+    }).toThrow("did not wait its turn");
+    expect(() => fixture.store.all(COUNT, { merchant: "intruder" })).toThrow("did not wait its turn");
 
     await unit;
     // And with no unit open it costs nothing and changes nothing.
@@ -146,6 +147,114 @@ describe("the unit of work of the store", () => {
       fixture.store.run(INSERT, { merchant: "intruder" });
     }).not.toThrow();
     expect(rows("intruder")).toBe(1);
+  });
+
+  it("reverts everything when the work throws, and lets the throw out", async () => {
+    // A throw is not `abort()`: `abort` is the caller saying "revert this on purpose", and a throw is a
+    // programming error. The unit reverts either way —half a unit is the one thing it must never leave—
+    // but only the first is a failure it reports; the second travels as what it is.
+    const attempt = fixture.store.scope(async () => {
+      fixture.store.run(INSERT, { merchant: "thrown" });
+      await tick();
+      throw new Error("something nobody planned for");
+    });
+
+    await expect(attempt).rejects.toThrow("something nobody planned for");
+    expect(rows("thrown")).toBe(0);
+    // And the store is usable afterwards, which is what says the transaction was really closed.
+    fixture.store.run(INSERT, { merchant: "after" });
+    expect(rows("after")).toBe(1);
+  });
+
+  it("reverts only the inner transaction when a statement inside the unit fails", async () => {
+    // **The savepoint.** A gateway wraps its own decision in `transaction`, and inside a unit that is a
+    // savepoint: a write that fails halfway has to undo **its** part and leave the rest of the unit
+    // standing, because the gateway turns that failure into the value its port declares and the caller
+    // keeps going. Without the savepoint the half-written row would ride along to the commit.
+    const unit = await fixture.store.scope(async () => {
+      fixture.store.run(INSERT, { merchant: "before" });
+      await tick();
+      const refused = (): void => {
+        fixture.store.transaction(() => {
+          fixture.store.run(INSERT, { merchant: "half" });
+          // A statement the schema refuses: `merchant_origins.origin` is unique, so the second claim of
+          // the same origin throws exactly the way a gateway's does.
+          fixture.store.run(CLAIM_ORIGIN, { merchant: "half", origin: "https://taken.example" });
+          fixture.store.run(CLAIM_ORIGIN, { merchant: "half", origin: "https://taken.example" });
+        });
+      };
+      expect(refused).toThrow();
+      fixture.store.run(INSERT, { merchant: "after" });
+      return "kept";
+    });
+
+    expect(unit).toEqual({ ok: true, value: "kept" });
+    fixture.restart();
+    // The two writes outside the inner transaction are there; nothing of the one that failed is.
+    expect(rows("before")).toBe(1);
+    expect(rows("after")).toBe(1);
+    expect(rows("half")).toBe(0);
+  });
+
+  it("throws **its own** error when a transaction is opened without waiting its turn", async () => {
+    // The guard is on the transaction too, and it has to be: a gateway that forgot its turn would write
+    // inside somebody else's unit, which is the same defect one level up.
+    //
+    // **And the assertion is on the message, which is not fussiness.** The mutation gate survived a
+    // version of this file with the guard removed: SQLite throws there anyway —"cannot start a
+    // transaction within a transaction"— so a test that only asked for *a* throw could not tell a guard
+    // that works from no guard at all. What it has to say is which mistake was made, because that is the
+    // whole reason the guard exists.
+    const unit = fixture.store.scope(async () => {
+      await tick();
+      await tick();
+      return undefined;
+    });
+    await tick();
+
+    // **The work is empty on purpose.** With a statement inside, the statement's own guard throws the same
+    // error and the assertion cannot tell which of the two fired — which is exactly how a version with no
+    // guard on the transaction passed this file. Empty, only the transaction can be the one refusing.
+    expect(() => {
+      fixture.store.transaction(() => undefined);
+    }).toThrow("did not wait its turn");
+
+    // And with a statement inside, nothing of it lands either.
+    expect(() => {
+      fixture.store.transaction(() => {
+        fixture.store.run(INSERT, { merchant: "intruder" });
+      });
+    }).toThrow("did not wait its turn");
+
+    await unit;
+    expect(rows("intruder")).toBe(0);
+  });
+
+  it("runs what was left for the commit only when the unit commits, and at once when there is none", async () => {
+    // What `committed` is for: memory that mirrors the store — the in-memory index of ADR-041 — must not
+    // change while a unit is open, because a reverted action would leave it holding what the table never
+    // got. Outside a unit there is nothing to wait for and it runs immediately.
+    const done: string[] = [];
+    fixture.store.committed(() => done.push("no unit"));
+    expect(done).toEqual(["no unit"]);
+
+    const reverted = await fixture.store.scope(async (abort) => {
+      fixture.store.committed(() => done.push("reverted"));
+      await tick();
+      abort();
+      return undefined;
+    });
+    expect(reverted.ok).toBe(false);
+    expect(done).toEqual(["no unit"]);
+
+    await fixture.store.scope(async () => {
+      fixture.store.committed(() => done.push("committed"));
+      await tick();
+      // Not yet: the store has not committed, so what mirrors it has not changed either.
+      expect(done).toEqual(["no unit"]);
+      return undefined;
+    });
+    expect(done).toEqual(["no unit", "committed"]);
   });
 
   it("lets the owner of the unit write and read inside it", async () => {

@@ -56,6 +56,19 @@ export interface SqlStore {
    */
   enter(): Promise<void>;
   /**
+   * Runs `after` when the open unit commits — or **now**, when there is no unit open.
+   *
+   * It exists for the one thing a transaction cannot revert: **memory that mirrors the store**. The
+   * merchants and the experiments answer their reads from an in-memory index (ADR-041) whose rule is that
+   * it holds what the store accepted, and inside an open unit nothing is accepted yet. Without this, an
+   * action that reverted would leave the index holding a merchant the table does not have — the one
+   * divergence that gateway's design says cannot happen.
+   *
+   * Whoever registers work here is saying "this is not part of the transaction and it only makes sense
+   * once the transaction is real". Nothing that has to be atomic belongs here.
+   */
+  committed(after: () => void): void;
+  /**
    * Whether a unit of work is open right now, **answered synchronously**.
    *
    * It exists for the one caller that cannot wait for anything: the queue of the event register flushes

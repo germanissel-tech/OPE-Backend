@@ -175,19 +175,29 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
   // Builds everything the deployment binds: a cycle is found here, and what is created is
   // created in the order of the list, which is the order the shutdown reverses.
   graph.resolveAll();
-  const definition = graph.resolve(ContractPort);
-  await importSeed(config, graph);
-  await reportWhatWasLost(graph);
-  const wired = graph.wire();
-  const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
-  assertEveryOperationWired(definition, handlers);
-  const app = await buildServer({
-    definition,
-    handlers,
-    security: wired.security,
-    cors: wired.cors,
-    logger: graph.resolve(LoggerPort),
-    retryAfterSeconds: config.levels.platform.retryAfterSeconds,
-  });
-  return { app, resolve: graph.resolve, close: () => shutdown(app, graph.closables) };
+  try {
+    const definition = graph.resolve(ContractPort);
+    await importSeed(config, graph);
+    await reportWhatWasLost(graph);
+    const wired = graph.wire();
+    const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
+    assertEveryOperationWired(definition, handlers);
+    const app = await buildServer({
+      definition,
+      handlers,
+      security: wired.security,
+      cors: wired.cors,
+      logger: graph.resolve(LoggerPort),
+      retryAfterSeconds: config.levels.platform.retryAfterSeconds,
+    });
+    return { app, resolve: graph.resolve, close: () => shutdown(app, graph.closables) };
+  } catch (failure) {
+    // **A boot that fails after building the graph closes what it built.** The graph creates the store
+    // before the seed runs, and a seed that is refused —which is what an unauditable platform looks
+    // like— used to leave the file open with nobody holding the handle. In production the process exits
+    // and nothing notices; a test that boots, fails and then tries to delete its directory does, and on
+    // Windows it cannot. Closing is the honest half of "failing loudly" (feature 034).
+    for (const closable of [...graph.closables].reverse()) await closable.close();
+    throw failure;
+  }
 }

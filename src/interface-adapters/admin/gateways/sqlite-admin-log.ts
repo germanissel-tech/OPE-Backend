@@ -38,15 +38,6 @@ const RECENT = `SELECT id, document FROM admin_entries
 const OF_MERCHANT = `SELECT id, document FROM admin_entries
   WHERE merchant_id = :merchant AND id < :below ORDER BY id DESC LIMIT :limit`;
 
-/**
- * What `writable` asks. It is a read, and that is the honest limit of the question: SQLite cannot say
- * whether the next write will succeed without writing, so a full disk still shows up at write time.
- * What this does catch is what an operator most often hits — a store that is closed, a file that is
- * gone, a schema that is not the one this build expects — and the rest is what **D-28** removes by
- * committing the entry with the action it records instead of asking beforehand (ADR-034).
- */
-const REACHABLE = `SELECT id FROM admin_entries LIMIT 1`;
-
 const entryOf = (row: SqlRow): AdminEntry => fromDocument(String(row[DOCUMENT])) as AdminEntry;
 
 export function sqliteAdminLog(deps: DurableGatewayDeps): AdminLog {
@@ -74,11 +65,6 @@ export function sqliteAdminLog(deps: DurableGatewayDeps): AdminLog {
           merchant: entry.merchantId ?? null,
           document: toDocument({ ...entry, operatorId: asOperatorId(entry.operatorId) }),
         });
-        return undefined;
-      }),
-    writable: () =>
-      stored<undefined>(deps, WRITE, () => {
-        deps.store.all(REACHABLE);
         return undefined;
       }),
     list: (query) => paged(RECENT, undefined, query),

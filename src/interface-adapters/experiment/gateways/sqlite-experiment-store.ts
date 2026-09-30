@@ -87,7 +87,9 @@ export function sqliteExperimentStore(
       });
       return undefined;
     });
-    if (written.ok) await into(experiment);
+    // After the store accepted — and inside a unit of work that means after it commits (feature 034):
+    // the index is a view of the table, and a reverted action must not leave it holding an experiment.
+    if (written.ok) deps.store.committed(() => void into(experiment));
     return written;
   };
 
@@ -110,7 +112,7 @@ export function sqliteExperimentStore(
       );
       if (!written.ok) return written;
       if (!written.value.ok) return written.value;
-      await index.open(experiment);
+      deps.store.committed(() => void index.open(experiment));
       return { ok: true, value: experiment };
     },
     update: async (experiment) => {

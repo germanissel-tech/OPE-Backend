@@ -64,6 +64,9 @@ export function fakeStore(options: FakeStoreOptions = {}): FakeStore {
       turns += 1;
       return Promise.resolve();
     },
+    committed: (after) => {
+      after();
+    },
     busy: () => options.busy === true,
     close: () => undefined,
   };

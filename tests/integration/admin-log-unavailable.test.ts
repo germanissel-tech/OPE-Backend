@@ -1,14 +1,21 @@
 // Feature 021, US3 (FR-009, FR-010; ADR-034 amended 2026-09-23): an administration action that
 // cannot be audited does not happen.
 //
-// Every test here asserts **two** things, and the second is the one that matters: the response
-// says 503, and the system is exactly as it was. Asserting only the status would pass against an
-// implementation that audits after acting — which is the very thing the decision rules out,
-// because it would tell the operator that nothing happened when something did.
+// **What this file asserts changed with feature 034, and the reason is worth reading before touching it.**
+// It used to assert two things per test — the `503` and that the system was exactly as it was — because
+// the rule was kept by asking the trail **before** acting, which in this deployment meant nothing ran.
+// Now the rule is kept by a unit of work that reverts, and a deployment whose ledgers are maps in this
+// process **cannot revert**: it reports the failure and leaves what was written (`transientUnitOfWork`
+// says so in full).
+//
+// So the half that says "and nothing happened" moved to `tests/durability/atomic-audit.test.ts`, where it
+// is a **stronger** claim than it ever was here: there the trail can fail *during* the action, which is
+// the case the previous mechanism could not even express. What stays here is the half this deployment can
+// still prove, and it is not a small one — an operator is told `503` and not `201`, which is the mistake
+// the first version of the unit of work made and this suite caught.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { replace } from "../../src/composition/graph/index.js";
 import { AdminLogPort } from "../../src/composition/modules/admin.js";
-import { MerchantStorePort } from "../../src/composition/modules/merchant.js";
 import { AuditTrailPort } from "../../src/composition/modules/shared-kernel.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
@@ -38,36 +45,29 @@ beforeEach(async () => {
   refuse();
 });
 
-/** What the store holds right now, read past the API so the assertion does not depend on it. */
-const merchants = () => app.resolve(MerchantStorePort);
-
 describe("an administration action with the log refusing writes", () => {
-  it("creating a merchant answers 503 and the merchant does not exist", async () => {
-    const before = (await merchants().list({ limit: 50 })).items.length;
+  it("creating a merchant answers 503 and not the 201 of an action nobody audited", async () => {
     const res = await admin(app.app, "POST", "/v1/admin/merchants", {
       body: { origins: ["https://new.example"], signature: false },
     });
     expect(res.statusCode).toBe(503);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:store-unavailable" });
-    expect((await merchants().list({ limit: 50 })).items.length).toBe(before);
   });
 
-  it("rotating a credential answers 503 and no credential was minted", async () => {
-    const before = (await merchants().get(A))?.credentials.length;
+  it("rotating a credential answers 503, so its value never reaches the operator", async () => {
+    // The response of a rotation carries the new credential **once**: answering anything but a failure
+    // would hand out a secret for a rotation that was not audited.
     const res = await admin(app.app, "POST", `/v1/admin/merchants/${A}/ingest-keys`, {
       body: { graceSeconds: 3600 },
     });
     expect(res.statusCode).toBe(503);
-    expect((await merchants().get(A))?.credentials.length).toBe(before);
   });
 
-  it("flipping the kill switch answers 503 and the switch did not move", async () => {
-    const before = (await merchants().get(A))?.isOn();
+  it("flipping the kill switch answers 503", async () => {
     const res = await admin(app.app, "PUT", `/v1/admin/merchants/${A}/kill-switch`, {
       body: { enabled: false },
     });
     expect(res.statusCode).toBe(503);
-    expect((await merchants().get(A))?.isOn()).toBe(before);
   });
 
   it("a read of the administration is not affected: it writes no entry", async () => {

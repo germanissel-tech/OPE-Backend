@@ -101,7 +101,10 @@ export function sqliteMerchantStore(deps: SqliteMerchantStoreDeps): MerchantStor
       });
       return undefined;
     });
-    if (written.ok) await into(merchant);
+    // **After the store accepted, and inside a unit of work that means after it commits** (feature 034).
+    // The index is a view of what the table holds; touching it while a unit is open would leave it holding
+    // a merchant that a reverted action never created, and no read would ever find out.
+    if (written.ok) deps.store.committed(() => void into(merchant));
     return written;
   };
 

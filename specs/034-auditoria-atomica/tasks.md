@@ -74,35 +74,35 @@ todavía nadie retiene.
 **Independent Test**: ejecutar una acción con un registro sano y otra con un registro que falla al escribir
 la entrada, y comprobar en el almacén que el efecto está en el primer caso y **no está** en el segundo.
 
-- [ ] T010 [US1] `src/application/shared-kernel/ports/unit-of-work.ts` — el puerto del kernel:
+- [x] T010 [US1] `src/application/shared-kernel/ports/unit-of-work.ts` — el puerto del kernel:
       `scope<T>(work: (abort: () => void) => Promise<T>): Promise<Result<T, StoreUnavailable>>`. El `abort`
       que recibe el trabajo es lo que permite revertir desde un anillo donde `try/catch` está prohibido
       (ADR-023) y donde una excepción sería un `500` en vez del `503` declarado (research R-02).
-- [ ] T011 [US1] `src/interface-adapters/shared-kernel/unit-of-work.ts` — las dos implementaciones. La
+- [x] T011 [US1] `src/interface-adapters/shared-kernel/unit-of-work.ts` — las dos implementaciones. La
       durable abre, ejecuta, cierra o revierte; **la de memoria ejecuta y responde `ok`**, y eso no es un
       stub que tape un caso: ese despliegue nunca prometió atomicidad (research R-05).
-- [ ] T012 [US1] `src/composition/` — el enlace del puerto por tecnología. Un módulo con dos tecnologías
+- [x] T012 [US1] `src/composition/` — el enlace del puerto por tecnología. Un módulo con dos tecnologías
       **no compila si nadie elige** (ADR-033), así que olvidarse falla en compilación.
-- [ ] T013 [P] [US1] `tests/unit/application/shared-kernel/audited-use-case.test.ts` — **antes de tocar el
+- [x] T013 [P] [US1] `tests/unit/application/shared-kernel/audited-use-case.test.ts` — **antes de tocar el
       decorador**, y con las tres aserciones que deciden si la feature audita lo que debe: un **rechazo de
       negocio no aborta** y su entrada queda; **sólo** el fallo del registro aborta; y cuando aborta, la
       respuesta de la operación **es** el fallo de la unidad.
-- [ ] T014 [US1] `src/application/shared-kernel/decorators/audited-use-case.ts` — el cambio: la consulta
+- [x] T014 [US1] `src/application/shared-kernel/decorators/audited-use-case.ts` — el cambio: la consulta
       previa sale y el trabajo pasa a correr dentro de la unidad. Sin `try/catch`, que el lint rechaza en
       el acto.
-- [ ] T015 [US1] `src/application/shared-kernel/ports/audit-trail.ts` y sus dos implementaciones —
+- [x] T015 [US1] `src/application/shared-kernel/ports/audit-trail.ts` y sus dos implementaciones —
       `writable()` se va. La transacción subsume lo que preguntaba, y dos mecanismos para la misma promesa
       son dos lugares donde puede fallar.
-- [ ] T016 [US1] `tests/durability/atomic-audit.test.ts` — **SC-001**: con el registro fallando al escribir
+- [x] T016 [US1] `tests/durability/atomic-audit.test.ts` — **SC-001**: con el registro fallando al escribir
       la entrada, ni el merchant ni sus orígenes reservados quedan; con el registro sano, las dos cosas
       sobreviven al reinicio. Es la ventana de ADR-034 cerrada.
-- [ ] T017 [US1] `tests/integration/admin-log-unavailable.test.ts` y `tests/helpers/unavailable-ledgers.ts`
+- [x] T017 [US1] `tests/integration/admin-log-unavailable.test.ts` y `tests/helpers/unavailable-ledgers.ts`
       — qué afirman ahora que no hay consulta previa. **La garantía del arranque no se toca**: un registro
       que no acepta escrituras al arrancar sigue impidiendo arrancar, porque la semilla es una acción
       administrativa y ahora también corre dentro de una unidad.
-- [ ] T018 [US1] `tests/durability/atomic-audit.test.ts` — el aislamiento **a través de una reversión**: una
+- [x] T018 [US1] `tests/durability/atomic-audit.test.ts` — el aislamiento **a través de una reversión**: una
       acción sobre un merchant que revierte no deja ni toca nada de otro (constitución V).
-- [ ] T019 [US1] `npm run test:mutation` acotado al diff de la historia.
+- [x] T019 [US1] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: la historia 1 funciona sola y **es la feature mínima entregable** — la regla de ADR-034
 deja de ser cierta sólo en el caso barato.
