@@ -5,9 +5,9 @@ paths:
   - "migrations/**"
 ---
 
-# Cómo se escribe un gateway durable (feature 030; ADR-021, ADR-024, ADR-038)
+# Cómo se escribe un gateway durable (features 030 y 034; ADR-021, ADR-024, ADR-038)
 
-Un gateway durable traduce entre una entidad del dominio y una tabla. Seis cosas, y las tres
+Un gateway durable traduce entre una entidad del dominio y una tabla. Siete cosas, y las cuatro
 primeras son las que se equivocan.
 
 - **El driver no se importa: llega.** El anillo de adaptadores **no puede importar
@@ -17,6 +17,21 @@ primeras son las que se equivocan.
   gateway envuelve en `Promise` y el puerto no cambia de forma. **No** se envuelve la escritura en
   `setImmediate` para «no bloquear»: no la hace asíncrona, la hace impredecible — el orden deja de
   estar garantizado y la degradación de ADR-021 deja de observarse (ADR-038).
+
+- **El turno se espera, y no esperarlo lanza** (feature 034). Antes de tocar el almacén va
+  `await store.enter()`. Mientras hay una **unidad de trabajo ajena** abierta —una acción de
+  administración escribiendo su efecto y su entrada de auditoría juntos—, `run`, `all` y
+  `transaction` **lanzan** (`did not wait its turn`), y eso es a propósito: escribir dentro de la
+  transacción de otro no rompe nada visible hasta que algo falla, así que el olvido tiene que fallar
+  en la primera prueba y no en producción (es un error de programación, ADR-023). Fuera de una unidad
+  el turno está concedido y cuesta una microtarea.
+  **Los tres envoltorios ya lo hacen**: `stored`, `attempted` y `fetched` desembocan en una sola
+  línea de `src/interface-adapters/shared-kernel/durable-store.ts`, así que un gateway escrito con
+  ellos no tiene que acordarse de nada;
+  el que llama a `store.run` o `store.all` a mano, sí. Y un gateway **no abre** una unidad: la abre
+  quien tiene algo que garantizar, por el puerto `UnitOfWork` (ADR-023, casos de uso). Los dos
+  gateways de `tests/durability/unit-of-work.test.ts` —idénticos salvo esa línea— son el caso que lo
+  fija.
 
 - **Lo que se escribe es `entidad.record()`, nunca una copia hecha acá.** Toda entidad que un
   almacén guarda tiene su `record()`, la contraparte de `rehydrate` (`Order`, `DecisionBase`,

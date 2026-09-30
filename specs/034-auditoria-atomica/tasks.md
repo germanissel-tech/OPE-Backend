@@ -140,10 +140,10 @@ p95 y los motivos de las decisiones contra la misma corrida sin acciones.
 **Independent Test**: un gateway escrito para eso escribe sin turno y falla de inmediato con una unidad
 ajena abierta; con ninguna abierta, funciona.
 
-- [ ] T024 [US3] `tests/durability/unit-of-work.test.ts` — las dos mitades juntas, que es lo que las hace
+- [x] T024 [US3] `tests/durability/unit-of-work.test.ts` — las dos mitades juntas, que es lo que las hace
       valer: **falla** con una unidad ajena abierta y **no cuesta nada** cuando no hay ninguna. Una sola
       mitad deja pasar un guardia que rompe todo o uno que no protege nada.
-- [ ] T025 [US3] `.claude/rules/gateway-durable.md` — el punto que le falta a la regla: **el turno se
+- [x] T025 [US3] `.claude/rules/gateway-durable.md` — el punto que le falta a la regla: **el turno se
       espera, y no esperarlo lanza**. Es la regla que llega cuando alguien trabaja sobre un gateway
       durable, así que es el único lugar donde la próxima persona lo va a leer a tiempo.
 

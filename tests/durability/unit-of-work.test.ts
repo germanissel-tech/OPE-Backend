@@ -7,6 +7,7 @@
 // true only for the code that remembers.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { restartableStore, type Restartable } from "./store-fixture.js";
+import type { SqlStore } from "../../src/interface-adapters/shared-kernel/index.js";
 
 /** A row of a table with no business key, so an insert is only an insert. */
 const INSERT = `INSERT INTO admin_entries (merchant_id, document) VALUES (:merchant, '{}')`;
@@ -27,6 +28,30 @@ afterEach(() => {
 });
 
 const rows = (merchant: string): number => Number(fixture.store.all(COUNT, { merchant })[0]?.["n"] ?? -1);
+
+/**
+ * **Two gateways that differ by one line**, written for SC-005 and for nothing else.
+ *
+ * The story this pair is about: whoever adds a durable store to this system has one more thing to do, and
+ * if they forget it their first test fails instead of their gateway writing inside somebody else's
+ * transaction. The pair is what makes the point — the same component, the same write, and the only
+ * difference is the turn — and it is written by hand rather than through `stored`/`fetched` precisely
+ * because those wrappers already wait: what is under test is what happens to somebody who does not use
+ * them.
+ */
+const forgetfulGateway = (store: SqlStore) => ({
+  // The mistake, and it is the whole component: no `await store.enter()` before touching the store.
+  write: async (merchant: string): Promise<void> => {
+    store.run(INSERT, { merchant });
+  },
+});
+
+const carefulGateway = (store: SqlStore) => ({
+  write: async (merchant: string): Promise<void> => {
+    await store.enter();
+    store.run(INSERT, { merchant });
+  },
+});
 
 describe("the unit of work of the store", () => {
   it("keeps what a unit that closes wrote, across a restart", async () => {
@@ -255,6 +280,35 @@ describe("the unit of work of the store", () => {
       return undefined;
     });
     expect(done).toEqual(["no unit", "committed"]);
+  });
+
+  it("fails the first write of a gateway that forgot its turn, and costs that gateway nothing with no unit open", async () => {
+    // **SC-005, and the two halves are one case on purpose.** Only the first half, and a guard that
+    // refused everything would pass; only the second, and a guard that protects nothing would. What has to
+    // be true is both: it fails where writing would be wrong, and it is free where it would not.
+    const forgetful = forgetfulGateway(fixture.store);
+    const careful = carefulGateway(fixture.store);
+
+    const unit = fixture.store.scope(async () => {
+      await tick();
+      await tick();
+      return undefined;
+    });
+    await tick();
+
+    await expect(forgetful.write("forgot")).rejects.toThrow("did not wait its turn");
+    // The careful one is the same component with one line more: it **waits** rather than failing, which is
+    // what says the guard is not simply a wall around an open unit.
+    const waiting = careful.write("waited");
+    await unit;
+    await waiting;
+
+    expect(rows("forgot")).toBe(0);
+    expect(rows("waited")).toBe(1);
+
+    // And with nothing open, the forgetful one writes: whoever never opens a unit pays nothing for this.
+    await forgetful.write("forgot");
+    expect(rows("forgot")).toBe(1);
   });
 
   it("lets the owner of the unit write and read inside it", async () => {
