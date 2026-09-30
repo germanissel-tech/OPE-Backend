@@ -6,6 +6,7 @@ export type { UseCase } from "./use-case.js";
 export { LoggedUseCase } from "./decorators/logged-use-case.js";
 export type { LoggedUseCaseDependencies } from "./decorators/logged-use-case.js";
 export type { AuditTrail } from "./ports/audit-trail.js";
+export type { UnitOfWork } from "./ports/unit-of-work.js";
 export { AuditedUseCase } from "./decorators/audited-use-case.js";
 export type {
   AdminRequest,

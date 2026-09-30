@@ -11,8 +11,7 @@ import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import { sqliteMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/sqlite-merchant-store.js";
 import { fingerprintOf, testMerchant } from "../../../helpers/merchants.js";
-import type { Logger } from "../../../../src/application/shared-kernel/index.js";
-import type { SqlStore } from "../../../../src/interface-adapters/shared-kernel/index.js";
+import { fakeLogger, fakeStore } from "../../../helpers/sql-store.js";
 
 const NOW = new Date("2026-09-29T10:00:00.000Z");
 
@@ -22,27 +21,14 @@ const NOW = new Date("2026-09-29T10:00:00.000Z");
  * inside the gateway.
  */
 function subject(options: { rows?: readonly string[]; refuses?: boolean } = {}) {
-  const statements: string[] = [];
-  const logged: { fields: Record<string, unknown>; message: string }[] = [];
-  const store: SqlStore = {
-    all: (sql) => {
-      statements.push(sql);
-      return (options.rows ?? []).map((document) => ({ document }));
-    },
-    run: (sql) => {
-      statements.push(sql);
-      if (options.refuses === true) throw new Error("UNIQUE constraint failed: merchant_origins.origin");
-    },
-    transaction: (work) => work(),
-    close: () => undefined,
-  };
-  const logger: Logger = {
-    info: () => undefined,
-    warn: () => undefined,
-    error: (fields, message) => logged.push({ fields, message }),
-  };
-  const merchants = sqliteMerchantStore({ store, logger, index: memoryMerchantStore() });
-  return { merchants, statements, logged };
+  const fake = fakeStore(options);
+  const recorder = fakeLogger();
+  const merchants = sqliteMerchantStore({
+    store: fake.store,
+    logger: recorder.logger,
+    index: memoryMerchantStore(),
+  });
+  return { merchants, statements: fake.statements, logged: recorder.entries };
 }
 
 describe("sqliteMerchantStore", () => {

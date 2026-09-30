@@ -17,7 +17,7 @@ import {
 } from "../../../domain/outcomes/index.js";
 import { Money, type MerchantId } from "../../../domain/shared-kernel/index.js";
 import { attempted, type DurableGatewayDeps } from "../../ledger/index.js";
-import { fromDocument, toDocument } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
 import type { OrderLedger, OrderRecording, ReturnRecording } from "../../../application/outcomes/index.js";
 
 const BY_ID = `SELECT document FROM orders WHERE merchant_id = :merchant AND order_id = :order`;
@@ -75,7 +75,7 @@ export function sqliteOrderLedger(deps: DurableGatewayDeps): OrderLedger {
         }),
       ),
 
-    find: (merchantId, orderId) => Promise.resolve(existing(merchantId, orderId)),
+    find: (merchantId, orderId) => fetched(deps, () => existing(merchantId, orderId)),
   };
 }
 

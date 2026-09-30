@@ -29,29 +29,51 @@ export interface DurableGatewayDeps {
 /**
  * Runs `work` against the store and gives back its value, or the failure the port declares.
  *
- * The work is **synchronous** —SQLite is— and the promise is only the shape the port asks for: nothing
- * here defers the write to a later tick, which would make the order of records unpredictable and hide
- * the degradation this function exists to report (feature 030, research R-03).
+ * **It waits its turn first, and that is the one line that gives every write of every durable gateway
+ * the unit of work of feature 034.** The three wrappers of this ring funnel here, so a write cannot land
+ * inside somebody else's open transaction — and a gateway does not have to remember anything. Outside a
+ * unit the turn is already granted and costs a microtask.
+ *
+ * The work itself is still **synchronous** —SQLite is— and nothing here defers it to a later tick, which
+ * would make the order of records unpredictable and hide the degradation this function exists to report
+ * (feature 030, research R-03). Waiting for a turn is not deferring the write: the turn is granted in the
+ * order it was asked for, so two records still land in the order they were called.
  *
  * The cause is **logged and not carried**: the failure channel says "nothing was written", which is what
  * the caller needs to fail closed and what is not enough to diagnose — a full disk, a lost permission and
  * a schema that drifted look the same without that line.
  */
-export function tried<T, E extends DomainError>(
+export async function tried<T, E extends DomainError>(
   deps: DurableGatewayDeps,
   what: string,
   work: () => T,
   failure: () => E,
 ): Promise<Result<T, E>> {
+  await deps.store.enter();
   try {
-    return Promise.resolve(ok(work()));
+    return ok(work());
   } catch (cause) {
     deps.logger.error(
       { write: what, cause: cause instanceof Error ? cause.message : String(cause) },
       "The durable store refused a write; nothing was recorded.",
     );
-    return Promise.resolve(fail(failure()));
+    return fail(failure());
   }
+}
+
+/**
+ * The same turn for a **read**, which needs its own because reads do not go through the wrappers above.
+ *
+ * A read inside somebody else's open transaction sees what that transaction has not committed: a decision
+ * could count a merchant that is about to disappear. So it waits, and what it reads is a store that is
+ * nobody's halfway state.
+ *
+ * **A read that fails still throws**, unlike a write: every `find` of ADR-021 answers the record or
+ * nothing, and giving reads a failure channel is a change of every port that the milestone still owes.
+ */
+export async function fetched<T>(deps: DurableGatewayDeps, read: () => T): Promise<T> {
+  await deps.store.enter();
+  return read();
 }
 
 /**

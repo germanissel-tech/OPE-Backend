@@ -9,7 +9,7 @@
 // not a column, not a constant and not a decision of this file (constitution XI).
 import { CatalogSnapshot, type CatalogSnapshotRecord } from "../../../domain/catalog/index.js";
 import { attempted, type DurableGatewayDeps } from "../../ledger/index.js";
-import { fromDocument, toDocument } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
 import type { CatalogStore } from "../../../application/catalog/index.js";
 
 const DOCUMENT = "document";
@@ -47,14 +47,13 @@ const RECEIPTS = `SELECT received_at FROM catalog_receipts WHERE merchant_id = :
 
 export function sqliteCatalogStore(deps: DurableGatewayDeps): CatalogStore {
   return {
-    current: (merchantId) => {
-      const rows = deps.store.all(CURRENT, { merchant: merchantId });
-      return Promise.resolve(
-        rows.length === 0
+    current: (merchantId) =>
+      fetched(deps, () => {
+        const rows = deps.store.all(CURRENT, { merchant: merchantId });
+        return rows.length === 0
           ? undefined
-          : CatalogSnapshot.rehydrate(fromDocument(String(rows[0]?.[DOCUMENT])) as CatalogSnapshotRecord),
-      );
-    },
+          : CatalogSnapshot.rehydrate(fromDocument(String(rows[0]?.[DOCUMENT])) as CatalogSnapshotRecord);
+      }),
 
     replace: (merchantId, snapshot, receiptsKept) =>
       attempted(deps, "catalog", () => {
@@ -71,7 +70,7 @@ export function sqliteCatalogStore(deps: DurableGatewayDeps): CatalogStore {
       }),
 
     receipts: (merchantId) =>
-      Promise.resolve(
+      fetched(deps, () =>
         deps.store.all(RECEIPTS, { merchant: merchantId }).map((row) => new Date(String(row[RECEIVED_AT]))),
       ),
   };

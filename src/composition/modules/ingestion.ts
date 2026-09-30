@@ -70,7 +70,10 @@ export const ingestionModule = compositionModule({
       bindAll(
         [EventLogQueuePort, EventLogPort],
         { logger: LoggerPort, tuning: EventLogTuningPort },
-        ({ logger, tuning }) => queuedEventLog({ writer: memoryEventLog(), logger, ...tuning }),
+        // `busy` is a constant here and that is a fact of the deployment, not a policy: with no store
+        // there is no unit of work that could be open, so the queue never has a reason to wait.
+        ({ logger, tuning }) =>
+          queuedEventLog({ writer: memoryEventLog(), logger, ...tuning, busy: () => false }),
       ),
     ],
     sqlite: [
@@ -99,7 +102,14 @@ export const ingestionModule = compositionModule({
         [EventLogQueuePort, EventLogPort],
         { store: SqlStorePort, logger: LoggerPort, tuning: EventLogTuningPort },
         ({ store, logger, tuning }) =>
-          queuedEventLog({ writer: sqliteEventLog({ store, logger }), logger, ...tuning }),
+          queuedEventLog({
+            writer: sqliteEventLog({ store, logger }),
+            logger,
+            ...tuning,
+            // Bound as a method of the store rather than copied out: `busy` answers about the unit open
+            // right now, so what the queue holds has to be the question and never an answer.
+            busy: () => store.busy(),
+          }),
       ),
     ],
   },

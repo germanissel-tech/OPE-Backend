@@ -12,7 +12,7 @@
 // `INSERT OR IGNORE` and not a read first: `(merchant, batch, position)` is the identity of an
 // arrival, so the store decides whether one is a repetition — which is what happens when a queue hands
 // the same arrival over twice.
-import { fromDocument, toDocument, type SqlParams, type SqlRow } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument, type SqlParams, type SqlRow } from "../../shared-kernel/index.js";
 import type { EventLog, EventTypeCount, Hole, TimeWindow } from "../../../application/ingestion/index.js";
 import type { EventId, EventType, RecordedEvent } from "../../../domain/ingestion/index.js";
 import type { DecisionId } from "../../../domain/ledger/index.js";
@@ -115,7 +115,7 @@ function paramsOf(arrival: RecordedEvent): SqlParams {
 
 export function sqliteEventLog(deps: DurableGatewayDeps): EventLog {
   const read = (sql: string, params: SqlParams): Promise<RecordedEvent[]> =>
-    Promise.resolve(deps.store.all(sql, params).map((row: SqlRow) => arrivalOf(row[DOCUMENT])));
+    fetched(deps, () => deps.store.all(sql, params).map((row: SqlRow) => arrivalOf(row[DOCUMENT])));
 
   return {
     record(arrivals) {
@@ -141,36 +141,35 @@ export function sqliteEventLog(deps: DurableGatewayDeps): EventLog {
       read(BY_SESSION, { merchant: merchantId, session: sessionId }),
     byEvent: (merchantId: MerchantId, eventId: EventId) =>
       read(BY_EVENT, { merchant: merchantId, event: eventId }),
-    unrecorded(): Promise<Hole | undefined> {
-      const [row] = deps.store.all(UNRECORDED, {});
-      const batches = Number(row?.[BATCHES] ?? 0);
-      // Nothing missing is the ordinary answer, and the aggregate says so with zero batches — the other
-      // three columns are then null, which is why the count is what decides and not they.
-      if (batches === 0) return Promise.resolve(undefined);
-      return Promise.resolve({
-        batches,
-        events: Number(row?.[EVENTS] ?? 0),
-        from: new Date(String(row?.[FIRST])),
-        to: new Date(String(row?.[LAST])),
-      });
-    },
-    idsSince(merchantId: MerchantId, since: Date, limit: number): Promise<EventId[]> {
-      const rows = deps.store.all(IDS_SINCE, {
-        merchant: merchantId,
-        since: since.toISOString(),
-        limit,
-      });
-      return Promise.resolve(rows.map((row) => String(row[EVENT_ID]) as EventId));
-    },
-    volume(merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> {
-      const rows = deps.store.all(VOLUME, {
-        merchant: merchantId,
-        from: window.from.toISOString(),
-        to: window.to.toISOString(),
-      });
-      return Promise.resolve(
-        rows.map((row) => ({ type: row[TYPE] as EventType, count: Number(row[COUNT]) })),
-      );
-    },
+    unrecorded: (): Promise<Hole | undefined> =>
+      fetched(deps, () => {
+        const [row] = deps.store.all(UNRECORDED, {});
+        const batches = Number(row?.[BATCHES] ?? 0);
+        // Nothing missing is the ordinary answer, and the aggregate says so with zero batches — the other
+        // three columns are then null, which is why the count is what decides and not they.
+        if (batches === 0) return undefined;
+        return {
+          batches,
+          events: Number(row?.[EVENTS] ?? 0),
+          from: new Date(String(row?.[FIRST])),
+          to: new Date(String(row?.[LAST])),
+        };
+      }),
+    idsSince: (merchantId: MerchantId, since: Date, limit: number): Promise<EventId[]> =>
+      fetched(deps, () =>
+        deps.store
+          .all(IDS_SINCE, { merchant: merchantId, since: since.toISOString(), limit })
+          .map((row) => String(row[EVENT_ID]) as EventId),
+      ),
+    volume: (merchantId: MerchantId, window: TimeWindow): Promise<EventTypeCount[]> =>
+      fetched(deps, () =>
+        deps.store
+          .all(VOLUME, {
+            merchant: merchantId,
+            from: window.from.toISOString(),
+            to: window.to.toISOString(),
+          })
+          .map((row) => ({ type: row[TYPE] as EventType, count: Number(row[COUNT]) })),
+      ),
   };
 }

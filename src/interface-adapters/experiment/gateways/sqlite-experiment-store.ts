@@ -62,7 +62,9 @@ export function sqliteExperimentStore(
   deps: SqliteExperimentStoreDeps,
 ): ExperimentStore & ExperimentDirectory {
   const { index } = deps;
-  // Filled once, when the gateway is built, and maintained by the writes below. Against a store it
+  // Filled once, when the gateway is built, and maintained by the writes below. **It does not wait its
+  // turn** and it does not need to (feature 034): at boot nothing else runs, so no unit of work can be
+  // open. Against a store it
   // cannot read this throws, and at boot that is the right answer: a server that cannot read its
   // experiments would assign visitors as if no experiment existed and nothing would say so.
   for (const row of deps.store.all(ALL)) void index.open(experimentOf(row));
@@ -85,7 +87,9 @@ export function sqliteExperimentStore(
       });
       return undefined;
     });
-    if (written.ok) await into(experiment);
+    // After the store accepted — and inside a unit of work that means after it commits (feature 034):
+    // the index is a view of the table, and a reverted action must not leave it holding an experiment.
+    if (written.ok) deps.store.committed(() => void into(experiment));
     return written;
   };
 
@@ -108,7 +112,7 @@ export function sqliteExperimentStore(
       );
       if (!written.ok) return written;
       if (!written.value.ok) return written.value;
-      await index.open(experiment);
+      deps.store.committed(() => void index.open(experiment));
       return { ok: true, value: experiment };
     },
     update: async (experiment) => {

@@ -12,7 +12,6 @@ import { accessModule } from "../modules/access.js";
 import { barrierModule } from "../modules/barrier.js";
 import { decisionModule } from "../modules/decision.js";
 import { messagesModule } from "../modules/messages.js";
-import { kernelModule } from "../modules/shared-kernel.js";
 import { systemModule } from "../modules/system.js";
 import { releaseComponents } from "../release.js";
 import type { AppConfig } from "../config.js";
@@ -20,7 +19,6 @@ import type { AppConfig } from "../config.js";
 export const sharedModules = (config: AppConfig) =>
   [
     releaseComponents(config),
-    kernelModule,
     systemModule,
     accessModule,
     barrierModule,

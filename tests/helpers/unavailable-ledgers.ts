@@ -38,7 +38,6 @@ export function refusingAdminLog(refusing = false): { log: AdminLog; refuse: () 
       off = true;
     },
     log: {
-      writable: () => (off ? refused() : Promise.resolve(ok(undefined))),
       record: (entry) => {
         if (off) return refused();
         entries.push({ ...entry, operatorId: asOperatorId(entry.operatorId) });

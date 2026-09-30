@@ -15,13 +15,19 @@ import {
   type AuditedUseCaseReaders,
   type Clock,
   type ClockTolerance,
+  type UnitOfWork,
   type Logger,
   type UseCase,
 } from "../../application/shared-kernel/index.js";
 import { pinoLogger } from "../../infrastructure/logging/pino-logger.js";
-import { clockToleranceOf, systemClock } from "../../interface-adapters/shared-kernel/index.js";
+import {
+  clockToleranceOf,
+  durableUnitOfWork,
+  systemClock,
+  transientUnitOfWork,
+} from "../../interface-adapters/shared-kernel/index.js";
 import { bind, compositionModule, from, port, type Decorated } from "../graph/index.js";
-import { PlatformConfigurationPort } from "../release.js";
+import { PlatformConfigurationPort, SqlStorePort } from "../release.js";
 
 export const ClockPort = port("kernel.clock")<Clock>();
 export const LoggerPort = port("kernel.logger")<Logger>();
@@ -29,6 +35,13 @@ export const LoggerPort = port("kernel.logger")<Logger>();
 export const ClockTolerancePort = port("kernel.tolerance")<ClockTolerance>();
 /** Where what an operator does is written; whoever owns the log binds it (ADR-034). */
 export const AuditTrailPort = port("kernel.audit-trail")<AuditTrail>();
+/**
+ * What makes several writes one fact (feature 034): the deployment chooses which one it has.
+ *
+ * Not exported, unlike the trail beside it: nobody outside this module binds it or replaces it — the
+ * kernel provides both implementations and the only consumer is the decorator it assembles here.
+ */
+const UnitOfWorkPort = port("kernel.unit-of-work")<UnitOfWork>();
 
 /**
  * Wrapping a use case with its administration entry and nothing else. What the server serves
@@ -43,21 +56,34 @@ export type Audit = <I extends AdminRequest, O>(
 ) => UseCase<I, O>;
 export const AuditPort = port("kernel.audit")<Audit>();
 
+/** What the kernel is in every deployment: the clock, the log and the tolerance of a declared instant. */
+const whicheverTechnology = [
+  bind(ClockPort, {}, () => systemClock),
+  bind(LoggerPort, {}, () => pinoLogger()),
+  bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
+    clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
+  ),
+] as const;
+
 export const kernelModule = compositionModule({
-  provides: [
-    bind(ClockPort, {}, () => systemClock),
-    bind(LoggerPort, {}, () => pinoLogger()),
-    bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
-    ),
-  ],
+  // **The kernel gained a technology with feature 034**, and it is the unit of work: over a durable store
+  // it is that store's transaction, and over a deployment that keeps nothing in common there is nothing to
+  // compose. The port is the kernel's because any module may have to promise that two things happened
+  // together; which of the two implementations answers is the deployment's decision (ADR-033).
+  provides: {
+    memory: [...whicheverTechnology, bind(UnitOfWorkPort, {}, () => transientUnitOfWork())],
+    sqlite: [
+      ...whicheverTechnology,
+      bind(UnitOfWorkPort, { store: SqlStorePort }, ({ store }) => durableUnitOfWork(store)),
+    ],
+  },
   assembles: [
     bind(
       AuditPort,
-      { clock: ClockPort, log: AuditTrailPort },
-      ({ clock, log }) =>
+      { clock: ClockPort, log: AuditTrailPort, unit: UnitOfWorkPort },
+      ({ clock, log, unit }) =>
         (operation, inner, readers = {}) =>
-          new AuditedUseCase(operation, inner, { log, clock }, readers),
+          new AuditedUseCase(operation, inner, { log, clock, unit }, readers),
     ),
   ],
   serves: {

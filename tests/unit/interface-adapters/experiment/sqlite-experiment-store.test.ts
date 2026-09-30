@@ -11,9 +11,9 @@ import { Experiment } from "../../../../src/domain/experiment/index.js";
 import { asExperimentId, asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryExperimentStore } from "../../../../src/interface-adapters/experiment/gateways/memory-experiment-store.js";
 import { sqliteExperimentStore } from "../../../../src/interface-adapters/experiment/gateways/sqlite-experiment-store.js";
-import { toDocument, type SqlStore } from "../../../../src/interface-adapters/shared-kernel/index.js";
+import { toDocument } from "../../../../src/interface-adapters/shared-kernel/index.js";
 import { experimentRecord } from "../../../helpers/experiments.js";
-import type { Logger } from "../../../../src/application/shared-kernel/index.js";
+import { fakeLogger, fakeStore } from "../../../helpers/sql-store.js";
 
 /** What the fixture built, or the failure of the fixture itself: never a case the test is about. */
 function theOne<T>(value: T | undefined, what: string): T {
@@ -34,28 +34,14 @@ const stored = (): string => toDocument(experimentRecord({ status: "calibrating"
  * inside the gateway.
  */
 function subject(options: { rows?: readonly string[]; refuses?: boolean } = {}) {
-  const statements: string[] = [];
-  const logged: { fields: Record<string, unknown>; message: string }[] = [];
-  const store: SqlStore = {
-    all: (sql) => {
-      statements.push(sql);
-      return (options.rows ?? []).map((document) => ({ document }));
-    },
-    run: (sql) => {
-      statements.push(sql);
-      if (options.refuses === true) throw new Error("disk I/O error");
-    },
-    transaction: (work) => work(),
-    close: () => undefined,
-  };
-  const logger: Logger = {
-    info: () => undefined,
-    warn: () => undefined,
-    error: (fields, message) => logged.push({ fields, message }),
-  };
-  const experiments = sqliteExperimentStore({ store, logger, index: memoryExperimentStore() });
-  const reads = (): number => statements.filter((sql) => sql.startsWith("SELECT")).length;
-  return { experiments, reads, logged };
+  const fake = fakeStore(options);
+  const recorder = fakeLogger();
+  const experiments = sqliteExperimentStore({
+    store: fake.store,
+    logger: recorder.logger,
+    index: memoryExperimentStore(),
+  });
+  return { experiments, reads: fake.reads, logged: recorder.entries };
 }
 
 describe("sqliteExperimentStore", () => {

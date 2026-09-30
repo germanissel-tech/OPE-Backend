@@ -131,10 +131,10 @@ código. De cada una queda la línea que impide equivocarse antes de que llegue.
 - **Notas operativas del contrato**: el contrato es la **única fuente de verdad de toda la
   superficie HTTP**, y nada entra sin estar antes en su mapa. Cómo se escribe cada cosa —invariantes,
   consumidores, idempotencia, paginación— en `.claude/rules/contrato.md`.
-- **Cómo se escribe un gateway durable** (feature 030): el driver **llega por el enlace, no se
-  importa**; se escribe `entidad.record()` y al leer **toda clase anidada se rehidrata**, que es el
-  error que se ve bien en toda lectura y falla en la única escritura que importa. Detalle en
-  `.claude/rules/gateway-durable.md`.
+- **Cómo se escribe un gateway durable** (features 030 y 034): el driver **llega por el enlace, no se
+  importa**; se escribe `entidad.record()`, al leer **toda clase anidada se rehidrata** —el error que
+  se ve bien en toda lectura y falla en la única escritura que importa— y **el turno se espera: no
+  esperarlo lanza**. Detalle en `.claude/rules/gateway-durable.md`.
 
 ## Reglas que fallan el build (no son sugerencias)
 

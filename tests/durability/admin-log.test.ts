@@ -118,20 +118,19 @@ describe("the admin log across a restart", () => {
     expect(next.nextCursor).toBeUndefined();
   });
 
-  it("says it cannot be written to, which is what makes an unaudited action not happen", async () => {
-    // ADR-034: an administration action that cannot be audited does not happen, and the only honest
-    // moment to find that out is before it runs. So `writable` has to answer, not throw.
+  it("answers that it could not write instead of throwing, which is what reverts the action", async () => {
+    // ADR-034: an administration action that cannot be audited does not happen. **Feature 034 changed how
+    // that is kept and not whether**: the trail used to be asked beforehand — and answering `writable` was
+    // this test — and now the entry and the action are one unit, so what has to be a value rather than an
+    // exception is the failure of `record`. It is what tells the decorator to revert.
     const entries = log();
-    expect(await entries.writable()).toEqual({ ok: true, value: undefined });
+    expect(await entries.record(entryOf())).toEqual({ ok: true, value: undefined });
 
     fixture.makeUnavailable();
 
-    const asked = await entries.writable();
-    expect(asked.ok).toBe(false);
-    expect(asked.ok ? undefined : asked.error.code).toBe("store-unavailable");
-
     const refused = await entries.record(entryOf());
     expect(refused.ok).toBe(false);
+    expect(refused.ok ? undefined : refused.error.code).toBe("store-unavailable");
     expect(fixture.logged.some((entry) => entry.message.includes("store"))).toBe(true);
   });
 });

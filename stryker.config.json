@@ -19,6 +19,8 @@
   "incremental": true,
   "incrementalFile": "reports/mutation/stryker-incremental.json",
   "timeoutMS": 2000,
+  "$commentDryRun": "dryRunTimeoutMinutes: the initial run executes the whole suite once to collect per-test coverage, and this suite is `fast` plus `durability` on purpose (the durable gateways have no other coverage). Measured on 2026-09-29: 78 s of `fast` and 191 s of `durability`, which crossed Stryker's 5-minute default and killed the run before it judged a single mutant — with a stale report left behind saying three survived. The number is here to catch a hang, not to budget the suite, so it is generous; what bounds a mutant is timeoutMS above.",
+  "dryRunTimeoutMinutes": 20,
   "mutate": [
     "src/**/*.ts",
     "!generated/**",

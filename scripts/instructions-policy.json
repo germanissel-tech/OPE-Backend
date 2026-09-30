@@ -148,7 +148,7 @@
       "paths": ["src/interface-adapters/*/gateways/**", "src/infrastructure/sqlite/**", "migrations/**"],
       "sections": [
         {
-          "heading": "Cómo se escribe un gateway durable (feature 030; ADR-021, ADR-024, ADR-038)",
+          "heading": "Cómo se escribe un gateway durable (features 030 y 034; ADR-021, ADR-024, ADR-038)",
           "kind": "normative"
         },
         {

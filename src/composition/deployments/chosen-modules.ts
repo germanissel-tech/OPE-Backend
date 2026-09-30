@@ -19,6 +19,7 @@ import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { merchantModule } from "../modules/merchant.js";
 import { outcomesModule } from "../modules/outcomes.js";
+import { kernelModule } from "../modules/shared-kernel.js";
 
 /** The two ways a module of this list can be served. Leaving the choice out does not compile. */
 export type Technology = "memory" | "sqlite";
@@ -37,4 +38,7 @@ export const modulesWith = <T extends Technology>(technology: T) =>
     // index, so this choice is about where the writes land and not about where the hot path reads.
     merchantModule.with(technology),
     outcomesModule.with(technology),
+    // The kernel joined in feature 034, and what it chooses is the unit of work: the store's transaction
+    // where there is a store, and nothing to compose where there is not.
+    kernelModule.with(technology),
   ] as const;

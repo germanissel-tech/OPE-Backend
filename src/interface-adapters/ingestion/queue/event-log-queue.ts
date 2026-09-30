@@ -29,6 +29,15 @@ export interface EventLogQueueDeps {
   readonly maxArrivals: number;
   /** How often what is pending is written. */
   readonly flushIntervalMs: number;
+  /**
+   * Whether somebody else's unit of work is open on the store **right now** (feature 034).
+   *
+   * Asked and not awaited, which is the whole reason it has this shape: `flush` is synchronous and
+   * `record` returns `void` so that nobody can wait for the register (ADR-039), and an `await` here
+   * would be a regression of principle IV let in through the side door. Where there is no store there
+   * is no unit either, and the deployment that has none binds the answer that says so.
+   */
+  readonly busy: () => boolean;
 }
 
 /** What the composition gets: a log, and the `close` the graph calls in reverse creation order. */
@@ -45,6 +54,11 @@ export function queuedEventLog(deps: EventLogQueueDeps): EventLogQueue {
 
   const flush = (): void => {
     if (pending.length === 0) return;
+    // **Somebody else's unit of work is open: this is not the moment, and there is a next one.** The
+    // arrivals stay where they are, which is the difference between a delay and a loss — the write would
+    // otherwise reach the store, be refused for not having waited its turn, and be logged as lost.
+    // Asked on every flush and never remembered: a unit lasts one local write.
+    if (deps.busy()) return;
     // Taken before the write, so an arrival that comes in during it is not lost and not written twice.
     const writing = pending;
     pending = [];
@@ -77,6 +91,15 @@ export function queuedEventLog(deps: EventLogQueueDeps): EventLogQueue {
     close() {
       clearInterval(timer);
       flush();
+      // **The one time "next time" does not exist.** The server closes before the store and waits for
+      // its requests, so a unit still open here is already unusual — and every other loss of the
+      // register says so out loud (FR-018), which is the only reason this one does too.
+      if (pending.length > 0) {
+        deps.logger.error(
+          { held: pending.length },
+          "A unit of work was open when the event register drained; those arrivals were not recorded.",
+        );
+      }
     },
     // Asked at start-up, when nothing is queued yet, so the queue has nothing to add to the answer —
     // and asking it later would report its own backlog as a hole (see the port).

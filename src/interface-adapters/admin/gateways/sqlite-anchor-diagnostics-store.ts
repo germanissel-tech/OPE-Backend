@@ -15,6 +15,7 @@
 // the **table** holds. A gateway that capped what this process wrote would keep one more row per boot,
 // which is the kind of leak nobody sees until a panel takes a second to answer.
 import {
+  fetched,
   fromDocument,
   pageOf,
   stored,
@@ -90,6 +91,6 @@ export function sqliteAnchorDiagnosticsStore(deps: SqliteAnchorDiagnosticsDeps):
     // gateway does: at most `kept` of them, and the cursor means the same thing in both deployments.
     // This is the one read of the feature where a key-based cursor buys nothing — the table is not
     // append-only, a report moves to the front of the order when it repeats.
-    listOf: (merchantId, query) => Promise.resolve(pageOf(of(merchantId), query)),
+    listOf: (merchantId, query) => fetched(deps, () => pageOf(of(merchantId), query)),
   };
 }
