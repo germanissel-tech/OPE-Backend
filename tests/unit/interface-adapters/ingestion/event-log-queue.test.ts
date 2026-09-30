@@ -21,16 +21,22 @@ function said(): { logger: Logger; lines: { fields: Record<string, unknown>; mes
 /** Never on its own: a test that wants a write asks for it, so nothing here depends on a timer. */
 const NEVER_MS = 60_000;
 
-/** A queue over a fresh writer, with the two knobs defaulted to "roomy" and "never". */
+/** A queue over a fresh writer, with the two knobs defaulted to "roomy" and "never", and a free store. */
 function queueOver(
   writer: EventLog,
-  over: Partial<{ logger: Logger; maxArrivals: number; flushIntervalMs: number }> = {},
+  over: Partial<{
+    logger: Logger;
+    maxArrivals: number;
+    flushIntervalMs: number;
+    busy: () => boolean;
+  }> = {},
 ) {
   return queuedEventLog({
     writer,
     logger: said().logger,
     maxArrivals: 100,
     flushIntervalMs: NEVER_MS,
+    busy: () => false,
     ...over,
   });
 }
@@ -166,6 +172,73 @@ describe("queuedEventLog", () => {
     vi.advanceTimersByTime(1_000);
 
     expect(writes).toBe(0);
+  });
+
+  it("does not write and does not lose while somebody else's unit of work is open", async () => {
+    // **Feature 034, US2.** An administration action holds the store for the length of one local write,
+    // and the register cannot wait for it: `flush` is synchronous and `record` returns `void` on purpose,
+    // so that nobody can wait for a measurement (ADR-039, principle IV). What it does instead is what a
+    // queue is for — it keeps the arrivals and takes them next time.
+    //
+    // Without the question this is a **loss**, not a delay: the write would reach the store, the guard
+    // would throw because it did not wait its turn, and the gateway would log those arrivals as lost.
+    let busy = true;
+    const writer = memoryEventLog();
+    const queue = queueOver(writer, { busy: () => busy });
+
+    queue.record([decided(), decided({ position: 1 })]);
+    queue.flush();
+    expect(await writer.byEvent(ONE, asEventId("evt_00000001"))).toEqual([]);
+
+    busy = false;
+    queue.flush();
+    // The **two** of them, and once each: what was held is written whole, not half and not twice.
+    expect(await writer.byEvent(ONE, asEventId("evt_00000001"))).toHaveLength(2);
+    queue.close();
+    expect(await writer.byEvent(ONE, asEventId("evt_00000001"))).toHaveLength(2);
+  });
+
+  it("asks again on each flush, so a busy store delays nothing beyond its own unit", () => {
+    // The question is asked per flush and not remembered: a queue that had learned "busy" once would
+    // stay quiet after the unit closed, which is the failure this shape cannot have.
+    let asked = 0;
+    let writes = 0;
+    const counting: EventLog = {
+      ...memoryEventLog(),
+      record() {
+        writes += 1;
+      },
+    };
+    const queue = queueOver(counting, {
+      busy: () => {
+        asked += 1;
+        return asked === 1;
+      },
+    });
+
+    queue.record([decided()]);
+    queue.flush();
+    expect(writes).toBe(0);
+    queue.flush();
+    expect(writes).toBe(1);
+    queue.close();
+  });
+
+  it("says so when a unit is still open at shutdown, instead of losing them in silence", () => {
+    // The one case where "next time" does not exist. The server closes before the store and waits for
+    // its requests, so a unit open here is already unusual — and unusual and silent is what feature 031
+    // forbade for every other loss of the register (FR-018). It is said with the same voice.
+    const heard = said();
+    const queue = queueOver(memoryEventLog(), { logger: heard.logger, busy: () => true });
+
+    queue.record([decided()]);
+    queue.close();
+
+    expect(heard.lines).toHaveLength(1);
+    expect(heard.lines[0]?.message).toBe(
+      "A unit of work was open when the event register drained; those arrivals were not recorded.",
+    );
+    expect(heard.lines[0]?.fields["held"]).toBe(1);
   });
 
   it("writes nothing twice when a flush happens while one is in flight", async () => {

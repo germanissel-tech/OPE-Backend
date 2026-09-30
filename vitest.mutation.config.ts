@@ -24,8 +24,18 @@ export default defineConfig({
       "tests/integration/outcomes-latency.test.ts",
       "tests/durability/ingest-latency.test.ts",
       "tests/durability/rebuild-latency.test.ts",
+      // Feature 034: three measured windows of ingest, ten seconds of them, and what it asserts about
+      // behaviour —a flush that finds the store busy holds its arrivals— is killed in milliseconds by
+      // `tests/unit/interface-adapters/ingestion/event-log-queue.test.ts`, which stays in this suite.
+      "tests/durability/admin-concurrency.test.ts",
     ],
-    testTimeout: 60_000,
-    hookTimeout: 60_000,
+    // **Three minutes and not the one the suite uses on its own** (feature 034). Everything here runs
+    // instrumented, with five runner processes on one machine, so a hook that seeds four hundred rows per
+    // test costs a multiple of what it costs directly: the seeding of `tests/durability/query-plans.test.ts` — 200 diagnostics and
+    // 200 decisions per test, eight tests — crossed sixty seconds inside the sandbox while the same suite
+    // passes in under three minutes whole. A timeout there is a fact about the sandbox and not about the
+    // code, and it fails the whole run before a single mutant is judged, which is the worst way to learn it.
+    testTimeout: 180_000,
+    hookTimeout: 180_000,
   },
 });

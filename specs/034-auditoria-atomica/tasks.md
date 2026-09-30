@@ -116,18 +116,18 @@ deja de ser cierta sólo en el caso barato.
 **Independent Test**: tráfico de ingesta continuo con acciones de administración en paralelo, y comparar el
 p95 y los motivos de las decisiones contra la misma corrida sin acciones.
 
-- [ ] T020 [P] [US2] `tests/unit/interface-adapters/ingestion/event-log-queue.test.ts` — **antes del
+- [x] T020 [P] [US2] `tests/unit/interface-adapters/ingestion/event-log-queue.test.ts` — **antes del
       cambio**: un `flush` que encuentra el almacén ocupado **no escribe y no pierde**, y el siguiente
       escribe todo. El conteo final es lo que se afirma, no que «reintentó».
-- [ ] T021 [US2] `src/interface-adapters/ingestion/queue/event-log-queue.ts` — preguntar `busy` y devolver
+- [x] T021 [US2] `src/interface-adapters/ingestion/queue/event-log-queue.ts` — preguntar `busy` y devolver
       lo pendiente a la cola. **Sin `await`**: `record` devuelve `void` a propósito y `flush` es síncrono
       porque nadie puede esperar la escritura del registro (ADR-039, principio IV).
-- [ ] T022 [US2] `tests/durability/admin-concurrency.test.ts` — **SC-002, la condición de aceptación**, más
+- [x] T022 [US2] `tests/durability/admin-concurrency.test.ts` — **SC-002, la condición de aceptación**, más
       SC-003 y SC-004 en la misma corrida: el p95 de la ingesta con acciones de administración concurrentes
       contra el p95 sin ellas; cero decisiones degradadas por almacén no disponible; y el conteo exacto de
       llegadas registradas. Si el p95 empeora de forma apreciable, la unidad retiene el camino de decisión
       más de lo que una escritura local justifica y la feature no está terminada.
-- [ ] T023 [US2] `npm run test:mutation` acotado al diff de la historia.
+- [x] T023 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las historias 1 y 2 funcionan, y la segunda es la que dice si la primera es aceptable.
 
