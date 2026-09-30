@@ -116,6 +116,21 @@ sólo porque falta la transacción que el hito de persistencia va a traer, y cue
 operación de cierre en el puerto, más decidir qué muestran las dos lecturas paginadas de una
 entrada pendiente. Construirla hoy es construir lo que la transacción vuelve innecesario.
 
+### Enmienda (2026-09-30) — el punto 2 está hecho: la ventana está cerrada
+
+La feature 034 hizo lo que el punto 2 de la enmienda anterior se dejó anotado, y por eso esta enmienda
+existe: **la entrada de administración commitea con la acción que registra**. El decorador envuelve la
+acción y su entrada en una unidad de trabajo del almacén; si la entrada no se puede escribir, la
+acción se revierte y el operador recibe `503`.
+
+Y como el punto 2 mismo anticipaba, **la verificación previa del punto 1 sobra y se fue**:
+`AuditTrail.writable()` ya no existe. La transacción la subsume, y dos mecanismos para la misma
+promesa son dos lugares donde puede fallar.
+
+Lo que esto no promete, escrito acá para que no se lea de más: la unidad es del **proceso** (**D-21**).
+El mecanismo, su costo medido sobre el camino de decisión y por qué el puerto sobrevive al cambio de
+motor están en **ADR-042**.
+
 ## Consecuencias
 
 - "Cómo se autentica cada consumidor" se revisa leyendo un módulo.

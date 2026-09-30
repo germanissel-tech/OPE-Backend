@@ -56,9 +56,11 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-25 | CI corre sobre cosas con fecha de vencimiento: Node 20 en cinco actions y `ubuntu-latest` migrando        | Anotaciones del CI de la feature 031, 2026-09-28 | `abierta`      | 2026-09-28 | —                                                       |
 | D-26 | Lo que la decisión paga por reconstruir está medido en la máquina que no importa                          | Feature 032 (SC-005, ADR-040)                    | `abierta`      | 2026-09-28 | —                                                       |
 | D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez           | Feature 032 (borde de la spec)                   | `abierta`      | 2026-09-28 | —                                                       |
-| D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y la auditoría atómica la espera         | Feature 033 (research R-05 y su enmienda)        | `abierta`      | 2026-09-29 | feature 034 (en curso)                                  |
+| D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y la auditoría atómica la espera         | Feature 033 (research R-05 y su enmienda)        | `implementada` | 2026-09-30 | `e212198` (feature 034, ADR-042)                        |
 | D-29 | El registro de administración dice `importMerchants accepted` en cada arranque, y la semilla no se aplicó | Feature 033 (quickstart, paso 7)                 | `abierta`      | 2026-09-29 | SC-008 (la línea del arranque que sí lo dice)           |
 | D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28) | `abierta`      | 2026-09-29 | —                                                       |
+| D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                | `abierta`      | 2026-09-30 | —                                                       |
+| D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                    | `abierta`      | 2026-09-30 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -527,6 +529,12 @@ Esta deuda afirmaba que **la atomicidad del presupuesto por sesión** era «la m
 
 Para que sirviera habría que contar el presupuesto desde el ledger **dentro** del scope y abrir un scope **en cada decisión**: una transacción de escritura en el camino caliente, sobre un motor con un solo escritor, que serializaría todas las decisiones del almacén — lo contrario de lo que el principio IV admite. Se resuelve con exclusión mutua por sesión dentro del proceso, misma frontera que todo lo demás (**D-21**), y por eso salió de acá a **D-30**.
 
+### Cerrada (2026-09-30) — feature 034, `e212198`
+
+La acción y su entrada commitean juntas: el decorador las envuelve en una unidad de trabajo del almacén y, si la entrada no se puede escribir, la acción se revierte y el operador recibe `503`. La verificación previa —`AuditTrail.writable()`— desapareció, porque la transacción la subsume. ADR-034 quedó enmendado y el mecanismo, su costo medido sobre el camino de decisión y qué sobrevive al cambio de motor están en **ADR-042**.
+
+Lo que **no** cierra, y por eso la frontera se repite acá: la unidad es del **proceso** (**D-21**). Con dos procesos cada uno tiene la suya.
+
 **Lo que queda en D-28 es la auditoría atómica**, y eso sí necesita **componer una transacción sobre varias escrituras que pasan por puertos asincrónicos**. Hoy no se puede, por un motivo concreto: `SqlStore.transaction` es **síncrona** —`transaction<T>(work: () => T): T`— y el caso de uso es `async`. Envolver un `await` en una transacción síncrona no es incómodo, es **inseguro**: el `await` cede al bucle de eventos y otra petición puede escribir **dentro** de la transacción abierta.
 
 ### Lo que se descartó al tensionarlo (feature 033, research R-05)
@@ -630,6 +638,30 @@ dispara. Meterlo por la ventana sería peor que anotarlo.
 **Lo que ya está y no hace falta rehacer**: el arranque dice en el log qué hizo con la semilla, en sus
 dos situaciones y para los tres almacenes (SC-008). Esta deuda es sobre el **registro de
 administración**, que es otro lector y otro destino.
+
+## D-31 — el gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»
+
+**Lo que pasó, dos veces en la feature 034.** `scripts/mutation-diff.mjs` corre Stryker y después lee `reports/mutation/report.json`. Cuando Stryker **no llega a juzgar** —la primera vez, la corrida inicial pasó los cinco minutos que da por defecto; la segunda, un hook de siembra pasó su tiempo dentro del sandbox instrumentado— el reporte que queda en disco es el de la corrida **anterior**, y el gate informa esas cifras como si fueran de ésta.
+
+La primera vez dijo «3 mutant(s) survived» señalando líneas que la reestructuración de ese mismo día había borrado. La segunda dijo **«0 mutant(s) survived»**, que es la peligrosa: el número que uno está esperando ver.
+
+**Lo que no pasó, y es lo único que salva a esto de ser grave**: el veredicto **no** fue verde. El script mira el código de salida de Stryker y falla igual — verificado las dos veces, `exit=1`. O sea que no hay riesgo de que un cambio entre con mutantes vivos; lo que hay es un mensaje que dice el motivo equivocado, y un lector que confíe en la línea final en vez del código de salida se lleva una idea falsa.
+
+**El arreglo, que es chico**: cuando Stryker sale distinto de 0, decir **eso** —que la corrida no terminó, con su motivo— y no leer el reporte. Y una prueba de gobernanza que lo fije, porque `tests/governance/mutation-diff.test.ts` ya prueba el resto del script y hoy no cubre este camino.
+
+**Por qué no se arregló en la 034**: es una herramienta, no la feature, y tocarla mientras el gate de la feature estaba corriendo habría invalidado la corrida. Se anotó en el momento y se cierra aparte.
+
+## D-32 — un bucle de peticiones inyectadas agota el heap, con cualquier petición
+
+**La encontró la medición de SC-002**, que necesita carga concurrente: un bucle que repite una petición tan rápido como responde muere con `FATAL ERROR: Ineffective mark-compacts near heap limit` después de decenas de miles, con un heap de cuatro gigabytes.
+
+**Verificado que no es de esta feature**, y de la forma más directa que había: se reproduce con una petición a **una ruta que no existe** —un 404— que no abre unidad de trabajo, no toca el almacén, no llega a ningún gateway y no ejecuta ningún caso de uso. Con acciones de administración a ritmo acotado (una cada cuatro milisegundos, cientos de ellas) el heap se queda entre 60 y 140 MB durante toda la corrida.
+
+**Lo que no se sabe, dicho como lo que es**: si lo que retiene está en el inyector de pruebas (`light-my-request`, que es como esta suite entra al servidor y **no** es como entra el tráfico real), en el borde HTTP, o en el logger. Nadie tomó un heap snapshot; lo único medido es que la petición más vacía posible lo reproduce.
+
+**Por qué importa aunque sea del arnés**: mientras no se sepa, ninguna prueba de carga de este repositorio puede empujar a ritmo libre, y eso acota lo que se puede medir — `test:load` y cualquier medición de saturación futura cargan con esta limitación. Si resultara estar en el borde HTTP y no en el inyector, sería un problema de producción y no de pruebas, y esa es la razón por la que la fila existe en vez de ser un comentario en el archivo de la medición.
+
+**El primer paso, para que la spec que la tome no lo derive**: un heap snapshot en dos puntos del bucle y el diff de retenedores, sobre el 404, que es el caso mínimo que ya reproduce.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

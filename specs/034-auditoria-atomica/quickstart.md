@@ -16,7 +16,13 @@ npx vitest run --project fast tests/unit/application/shared-kernel/audited-use-c
 
 Lo que se ve acá y en ningún otro lado: que **un rechazo de negocio no aborta la unidad** —su entrada
 tiene que quedar— y que **sólo el fallo del registro aborta**. Es la distinción que decide si la feature
-audita lo que tiene que auditar o revierte justo lo que había que dejar escrito.
+audita lo que tiene que auditar o revierte justo lo que había que dejar escrito. Y de la unidad en
+memoria, que **no puede revertir pero sí avisar**: un despliegue que respondiera `201` por una acción sin
+auditar diría lo contrario de lo que la regla promete.
+
+> La corrida del 2026-09-30 encontró que el primero de estos dos archivos **no existía**: las dos
+> implementaciones del puerto quedaron cubiertas sólo de refilón, por la suite de integración. Se escribió
+> ahí, que es donde este paso lo busca.
 
 ## 2. La acción y su entrada, contra un almacén de verdad
 
@@ -31,13 +37,17 @@ reservados. Eso es la ventana de ADR-034 cerrada, y es lo único que no se puede
 ## 3. El turno: nadie escribe dentro de la transacción de otro
 
 ```bash
-npx vitest run --project durability tests/durability/atomic-audit.test.ts
-npx vitest run --project fast tests/unit/interface-adapters/shared-kernel/unit-of-work.test.ts
+npx vitest run --project durability tests/durability/unit-of-work.test.ts
 ```
 
-SC-005. Un componente que escribe **sin** esperar su turno falla de inmediato mientras hay una unidad
-abierta, y funciona normalmente cuando no hay ninguna. Sin esto, la feature dependería de que la próxima
-persona se acuerde.
+SC-005, y el caso son **dos gateways idénticos salvo una línea**: el que escribe sin esperar su turno
+falla de inmediato mientras hay una unidad abierta, y el que agrega `await store.enter()` espera y escribe
+cuando cierra. Con ninguna unidad abierta, los dos escriben igual. Sin esto, la feature dependería de que
+la próxima persona se acuerde.
+
+> La corrida del 2026-09-30 corrigió este comando: apuntaba a un archivo de `tests/unit/`, y el guardia
+> **no se puede probar con dobles** — necesita un almacén de verdad, que es lo que hace fallar al
+> olvidadizo. La prueba unitaria de las dos implementaciones del puerto es la del paso 1.
 
 ## 4. El tráfico del SDK no paga nada
 
@@ -82,32 +92,74 @@ curl -X POST "$B/v1/admin/merchants" -H "$A" -H 'content-type: application/json'
 ```
 
 Ahora **hacer que el registro no pueda escribir** y repetir la acción con otro origen. La forma de
-provocarlo sin tocar código es dejar el archivo del almacén en sólo lectura mientras el servidor corre:
+provocarlo sin tocar código es que **otro proceso tome el lock exclusivo** del almacén:
 
 ```bash
-# PowerShell, con el servidor levantado
-Set-ItemProperty -Path data/ope.db -Name IsReadOnly -Value $true
+# En otra terminal, desde la raíz del repo. Suelta el lock a los 25 s.
+node -e "const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('data/ope.db');
+d.exec('BEGIN EXCLUSIVE'); console.log('lock tomado');
+setTimeout(()=>{d.exec('ROLLBACK');d.close();console.log('lock soltado')},25000);"
 ```
+
+> **No sirve dejar el archivo en sólo lectura**, que es lo que este quickstart decía hasta que se corrió
+> (2026-09-30): la acción responde `201` igual, por dos motivos que se suman. El almacén está en WAL, así
+> que la escritura va al `-wal` y el archivo principal sólo se toca en el checkpoint; y en Windows el
+> atributo de sólo lectura no alcanza a un **handle que ya está abierto**, así que marcar los tres
+> archivos tampoco cambia nada. El lock de otro proceso sí: es un almacén que **rechaza**, que es la
+> condición que la feature trata.
 
 ```bash
 curl -i -X POST "$B/v1/admin/merchants" -H "$A" -H 'content-type: application/json' \
   -d '{"origins":["https://no-deberia-quedar.example"],"signature":true}'
-# → 503, problem+json con type .../store-unavailable
+# → 503, problem+json con type .../store-unavailable y retry-after
 ```
 
-Devolver el archivo a escritura y mirar el almacén: **el segundo merchant no existe y su origen no quedó
-reservado**, que es lo que antes de esta feature sí quedaba.
+Soltado el lock, mirar el almacén: **ese merchant no existe, su origen no quedó reservado y el registro
+de administración no tiene entrada suya** — las tres cosas, que es lo que antes de esta feature no era
+cierto. `operation` y `outcome` viven **dentro del documento** y no como columnas:
 
 ```bash
 node -e "const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('data/ope.db');
 console.table(d.prepare('SELECT merchant_id, status FROM merchants').all());
 console.table(d.prepare('SELECT merchant_id, origin FROM merchant_origins').all());
-console.table(d.prepare('SELECT operation, outcome, merchant_id FROM admin_entries ORDER BY id DESC LIMIT 5').all());"
+console.table(d.prepare(\"SELECT json_extract(document,'\$.operation') AS operation,
+  json_extract(document,'\$.outcome') AS outcome, merchant_id
+  FROM admin_entries ORDER BY id DESC LIMIT 5\").all());"
 ```
 
 Y lo que cierra el paso: **mandar tráfico mientras una acción corre**. Con el almacén sano, publicar
 configuración en un merchant y mandar eventos de otro a la vez; las dos cosas responden y ninguna decisión
 vuelve con motivo de almacén no disponible.
+
+---
+
+## La corrida del 2026-09-30 (histórica y fechada)
+
+Los seis pasos, de punta a punta, en esta máquina. Lo que encontró está corregido arriba, en el paso al
+que pertenece; esta tabla es el registro de que se corrió y de qué dijo.
+
+| Paso                         | Resultado                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| 1 · la unidad con dobles     | verde, **después de escribir la prueba que el paso nombraba y no existía**                    |
+| 2 · la acción y su entrada   | verde                                                                                         |
+| 3 · el turno                 | verde, con el comando corregido: el guardia no se prueba con dobles                           |
+| 4 · el tráfico no paga       | verde; el turno costó **4.17 ms** de p95 en esta corrida, contra la ventana de lecturas       |
+| 5 · nada cambió              | verde, las dos suites                                                                         |
+| 6 · usarlo, contra el server | **503** con `store-unavailable`, y el almacén sin el merchant, sin su origen y sin su entrada |
+
+Tres cosas que sólo aparecieron acá:
+
+1. **La receta para provocar el fallo no provocaba nada** (paso 6): WAL y un handle abierto. Reemplazada
+   por el lock exclusivo de otro proceso, que sí produce un almacén que rechaza.
+2. **La consulta del registro nombraba columnas que no existen**: `operation` y `outcome` viven dentro del
+   documento.
+3. **Una prueba que el paso 1 prometía no estaba escrita.** Ningún gate lo ve: el archivo no existía, así
+   que nada lo corría y nada lo echaba de menos.
+
+Y lo que confirmó, que es el motivo de la feature: con el almacén rechazando, la acción responde `503`, no
+queda el merchant, no queda su origen **y no queda su entrada de auditoría** — no ocurrió, así que no hay
+nada que auditar. Con el almacén sano, 25 lotes de eventos y cuatro publicaciones de configuración
+concurrentes respondieron todas, y ninguna decisión volvió con motivo de almacén no disponible.
 
 ---
 

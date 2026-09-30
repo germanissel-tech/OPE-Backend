@@ -153,19 +153,19 @@ ajena abierta; con ninguna abierta, funciona.
 
 ## Phase 5: Lo que queda dicho
 
-- [ ] T026 `docs/adr/` — dos cosas y conviene no mezclarlas: **la enmienda a ADR-034**, que declara cerrada
+- [x] T026 `docs/adr/` — dos cosas y conviene no mezclarlas: **la enmienda a ADR-034**, que declara cerrada
       la ventana que él mismo dejó abierta y dice con qué; y un **ADR nuevo** para la unidad de trabajo: la
       cuarta excepción al principio IV, con su medición de SC-002, el guardia y su motivo, y por qué el
       puerto sobrevive al cambio de motor (D-21). Con el trato de ADR-038, ADR-040 y ADR-041.
-- [ ] T027 [P] `docs/deudas.md` — **D-28 cerrada**, con el commit. Y lo que esta feature deja anotado, si
+- [x] T027 [P] `docs/deudas.md` — **D-28 cerrada**, con el commit. Y lo que esta feature deja anotado, si
       algo: D-30 ya está (el presupuesto por sesión) y D-21 no gana nada nuevo — la unidad es del proceso,
       que es lo que esa deuda ya dice de todo.
-- [ ] T028 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `tests/` por las suites nuevas
+- [x] T028 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `tests/` por las suites nuevas
       y `src/` si el mapa de anillos cambia de forma. `migrations/` **no**, y eso es el dato.
-- [ ] T029 Correr el **quickstart** de punta a punta, los seis pasos, y **anotar lo que aparezca**. En las
+- [x] T029 Correr el **quickstart** de punta a punta, los seis pasos, y **anotar lo que aparezca**. En las
       cuatro features anteriores encontró lo que ningún gate veía — la última vez, un registro que dice que
       importó la semilla cuando no la importó.
-- [ ] T030 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
+- [x] T030 La cadena de cierre: `contract:check`, `test:all`, `test:mutation`, `test:contract`,
       `release-check`. Y `npm run build` antes de `test:contract`, que es lo que la 033 aprendió: compara
       fechas de `dist/`.
 
