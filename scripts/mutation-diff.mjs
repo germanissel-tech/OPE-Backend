@@ -13,7 +13,7 @@
 // A `Survived` mutant that ran zero tests while having coverage is a broken runner, not a weak
 // test (stryker-js#6210, #6213): the gate fails with its own message instead of reporting false
 // survivors.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "./governance-lib.mjs";
@@ -339,6 +339,25 @@ export function noVerdict({ status, startedAtMs, reportFile, reportMtimeMs }) {
   return null;
 }
 
+/** The date of a file, or nothing when it is not there. */
+const mtimeOf = (/** @type {string} */ file) => (existsSync(file) ? statSync(file).mtimeMs : null);
+
+/**
+ * Launches a mutation run and answers **why there is no verdict**, or `null` when there is one.
+ *
+ * The two modes that run Stryker go through here, and that is the point: the instant has to be taken
+ * **before** the run and the report's date **after** it, and a helper that owns both leaves no way to write
+ * that the wrong way round. Each caller keeps only what it does with the answer.
+ *
+ * @param {() => number} launch runs Stryker and gives back its exit code
+ * @returns {string | null}
+ */
+function runFor(launch) {
+  const startedAtMs = Date.now();
+  const status = launch();
+  return noVerdict({ status, startedAtMs, reportFile: REPORT_FILE, reportMtimeMs: mtimeOf(REPORT_FILE) });
+}
+
 /**
  * @param {{ mode: "blocking" | "informative"; status: "pass" | "fail"; findings: Finding[]; skipped?: string; error?: string; passed?: string }} outcome
  * @param {boolean} json
@@ -433,11 +452,17 @@ function blockingMode(ranges, baseRef, json, extra) {
     emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);
     return 0;
   }
-  const status = runStryker(["--mutate", decision.mutate.join(","), ...extra]);
+  // **Nothing is read until there is something to read** (feature 035, D-31). Without this, a run that
+  // never got to judge reported the survivors of the previous one — and once reported that none survived.
+  const missing = runFor(() => runStryker(["--mutate", decision.mutate.join(","), ...extra]));
+  if (missing !== null) {
+    emit({ mode: "blocking", status: "fail", findings: [], error: missing }, json);
+    return 1;
+  }
   const report = readReport();
   const error = guardZeroTests(report);
   const findings = survivors(report);
-  const failed = error !== null || status !== 0 || findings.length > 0;
+  const failed = error !== null || findings.length > 0;
   emit({ mode: "blocking", status: failed ? "fail" : "pass", findings, ...(error ? { error } : {}) }, json);
   return failed ? 1 : 0;
 }

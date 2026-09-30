@@ -43,15 +43,15 @@ ninguna cifra.
 
 **Independent Test**: provocar una corrida caída con un reporte anterior en disco y leer la última línea.
 
-- [ ] T004 [US1] `scripts/mutation-diff.mjs` — en el camino bloqueante: tomar el instante **antes** de
+- [x] T004 [US1] `scripts/mutation-diff.mjs` — en el camino bloqueante: tomar el instante **antes** de
       lanzar Stryker, preguntar la regla con el código de salida, y si hay motivo emitir
       `status: "fail"` con `findings: []` y el motivo en `error`, **sin leer el reporte**. El veredicto no
       cambia: lo que hoy falla sigue fallando (FR-002).
-- [ ] T005 [US1] Provocar una corrida caída **de verdad** y leer la salida: un tiempo de espera imposible
+- [x] T005 [US1] Provocar una corrida caída **de verdad** y leer la salida: un tiempo de espera imposible
       para la corrida inicial, con un reporte de una corrida anterior en disco. Tiene que verse el motivo
       como **última línea** y cero líneas de supervivientes (SC-001, SC-002). Es el caso exacto que la
       feature 034 vio dos veces.
-- [ ] T006 [US1] El camino feliz, comparado: correr el gate con un cambio real en `src/` y comprobar que la
+- [x] T006 [US1] El camino feliz, comparado: correr el gate con un cambio real en `src/` y comprobar que la
       salida es **idéntica** a la de hoy, en las dos formas —la de una persona y `--json`— (FR-007, SC-004).
 
 **Checkpoint**: el defecto de D-31 está cerrado en su caso conocido, y es entregable solo.
@@ -65,9 +65,13 @@ ninguna cifra.
 **Independent Test**: la regla ya lo fija (T001); lo que esta fase agrega es que el camino bloqueante le
 pase la fecha real del archivo.
 
-- [ ] T007 [US2] `scripts/mutation-diff.mjs` — mirar la fecha de modificación del reporte y pasársela a la
+- [x] T007 [US2] `scripts/mutation-diff.mjs` — mirar la fecha de modificación del reporte y pasársela a la
       regla. Con la fecha ausente se conserva el mensaje de hoy; con una fecha anterior al arranque, el
       gate falla diciendo que el reporte es de otra corrida (FR-004).
+      **Quedó hecha con T004 y no como paso aparte**, porque la regla recibe el código y la fecha en la
+      misma llamada: separarlas habría significado pasar un valor falso en la fase 2 para respetar la
+      división de tareas. El helper `runFor` se queda con las dos mitades del tiempo —el instante antes de
+      lanzar, la fecha después— que es lo que hace imposible escribir el orden al revés.
 - [ ] T008 [US2] Verificar con un archivo de verdad: **tocar** la fecha del reporte a un instante anterior y
       comprobar que el camino que la consulta la ve como vieja. Lo que **no** se puede forzar sin correr
       Stryker es un código 0 con reporte viejo; ese caso lo fija la prueba de T001, y acá se dice para que
