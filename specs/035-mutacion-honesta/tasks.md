@@ -72,7 +72,7 @@ pase la fecha real del archivo.
       misma llamada: separarlas habría significado pasar un valor falso en la fase 2 para respetar la
       división de tareas. El helper `runFor` se queda con las dos mitades del tiempo —el instante antes de
       lanzar, la fecha después— que es lo que hace imposible escribir el orden al revés.
-- [ ] T008 [US2] Verificar con un archivo de verdad: **tocar** la fecha del reporte a un instante anterior y
+- [x] T008 [US2] Verificar con un archivo de verdad: **tocar** la fecha del reporte a un instante anterior y
       comprobar que el camino que la consulta la ve como vieja. Lo que **no** se puede forzar sin correr
       Stryker es un código 0 con reporte viejo; ese caso lo fija la prueba de T001, y acá se dice para que
       nadie lo busque en la corrida real.

@@ -339,8 +339,17 @@ export function noVerdict({ status, startedAtMs, reportFile, reportMtimeMs }) {
   return null;
 }
 
-/** The date of a file, or nothing when it is not there. */
-const mtimeOf = (/** @type {string} */ file) => (existsSync(file) ? statSync(file).mtimeMs : null);
+/**
+ * The date of a file in milliseconds, or nothing when it is not there.
+ *
+ * **Milliseconds and not a `Date`**, because what it is compared against is `Date.now()`: the rule above
+ * subtracts nothing and compares two numbers on the same scale and the same epoch. It is exported so a test
+ * can check that against a **real** file, which is the half of this feature no pure test can reach.
+ *
+ * @param {string} file
+ * @returns {number | null}
+ */
+export const mtimeOf = (file) => (existsSync(file) ? statSync(file).mtimeMs : null);
 
 /**
  * Launches a mutation run and answers **why there is no verdict**, or `null` when there is one.
