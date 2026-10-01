@@ -204,8 +204,14 @@ pedido siguiente, en el mismo proceso.
 - [x] T042 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `migrations/` por la migración
       nueva (en la fase 1) y `config/` porque los dos archivos cambian de rol —de fuente a semilla—.
       `tests/` no: su inventario es por directorio y ninguno es nuevo.
-- [ ] T043 Correr el **quickstart** de punta a punta, los seis pasos, y **anotar lo que aparezca**. En las
-      seis features anteriores encontró algo que ningún gate veía.
+- [x] T043 Correr el **quickstart** de punta a punta, los seis pasos, y **anotar lo que aparezca**. Lo
+      anotado, en su sección fechada: la regla entera funciona contra el servidor real (seis publicaciones,
+      dos congelamientos, dos ventanas reiniciadas, cada una diciendo de qué nivel vino la versión), el tope
+      de retención se vio en el acto y lo vigente sobrevivió el apagado. Tres cosas que ningún gate veía:
+      **`rm -rf data` no borra nada si un servidor de otra sesión tiene el archivo abierto** —y el paso corre
+      contra el almacén de otro día sin avisar—, **una publicación lleva el contenido entero** así que el
+      panel tiene que mandar lo que leyó, y el registro de administración quedó con **cuatro** entradas del
+      sistema por arranque, que es D-29 una entrada más grande.
 - [ ] T044 La cadena de cierre: `contract:check`, `build`, `test:all`, `test:durability`, `test:mutation`,
       `test:contract`, `release-check`.
 

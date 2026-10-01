@@ -17,7 +17,7 @@ seguiría corriendo sobre un tratamiento que cambió — el error más caro de e
 
 ```bash
 npx vitest run --project fast tests/unit/application/configuration
-npx vitest run --project fast tests/integration/levels.test.ts
+npx vitest run --project fast tests/integration/levels.test.ts tests/integration/platform-level.test.ts
 ```
 
 Versión correlativa acuñada por OPE, cuerpo idéntico que repite en vez de crear, valor inválido rechazado
@@ -27,8 +27,13 @@ y versión.
 ## 3. El congelamiento y las ventanas
 
 ```bash
-npx vitest run --project fast tests/integration/levels-frozen.test.ts
+npx vitest run --project fast tests/integration/levels.test.ts tests/integration/platform-level.test.ts
 ```
+
+Los escenarios de esta historia quedaron en los archivos de las otras dos y no en `levels-frozen.test.ts`:
+comparten el cuerpo que se publica y la ayuda que lo arma desde lo vigente. Y el del nivel 1 agrega la
+distinción que esta tarea no previó — **cinco de sus campos deciden qué se cuenta y los otros cinco no**, así
+que publicar un `retryAfterSeconds` con un experimento activo no se congela y no reinicia nada.
 
 Con experimentos activos: sin motivo se rechaza; con motivo se publica y **cada experimento alcanzado**
 tiene su ventana reiniciada, con el nivel y la versión que lo causaron. Un experimento de un merchant que
@@ -48,6 +53,7 @@ Editar el archivo después del primer arranque no hace nada — la forma de camb
 ```bash
 npx vitest run --project durability tests/durability/ingest-latency.test.ts
 npx vitest run --project fast
+npx vitest run --project fast tests/integration/levels-history.test.ts
 ```
 
 SC-006: el p95 de la ingesta contra la misma corrida antes de la feature. Y la suite entera, porque los once
@@ -59,8 +65,15 @@ cae.
 Éste es el paso que ningún gate reemplaza.
 
 ```bash
+# **Primero cerrar lo que esté escuchando en 3000.** Un servidor de desarrollo de otra sesión mantiene el
+# archivo abierto, `rm -rf data` no lo borra y el paso entero corre contra el almacén de otro día — pasó
+# acá, y lo que lo delata es el `merchantId` del alta: si no es `dev-merchant`, la semilla no es ésta.
 rm -rf data && npm run dev
 ```
+
+El arranque tiene que decir `configuration levels seed imported` con los dos niveles; en el segundo
+arranque dice `configuration levels seed not applied`, que es la mitad de la feature que se ve sin pedir
+nada.
 
 ```bash
 A="Authorization: Bearer ope_dev_admin_token"; B=http://localhost:3000
@@ -118,3 +131,35 @@ volvió a aplicarse.
 - **Que ningún valor quedó leyéndose del arranque.** SC-001 pide una prueba por valor y el compilador
   encuentra los sitios, pero «ningún otro consumidor en el futuro» no es algo que una corrida demuestre —
   lo sostiene que el nivel ya no se pueda pedir como valor, sólo como lector.
+
+---
+
+## Lo que apareció al correrlo (2026-10-01)
+
+Los seis pasos, contra el servidor real y con el experimento de la semilla **activo**:
+
+| Qué se publicó                                         | Respuesta                                                |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| Nivel 1, `retryAfterSeconds` y `anchorDiagnosticsKept` | `201 platform-2`, sin motivo y sin reiniciar nada        |
+| Nivel 1, `sessionDurationMs`, sin motivo               | `409 configuration-frozen`                               |
+| Nivel 1, `sessionDurationMs`, con motivo               | `201 platform-3`, ventana de `exp_dev_000001` reiniciada |
+| Nivel 2, `holdoutShare` (el merchant lo declara)       | `201 defaults-2`, no alcanza a nadie                     |
+| Nivel 2, `decisionPolicy.threshold`, sin motivo        | `409 configuration-frozen`                               |
+| Nivel 2, `decisionPolicy.threshold`, con motivo        | `201 defaults-3`, ventana reiniciada                     |
+
+El experimento quedó con **dos** reinicios, cada uno diciendo de qué nivel vino la versión que lo causó
+(`level: "platform"`, `level: "defaults"`), que es el campo que la feature agregó a `WindowRestart`. El tope
+de diagnósticos publicado en el primer paso se vio en el acto: dos anclas reportadas, una conservada. Y tras
+apagar y prender, lo vigente siguió siendo `platform-3` y `defaults-3`, con el archivo del release sin
+volver a aplicarse.
+
+**Y lo que hay que saber para escribir el panel**: una publicación lleva el **contenido entero**, así que lo
+que el cuerpo no diga no se conserva — se reemplaza por lo que el cuerpo diga. En esta corrida la versión 3
+de los defaults volvió `holdoutShare` a `0.05` porque el cuerpo salió de una lectura anterior a la versión 2.
+No es un defecto —la clave de idempotencia es el contenido, y un cuerpo idéntico repite en vez de crear—,
+pero el panel tiene que mandar lo que leyó, que es lo que hacen las pruebas.
+
+**El registro de administración deja ahora cuatro entradas del sistema por arranque**
+(`importConfigurationLevels`, `importMerchants`, `importMerchantConfiguration`, `importExperiments`), ninguna
+de las cuales dice si importó algo: es **D-29**, una entrada más grande que antes de esta feature, y la
+revisión fechada del registro de deudas lo explica.
