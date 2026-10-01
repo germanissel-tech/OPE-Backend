@@ -7,17 +7,14 @@
 // declared values of a merchant are judged by the resolution and not by the entity. What lives here are the
 // two rules that are the same for both levels: a corrective version carries its reason, and a content equal
 // to the one in force is a repetition and not a new version.
-import { fail, ok, type Result } from "../shared-kernel/index.js";
+import { fail, ok, type ReleaseLevel, type Result } from "../shared-kernel/index.js";
 import { ChangedLeaves } from "./changed-leaves.js";
 import { ConfigurationReasonRequired } from "./errors.js";
 import type { OperatorId } from "../operator/index.js";
 
-/** Which level a version belongs to. The literals are the constant: the compiler checks them (ADR-011). */
-export type ConfigurationLevel = "platform" | "defaults";
-
 /** What is published: everything but the number, which the store assigns. */
 export interface LevelDraft {
-  level: ConfigurationLevel;
+  level: ReleaseLevel;
   /** The content as it was published. Judged by the reader of its level, not here. */
   content: Record<string, unknown>;
   corrective: boolean;
@@ -31,7 +28,7 @@ export interface LevelVersionRecord extends LevelDraft {
 }
 
 export class LevelVersion {
-  readonly level: ConfigurationLevel;
+  readonly level: ReleaseLevel;
   readonly version: number;
   readonly content: Record<string, unknown>;
   readonly corrective: boolean;

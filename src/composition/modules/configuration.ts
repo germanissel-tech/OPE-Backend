@@ -12,6 +12,8 @@ import {
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
   PublishMerchantConfigurationUseCase,
+  PublishTreatmentDefaultsUseCase,
+  ReachedExperiments,
   type ConfigurationLevels,
   type ConfigurationService,
   type ConfigurationStore,
@@ -29,6 +31,7 @@ import {
   makeGetTreatmentDefaults,
   makeListConfigurationVersions,
   makePublishMerchantConfiguration,
+  makePublishTreatmentDefaults,
   memoryConfigurationStore,
   memoryLevelStore,
   sqliteConfigurationStore,
@@ -149,6 +152,41 @@ export const configurationModule = compositionModule({
   ],
   serves: {
     handlers: {
+      // Feature 036: the same shape one level up. `ReachedExperiments` is built here and handed over as one
+      // dependency, which is what keeps the use case inside the six of ADR-023 — and what gives the question
+      // «who does this change reach» a name of its own.
+      publishTreatmentDefaults: served(
+        {
+          levels: LevelStorePort,
+          configuration: ConfigurationServicePort,
+          merchants: MerchantStorePort,
+          configurations: ConfigurationStorePort,
+          experiments: ExperimentDirectoryPort,
+          experimentStore: ExperimentStorePort,
+          clock: ClockPort,
+        },
+        {
+          name: "publishTreatmentDefaults",
+          build: ({ levels, configuration, clock, ...rest }) =>
+            new PublishTreatmentDefaultsUseCase({
+              levels,
+              configuration,
+              clock,
+              reached: new ReachedExperiments(rest),
+            }),
+        },
+        (useCase) => makePublishTreatmentDefaults(useCase),
+        {
+          result: (r) =>
+            r.ok
+              ? {
+                  configurationVersion: r.value.version.version,
+                  windowRestarted: r.value.windowsRestarted.length > 0,
+                }
+              : undefined,
+          reason: (request) => request.reason,
+        },
+      ),
       publishMerchantConfiguration: served(
         {
           scoped: ScopedMerchantPort,

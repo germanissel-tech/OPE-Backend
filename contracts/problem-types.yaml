@@ -198,6 +198,9 @@ types:
   - slug: merchant-out-of-scope
     status: 403
     title: The merchant is outside the operator's scope
+  - slug: operator-scope-too-narrow
+    status: 403
+    title: The operation reaches every merchant and the operator does not
   - slug: merchant-not-found
     status: 404
     title: The merchant does not exist

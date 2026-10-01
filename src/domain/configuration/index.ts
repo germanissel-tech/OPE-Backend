@@ -18,7 +18,7 @@ export { AnchorMap } from "./anchor-map.js";
 export type { AnchorMapRecord, AnchorSelectors } from "./anchor-map.js";
 export { ChangedLeaves } from "./changed-leaves.js";
 export { LevelVersion } from "./level-version.js";
-export type { ConfigurationLevel, LevelDraft, LevelVersionRecord } from "./level-version.js";
+export type { LevelDraft, LevelVersionRecord } from "./level-version.js";
 export { PolicyInput } from "./policy-inputs.js";
 export type {
   CommercialPolicyDeclared,

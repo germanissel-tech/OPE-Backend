@@ -14,3 +14,4 @@ export * from "./gateways/sqlite-level-store.js";
 export * from "./gateways/switch-aware-policy-directory.js";
 
 export { messageSettingsOf } from "./gateways/message-settings.js";
+export * from "./controllers/publish-treatment-defaults.js";

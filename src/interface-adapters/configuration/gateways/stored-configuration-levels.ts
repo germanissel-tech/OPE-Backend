@@ -21,10 +21,11 @@ import {
   type LevelStore,
   type ShapeResult,
 } from "../../../application/configuration/index.js";
-import type { ConfigurationLevel, LevelVersion } from "../../../domain/configuration/index.js";
+import type { LevelVersion } from "../../../domain/configuration/index.js";
+import type { ReleaseLevel } from "../../../domain/shared-kernel/index.js";
 
 /** The content of the version in force of a level, with the name its number mints. */
-async function inForce(store: LevelStore, level: ConfigurationLevel): Promise<Record<string, unknown>> {
+async function inForce(store: LevelStore, level: ReleaseLevel): Promise<Record<string, unknown>> {
   const version: LevelVersion | undefined = await store.latestOf(level);
   if (version === undefined) {
     throw new Error(`The ${level} level holds no version: the seed was not imported before it was read.`);
@@ -33,7 +34,7 @@ async function inForce(store: LevelStore, level: ConfigurationLevel): Promise<Re
 }
 
 /** What a level that does not parse is: a build reading its own record wrong, never an operator's problem. */
-function judged<T>(level: ConfigurationLevel, read: ShapeResult<T>): T {
+function judged<T>(level: ReleaseLevel, read: ShapeResult<T>): T {
   if (!read.ok) {
     throw new Error(`The ${level} level in force does not parse: ${read.error.message}`);
   }

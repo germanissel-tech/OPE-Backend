@@ -69,6 +69,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "invalid-cooldown": Object.freeze({ status: 500, title: "The cooldown of the commercial policy is negative" }),
   "operator-unknown": Object.freeze({ status: 401, title: "Operator token missing or unknown" }),
   "merchant-out-of-scope": Object.freeze({ status: 403, title: "The merchant is outside the operator's scope" }),
+  "operator-scope-too-narrow": Object.freeze({ status: 403, title: "The operation reaches every merchant and the operator does not" }),
   "merchant-not-found": Object.freeze({ status: 404, title: "The merchant does not exist" }),
   "merchant-deactivated": Object.freeze({ status: 409, title: "The merchant is deactivated" }),
   "origin-already-registered": Object.freeze({ status: 422, title: "An origin already belongs to another merchant" }),

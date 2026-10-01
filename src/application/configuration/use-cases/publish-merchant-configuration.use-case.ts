@@ -17,6 +17,7 @@ import {
   type Result,
   type StoreUnavailable,
 } from "../../../domain/shared-kernel/index.js";
+import { publishedBy } from "../services/publication.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { MerchantNotFound } from "../../../domain/merchant/index.js";
 import type { MerchantOutOfScope, Operator } from "../../../domain/operator/index.js";
@@ -72,10 +73,7 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     const draft = MerchantConfigurationVersion.draft({
       merchantId: request.merchantId,
       declared: request.declared,
-      corrective: request.corrective,
-      ...(request.reason === undefined ? {} : { reason: request.reason }),
-      publishedAt: clock.now(),
-      operatorId: request.actor.operatorId,
+      ...publishedBy(request, clock),
     });
     if (!draft.ok) return draft;
     const latest = await store.latestOf(request.merchantId);
@@ -107,7 +105,14 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     // The draft guarantees the reason of a corrective version and only an active experiment
     // freezes: a store that answers otherwise is a programming error, not a business outcome.
     if (version.reason === undefined) throw new Error("A corrective version carries a reason.");
-    const restarted = active.windowRestarted(version.publishedAt, version.reason, version.version);
+    // The level the version belongs to travels with the restart (feature 036): with three levels publishing,
+    // a bare number no longer identifies which version caused it.
+    const restarted = active.windowRestarted(
+      version.publishedAt,
+      version.reason,
+      version.version,
+      "merchant",
+    );
     if (!restarted.ok) throw new Error("The window of an experiment that is not active cannot restart.");
     return experimentStore.update(restarted.value);
   }

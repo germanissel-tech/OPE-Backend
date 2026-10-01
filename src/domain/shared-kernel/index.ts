@@ -1,3 +1,4 @@
+export type { ConfigurationLevel, ReleaseLevel } from "./configuration-levels.js";
 // Public API of the shared-kernel module (domain): what modules that cannot depend on each
 // other share — branded identities, Result/DomainError, Money, time units, the closed
 // vocabularies replicated from the contract (arms, barriers, anchors, NO_OP reasons) and the

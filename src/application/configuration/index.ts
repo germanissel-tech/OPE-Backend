@@ -58,3 +58,11 @@ export type {
   ImportMerchantConfigurationRequest,
   ImportMerchantConfigurationResponse,
 } from "./use-cases/import-merchant-configuration.use-case.js";
+export { PublishTreatmentDefaultsUseCase } from "./use-cases/publish-treatment-defaults.use-case.js";
+export type {
+  PublishedLevel,
+  PublishTreatmentDefaultsRequest,
+  PublishTreatmentDefaultsResponse,
+} from "./use-cases/publish-treatment-defaults.use-case.js";
+export { ReachedExperiments } from "./services/reached-experiments.service.js";
+export type { ReachedExperimentsService } from "./services/reached-experiments.service.js";

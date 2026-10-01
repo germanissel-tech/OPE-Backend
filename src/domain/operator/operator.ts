@@ -3,7 +3,12 @@
 // The scope says which merchants the operator may act on: every one (`*`) or a list. An
 // Operator only exists valid: `of` enforces the rules, `rehydrate` trusts recorded facts.
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
-import { InvalidOperatorScope, InvalidOperatorTokens, MerchantOutOfScope } from "./errors.js";
+import {
+  InvalidOperatorScope,
+  InvalidOperatorTokens,
+  MerchantOutOfScope,
+  OperatorScopeTooNarrow,
+} from "./errors.js";
 import { SYSTEM_OPERATOR, type OperatorId } from "./ids.js";
 
 /** Every merchant, or the listed ones. */
@@ -66,5 +71,16 @@ export class Operator implements OperatorRecord {
   scopeFor(merchantId: MerchantId): Result<MerchantId, MerchantOutOfScope> {
     if (this.scope === EVERY_MERCHANT || this.scope.includes(merchantId)) return ok(merchantId);
     return fail(new MerchantOutOfScope());
+  }
+
+  /**
+   * Whether this operator may act on something that reaches **every** merchant (feature 036).
+   *
+   * It is not `scopeFor` over a list of all of them, and the difference is not pedantic: a level of the
+   * release is served to whoever does not override it, including merchants created after the change. A
+   * scope that happens to name every merchant that exists today is still a list, and tomorrow it is not.
+   */
+  coversEveryMerchant(): Result<Operator, OperatorScopeTooNarrow> {
+    return this.scope === EVERY_MERCHANT ? ok(this) : fail(new OperatorScopeTooNarrow());
   }
 }

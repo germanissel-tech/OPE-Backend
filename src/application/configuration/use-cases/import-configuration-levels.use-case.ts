@@ -10,12 +10,14 @@
 // from its number (`platform-1`, `defaults-1`). Before the first pilot that is free; it is stated in the
 // amendment of ADR-031 because after one it would not be — a decision already stamped with a name is a
 // decision whose treatment has to keep that name.
+import { LevelVersion, type ConfigurationReasonRequired } from "../../../domain/configuration/index.js";
 import {
-  LevelVersion,
-  type ConfigurationLevel,
-  type ConfigurationReasonRequired,
-} from "../../../domain/configuration/index.js";
-import { fail, ok, type Result, type StoreUnavailable } from "../../../domain/shared-kernel/index.js";
+  fail,
+  ok,
+  type ReleaseLevel,
+  type Result,
+  type StoreUnavailable,
+} from "../../../domain/shared-kernel/index.js";
 import type { Operator } from "../../../domain/operator/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { LevelStore } from "../ports/level-store.js";
@@ -23,11 +25,11 @@ import type { LevelStore } from "../ports/level-store.js";
 export interface ImportConfigurationLevelsRequest {
   actor: Operator;
   /** What the release files declare, level by level, with their own `version` still in it. */
-  contents: readonly { level: ConfigurationLevel; content: Record<string, unknown> }[];
+  contents: readonly { level: ReleaseLevel; content: Record<string, unknown> }[];
 }
 
 export type ImportConfigurationLevelsResponse = Result<
-  { imported: readonly ConfigurationLevel[] },
+  { imported: readonly ReleaseLevel[] },
   ConfigurationReasonRequired | StoreUnavailable
 >;
 
@@ -48,7 +50,7 @@ export class ImportConfigurationLevelsUseCase implements UseCase<
 
   async execute(request: ImportConfigurationLevelsRequest): Promise<ImportConfigurationLevelsResponse> {
     const { levels, clock } = this.#deps;
-    const imported: ConfigurationLevel[] = [];
+    const imported: ReleaseLevel[] = [];
     for (const { level, content } of request.contents) {
       if ((await levels.latestOf(level)) !== undefined) continue;
       const draft = LevelVersion.draft({

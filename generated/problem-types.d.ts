@@ -69,6 +69,7 @@ export declare const PROBLEM_TYPES: {
   readonly "invalid-cooldown": { readonly status: 500; readonly title: "The cooldown of the commercial policy is negative" };
   readonly "operator-unknown": { readonly status: 401; readonly title: "Operator token missing or unknown" };
   readonly "merchant-out-of-scope": { readonly status: 403; readonly title: "The merchant is outside the operator's scope" };
+  readonly "operator-scope-too-narrow": { readonly status: 403; readonly title: "The operation reaches every merchant and the operator does not" };
   readonly "merchant-not-found": { readonly status: 404; readonly title: "The merchant does not exist" };
   readonly "merchant-deactivated": { readonly status: 409; readonly title: "The merchant is deactivated" };
   readonly "origin-already-registered": { readonly status: 422; readonly title: "An origin already belongs to another merchant" };

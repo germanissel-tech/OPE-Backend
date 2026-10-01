@@ -77,28 +77,28 @@ de HTTP cambió todavía.
 **Independent Test**: publicar por la API, comprobar que la resolución la usa en el pedido siguiente, que
 la versión quedó numerada y que hay entrada en el registro.
 
-- [ ] T014 [US1] `contracts/` — la operación de publicar defaults y su cuerpo (paso 1): `content` y,
+- [x] T014 [US1] `contracts/` — la operación de publicar defaults y su cuerpo (paso 1): `content` y,
       cuando corresponda, `corrective` + `reason`; `additionalProperties: false`; respuestas `201`/`200`
       (repetida), `409`, `422`, `503`. El `409` reusa el problema de configuración congelada que ya existe.
-- [ ] T015 [US1] `npm run contract:check` en verde (paso 2) y `npm run contract:types` (paso 3). **Nunca
+- [x] T015 [US1] `npm run contract:check` en verde (paso 2) y `npm run contract:types` (paso 3). **Nunca
       editar lo generado a mano.**
-- [ ] T016 [US1] `src/application/configuration/use-cases/publish-treatment-defaults.use-case.ts` — el
+- [x] T016 [US1] `src/application/configuration/use-cases/publish-treatment-defaults.use-case.ts` — el
       caso de uso, con el orden del molde y **seis dependencias como máximo** (ADR-023). El alcance se juzga
       contra **todos** los merchants: exige operador de alcance total (FR-011).
-- [ ] T017 [US1] `src/application/configuration/services/configuration.service.ts` — la **invalidación**:
+- [x] T017 [US1] `src/application/configuration/services/configuration.service.ts` — la **invalidación**:
       una publicación de nivel tira los niveles memoizados y la configuración efectiva por merchant, y no
       recalcula nada (research R-03). El siguiente pedido de cada merchant la recalcula, como después de un
       arranque.
-- [ ] T018 [US1] `src/interface-adapters/configuration/controllers/publish-treatment-defaults.ts` y el
+- [x] T018 [US1] `src/interface-adapters/configuration/controllers/publish-treatment-defaults.ts` y el
       cableado en `src/composition/modules/configuration.ts` (paso 4): `served(...)`, y el handler **no
       elige** si se audita — lo decide el módulo.
-- [ ] T019 [P] [US1] `tests/unit/application/configuration/publish-treatment-defaults.test.ts` — versión
+- [x] T019 [P] [US1] `tests/unit/application/configuration/publish-treatment-defaults.test.ts` — versión
       correlativa, cuerpo idéntico que repite, valor inválido que no crea versión, alcance insuficiente,
       almacén que no acepta escribir.
-- [ ] T020 [US1] `tests/integration/levels.test.ts` — por HTTP: publicar, y que **el pedido siguiente**
+- [x] T020 [US1] `tests/integration/levels.test.ts` — por HTTP: publicar, y que **el pedido siguiente**
       resuelva con el valor nuevo sin reiniciar; que un merchant que declara el campo no cambie; y la
       entrada del registro con actor, instante y versión.
-- [ ] T021 [US1] `npm run test:mutation` acotado al diff de la historia.
+- [x] T021 [US1] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: el panel puede ajustar el tratamiento de la plataforma. **No se entrega sin la fase 3.**
 
@@ -111,24 +111,24 @@ la versión quedó numerada y que hay entrada en el registro.
 **Independent Test**: con un experimento activo, publicar sin motivo (rechazo) y con motivo (publica y
 reinicia), contando alcanzados y no alcanzados en la misma corrida.
 
-- [ ] T022 [US2] `contracts/components/schemas/Experiment.yaml` — el registro de reinicio de ventana dice
+- [x] T022 [US2] `contracts/components/schemas/Experiment.yaml` — el registro de reinicio de ventana dice
       **de qué nivel** es la versión que lo causó (pasos 1 a 3). Con tres niveles publicando, «versión 3»
       no identifica nada (research R-04).
-- [ ] T023 [US2] `tests/unit/domain/experiment/experiment.test.ts` + `src/domain/experiment/experiment.ts`
+- [x] T023 [US2] `tests/unit/domain/experiment/experiment.test.ts` + `src/domain/experiment/experiment.ts`
       — `WindowRestart` gana el nivel; `windowRestarted` lo recibe. La prueba primero: un reinicio causado
       por defaults y otro por el merchant no se confunden.
-- [ ] T024 [US2] `tests/unit/application/configuration/reached-experiments.test.ts` — **antes del
+- [x] T024 [US2] `tests/unit/application/configuration/reached-experiments.test.ts` — **antes del
       servicio**: qué experimentos alcanza un conjunto de hojas. Activos sí, en calibración no; un merchant
       que declara todas las hojas que cambiaron no queda alcanzado.
-- [ ] T025 [US2] `src/application/configuration/services/reached-experiments.service.ts` — el servicio que
+- [x] T025 [US2] `src/application/configuration/services/reached-experiments.service.ts` — el servicio que
       se queda con las tres piezas de experimentos (encontrar los activos, decidir cuáles alcanza, reiniciar
       sus ventanas) y que el caso de uso recibe como **una** dependencia (research R-04).
-- [ ] T026 [US2] `publish-treatment-defaults.use-case.ts` — el congelamiento: alcanzados y sin motivo ⇒
+- [x] T026 [US2] `publish-treatment-defaults.use-case.ts` — el congelamiento: alcanzados y sin motivo ⇒
       rechazo; con motivo ⇒ publica y reinicia cada ventana alcanzada. Todo dentro de la unidad de trabajo
       (ADR-042): o queda con su entrada de auditoría, o no queda.
-- [ ] T027 [US2] `tests/integration/levels-frozen.test.ts` — los cinco escenarios de la historia, con dos
+- [x] T027 [US2] `tests/integration/levels-frozen.test.ts` — los cinco escenarios de la historia, con dos
       merchants: uno que declara lo que cambia y otro que no, y un experimento activo en cada uno.
-- [ ] T028 [US2] `npm run test:mutation` acotado al diff de la historia.
+- [x] T028 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las historias 1 y 2 juntas son la feature mínima entregable.
 
