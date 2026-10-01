@@ -18,6 +18,7 @@ export type AuditedOperation =
   | "createExperiment"
   | "activateExperiment"
   | "closeExperiment"
+  | "publishPlatformConfiguration"
   | "publishTreatmentDefaults";
 
 /** The same list, for the composition to read while it wires. */

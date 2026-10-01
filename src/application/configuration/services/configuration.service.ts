@@ -33,13 +33,26 @@ export interface ConfigurationService {
    */
   judgeLevel(draft: LevelDraft): Promise<Result<undefined, InvalidConfigurationValue>>;
   /**
-   * Forgets the levels in force and every effective configuration resolved from them (feature 036).
+   * Forgets every effective configuration and reads the levels again (feature 036).
    *
-   * **It invalidates and does not recompute**, which is the whole cost of a level change: the resolution of
-   * each merchant is lazy, so the next request of each one resolves again — exactly what already happens
-   * after a boot. Recomputing for every merchant would be work for a cache nobody has asked for yet.
+   * **It forgets the merchants and does not recompute them**, which is the whole cost of a level change: the
+   * resolution of each merchant is lazy, so the next request of each one resolves again — exactly what
+   * already happens after a boot. Recomputing for every merchant would be work for a cache nobody asked for.
+   *
+   * **The levels are the exception, and they are read here rather than forgotten**: `platformInForce()`
+   * answers synchronously from what this holds, so leaving it empty would make every consumer of a level 1
+   * value fail between a publication and the next read of it. Reading them costs one query per level, off
+   * every critical path, and leaves no window where the value is missing.
    */
-  invalidate(): void;
+  refresh(): Promise<void>;
+  /**
+   * The platform level in force, from memory and with no I/O: what `PlatformLevelReader` hands to the
+   * eleven components that used to receive its values at construction.
+   *
+   * It throws if the boot has not loaded a level yet, which is a programming error and not a state the
+   * server can be in: the seed is imported and the levels are read before anything listens.
+   */
+  platformInForce(): PlatformConfiguration;
   /** A version the store accepted becomes the one served, at once. */
   apply(version: MerchantConfigurationVersion): Promise<EffectiveConfiguration>;
   platform(): Promise<PlatformConfiguration>;
@@ -60,6 +73,8 @@ export class Configurations implements ConfigurationService {
   readonly #deps: ConfigurationServiceDependencies;
   readonly #effective = new Map<MerchantId, EffectiveConfiguration>();
   #levels: Promise<Levels> | undefined;
+  /** The last levels this resolved, for the readers that cannot await (feature 036). */
+  #inForce: Levels | undefined;
 
   constructor(deps: ConfigurationServiceDependencies) {
     this.#deps = deps;
@@ -94,9 +109,17 @@ export class Configurations implements ConfigurationService {
     return Promise.resolve(read.ok ? ok(undefined) : fail(read.error));
   }
 
-  invalidate(): void {
+  async refresh(): Promise<void> {
     this.#levels = undefined;
     this.#effective.clear();
+    await this.#loadLevels();
+  }
+
+  platformInForce(): PlatformConfiguration {
+    if (this.#inForce === undefined) {
+      throw new Error("The levels in force were asked for before the boot read them.");
+    }
+    return this.#inForce.platform;
   }
 
   async platform(): Promise<PlatformConfiguration> {
@@ -122,7 +145,13 @@ export class Configurations implements ConfigurationService {
 
   #loadLevels(): Promise<Levels> {
     this.#levels ??= Promise.all([this.#deps.levels.platform(), this.#deps.levels.defaults()]).then(
-      ([platform, defaults]) => ({ platform, defaults }),
+      ([platform, defaults]) => {
+        // Kept for the synchronous reader, and assigned **here** rather than next to the await of whoever
+        // asked: this is the one place the levels are resolved, so there is no path that loads them and
+        // leaves the reader behind.
+        this.#inForce = { platform, defaults };
+        return this.#inForce;
+      },
     );
     return this.#levels;
   }

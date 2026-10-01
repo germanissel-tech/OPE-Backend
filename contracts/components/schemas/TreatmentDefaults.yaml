@@ -1,6 +1,7 @@
 type: object
-description: "Level 2 (constitution XI): what every merchant gets unless it declares otherwise, as
-  the release declares it (`config/treatment-defaults.json`); read-only by API."
+description: "Level 2 (constitution XI): what every merchant gets unless it declares otherwise, with the
+  name of the version in force. The release file (`config/treatment-defaults.json`) is the seed of version
+  1; from there on an operator publishes it by API (ADR-031 as amended by feature 036)."
 additionalProperties: false
 required:
   - version
@@ -17,7 +18,7 @@ required:
 properties:
   version:
     type: string
-    description: Version of the treatment defaults the release declares.
+    description: "Name of the version in force (`defaults-3`), minted from its number."
     minLength: 1
     maxLength: 64
   freshness:

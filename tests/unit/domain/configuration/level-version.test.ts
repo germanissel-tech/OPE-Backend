@@ -59,12 +59,47 @@ describe("LevelVersion", () => {
     expect(version.sameContentAs(draft({ corrective: true, reason: "said out loud" }))).toBe(false);
   });
 
+  it("asks for the three things apart: the flag alone and the reason alone each make it another version", () => {
+    // **One case that changes both fields proves neither.** With the same values and the same reason, a
+    // draft that is no longer corrective is a different publication — and the other way round — so each of
+    // the two comparisons needs a case where it is the only thing that differs.
+    const corrective = numbered({ corrective: true, reason: "the holdout was wrong" });
+    expect(corrective.sameContentAs(draft({ corrective: false, reason: "the holdout was wrong" }))).toBe(
+      false,
+    );
+    expect(corrective.sameContentAs(draft({ corrective: true, reason: "something else" }))).toBe(false);
+    // And with the three equal it repeats, which is what makes an identical body answer 200.
+    expect(corrective.sameContentAs(draft({ corrective: true, reason: "the holdout was wrong" }))).toBe(true);
+  });
+
   it("answers which leaves a draft would change against it", () => {
     const version = numbered({ content: { decisionPolicy: { threshold: 0.6, readingSeconds: 20 } } });
     const changed = version.changedLeaves(
       draft({ content: { decisionPolicy: { threshold: 0.7, readingSeconds: 20 } } }),
     );
     expect(changed.paths()).toEqual(["decisionPolicy.threshold"]);
+  });
+
+  it("**asks the measurement only about the fields that govern it, and that depends on the level**", () => {
+    // The distinction US3 rests on: the whole of level 2 is treatment, and level 1 is not. A publication that
+    // only moves the `Retry-After` reaches nobody, so it is not frozen by a running experiment and restarts
+    // no window; one that moves the duration of a session changes what is counted and does both.
+    const operational = { content: { retryAfterSeconds: 5, visitorWindowMs: 10 } };
+    const platform = LevelVersion.numbered(draft({ level: "platform", ...operational }), 1);
+    const sameButRetry = draft({ level: "platform", content: { retryAfterSeconds: 9, visitorWindowMs: 10 } });
+    const sameButWindow = draft({
+      level: "platform",
+      content: { retryAfterSeconds: 5, visitorWindowMs: 20 },
+    });
+
+    expect(platform.changedLeaves(sameButRetry).paths()).toEqual(["retryAfterSeconds"]);
+    expect(platform.measuringLeaves(sameButRetry).none()).toBe(true);
+    expect(platform.measuringLeaves(sameButWindow).paths()).toEqual(["visitorWindowMs"]);
+
+    // Of level 2 every leaf measures, so the two answers are the same one.
+    const defaults = LevelVersion.numbered(draft({ content: { holdoutShare: 0 } }), 1);
+    const other = draft({ content: { holdoutShare: 0.2 } });
+    expect(defaults.measuringLeaves(other).paths()).toEqual(defaults.changedLeaves(other).paths());
   });
 
   it("rehydrates what it recorded, without judging it again", () => {

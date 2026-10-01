@@ -12,7 +12,7 @@ import {
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
   PublishMerchantConfigurationUseCase,
-  PublishTreatmentDefaultsUseCase,
+  PublishLevelUseCase,
   ReachedExperiments,
   type ConfigurationLevels,
   type ConfigurationService,
@@ -22,6 +22,10 @@ import {
   type LevelStore,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
+  type PlatformLevelReader,
+  type PublishLevelRequest,
+  type PublishLevelResponse,
+  type ReachedExperimentsDependencies,
 } from "../../application/configuration/index.js";
 import {
   catalogPoliciesOf,
@@ -31,6 +35,7 @@ import {
   makeGetTreatmentDefaults,
   makeListConfigurationVersions,
   makePublishMerchantConfiguration,
+  makePublishPlatformConfiguration,
   makePublishTreatmentDefaults,
   memoryConfigurationStore,
   memoryLevelStore,
@@ -42,14 +47,14 @@ import {
   messageSettingsOf,
 } from "../../interface-adapters/configuration/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
-import { SqlStorePort } from "../release.js";
+import { PlatformLevelPort, SqlStorePort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
-import type { UseCase } from "../../application/shared-kernel/index.js";
+import type { Clock, UseCase } from "../../application/shared-kernel/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
@@ -81,10 +86,7 @@ export const ImportConfigurationPort =
  */
 const resolution = [
   // **The release stopped being the source here** (feature 036): what is in force is the newest version of
-  // each level, and the files are the seed the boot imports into an empty store. Until the story that gives
-  // the platform level its reader, the eleven components that receive one of its values at construction
-  // still take it from the file (`PlatformConfigurationPort`) — and the two cannot disagree yet, because
-  // nothing can publish that level until then.
+  // each level, and the files are the seed the boot imports into an empty store.
   bind(ConfigurationLevelsPort, { levels: LevelStorePort }, ({ levels }) =>
     storedConfigurationLevels(levels),
   ),
@@ -92,6 +94,15 @@ const resolution = [
     ConfigurationServicePort,
     { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
     (deps) => new Configurations(deps),
+  ),
+  // **The level 1 reader, which is the same instance that resolves** and not a second copy of it: two caches
+  // of one level can disagree, and the one that nobody notices disagreeing is the one the decision path
+  // reads. The eleven components that used to receive a value at construction receive this and ask when they
+  // use it (research R-02).
+  bind(
+    PlatformLevelPort,
+    { configuration: ConfigurationServicePort },
+    ({ configuration }): PlatformLevelReader => ({ inForce: () => configuration.platformInForce() }),
   ),
   bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     catalogPoliciesOf(configuration),
@@ -108,6 +119,48 @@ const resolution = [
     ({ configuration, merchants }) => switchAwarePolicyDirectory(policySourceOf(configuration), merchants),
   ),
 ] as const;
+
+/**
+ * What a publication of a level needs, and how the use case the two levels share is built (feature 036).
+ *
+ * `ReachedExperiments` is built **here** and handed over as one dependency, which is what keeps the use case
+ * inside the six of ADR-023 — and what gives the question «who does this change reach» a name of its own.
+ */
+const PUBLISHES_A_LEVEL = {
+  levels: LevelStorePort,
+  configuration: ConfigurationServicePort,
+  merchants: MerchantStorePort,
+  configurations: ConfigurationStorePort,
+  experiments: ExperimentDirectoryPort,
+  experimentStore: ExperimentStorePort,
+  clock: ClockPort,
+} as const;
+
+const publishesALevel = (
+  deps: {
+    levels: LevelStore;
+    configuration: ConfigurationService;
+    clock: Clock;
+  } & ReachedExperimentsDependencies,
+): PublishLevelUseCase => {
+  const { levels, configuration, clock, ...rest } = deps;
+  return new PublishLevelUseCase({ levels, configuration, clock, reached: new ReachedExperiments(rest) });
+};
+
+/**
+ * What the administration log keeps of a publication of a level: the number it got and what it restarted.
+ *
+ * The two readers are named and the object that carries them is written at each `served`, which is the
+ * shape rule `port-implementations-only-in-bind` and not a style: an object with behaviour hoisted into the
+ * wiring reads like a component the graph does not know it has, and the readers of a decorator are
+ * arguments.
+ */
+const levelVersionNumbered = (r: PublishLevelResponse) =>
+  r.ok
+    ? { configurationVersion: r.value.version.version, windowRestarted: r.value.windowsRestarted.length > 0 }
+    : undefined;
+
+const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
 
 export const configurationModule = compositionModule({
   // The only component with a technology to choose is the store of the published versions; the rest is
@@ -152,40 +205,20 @@ export const configurationModule = compositionModule({
   ],
   serves: {
     handlers: {
-      // Feature 036: the same shape one level up. `ReachedExperiments` is built here and handed over as one
-      // dependency, which is what keeps the use case inside the six of ADR-023 — and what gives the question
-      // «who does this change reach» a name of its own.
+      // Feature 036: the two levels of the release, published by the **one** use case they share. What each
+      // handler adds is the level it names; everything else — the components it needs, how the use case is
+      // built and what the audit entry keeps — is written once right above.
+      publishPlatformConfiguration: served(
+        PUBLISHES_A_LEVEL,
+        { name: "publishPlatformConfiguration", build: publishesALevel },
+        (useCase) => makePublishPlatformConfiguration(useCase),
+        { result: levelVersionNumbered, reason: levelReasonDeclared },
+      ),
       publishTreatmentDefaults: served(
-        {
-          levels: LevelStorePort,
-          configuration: ConfigurationServicePort,
-          merchants: MerchantStorePort,
-          configurations: ConfigurationStorePort,
-          experiments: ExperimentDirectoryPort,
-          experimentStore: ExperimentStorePort,
-          clock: ClockPort,
-        },
-        {
-          name: "publishTreatmentDefaults",
-          build: ({ levels, configuration, clock, ...rest }) =>
-            new PublishTreatmentDefaultsUseCase({
-              levels,
-              configuration,
-              clock,
-              reached: new ReachedExperiments(rest),
-            }),
-        },
+        PUBLISHES_A_LEVEL,
+        { name: "publishTreatmentDefaults", build: publishesALevel },
         (useCase) => makePublishTreatmentDefaults(useCase),
-        {
-          result: (r) =>
-            r.ok
-              ? {
-                  configurationVersion: r.value.version.version,
-                  windowRestarted: r.value.windowsRestarted.length > 0,
-                }
-              : undefined,
-          reason: (request) => request.reason,
-        },
+        { result: levelVersionNumbered, reason: levelReasonDeclared },
       ),
       publishMerchantConfiguration: served(
         {

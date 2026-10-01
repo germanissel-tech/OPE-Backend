@@ -105,6 +105,50 @@ describe("Configurations", () => {
     expect(served.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 1 });
     expect(served.values.holdoutShare).toBe(0);
   });
+
+  // `judgeLevel` is the counterpart of `judge` one level up (feature 036): what a merchant declares is
+  // judged **resolved** over the defaults, and the content of a level against the vocabulary of **its own**
+  // level, because there is nothing above it to resolve against.
+  //
+  // **Which reader answers is the whole behaviour**, and the two levels share no field: judging a platform
+  // content as if it were a treatment one refuses it for a field that is not even in it, so the case has to
+  // assert the field the pointer names and not only that it was refused.
+  describe("judgeLevel", () => {
+    const contentOf = (level: "platform" | "defaults"): Record<string, unknown> => {
+      // `as unknown` first and on purpose: a record of a named interface is not a `Record<string, unknown>`
+      // —it has no index signature— which is the same reason the boot spreads it instead of handing it over.
+      const record = testLevels()[level].record() as unknown as Record<string, unknown>;
+      const { version, ...content } = record;
+      expect(version).toBeDefined();
+      return content;
+    };
+
+    const judge = (level: "platform" | "defaults", over: Record<string, unknown> = {}) =>
+      subject().configuration.judgeLevel({
+        level,
+        content: { ...contentOf(level), ...over },
+        corrective: false,
+        publishedAt: TEST_NOW,
+        operatorId: asOperatorId("ops-all"),
+      });
+
+    it("accepts the content of each level, read by the reader of that level", async () => {
+      expect((await judge("platform")).ok).toBe(true);
+      expect((await judge("defaults")).ok).toBe(true);
+    });
+
+    it("refuses a value of the platform level naming the field of the platform level", async () => {
+      const refused = await judge("platform", { signatureWindowMs: 0 });
+      expect(refused.ok).toBe(false);
+      expect(refused.ok ? undefined : refused.error.pointer).toBe("signatureWindowMs");
+    });
+
+    it("refuses a value of the defaults level naming the field of the defaults level", async () => {
+      const refused = await judge("defaults", { holdoutShare: 0.004 });
+      expect(refused.ok).toBe(false);
+      expect(refused.ok ? undefined : refused.error.pointer).toBe("holdoutShare");
+    });
+  });
 });
 
 describe("PublishMerchantConfigurationUseCase", () => {

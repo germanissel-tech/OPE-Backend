@@ -14,7 +14,17 @@
 /** A value of a configuration document: an object of them, an array, or something that ends the walk. */
 type Content = Record<string, unknown>;
 
-/** Whether `value` is an object whose keys the merge walks into. */
+/**
+ * Whether `value` is an object whose keys the merge walks into.
+ *
+ * **The exception below is a false survivor of the runner, measured and not assumed** (ADR-016). Stryker
+ * classifies this body as static —the seed of the boot walks it from a `beforeEach`, outside any test— and
+ * then cannot activate it per test, so it reports it as survived against the 52 tests that cover it.
+ * Replacing the body with `true` by hand fails 14 of the 16 cases of
+ * `tests/unit/domain/configuration/changed-leaves.test.ts`: every string becomes walkable and the walk
+ * recurses forever. The mutant is dead; what cannot judge it is the tool.
+ */
+// Stryker disable next-line ConditionalExpression: static mutant the vitest runner cannot activate; killed by hand, see above
 const walkable = (value: unknown): value is Content =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -82,6 +92,17 @@ export class ChangedLeaves {
   /** The paths that changed, for whoever reports or logs them. */
   paths(): readonly string[] {
     return this.#paths;
+  }
+
+  /**
+   * The changed leaves that live under one of these fields, and nothing else.
+   *
+   * It exists because not every value of a level is treatment: level 1 holds five fields that decide what is
+   * counted and five that are operational, and only the first five can reach a measurement in course. The
+   * comparison is by the **first segment** of the path, so a field and everything under it travel together.
+   */
+  under(fields: readonly string[]): ChangedLeaves {
+    return new ChangedLeaves(this.#paths.filter((path) => fields.includes(path.split(".")[0] ?? path)));
   }
 
   none(): boolean {

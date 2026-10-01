@@ -334,8 +334,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [configuration:write]
-    roadmap: admin-panel
-    status: planned
+    feature: "036"
+    status: built
     source: constitucion#XI
   - operationId: publishTreatmentDefaults
     method: post

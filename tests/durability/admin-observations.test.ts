@@ -36,9 +36,9 @@ afterEach(() => {
 
 /** The stores over the current connection. After `restart()` these are new ones over the same file. */
 const diagnostics = (kept = 10): AnchorDiagnosticsStore =>
-  sqliteAnchorDiagnosticsStore({ store: fixture.store, logger: fixture.logger, kept });
+  sqliteAnchorDiagnosticsStore({ store: fixture.store, logger: fixture.logger, kept: () => kept });
 const unmapped = (kept = 10): UnmappedValueLog =>
-  sqliteUnmappedValueLog({ store: fixture.store, logger: fixture.logger, kept });
+  sqliteUnmappedValueLog({ store: fixture.store, logger: fixture.logger, kept: () => kept });
 
 const unresolved = (anchor: Anchor, at: Date, version?: number) => ({
   merchantId: A,

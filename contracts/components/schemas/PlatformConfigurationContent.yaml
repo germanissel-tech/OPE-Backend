@@ -1,10 +1,14 @@
 type: object
-description: "Level 1 (constitution XI): the values of the platform that no merchant overrides, with the
-  name of the version in force. The release file (`config/platform.json`) is the seed of version 1; from
-  there on an operator publishes it by API (ADR-031 as amended by feature 036)."
+description: "The values of level 1 (constitution XI), without the version that names them: what an
+  operator publishes. The version is **minted by OPE** from the position in the level's history
+  (`platform-3`), so nothing here declares one — until feature 036 the release file carried a version of
+  its own and nothing forced anyone to change it when the content did.
+
+
+  It is not an `allOf` of `PlatformConfiguration` minus a field, for the same reason as
+  `TreatmentDefaultsContent`: `additionalProperties: false` does not compose through `allOf`."
 additionalProperties: false
 required:
-  - version
   - dedupWindow
   - eventPastToleranceMs
   - clockSkewToleranceMs
@@ -16,11 +20,6 @@ required:
   - unmappedValuesKept
   - retryAfterSeconds
 properties:
-  version:
-    type: string
-    description: "Name of the version in force (`platform-3`), minted from its number."
-    minLength: 1
-    maxLength: 64
   dedupWindow:
     $ref: ./DedupWindow.yaml
   eventPastToleranceMs:
@@ -37,9 +36,7 @@ properties:
     type: integer
     description: "Milliseconds of inactivity after which a session is over and the SDK must mint a new
       `sessionId`. It is a rule of the backend that the SDK obeys, not an observation the client makes
-      (feature 032). It used to be called `sessionWindowMs` and meant two things at once — this rule and
-      how long the backend keeps the session in memory; those are now separate, and the second one is not
-      published because nothing a merchant observes depends on it."
+      (feature 032)."
     minimum: 1
     maximum: 31536000000
   visitorWindowMs:
@@ -65,11 +62,13 @@ properties:
     maximum: 1000000
   unmappedValuesKept:
     type: integer
-    description: Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused.
+    description: Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and
+      the catalogue is never refused.
     minimum: 1
     maximum: 1000000
   retryAfterSeconds:
     type: integer
-    description: "Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021)."
+    description: "Seconds a client waits before retrying a write a store could not accept: the
+      `Retry-After` of every 503 (ADR-021)."
     minimum: 1
     maximum: 3600

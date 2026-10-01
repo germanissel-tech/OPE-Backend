@@ -1,5 +1,11 @@
-// publishTreatmentDefaults (feature 036; constitution XI; ADR-031 as amended): the next version of level 2,
-// published by an operator instead of deployed.
+// publishPlatformConfiguration and publishTreatmentDefaults (feature 036; constitution XI; ADR-031 as
+// amended): the next version of a level of the release, published by an operator instead of deployed.
+//
+// **One use case for the two levels**, with the level in the request. They hold different values and share
+// everything that happens when one is published —the authority it takes, the repetition of an identical
+// body, the freeze, the restarted windows, the numbering— and what the content means is the business of the
+// reader of each level, which `judgeLevel` picks. Two classes would have been the same forty lines twice
+// with a string changed, which is what the duplication gate is for.
 //
 // It is the use case of a merchant's configuration one level up, and the two differences are the whole
 // subject of the feature:
@@ -18,7 +24,13 @@ import {
   type ConfigurationReasonRequired,
   type InvalidConfigurationValue,
 } from "../../../domain/configuration/index.js";
-import { fail, ok, type Result, type StoreUnavailable } from "../../../domain/shared-kernel/index.js";
+import {
+  fail,
+  ok,
+  type ReleaseLevel,
+  type Result,
+  type StoreUnavailable,
+} from "../../../domain/shared-kernel/index.js";
 import { publishedBy } from "../services/publication.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { Operator, OperatorScopeTooNarrow } from "../../../domain/operator/index.js";
@@ -27,11 +39,20 @@ import type { LevelStore } from "../ports/level-store.js";
 import type { ConfigurationService } from "../services/configuration.service.js";
 import type { ReachedExperimentsService } from "../services/reached-experiments.service.js";
 
-export interface PublishTreatmentDefaultsRequest {
+export interface PublishLevelRequest {
   actor: Operator;
+  /** Which of the two levels of the release is being published; the controller names it, not the body. */
+  level: ReleaseLevel;
   content: Record<string, unknown>;
   corrective: boolean;
-  reason?: string;
+  /**
+   * Why the version is published, when the operator declared one.
+   *
+   * `?: string | undefined` and not `?: string`: the controller hands over what the body carries, absent or
+   * not, and the single guard that turns the second into the first lives in `publishedBy`. Writing that
+   * guard twice produced a branch whose two arms are the same input, which no test can tell apart.
+   */
+  reason?: string | undefined;
 }
 
 export interface PublishedLevel {
@@ -41,7 +62,7 @@ export interface PublishedLevel {
   windowsRestarted: readonly Experiment[];
 }
 
-export type PublishTreatmentDefaultsResponse = Result<
+export type PublishLevelResponse = Result<
   PublishedLevel,
   | OperatorScopeTooNarrow
   | ConfigurationReasonRequired
@@ -50,48 +71,50 @@ export type PublishTreatmentDefaultsResponse = Result<
   | StoreUnavailable
 >;
 
-export interface PublishTreatmentDefaultsDependencies {
+export interface PublishLevelDependencies {
   levels: LevelStore;
   configuration: ConfigurationService;
   reached: ReachedExperimentsService;
   clock: Clock;
 }
 
-export class PublishTreatmentDefaultsUseCase implements UseCase<
-  PublishTreatmentDefaultsRequest,
-  PublishTreatmentDefaultsResponse
-> {
-  readonly #deps: PublishTreatmentDefaultsDependencies;
+export class PublishLevelUseCase implements UseCase<PublishLevelRequest, PublishLevelResponse> {
+  readonly #deps: PublishLevelDependencies;
 
-  constructor(deps: PublishTreatmentDefaultsDependencies) {
+  constructor(deps: PublishLevelDependencies) {
     this.#deps = deps;
   }
 
-  async execute(request: PublishTreatmentDefaultsRequest): Promise<PublishTreatmentDefaultsResponse> {
+  async execute(request: PublishLevelRequest): Promise<PublishLevelResponse> {
     const { levels, configuration, reached, clock } = this.#deps;
     const covers = request.actor.coversEveryMerchant();
     if (!covers.ok) return fail(covers.error);
     const draft = LevelVersion.draft({
-      level: "defaults",
+      level: request.level,
       content: request.content,
       ...publishedBy(request, clock),
     });
     if (!draft.ok) return fail(draft.error);
-    const inForce = await levels.latestOf("defaults");
+    const inForce = await levels.latestOf(request.level);
     if (inForce?.sameContentAs(draft.value) === true) {
       return ok({ version: inForce, outcome: "repeated", windowsRestarted: [] });
     }
     // Judged before anything is written: a value the vocabulary refuses never becomes a version (FR-005).
     const judged = await configuration.judgeLevel(draft.value);
     if (!judged.ok) return fail(judged.error);
-    const toRestart = inForce === undefined ? [] : await reached.by(inForce.changedLeaves(draft.value));
+    const toRestart = inForce === undefined ? [] : await reached.by(inForce.measuringLeaves(draft.value));
     if (toRestart.length > 0 && !request.corrective) return fail(new ConfigurationFrozen());
     const published = await levels.publish(draft.value);
     if (!published.ok) return fail(published.error);
-    // **Invalidating is enough, and recomputing would be work for nothing.** The resolution of each merchant
-    // is lazy, so the next request of each one pays one read — which is exactly what a cold boot already
-    // costs and what SC-006 measures.
-    configuration.invalidate();
+    // **Forgetting is enough, and recomputing every merchant would be work for nothing.** The resolution of
+    // each merchant is lazy, so the next request of each one pays one read — which is exactly what a cold
+    // boot already costs and what SC-006 measures. What `refresh` does read is the two levels, because the
+    // consumers of level 1 ask for it synchronously and must never find it missing.
+    //
+    // **And it happens before the windows are restarted**, which is the order that matters: from here on
+    // every request is served the version just published, so a window that restarts does it over the
+    // treatment that is actually in force.
+    await configuration.refresh();
     const restarted = await reached.restart(toRestart, published.value);
     if (!restarted.ok) return fail(restarted.error);
     return ok({ version: published.value, outcome: "created", windowsRestarted: toRestart });

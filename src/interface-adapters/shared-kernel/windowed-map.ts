@@ -12,6 +12,26 @@ export interface BoundedWindow {
   readonly max: number;
 }
 
+/**
+ * A bounded window over readers of its two numbers, **without copying them** (feature 036).
+ *
+ * The fields are getters on purpose, and `{ ttlMs: window.ttlMs, max: window.maxIds }` is the version that
+ * looks the same and is not: it reads once, when the store is built, which turns a value of level 1 back
+ * into a constant of the process. Read through these, a window published while the server runs is obeyed
+ * from the next load on — which is what `trim` and `sweep` below already allow, since they ask the window
+ * every time.
+ */
+export function boundedBy(ttlMs: () => number, max: () => number): BoundedWindow {
+  return {
+    get ttlMs() {
+      return ttlMs();
+    },
+    get max() {
+      return max();
+    },
+  };
+}
+
 export interface WindowedByMerchant<K, V> {
   /** The value under `key` for the merchant, after sweeping what the window no longer admits as of `now`. */
   load(merchantId: MerchantId, key: K, now: number): V | undefined;

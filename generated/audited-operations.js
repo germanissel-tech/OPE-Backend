@@ -18,5 +18,6 @@ export const AUDITED_OPERATIONS = Object.freeze([
   "createExperiment",
   "activateExperiment",
   "closeExperiment",
+  "publishPlatformConfiguration",
   "publishTreatmentDefaults",
 ]);

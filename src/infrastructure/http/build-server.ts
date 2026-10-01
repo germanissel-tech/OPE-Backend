@@ -32,17 +32,20 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
   /** The process logger; Fastify's request log shares its stream when it is pino-backed. */
   logger: Logger;
   /** Seconds every `503` tells the client to wait (`Retry-After`; level 1 of the configuration, ADR-021). */
-  retryAfterSeconds: number;
+  /** Read on every 503: it is a value of level 1, which an operator may publish while the server runs. */
+  retryAfterSeconds: () => number;
 }
 
 const SERVICE_UNAVAILABLE = 503;
 const RETRY_AFTER = "retry-after";
 
 /** Every 503 carries `Retry-After` (ADR-021): a write a store could not accept is retried, not lost. */
-function retryAfterOn503(app: FastifyInstance, seconds: number): void {
+function retryAfterOn503(app: FastifyInstance, seconds: () => number): void {
   app.addHook("onSend", (_request, reply, payload, done) => {
     if (reply.statusCode === SERVICE_UNAVAILABLE && !reply.hasHeader(RETRY_AFTER)) {
-      reply.header(RETRY_AFTER, String(seconds));
+      // Asked here and not when the hook was added: the value is level 1 of the configuration, so what an
+      // operator published a second ago is what this answer carries (feature 036).
+      reply.header(RETRY_AFTER, String(seconds()));
     }
     done(null, payload);
   });

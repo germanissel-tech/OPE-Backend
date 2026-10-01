@@ -10,6 +10,7 @@
 import { fail, ok, type ReleaseLevel, type Result } from "../shared-kernel/index.js";
 import { ChangedLeaves } from "./changed-leaves.js";
 import { ConfigurationReasonRequired } from "./errors.js";
+import { MEASURING_PLATFORM_FIELDS } from "./platform-configuration.js";
 import type { OperatorId } from "../operator/index.js";
 
 /** What is published: everything but the number, which the store assigns. */
@@ -76,9 +77,22 @@ export class LevelVersion {
     );
   }
 
-  /** Which leaves a draft would change against this version — what decides the experiments it reaches. */
+  /** Which leaves a draft would change against this version, all of them: what `sameContentAs` compares. */
   changedLeaves(draft: LevelDraft): ChangedLeaves {
     return ChangedLeaves.between(this.content, draft.content);
+  }
+
+  /**
+   * Which of those leaves can reach a measurement in course — what decides the experiments this change
+   * freezes and the windows it restarts.
+   *
+   * **The whole of level 2 is treatment and level 1 is not**: five of its fields decide what is counted and
+   * the other five are operational, so a publication that only moves a `Retry-After` reaches nobody. Asking
+   * the version rather than the use case is what keeps that distinction with the level that owns it.
+   */
+  measuringLeaves(draft: LevelDraft): ChangedLeaves {
+    const changed = this.changedLeaves(draft);
+    return this.level === "platform" ? changed.under(MEASURING_PLATFORM_FIELDS) : changed;
   }
 
   /**

@@ -17,12 +17,16 @@ import {
   type Label,
   type Override,
 } from "./graph/index.js";
-import { ImportConfigurationLevelsPort, ImportConfigurationPort } from "./modules/configuration.js";
+import {
+  ConfigurationServicePort,
+  ImportConfigurationLevelsPort,
+  ImportConfigurationPort,
+} from "./modules/configuration.js";
 import { ImportExperimentsPort } from "./modules/experiment.js";
 import { EventLogPort } from "./modules/ingestion.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
 import { LoggerPort } from "./modules/shared-kernel.js";
-import { ContractPort, type SqlStorePort } from "./release.js";
+import { ContractPort, PlatformLevelPort, type SqlStorePort } from "./release.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
 import type { FastifyInstance } from "fastify";
 
@@ -81,6 +85,11 @@ export async function importSeed(
   // store, and everything below —a merchant's declared configuration, its experiments— is judged against
   // them. A boot that imported the merchants first would judge them against a level that holds nothing.
   await importLevels(config, actor, graph);
+  // **And the levels are read before anything is served** (feature 036). Eleven components read level 1
+  // synchronously when they use one of its values, so the service has to be holding it by the time the
+  // server listens; this is also what makes a stored level this build cannot read a boot that fails loudly
+  // instead of a request that fails later.
+  await graph.resolve(ConfigurationServicePort).refresh();
   const seeds = config.merchants.map((m) => m.seed);
   const imported = await graph.resolve(ImportMerchantsPort).execute({ actor, seeds });
   if (!imported.ok) throw new Error(`The merchant seed was rejected: ${imported.error.code}.`);
@@ -226,7 +235,9 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
       security: wired.security,
       cors: wired.cors,
       logger: graph.resolve(LoggerPort),
-      retryAfterSeconds: config.levels.platform.retryAfterSeconds,
+      // Read on every 503 and not once here: it is a value of level 1 like the other twelve, and an
+      // operator that shortens it means the next answer and not the next deploy.
+      retryAfterSeconds: () => graph.resolve(PlatformLevelPort).inForce().retryAfterSeconds,
     });
     return { app, resolve: graph.resolve, close: () => shutdown(app, graph.closables) };
   } catch (failure) {

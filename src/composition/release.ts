@@ -10,10 +10,10 @@
 import { loadContract } from "../infrastructure/http/load-contract.js";
 import { openSqliteStore } from "../infrastructure/sqlite/open-store.js";
 import { bind, compositionModule, port } from "./graph/index.js";
-import type { AppConfig, ReleaseLevels } from "./config.js";
+import type { AppConfig } from "./config.js";
 import type { EventLogTuning } from "./event-log-config.js";
 import type { StateRetention } from "./state-retention-config.js";
-import type { PlatformConfiguration } from "../domain/configuration/index.js";
+import type { PlatformLevelReader } from "../application/configuration/index.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { ContractDocument } from "../infrastructure/http/build-server.js";
 import type { CorpusEntry } from "../interface-adapters/messages/index.js";
@@ -21,17 +21,19 @@ import type { SqlStore } from "../interface-adapters/shared-kernel/index.js";
 
 /** The published contract the server is governed by (version, operations, examples). */
 export const ContractPort = port("release.contract")<ContractDocument>();
-/** Level 1 of the configuration: the values of the platform no merchant overrides. */
-export const PlatformConfigurationPort = port("release.platform")<PlatformConfiguration>();
 /**
- * Levels 1 and 2 as the release declares them — **the seed, and nothing else** (feature 036).
+ * Level 1 in force: the values of the platform no merchant overrides, **read when they are used**
+ * (feature 036).
  *
- * It stopped being exported when the two levels started living in a store: no module asks the release for
- * them any more, because what is in force is the newest published version. What still reads it from here is
- * the platform value the graph hands to the components that receive it at construction, until the story that
- * gives them a reader.
+ * **It is declared here and bound by the configuration module**, which is not where it would live if the
+ * context map allowed anything else. Eleven components of five modules read level 1, and the configuration
+ * module may not be imported by any of them (ADR-013: consumers declare their read port and the
+ * configuration binds it) — so the neutral place the map leaves for something every module reads is this
+ * file, which is the same place the **value** was handed from before the levels started living in a store.
+ * What changed is what travels: a reader instead of a number, so publishing a version counts without a
+ * restart.
  */
-const ReleaseLevelsPort = port("release.levels")<ReleaseLevels>();
+export const PlatformLevelPort = port("release.platform")<PlatformLevelReader>();
 /** The curated texts of the release: read once, judged at startup, served from memory. */
 export const CorpusPort = port("release.corpus")<readonly CorpusEntry[]>();
 /** The operators of the platform, as the configuration lists them. */
@@ -60,8 +62,6 @@ export const releaseComponents = (config: AppConfig) =>
   compositionModule({
     provides: [
       bind(ContractPort, {}, () => loadContract(config.contractPath)),
-      bind(ReleaseLevelsPort, {}, () => config.levels),
-      bind(PlatformConfigurationPort, { levels: ReleaseLevelsPort }, ({ levels }) => levels.platform),
       bind(OperatorsPort, {}, () => config.operators),
       bind(CorpusPort, {}, () => config.corpus),
       bind(EventLogTuningPort, {}, () => config.eventLog),

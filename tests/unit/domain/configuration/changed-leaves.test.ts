@@ -49,6 +49,87 @@ describe("ChangedLeaves.between", () => {
   });
 });
 
+// **The array of objects is the shape this level actually has**, and the gate found it uncovered: the
+// decision rules and the return-risk conditions are arrays of objects, so comparing two of them is the
+// ordinary case and not an edge. An array is one leaf, so the whole comparison happens inside the canonical
+// text of that leaf — which is the only place in this type where two values can be equal while looking
+// different, or different while looking equal.
+describe("ChangedLeaves.between, over the arrays of objects this level is made of", () => {
+  const ruleOf = (block: string, strength = "strong") => ({
+    id: "price.price-read",
+    barrier: "price",
+    strength,
+    when: { fact: "dwellSeconds", block },
+  });
+
+  it("sees a value that changed inside an object inside an array", () => {
+    const leaves = ChangedLeaves.between(
+      { decisionPolicy: { rules: [ruleOf("price")] } },
+      { decisionPolicy: { rules: [ruleOf("policies")] } },
+    );
+    expect(leaves.paths()).toEqual(["decisionPolicy.rules"]);
+  });
+
+  it("does not see a change when only the key order differs", () => {
+    // Two identical rule sets written in a different order are the same treatment, and a publication that
+    // called them different would create a version and restart every measurement window for nothing.
+    const leaves = ChangedLeaves.between(
+      { rules: [{ id: "a", barrier: "price", when: { fact: "dwellSeconds", block: "price" } }] },
+      { rules: [{ when: { block: "price", fact: "dwellSeconds" }, barrier: "price", id: "a" }] },
+    );
+    expect(leaves.none()).toBe(true);
+  });
+
+  it("does not see a change when a key inside is declared as undefined rather than absent", () => {
+    // An absent key and a key holding `undefined` resolve the same way, so they are the same content.
+    const leaves = ChangedLeaves.between(
+      { rules: [{ id: "a", strength: undefined }] },
+      { rules: [{ id: "a" }] },
+    );
+    expect(leaves.none()).toBe(true);
+  });
+
+  it("sees the difference between an array holding an undefined and an empty one", () => {
+    // What the guard of `canonical` is for: an element that is `undefined` is still an element, and an
+    // array of one is not an array of none. Without it both would canonicalise to the same text.
+    expect(ChangedLeaves.between({ a: [undefined] }, { a: [] }).paths()).toEqual(["a"]);
+  });
+
+  it("sees a rule added to the list and a rule taken out of it", () => {
+    const one = { rules: [ruleOf("price")] };
+    const two = { rules: [ruleOf("price"), ruleOf("policies")] };
+    expect(ChangedLeaves.between(one, two).paths()).toEqual(["rules"]);
+    expect(ChangedLeaves.between(two, one).paths()).toEqual(["rules"]);
+  });
+});
+
+describe("ChangedLeaves.under", () => {
+  // Not every value of a level is treatment: level 1 holds five fields that decide what is counted and five
+  // that are operational, so the question «who does this change reach» is asked of a subset of the paths.
+  const changed = ChangedLeaves.between(
+    { dedupWindow: { ttlMs: 1 }, retryAfterSeconds: 5 },
+    { dedupWindow: { ttlMs: 2 }, retryAfterSeconds: 9 },
+  );
+
+  it("keeps the leaves under one of the fields and drops the rest", () => {
+    expect(changed.under(["dedupWindow"]).paths()).toEqual(["dedupWindow.ttlMs"]);
+    expect(changed.under(["retryAfterSeconds"]).paths()).toEqual(["retryAfterSeconds"]);
+  });
+
+  it("is empty when nothing that changed is under one of them, and whole when everything is", () => {
+    expect(changed.under(["visitorWindowMs"]).none()).toBe(true);
+    expect(changed.under(["dedupWindow", "retryAfterSeconds"]).paths()).toEqual(changed.paths());
+  });
+
+  it("matches by the first segment, so a field takes everything under it", () => {
+    // By full path a nested leaf would never match the name of its field, and the whole subset would be
+    // empty for every object-valued field — which is most of level 1.
+    const deep = ChangedLeaves.between({ a: { b: { c: 1 } } }, { a: { b: { c: 2 } } });
+    expect(deep.under(["a"]).paths()).toEqual(["a.b.c"]);
+    expect(deep.under(["a.b"]).none()).toBe(true);
+  });
+});
+
 describe("ChangedLeaves.coveredBy", () => {
   const leaves = (from: object, to: object) => ChangedLeaves.between(from, to);
 
