@@ -58,6 +58,16 @@ export type {
   ImportMerchantConfigurationRequest,
   ImportMerchantConfigurationResponse,
 } from "./use-cases/import-merchant-configuration.use-case.js";
+export { GetLevelVersionUseCase } from "./use-cases/get-level-version.use-case.js";
+export type {
+  GetLevelVersionRequest,
+  GetLevelVersionResponse,
+} from "./use-cases/get-level-version.use-case.js";
+export { ListLevelVersionsUseCase } from "./use-cases/list-level-versions.use-case.js";
+export type {
+  LevelHistoryReader,
+  ListLevelVersionsRequest,
+} from "./use-cases/list-level-versions.use-case.js";
 export { PublishLevelUseCase } from "./use-cases/publish-level.use-case.js";
 export type {
   PublishedLevel,

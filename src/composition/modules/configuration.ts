@@ -6,11 +6,13 @@
 import {
   Configurations,
   GetMerchantConfigurationUseCase,
+  GetLevelVersionUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
   ImportConfigurationLevelsUseCase,
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
+  ListLevelVersionsUseCase,
   PublishMerchantConfigurationUseCase,
   PublishLevelUseCase,
   ReachedExperiments,
@@ -20,6 +22,7 @@ import {
   type ImportConfigurationLevelsRequest,
   type ImportConfigurationLevelsResponse,
   type LevelStore,
+  type ListLevelVersionsRequest,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
   type PlatformLevelReader,
@@ -32,8 +35,12 @@ import {
   holdoutSourceOf,
   makeGetMerchantConfiguration,
   makeGetPlatformConfiguration,
+  makeGetPlatformConfigurationVersion,
   makeGetTreatmentDefaults,
+  makeGetTreatmentDefaultsVersion,
   makeListConfigurationVersions,
+  makeListPlatformConfigurationVersions,
+  makeListTreatmentDefaultsVersions,
   makePublishMerchantConfiguration,
   makePublishPlatformConfiguration,
   makePublishTreatmentDefaults,
@@ -54,7 +61,8 @@ import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./exp
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
-import type { Clock, UseCase } from "../../application/shared-kernel/index.js";
+import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
+import type { LevelVersion } from "../../domain/configuration/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
@@ -161,6 +169,9 @@ const levelVersionNumbered = (r: PublishLevelResponse) =>
     : undefined;
 
 const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
+
+/** What a read of a level's history needs, which is the store of the versions and nothing else. */
+const READS_A_LEVEL = { levels: LevelStorePort } as const;
 
 export const configurationModule = compositionModule({
   // The only component with a technology to choose is the store of the published versions; the rest is
@@ -269,6 +280,39 @@ export const configurationModule = compositionModule({
         { configuration: ConfigurationServicePort },
         { name: "getTreatmentDefaults", build: (deps) => new GetTreatmentDefaultsUseCase(deps) },
         (useCase) => makeGetTreatmentDefaults(useCase),
+      ),
+      // The history of each level (feature 036, US4): four operations over the two use cases that read it,
+      // because what differs between them is the level the controller names.
+      listPlatformConfigurationVersions: served(
+        READS_A_LEVEL,
+        {
+          name: "listPlatformConfigurationVersions",
+          // Annotated, and the compiler asks for it: the recipe of a handler fixes the request to `unknown`
+          // unless the builder says what the use case is, and a listing answers a page rather than a
+          // `Result`, so there is no error union to infer it from.
+          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
+            new ListLevelVersionsUseCase(deps),
+        },
+        (useCase) => makeListPlatformConfigurationVersions(useCase),
+      ),
+      listTreatmentDefaultsVersions: served(
+        READS_A_LEVEL,
+        {
+          name: "listTreatmentDefaultsVersions",
+          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
+            new ListLevelVersionsUseCase(deps),
+        },
+        (useCase) => makeListTreatmentDefaultsVersions(useCase),
+      ),
+      getPlatformConfigurationVersion: served(
+        READS_A_LEVEL,
+        { name: "getPlatformConfigurationVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        (useCase) => makeGetPlatformConfigurationVersion(useCase),
+      ),
+      getTreatmentDefaultsVersion: served(
+        READS_A_LEVEL,
+        { name: "getTreatmentDefaultsVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        (useCase) => makeGetTreatmentDefaultsVersion(useCase),
       ),
     },
   },

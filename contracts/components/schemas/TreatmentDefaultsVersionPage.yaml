@@ -1,0 +1,15 @@
+type: object
+description: A page of the published versions of level 2, newest first.
+additionalProperties: false
+required:
+  - items
+properties:
+  items:
+    type: array
+    description: Versions of this page, newest first.
+    items:
+      $ref: ./TreatmentDefaultsVersion.yaml
+  nextCursor:
+    type: string
+    description: Cursor of the next page; absent on the last page.
+    maxLength: 512

@@ -77,6 +77,7 @@ export declare const PROBLEM_TYPES: {
   readonly "duplicate-attribute-label": { readonly status: 422; readonly title: "One attribute label points at two values of OPE's vocabulary" };
   readonly "unknown-attribute-value": { readonly status: 500; readonly title: "A correspondence names a value OPE writes no texts for" };
   readonly "configuration-frozen": { readonly status: 409; readonly title: "The configuration is frozen while an experiment is active" };
+  readonly "configuration-version-not-found": { readonly status: 404; readonly title: "The configuration version does not exist" };
   readonly "configuration-reason-required": { readonly status: 422; readonly title: "A corrective configuration version needs a reason" };
   readonly "invalid-configuration-value": { readonly status: 422; readonly title: "A configuration value violates an invariant of its type" };
   readonly "experiment-already-open": { readonly status: 409; readonly title: "The merchant already has an open experiment" };

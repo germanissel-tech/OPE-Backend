@@ -77,8 +77,16 @@ paths:
     $ref: ./paths/admin-unmapped-attribute-values.yaml
   /v1/admin/platform-configuration:
     $ref: ./paths/admin-platform-configuration.yaml
+  /v1/admin/platform-configuration/versions:
+    $ref: ./paths/admin-platform-configuration-versions.yaml
+  /v1/admin/platform-configuration/versions/{version}:
+    $ref: ./paths/admin-platform-configuration-version.yaml
   /v1/admin/treatment-defaults:
     $ref: ./paths/admin-treatment-defaults.yaml
+  /v1/admin/treatment-defaults/versions:
+    $ref: ./paths/admin-treatment-defaults-versions.yaml
+  /v1/admin/treatment-defaults/versions/{version}:
+    $ref: ./paths/admin-treatment-defaults-version.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`

@@ -2,7 +2,11 @@
 // composition wires. Presenters stay internal to the module.
 export * from "./controllers/get-merchant-configuration.js";
 export * from "./controllers/get-platform-configuration.js";
+export * from "./controllers/get-platform-configuration-version.js";
 export * from "./controllers/get-treatment-defaults.js";
+export * from "./controllers/get-treatment-defaults-version.js";
+export * from "./controllers/list-platform-configuration-versions.js";
+export * from "./controllers/list-treatment-defaults-versions.js";
 export * from "./controllers/list-configuration-versions.js";
 export * from "./controllers/publish-merchant-configuration.js";
 export * from "./controllers/publish-platform-configuration.js";

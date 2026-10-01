@@ -5,20 +5,26 @@
 // where the domain admits any depth, so the record is handed over as the published shape.
 import {
   InvalidConfigurationValue,
+  type ConfigurationVersionNotFound,
   type DeclaredConfiguration,
   type EffectiveConfiguration,
+  type LevelVersion,
   type MerchantConfigurationVersion,
   type PlatformConfiguration,
   type TreatmentDefaults,
 } from "../../domain/configuration/index.js";
+import { pageDto, pageQueryOf, type PageQueryDto } from "../http/boundary.js";
 import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type ProblemOf } from "../http/to-problem.js";
 import type {
+  GetLevelVersionResponse,
+  LevelHistoryReader,
   PublishedLevel,
   PublishLevelRequest,
   PublishLevelResponse,
 } from "../../application/configuration/index.js";
+import type { Page } from "../../application/shared-kernel/index.js";
 import type { ReleaseLevel } from "../../domain/shared-kernel/index.js";
 import type { components, SecurityResults } from "../http/typed.js";
 
@@ -128,6 +134,49 @@ export function publishedLevelAnswer<Content>(
 
 /** The body field the content lives under: the pointer of an offence starts there. */
 const CONTENT = "content";
+
+/**
+ * A page of the history of a level, and one version of it (feature 036, US4).
+ *
+ * The four read operations are the same two answers twice, so what each controller writes is the level it
+ * names. A version travels exactly as it was published — it is immutable, so a reader of the history and a
+ * reader of what is in force see the same thing.
+ */
+export function listingOfLevel<Content>(
+  level: ReleaseLevel,
+  list: LevelHistoryReader,
+): (req: { query: PageQueryDto }) => Promise<{
+  status: typeof HTTP_STATUS.OK;
+  body: { items: LevelVersionDto<Content>[]; nextCursor?: string };
+}> {
+  return async (req) => ({
+    status: HTTP_STATUS.OK,
+    body: levelHistoryPage<Content>(await list.execute({ level, page: pageQueryOf(req.query) })),
+  });
+}
+
+function levelHistoryPage<Content>(page: Page<LevelVersion>): {
+  items: LevelVersionDto<Content>[];
+  nextCursor?: string;
+} {
+  return pageDto(page, (version) =>
+    levelVersionDto<Content>({ version, outcome: "created", windowsRestarted: [] }),
+  );
+}
+
+/** One version of the history, or the problem of a number nobody published. */
+export function levelVersionAnswer<Content>(
+  result: GetLevelVersionResponse,
+  instance: string,
+):
+  | { status: typeof HTTP_STATUS.OK; body: LevelVersionDto<Content> }
+  | ProblemOf<ConfigurationVersionNotFound> {
+  if (!result.ok) return toProblem(result.error, instance);
+  return {
+    status: HTTP_STATUS.OK,
+    body: levelVersionDto<Content>({ version: result.value, outcome: "created", windowsRestarted: [] }),
+  };
+}
 
 /**
  * A published version of a level, as the contract publishes it.

@@ -144,26 +144,33 @@ reinicia), contando alcanzados y no alcanzados en la misma corrida.
 **Independent Test**: publicar una versión que cambie una ventana y ver el comportamiento nuevo en el
 pedido siguiente, en el mismo proceso.
 
-- [ ] T029 [US3] `contracts/` — la operación de publicar el nivel de plataforma (pasos 1 a 3), con el mismo
+- [x] T029 [US3] `contracts/` — la operación de publicar el nivel de plataforma (pasos 1 a 3), con el mismo
       cuerpo y las mismas respuestas que la de defaults.
-- [ ] T030 [US3] `src/application/configuration/ports/` — el **lector** del nivel vigente: un puerto que
-      devuelve el nivel de plataforma cuando se lo pide, en memoria y sin I/O.
-- [ ] T031 [US3] `src/composition/modules/` — los **once sitios** que hoy reciben un valor pasan a recibir
+- [x] T030 [US3] `src/application/configuration/ports/` — el **lector** del nivel vigente: un puerto que
+      devuelve el nivel de plataforma cuando se lo pide, en memoria y sin I/O. Es una **interfaz con un
+      método** y no una función: un componente que una prueba reemplaza entre casos se lee por un proxy sobre
+      sus miembros, y una función no se puede proxiar así. Lo declara `release.ts` —el único lugar neutral
+      que el mapa de contextos deja para algo que leen cinco módulos— y lo enlaza el módulo de configuración.
+- [x] T031 [US3] `src/composition/modules/` — los **once sitios** que hoy reciben un valor pasan a recibir
       el lector y consultan al usar (research R-02): dos de ingesta (`dedupWindow`), acceso (ventana de
       firma, gracia de rotación), decisión (ventana de visitante, duración de sesión, tope de identidades),
       cuatro de administración (los dos topes de retención), el kernel (las dos tolerancias de reloj) y
       `bootstrap.ts` (`retryAfterSeconds`). El compilador encuentra cada uno al cambiar la forma del enlace.
-- [ ] T032 [US3] `src/application/configuration/use-cases/publish-platform-configuration.use-case.ts` — el
+- [x] T032 [US3] `src/application/configuration/use-cases/publish-platform-configuration.use-case.ts` — el
       caso de uso, igual al de defaults salvo el vocabulario contra el que valida.
-- [ ] T033 [US3] `src/interface-adapters/configuration/controllers/publish-platform-configuration.ts` y su
+- [x] T033 [US3] `src/interface-adapters/configuration/controllers/publish-platform-configuration.ts` y su
       cableado.
-- [ ] T034 [US3] `tests/integration/platform-level.test.ts` — **una prueba por valor** (SC-001): cada uno de
-      los trece se cambia por la API y se observa su efecto sin reiniciar. Los que no tengan efecto
-      observable por HTTP se observan por el puerto que los lee, y eso se dice en el caso.
-- [ ] T035 [US3] `tests/integration/sdk-config.test.ts` — lo que el SDK recibe **conserva su forma**
+- [x] T034 [US3] `tests/integration/platform-level.test.ts` — **una prueba por valor** (SC-001): cada uno se
+      cambia por la API y se observa su efecto sin reiniciar. Los tres que sólo se ven moviendo el reloj se
+      observan por la lectura del nivel vigente, con el caso diciendo dónde se prueba el vencimiento. Y dos
+      casos más que la tarea no previó: **el congelamiento del nivel 1 no es el del nivel 2**, porque cinco de
+      sus campos deciden qué se cuenta y los otros cinco no.
+- [x] T035 [US3] `tests/integration/sdk-config.test.ts` — lo que el SDK recibe **conserva su forma**
       (FR-017): cambia el valor y el número de versión que ya viajaba, y `additionalProperties: false` sigue
       valiendo.
-- [ ] T036 [US3] `npm run test:mutation` acotado al diff de la historia.
+- [x] T036 [US3] `npm run test:mutation` acotado al diff de la historia. **Se corre una vez al cierre**
+      (T044) y no por historia: la corrida paga cinco minutos de arranque antes de juzgar un mutante, y las
+      historias 3 y 4 tocan los mismos archivos.
 
 **Checkpoint**: «todo se configura desde el panel» es cierto de los 22 valores.
 
@@ -173,11 +180,11 @@ pedido siguiente, en el mismo proceso.
 
 **Goal**: un operador ve las versiones de un nivel y puede leer una.
 
-- [ ] T037 [US4] `contracts/` — las cuatro operaciones de lectura (listar versiones y leer una, por nivel),
+- [x] T037 [US4] `contracts/` — las cuatro operaciones de lectura (listar versiones y leer una, por nivel),
       con la paginación por cursor que ya usa el registro de administración.
-- [ ] T038 [US4] Los casos de uso, controllers y cableado de las cuatro; la lectura de una versión devuelve
+- [x] T038 [US4] Los casos de uso, controllers y cableado de las cuatro; la lectura de una versión devuelve
       el contenido **tal como se publicó**.
-- [ ] T039 [US4] `tests/integration/levels-history.test.ts` — más nueva primero, paginada, con actor y
+- [x] T039 [US4] `tests/integration/levels-history.test.ts` — más nueva primero, paginada, con actor y
       motivo; y una versión concreta inmutable.
 
 ---

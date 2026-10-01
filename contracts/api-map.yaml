@@ -352,8 +352,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [configuration:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "036"
+    status: built
     source: docs/adr/031-merchants-operados-y-tres-niveles.md
   - operationId: listTreatmentDefaultsVersions
     method: get
@@ -361,8 +361,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [configuration:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "036"
+    status: built
     source: docs/adr/031-merchants-operados-y-tres-niveles.md
   - operationId: getPlatformConfigurationVersion
     method: get
@@ -370,8 +370,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [configuration:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "036"
+    status: built
     source: docs/adr/031-merchants-operados-y-tres-niveles.md
   - operationId: getTreatmentDefaultsVersion
     method: get
@@ -379,8 +379,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [configuration:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "036"
+    status: built
     source: docs/adr/031-merchants-operados-y-tres-niveles.md
   - operationId: listAdminLog
     method: get

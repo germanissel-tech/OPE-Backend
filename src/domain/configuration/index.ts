@@ -30,5 +30,10 @@ export type {
 } from "./policy-inputs.js";
 export { LOCALE_PATTERN, SURFACES, SYNC_FLOWS, SYNC_MODES } from "./vocabulary.js";
 export type { Locales, Surface, SyncFlow, SyncMode, SyncStrategy } from "./vocabulary.js";
-export { ConfigurationFrozen, ConfigurationReasonRequired, InvalidConfigurationValue } from "./errors.js";
+export {
+  ConfigurationFrozen,
+  ConfigurationReasonRequired,
+  ConfigurationVersionNotFound,
+  InvalidConfigurationValue,
+} from "./errors.js";
 export type { ConfigurationError } from "./errors.js";

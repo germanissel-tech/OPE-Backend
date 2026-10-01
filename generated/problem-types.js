@@ -77,6 +77,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "duplicate-attribute-label": Object.freeze({ status: 422, title: "One attribute label points at two values of OPE's vocabulary" }),
   "unknown-attribute-value": Object.freeze({ status: 500, title: "A correspondence names a value OPE writes no texts for" }),
   "configuration-frozen": Object.freeze({ status: 409, title: "The configuration is frozen while an experiment is active" }),
+  "configuration-version-not-found": Object.freeze({ status: 404, title: "The configuration version does not exist" }),
   "configuration-reason-required": Object.freeze({ status: 422, title: "A corrective configuration version needs a reason" }),
   "invalid-configuration-value": Object.freeze({ status: 422, title: "A configuration value violates an invariant of its type" }),
   "experiment-already-open": Object.freeze({ status: 409, title: "The merchant already has an open experiment" }),

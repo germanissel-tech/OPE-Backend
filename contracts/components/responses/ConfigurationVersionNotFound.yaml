@@ -1,0 +1,10 @@
+description: No version of that level carries that number.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:configuration-version-not-found
+      title: The configuration version does not exist
+      status: 404
+      instance: /v1/admin/platform-configuration/versions/7
