@@ -8,12 +8,16 @@ import {
   GetMerchantConfigurationUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
+  ImportConfigurationLevelsUseCase,
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
   PublishMerchantConfigurationUseCase,
   type ConfigurationLevels,
   type ConfigurationService,
   type ConfigurationStore,
+  type ImportConfigurationLevelsRequest,
+  type ImportConfigurationLevelsResponse,
+  type LevelStore,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
 } from "../../application/configuration/index.js";
@@ -26,14 +30,16 @@ import {
   makeListConfigurationVersions,
   makePublishMerchantConfiguration,
   memoryConfigurationStore,
+  memoryLevelStore,
   sqliteConfigurationStore,
+  sqliteLevelStore,
   policySourceOf,
-  releaseConfigurationLevels,
+  storedConfigurationLevels,
   switchAwarePolicyDirectory,
   messageSettingsOf,
 } from "../../interface-adapters/configuration/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
-import { ReleaseLevelsPort, SqlStorePort } from "../release.js";
+import { SqlStorePort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
@@ -44,8 +50,14 @@ import type { UseCase } from "../../application/shared-kernel/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
+/** The versions of the two levels of the release, which an operator publishes (feature 036). */
+const LevelStorePort = port("configuration.level-store")<LevelStore>();
 /** The resolution, shared by every consumer: what it serves changes when a version is published. */
 export const ConfigurationServicePort = port("configuration.service")<ConfigurationService>();
+/** The two levels of the release become version 1 of each, audited as the system (feature 036). */
+export const ImportConfigurationLevelsPort = port("configuration.import-levels")<
+  UseCase<ImportConfigurationLevelsRequest, ImportConfigurationLevelsResponse>
+>();
 /** The configuration a merchant declares in the seed becomes its version 1, audited as the system. */
 export const ImportConfigurationPort =
   port("configuration.import")<
@@ -65,8 +77,13 @@ export const ImportConfigurationPort =
  * exactly what happened when it was tried (feature 033, US2).
  */
 const resolution = [
-  bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
-    releaseConfigurationLevels(release),
+  // **The release stopped being the source here** (feature 036): what is in force is the newest version of
+  // each level, and the files are the seed the boot imports into an empty store. Until the story that gives
+  // the platform level its reader, the eleven components that receive one of its values at construction
+  // still take it from the file (`PlatformConfigurationPort`) — and the two cannot disagree yet, because
+  // nothing can publish that level until then.
+  bind(ConfigurationLevelsPort, { levels: LevelStorePort }, ({ levels }) =>
+    storedConfigurationLevels(levels),
   ),
   bind(
     ConfigurationServicePort,
@@ -93,15 +110,28 @@ export const configurationModule = compositionModule({
   // The only component with a technology to choose is the store of the published versions; the rest is
   // the same in every deployment and is spread in from `resolution`.
   provides: {
-    memory: [bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()), ...resolution],
+    memory: [
+      bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
+      bind(LevelStorePort, {}, () => memoryLevelStore()),
+      ...resolution,
+    ],
     sqlite: [
       bind(ConfigurationStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
         sqliteConfigurationStore(deps),
       ),
+      bind(LevelStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) => sqliteLevelStore(deps)),
       ...resolution,
     ],
   },
   assembles: [
+    // **Without a result, and that is D-29 and not an oversight.** `AdminResult` is a published schema of
+    // the contract with three fields, none of which is «which levels were imported»; saying it would be a
+    // contract change, and this feature declared it does not make one. The log line of the boot does say it.
+    bind(
+      ImportConfigurationLevelsPort,
+      { audit: AuditPort, levels: LevelStorePort, clock: ClockPort },
+      ({ audit, ...deps }) => audit("importConfigurationLevels", new ImportConfigurationLevelsUseCase(deps)),
+    ),
     bind(
       ImportConfigurationPort,
       {

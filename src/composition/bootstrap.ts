@@ -17,7 +17,7 @@ import {
   type Label,
   type Override,
 } from "./graph/index.js";
-import { ImportConfigurationPort } from "./modules/configuration.js";
+import { ImportConfigurationLevelsPort, ImportConfigurationPort } from "./modules/configuration.js";
 import { ImportExperimentsPort } from "./modules/experiment.js";
 import { EventLogPort } from "./modules/ingestion.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
@@ -77,6 +77,10 @@ export async function importSeed(
   graph: Pick<Instance<DeployedComponents>, "resolve">,
 ): Promise<void> {
   const actor = Operator.system();
+  // **The two levels first, and the order is not incidental** (feature 036): from here on they live in the
+  // store, and everything below —a merchant's declared configuration, its experiments— is judged against
+  // them. A boot that imported the merchants first would judge them against a level that holds nothing.
+  await importLevels(config, actor, graph);
   const seeds = config.merchants.map((m) => m.seed);
   const imported = await graph.resolve(ImportMerchantsPort).execute({ actor, seeds });
   if (!imported.ok) throw new Error(`The merchant seed was rejected: ${imported.error.code}.`);
@@ -106,6 +110,40 @@ export async function importSeed(
     logger.info(
       kept,
       "seed not applied to what the store already holds; change it through the administration API",
+    );
+  }
+}
+
+/**
+ * The two levels of the release into an empty store (feature 036).
+ *
+ * **What this line ends is the deploy as the only way to change a platform rule or a treatment default.**
+ * The files keep being the origin — of version 1, once — and from the second boot what is in force is what
+ * an operator published. A boot that does not apply them says so, which is the half of **D-29** this closes:
+ * until now the log reported an import that had not happened.
+ */
+async function importLevels(
+  config: AppConfig,
+  actor: Operator,
+  graph: Pick<Instance<DeployedComponents>, "resolve">,
+): Promise<void> {
+  const imported = await graph.resolve(ImportConfigurationLevelsPort).execute({
+    actor,
+    // Spread and not handed over whole: a record of a named interface is not assignable to an index
+    // signature, and an object literal built from one is — the seed is the file's content, key by key.
+    contents: [
+      { level: "platform", content: { ...config.levels.platform.record() } },
+      { level: "defaults", content: { ...config.levels.defaults.record() } },
+    ],
+  });
+  if (!imported.ok) throw new Error(`The configuration levels seed was rejected: ${imported.error.code}.`);
+  const logger = graph.resolve(LoggerPort);
+  if (imported.value.imported.length > 0) {
+    logger.info({ levels: imported.value.imported }, "configuration levels seed imported");
+  } else {
+    logger.info(
+      {},
+      "configuration levels seed not applied: the store already holds both levels; change them through the administration API",
     );
   }
 }

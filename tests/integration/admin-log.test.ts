@@ -57,7 +57,8 @@ describe("GET /v1/admin/log", () => {
       items: { operation: string }[];
       nextCursor?: string;
     };
-    // The seed: the merchants, then what each declared of its configuration and its experiments (feature 017).
+    // The seed, oldest last: the two levels of the release (feature 036), the merchants, and then what each
+    // declared of its configuration and its experiments (feature 017).
     expect(second.items.map((e) => e.operation)).toEqual([
       "op1",
       "importMerchantConfiguration",
@@ -65,7 +66,13 @@ describe("GET /v1/admin/log", () => {
       "importMerchantConfiguration",
       "importMerchants",
     ]);
-    expect(second).not.toHaveProperty("nextCursor");
+    expect(second.nextCursor).toBeDefined();
+    const third = json(await admin(app.app, "GET", `/v1/admin/log?limit=5&cursor=${second.nextCursor}`)) as {
+      items: { operation: string }[];
+      nextCursor?: string;
+    };
+    expect(third.items.map((e) => e.operation)).toEqual(["importConfigurationLevels"]);
+    expect(third).not.toHaveProperty("nextCursor");
   });
 
   it("an entry carries what the action produced, the code and the reason only when present", async () => {

@@ -6,6 +6,7 @@
 import { AttributeLabels, type AttributeLabelRecord, type AttributeLabelsError } from "../messages/index.js";
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
 import { AnchorMap, type AnchorMapRecord } from "./anchor-map.js";
+import { ChangedLeaves } from "./changed-leaves.js";
 import { ConfigurationReasonRequired, type InvalidConfigurationValue } from "./errors.js";
 import type { DeclaredTreatmentValues } from "./treatment-values.js";
 import type { OperatorId } from "../operator/index.js";
@@ -30,20 +31,6 @@ export interface MerchantConfigurationVersionRecord extends ConfigurationDraft {
 }
 
 export type VersionError = ConfigurationReasonRequired | InvalidConfigurationValue | AttributeLabelsError;
-
-/** The canonical text of the declared values: what two versions compare by. */
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  // An object (never null: the declared values carry none), whose keys are ordered.
-  if (Object(value) === value) {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`);
-    return `{${entries.join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
 
 export class MerchantConfigurationVersion {
   readonly merchantId: MerchantId;
@@ -95,10 +82,16 @@ export class MerchantConfigurationVersion {
     return new MerchantConfigurationVersion(record);
   }
 
-  /** Publishing what the version in force already declares repeats it (ADR-020): identity by content. */
+  /**
+   * Publishing what the version in force already declares repeats it (ADR-020): identity by content.
+   *
+   * **«The same content» is «no leaf changed»**, which is why the comparison goes through the same type
+   * that answers which leaves a change touches (feature 036). The two questions were the same one all
+   * along, and each had its own copy of the canonical text until the duplication gate said so.
+   */
   sameContentAs(draft: ConfigurationDraft): boolean {
     return (
-      canonical(this.declared) === canonical(draft.declared) &&
+      ChangedLeaves.between(this.declared, draft.declared).none() &&
       this.corrective === draft.corrective &&
       this.reason === draft.reason
     );

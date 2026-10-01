@@ -23,8 +23,15 @@ import type { SqlStore } from "../interface-adapters/shared-kernel/index.js";
 export const ContractPort = port("release.contract")<ContractDocument>();
 /** Level 1 of the configuration: the values of the platform no merchant overrides. */
 export const PlatformConfigurationPort = port("release.platform")<PlatformConfiguration>();
-/** Levels 1 and 2 as the release declares them. */
-export const ReleaseLevelsPort = port("release.levels")<ReleaseLevels>();
+/**
+ * Levels 1 and 2 as the release declares them — **the seed, and nothing else** (feature 036).
+ *
+ * It stopped being exported when the two levels started living in a store: no module asks the release for
+ * them any more, because what is in force is the newest published version. What still reads it from here is
+ * the platform value the graph hands to the components that receive it at construction, until the story that
+ * gives them a reader.
+ */
+const ReleaseLevelsPort = port("release.levels")<ReleaseLevels>();
 /** The curated texts of the release: read once, judged at startup, served from memory. */
 export const CorpusPort = port("release.corpus")<readonly CorpusEntry[]>();
 /** The operators of the platform, as the configuration lists them. */

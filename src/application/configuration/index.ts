@@ -2,6 +2,12 @@
 // and the store ports, the reading of the inputs, the service that resolves and serves, and
 // the use cases of the administration.
 export type { ConfigurationLevels } from "./ports/configuration-levels.js";
+export type { LevelStore } from "./ports/level-store.js";
+export { ImportConfigurationLevelsUseCase } from "./use-cases/import-configuration-levels.use-case.js";
+export type {
+  ImportConfigurationLevelsRequest,
+  ImportConfigurationLevelsResponse,
+} from "./use-cases/import-configuration-levels.use-case.js";
 export type { ConfigurationStore } from "./ports/configuration-store.js";
 export {
   DECLARED_CONFIGURATION_KEYS,

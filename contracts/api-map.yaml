@@ -47,6 +47,7 @@ roadmap:
   platform-port: Platform port, per-flow sync strategy and adapters — the four operations of constitution X (fetchCatalog, fetchStockAndPrice, onOrderConfirmed, onReturnRegistered); push / pull / subscribe per flow negotiated per merchant; partial stock-and-price refresh with a per-item instant; scheduler and queue consumer outside the decision path; Magento 2 adapter and test adapter; end-to-end run event → decision → exposure → order → attribution (constitution X, 02 §6); preceded by the documentary verification of Magento 2 and VTEX
   itt-and-portal: ITT analysis and merchant portal — health always visible, results only at pre-registered cuts (D-F); NOT_AVAILABLE as a first-class value
   observability: Observability and end-to-end — critical-path latency by percentile, NO_OP rate and reasons, catalogue ingest health, correlation completeness
+  admin-panel: A complete administration panel — everything the platform runs on is configured through the API, including the two levels of the release (constitution XI, ADR-031 as amended); an operator changes a platform rule or a treatment default without a deploy, as numbered and immutable versions, and a change that reaches a running measurement demands its reason and restarts the window it invalidated
 operations:
   - operationId: getHealth
     method: get
@@ -327,6 +328,60 @@ operations:
     feature: "017"
     status: built
     source: constitucion#XI
+  - operationId: publishPlatformConfiguration
+    method: post
+    path: /v1/admin/platform-configuration
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:write]
+    roadmap: admin-panel
+    status: planned
+    source: constitucion#XI
+  - operationId: publishTreatmentDefaults
+    method: post
+    path: /v1/admin/treatment-defaults
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:write]
+    roadmap: admin-panel
+    status: planned
+    source: constitucion#XI
+  - operationId: listPlatformConfigurationVersions
+    method: get
+    path: /v1/admin/platform-configuration/versions
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    roadmap: admin-panel
+    status: planned
+    source: docs/adr/031-merchants-operados-y-tres-niveles.md
+  - operationId: listTreatmentDefaultsVersions
+    method: get
+    path: /v1/admin/treatment-defaults/versions
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    roadmap: admin-panel
+    status: planned
+    source: docs/adr/031-merchants-operados-y-tres-niveles.md
+  - operationId: getPlatformConfigurationVersion
+    method: get
+    path: /v1/admin/platform-configuration/versions/{version}
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    roadmap: admin-panel
+    status: planned
+    source: docs/adr/031-merchants-operados-y-tres-niveles.md
+  - operationId: getTreatmentDefaultsVersion
+    method: get
+    path: /v1/admin/treatment-defaults/versions/{version}
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    roadmap: admin-panel
+    status: planned
+    source: docs/adr/031-merchants-operados-y-tres-niveles.md
   - operationId: listAdminLog
     method: get
     path: /v1/admin/log

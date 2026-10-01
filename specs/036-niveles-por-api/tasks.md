@@ -27,41 +27,41 @@ conserve — sin ninguna operación HTTP todavía.
 **Independent Test**: las versiones se publican y se leen por el puerto, sobreviven un reinicio, y el
 cálculo de hojas distingue el caso del objeto declarado a medias.
 
-- [ ] T001 `contracts/api-map.yaml` — las **seis** operaciones como `planned` (paso 0 del orden del
+- [x] T001 `contracts/api-map.yaml` — las **seis** operaciones como `planned` (paso 0 del orden del
       contrato): publicar cada nivel, listar versiones de cada nivel, leer una versión de cada nivel. Con
       consumidor `admin`, tag, capacidades (`configuration:write` / `configuration:read`), `roadmap` y
       fuente. `npm run check:api-map` compara el mapa y el contrato en los dos sentidos.
-- [ ] T002 `tests/unit/domain/configuration/level-version.test.ts` — **antes de la entidad**: un contenido
+- [x] T002 `tests/unit/domain/configuration/level-version.test.ts` — **antes de la entidad**: un contenido
       igual al vigente no es una versión nueva; una versión correctiva **exige** motivo; `rehydrate` no
       re-juzga (ADR-024).
-- [ ] T003 `src/domain/configuration/level-version.ts` — la entidad: `private constructor`, `of(...)` que
+- [x] T003 `src/domain/configuration/level-version.ts` — la entidad: `private constructor`, `of(...)` que
       devuelve `Result`, `rehydrate`, `record()`. El número **no** se declara: lo acuña el almacén.
-- [ ] T004 `tests/unit/domain/configuration/changed-leaves.test.ts` — **antes del cálculo, y es el caso que
+- [x] T004 `tests/unit/domain/configuration/changed-leaves.test.ts` — **antes del cálculo, y es el caso que
       decide si la feature es correcta**: un merchant que declara **una** hoja de un objeto y no las otras
       queda **alcanzado**. Más: declarar todas las hojas que cambiaron lo deja fuera; declarar el objeto
       contenedor no alcanza; dos versiones idénticas no cambian ninguna hoja.
-- [ ] T005 `src/domain/configuration/` — el cálculo, **como método de quien lo sabe y no como función
+- [x] T005 `src/domain/configuration/` — el cálculo, **como método de quien lo sabe y no como función
       suelta** (`src/domain/` no exporta funciones sueltas): una versión sabe qué hojas cambian contra otra,
       y el conjunto resultante sabe si un `declared` lo cubre.
-- [ ] T006 `src/application/configuration/ports/level-store.ts` — el puerto: publicar (numerando),
+- [x] T006 `src/application/configuration/ports/level-store.ts` — el puerto: publicar (numerando),
       la última de un nivel, listar paginado, leer una. `Result` con `StoreUnavailable` en las escrituras
       (ADR-021).
-- [ ] T007 `src/interface-adapters/configuration/gateways/memory-level-store.ts` — el gateway en memoria,
+- [x] T007 `src/interface-adapters/configuration/gateways/memory-level-store.ts` — el gateway en memoria,
       con su prueba unitaria.
-- [ ] T008 `migrations/005-configuration-levels.sql` — una tabla para los dos niveles, clave `(level,
+- [x] T008 `migrations/005-configuration-levels.sql` — una tabla para los dos niveles, clave `(level,
 version)`, índice único, las dos reglas del dueño (`created_at`, `updated_at`), y
       `PRAGMA user_version = 5`. Con su fila en el inventario de `migrations/README.md`.
-- [ ] T009 `src/interface-adapters/configuration/gateways/sqlite-level-store.ts` — el gateway durable:
+- [x] T009 `src/interface-adapters/configuration/gateways/sqlite-level-store.ts` — el gateway durable:
       `MAX(version)+1` **dentro de la transacción** (dos publicaciones no comparten número), `record()` de
       la entidad al escribir, rehidratación al leer (regla de gateways durables).
-- [ ] T010 `tests/durability/level-store.test.ts` — lo que sólo se ve contra un almacén de verdad: las
+- [x] T010 `tests/durability/level-store.test.ts` — lo que sólo se ve contra un almacén de verdad: las
       versiones cruzan un reinicio, el arranque usa la última, dos publicaciones no comparten número.
-- [ ] T011 `tests/architecture/storage-inventory.test.ts` — el almacén nuevo gana su fila, en los dos
+- [x] T011 `tests/architecture/storage-inventory.test.ts` — el almacén nuevo gana su fila, en los dos
       sentidos (SC-011 de la feature 033).
-- [ ] T012 `src/composition/` — los archivos del release pasan a ser **semilla**: se importan sólo si el
+- [x] T012 `src/composition/` — los archivos del release pasan a ser **semilla**: se importan sólo si el
       almacén del nivel está vacío, a nombre del operador del sistema, y el arranque **dice** qué hizo
       (FR-012, SC-009). Cierra la mitad de la semilla de **D-29**.
-- [ ] T013 `tests/unit/configuration/release-levels.test.ts` — la huella de `decisionPolicy` y
+- [x] T013 `tests/unit/configuration/release-levels.test.ts` — la huella de `decisionPolicy` y
       `commercialPolicy` cambia de trabajo: pasa a fijar el contenido de la **semilla**, no del nivel
       vigente (research R-05). Su comentario dice por qué.
 
