@@ -140,3 +140,59 @@ Lo que la implementación fijó y sólo estaba escrito en las instrucciones de l
   `ConfigError` que nombra `platform.<campo>` o `treatmentDefaults.<campo>`.
 - **Nada de lo que un operador hace a un merchant requiere reiniciar** —crear, rotar, apagar, dar de
   baja—: se lee del store en la siguiente request.
+
+## Enmienda (2026-10-01, feature 036) — los niveles 1 y 2 también se publican por API
+
+El punto 3 de la decisión dijo que el nivel plataforma y los defaults de tratamiento son archivos del
+release, «legibles por API, **nunca modificables en caliente** (su radio es multitenant: un cambio
+contaminaría todos los experimentos)». Decisión del dueño (2026-09-30): **todo se configura desde el panel
+de administración**, esos dos niveles incluidos.
+
+**El motivo del ADR era real y su protección no existía**, y eso es lo que hace que esto sea una enmienda y
+no una conveniencia. El ADR nunca comparó contra la alternativa que dejó en pie: hasta esta feature el único
+camino para cambiar esos valores era un **deploy**, que hace el mismo daño, peor y en silencio.
+
+|                                             | Antes, por deploy                                                                                                 | Después, por API                     |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Contamina experimentos activos              | sí                                                                                                                | sí, y **exige un motivo declarado**  |
+| Reinicia el servidor con merchants operando | sí                                                                                                                | no                                   |
+| Queda versionado                            | sólo si alguien recuerda cambiar el `version` del archivo; una huella lo obligaba en **2 de 22** campos           | siempre: numerada e inmutable        |
+| Queda en el registro de administración      | **no**, de ninguna forma                                                                                          | sí: actor, instante, motivo, versión |
+| Avisa que hay medición en curso             | no                                                                                                                | sí (`409 configuration-frozen`)      |
+| Reinicia la ventana de medición             | **no**: el experimento seguía corriendo partido en dos tratamientos y su número dejaba de significar lo que decía | sí, y registra qué versión lo causó  |
+
+Lo que se decide, entonces:
+
+1. **Los dos niveles se publican por la API de administración** como versiones numeradas e inmutables, con
+   el mismo molde que el nivel merchant. Los archivos del release pasan a ser **semilla**: se importan una
+   sola vez, sobre un almacén vacío, a nombre del operador `system`, y el arranque dice qué hizo. Desde el
+   segundo arranque, editar el archivo no hace nada.
+2. **El congelamiento del nivel merchant, escalado**: con experimentos activos **alcanzados** por el cambio
+   se exige una versión correctiva con su motivo, y se reinicia la ventana de medición de cada uno. El motivo
+   es dónde queda registrada la conciencia del operador sobre lo que su cambio implica; no es un supuesto, es
+   un campo obligatorio.
+3. **Alcanzado se calcula por hoja, no por campo.** Seis de los diez campos de tratamiento se mezclan clave
+   por clave, así que un merchant puede declarar `decisionPolicy.threshold` y no `readingSeconds`: queda
+   alcanzado igual, porque para la segunda hoja sigue ganando el nivel. Leerlo por campo dejaría ventanas
+   corriendo sobre un tratamiento que cambió, que es el error más caro que esta feature podía cometer.
+4. **El cambio alcanza a todos los merchants, así que exige un operador de alcance total**
+   (`operator-scope-too-narrow`, 403). Un alcance que hoy nombra a todos sigue siendo una lista, y un nivel
+   se sirve también a los merchants que todavía no existen.
+5. **La versión la acuña OPE y el nombre se mina del número** (`defaults-3`). Antes cada archivo traía su
+   `version` y nada obligaba a cambiarlo cuando el contenido cambiaba, así que dos tratamientos podían
+   compartir nombre. **Lo que esto cuesta, dicho**: la semilla deja de llevar el nombre que el archivo
+   declaraba —el nivel plataforma del release decía `platform-2` y la versión 1 del almacén se llama
+   `platform-1`—. Es gratis antes del primer piloto, que es donde estamos, y no lo sería después: una
+   decisión ya estampada con un nombre necesita que ese nombre siga significando su tratamiento.
+6. **Un nivel se lee, no se hornea al arrancar.** Es la idea que la feature agrega al principio XI: no
+   alcanza con que un valor viva en configuración si el proceso lo convierte en constante al construirse.
+   El nivel de plataforma se le entregaba a once componentes en su construcción; pasa a llegarles por un
+   lector que consultan al usar, en memoria y sin I/O.
+7. **Invalidar alcanza.** Una publicación de nivel tira los niveles memoizados y la configuración efectiva
+   por merchant, y no recalcula nada: la resolución de cada merchant es perezosa, así que el costo de un
+   cambio es el de un arranque en frío —una lectura por merchant en su próximo pedido—, que ya existía.
+
+Lo que **no** cambia: qué valores existen, el orden de resolución de los tres niveles, la terna que cada
+decisión estampa, y que la configuración efectiva se sirva desde memoria para que el camino de decisión no
+gane I/O. Y la frontera sigue siendo la del hito: la unidad es del **proceso** y una instancia (**D-21**);
+con dos, un cambio no alcanzaría al otro.

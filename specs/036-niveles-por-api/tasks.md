@@ -126,8 +126,11 @@ reinicia), contando alcanzados y no alcanzados en la misma corrida.
 - [x] T026 [US2] `publish-treatment-defaults.use-case.ts` — el congelamiento: alcanzados y sin motivo ⇒
       rechazo; con motivo ⇒ publica y reinicia cada ventana alcanzada. Todo dentro de la unidad de trabajo
       (ADR-042): o queda con su entrada de auditoría, o no queda.
-- [x] T027 [US2] `tests/integration/levels-frozen.test.ts` — los cinco escenarios de la historia, con dos
+- [x] T027 [US2] `tests/integration/levels.test.ts` — los cinco escenarios de la historia, con dos
       merchants: uno que declara lo que cambia y otro que no, y un experimento activo en cada uno.
+      **Quedaron en el archivo de US1** (`describe` propio) y no en `levels-frozen.test.ts`: las dos
+      historias comparten el cuerpo que se publica y la ayuda que lo arma desde lo vigente, y partirlas
+      obligaba a duplicar eso.
 - [x] T028 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las historias 1 y 2 juntas son la feature mínima entregable.
@@ -181,16 +184,19 @@ pedido siguiente, en el mismo proceso.
 
 ## Phase 6: Lo que queda dicho
 
-- [ ] T040 `docs/adr/031-merchants-operados-y-tres-niveles.md` — **la enmienda**, con la comparación
+- [x] T040 `docs/adr/031-merchants-operados-y-tres-niveles.md` — **la enmienda**, con la comparación
       escrita: el punto 3 decía «nunca modificables en caliente porque el radio es multitenant», y nunca
       comparó contra el deploy, que hace el mismo daño sin rastro y sin reiniciar ninguna ventana. La
       enmienda registra la tabla, el trato nuevo (motivo obligatorio, alcanzados por hoja, ventanas
       reiniciadas) y la idea que la feature agrega: **un nivel se lee, no se hornea al arrancar**.
-- [ ] T041 [P] `docs/deudas.md` — la mitad de **D-29** que esta feature cierra (la semilla de los niveles),
-      con su commit, y lo que quede anotado si aparece algo.
-- [ ] T042 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `migrations/` por la migración
-      nueva, `tests/` si aparece una suite nueva, `config/` porque los dos archivos cambian de rol —de
-      fuente a semilla— y eso es exactamente lo que su README describe.
+- [x] T041 [P] `docs/deudas.md` — **lo contrario de lo que esta tarea decía**: la feature no cerró ninguna
+      mitad de **D-29** y la agrandó una entrada. La importación de los dos niveles es una acción
+      administrativa auditada más, y tiene el mismo defecto: no dice si importó o no había nada que
+      importar, porque decirlo es cambiar `AdminResult`, que es contrato publicado. La revisión fechada lo
+      registra con las cuatro entradas que ahora deja cada arranque, y refuerza la salida 1.
+- [x] T042 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `migrations/` por la migración
+      nueva (en la fase 1) y `config/` porque los dos archivos cambian de rol —de fuente a semilla—.
+      `tests/` no: su inventario es por directorio y ninguno es nuevo.
 - [ ] T043 Correr el **quickstart** de punta a punta, los seis pasos, y **anotar lo que aparezca**. En las
       seis features anteriores encontró algo que ningún gate veía.
 - [ ] T044 La cadena de cierre: `contract:check`, `build`, `test:all`, `test:durability`, `test:mutation`,
