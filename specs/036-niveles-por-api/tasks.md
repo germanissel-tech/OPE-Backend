@@ -212,8 +212,14 @@ pedido siguiente, en el mismo proceso.
       contra el almacén de otro día sin avisar—, **una publicación lleva el contenido entero** así que el
       panel tiene que mandar lo que leyó, y el registro de administración quedó con **cuatro** entradas del
       sistema por arranque, que es D-29 una entrada más grande.
-- [ ] T044 La cadena de cierre: `contract:check`, `build`, `test:all`, `test:durability`, `test:mutation`,
-      `test:contract`, `release-check`.
+- [x] T044 La cadena de cierre: `contract:check` (36 built, sin cambios incompatibles), `build`, `test:all`
+      (1876 en 208 archivos), `test:durability` (189), `test:mutation` (**every mutant died**),
+      `test:contract` y `release-check`. Dos cosas que la cadena encontró y no estaban previstas:
+      **tres supervivientes de mutación** —dos de ellos la línea que hace que la semilla sea semilla, que
+      nadie probaba— y **un `500` en `GET /v1/admin/log`** que el fuzzer del contrato sacó: el registro
+      admitía un motivo de 500 caracteres y las tres publicaciones aceptan 512, así que un motivo largo se
+      aceptaba al escribir y rompía la lectura. El defecto es más viejo que esta feature; lo que la feature
+      hizo fue darle dos puertas más por donde entrar.
 
 ---
 

@@ -28,4 +28,9 @@ properties:
   reason:
     type: string
     description: The reason the operator declared (a corrective configuration version).
-    maxLength: 500
+    # 512 and not 500, which is the length the three publications accept (`MerchantConfigurationInput`,
+    # `PlatformConfigurationInput`, `TreatmentDefaultsInput`). With 500 here, a reason of 501 to 512
+    # characters was accepted and then made `GET /v1/admin/log` violate its own contract — a `500` on the
+    # read, for something the write had allowed. Found by `test:contract` fuzzing the log after feature 036
+    # gave it two more ways in; the defect is older, and the log has to be able to say what was declared.
+    maxLength: 512
