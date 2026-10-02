@@ -13,7 +13,7 @@
 // A `Survived` mutant that ran zero tests while having coverage is a broken runner, not a weak
 // test (stryker-js#6210, #6213): the gate fails with its own message instead of reporting false
 // survivors.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "./governance-lib.mjs";
@@ -34,7 +34,9 @@ const REPORT_FILE = path.join(repoRoot, "reports", "mutation", "report.json");
 const STRYKER = path.join(repoRoot, "node_modules", "@stryker-mutator", "core", "bin", "stryker.js");
 // Every mutant the change introduces must die: the gate is about the change, not the repo (FR-030).
 // The verdict is read from the JSON report (Stryker 10 has no `--break` on the CLI), so a survived
-// or uncovered mutant fails the gate whatever Stryker's own exit code was.
+// or uncovered mutant fails the gate even when Stryker's own exit code was zero. **The converse is not
+// true, and believing it was the defect of D-31**: a non-zero exit code means the run did not finish, and
+// then there is no verdict on disk to read at all — see `noVerdict`.
 
 /**
  * Does `file` match one exclusion glob of stryker.config.json? Only the shapes used there are
@@ -285,10 +287,84 @@ function runStryker(extra) {
   return run(process.execPath, [STRYKER, "run", CONFIG_FILE, ...extra]);
 }
 
+/**
+ * The message for a report that is not there, written once because two callers need it: the reader
+ * (`--check-report`, which is handed the last report on purpose) and the rule below.
+ * @param {string} file
+ * @returns {string}
+ */
+const noReportAt = (file) => `Stryker wrote no report at ${file}`;
+
 /** @returns {MutationReport} */
 function readReport() {
-  if (!existsSync(REPORT_FILE)) throw new Error(`Stryker wrote no report at ${REPORT_FILE}`);
+  if (!existsSync(REPORT_FILE)) throw new Error(noReportAt(REPORT_FILE));
   return /** @type {MutationReport} */ (JSON.parse(readFileSync(REPORT_FILE, "utf8")));
+}
+
+/**
+ * Why there is **no verdict** to report, or `null` when there is one (feature 035, D-31).
+ *
+ * **The gate used to answer this question by not asking it.** It read the report Stryker leaves on disk
+ * without wondering which run wrote it, so a run that never got to judge reported the figures of the
+ * previous one — once as three survivors on lines deleted that same day, and once as
+ * `0 mutant(s) survived`, which is the number whoever runs the gate is hoping to see. The verdict was not
+ * green either time (the exit code already failed the gate), so what was wrong was what it **said**, over
+ * a twelve-minute run that is read by its last line.
+ *
+ * Two things about the order, and both are the point:
+ *
+ *   - **A non-zero exit code means the run did not finish, never "mutants survived"**: the configuration
+ *     sets no breaking threshold and Stryker 10 has no `--break` on its CLI, which is why the verdict is
+ *     read from the report at all. So the code is asked first and, when it is not zero, **the file is not
+ *     consulted** — a number that was not produced is not computed, not even to discard it.
+ *   - **The report's date is compared with `<` and not `<=`**: a report written in the same instant the run
+ *     started counts as this run's. File timestamps do not have the same resolution everywhere, and a gate
+ *     that fails because two instants landed together would cost more than the defect it fixes. The real
+ *     margin is minutes against milliseconds, so the doubt resolves towards "it is ours".
+ *
+ * It takes what it needs rather than reading it, so the governance test can ask it about a run that never
+ * happened — which is the only way to cover this without spending twelve minutes per case.
+ *
+ * @param {{ status: number; startedAtMs: number; reportFile: string; reportMtimeMs: number | null }} run
+ * @returns {string | null}
+ */
+export function noVerdict({ status, startedAtMs, reportFile, reportMtimeMs }) {
+  if (status !== 0) {
+    return `the mutation run did not finish (exit code ${status}); nothing on disk is its verdict`;
+  }
+  if (reportMtimeMs === null) return noReportAt(reportFile);
+  if (reportMtimeMs < startedAtMs) {
+    return `the report at ${reportFile} is older than this run: it belongs to a previous one`;
+  }
+  return null;
+}
+
+/**
+ * The date of a file in milliseconds, or nothing when it is not there.
+ *
+ * **Milliseconds and not a `Date`**, because what it is compared against is `Date.now()`: the rule above
+ * subtracts nothing and compares two numbers on the same scale and the same epoch. It is exported so a test
+ * can check that against a **real** file, which is the half of this feature no pure test can reach.
+ *
+ * @param {string} file
+ * @returns {number | null}
+ */
+export const mtimeOf = (file) => (existsSync(file) ? statSync(file).mtimeMs : null);
+
+/**
+ * Launches a mutation run and answers **why there is no verdict**, or `null` when there is one.
+ *
+ * The two modes that run Stryker go through here, and that is the point: the instant has to be taken
+ * **before** the run and the report's date **after** it, and a helper that owns both leaves no way to write
+ * that the wrong way round. Each caller keeps only what it does with the answer.
+ *
+ * @param {() => number} launch runs Stryker and gives back its exit code
+ * @returns {string | null}
+ */
+function runFor(launch) {
+  const startedAtMs = Date.now();
+  const status = launch();
+  return noVerdict({ status, startedAtMs, reportFile: REPORT_FILE, reportMtimeMs: mtimeOf(REPORT_FILE) });
 }
 
 /**
@@ -350,12 +426,23 @@ function checkReportMode(json) {
 /**
  * `--all`: everything mutated, survivors informative; a leaked disable comment or a run without
  * tests still fails.
+ *
+ * **It used to be worse off than the gate** (feature 035): it threw the exit code away, so a run that never
+ * got to judge reported the figures of the previous sweep and **succeeded**. Its survivors stay
+ * informative — nobody blocks a change on them — but the absence of a run is not an informative result, it
+ * is the absence of one.
  * @param {boolean} json
  * @returns {number}
  */
 function allMode(json) {
   // Its own incremental file: the informative sweep must not feed verdicts into the blocking gate.
-  runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]);
+  const missing = runFor(() =>
+    runStryker(["--reporters", "clear-text,progress,html,json", "--incrementalFile", ALL_INCREMENTAL_FILE]),
+  );
+  if (missing !== null) {
+    emit({ mode: "informative", status: "fail", findings: [], error: missing }, json);
+    return 1;
+  }
   const report = readReport();
   const leaked = ignoredOutsideDisable(report, sourceOf);
   const error = guardZeroTests(report) ?? leakedError(leaked);
@@ -385,11 +472,17 @@ function blockingMode(ranges, baseRef, json, extra) {
     emit({ mode: "blocking", status: "pass", findings: [], skipped: decision.skipped }, json);
     return 0;
   }
-  const status = runStryker(["--mutate", decision.mutate.join(","), ...extra]);
+  // **Nothing is read until there is something to read** (feature 035, D-31). Without this, a run that
+  // never got to judge reported the survivors of the previous one — and once reported that none survived.
+  const missing = runFor(() => runStryker(["--mutate", decision.mutate.join(","), ...extra]));
+  if (missing !== null) {
+    emit({ mode: "blocking", status: "fail", findings: [], error: missing }, json);
+    return 1;
+  }
   const report = readReport();
   const error = guardZeroTests(report);
   const findings = survivors(report);
-  const failed = error !== null || status !== 0 || findings.length > 0;
+  const failed = error !== null || findings.length > 0;
   emit({ mode: "blocking", status: failed ? "fail" : "pass", findings, ...(error ? { error } : {}) }, json);
   return failed ? 1 : 0;
 }

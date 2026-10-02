@@ -59,7 +59,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y la auditoría atómica la espera         | Feature 033 (research R-05 y su enmienda)        | `implementada` | 2026-09-30 | `e212198` (feature 034, ADR-042)                        |
 | D-29 | El registro de administración dice `importMerchants accepted` en cada arranque, y la semilla no se aplicó | Feature 033 (quickstart, paso 7)                 | `abierta`      | 2026-09-29 | SC-008 (la línea del arranque que sí lo dice)           |
 | D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28) | `abierta`      | 2026-09-29 | —                                                       |
-| D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                | `abierta`      | 2026-09-30 | —                                                       |
+| D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                | `implementada` | 2026-09-30 | `4c439bf` (feature 035, ADR-016 enmendado)              |
 | D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                    | `abierta`      | 2026-09-30 | —                                                       |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
@@ -650,6 +650,14 @@ La primera vez dijo «3 mutant(s) survived» señalando líneas que la reestruct
 **El arreglo, que es chico**: cuando Stryker sale distinto de 0, decir **eso** —que la corrida no terminó, con su motivo— y no leer el reporte. Y una prueba de gobernanza que lo fije, porque `tests/governance/mutation-diff.test.ts` ya prueba el resto del script y hoy no cubre este camino.
 
 **Por qué no se arregló en la 034**: es una herramienta, no la feature, y tocarla mientras el gate de la feature estaba corriendo habría invalidado la corrida. Se anotó en el momento y se cierra aparte.
+
+### Cerrada (2026-09-30) — feature 035, `4c439bf`
+
+Una corrida que no termina **no tiene veredicto**, y el gate lo dice con su código de salida en vez de leer el reporte. Además el reporte **se fecha**: si es anterior al instante en que arrancó la corrida, es de otra corrida y el gate lo dice sea cual sea el código de salida — que es lo que cierra la clase entera y no sólo el caso que apareció. Las dos rutas que corren Stryker quedaron iguales, y la informativa era la peor: descartaba el código de salida y podía informar cifras viejas **saliendo con éxito**. `--check-report` queda afuera a propósito: su trabajo es revisar el último reporte. Todo en **ADR-016**, enmendado.
+
+Lo que el arreglo verificó con corridas de verdad y no con dobles: la misma condición que en la 034 imprimía cifras ajenas ahora imprime `the mutation run did not finish (exit code 1); nothing on disk is its verdict` como **última línea**, con cero líneas de cifras; y el camino feliz quedó idéntico en las dos formas, la de una persona y la JSON.
+
+**Y una cosa que el arreglo encontró al probarse**, que vale para cualquiera que compare fechas de archivo acá: la diferencia entre `Date.now()` y el `mtimeMs` de un archivo recién escrito es de 0.17 a 1.5 ms en esta máquina, y `mtimeMs` es un float. A esa distancia, cuál de los dos es mayor es una carrera — por eso la comparación es estricta y por eso una prueba que escriba el archivo «en el mismo instante» es un flake. A la escala del mecanismo (minutos) no hay ambigüedad.
 
 ## D-32 — un bucle de peticiones inyectadas agota el heap, con cualquier petición
 
