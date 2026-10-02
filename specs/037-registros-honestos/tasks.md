@@ -42,32 +42,32 @@ catálogo. Quickstart pasos 1 a 5.
 
 ### El dominio: el registro dice la verdad y el constructor convierte
 
-- [ ] T001 [US1] `src/domain/merchant/origin.ts` — `OriginRecord { value: string }` exportado, y
+- [x] T001 [US1] `src/domain/merchant/origin.ts` — `OriginRecord { value: string }` exportado, y
       `Origin.rehydrate(record: OriginRecord)` en vez de `rehydrate(value: string)`. El único llamador
       externo es el gateway de merchants, que T009 borra. El comentario de `rehydrate` sigue valiendo y se
       ajusta: lo que explica («`JSON.parse` no devuelve clases») pasa a ser el motivo de que el registro
       del merchant declare este tipo.
-- [ ] T002 [US1] `src/domain/merchant/merchant.ts` — `MerchantRecord.origins: readonly OriginRecord[]`;
+- [x] T002 [US1] `src/domain/merchant/merchant.ts` — `MerchantRecord.origins: readonly OriginRecord[]`;
       el constructor hace `record.origins.map((o) => Origin.rehydrate(o))`. `Merchant.of` sigue
       construyendo con `Origin.parse` y pasando instancias (cumplen con el registro). `record()` no
       cambia. Exportar `OriginRecord` por el `index.ts` del módulo.
-- [ ] T003 [P] [US1] `src/domain/outcomes/order.ts` — `OrderFacts.total: MoneyRecord`;
+- [x] T003 [P] [US1] `src/domain/outcomes/order.ts` — `OrderFacts.total: MoneyRecord`;
       `OrderRecord.correlation?: CorrelationRecord`, `redemption?: IncentiveRedemptionRecord`,
       `returned?: ReturnRecord`. El constructor convierte las cuatro con el `rehydrate` de cada una, y
       **sólo cuando la parte opcional está presente** (FR-006). `Order.of` juzga lo mismo sobre el registro
       plano. `withCorrelation` y `withReturn` no cambian: pasan por `record()` y el constructor vuelve a
       convertir (R-03). Importar `Money` como valor, ya no sólo como tipo.
-- [ ] T004 [P] [US1] `src/domain/catalog/catalog-snapshot.ts` — `Variant.price: MoneyRecord`. Sin
+- [x] T004 [P] [US1] `src/domain/catalog/catalog-snapshot.ts` — `Variant.price: MoneyRecord`. Sin
       conversión (R-02, R-05). El import de `Money` se va; entra `MoneyRecord` como tipo. La huella del
       snapshot ya lee `amount` y `currency` y no cambia.
-- [ ] T005 [P] [US1] `src/domain/ingestion/event.ts` — `Event.price?: MoneyRecord`. Sin conversión. La
+- [x] T005 [P] [US1] `src/domain/ingestion/event.ts` — `Event.price?: MoneyRecord`. Sin conversión. La
       lista blanca de campos no cambia.
-- [ ] T006 [US1] `tests/types/records.test-d.ts` — **nuevo**, con la convención de `tests/types/`
+- [x] T006 [US1] `tests/types/records.test-d.ts` — **nuevo**, con la convención de `tests/types/`
       (`@ts-expect-error` con descripción, verificado por `npm run typecheck`, nunca ejecutado). Fija: un
       `MoneyRecord` no es asignable a `Money`; un `OriginRecord` no es asignable a `Origin`; un
       `OrderRecord` escrito con datos planos entra en `Order.rehydrate` sin cast; y un `MerchantRecord`
       con orígenes planos entra en `Merchant.rehydrate`. Es SC-003.
-- [ ] T007 [P] [US1] `tests/unit/domain/outcomes/order.test.ts`,
+- [x] T007 [P] [US1] `tests/unit/domain/outcomes/order.test.ts`,
       `tests/unit/domain/merchant/merchant.test.ts`, `tests/unit/domain/catalog/catalog-snapshot.test.ts`
       — por entidad, los casos de FR-002, FR-005 y FR-006: construida desde un registro **plano** (objetos
       literales, nunca instancias), sus partes responden a sus métodos (`returned.sameContentAs`,
@@ -79,24 +79,24 @@ catálogo. Quickstart pasos 1 a 5.
 
 ### El anillo: los gateways dejan de rehidratar a mano
 
-- [ ] T008 [US1] `src/interface-adapters/outcomes/gateways/sqlite-order-ledger.ts` — `orderOf` pasa a
+- [x] T008 [US1] `src/interface-adapters/outcomes/gateways/sqlite-order-ledger.ts` — `orderOf` pasa a
       una línea: `Order.rehydrate(fromDocument(String(document)) as OrderRecord)`. Se borran las cuatro
       rehidrataciones, los imports de `Correlation`, `IncentiveRedemption`, `Return` y `Money`, **y el
       comentario entero** que promete que «una quinta fallaría el typecheck» (FR-011). Lo que queda
       escrito ahí es una línea: el cast es verdadero porque el registro declara lo que el documento trae.
-- [ ] T009 [US1] `src/interface-adapters/merchant/gateways/sqlite-merchant-store.ts` — `merchantOf` pasa
+- [x] T009 [US1] `src/interface-adapters/merchant/gateways/sqlite-merchant-store.ts` — `merchantOf` pasa
       a `Merchant.rehydrate(fromDocument(String(document)) as MerchantRecord)`. Se borran `StoredMerchant`,
       el `map` sobre los orígenes y el import de `Origin`. El comentario de `merchantOf`, que explica el
       peligro de un origen que vuelve plano, se reescribe en una línea: ese peligro lo cierra ahora el
       constructor del merchant. El resto del archivo (el índice, ADR-041) no se toca.
-- [ ] T010 [P] [US1] Los tres controllers que envolvían un dato del contrato en `Money.rehydrate` para
+- [x] T010 [P] [US1] Los tres controllers que envolvían un dato del contrato en `Money.rehydrate` para
       entregarlo a un tipo que ahora declara el dato plano:
       `src/interface-adapters/catalog/controllers/upsert-catalog-snapshot.ts` (`price: v.price`),
       `src/interface-adapters/ingestion/controllers/ingest-events.ts` (`price` tal cual),
       `src/interface-adapters/outcomes/controllers/notify-order.ts` (`total: body.total`; el constructor
       del pedido convierte). Se va el import de `Money` donde quede sin uso. SC-001 dice que
       `Money.rehydrate` no aparece en ningún controller.
-- [ ] T011 [US1] `tests/durability/catalog.test.ts` — **el caso que hoy no existe** (FR-007, SC-002): un
+- [x] T011 [US1] `tests/durability/catalog.test.ts` — **el caso que hoy no existe** (FR-007, SC-002): un
       catálogo con un precio escrito, `restart()`, leído con `current`, y
       `Money.rehydrate(variant.price).equals(Money.rehydrate({ amount: "100.00", currency: "ARS" }))`
       es verdadero. El `productOf` del fixture puede seguir construyendo con `Money.rehydrate` (una
@@ -105,17 +105,17 @@ catálogo. Quickstart pasos 1 a 5.
       («records a return after the restart, and calls a repeated one a repeat») y de
       `tests/durability/merchant-store.test.ts` (`allowsOrigin` tras el reinicio) ya llaman un método de
       cada parte y **no se tocan**: tienen que seguir pasando con T008 y T009 hechas.
-- [ ] T012 [US1] El lazo de la historia: `npm run format:check && npm run quality && npm run typecheck
+- [x] T012 [US1] El lazo de la historia: `npm run format:check && npm run quality && npm run typecheck
 && npm test`, y después `npx vitest run --project durability tests/durability/catalog.test.ts
 tests/durability/outcomes.test.ts tests/durability/merchant-store.test.ts`. Más la verificación de
       SC-001 a mano: `grep -rn "\.rehydrate(" src/interface-adapters --include=*.ts` muestra una llamada
       por gateway durable sobre el documento entero y ninguna sobre una parte, y ningún tipo auxiliar de
       forma almacenada.
-- [ ] T013 [US1] `npm run test:mutation` acotado al diff de la historia. Cada línea de conversión del
+- [x] T013 [US1] `npm run test:mutation` acotado al diff de la historia. Cada línea de conversión del
       constructor es un mutante posible (quitarla, cambiar la clase) y T007 tiene que matarlo; un
       sobreviviente se trabaja con la skill `triaging-mutants` **antes** de seguir, y nunca cambiando el
       código del dominio sólo para el gate.
-- [ ] T014 [US1] `npx vitest run --project durability tests/durability/ingest-latency.test.ts` — SC-005,
+- [x] T014 [US1] `npx vitest run --project durability tests/durability/ingest-latency.test.ts` — SC-005,
       como confirmación: R-05 no agregó ninguna instrucción al camino de decisión, así que lo esperable es
       que la cifra no se mueva. Se anota en el quickstart con fecha, al lado de la medición previa, y si se
       moviera de forma apreciable **la feature no cierra** hasta explicar por qué.
@@ -135,7 +135,7 @@ abstrae», y el registro de deudas con lo pendiente.
 npm run test:tools` en verde, y la lectura de las dos reglas por alguien ajeno a la evaluación (quickstart
 paso 6).
 
-- [ ] T015 [US2] `docs/adr/043-la-costura-entre-motores-es-el-puerto.md` — **nuevo**, con el frontmatter
+- [x] T015 [US2] `docs/adr/043-la-costura-entre-motores-es-el-puerto.md` — **nuevo**, con el frontmatter
       de `docs/adr/README.md` (`numero: 043`, `estado: aceptada`, `fecha`, `fuente: specs/037-registros-honestos/spec.md y research.md`).
       Cuatro decisiones, cada una con su **disparador de revisión** (FR-014): (1) `SqlStore` es el
       vocabulario del motor SQLite, síncrono porque el driver de la biblioteca estándar lo es y se eligió
@@ -151,7 +151,7 @@ paso 6).
       almacén asíncrono (el escritor único, no la firma), la tabla de documentos (sin costura, sólo ahorra
       líneas y esconde el SQL que la suite de planes verifica). Cita ADR-021, ADR-024, ADR-038, ADR-041 y
       ADR-042; no reemplaza ninguno. **Sin cifras de estado** en el texto.
-- [ ] T016 [P] [US2] `.claude/rules/gateway-durable.md` — el cuarto punto («Al leer, toda clase anidada
+- [x] T016 [P] [US2] `.claude/rules/gateway-durable.md` — el cuarto punto («Al leer, toda clase anidada
       se rehidrata») se reescribe: **la entidad vuelve sola de su registro** con una llamada a `rehydrate`
       sobre el documento; el gateway no nombra ninguna parte; si una parte vuelve plana, el defecto está en
       el registro de la entidad y se arregla en `src/domain/` (regla de entidades), nunca en el gateway. Las
@@ -159,17 +159,17 @@ paso 6).
       pedidos. Y una **sección nueva**, `## Qué no se abstrae, y por qué`, con las cuatro abstracciones del
       ADR nuevo de T015 en una línea cada una y el puntero a ese ADR (FR-016). Las rutas y los identificadores citados
       tienen que existir: `check:instructions` los verifica.
-- [ ] T017 [P] [US2] `.claude/rules/entidad.md` — una viñeta nueva en el primer punto: un registro declara
+- [x] T017 [P] [US2] `.claude/rules/entidad.md` — una viñeta nueva en el primer punto: un registro declara
       sus partes que son clases como **registros planos** (`MoneyRecord`, `OriginRecord`), la conversión va
       en el **constructor**, y una instancia cumple con su registro así que quien construye con clases no
       cambia. Y la **otra forma válida**: guardar sólo datos planos y construir la clase al pedirla, como
       `MerchantConfigurationVersion`, cuando nadie aplica la regla de la parte (`Variant.price`). Con el
       motivo en una línea: un dato plano asignado a un campo de clase no compila, y eso es toda la
       protección (FR-017).
-- [ ] T018 [US2] `scripts/instructions-policy.json` — la sección nueva de la regla de gateways con su
+- [x] T018 [US2] `scripts/instructions-policy.json` — la sección nueva de la regla de gateways con su
       clase, `normative`, y el `heading` **idéntico** al del archivo. `check:instructions` falla en los dos
       sentidos, así que una sección sin clase y una clase sin sección son el mismo error (FR-018).
-- [ ] T019 [P] [US2] `docs/deudas.md` — tres cosas, cada una con su fila en el registro y su historia al
+- [x] T019 [P] [US2] `docs/deudas.md` — tres cosas, cada una con su fila en el registro y su historia al
       final, como pide «Cómo se agrega una fila»: **D-33** `abierta`, «una lectura durable que falla
       responde `500 internal-error` en vez de `503` con reintento», origen la evaluación del 2026-10-02,
       con el motivo de no hacerse acá (toca el contrato y casi todos los casos de uso) y las tres salidas
@@ -179,10 +179,10 @@ paso 6).
       historia (al lado de «Y lo que la feature 033 le apoyó encima»): si SQLite se queda o se retira
       cuando llegue PostgreSQL, las siete transacciones que lista el ADR nuevo de T015, invalidar o consultar el índice de
       ADR-041, y la reorganización por carpetas de motor (FR-020, FR-021).
-- [ ] T020 [P] [US2] `tests/README.md` — la fila de `types/` nombra lo que contiene; gana «registros».
+- [x] T020 [P] [US2] `tests/README.md` — la fila de `types/` nombra lo que contiene; gana «registros».
       `docs/README.md` y `docs/adr/README.md` no cambian: sus filas son genéricas y `check:adrs` verifica
       el ADR nuevo.
-- [ ] T021 [US2] `npm run check:adrs && npm run check:instructions && npm run check:markers && npm run
+- [x] T021 [US2] `npm run check:adrs && npm run check:instructions && npm run check:markers && npm run
 test:tools` — y la lectura por alguien ajeno: las dos preguntas del quickstart paso 6 contestadas desde
       las reglas, sin abrir otro documento. Si una no sale de ahí, la regla se corrige antes de cerrar.
 
@@ -192,10 +192,10 @@ test:tools` — y la lectura por alguien ajeno: las dos preguntas del quickstart
 
 ## Phase 3: Lo que queda dicho
 
-- [ ] T022 Correr el **quickstart** de punta a punta, los seis pasos, y completar «Cambios respecto del
+- [x] T022 Correr el **quickstart** de punta a punta, los seis pasos, y completar «Cambios respecto del
       plan» con fecha: la cifra de SC-005 al lado de la previa, lo que el gate de mutación pidió, y cualquier
       cosa que una prueba haya encontrado que el plan no vio.
-- [ ] T023 La cadena de cierre: `npm run contract:check` (sin diferencias: FR-012), `npm run test:all`,
+- [x] T023 La cadena de cierre: `npm run contract:check` (sin diferencias: FR-012), `npm run test:all`,
       `npm run test:mutation`, `npm run test:contract`, `npm run release-check`.
 
 ---

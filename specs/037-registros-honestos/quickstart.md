@@ -77,6 +77,49 @@ Y lo que ningún gate verifica: que alguien que no participó de la evaluación 
 dos reglas, «¿dónde pongo la conversión de una parte anidada?» y «¿por qué `SqlStore` no se abstrae?».
 Se hace en la revisión, y queda anotado en «Cambios respecto del plan» si la respuesta no salió de ahí.
 
-## Cambios respecto del plan
+## La corrida del 2026-10-02 (histórica y fechada)
 
-_Se completa al cerrar la feature, fechado._
+Los seis pasos, en esta máquina, con el gate de mutación **terminado antes** de medir: la primera
+medición de latencia se hizo mientras Stryker corría diez procesos y dio un p95 de cientos de
+milisegundos en dos corridas de tres. No era la feature, era la carga, y es la clase de cifra que no se
+anota sin decir bajo qué condiciones salió.
+
+| Paso | Resultado                                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | `typecheck` verde con `tests/types/records.test-d.ts`; al cambiar el dominio, el único error de todo el repo fue el gateway que T009 borra |
+| 2    | Las tres unitarias del dominio, 125 casos, verdes                                                                                          |
+| 3    | Catálogo, pedidos y merchants en durabilidad, 29 casos, verdes; el del catálogo es nuevo                                                   |
+| 4    | Una llamada a `rehydrate` por gateway durable, sobre el documento; cero `Money.rehydrate` en controllers                                   |
+| 5    | `fast` 1618 casos verdes; `quality` 7 gates verdes; mutación sobre el diff: puntuación 100, cero supervivientes                            |
+| 6    | `check:adrs`, `check:instructions`, `check:markers` y el proyecto `tools` verdes                                                           |
+
+**SC-005, medido contra la misma máquina y la misma hora, con y sin los cambios** (tres corridas de cada
+una, veinte merchants resolviendo el último, que es el caso de ADR-041):
+
+| Código         | p95 SQLite (ms)    | p95 memoria (ms)   |
+| -------------- | ------------------ | ------------------ |
+| sin la feature | 9.02 / 9.30 / 9.09 | 2.18 / 1.40 / 1.38 |
+| con la feature | 8.94 / 8.82 / 8.76 | 1.41 / 1.61 / 1.52 |
+
+Dentro de la dispersión: la feature no agregó nada al camino, que es lo que R-05 decía. La línea base de
+ADR-041 (6.78 / 6.78 / 7.25 ms, 2026-09-29) es más baja que las dos columnas, y la diferencia es de las
+dos features que entraron desde entonces, no de ésta: por eso se mide contra el código de hoy sin los
+cambios y no contra una cifra de otro día.
+
+## Cambios respecto del plan (2026-10-02)
+
+- **Tres afirmaciones de la unitaria del pedido cambiaron de identidad a igualdad por valor.** Afirmaban
+  que una parte de una copia (`correlated`, `withReturn`) era **el mismo objeto** que se le pasó; con el
+  constructor construyendo cada parte desde su registro, es un objeto igual por valor. FR-012 decía que
+  ninguna expectativa de `fast` cambia; éstas cambian y son de un detalle de implementación, no de un
+  comportamiento. Se descartó conservar la identidad con un `instanceof` en el constructor, porque sería
+  una rama que ninguna prueba distingue y el gate de mutación la señalaría.
+- **El pedido del caso de uso `notifyOrder` declara `MoneyRecord`.** El plan decía que `application/` no
+  cambia; lo que cambió es el tipo de un campo del request de un caso de uso, no un puerto. El caso de
+  uso sólo reenvía el total a `Order.of`, así que declarar la clase ahí era la misma mentira un anillo más
+  arriba.
+- **La conversión del contexto de página en la ingesta desapareció entera**, no sólo su envoltura: con el
+  precio declarado como dato plano, el DTO del contrato ya tiene la forma del dominio y la función que lo
+  traducía no traducía nada.
+- **El paso 6 de lectura por alguien ajeno** queda para la revisión de la PR: no se puede hacer desde
+  adentro de la sesión que escribió las reglas.
