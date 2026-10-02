@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { durableDeployment } from "../../src/composition/deployments/durable.js";
 import { replace, type Override } from "../../src/composition/graph/index.js";
+import { ConfigurationServicePort } from "../../src/composition/modules/configuration.js";
 import { EventLogPort } from "../../src/composition/modules/ingestion.js";
 import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
 import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
@@ -119,6 +120,45 @@ describe("the server across a restart", () => {
     expect(said()).toContain(REST_NOT_APPLIED);
     const kept = recorder.entries.find((entry) => entry.message === REST_NOT_APPLIED);
     expect(kept?.fields).toEqual({ configurations: true, experiments: true });
+  });
+
+  it("imports the two levels of the release once, and the second boot neither applies them nor renumbers", async () => {
+    // **The guard this watches is one line and the damage is silent** (feature 036): a boot that imported the
+    // seed again would publish version 2 of each level with the content of the file, so what an operator
+    // published would stop being in force and the history would gain a version nobody asked for. Nothing
+    // fails, nothing is logged — the level simply goes back to what the release says, every restart.
+    const IMPORTED = "configuration levels seed imported";
+    const NOT_APPLIED =
+      "configuration levels seed not applied: the store already holds both levels; change them through the administration API";
+    const recorder = recordingLogger();
+    const said = (): string[] => recorder.entries.map((entry) => entry.message);
+
+    // Its own file, for the same reason as the case above: the boot of the setup already seeded the shared one.
+    await app.close();
+    file = path.join(dir, "levels.db");
+    app = await boot([replace(LoggerPort, recorder.logger)]);
+
+    expect(said()).toContain(IMPORTED);
+    // The line names which levels it imported, which is what tells «it did it» from «there was nothing to do».
+    expect(recorder.entries.find((entry) => entry.message === IMPORTED)?.fields) //
+      .toEqual({ levels: ["platform", "defaults"] });
+    expect(said()).not.toContain(NOT_APPLIED);
+
+    const levels = app.resolve(ConfigurationServicePort);
+    expect((await levels.platform()).version).toBe("platform-1");
+    expect((await levels.defaults()).version).toBe("defaults-1");
+
+    recorder.entries.length = 0;
+    await app.close();
+    app = await boot([replace(LoggerPort, recorder.logger)]);
+
+    expect(said()).toContain(NOT_APPLIED);
+    expect(said()).not.toContain(IMPORTED);
+    // **Still version 1 of each, which is the assertion**: the number of a level is the position in an
+    // immutable history, and a re-import would have made the second boot write a second version of both.
+    const after = app.resolve(ConfigurationServicePort);
+    expect((await after.platform()).version).toBe("platform-1");
+    expect((await after.defaults()).version).toBe("defaults-1");
   });
 
   it("the merchant of the seed keeps authenticating after the restart", async () => {

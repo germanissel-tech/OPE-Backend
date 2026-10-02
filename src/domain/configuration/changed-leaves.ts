@@ -24,8 +24,8 @@ type Content = Record<string, unknown>;
  * `tests/unit/domain/configuration/changed-leaves.test.ts`: every string becomes walkable and the walk
  * recurses forever. The mutant is dead; what cannot judge it is the tool.
  */
-// Stryker disable next-line ConditionalExpression: static mutant the vitest runner cannot activate; killed by hand, see above
 const walkable = (value: unknown): value is Content =>
+  // Stryker disable next-line ConditionalExpression: static mutant the runner cannot activate; see above
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** The canonical text of a leaf, so two equal values compare equal whatever their key order. */
