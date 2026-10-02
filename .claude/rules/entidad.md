@@ -12,6 +12,17 @@ paths:
   `static rehydrate(record)` que reconstruye desde datos ya registrados **sin** reevaluar las
   reglas de creación. Un valor sin reglas (`Exposure`, `Assignment`, ids, `Arm`, `ServiceHealth`)
   sigue siendo un tipo; no se envuelve por uniformidad.
+- **El registro declara datos planos, y el constructor convierte** (feature 037, ADR-043). Una parte de
+  la entidad que es una clase se declara en el registro por **su registro plano** (`total: MoneyRecord`,
+  `origins: readonly OriginRecord[]`) y el constructor la construye con el `rehydrate` de la parte. Es
+  lo que hace verdadero el `as XRecord` de un gateway durable, porque un almacén devuelve objetos planos;
+  y es toda la protección: un dato plano asignado a un campo de clase **no compila**, así que una parte
+  que nadie convirtió falla en el dominio y no en la escritura que la usa. Una instancia cumple con su
+  registro, por lo que quien construye con clases no cambia, y convertir una instancia da un valor
+  igual. **La otra forma válida** es guardar sólo datos planos y construir la clase al pedirla, como
+  `MerchantConfigurationVersion` y como `Variant.price`: corresponde cuando nadie aplica la regla de la
+  parte, y entonces el tipo dice el dato y quien necesite la regla la pide en el sitio
+  (`Money.rehydrate(variant.price)`). `tests/types/records.test-d.ts` fija la propiedad.
 - **Las reglas viven con su dueño y se invocan por su nombre**: `experiment.assign(visitorId)`,
   `merchant.allowsOrigin(origin)`, `decision.isIntervention()`, `batch.noOpReason()`. Un caso de
   uso o servicio no reimplementa una regla del dominio. `src/domain/` no exporta funciones
