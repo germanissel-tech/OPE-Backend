@@ -14,6 +14,7 @@ import {
   PlatformKeyCollision,
   type Credential,
   type MerchantInput,
+  type MerchantRecord,
 } from "../../../../src/domain/merchant/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
@@ -346,5 +347,32 @@ describe("Origin.parse", () => {
     const b = Origin.parse("https://a.example");
     if (!a || !b) throw new Error("origin");
     expect(a.equals(b)).toBe(true);
+  });
+});
+
+describe("Merchant from a plain record (feature 037: the record declares data, the constructor converts)", () => {
+  /** Exactly what a store gives back: the origins are objects with a value, not Origins. */
+  const plain: MerchantRecord = {
+    merchantId: asMerchantId("m_plain"),
+    status: "active",
+    origins: [{ value: "https://a.example" }, { value: "https://shop.a.example:8443" }],
+    credentials: [ingest("k1")],
+    createdAt: NOW,
+  };
+
+  it("turns every origin into an Origin, so the merchant admits its origins and refuses the rest", () => {
+    const built = Merchant.rehydrate(plain);
+    expect(built.origins[0]).toBeInstanceOf(Origin);
+    expect(built.allowsOrigin("https://a.example")).toBe(true);
+    expect(built.allowsOrigin("https://SHOP.a.example:8443")).toBe(true);
+    expect(built.allowsOrigin("https://b.example")).toBe(false);
+  });
+
+  it("built from a copy is the same as built from the plain record: converting an instance is idempotent", () => {
+    const copied = Merchant.rehydrate(plain).deactivated();
+    const direct = Merchant.rehydrate({ ...plain, status: "deactivated" });
+    expect(copied).toEqual(direct);
+    expect(copied.record()).toEqual(direct.record());
+    expect(copied.allowsOrigin("https://a.example")).toBe(true);
   });
 });

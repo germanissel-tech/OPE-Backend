@@ -23,3 +23,4 @@ export { Merchant } from "./merchant.js";
 export type { MerchantInput, MerchantRecord, MerchantStatus } from "./merchant.js";
 export type { Credential, CredentialKind } from "./credential.js";
 export { Origin } from "./origin.js";
+export type { OriginRecord } from "./origin.js";

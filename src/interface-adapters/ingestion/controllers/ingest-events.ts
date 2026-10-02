@@ -1,8 +1,8 @@
 // ingestEvents (FR-010..FR-016, FR-020): contract DTO → domain batch → use case → 202
 // IngestResult, or 422 with the type of the violated invariant. The body already passed the
 // contract validation; here it is only translated (branded ids, instants, union by `type`).
-import { asEventId, type Event, type PageContext } from "../../../domain/ingestion/index.js";
-import { asSessionId, asVisitorId, Money } from "../../../domain/shared-kernel/index.js";
+import { asEventId, type Event } from "../../../domain/ingestion/index.js";
+import { asSessionId, asVisitorId } from "../../../domain/shared-kernel/index.js";
 import { instantOf } from "../../http/boundary.js";
 import { merchantOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
@@ -13,13 +13,7 @@ import type { Decision } from "../../../domain/ledger/index.js";
 import type { OperationHandler, components } from "../../http/typed.js";
 
 type EventDto = components["schemas"]["Event"];
-type PageContextDto = components["schemas"]["PageContext"];
 
-/** The page context as the domain reads it: the price becomes Money (the contract validated its shape). */
-function toPageContext(dto: PageContextDto): PageContext {
-  const { price, ...rest } = dto;
-  return price === undefined ? rest : { ...rest, price: Money.rehydrate(price) };
-}
 type DecisionDto = components["schemas"]["Decision"];
 
 /** An event DTO → domain event. The `switch` is exhaustive: a new type does not compile without a branch. */
@@ -29,7 +23,8 @@ function toDomainEvent(dto: EventDto): Event {
     sessionId: asSessionId(dto.sessionId),
     visitorId: asVisitorId(dto.visitorId),
     occurredAt: instantOf(dto.occurredAt),
-    page: toPageContext(dto.page),
+    // The page context travels as the contract validated it: its price is the record the domain declares (feature 037).
+    page: dto.page,
     device: dto.device,
   };
   switch (dto.type) {

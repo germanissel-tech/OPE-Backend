@@ -3,7 +3,7 @@
 // so no variant is orphan by construction. Availability is a guard (a boolean), never a claim.
 // A snapshot only exists valid: `of` enforces the invariants the schema cannot express,
 // `rehydrate` trusts what a store recorded.
-import { fail, ok, type MerchantId, type Money, type Result } from "../shared-kernel/index.js";
+import { fail, ok, type MerchantId, type MoneyRecord, type Result } from "../shared-kernel/index.js";
 import {
   CatalogCapturedInFuture,
   CatalogDuplicateProductId,
@@ -23,7 +23,12 @@ export interface Variant {
   attributes: readonly Attribute[];
   /** Guard (01 §4.3): `false` means "do not recommend"; no quantity exists. */
   available: boolean;
-  price: Money;
+  /**
+   * The data of the price and not a `Money` (feature 037): the catalogue reads amount and currency and
+   * applies no rule of the class, and this is what a store gives back. Whoever needs the rule asks for it
+   * where it is needed: `Money.rehydrate(variant.price)`.
+   */
+  price: MoneyRecord;
 }
 
 export interface Product {

@@ -17,7 +17,7 @@ import {
   ok,
   type Incentive,
   type MerchantId,
-  type Money,
+  type MoneyRecord,
   type Result,
   type SessionId,
 } from "../../../domain/shared-kernel/index.js";
@@ -30,7 +30,8 @@ import type { OrderLedger } from "../ports/order-ledger.js";
 export interface NotifyOrderRequest {
   merchantId: MerchantId;
   orderId: OrderId;
-  total: Money;
+  /** As the contract validated it; the order is what turns it into `Money` (feature 037). */
+  total: MoneyRecord;
   items: readonly OrderItem[];
   confirmedAt: Date;
   sessionId?: SessionId | undefined;
