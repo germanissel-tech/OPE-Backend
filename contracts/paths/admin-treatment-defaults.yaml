@@ -1,3 +1,146 @@
+post:
+  operationId: publishTreatmentDefaults
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:write
+  x-idempotency:
+    key: content
+    first: "201"
+    repeat: "200"
+  summary: Publish a version of the treatment defaults
+  description: "Creates the next version of level 2 (constitution XI; ADR-031 as amended by feature 036):
+    numbered, immutable, effective on the next request without a restart. Until then these values changed
+    only with a deploy, which contaminates any measurement in course the same way without leaving a
+    version, an entry in the log or a restarted window.
+
+
+    A body identical to the version in force repeats it (`200`) instead of creating one. The change
+    **reaches** every merchant that does not override one of the leaves it changes: while an experiment it
+    reaches is active only a corrective version — with its reason — is accepted (`409
+    configuration-frozen`), and it restarts the measurement window of each one. An invalid value is
+    refused naming the field and no version is created. It takes an operator over every merchant, because
+    the change reaches them all."
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/TreatmentDefaultsInput.yaml
+        example:
+          content: &content
+            freshness:
+              catalogMs: 129600000
+              stockAndPriceMs: 900000
+            syncLevel:
+              receiptsKept: 8
+              noDataAfterMs: 129600000
+              minutesLevelMaxAgeMs: 3600000
+              minutesLevelMedianIntervalMs: 900000
+              minutesLevelMinReceipts: 3
+            holdoutShare: 0.1
+            decisionPolicy:
+              version: default-1
+              rules:
+                - id: price.price-read
+                  barrier: price
+                  strength: strong
+                  when:
+                    fact: dwellSeconds
+                    block: price
+              weights:
+                strong: 0.4
+                supporting: 0.2
+              readingSeconds: 5
+              threshold: 0.6
+              priority:
+                - returns
+                - fit
+                - price
+              evidence:
+                freshStockAndPrice:
+                  - price
+                availableVariant:
+                  - fit
+            commercialPolicy:
+              version: commercial-default-1
+              maxIncentiveShare: 0.1
+              incentiveLadderShare:
+                - 5
+                - 10
+              directIncentiveOnPrice: true
+              returnRisk:
+                all:
+                  - fact: eventCount
+                    type: variant_selector_interacted
+                    min: 2
+                  - fact: dwellSeconds
+                    block: policies
+              highIntent: from-checkout
+              abandonment: reassure-returns
+              interventionsPerSession: 1
+              cooldownSeconds: 0
+              interventionsPerVisitorPerDay: 3
+            evidenceProfile:
+              returnsPolicy: false
+              fitData: false
+              authorizedAttributes: []
+            surfaces:
+              - product
+              - cart
+            barriers:
+              - fit
+              - price
+              - returns
+            syncStrategy:
+              catalog: push
+              stockAndPrice: push
+              orders: push
+              returns: push
+            locales:
+              supported: []
+          corrective: true
+          reason: holdout raised to 10% before the pilot
+  responses:
+    "200":
+      description: The version in force, identical to what was published.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TreatmentDefaultsVersion.yaml
+          example: &version
+            version: 3
+            stampedAs: defaults-3
+            content: *content
+            corrective: true
+            reason: holdout raised to 10% before the pilot
+            publishedAt: 2026-10-01T12:00:00Z
+            operatorId: ops-1
+            windowsRestarted:
+              - exp_a_000001
+    "201":
+      description: The version created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TreatmentDefaultsVersion.yaml
+          example: *version
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/PlatformWideForbidden.yaml
+    "409":
+      $ref: ../components/responses/ConfigurationFrozenConflict.yaml
+    "422":
+      $ref: ../components/responses/LevelUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml
 get:
   operationId: getTreatmentDefaults
   tags:
@@ -6,10 +149,10 @@ get:
     - adminToken: []
   x-required-capabilities:
     - configuration:read
-  summary: The treatment defaults of the release
+  summary: The treatment defaults in force
   description: "Level 2 of the configuration (constitution XI): what every merchant gets unless it
-    declares otherwise, with the version the release declares. Read-only: it changes with a deploy,
-    never in flight."
+    declares otherwise, with the name of the version in force (`defaults-3`, minted from its number). The
+    release file is the seed of version 1; from there on an operator publishes it."
   responses:
     "200":
       description: The treatment defaults.

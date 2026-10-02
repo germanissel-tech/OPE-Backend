@@ -6,46 +6,74 @@
 import {
   Configurations,
   GetMerchantConfigurationUseCase,
+  GetLevelVersionUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
+  ImportConfigurationLevelsUseCase,
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
+  ListLevelVersionsUseCase,
   PublishMerchantConfigurationUseCase,
+  PublishLevelUseCase,
+  ReachedExperiments,
   type ConfigurationLevels,
   type ConfigurationService,
   type ConfigurationStore,
+  type ImportConfigurationLevelsRequest,
+  type ImportConfigurationLevelsResponse,
+  type LevelStore,
+  type ListLevelVersionsRequest,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
+  type PlatformLevelReader,
+  type PublishLevelRequest,
+  type PublishLevelResponse,
+  type ReachedExperimentsDependencies,
 } from "../../application/configuration/index.js";
 import {
   catalogPoliciesOf,
   holdoutSourceOf,
   makeGetMerchantConfiguration,
   makeGetPlatformConfiguration,
+  makeGetPlatformConfigurationVersion,
   makeGetTreatmentDefaults,
+  makeGetTreatmentDefaultsVersion,
   makeListConfigurationVersions,
+  makeListPlatformConfigurationVersions,
+  makeListTreatmentDefaultsVersions,
   makePublishMerchantConfiguration,
+  makePublishPlatformConfiguration,
+  makePublishTreatmentDefaults,
   memoryConfigurationStore,
+  memoryLevelStore,
   sqliteConfigurationStore,
+  sqliteLevelStore,
   policySourceOf,
-  releaseConfigurationLevels,
+  storedConfigurationLevels,
   switchAwarePolicyDirectory,
   messageSettingsOf,
 } from "../../interface-adapters/configuration/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
-import { ReleaseLevelsPort, SqlStorePort } from "../release.js";
+import { PlatformLevelPort, SqlStorePort } from "../release.js";
 import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
-import type { UseCase } from "../../application/shared-kernel/index.js";
+import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
+import type { LevelVersion } from "../../domain/configuration/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
+/** The versions of the two levels of the release, which an operator publishes (feature 036). */
+const LevelStorePort = port("configuration.level-store")<LevelStore>();
 /** The resolution, shared by every consumer: what it serves changes when a version is published. */
 export const ConfigurationServicePort = port("configuration.service")<ConfigurationService>();
+/** The two levels of the release become version 1 of each, audited as the system (feature 036). */
+export const ImportConfigurationLevelsPort = port("configuration.import-levels")<
+  UseCase<ImportConfigurationLevelsRequest, ImportConfigurationLevelsResponse>
+>();
 /** The configuration a merchant declares in the seed becomes its version 1, audited as the system. */
 export const ImportConfigurationPort =
   port("configuration.import")<
@@ -65,13 +93,24 @@ export const ImportConfigurationPort =
  * exactly what happened when it was tried (feature 033, US2).
  */
 const resolution = [
-  bind(ConfigurationLevelsPort, { release: ReleaseLevelsPort }, ({ release }) =>
-    releaseConfigurationLevels(release),
+  // **The release stopped being the source here** (feature 036): what is in force is the newest version of
+  // each level, and the files are the seed the boot imports into an empty store.
+  bind(ConfigurationLevelsPort, { levels: LevelStorePort }, ({ levels }) =>
+    storedConfigurationLevels(levels),
   ),
   bind(
     ConfigurationServicePort,
     { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
     (deps) => new Configurations(deps),
+  ),
+  // **The level 1 reader, which is the same instance that resolves** and not a second copy of it: two caches
+  // of one level can disagree, and the one that nobody notices disagreeing is the one the decision path
+  // reads. The eleven components that used to receive a value at construction receive this and ask when they
+  // use it (research R-02).
+  bind(
+    PlatformLevelPort,
+    { configuration: ConfigurationServicePort },
+    ({ configuration }): PlatformLevelReader => ({ inForce: () => configuration.platformInForce() }),
   ),
   bind(CatalogPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     catalogPoliciesOf(configuration),
@@ -89,19 +128,77 @@ const resolution = [
   ),
 ] as const;
 
+/**
+ * What a publication of a level needs, and how the use case the two levels share is built (feature 036).
+ *
+ * `ReachedExperiments` is built **here** and handed over as one dependency, which is what keeps the use case
+ * inside the six of ADR-023 — and what gives the question «who does this change reach» a name of its own.
+ */
+const PUBLISHES_A_LEVEL = {
+  levels: LevelStorePort,
+  configuration: ConfigurationServicePort,
+  merchants: MerchantStorePort,
+  configurations: ConfigurationStorePort,
+  experiments: ExperimentDirectoryPort,
+  experimentStore: ExperimentStorePort,
+  clock: ClockPort,
+} as const;
+
+const publishesALevel = (
+  deps: {
+    levels: LevelStore;
+    configuration: ConfigurationService;
+    clock: Clock;
+  } & ReachedExperimentsDependencies,
+): PublishLevelUseCase => {
+  const { levels, configuration, clock, ...rest } = deps;
+  return new PublishLevelUseCase({ levels, configuration, clock, reached: new ReachedExperiments(rest) });
+};
+
+/**
+ * What the administration log keeps of a publication of a level: the number it got and what it restarted.
+ *
+ * The two readers are named and the object that carries them is written at each `served`, which is the
+ * shape rule `port-implementations-only-in-bind` and not a style: an object with behaviour hoisted into the
+ * wiring reads like a component the graph does not know it has, and the readers of a decorator are
+ * arguments.
+ */
+const levelVersionNumbered = (r: PublishLevelResponse) =>
+  r.ok
+    ? { configurationVersion: r.value.version.version, windowRestarted: r.value.windowsRestarted.length > 0 }
+    : undefined;
+
+const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
+
+/** What a read of a level's history needs, which is the store of the versions and nothing else. */
+const READS_A_LEVEL = { levels: LevelStorePort } as const;
+
 export const configurationModule = compositionModule({
   // The only component with a technology to choose is the store of the published versions; the rest is
   // the same in every deployment and is spread in from `resolution`.
   provides: {
-    memory: [bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()), ...resolution],
+    memory: [
+      bind(ConfigurationStorePort, {}, () => memoryConfigurationStore()),
+      bind(LevelStorePort, {}, () => memoryLevelStore()),
+      ...resolution,
+    ],
     sqlite: [
       bind(ConfigurationStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
         sqliteConfigurationStore(deps),
       ),
+      bind(LevelStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) => sqliteLevelStore(deps)),
       ...resolution,
     ],
   },
   assembles: [
+    // **Without a result, and that is D-29 and not an oversight.** `AdminResult` is a published schema of
+    // the contract with three fields, none of which is «which levels were imported»; saying it would be a
+    // contract change, and this feature declared it does not make one. The log line of the boot does say it.
+    bind(
+      ImportConfigurationLevelsPort,
+      { audit: AuditPort, levels: LevelStorePort, clock: ClockPort },
+      ({ audit, ...deps }) => audit("importConfigurationLevels", new ImportConfigurationLevelsUseCase(deps)),
+    ),
     bind(
       ImportConfigurationPort,
       {
@@ -119,6 +216,21 @@ export const configurationModule = compositionModule({
   ],
   serves: {
     handlers: {
+      // Feature 036: the two levels of the release, published by the **one** use case they share. What each
+      // handler adds is the level it names; everything else — the components it needs, how the use case is
+      // built and what the audit entry keeps — is written once right above.
+      publishPlatformConfiguration: served(
+        PUBLISHES_A_LEVEL,
+        { name: "publishPlatformConfiguration", build: publishesALevel },
+        (useCase) => makePublishPlatformConfiguration(useCase),
+        { result: levelVersionNumbered, reason: levelReasonDeclared },
+      ),
+      publishTreatmentDefaults: served(
+        PUBLISHES_A_LEVEL,
+        { name: "publishTreatmentDefaults", build: publishesALevel },
+        (useCase) => makePublishTreatmentDefaults(useCase),
+        { result: levelVersionNumbered, reason: levelReasonDeclared },
+      ),
       publishMerchantConfiguration: served(
         {
           scoped: ScopedMerchantPort,
@@ -168,6 +280,39 @@ export const configurationModule = compositionModule({
         { configuration: ConfigurationServicePort },
         { name: "getTreatmentDefaults", build: (deps) => new GetTreatmentDefaultsUseCase(deps) },
         (useCase) => makeGetTreatmentDefaults(useCase),
+      ),
+      // The history of each level (feature 036, US4): four operations over the two use cases that read it,
+      // because what differs between them is the level the controller names.
+      listPlatformConfigurationVersions: served(
+        READS_A_LEVEL,
+        {
+          name: "listPlatformConfigurationVersions",
+          // Annotated, and the compiler asks for it: the recipe of a handler fixes the request to `unknown`
+          // unless the builder says what the use case is, and a listing answers a page rather than a
+          // `Result`, so there is no error union to infer it from.
+          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
+            new ListLevelVersionsUseCase(deps),
+        },
+        (useCase) => makeListPlatformConfigurationVersions(useCase),
+      ),
+      listTreatmentDefaultsVersions: served(
+        READS_A_LEVEL,
+        {
+          name: "listTreatmentDefaultsVersions",
+          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
+            new ListLevelVersionsUseCase(deps),
+        },
+        (useCase) => makeListTreatmentDefaultsVersions(useCase),
+      ),
+      getPlatformConfigurationVersion: served(
+        READS_A_LEVEL,
+        { name: "getPlatformConfigurationVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        (useCase) => makeGetPlatformConfigurationVersion(useCase),
+      ),
+      getTreatmentDefaultsVersion: served(
+        READS_A_LEVEL,
+        { name: "getTreatmentDefaultsVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        (useCase) => makeGetTreatmentDefaultsVersion(useCase),
       ),
     },
   },

@@ -180,7 +180,9 @@ describe("an action and its audit entry are one fact (SC-001)", () => {
         },
         { store: { file } },
       ),
-    ).rejects.toThrow("The merchant seed was rejected: store-unavailable.");
+      // The first thing the seed imports is the two levels of the release (feature 036), so that is the
+      // import a refusing trail stops first. Which one it names is not the claim; that it does not start is.
+    ).rejects.toThrow("The configuration levels seed was rejected: store-unavailable.");
     // Nothing is left running to close; the fixture's teardown needs an app, so one is booted clean.
     app = await boot();
   });

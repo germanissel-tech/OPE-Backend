@@ -32,7 +32,7 @@ import {
   sqliteUnmappedValueLog,
 } from "../../interface-adapters/admin/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
-import { PlatformConfigurationPort, SqlStorePort } from "../release.js";
+import { PlatformLevelPort, SqlStorePort } from "../release.js";
 import { AttributeLabelReportPort } from "./catalog.js";
 import { ConfigurationServicePort } from "./configuration.js";
 import { ScopedMerchantPort } from "./merchant.js";
@@ -60,7 +60,7 @@ const whicheverTechnology = [
 ] as const;
 
 /** How many of each the platform keeps per merchant: level 1 of the configuration, not a constant. */
-const CAPS = { platform: PlatformConfigurationPort } as const;
+const CAPS = { platform: PlatformLevelPort } as const;
 
 export const adminModule = compositionModule({
   // One instance, two views of the log: what the administration reads and what every module writes
@@ -71,9 +71,11 @@ export const adminModule = compositionModule({
       ...whicheverTechnology,
       bindAll([AdminLogPort, AuditTrailPort], {}, () => memoryAdminLog()),
       bind(AnchorDiagnosticsPort, CAPS, ({ platform }) =>
-        memoryAnchorDiagnosticsStore(platform.anchorDiagnosticsKept),
+        memoryAnchorDiagnosticsStore(() => platform.inForce().anchorDiagnosticsKept),
       ),
-      bind(UnmappedValuesPort, CAPS, ({ platform }) => memoryUnmappedValueLog(platform.unmappedValuesKept)),
+      bind(UnmappedValuesPort, CAPS, ({ platform }) =>
+        memoryUnmappedValueLog(() => platform.inForce().unmappedValuesKept),
+      ),
     ],
     sqlite: [
       ...whicheverTechnology,
@@ -84,13 +86,17 @@ export const adminModule = compositionModule({
         AnchorDiagnosticsPort,
         { ...CAPS, store: SqlStorePort, logger: LoggerPort },
         ({ platform, store, logger }) =>
-          sqliteAnchorDiagnosticsStore({ store, logger, kept: platform.anchorDiagnosticsKept }),
+          sqliteAnchorDiagnosticsStore({
+            store,
+            logger,
+            kept: () => platform.inForce().anchorDiagnosticsKept,
+          }),
       ),
       bind(
         UnmappedValuesPort,
         { ...CAPS, store: SqlStorePort, logger: LoggerPort },
         ({ platform, store, logger }) =>
-          sqliteUnmappedValueLog({ store, logger, kept: platform.unmappedValuesKept }),
+          sqliteUnmappedValueLog({ store, logger, kept: () => platform.inForce().unmappedValuesKept }),
       ),
     ],
   },

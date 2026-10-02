@@ -1,0 +1,8 @@
+type: string
+description: "Which of the three levels of the configuration a version belongs to (constitution XI):
+  `platform` and `defaults` are the two of the release, published by an operator since feature 036;
+  `merchant` is what a merchant overrides."
+enum:
+  - platform
+  - defaults
+  - merchant

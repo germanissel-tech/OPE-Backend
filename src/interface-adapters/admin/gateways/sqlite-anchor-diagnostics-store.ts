@@ -58,7 +58,7 @@ const BEYOND_THE_CAP = `DELETE FROM anchor_diagnostics
 
 export interface SqliteAnchorDiagnosticsDeps extends DurableGatewayDeps {
   /** How many the platform keeps per merchant (level 1): policy, so it arrives and is not a constant. */
-  readonly kept: number;
+  readonly kept: () => number;
 }
 
 /** The record as the row holds it: the count is the column's, everything else is the document's. */
@@ -83,7 +83,7 @@ export function sqliteAnchorDiagnosticsStore(deps: SqliteAnchorDiagnosticsDeps):
             version: diagnostic.configurationVersion ?? NOT_SAID,
             document: toDocument(diagnostic),
           });
-          deps.store.run(BEYOND_THE_CAP, { merchant: diagnostic.merchantId, kept: deps.kept });
+          deps.store.run(BEYOND_THE_CAP, { merchant: diagnostic.merchantId, kept: deps.kept() });
         });
         return undefined;
       }),

@@ -229,7 +229,7 @@ describe("Experiment transitions (03 §4.10)", () => {
   it("windowRestarted: only while active; the window moves and the restart is kept in order", () => {
     const active = opened().activated(LATER);
     if (!active.ok) throw new Error(active.error.message);
-    const once = active.value.windowRestarted(EVEN_LATER, "anchor fix", 3);
+    const once = active.value.windowRestarted(EVEN_LATER, "anchor fix", 3, "merchant");
     if (!once.ok) throw new Error(once.error.message);
     expect(once.value.record()).toMatchObject({
       status: "active",
@@ -238,18 +238,20 @@ describe("Experiment transitions (03 §4.10)", () => {
       windowRestarts: [{ at: EVEN_LATER, reason: "anchor fix", configurationVersion: 3 }],
     });
     const final = new Date("2026-10-01T00:00:00.000Z");
-    const twice = once.value.windowRestarted(final, "margin", 4);
+    const twice = once.value.windowRestarted(final, "margin", 4, "defaults");
+    // **Each restart says which level's version caused it** (feature 036): with three levels publishing,
+    // «version 3» and «version 4» would otherwise be two numbers of nothing in particular.
     expect(twice.ok && twice.value.windowRestarts).toEqual([
-      { at: EVEN_LATER, reason: "anchor fix", configurationVersion: 3 },
-      { at: final, reason: "margin", configurationVersion: 4 },
+      { at: EVEN_LATER, reason: "anchor fix", level: "merchant", configurationVersion: 3 },
+      { at: final, reason: "margin", level: "defaults", configurationVersion: 4 },
     ]);
     expect(twice.ok && twice.value.windowStartedAt).toBe(final);
     expect(active.value.windowRestarts).toEqual([]);
-    expect(opened().windowRestarted(LATER, "x", 1)).toMatchObject({
+    expect(opened().windowRestarted(LATER, "x", 1, "merchant")).toMatchObject({
       ok: false,
       error: { code: "experiment-not-open" },
     });
-    expect(active.value.closed(final).windowRestarted(final, "x", 1)).toMatchObject({
+    expect(active.value.closed(final).windowRestarted(final, "x", 1, "merchant")).toMatchObject({
       ok: false,
       error: { code: "experiment-not-open" },
     });

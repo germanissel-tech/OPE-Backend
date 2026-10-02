@@ -27,7 +27,7 @@ import {
   transientUnitOfWork,
 } from "../../interface-adapters/shared-kernel/index.js";
 import { bind, compositionModule, from, port, type Decorated } from "../graph/index.js";
-import { PlatformConfigurationPort, SqlStorePort } from "../release.js";
+import { PlatformLevelPort, SqlStorePort } from "../release.js";
 
 export const ClockPort = port("kernel.clock")<Clock>();
 export const LoggerPort = port("kernel.logger")<Logger>();
@@ -60,8 +60,11 @@ export const AuditPort = port("kernel.audit")<Audit>();
 const whicheverTechnology = [
   bind(ClockPort, {}, () => systemClock),
   bind(LoggerPort, {}, () => pinoLogger()),
-  bind(ClockTolerancePort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-    clockToleranceOf(platform.clockSkewToleranceMs, platform.eventPastToleranceMs),
+  bind(ClockTolerancePort, { platform: PlatformLevelPort }, ({ platform }) =>
+    clockToleranceOf(
+      () => platform.inForce().clockSkewToleranceMs,
+      () => platform.inForce().eventPastToleranceMs,
+    ),
   ),
 ] as const;
 

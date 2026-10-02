@@ -45,5 +45,17 @@ export class ConfigurationReasonRequired extends DomainError {
   }
 }
 
+/** No version of a level carries that number (feature 036): a history is read by number, and it has gaps. */
+export class ConfigurationVersionNotFound extends DomainError {
+  readonly code = "configuration-version-not-found" as const;
+  readonly module = MODULE;
+  constructor(level: string, version: number) {
+    super(`The ${level} level has no version ${version}.`);
+  }
+}
+
 export type ConfigurationError =
-  InvalidConfigurationValue | ConfigurationFrozen | ConfigurationReasonRequired;
+  | InvalidConfigurationValue
+  | ConfigurationFrozen
+  | ConfigurationReasonRequired
+  | ConfigurationVersionNotFound;

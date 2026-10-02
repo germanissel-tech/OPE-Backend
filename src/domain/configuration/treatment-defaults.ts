@@ -1,7 +1,7 @@
-// Level 2 of the configuration (constitution XI; ADR-031): what every merchant gets unless it
-// declares otherwise. Travels with the release (`config/treatment-defaults.json`), read at
-// start-up, changed with a deploy. Judged like any treatment: every value valid on its own.
-// Never stored, so never rehydrated: the release file is the record.
+// Level 2 of the configuration (constitution XI; ADR-031 as amended by feature 036): what every merchant
+// gets unless it declares otherwise. It used to travel with the release and change with a deploy; now the
+// release file is the **seed** and an operator publishes versions of it by API. Judged like any treatment:
+// every value valid on its own.
 import { fail, ok, type Result } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 import { TreatmentValues, type TreatmentValuesRecord } from "./treatment-values.js";

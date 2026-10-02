@@ -46,7 +46,7 @@ describe("GetSdkConfigUseCase", () => {
 
 describe("ReportAnchorDiagnosticsUseCase", () => {
   it("keeps every unresolved anchor of the report under the merchant with the instant and the version, and counts repeats", async () => {
-    const diagnostics = memoryAnchorDiagnosticsStore(10);
+    const diagnostics = memoryAnchorDiagnosticsStore(() => 10);
     const useCase = new ReportAnchorDiagnosticsUseCase({ diagnostics, clock: { now: () => TEST_NOW } });
     const received = await useCase.execute({
       merchantId: A,
@@ -107,7 +107,7 @@ describe("ListAnchorDiagnosticsUseCase", () => {
   it("lists the diagnostics of the merchant within the scope of the operator; an unknown merchant is refused first", async () => {
     const merchants = memoryMerchantStore();
     await merchants.create(testMerchant({ merchantId: "m_a" }));
-    const diagnostics = memoryAnchorDiagnosticsStore(10);
+    const diagnostics = memoryAnchorDiagnosticsStore(() => 10);
     await diagnostics.upsert({ merchantId: A, anchor: "price", pageType: "product", lastSeenAt: TEST_NOW });
     const useCase = new ListAnchorDiagnosticsUseCase({
       scoped: new ScopedMerchants({ merchants }),

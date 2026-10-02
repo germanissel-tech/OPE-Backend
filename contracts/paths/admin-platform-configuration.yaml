@@ -1,3 +1,87 @@
+post:
+  operationId: publishPlatformConfiguration
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:write
+  x-idempotency:
+    key: content
+    first: "201"
+    repeat: "200"
+  summary: Publish a version of the platform configuration
+  description: "Creates the next version of level 1 (constitution XI; ADR-031 as amended by feature 036):
+    numbered, immutable, read by every consumer when it uses the value, so it takes effect on the next
+    request without a restart. Until then these values changed only with a deploy, which reaches every
+    merchant the same way without leaving a version, an entry in the log or a restarted window.
+
+
+    A body identical to the version in force repeats it (`200`) instead of creating one. Level 1 is the
+    same for every merchant, so the change reaches them all: while an experiment it reaches is active only
+    a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the
+    measurement window of each one. An invalid value is refused naming the field and no version is created.
+    It takes an operator over every merchant."
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PlatformConfigurationInput.yaml
+        example:
+          content: &content
+            dedupWindow:
+              ttlMs: 86400000
+              maxIds: 100000
+            eventPastToleranceMs: 86400000
+            clockSkewToleranceMs: 300000
+            sessionDurationMs: 1800000
+            visitorWindowMs: 86400000
+            signatureWindowMs: 300000
+            rotationGraceMaxMs: 604800000
+            anchorDiagnosticsKept: 200
+            unmappedValuesKept: 200
+            retryAfterSeconds: 5
+          corrective: true
+          reason: session shortened to thirty minutes before the pilot
+  responses:
+    "200":
+      description: The version in force, identical to what was published.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformConfigurationVersion.yaml
+          example: &version
+            version: 3
+            stampedAs: platform-3
+            content: *content
+            corrective: true
+            reason: session shortened to thirty minutes before the pilot
+            publishedAt: 2026-10-01T12:00:00Z
+            operatorId: ops-1
+            windowsRestarted:
+              - exp_a_000001
+    "201":
+      description: The version created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformConfigurationVersion.yaml
+          example: *version
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/PlatformWideForbidden.yaml
+    "409":
+      $ref: ../components/responses/ConfigurationFrozenConflict.yaml
+    "422":
+      $ref: ../components/responses/LevelUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml
 get:
   operationId: getPlatformConfiguration
   tags:
@@ -6,9 +90,10 @@ get:
     - adminToken: []
   x-required-capabilities:
     - configuration:read
-  summary: The platform configuration of the release
-  description: "Level 1 of the configuration (constitution XI): the values no merchant overrides, with
-    the version the release declares. Read-only: it changes with a deploy, never in flight."
+  summary: The platform configuration in force
+  description: "Level 1 of the configuration (constitution XI): the values no merchant overrides, with the
+    name of the version in force (`platform-3`, minted from its number). The release file is the seed of
+    version 1; from there on an operator publishes it."
   responses:
     "200":
       description: The platform configuration.
@@ -17,7 +102,7 @@ get:
           schema:
             $ref: ../components/schemas/PlatformConfiguration.yaml
           example:
-            version: platform-2
+            version: platform-1
             dedupWindow:
               ttlMs: 86400000
               maxIds: 100000

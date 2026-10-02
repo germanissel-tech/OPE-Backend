@@ -24,7 +24,7 @@ import {
   visitorWindowOf,
 } from "../../interface-adapters/decision/index.js";
 import { bind, compositionModule, port } from "../graph/index.js";
-import { PlatformConfigurationPort, StateRetentionPort } from "../release.js";
+import { PlatformLevelPort, StateRetentionPort } from "../release.js";
 import { BarrierInferencePort } from "./barrier.js";
 import { ProductTruthPort } from "./catalog.js";
 import { AssignmentPort } from "./experiment.js";
@@ -58,8 +58,11 @@ export const PastActivityPort = port("decision.past-activity")<PastActivity>();
 
 export const decisionModule = compositionModule({
   provides: [
-    bind(VisitorWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      visitorWindowOf(platform.visitorWindowMs, platform.identityCap()),
+    bind(VisitorWindowPort, { platform: PlatformLevelPort }, ({ platform }) =>
+      visitorWindowOf(
+        () => platform.inForce().visitorWindowMs,
+        () => platform.inForce().identityCap(),
+      ),
     ),
     // The retention comes from the environment and the capacity from level 1, and they are two
     // different things on purpose: how long a session is remembered is nobody's business outside
@@ -68,9 +71,15 @@ export const decisionModule = compositionModule({
     // a rule the SDK obeys, and reading it as a retention is the confusion feature 032 undid.
     bind(
       SessionStatePort,
-      { clock: ClockPort, platform: PlatformConfigurationPort, retention: StateRetentionPort },
+      { clock: ClockPort, platform: PlatformLevelPort, retention: StateRetentionPort },
       ({ clock, platform, retention }) =>
-        memorySessionStateStore(clock, sessionWindowOf(retention.sessionMs, platform.identityCap())),
+        memorySessionStateStore(
+          clock,
+          sessionWindowOf(
+            () => retention.sessionMs,
+            () => platform.inForce().identityCap(),
+          ),
+        ),
     ),
     bind(VisitorStatePort, { clock: ClockPort, window: VisitorWindowPort }, ({ clock, window }) =>
       memoryVisitorStateStore(clock, window),
@@ -84,9 +93,13 @@ export const decisionModule = compositionModule({
       { events: EventLogPort, decisions: DecisionLedgerPort, logger: LoggerPort },
       (deps) => durablePastActivity(deps),
     ),
-    bind(StateLimitsPort, { platform: PlatformConfigurationPort }, ({ platform }) => ({
-      visitorWindowMs: platform.visitorWindowMs,
-      sessionDurationMs: platform.sessionDurationMs,
+    bind(StateLimitsPort, { platform: PlatformLevelPort }, ({ platform }) => ({
+      get visitorWindowMs() {
+        return platform.inForce().visitorWindowMs;
+      },
+      get sessionDurationMs() {
+        return platform.inForce().sessionDurationMs;
+      },
     })),
     bind(
       DecisionStatePort,

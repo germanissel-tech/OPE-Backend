@@ -58,7 +58,13 @@ describe("readConfig", () => {
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {
     const files: Record<string, string> = {
-      [path.resolve("p.json")]: JSON.stringify({ ...testLevels().platform.record(), version: "platform-3" }),
+      // A `Retry-After` the repository file does not have (it says 5), and a version it would be wrong to
+      // obey: both are the point of this case.
+      [path.resolve("p.json")]: JSON.stringify({
+        ...testLevels().platform.record(),
+        version: "platform-3",
+        retryAfterSeconds: 7,
+      }),
       [path.resolve("d.json")]: JSON.stringify({
         ...testLevels().defaults.record(),
         version: "defaults-2",
@@ -66,9 +72,15 @@ describe("readConfig", () => {
       }),
     };
     const read = (file: string): string => files[file] ?? noFile(file);
-    // A version the repository file does not have, which is the whole point: it proves the level came
-    // from the variable and not from `config/platform.json`.
-    expect(readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform.version).toBe("platform-3");
+    const fromTheVariable = readConfig({ OPE_PLATFORM_CONFIG: "p.json" }, read).levels.platform;
+    // A value the repository file does not have proves the level came from the variable and not from
+    // `config/platform.json`.
+    expect(fromTheVariable.retryAfterSeconds).toBe(7);
+    // **And a version declared in a file is ignored** (feature 036): the name of a level is minted by the
+    // store from its number, so what the content of a file travels under is the name of the seed — whatever
+    // the file says. A file that could name its own version could name `platform-3` for one content while the
+    // third publication names another, which is the collision numbering came to prevent.
+    expect(fromTheVariable.version).toBe("platform-seed");
     expect(() => readConfig({ OPE_TREATMENT_DEFAULTS: "d.json" }, read)).toThrow(
       "treatmentDefaults.holdoutShare is invalid (must be a fraction between 0 and 1).",
     );

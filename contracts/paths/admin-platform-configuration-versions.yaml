@@ -1,0 +1,53 @@
+get:
+  operationId: listPlatformConfigurationVersions
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  x-collection: true
+  summary: The published versions of the platform configuration
+  description: "Every version of level 1, newest first: nothing is overwritten and nothing is deleted
+    (feature 036). The first one is the seed of the release; the rest an operator published. Paginated with
+    an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of versions.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformConfigurationVersionPage.yaml
+          example:
+            items:
+              - version: 2
+                stampedAs: platform-2
+                content:
+                  dedupWindow:
+                    ttlMs: 86400000
+                    maxIds: 100000
+                  eventPastToleranceMs: 86400000
+                  clockSkewToleranceMs: 300000
+                  sessionDurationMs: 1800000
+                  visitorWindowMs: 86400000
+                  signatureWindowMs: 300000
+                  rotationGraceMaxMs: 604800000
+                  anchorDiagnosticsKept: 200
+                  unmappedValuesKept: 200
+                  retryAfterSeconds: 9
+                corrective: false
+                publishedAt: 2026-10-01T12:00:00Z
+                operatorId: ops-1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

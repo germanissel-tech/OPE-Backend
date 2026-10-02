@@ -1,0 +1,44 @@
+type: object
+description: "A published version of level 2: numbered, immutable, with who published it and why. The
+  `stampedAs` is what every decision stamps and what the SDK receives, and it is minted from the number."
+additionalProperties: false
+required:
+  - version
+  - stampedAs
+  - content
+  - corrective
+  - publishedAt
+  - operatorId
+properties:
+  version:
+    type: integer
+    description: Sequential number of the level, assigned at publication.
+    minimum: 1
+  stampedAs:
+    type: string
+    description: "What the version is called wherever the level is quoted (`defaults-3`): minted from the
+      number, never declared."
+    minLength: 1
+    maxLength: 64
+  content:
+    $ref: ./TreatmentDefaultsContent.yaml
+  corrective:
+    type: boolean
+    description: Whether the version was published as corrective.
+  reason:
+    type: string
+    description: The reason the operator declared, when any.
+    maxLength: 512
+  publishedAt:
+    type: string
+    format: date-time
+    description: Instant of publication.
+  operatorId:
+    $ref: ./OperatorId.yaml
+  windowsRestarted:
+    type: array
+    description: "The experiments whose measurement window this version restarted, when it was corrective:
+      the ones that resolve from this level for something it changed."
+    uniqueItems: true
+    items:
+      $ref: ./ExperimentId.yaml

@@ -50,6 +50,18 @@ export function pageDto<T, D>(page: Page<T>, item: (value: T) => D): { items: D[
   };
 }
 
+/**
+ * A number of the path, which arrives as text whatever the contract calls it (feature 036).
+ *
+ * **The generated type says `number` and the request carries a string**, because a path segment is text and
+ * nothing coerces it: the contract's Ajv runs without `coerceTypes` on purpose, so a body never gets its
+ * values quietly converted. The schema of the parameter is what refuses a segment that is not a positive
+ * integer; this is the translation of what it accepted.
+ */
+export function numberOf(value: unknown): number {
+  return Number(value);
+}
+
 /** The merchant identifier of the path (constitution V: the only place it travels). */
 export function merchantIdOf(path: { merchantId: string }): MerchantId {
   return asMerchantId(path.merchantId);

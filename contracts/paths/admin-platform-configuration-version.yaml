@@ -1,0 +1,52 @@
+get:
+  operationId: getPlatformConfigurationVersion
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  summary: One published version of the platform configuration
+  description: "A version of level 1 as it was published, by its number: what was in force while decisions
+    stamped it. Immutable, so what it answers today is what it answered the day it was created (feature
+    036)."
+  parameters:
+    - $ref: ../components/parameters/levelVersion.yaml
+  responses:
+    "200":
+      description: The version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformConfigurationVersion.yaml
+          example:
+            version: 1
+            stampedAs: platform-1
+            content:
+              dedupWindow:
+                ttlMs: 86400000
+                maxIds: 100000
+              eventPastToleranceMs: 86400000
+              clockSkewToleranceMs: 300000
+              sessionDurationMs: 1800000
+              visitorWindowMs: 86400000
+              signatureWindowMs: 300000
+              rotationGraceMaxMs: 604800000
+              anchorDiagnosticsKept: 200
+              unmappedValuesKept: 200
+              retryAfterSeconds: 5
+            corrective: false
+            publishedAt: 2026-10-01T10:00:00Z
+            operatorId: system
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../components/responses/ConfigurationVersionNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

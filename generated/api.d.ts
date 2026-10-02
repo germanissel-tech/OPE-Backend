@@ -372,10 +372,56 @@ export type paths = {
             cookie?: never;
         };
         /**
-         * The platform configuration of the release
-         * @description Level 1 of the configuration (constitution XI): the values no merchant overrides, with the version the release declares. Read-only: it changes with a deploy, never in flight.
+         * The platform configuration in force
+         * @description Level 1 of the configuration (constitution XI): the values no merchant overrides, with the name of the version in force (`platform-3`, minted from its number). The release file is the seed of version 1; from there on an operator publishes it.
          */
         get: operations["getPlatformConfiguration"];
+        put?: never;
+        /**
+         * Publish a version of the platform configuration
+         * @description Creates the next version of level 1 (constitution XI; ADR-031 as amended by feature 036): numbered, immutable, read by every consumer when it uses the value, so it takes effect on the next request without a restart. Until then these values changed only with a deploy, which reaches every merchant the same way without leaving a version, an entry in the log or a restarted window.
+         *
+         *     A body identical to the version in force repeats it (`200`) instead of creating one. Level 1 is the same for every merchant, so the change reaches them all: while an experiment it reaches is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the measurement window of each one. An invalid value is refused naming the field and no version is created. It takes an operator over every merchant.
+         */
+        post: operations["publishPlatformConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/platform-configuration/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published versions of the platform configuration
+         * @description Every version of level 1, newest first: nothing is overwritten and nothing is deleted (feature 036). The first one is the seed of the release; the rest an operator published. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listPlatformConfigurationVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/platform-configuration/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of the platform configuration
+         * @description A version of level 1 as it was published, by its number: what was in force while decisions stamped it. Immutable, so what it answers today is what it answered the day it was created (feature 036).
+         */
+        get: operations["getPlatformConfigurationVersion"];
         put?: never;
         post?: never;
         delete?: never;
@@ -392,10 +438,56 @@ export type paths = {
             cookie?: never;
         };
         /**
-         * The treatment defaults of the release
-         * @description Level 2 of the configuration (constitution XI): what every merchant gets unless it declares otherwise, with the version the release declares. Read-only: it changes with a deploy, never in flight.
+         * The treatment defaults in force
+         * @description Level 2 of the configuration (constitution XI): what every merchant gets unless it declares otherwise, with the name of the version in force (`defaults-3`, minted from its number). The release file is the seed of version 1; from there on an operator publishes it.
          */
         get: operations["getTreatmentDefaults"];
+        put?: never;
+        /**
+         * Publish a version of the treatment defaults
+         * @description Creates the next version of level 2 (constitution XI; ADR-031 as amended by feature 036): numbered, immutable, effective on the next request without a restart. Until then these values changed only with a deploy, which contaminates any measurement in course the same way without leaving a version, an entry in the log or a restarted window.
+         *
+         *     A body identical to the version in force repeats it (`200`) instead of creating one. The change **reaches** every merchant that does not override one of the leaves it changes: while an experiment it reaches is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the measurement window of each one. An invalid value is refused naming the field and no version is created. It takes an operator over every merchant, because the change reaches them all.
+         */
+        post: operations["publishTreatmentDefaults"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/treatment-defaults/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published versions of the treatment defaults
+         * @description Every version of level 2, newest first: nothing is overwritten and nothing is deleted (feature 036). The first one is the seed of the release; the rest an operator published. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listTreatmentDefaultsVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/treatment-defaults/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of the treatment defaults
+         * @description A version of level 2 as it was published, by its number: the treatment the decisions that stamped it were taken under. Immutable, so what it answers today is what it answered the day it was created (feature 036).
+         */
+        get: operations["getTreatmentDefaultsVersion"];
         put?: never;
         post?: never;
         delete?: never;
@@ -977,6 +1069,11 @@ export type components = {
         };
         /** @description A condition of a rule (ADR-026): a fact of the closed vocabulary, or `all`, `any`, `not` over conditions. The API admits two levels of combinators (a combinator over combinators over facts); a fact OPE does not capture is refused (`unknown-fact`). */
         Condition: components["schemas"]["AllCondition"] | components["schemas"]["AnyCondition"] | components["schemas"]["NotCondition"] | components["schemas"]["EventCountCondition"] | components["schemas"]["DwellSecondsCondition"] | components["schemas"]["SequenceCondition"] | components["schemas"]["ProductAttributeCondition"] | components["schemas"]["FlagCondition"];
+        /**
+         * @description Which of the three levels of the configuration a version belongs to (constitution XI): `platform` and `defaults` are the two of the release, published by an operator since feature 036; `merchant` is what a merchant overrides.
+         * @enum {string}
+         */
+        ConfigurationLevel: "platform" | "defaults" | "merchant";
         /** @description The three versions a decision is taken with (01 §14.2): platform, treatment defaults and, when the merchant published one, its own. */
         ConfigurationVersions: {
             /** @description Version of the treatment defaults. */
@@ -1696,7 +1793,7 @@ export type components = {
             type: "photo_interacted";
             visitorId: components["schemas"]["VisitorId"];
         };
-        /** @description Level 1 (constitution XI): the values of the platform that no merchant overrides, as the release declares them (`config/platform.json`); read-only by API. */
+        /** @description Level 1 (constitution XI): the values of the platform that no merchant overrides, with the name of the version in force. The release file (`config/platform.json`) is the seed of version 1; from there on an operator publishes it by API (ADR-031 as amended by feature 036). */
         PlatformConfiguration: {
             /** @description Anchor diagnostics kept per merchant at most. */
             anchorDiagnosticsKept: number;
@@ -1715,10 +1812,75 @@ export type components = {
             signatureWindowMs: number;
             /** @description Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused. */
             unmappedValuesKept: number;
-            /** @description Version of the platform configuration the release declares. */
+            /** @description Name of the version in force (`platform-3`), minted from its number. */
             version: string;
             /** @description Milliseconds a visitor's interventions count for the fatigue limit. */
             visitorWindowMs: number;
+        };
+        /**
+         * @description The values of level 1 (constitution XI), without the version that names them: what an operator publishes. The version is **minted by OPE** from the position in the level's history (`platform-3`), so nothing here declares one — until feature 036 the release file carried a version of its own and nothing forced anyone to change it when the content did.
+         *
+         *     It is not an `allOf` of `PlatformConfiguration` minus a field, for the same reason as `TreatmentDefaultsContent`: `additionalProperties: false` does not compose through `allOf`.
+         */
+        PlatformConfigurationContent: {
+            /** @description Anchor diagnostics kept per merchant at most. */
+            anchorDiagnosticsKept: number;
+            /** @description Milliseconds an instant a client declares may sit in the future. */
+            clockSkewToleranceMs: number;
+            dedupWindow: components["schemas"]["DedupWindow"];
+            /** @description Milliseconds an event instant may sit in the past (late uploads). */
+            eventPastToleranceMs: number;
+            /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
+            retryAfterSeconds: number;
+            /** @description Longest grace a credential rotation may give the previous credential. */
+            rotationGraceMaxMs: number;
+            /** @description Milliseconds of inactivity after which a session is over and the SDK must mint a new `sessionId`. It is a rule of the backend that the SDK obeys, not an observation the client makes (feature 032). */
+            sessionDurationMs: number;
+            /** @description Milliseconds a platform signature's timestamp may sit from the server clock, either way (ADR-029). */
+            signatureWindowMs: number;
+            /** @description Unmapped attribute labels kept per merchant at most; past it the oldest is dropped and the catalogue is never refused. */
+            unmappedValuesKept: number;
+            /** @description Milliseconds a visitor's interventions count for the fatigue limit. */
+            visitorWindowMs: number;
+        };
+        /**
+         * @description What an operator publishes as the next version of level 1: the values, whether the version is corrective and why.
+         *
+         *     Level 1 is the same for every merchant, so a change reaches every one of them. Four of its values decide **what is counted** — the deduplication window, the two clock tolerances and how long a session lasts — so while an experiment they reach is active only a corrective version is accepted, and it restarts the measurement window of each one (ADR-031 as amended by feature 036).
+         */
+        PlatformConfigurationInput: {
+            content: components["schemas"]["PlatformConfigurationContent"];
+            /** @description A corrective version: the only kind accepted while an experiment this change reaches is active; it restarts the measurement window of each one. */
+            corrective?: boolean;
+            /** @description Why the version is published; required when corrective. */
+            reason?: string;
+        };
+        /** @description A published version of level 1: numbered, immutable, with who published it and why. The `stampedAs` is what every decision stamps and what the SDK receives, and it is minted from the number. */
+        PlatformConfigurationVersion: {
+            content: components["schemas"]["PlatformConfigurationContent"];
+            /** @description Whether the version was published as corrective. */
+            corrective: boolean;
+            operatorId: components["schemas"]["OperatorId"];
+            /**
+             * Format: date-time
+             * @description Instant of publication.
+             */
+            publishedAt: string;
+            /** @description The reason the operator declared, when any. */
+            reason?: string;
+            /** @description What the version is called wherever the level is quoted (`platform-3`): minted from the number, never declared. */
+            stampedAs: string;
+            /** @description Sequential number of the level, assigned at publication. */
+            version: number;
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. */
+            windowsRestarted?: components["schemas"]["ExperimentId"][];
+        };
+        /** @description A page of the published versions of level 1, newest first. */
+        PlatformConfigurationVersionPage: {
+            /** @description Versions of this page, newest first. */
+            items: components["schemas"]["PlatformConfigurationVersion"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
         };
         /** @description Which barriers need which class of product evidence before OPE speaks (01 §4.3). */
         PolicyEvidence: {
@@ -1932,7 +2094,7 @@ export type components = {
             returns?: components["schemas"]["SyncMode"];
             stockAndPrice?: components["schemas"]["SyncMode"];
         };
-        /** @description Level 2 (constitution XI): what every merchant gets unless it declares otherwise, as the release declares it (`config/treatment-defaults.json`); read-only by API. */
+        /** @description Level 2 (constitution XI): what every merchant gets unless it declares otherwise, with the name of the version in force. The release file (`config/treatment-defaults.json`) is the seed of version 1; from there on an operator publishes it by API (ADR-031 as amended by feature 036). */
         TreatmentDefaults: {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
@@ -1947,8 +2109,67 @@ export type components = {
             surfaces: components["schemas"]["Surface"][];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
-            /** @description Version of the treatment defaults the release declares. */
+            /** @description Name of the version in force (`defaults-3`), minted from its number. */
             version: string;
+        };
+        /**
+         * @description The values of level 2 (constitution XI), without the version that names them: what an operator publishes. The version is **minted by OPE** from the position in the level's history (`defaults-3`), so nothing here declares one — until feature 036 the release file carried a version of its own and nothing forced anyone to change it when the content did, so two treatments could share a name.
+         *
+         *     It is not an `allOf` of `TreatmentDefaults` minus a field, and that is a limit of JSON Schema rather than a choice: `additionalProperties: false` does not compose through `allOf` — each subschema would reject the keys of the other.
+         */
+        TreatmentDefaultsContent: {
+            /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
+            barriers: components["schemas"]["Barrier"][];
+            commercialPolicy: components["schemas"]["CommercialPolicy"];
+            decisionPolicy: components["schemas"]["DecisionPolicy"];
+            evidenceProfile: components["schemas"]["EvidenceProfile"];
+            freshness: components["schemas"]["Freshness"];
+            /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
+            holdoutShare: number;
+            locales: components["schemas"]["Locales"];
+            /** @description Page types where OPE may intervene. */
+            surfaces: components["schemas"]["Surface"][];
+            syncLevel: components["schemas"]["SyncLevelRules"];
+            syncStrategy: components["schemas"]["SyncStrategy"];
+        };
+        /**
+         * @description What an operator publishes as the next version of level 2: the values, whether the version is corrective and why.
+         *
+         *     A level reaches **every** merchant that does not override what changed, so while any experiment it reaches is active only a corrective version is accepted — and it restarts the measurement window of each one (03 §4.10, ADR-031 as amended). The reason is where the operator's awareness of that is recorded.
+         */
+        TreatmentDefaultsInput: {
+            content: components["schemas"]["TreatmentDefaultsContent"];
+            /** @description A corrective version: the only kind accepted while an experiment this change reaches is active; it restarts the measurement window of each one. */
+            corrective?: boolean;
+            /** @description Why the version is published; required when corrective. */
+            reason?: string;
+        };
+        /** @description A published version of level 2: numbered, immutable, with who published it and why. The `stampedAs` is what every decision stamps and what the SDK receives, and it is minted from the number. */
+        TreatmentDefaultsVersion: {
+            content: components["schemas"]["TreatmentDefaultsContent"];
+            /** @description Whether the version was published as corrective. */
+            corrective: boolean;
+            operatorId: components["schemas"]["OperatorId"];
+            /**
+             * Format: date-time
+             * @description Instant of publication.
+             */
+            publishedAt: string;
+            /** @description The reason the operator declared, when any. */
+            reason?: string;
+            /** @description What the version is called wherever the level is quoted (`defaults-3`): minted from the number, never declared. */
+            stampedAs: string;
+            /** @description Sequential number of the level, assigned at publication. */
+            version: number;
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. */
+            windowsRestarted?: components["schemas"]["ExperimentId"][];
+        };
+        /** @description A page of the published versions of level 2, newest first. */
+        TreatmentDefaultsVersionPage: {
+            /** @description Versions of this page, newest first. */
+            items: components["schemas"]["TreatmentDefaultsVersion"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
         };
         /** @description An attribute label of the merchant's catalogue with no correspondence in the closed vocabulary of the platform: how many products of the catalogue carry it, since when it has been arriving and when it last arrived. While it is listed, those products say nothing about that attribute; mapping it makes them speak and takes it off this list. */
         UnmappedAttributeValue: {
@@ -2019,15 +2240,20 @@ export type components = {
         };
         /** @description Pseudonymous, persistent identifier of the browser, generated by the SDK. Gives stability to the experimental assignment. Does not identify a person. */
         VisitorId: string;
-        /** @description A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active. */
+        /**
+         * @description A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active.
+         *
+         *     **It says which level the version belongs to** (feature 036). With only the merchant publishing, a number identified a version; with three levels publishing, «version 3» could be the third of the merchant, of the treatment defaults or of the platform.
+         */
         WindowRestart: {
             /**
              * Format: date-time
              * @description When the window restarted.
              */
             at: string;
-            /** @description The corrective version that restarted the window. */
+            /** @description The corrective version that restarted the window, of the level named above. */
             configurationVersion: number;
+            level: components["schemas"]["ConfigurationLevel"];
             /** @description The reason the operator declared with the corrective version. */
             reason: string;
         };
@@ -2085,6 +2311,23 @@ export type components = {
                 [name: string]: unknown;
             };
             content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description No version of that level carries that number. */
+        ConfigurationVersionNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:configuration-version-not-found",
+                 *       "title": "The configuration version does not exist",
+                 *       "status": 404,
+                 *       "instance": "/v1/admin/platform-configuration/versions/7"
+                 *     }
+                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -2233,6 +2476,15 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description Valid request rejected on semantics: the `x-invariants` of a version of a configuration level (ADR-007). It is not the 422 of a merchant's configuration because that one also names the duplicate attribute label, which a level cannot carry: a level has no label map. */
+        LevelUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description The merchant was deactivated; nothing can be done to it (ADR-031). */
         MerchantDeactivatedConflict: {
             headers: {
@@ -2325,6 +2577,24 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description The operator is known and its scope is a list of merchants, while the operation reaches every one of them: a level of the release is served to whoever does not override it, so changing it is not something a scope can be partial about. */
+        PlatformWideForbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:operator-scope-too-narrow",
+                 *       "title": "The operation reaches every merchant and the operator does not",
+                 *       "status": 403,
+                 *       "detail": "This operation changes what every merchant is served, and the operator covers only some.",
+                 *       "instance": "/v1/admin/treatment-defaults"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /**
          * @description Valid request rejected on semantics: one of the `x-invariants` of the operation (ADR-007).
          *     The `type` names the invariant.
@@ -2407,6 +2677,8 @@ export type components = {
         cursor: string;
         /** @description The experiment the operation acts on. */
         experimentId: components["schemas"]["ExperimentId"];
+        /** @description The number of the version, as the level assigned it when it was published. */
+        levelVersion: number;
         /** @description Maximum number of items per page (ADR-020). */
         limit: number;
         /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
@@ -3124,6 +3396,7 @@ export interface operations {
                      *             {
                      *               "at": "2026-10-01T09:00:00Z",
                      *               "reason": "anchor fix",
+                     *               "level": "merchant",
                      *               "configurationVersion": 3
                      *             }
                      *           ]
@@ -3594,7 +3867,7 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "version": "platform-2",
+                     *       "version": "platform-1",
                      *       "dedupWindow": {
                      *         "ttlMs": 86400000,
                      *         "maxIds": 100000
@@ -3616,6 +3889,234 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    publishPlatformConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "content": {
+                 *         "dedupWindow": {
+                 *           "ttlMs": 86400000,
+                 *           "maxIds": 100000
+                 *         },
+                 *         "eventPastToleranceMs": 86400000,
+                 *         "clockSkewToleranceMs": 300000,
+                 *         "sessionDurationMs": 1800000,
+                 *         "visitorWindowMs": 86400000,
+                 *         "signatureWindowMs": 300000,
+                 *         "rotationGraceMaxMs": 604800000,
+                 *         "anchorDiagnosticsKept": 200,
+                 *         "unmappedValuesKept": 200,
+                 *         "retryAfterSeconds": 5
+                 *       },
+                 *       "corrective": true,
+                 *       "reason": "session shortened to thirty minutes before the pilot"
+                 *     }
+                 */
+                "application/json": components["schemas"]["PlatformConfigurationInput"];
+            };
+        };
+        responses: {
+            /** @description The version in force, identical to what was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 3,
+                     *       "stampedAs": "platform-3",
+                     *       "content": {
+                     *         "dedupWindow": {
+                     *           "ttlMs": 86400000,
+                     *           "maxIds": 100000
+                     *         },
+                     *         "eventPastToleranceMs": 86400000,
+                     *         "clockSkewToleranceMs": 300000,
+                     *         "sessionDurationMs": 1800000,
+                     *         "visitorWindowMs": 86400000,
+                     *         "signatureWindowMs": 300000,
+                     *         "rotationGraceMaxMs": 604800000,
+                     *         "anchorDiagnosticsKept": 200,
+                     *         "unmappedValuesKept": 200,
+                     *         "retryAfterSeconds": 5
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "session shortened to thirty minutes before the pilot",
+                     *       "publishedAt": "2026-10-01T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_a_000001"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformConfigurationVersion"];
+                };
+            };
+            /** @description The version created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 3,
+                     *       "stampedAs": "platform-3",
+                     *       "content": {
+                     *         "dedupWindow": {
+                     *           "ttlMs": 86400000,
+                     *           "maxIds": 100000
+                     *         },
+                     *         "eventPastToleranceMs": 86400000,
+                     *         "clockSkewToleranceMs": 300000,
+                     *         "sessionDurationMs": 1800000,
+                     *         "visitorWindowMs": 86400000,
+                     *         "signatureWindowMs": 300000,
+                     *         "rotationGraceMaxMs": 604800000,
+                     *         "anchorDiagnosticsKept": 200,
+                     *         "unmappedValuesKept": 200,
+                     *         "retryAfterSeconds": 5
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "session shortened to thirty minutes before the pilot",
+                     *       "publishedAt": "2026-10-01T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_a_000001"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformConfigurationVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["PlatformWideForbidden"];
+            409: components["responses"]["ConfigurationFrozenConflict"];
+            422: components["responses"]["LevelUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPlatformConfigurationVersions: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "version": 2,
+                     *           "stampedAs": "platform-2",
+                     *           "content": {
+                     *             "dedupWindow": {
+                     *               "ttlMs": 86400000,
+                     *               "maxIds": 100000
+                     *             },
+                     *             "eventPastToleranceMs": 86400000,
+                     *             "clockSkewToleranceMs": 300000,
+                     *             "sessionDurationMs": 1800000,
+                     *             "visitorWindowMs": 86400000,
+                     *             "signatureWindowMs": 300000,
+                     *             "rotationGraceMaxMs": 604800000,
+                     *             "anchorDiagnosticsKept": 200,
+                     *             "unmappedValuesKept": 200,
+                     *             "retryAfterSeconds": 9
+                     *           },
+                     *           "corrective": false,
+                     *           "publishedAt": "2026-10-01T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformConfigurationVersionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPlatformConfigurationVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The number of the version, as the level assigned it when it was published. */
+                version: components["parameters"]["levelVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 1,
+                     *       "stampedAs": "platform-1",
+                     *       "content": {
+                     *         "dedupWindow": {
+                     *           "ttlMs": 86400000,
+                     *           "maxIds": 100000
+                     *         },
+                     *         "eventPastToleranceMs": 86400000,
+                     *         "clockSkewToleranceMs": 300000,
+                     *         "sessionDurationMs": 1800000,
+                     *         "visitorWindowMs": 86400000,
+                     *         "signatureWindowMs": 300000,
+                     *         "rotationGraceMaxMs": 604800000,
+                     *         "anchorDiagnosticsKept": 200,
+                     *         "unmappedValuesKept": 200,
+                     *         "retryAfterSeconds": 5
+                     *       },
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-10-01T10:00:00Z",
+                     *       "operatorId": "system"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformConfigurationVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ConfigurationVersionNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };
@@ -3741,6 +4242,637 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    publishTreatmentDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "content": {
+                 *         "freshness": {
+                 *           "catalogMs": 129600000,
+                 *           "stockAndPriceMs": 900000
+                 *         },
+                 *         "syncLevel": {
+                 *           "receiptsKept": 8,
+                 *           "noDataAfterMs": 129600000,
+                 *           "minutesLevelMaxAgeMs": 3600000,
+                 *           "minutesLevelMedianIntervalMs": 900000,
+                 *           "minutesLevelMinReceipts": 3
+                 *         },
+                 *         "holdoutShare": 0.1,
+                 *         "decisionPolicy": {
+                 *           "version": "default-1",
+                 *           "rules": [
+                 *             {
+                 *               "id": "price.price-read",
+                 *               "barrier": "price",
+                 *               "strength": "strong",
+                 *               "when": {
+                 *                 "fact": "dwellSeconds",
+                 *                 "block": "price"
+                 *               }
+                 *             }
+                 *           ],
+                 *           "weights": {
+                 *             "strong": 0.4,
+                 *             "supporting": 0.2
+                 *           },
+                 *           "readingSeconds": 5,
+                 *           "threshold": 0.6,
+                 *           "priority": [
+                 *             "returns",
+                 *             "fit",
+                 *             "price"
+                 *           ],
+                 *           "evidence": {
+                 *             "freshStockAndPrice": [
+                 *               "price"
+                 *             ],
+                 *             "availableVariant": [
+                 *               "fit"
+                 *             ]
+                 *           }
+                 *         },
+                 *         "commercialPolicy": {
+                 *           "version": "commercial-default-1",
+                 *           "maxIncentiveShare": 0.1,
+                 *           "incentiveLadderShare": [
+                 *             5,
+                 *             10
+                 *           ],
+                 *           "directIncentiveOnPrice": true,
+                 *           "returnRisk": {
+                 *             "all": [
+                 *               {
+                 *                 "fact": "eventCount",
+                 *                 "type": "variant_selector_interacted",
+                 *                 "min": 2
+                 *               },
+                 *               {
+                 *                 "fact": "dwellSeconds",
+                 *                 "block": "policies"
+                 *               }
+                 *             ]
+                 *           },
+                 *           "highIntent": "from-checkout",
+                 *           "abandonment": "reassure-returns",
+                 *           "interventionsPerSession": 1,
+                 *           "cooldownSeconds": 0,
+                 *           "interventionsPerVisitorPerDay": 3
+                 *         },
+                 *         "evidenceProfile": {
+                 *           "returnsPolicy": false,
+                 *           "fitData": false,
+                 *           "authorizedAttributes": []
+                 *         },
+                 *         "surfaces": [
+                 *           "product",
+                 *           "cart"
+                 *         ],
+                 *         "barriers": [
+                 *           "fit",
+                 *           "price",
+                 *           "returns"
+                 *         ],
+                 *         "syncStrategy": {
+                 *           "catalog": "push",
+                 *           "stockAndPrice": "push",
+                 *           "orders": "push",
+                 *           "returns": "push"
+                 *         },
+                 *         "locales": {
+                 *           "supported": []
+                 *         }
+                 *       },
+                 *       "corrective": true,
+                 *       "reason": "holdout raised to 10% before the pilot"
+                 *     }
+                 */
+                "application/json": components["schemas"]["TreatmentDefaultsInput"];
+            };
+        };
+        responses: {
+            /** @description The version in force, identical to what was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 3,
+                     *       "stampedAs": "defaults-3",
+                     *       "content": {
+                     *         "freshness": {
+                     *           "catalogMs": 129600000,
+                     *           "stockAndPriceMs": 900000
+                     *         },
+                     *         "syncLevel": {
+                     *           "receiptsKept": 8,
+                     *           "noDataAfterMs": 129600000,
+                     *           "minutesLevelMaxAgeMs": 3600000,
+                     *           "minutesLevelMedianIntervalMs": 900000,
+                     *           "minutesLevelMinReceipts": 3
+                     *         },
+                     *         "holdoutShare": 0.1,
+                     *         "decisionPolicy": {
+                     *           "version": "default-1",
+                     *           "rules": [
+                     *             {
+                     *               "id": "price.price-read",
+                     *               "barrier": "price",
+                     *               "strength": "strong",
+                     *               "when": {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "price"
+                     *               }
+                     *             }
+                     *           ],
+                     *           "weights": {
+                     *             "strong": 0.4,
+                     *             "supporting": 0.2
+                     *           },
+                     *           "readingSeconds": 5,
+                     *           "threshold": 0.6,
+                     *           "priority": [
+                     *             "returns",
+                     *             "fit",
+                     *             "price"
+                     *           ],
+                     *           "evidence": {
+                     *             "freshStockAndPrice": [
+                     *               "price"
+                     *             ],
+                     *             "availableVariant": [
+                     *               "fit"
+                     *             ]
+                     *           }
+                     *         },
+                     *         "commercialPolicy": {
+                     *           "version": "commercial-default-1",
+                     *           "maxIncentiveShare": 0.1,
+                     *           "incentiveLadderShare": [
+                     *             5,
+                     *             10
+                     *           ],
+                     *           "directIncentiveOnPrice": true,
+                     *           "returnRisk": {
+                     *             "all": [
+                     *               {
+                     *                 "fact": "eventCount",
+                     *                 "type": "variant_selector_interacted",
+                     *                 "min": 2
+                     *               },
+                     *               {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "policies"
+                     *               }
+                     *             ]
+                     *           },
+                     *           "highIntent": "from-checkout",
+                     *           "abandonment": "reassure-returns",
+                     *           "interventionsPerSession": 1,
+                     *           "cooldownSeconds": 0,
+                     *           "interventionsPerVisitorPerDay": 3
+                     *         },
+                     *         "evidenceProfile": {
+                     *           "returnsPolicy": false,
+                     *           "fitData": false,
+                     *           "authorizedAttributes": []
+                     *         },
+                     *         "surfaces": [
+                     *           "product",
+                     *           "cart"
+                     *         ],
+                     *         "barriers": [
+                     *           "fit",
+                     *           "price",
+                     *           "returns"
+                     *         ],
+                     *         "syncStrategy": {
+                     *           "catalog": "push",
+                     *           "stockAndPrice": "push",
+                     *           "orders": "push",
+                     *           "returns": "push"
+                     *         },
+                     *         "locales": {
+                     *           "supported": []
+                     *         }
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "holdout raised to 10% before the pilot",
+                     *       "publishedAt": "2026-10-01T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_a_000001"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TreatmentDefaultsVersion"];
+                };
+            };
+            /** @description The version created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 3,
+                     *       "stampedAs": "defaults-3",
+                     *       "content": {
+                     *         "freshness": {
+                     *           "catalogMs": 129600000,
+                     *           "stockAndPriceMs": 900000
+                     *         },
+                     *         "syncLevel": {
+                     *           "receiptsKept": 8,
+                     *           "noDataAfterMs": 129600000,
+                     *           "minutesLevelMaxAgeMs": 3600000,
+                     *           "minutesLevelMedianIntervalMs": 900000,
+                     *           "minutesLevelMinReceipts": 3
+                     *         },
+                     *         "holdoutShare": 0.1,
+                     *         "decisionPolicy": {
+                     *           "version": "default-1",
+                     *           "rules": [
+                     *             {
+                     *               "id": "price.price-read",
+                     *               "barrier": "price",
+                     *               "strength": "strong",
+                     *               "when": {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "price"
+                     *               }
+                     *             }
+                     *           ],
+                     *           "weights": {
+                     *             "strong": 0.4,
+                     *             "supporting": 0.2
+                     *           },
+                     *           "readingSeconds": 5,
+                     *           "threshold": 0.6,
+                     *           "priority": [
+                     *             "returns",
+                     *             "fit",
+                     *             "price"
+                     *           ],
+                     *           "evidence": {
+                     *             "freshStockAndPrice": [
+                     *               "price"
+                     *             ],
+                     *             "availableVariant": [
+                     *               "fit"
+                     *             ]
+                     *           }
+                     *         },
+                     *         "commercialPolicy": {
+                     *           "version": "commercial-default-1",
+                     *           "maxIncentiveShare": 0.1,
+                     *           "incentiveLadderShare": [
+                     *             5,
+                     *             10
+                     *           ],
+                     *           "directIncentiveOnPrice": true,
+                     *           "returnRisk": {
+                     *             "all": [
+                     *               {
+                     *                 "fact": "eventCount",
+                     *                 "type": "variant_selector_interacted",
+                     *                 "min": 2
+                     *               },
+                     *               {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "policies"
+                     *               }
+                     *             ]
+                     *           },
+                     *           "highIntent": "from-checkout",
+                     *           "abandonment": "reassure-returns",
+                     *           "interventionsPerSession": 1,
+                     *           "cooldownSeconds": 0,
+                     *           "interventionsPerVisitorPerDay": 3
+                     *         },
+                     *         "evidenceProfile": {
+                     *           "returnsPolicy": false,
+                     *           "fitData": false,
+                     *           "authorizedAttributes": []
+                     *         },
+                     *         "surfaces": [
+                     *           "product",
+                     *           "cart"
+                     *         ],
+                     *         "barriers": [
+                     *           "fit",
+                     *           "price",
+                     *           "returns"
+                     *         ],
+                     *         "syncStrategy": {
+                     *           "catalog": "push",
+                     *           "stockAndPrice": "push",
+                     *           "orders": "push",
+                     *           "returns": "push"
+                     *         },
+                     *         "locales": {
+                     *           "supported": []
+                     *         }
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "holdout raised to 10% before the pilot",
+                     *       "publishedAt": "2026-10-01T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_a_000001"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TreatmentDefaultsVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["PlatformWideForbidden"];
+            409: components["responses"]["ConfigurationFrozenConflict"];
+            422: components["responses"]["LevelUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listTreatmentDefaultsVersions: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "version": 3,
+                     *           "stampedAs": "defaults-3",
+                     *           "content": {
+                     *             "freshness": {
+                     *               "catalogMs": 129600000,
+                     *               "stockAndPriceMs": 900000
+                     *             },
+                     *             "syncLevel": {
+                     *               "receiptsKept": 8,
+                     *               "noDataAfterMs": 129600000,
+                     *               "minutesLevelMaxAgeMs": 3600000,
+                     *               "minutesLevelMedianIntervalMs": 900000,
+                     *               "minutesLevelMinReceipts": 3
+                     *             },
+                     *             "holdoutShare": 0.1,
+                     *             "decisionPolicy": {
+                     *               "version": "default-1",
+                     *               "rules": [
+                     *                 {
+                     *                   "id": "price.price-read",
+                     *                   "barrier": "price",
+                     *                   "strength": "strong",
+                     *                   "when": {
+                     *                     "fact": "dwellSeconds",
+                     *                     "block": "price"
+                     *                   }
+                     *                 }
+                     *               ],
+                     *               "weights": {
+                     *                 "strong": 0.4,
+                     *                 "supporting": 0.2
+                     *               },
+                     *               "readingSeconds": 5,
+                     *               "threshold": 0.6,
+                     *               "priority": [
+                     *                 "returns",
+                     *                 "fit",
+                     *                 "price"
+                     *               ],
+                     *               "evidence": {
+                     *                 "freshStockAndPrice": [
+                     *                   "price"
+                     *                 ],
+                     *                 "availableVariant": [
+                     *                   "fit"
+                     *                 ]
+                     *               }
+                     *             },
+                     *             "commercialPolicy": {
+                     *               "version": "commercial-default-1",
+                     *               "maxIncentiveShare": 0.1,
+                     *               "incentiveLadderShare": [
+                     *                 5,
+                     *                 10
+                     *               ],
+                     *               "directIncentiveOnPrice": true,
+                     *               "returnRisk": {
+                     *                 "all": [
+                     *                   {
+                     *                     "fact": "eventCount",
+                     *                     "type": "variant_selector_interacted",
+                     *                     "min": 2
+                     *                   }
+                     *                 ]
+                     *               },
+                     *               "highIntent": "from-checkout",
+                     *               "abandonment": "reassure-returns",
+                     *               "interventionsPerSession": 1,
+                     *               "cooldownSeconds": 0,
+                     *               "interventionsPerVisitorPerDay": 3
+                     *             },
+                     *             "evidenceProfile": {
+                     *               "returnsPolicy": false,
+                     *               "fitData": false,
+                     *               "authorizedAttributes": []
+                     *             },
+                     *             "surfaces": [
+                     *               "product",
+                     *               "cart"
+                     *             ],
+                     *             "barriers": [
+                     *               "fit",
+                     *               "price",
+                     *               "returns"
+                     *             ],
+                     *             "syncStrategy": {
+                     *               "catalog": "push",
+                     *               "stockAndPrice": "push",
+                     *               "orders": "push",
+                     *               "returns": "push"
+                     *             },
+                     *             "locales": {
+                     *               "supported": []
+                     *             }
+                     *           },
+                     *           "corrective": true,
+                     *           "reason": "holdout raised to 10% before the pilot",
+                     *           "publishedAt": "2026-10-01T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TreatmentDefaultsVersionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTreatmentDefaultsVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The number of the version, as the level assigned it when it was published. */
+                version: components["parameters"]["levelVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 1,
+                     *       "stampedAs": "defaults-1",
+                     *       "content": {
+                     *         "freshness": {
+                     *           "catalogMs": 129600000,
+                     *           "stockAndPriceMs": 900000
+                     *         },
+                     *         "syncLevel": {
+                     *           "receiptsKept": 8,
+                     *           "noDataAfterMs": 129600000,
+                     *           "minutesLevelMaxAgeMs": 3600000,
+                     *           "minutesLevelMedianIntervalMs": 900000,
+                     *           "minutesLevelMinReceipts": 3
+                     *         },
+                     *         "holdoutShare": 0.05,
+                     *         "decisionPolicy": {
+                     *           "version": "default-1",
+                     *           "rules": [
+                     *             {
+                     *               "id": "price.price-read",
+                     *               "barrier": "price",
+                     *               "strength": "strong",
+                     *               "when": {
+                     *                 "fact": "dwellSeconds",
+                     *                 "block": "price"
+                     *               }
+                     *             }
+                     *           ],
+                     *           "weights": {
+                     *             "strong": 0.4,
+                     *             "supporting": 0.2
+                     *           },
+                     *           "readingSeconds": 5,
+                     *           "threshold": 0.6,
+                     *           "priority": [
+                     *             "returns",
+                     *             "fit",
+                     *             "price"
+                     *           ],
+                     *           "evidence": {
+                     *             "freshStockAndPrice": [
+                     *               "price"
+                     *             ],
+                     *             "availableVariant": [
+                     *               "fit"
+                     *             ]
+                     *           }
+                     *         },
+                     *         "commercialPolicy": {
+                     *           "version": "commercial-default-1",
+                     *           "maxIncentiveShare": 0.1,
+                     *           "incentiveLadderShare": [
+                     *             5,
+                     *             10
+                     *           ],
+                     *           "directIncentiveOnPrice": true,
+                     *           "returnRisk": {
+                     *             "all": [
+                     *               {
+                     *                 "fact": "eventCount",
+                     *                 "type": "variant_selector_interacted",
+                     *                 "min": 2
+                     *               }
+                     *             ]
+                     *           },
+                     *           "highIntent": "from-checkout",
+                     *           "abandonment": "reassure-returns",
+                     *           "interventionsPerSession": 1,
+                     *           "cooldownSeconds": 0,
+                     *           "interventionsPerVisitorPerDay": 3
+                     *         },
+                     *         "evidenceProfile": {
+                     *           "returnsPolicy": false,
+                     *           "fitData": false,
+                     *           "authorizedAttributes": []
+                     *         },
+                     *         "surfaces": [
+                     *           "product",
+                     *           "cart"
+                     *         ],
+                     *         "barriers": [
+                     *           "fit",
+                     *           "price",
+                     *           "returns"
+                     *         ],
+                     *         "syncStrategy": {
+                     *           "catalog": "push",
+                     *           "stockAndPrice": "push",
+                     *           "orders": "push",
+                     *           "returns": "push"
+                     *         },
+                     *         "locales": {
+                     *           "supported": []
+                     *         }
+                     *       },
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-10-01T10:00:00Z",
+                     *       "operatorId": "system"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TreatmentDefaultsVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ConfigurationVersionNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

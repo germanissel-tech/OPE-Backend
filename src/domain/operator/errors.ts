@@ -12,14 +12,34 @@ export class OperatorUnknown extends DomainError {
   }
 }
 
+/**
+ * What the administration entry records for the two failures of **authority**: denied by scope, not rejected
+ * by a rule. Named once because two errors say it and nothing checks the word against a literal type.
+ */
+const DENIED = "denied" as const;
+
 /** The merchant is not in the operator's scope; whether it exists is not revealed. */
 export class MerchantOutOfScope extends DomainError {
   readonly code = "merchant-out-of-scope" as const;
   readonly module = MODULE;
-  /** What the administration entry records: denied by scope, not rejected by a rule. */
-  override readonly audit = "denied" as const;
+  override readonly audit = DENIED;
   constructor() {
     super("The merchant is outside the operator's scope.");
+  }
+}
+
+/**
+ * The operation reaches every merchant and the operator's scope is a list (feature 036).
+ *
+ * It is **denied and not rejected**, like being out of scope: what failed is the operator's authority and
+ * not the content of the request, and the administration entry has to say which of the two it was.
+ */
+export class OperatorScopeTooNarrow extends DomainError {
+  readonly code = "operator-scope-too-narrow" as const;
+  readonly module = MODULE;
+  override readonly audit = DENIED;
+  constructor() {
+    super("This operation changes what every merchant is served, and the operator covers only some.");
   }
 }
 
@@ -45,4 +65,8 @@ export class InvalidOperatorTokens extends DomainError {
 }
 
 export type OperatorError =
-  OperatorUnknown | MerchantOutOfScope | InvalidOperatorScope | InvalidOperatorTokens;
+  | OperatorUnknown
+  | MerchantOutOfScope
+  | OperatorScopeTooNarrow
+  | InvalidOperatorScope
+  | InvalidOperatorTokens;

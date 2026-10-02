@@ -102,6 +102,7 @@ get:
                 windowRestarts:
                   - at: 2026-10-01T09:00:00Z
                     reason: anchor fix
+                    level: merchant
                     configurationVersion: 3
     "400":
       $ref: ../components/responses/BadRequest.yaml

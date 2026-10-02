@@ -69,6 +69,7 @@ export declare const PROBLEM_TYPES: {
   readonly "invalid-cooldown": { readonly status: 500; readonly title: "The cooldown of the commercial policy is negative" };
   readonly "operator-unknown": { readonly status: 401; readonly title: "Operator token missing or unknown" };
   readonly "merchant-out-of-scope": { readonly status: 403; readonly title: "The merchant is outside the operator's scope" };
+  readonly "operator-scope-too-narrow": { readonly status: 403; readonly title: "The operation reaches every merchant and the operator does not" };
   readonly "merchant-not-found": { readonly status: 404; readonly title: "The merchant does not exist" };
   readonly "merchant-deactivated": { readonly status: 409; readonly title: "The merchant is deactivated" };
   readonly "origin-already-registered": { readonly status: 422; readonly title: "An origin already belongs to another merchant" };
@@ -76,6 +77,7 @@ export declare const PROBLEM_TYPES: {
   readonly "duplicate-attribute-label": { readonly status: 422; readonly title: "One attribute label points at two values of OPE's vocabulary" };
   readonly "unknown-attribute-value": { readonly status: 500; readonly title: "A correspondence names a value OPE writes no texts for" };
   readonly "configuration-frozen": { readonly status: 409; readonly title: "The configuration is frozen while an experiment is active" };
+  readonly "configuration-version-not-found": { readonly status: 404; readonly title: "The configuration version does not exist" };
   readonly "configuration-reason-required": { readonly status: 422; readonly title: "A corrective configuration version needs a reason" };
   readonly "invalid-configuration-value": { readonly status: 422; readonly title: "A configuration value violates an invariant of its type" };
   readonly "experiment-already-open": { readonly status: 409; readonly title: "The merchant already has an open experiment" };

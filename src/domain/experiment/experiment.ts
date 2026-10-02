@@ -6,6 +6,7 @@ import {
   type ExperimentId,
   type MerchantId,
   type Result,
+  type ConfigurationLevel,
   type VisitorId,
 } from "../shared-kernel/index.js";
 import {
@@ -36,6 +37,14 @@ export type ExperimentPhase = "calibration" | "accumulation";
 export interface WindowRestart {
   at: Date;
   reason: string;
+  /**
+   * Which level the version that caused the restart belongs to (feature 036).
+   *
+   * **Without it the number identifies nothing.** While only a merchant published versions, «version 3» was
+   * unambiguous; with the two levels of the release publishing too, the same number names three different
+   * things.
+   */
+  level: ConfigurationLevel;
   configurationVersion: number;
 }
 
@@ -247,9 +256,10 @@ export class Experiment {
     now: Date,
     reason: string,
     configurationVersion: number,
+    level: ConfigurationLevel,
   ): Result<Experiment, ExperimentNotOpen> {
     if (this.status !== ACTIVE) return fail(new ExperimentNotOpen());
-    const restart: WindowRestart = { at: now, reason, configurationVersion };
+    const restart: WindowRestart = { at: now, reason, level, configurationVersion };
     return ok(
       new Experiment({
         ...this.record(),

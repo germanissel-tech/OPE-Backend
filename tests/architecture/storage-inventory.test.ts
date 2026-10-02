@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
 const RING = path.join("src", "interface-adapters");
 const COMPOSITION = path.join("src", "composition", "modules");
 
-/** The four columns of the inventory in the spec, and there is no fifth. */
+/** The columns of the inventory. The first four are the spec of feature 033; the fifth has its reason below. */
 type Column =
   /** Durable since features 030 and 031. */
   | "already-durable"
@@ -32,7 +32,16 @@ type Column =
   /** Not durable on purpose: rebuilt from what is durable, or lost with a declared consequence. */
   | "recoverable"
   /** Not a store of the platform: it comes from the files of the deployment at every boot. */
-  | "deployment-configuration";
+  | "deployment-configuration"
+  /**
+   * A store that is born durable: feature 036 created it and it keeps versions from its first one.
+   *
+   * It is the fifth column and it is a decision, not a convenience: none of the four fits something that
+   * was never a file nor a map — «already durable» is false, «made durable by 033» is false, and it is
+   * neither recoverable nor deployment configuration. What the column records is **when** a store started
+   * surviving a restart, and for this one the answer is «since it existed».
+   */
+  | "born-durable";
 
 interface Store {
   /** What it keeps, in the words of the inventory. */
@@ -112,6 +121,14 @@ const INVENTORY: readonly Store[] = [
     column: "this-feature",
     memory: "configuration/gateways/memory-configuration-store.ts",
     durable: "configuration/gateways/sqlite-configuration-store.ts",
+  },
+  {
+    // Feature 036: the two levels of the release stopped being files read at every boot and became published
+    // versions. The files are the seed of an empty store, so what survives a restart is what was published.
+    keeps: "the versions of the two levels of the release",
+    column: "born-durable",
+    memory: "configuration/gateways/memory-level-store.ts",
+    durable: "configuration/gateways/sqlite-level-store.ts",
   },
   {
     keeps: "experiments and their lifecycle",
@@ -235,10 +252,12 @@ describe("the inventory of what survives a restart (SC-011)", () => {
   });
 
   it("does not let a column be invented", () => {
-    // The four are the spec's, and a fifth would be a decision taken in a test file.
+    // The first four are the spec's; the fifth arrived with feature 036 and carries its reason where it
+    // is declared. What this still forbids is a sixth appearing without one.
     const columns = new Set(INVENTORY.map((store) => store.column));
     expect([...columns].sort()).toEqual([
       "already-durable",
+      "born-durable",
       "deployment-configuration",
       "recoverable",
       "this-feature",

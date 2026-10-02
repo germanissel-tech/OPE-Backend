@@ -1,0 +1,31 @@
+description: "Valid request rejected on semantics: the `x-invariants` of a version of a configuration level
+  (ADR-007). It is not the 422 of a merchant's configuration because that one also names the duplicate
+  attribute label, which a level cannot carry: a level has no label map."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      invalidValue:
+        summary: A value its own type refuses (invalid-configuration-value)
+        value:
+          type: urn:ope:problem:invalid-configuration-value
+          title: A configuration value violates an invariant of its type
+          status: 422
+          detail: content.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not
+            strictly increasing within 1 and the ceiling).
+          instance: /v1/admin/treatment-defaults
+          errors:
+            - pointer: /content/commercialPolicy/incentiveLadderShare
+              message: The incentive ladder is not strictly increasing within 1 and the ceiling.
+      reasonRequired:
+        summary: A corrective version with no reason (configuration-reason-required)
+        value:
+          type: urn:ope:problem:configuration-reason-required
+          title: A corrective configuration version needs a reason
+          status: 422
+          detail: A corrective configuration version needs a reason.
+          instance: /v1/admin/treatment-defaults
+          errors:
+            - pointer: /reason
+              message: A corrective version carries the reason it is published for.

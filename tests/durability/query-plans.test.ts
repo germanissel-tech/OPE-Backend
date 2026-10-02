@@ -47,7 +47,7 @@ beforeEach(async () => {
   const configurations = sqliteConfigurationStore({ store, logger });
   const experiments = sqliteExperimentStore({ store, logger, index: memoryExperimentStore() });
   const entries = sqliteAdminLog({ store, logger });
-  const diagnostics = sqliteAnchorDiagnosticsStore({ store, logger, kept: ROWS });
+  const diagnostics = sqliteAnchorDiagnosticsStore({ store, logger, kept: () => ROWS });
   const anchors: readonly Anchor[] = ["price", "cta", "variant_selector", "policies"];
 
   for (let n = 0; n < ROWS; n += 1) {
@@ -83,7 +83,7 @@ beforeEach(async () => {
       configurationVersion: n % 3,
     });
   }
-  await sqliteUnmappedValueLog({ store, logger, kept: ROWS }).replace(
+  await sqliteUnmappedValueLog({ store, logger, kept: () => ROWS }).replace(
     A,
     Array.from({ length: 50 }, (_, n) => ({ label: `label-${String(n)}`, products: n })),
     NOW,

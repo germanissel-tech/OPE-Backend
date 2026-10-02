@@ -95,7 +95,9 @@ describe("the experiments across a restart", () => {
       later(1000),
     );
     const restarted =
-      active?.ok === true ? active.value.windowRestarted(later(2000), "corrective", 3) : undefined;
+      active?.ok === true
+        ? active.value.windowRestarted(later(2000), "corrective", 3, "merchant")
+        : undefined;
     expect(restarted?.ok).toBe(true);
     if (restarted?.ok === true) await store.update(restarted.value);
 
@@ -104,8 +106,10 @@ describe("the experiments across a restart", () => {
     const found = await experiments().get(asMerchantId("m_uno"), asExperimentId("exp_dos"));
     expect(found?.status).toBe("active");
     expect(found?.windowStartedAt).toEqual(later(2000));
+    // The level of the version that caused it crosses the restart too (feature 036): without it, the number
+    // would not say whose version 3 it was.
     expect(found?.windowRestarts).toEqual([
-      { at: later(2000), reason: "corrective", configurationVersion: 3 },
+      { at: later(2000), reason: "corrective", level: "merchant", configurationVersion: 3 },
     ]);
     expect(found?.activatedAt).toEqual(later(1000));
   });

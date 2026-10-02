@@ -108,11 +108,14 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
     expect(merchant?.status).toBe("active");
     expect(merchant?.createdAt).toEqual(new Date("2026-09-20T12:00:00.000Z"));
     const log = await app.resolve(AdminLogPort).list({ limit: 10 });
+    // Newest first, so the two levels of the release are last: they are imported before anything else,
+    // because a merchant's declared configuration is judged against them (feature 036).
     expect(log.items.map((e) => [e.operation, e.operatorId, e.outcome])).toEqual([
       ["importMerchantConfiguration", "system", "accepted"],
       ["importExperiments", "system", "accepted"],
       ["importMerchantConfiguration", "system", "accepted"],
       ["importMerchants", "system", "accepted"],
+      ["importConfigurationLevels", "system", "accepted"],
     ]);
     expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });
     // The experiment of the seed is recorded as active from its opening, judged by the store (feature 017).
@@ -125,9 +128,11 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
       windowStartedAt: new Date("2026-09-17T00:00:00.000Z"),
     });
     // The seed again: the merchants are kept, and so are their versions and experiments (nothing enters twice).
+    // **Five entries per run and not four** since the levels of the release are imported too (feature 036) —
+    // a second run records that it did nothing, which is what an audited action does whatever its outcome.
     await importSeed(testConfig(), app);
     const again = await app.resolve(AdminLogPort).list({ limit: 10 });
-    expect(again.items).toHaveLength(8);
+    expect(again.items).toHaveLength(10);
     expect(
       (await app.resolve(ExperimentStorePort).listOf(asMerchantId("m_a"), { limit: 10 })).items,
     ).toHaveLength(1);

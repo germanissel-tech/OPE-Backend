@@ -1,0 +1,60 @@
+type: object
+description: "The values of level 2 (constitution XI), without the version that names them: what an
+  operator publishes. The version is **minted by OPE** from the position in the level's history
+  (`defaults-3`), so nothing here declares one — until feature 036 the release file carried a version of
+  its own and nothing forced anyone to change it when the content did, so two treatments could share a
+  name.
+
+
+  It is not an `allOf` of `TreatmentDefaults` minus a field, and that is a limit of JSON Schema rather
+  than a choice: `additionalProperties: false` does not compose through `allOf` — each subschema would
+  reject the keys of the other."
+additionalProperties: false
+required:
+  - freshness
+  - syncLevel
+  - holdoutShare
+  - decisionPolicy
+  - commercialPolicy
+  - evidenceProfile
+  - surfaces
+  - barriers
+  - syncStrategy
+  - locales
+properties:
+  freshness:
+    $ref: ./Freshness.yaml
+  syncLevel:
+    $ref: ./SyncLevelRules.yaml
+  holdoutShare:
+    type: number
+    description: Share of the traffic kept out of every experiment, as a fraction of 1; a merchant
+      may set it to 0.
+    minimum: 0
+    maximum: 1
+  decisionPolicy:
+    $ref: ./DecisionPolicy.yaml
+  commercialPolicy:
+    $ref: ./CommercialPolicy.yaml
+  evidenceProfile:
+    $ref: ./EvidenceProfile.yaml
+  surfaces:
+    type: array
+    description: Page types where OPE may intervene.
+    minItems: 1
+    maxItems: 2
+    uniqueItems: true
+    items:
+      $ref: ./Surface.yaml
+  barriers:
+    type: array
+    description: Barriers OPE may infer for the merchant; the others are never dominant.
+    minItems: 1
+    maxItems: 3
+    uniqueItems: true
+    items:
+      $ref: ./Barrier.yaml
+  syncStrategy:
+    $ref: ./SyncStrategy.yaml
+  locales:
+    $ref: ./Locales.yaml

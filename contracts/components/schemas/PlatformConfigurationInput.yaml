@@ -1,0 +1,35 @@
+type: object
+description: "What an operator publishes as the next version of level 1: the values, whether the version
+  is corrective and why.
+
+
+  Level 1 is the same for every merchant, so a change reaches every one of them. Four of its values
+  decide **what is counted** — the deduplication window, the two clock tolerances and how long a session
+  lasts — so while an experiment they reach is active only a corrective version is accepted, and it
+  restarts the measurement window of each one (ADR-031 as amended by feature 036)."
+additionalProperties: false
+required:
+  - content
+properties:
+  content:
+    $ref: ./PlatformConfigurationContent.yaml
+  corrective:
+    type: boolean
+    description: "A corrective version: the only kind accepted while an experiment this change reaches is
+      active; it restarts the measurement window of each one."
+  reason:
+    type: string
+    description: Why the version is published; required when corrective.
+    minLength: 1
+    maxLength: 512
+x-invariants:
+  - type: configuration-reason-required
+    status: 422
+    rule: a corrective version carries a reason
+    description: A change of level 1 reaches every merchant, so a corrective one while measurements run
+      must be explained in the log (03 §4.10).
+  - type: invalid-configuration-value
+    status: 422
+    rule: every published value satisfies the invariants of its type (windows and tolerances within their
+      range, retention above zero)
+    description: "Nothing invalid becomes a version: the pointer names the field (constitution XI)."

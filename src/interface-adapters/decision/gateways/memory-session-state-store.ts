@@ -3,14 +3,17 @@
 // recent position, the window is applied on every load, and the plane always loads a session
 // before it saves it.
 import { ok, type SessionId } from "../../../domain/shared-kernel/index.js";
-import { windowedByMerchant } from "../../shared-kernel/index.js";
+import { boundedBy, windowedByMerchant } from "../../shared-kernel/index.js";
 import type { SessionStateStore, SessionWindow } from "../../../application/decision/index.js";
 import type { Clock } from "../../../application/shared-kernel/index.js";
 import type { SessionState } from "../../../domain/decision/index.js";
 
 export function memorySessionStateStore(clock: Clock, window: SessionWindow): SessionStateStore {
   const sessions = windowedByMerchant<SessionId, SessionState>(
-    { ttlMs: window.ttlMs, max: window.maxSessions },
+    boundedBy(
+      () => window.ttlMs,
+      () => window.maxSessions,
+    ),
     (state) => state.updatedAt.getTime(),
   );
 

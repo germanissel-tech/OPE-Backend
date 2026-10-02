@@ -33,6 +33,7 @@ export function experimentDto(experiment: Experiment): ExperimentDto {
     windowRestarts: experiment.windowRestarts.map((r) => ({
       at: r.at.toISOString(),
       reason: r.reason,
+      level: r.level,
       configurationVersion: r.configurationVersion,
     })),
   };

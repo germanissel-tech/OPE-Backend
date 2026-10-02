@@ -639,6 +639,32 @@ dispara. Meterlo por la ventana sería peor que anotarlo.
 dos situaciones y para los tres almacenes (SC-008). Esta deuda es sobre el **registro de
 administración**, que es otro lector y otro destino.
 
+**Revisión del 2026-10-01 (feature 036): no se cerró ninguna mitad, y la deuda creció una entrada.**
+La feature declaró en su spec que cerraba «la mitad de la semilla de los niveles», y al implementarla el
+registro dice lo contrario. Los dos archivos del release pasaron a ser semilla, y su importación es una
+acción administrativa auditada más, así que cada arranque deja ahora **cuatro** entradas del sistema en
+vez de tres:
+
+```
+importConfigurationLevels    accepted
+importExperiments            accepted   dev-merchant
+importMerchantConfiguration  accepted   dev-merchant
+importMerchants              accepted
+```
+
+Y la cuarta tiene el mismo defecto que las otras: **no dice si importó o no había nada que importar**. Su
+enlace lo deja escrito en el lugar donde alguien iría a arreglarlo
+(`src/composition/modules/configuration.ts`): el resultado se omite **a propósito**, porque `AdminResult`
+es un esquema publicado y agregarle «qué niveles se importaron» es un cambio de contrato que esta feature
+declaró no hacer. Lo que sí se agregó es la línea del **log** del arranque, en sus dos situaciones, que es
+la mitad que ya estaba resuelta para los otros tres almacenes y no es el destino del que habla esta deuda.
+
+**Lo que esto cambia para la deuda**: refuerza la salida 1 y le pone un número. El costo de no decidir
+crece por despliegue y ahora crece más rápido; y cuatro operaciones distintas comparten exactamente el
+mismo arreglo, así que la feature que tome la deuda cambia `AdminResult` una vez y las cuatro quedan
+legibles. Lo que no cambia es por qué sigue abierta: es contrato publicado, y entra por el orden de seis
+pasos de `.claude/rules/contrato.md`, no por la ventana de una feature que declaró no tocar HTTP.
+
 ## D-31 — el gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»
 
 **Lo que pasó, dos veces en la feature 034.** `scripts/mutation-diff.mjs` corre Stryker y después lee `reports/mutation/report.json`. Cuando Stryker **no llega a juzgar** —la primera vez, la corrida inicial pasó los cinco minutos que da por defecto; la segunda, un hook de siembra pasó su tiempo dentro del sandbox instrumentado— el reporte que queda en disco es el de la corrida **anterior**, y el gate informa esas cifras como si fueran de ésta.

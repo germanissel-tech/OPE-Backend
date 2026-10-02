@@ -79,12 +79,16 @@ describe("an administration action with the log refusing writes", () => {
 
 describe("the boot itself", () => {
   it("does not finish starting when the log refuses from the start", async () => {
-    // The seed imports merchants as the `system` operator, which is an administration action: if
-    // it cannot be audited it does not happen, and a server with no merchants authenticates
-    // nobody. Failing loudly beats starting with a platform nobody can explain the origin of.
+    // The seed imports as the `system` operator, which is an administration action: if it cannot be audited
+    // it does not happen, and a server with no merchants authenticates nobody. Failing loudly beats starting
+    // with a platform nobody can explain the origin of.
+    //
+    // **The first thing the seed imports is the two levels of the release** (feature 036), because everything
+    // below is judged against them — so that is the import the refusing log stops first. Which one it names
+    // is not the point; that the boot does not finish is.
     const refusing = unavailableAdminLog();
     await expect(
       startTestApp({ ports: [replace(AdminLogPort, refusing), replace(AuditTrailPort, refusing)] }),
-    ).rejects.toThrow("The merchant seed was rejected: store-unavailable.");
+    ).rejects.toThrow("The configuration levels seed was rejected: store-unavailable.");
   });
 });

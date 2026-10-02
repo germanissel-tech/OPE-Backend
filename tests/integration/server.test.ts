@@ -68,7 +68,7 @@ async function server<Ops extends OperationsMap<Ops> = operations>(
   app = await buildServer<Ops>({
     definition,
     handlers,
-    retryAfterSeconds: 5,
+    retryAfterSeconds: () => 5,
     logger: silentLogger(),
     ...(security && { security }),
   });
@@ -203,7 +203,7 @@ describe("real server over the contract", () => {
       definition: twoOps,
       handlers: failing,
       logger,
-      retryAfterSeconds: 5,
+      retryAfterSeconds: () => 5,
     });
     app = s;
     const res = await s.inject({ method: "GET", url: "/v1/things" });
@@ -444,14 +444,14 @@ describe("real server over the contract", () => {
       paths: {},
     } as unknown as ContractDocument;
     await expect(
-      buildServer({ definition: invalid, handlers: {}, logger: silentLogger(), retryAfterSeconds: 5 }),
+      buildServer({ definition: invalid, handlers: {}, logger: silentLogger(), retryAfterSeconds: () => 5 }),
     ).rejects.toThrow(/version|not valid/i);
   });
 
   it("refuses to register a handler with a nonexistent operationId (SC-005)", async () => {
     const handlers = { doesNotExist: async () => ({ status: 200, body: {} }) } as unknown as Handlers;
     await expect(
-      buildServer({ definition: realContract, handlers, logger: silentLogger(), retryAfterSeconds: 5 }),
+      buildServer({ definition: realContract, handlers, logger: silentLogger(), retryAfterSeconds: () => 5 }),
     ).rejects.toThrow(/doesNotExist/);
   });
 });

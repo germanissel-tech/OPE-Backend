@@ -1,0 +1,13 @@
+description: "The operator is known and its scope is a list of merchants, while the operation reaches every
+  one of them: a level of the release is served to whoever does not override it, so changing it is not
+  something a scope can be partial about."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:operator-scope-too-narrow
+      title: The operation reaches every merchant and the operator does not
+      status: 403
+      detail: This operation changes what every merchant is served, and the operator covers only some.
+      instance: /v1/admin/treatment-defaults

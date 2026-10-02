@@ -5,7 +5,7 @@ import { pageOf } from "../../shared-kernel/index.js";
 import type { AnchorDiagnosticsStore } from "../../../application/admin/index.js";
 import type { AnchorDiagnostic } from "../../../domain/admin/index.js";
 
-export function memoryAnchorDiagnosticsStore(kept: number): AnchorDiagnosticsStore {
+export function memoryAnchorDiagnosticsStore(kept: () => number): AnchorDiagnosticsStore {
   const byMerchant = new Map<MerchantId, Map<string, AnchorDiagnostic>>();
   const keyOf = (d: Omit<AnchorDiagnostic, "count">): string =>
     JSON.stringify([d.anchor, d.pageType, d.configurationVersion]);
@@ -16,7 +16,7 @@ export function memoryAnchorDiagnosticsStore(kept: number): AnchorDiagnosticsSto
       const previous = held.get(key);
       held.delete(key);
       held.set(key, { ...diagnostic, count: (previous?.count ?? 0) + 1 });
-      while (held.size > kept) {
+      while (held.size > kept()) {
         const oldest = held.keys().next().value;
         if (oldest === undefined) break;
         held.delete(oldest);

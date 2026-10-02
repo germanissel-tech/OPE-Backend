@@ -1,9 +1,16 @@
 type: object
-description: "A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active."
+description: "A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version
+  published while the experiment was active.
+
+
+  **It says which level the version belongs to** (feature 036). With only the merchant publishing, a number
+  identified a version; with three levels publishing, «version 3» could be the third of the merchant, of the
+  treatment defaults or of the platform."
 additionalProperties: false
 required:
   - at
   - reason
+  - level
   - configurationVersion
 properties:
   at:
@@ -14,7 +21,9 @@ properties:
     type: string
     description: The reason the operator declared with the corrective version.
     maxLength: 512
+  level:
+    $ref: ./ConfigurationLevel.yaml
   configurationVersion:
     type: integer
-    description: The corrective version that restarted the window.
+    description: The corrective version that restarted the window, of the level named above.
     minimum: 1

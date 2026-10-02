@@ -1,0 +1,7 @@
+name: version
+in: path
+required: true
+description: The number of the version, as the level assigned it when it was published.
+schema:
+  type: integer
+  minimum: 1

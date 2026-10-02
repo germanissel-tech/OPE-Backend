@@ -9,7 +9,7 @@ const at = (s: number) => new Date(s * 1000);
 
 describe("memoryAnchorDiagnosticsStore", () => {
   it("the same key updates the instant and increments the counter; the list is most recent first", async () => {
-    const store = memoryAnchorDiagnosticsStore(10);
+    const store = memoryAnchorDiagnosticsStore(() => 10);
     await store.upsert({ merchantId: A, anchor: "cta", pageType: "product", lastSeenAt: at(1) });
     await store.upsert({ merchantId: A, anchor: "price", pageType: "product", lastSeenAt: at(2) });
     await store.upsert({ merchantId: A, anchor: "cta", pageType: "product", lastSeenAt: at(3) });
@@ -21,7 +21,7 @@ describe("memoryAnchorDiagnosticsStore", () => {
   });
 
   it("the configuration version is part of the key; the cap drops the oldest; merchants are isolated", async () => {
-    const store = memoryAnchorDiagnosticsStore(2);
+    const store = memoryAnchorDiagnosticsStore(() => 2);
     await store.upsert({
       merchantId: A,
       anchor: "cta",

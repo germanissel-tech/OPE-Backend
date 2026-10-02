@@ -1,7 +1,7 @@
-// Level 1 of the configuration (constitution XI; ADR-031): the values of the platform that no
-// merchant overrides. They travel with the release (`config/platform.json`), are read at
-// start-up and change with a deploy, never in flight: a hot change would contaminate every
-// active experiment. Windows are milliseconds; budgets are counts.
+// Level 1 of the configuration (constitution XI; ADR-031 as amended by feature 036): the values of the
+// platform that no merchant overrides. The release file (`config/platform.json`) is the seed of version 1;
+// from there on an operator publishes them, and every consumer reads the version in force when it uses a
+// value. Windows are milliseconds; budgets are counts.
 import { fail, ok, type Result } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 
@@ -33,6 +33,27 @@ export interface PlatformConfigurationRecord {
   /** Seconds a client waits before retrying a write a store could not accept (ADR-021): the `Retry-After` of every 503. */
   retryAfterSeconds: number;
 }
+
+/**
+ * The fields of level 1 that decide **what is counted**, and therefore the only ones whose change can reach
+ * a measurement in course (feature 036, US3 scenario 4).
+ *
+ * The rest of the level is operational or about security — how long a signature is valid, the longest grace
+ * of a rotation, how many observations are kept, the `Retry-After` of a 503 — and changing one of those does
+ * not make the number of an experiment mean something else. Freezing a publication of `retryAfterSeconds`
+ * behind a running experiment would be a rule nobody could defend, and restarting a measurement window for
+ * it would **destroy** the measurement it pretended to protect.
+ *
+ * It is not configuration: it is what each of these values **means**, which is knowledge of this level and
+ * changes only when a field is added or its meaning changes (constitution XI, ADR-031).
+ */
+export const MEASURING_PLATFORM_FIELDS = [
+  "dedupWindow",
+  "clockSkewToleranceMs",
+  "eventPastToleranceMs",
+  "sessionDurationMs",
+  "visitorWindowMs",
+] as const;
 
 const POSITIVE_PROBLEM = "must be a positive integer";
 /** A whole number of at least zero: the platform counts and windows are integers. */

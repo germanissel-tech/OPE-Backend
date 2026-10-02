@@ -9,6 +9,7 @@ import {
   type EventLog,
 } from "../../application/ingestion/index.js";
 import {
+  dedupWindowOf,
   makeIngestEvents,
   memoryEventDedup,
   recoveringEventDedup,
@@ -19,7 +20,7 @@ import {
   type EventLogQueue,
 } from "../../interface-adapters/ingestion/index.js";
 import { bind, bindAll, compositionModule, served, port } from "../graph/index.js";
-import { EventLogTuningPort, PlatformConfigurationPort, SqlStorePort } from "../release.js";
+import { EventLogTuningPort, PlatformLevelPort, SqlStorePort } from "../release.js";
 import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
 
 const EventDedupPort = port("ingestion.dedup")<EventDedup>();
@@ -64,8 +65,14 @@ export const ingestionModule = compositionModule({
       ...whicheverTechnology,
       // Nothing to rebuild from: a deployment with everything in memory loses the register in the same
       // restart that loses the window, so wrapping it would be a rebuild out of what was also forgotten.
-      bind(EventDedupPort, { clock: ClockPort, platform: PlatformConfigurationPort }, ({ clock, platform }) =>
-        memoryEventDedup(clock, platform.dedupWindow),
+      bind(EventDedupPort, { clock: ClockPort, platform: PlatformLevelPort }, ({ clock, platform }) =>
+        memoryEventDedup(
+          clock,
+          dedupWindowOf(
+            () => platform.inForce().dedupWindow.ttlMs,
+            () => platform.inForce().dedupWindow.maxIds,
+          ),
+        ),
       ),
       bindAll(
         [EventLogQueuePort, EventLogPort],
@@ -85,18 +92,26 @@ export const ingestionModule = compositionModule({
         EventDedupPort,
         {
           clock: ClockPort,
-          platform: PlatformConfigurationPort,
+          platform: PlatformLevelPort,
           register: EventLogPort,
           logger: LoggerPort,
         },
-        ({ clock, platform, register, logger }) =>
-          recoveringEventDedup({
-            dedup: memoryEventDedup(clock, platform.dedupWindow),
+        ({ clock, platform, register, logger }) => {
+          // One window read by both, and read when it is used: the rebuild asks for exactly what the
+          // in-memory window keeps, so handing them two copies of the numbers would let a published
+          // version reach one of them and not the other.
+          const window = dedupWindowOf(
+            () => platform.inForce().dedupWindow.ttlMs,
+            () => platform.inForce().dedupWindow.maxIds,
+          );
+          return recoveringEventDedup({
+            dedup: memoryEventDedup(clock, window),
             register,
             clock,
-            window: platform.dedupWindow,
+            window,
             logger,
-          }),
+          });
+        },
       ),
       bindAll(
         [EventLogQueuePort, EventLogPort],

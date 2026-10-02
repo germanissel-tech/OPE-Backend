@@ -33,7 +33,7 @@ import {
   signatureWindowOf,
 } from "../../interface-adapters/access/index.js";
 import { bind, compositionModule, from, port } from "../graph/index.js";
-import { OperatorsPort, PlatformConfigurationPort } from "../release.js";
+import { OperatorsPort, PlatformLevelPort } from "../release.js";
 import { CredentialMinterPort, MerchantDirectoryPort, RotationPolicyPort } from "./merchant.js";
 import { ClockPort } from "./shared-kernel.js";
 
@@ -52,11 +52,11 @@ export const accessModule = compositionModule({
     bind(OperatorDirectoryPort, { operators: OperatorsPort }, ({ operators }) =>
       configOperatorDirectory(operators),
     ),
-    bind(SignatureWindowPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      signatureWindowOf(platform.signatureWindowMs),
+    bind(SignatureWindowPort, { platform: PlatformLevelPort }, ({ platform }) =>
+      signatureWindowOf(() => platform.inForce().signatureWindowMs),
     ),
-    bind(RotationPolicyPort, { platform: PlatformConfigurationPort }, ({ platform }) =>
-      rotationPolicyOf(platform.rotationGraceMaxMs),
+    bind(RotationPolicyPort, { platform: PlatformLevelPort }, ({ platform }) =>
+      rotationPolicyOf(() => platform.inForce().rotationGraceMaxMs),
     ),
   ],
   serves: {

@@ -41,6 +41,11 @@ function effectiveOf(locales: Locales): EffectiveConfiguration {
 const serving = (effective: EffectiveConfiguration): ConfigurationService => ({
   effectiveFor: () => Promise.resolve(effective),
   judge: () => Promise.reject(new Error("the directory does not judge")),
+  judgeLevel: () => Promise.reject(new Error("the directory does not judge a level")),
+  refresh: () => Promise.reject(new Error("the directory does not refresh anything")),
+  platformInForce: () => {
+    throw new Error("the directory does not read the level in force");
+  },
   apply: () => Promise.reject(new Error("the directory does not apply")),
   platform: () => Promise.reject(new Error("the directory does not read the platform")),
   defaults: () => Promise.reject(new Error("the directory does not read the defaults")),

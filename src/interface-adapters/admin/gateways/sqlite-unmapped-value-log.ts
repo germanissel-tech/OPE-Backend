@@ -41,7 +41,7 @@ const OF_MERCHANT = `SELECT document FROM unmapped_values WHERE merchant_id = :m
 
 export interface SqliteUnmappedValuesDeps extends DurableGatewayDeps {
   /** How many the platform keeps per merchant (level 1): policy, so it arrives and is not a constant. */
-  readonly kept: number;
+  readonly kept: () => number;
 }
 
 const valueOf = (row: SqlRow): UnmappedAttributeValue =>
@@ -58,7 +58,7 @@ export function sqliteUnmappedValueLog(deps: SqliteUnmappedValuesDeps): Unmapped
           // was **first** seen, and the rows that hold it are the ones about to go.
           const before = new Map(of(merchantId).map((value) => [value.label, value]));
           deps.store.run(RELEASE, { merchant: merchantId });
-          for (const value of kept(seen, { merchantId, at, before, cap: deps.kept })) {
+          for (const value of kept(seen, { merchantId, at, before, cap: deps.kept() })) {
             deps.store.run(INSERT, { merchant: merchantId, document: toDocument(value) });
           }
         });

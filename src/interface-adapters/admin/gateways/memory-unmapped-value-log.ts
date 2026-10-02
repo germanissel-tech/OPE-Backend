@@ -7,7 +7,7 @@ import type { UnmappedValueLog, UnmappedValueSighting } from "../../../applicati
 import type { UnmappedAttributeValue } from "../../../domain/admin/index.js";
 import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
-export function memoryUnmappedValueLog(kept: number): UnmappedValueLog {
+export function memoryUnmappedValueLog(kept: () => number): UnmappedValueLog {
   const byMerchant = new Map<MerchantId, Map<string, UnmappedAttributeValue>>();
   return {
     replace(merchantId, seen, at) {
@@ -24,7 +24,7 @@ export function memoryUnmappedValueLog(kept: number): UnmappedValueLog {
       held.sort((a, b) => a.firstSeenAt.getTime() - b.firstSeenAt.getTime());
       // The last `kept` of the order above, which is the newest: a negative start already returns
       // them all when fewer than `kept` arrived, so no floor is needed.
-      byMerchant.set(merchantId, new Map(held.slice(-kept).map((v) => [v.label, v])));
+      byMerchant.set(merchantId, new Map(held.slice(-kept()).map((v) => [v.label, v])));
       return Promise.resolve();
     },
     pendingOf(merchantId, mapped, query) {

@@ -19,7 +19,7 @@ const platform = (): PlatformConfigurationRecord => testLevels().platform.record
 const defaults = () => testLevels().defaults.record();
 const values = (): TreatmentValuesRecord => {
   const { version, ...rest } = defaults();
-  expect(version).toBe("defaults-1");
+  expect(version).toBe("defaults-seed");
   return rest;
 };
 

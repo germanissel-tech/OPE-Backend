@@ -1,7 +1,13 @@
 // Public API of the configuration module (application; constitution XI; ADR-031): the levels
 // and the store ports, the reading of the inputs, the service that resolves and serves, and
 // the use cases of the administration.
-export type { ConfigurationLevels } from "./ports/configuration-levels.js";
+export type { ConfigurationLevels, PlatformLevelReader } from "./ports/configuration-levels.js";
+export type { LevelStore } from "./ports/level-store.js";
+export { ImportConfigurationLevelsUseCase } from "./use-cases/import-configuration-levels.use-case.js";
+export type {
+  ImportConfigurationLevelsRequest,
+  ImportConfigurationLevelsResponse,
+} from "./use-cases/import-configuration-levels.use-case.js";
 export type { ConfigurationStore } from "./ports/configuration-store.js";
 export {
   DECLARED_CONFIGURATION_KEYS,
@@ -52,3 +58,24 @@ export type {
   ImportMerchantConfigurationRequest,
   ImportMerchantConfigurationResponse,
 } from "./use-cases/import-merchant-configuration.use-case.js";
+export { GetLevelVersionUseCase } from "./use-cases/get-level-version.use-case.js";
+export type {
+  GetLevelVersionRequest,
+  GetLevelVersionResponse,
+} from "./use-cases/get-level-version.use-case.js";
+export { ListLevelVersionsUseCase } from "./use-cases/list-level-versions.use-case.js";
+export type {
+  LevelHistoryReader,
+  ListLevelVersionsRequest,
+} from "./use-cases/list-level-versions.use-case.js";
+export { PublishLevelUseCase } from "./use-cases/publish-level.use-case.js";
+export type {
+  PublishedLevel,
+  PublishLevelRequest,
+  PublishLevelResponse,
+} from "./use-cases/publish-level.use-case.js";
+export { ReachedExperiments } from "./services/reached-experiments.service.js";
+export type {
+  ReachedExperimentsDependencies,
+  ReachedExperimentsService,
+} from "./services/reached-experiments.service.js";
