@@ -178,12 +178,18 @@ Lo que se decide, entonces:
 4. **El cambio alcanza a todos los merchants, así que exige un operador de alcance total**
    (`operator-scope-too-narrow`, 403). Un alcance que hoy nombra a todos sigue siendo una lista, y un nivel
    se sirve también a los merchants que todavía no existen.
-5. **La versión la acuña OPE y el nombre se mina del número** (`defaults-3`). Antes cada archivo traía su
-   `version` y nada obligaba a cambiarlo cuando el contenido cambiaba, así que dos tratamientos podían
-   compartir nombre. **Lo que esto cuesta, dicho**: la semilla deja de llevar el nombre que el archivo
-   declaraba —el nivel plataforma del release decía `platform-2` y la versión 1 del almacén se llama
-   `platform-1`—. Es gratis antes del primer piloto, que es donde estamos, y no lo sería después: una
-   decisión ya estampada con un nombre necesita que ese nombre siga significando su tratamiento.
+5. **La versión la acuña OPE y el nombre se mina del número** (`defaults-3`), y **un archivo del release no
+   nombra ninguna**. Antes cada archivo traía su `version` y nada obligaba a cambiarlo cuando el contenido
+   cambiaba, así que dos tratamientos podían compartir nombre.
+
+   Quitar el campo no es cosmético: mientras estuvo, el string del archivo (`platform-2`) **podía chocar** con
+   el que la segunda publicación acuña para otro contenido, y un nombre que significa dos tratamientos es
+   exactamente lo que numerar vino a impedir. Hoy no hay decisión estampada que eso rompa —no hay piloto— así
+   que el hueco se cerró por construcción en vez de quedar anotado: los dos archivos declaran valores y nada
+   más, validan contra su esquema `…Content`, y lo que el arranque le pone a lo que lee es `platform-seed` /
+   `defaults-seed`, un nombre que ninguna publicación puede acuñar. Si aparece en una decisión o en lo que el
+   SDK recibe, algo sirvió el archivo en vez del nivel vigente, y se ve.
+
 6. **Un nivel se lee, no se hornea al arrancar.** Es la idea que la feature agrega al principio XI: no
    alcanza con que un valor viva en configuración si el proceso lo convierte en constante al construirse.
    El nivel de plataforma se le entregaba a once componentes en su construcción; pasa a llegarles por un

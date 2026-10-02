@@ -11,11 +11,15 @@ import {
 } from "../../../../src/application/configuration/index.js";
 import { withoutSchemaReference } from "../../../../src/composition/env.js";
 
-// The files name their schema (`$schema`, D-04 of feature 019); the readers never see the key.
-const read = (file: string): Record<string, unknown> =>
-  withoutSchemaReference(JSON.parse(readFileSync(file, "utf8"))) as Record<string, unknown>;
-const platform = () => read("config/platform.json");
-const defaults = () => read("config/treatment-defaults.json");
+// The files name their schema (`$schema`, D-04 of feature 019); the readers never see the key. And they do
+// **not** name a version (feature 036): the store mints it, so what the boot puts on the content it reads is
+// the name of the seed, and so does this.
+const read = (file: string, level: "platform" | "defaults"): Record<string, unknown> => ({
+  ...(withoutSchemaReference(JSON.parse(readFileSync(file, "utf8"))) as Record<string, unknown>),
+  version: `${level}-seed`,
+});
+const platform = () => read("config/platform.json", "platform");
+const defaults = () => read("config/treatment-defaults.json", "defaults");
 
 const pointerOf = (result: { ok: true } | { ok: false; error: { details: Record<string, unknown> } }) =>
   result.ok ? undefined : result.error.details["pointer"];

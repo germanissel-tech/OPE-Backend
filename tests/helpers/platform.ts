@@ -28,5 +28,12 @@ export const TEST_CATALOG_POLICIES: CatalogPolicies = {
   syncLevelRulesFor: () => Promise.resolve(testLevels().defaults.values.syncLevel),
 };
 
-/** The versions a decision stamps when the merchant published none: the ones the release declares. */
-export const TEST_VERSIONS: ConfigurationVersions = { platform: "platform-2", defaults: "defaults-1" };
+/**
+ * The versions a decision stamps when the merchant published none, **in a test that does not boot**: the
+ * name the content of each release file travels under (`levels-config.ts`).
+ *
+ * A test that boots the server is served the version in force of each level, which the store numbers from
+ * one (`platform-1`) — the two names differ on purpose, and which one a test sees says whether it went
+ * through the store or straight to the file.
+ */
+export const TEST_VERSIONS: ConfigurationVersions = { platform: "platform-seed", defaults: "defaults-seed" };

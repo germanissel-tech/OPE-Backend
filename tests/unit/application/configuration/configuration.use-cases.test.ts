@@ -92,7 +92,7 @@ describe("Configurations", () => {
     const again = await configuration.effectiveFor(A);
     expect(again).toBe(first);
     expect(calls).toEqual(["latestOf"]);
-    expect(first.versions).toEqual({ platform: "platform-2", defaults: "defaults-1" });
+    expect(first.versions).toEqual({ platform: "platform-seed", defaults: "defaults-seed" });
     const published = await publish.execute({
       actor: all,
       merchantId: A,
@@ -102,7 +102,7 @@ describe("Configurations", () => {
     expect(published.ok).toBe(true);
     const served = await configuration.effectiveFor(A);
     expect(served).not.toBe(first);
-    expect(served.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 1 });
+    expect(served.versions).toEqual({ platform: "platform-seed", defaults: "defaults-seed", merchant: 1 });
     expect(served.values.holdoutShare).toBe(0);
   });
 

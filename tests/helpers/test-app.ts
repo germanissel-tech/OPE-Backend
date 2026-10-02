@@ -5,16 +5,12 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import {
-  readDeclaredConfiguration,
-  readPlatformConfiguration,
-  readTreatmentDefaults,
-} from "../../src/application/configuration/index.js";
+import { readDeclaredConfiguration } from "../../src/application/configuration/index.js";
 import { bootstrap, importSeed, type App, type BootstrapOverrides } from "../../src/composition/bootstrap.js";
 import { readCorpus } from "../../src/composition/corpus-config.js";
 import { localDeployment } from "../../src/composition/deployments/local.js";
-import { withoutSchemaReference } from "../../src/composition/env.js";
 import { instantiate, replace, type AnyPort, type Override } from "../../src/composition/graph/index.js";
+import { readLevels } from "../../src/composition/levels-config.js";
 import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { releaseComponents } from "../../src/composition/release.js";
 import { Experiment, Experiments, type ExperimentStatus } from "../../src/domain/experiment/index.js";
@@ -94,15 +90,16 @@ function configured(spec: MerchantSpec): MerchantConfig {
   return { merchantId, seed, experiments: set.value, declared: declared.value };
 }
 
-/** The levels of the release as the repository declares them: the tests run under the real files. */
+/**
+ * The levels of the release as the repository declares them: the tests run under the real files.
+ *
+ * **Through the reader the boot uses, not through a copy of it** (feature 036). This used to read the two
+ * files here, and when the files stopped declaring a version the copy kept asking for one — two readers of
+ * the same thing is one more than there can be, and the name of what a file holds (`platform-seed`) is
+ * decided by exactly one of them.
+ */
 function releaseLevels(): ReleaseLevels {
-  const read = (file: string): unknown =>
-    withoutSchemaReference(JSON.parse(readFileSync(path.resolve(file), "utf8")));
-  const platform = readPlatformConfiguration(read("config/platform.json"));
-  const defaults = readTreatmentDefaults(read("config/treatment-defaults.json"));
-  if (!platform.ok) throw new Error(`config/platform.json: ${platform.error.message}`);
-  if (!defaults.ok) throw new Error(`config/treatment-defaults.json: ${defaults.error.message}`);
-  return { platform: platform.value, defaults: defaults.value };
+  return readLevels({}, (file) => readFileSync(path.resolve(file), "utf8"));
 }
 
 let levels: ReleaseLevels | undefined;

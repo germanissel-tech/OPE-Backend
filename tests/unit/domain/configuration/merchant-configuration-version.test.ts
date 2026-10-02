@@ -92,7 +92,7 @@ describe("EffectiveConfiguration.resolve", () => {
   it("without a merchant version: the defaults as they are, the platform, and two versions", () => {
     const resolved = EffectiveConfiguration.resolve(platform(), defaults());
     if (!resolved.ok) throw new Error(resolved.error.message);
-    expect(resolved.value.versions).toEqual({ platform: "platform-2", defaults: "defaults-1" });
+    expect(resolved.value.versions).toEqual({ platform: "platform-seed", defaults: "defaults-seed" });
     expect(resolved.value.values).toBe(defaults().values);
     expect(resolved.value.anchors).toBeUndefined();
     expect(resolved.value.platform).toBe(platform());
@@ -105,13 +105,17 @@ describe("EffectiveConfiguration.resolve", () => {
     );
     const resolved = EffectiveConfiguration.resolve(platform(), defaults(), version);
     if (!resolved.ok) throw new Error(resolved.error.message);
-    expect(resolved.value.versions).toEqual({ platform: "platform-2", defaults: "defaults-1", merchant: 3 });
+    expect(resolved.value.versions).toEqual({
+      platform: "platform-seed",
+      defaults: "defaults-seed",
+      merchant: 3,
+    });
     expect(resolved.value.values.holdoutShare).toBe(0);
     expect(resolved.value.anchors?.selectorsOf("price")).toEqual([".p"]);
     const judged = EffectiveConfiguration.resolve(platform(), defaults(), draft());
     expect(judged.ok ? judged.value.versions : undefined).toEqual({
-      platform: "platform-2",
-      defaults: "defaults-1",
+      platform: "platform-seed",
+      defaults: "defaults-seed",
     });
   });
 

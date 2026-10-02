@@ -13,10 +13,17 @@ import { bundlePath, repoRoot } from "./lib.mjs";
 
 export const generatedSchemasDir = path.join(repoRoot, "generated", "schemas");
 
-/** The contract schemas that become configuration schemas, with the file each one becomes. */
+/**
+ * The contract schemas that become configuration schemas, with the file each one becomes.
+ *
+ * **The two levels validate against their `Content` schema and not against the full one** (feature 036):
+ * the version of a level is minted by the store from its number, so a release file holds the values and
+ * never a name. The full schemas (`PlatformConfiguration`, `TreatmentDefaults`) stay the shape of the API
+ * **read**, which does carry the name in force.
+ */
 export const CONFIG_SCHEMAS = /** @type {const} */ ([
-  ["PlatformConfiguration", "platform-configuration.schema.json"],
-  ["TreatmentDefaults", "treatment-defaults.schema.json"],
+  ["PlatformConfigurationContent", "platform-configuration-content.schema.json"],
+  ["TreatmentDefaultsContent", "treatment-defaults-content.schema.json"],
   ["MerchantConfigurationDeclared", "merchant-configuration-declared.schema.json"],
 ]);
 
