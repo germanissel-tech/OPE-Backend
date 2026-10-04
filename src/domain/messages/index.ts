@@ -11,7 +11,7 @@ export type { TextKeyInput, TextKeyRecord } from "./text-key.js";
 export { TextVersion } from "./text-version.js";
 export type { TextDeclaration, TextDraft, TextVersionRecord } from "./text-version.js";
 export { BaseTexts } from "./base-texts.js";
-export { LocaleIncomplete, TextVersionNotFound } from "./errors.js";
+export { TextVersionNotFound } from "./errors.js";
 export type { CuratedTextError, MessageError, TextDraftError } from "./errors.js";
 export { messageVersion } from "./ids.js";
 export type { MessageVersion } from "./ids.js";

@@ -11,6 +11,7 @@ export { isCount, isRate } from "./rate.js";
 export { constantTimeEquals } from "./compare.js";
 export {
   ConfigurationFrozen,
+  LocaleIncomplete,
   ConfigurationReasonRequired,
   DomainError,
   IdempotencyConflict,

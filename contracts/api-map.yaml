@@ -435,8 +435,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [texts:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "038"
+    status: built
     source: specs/038-textos-por-api/spec.md
   - operationId: getTextVersion
     method: get
@@ -444,8 +444,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [texts:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "038"
+    status: built
     source: specs/038-textos-por-api/spec.md
   - operationId: publishMerchantText
     method: post
@@ -462,8 +462,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [texts:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "038"
+    status: built
     source: specs/038-textos-por-api/spec.md
   - operationId: getMerchantTextVersion
     method: get
@@ -471,6 +471,6 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [texts:read]
-    roadmap: admin-panel
-    status: planned
+    feature: "038"
+    status: built
     source: specs/038-textos-por-api/spec.md

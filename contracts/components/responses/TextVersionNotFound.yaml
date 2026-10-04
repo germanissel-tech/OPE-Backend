@@ -1,0 +1,11 @@
+description: No version of that key in that layer carries that number.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:text-version-not-found
+      title: The text version does not exist
+      status: 404
+      detail: The key has no version 7.
+      instance: /v1/admin/texts/fit.variant_selector.information/es/versions/7

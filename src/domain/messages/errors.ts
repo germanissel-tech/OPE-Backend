@@ -102,19 +102,6 @@ export class TextVersionNotFound extends DomainError {
   }
 }
 
-/**
- * A language with no complete base (feature 038): it cannot be supported, named as reserve, or left by the seed.
- * The families it lacks travel in the details as one string, which is what an operator needs to complete it;
- * the details of an error are scalars, so whoever has the list joins it.
- */
-export class LocaleIncomplete extends DomainError {
-  readonly code = "locale-incomplete" as const;
-  readonly module = MODULE;
-  constructor(locale: string, missing: string) {
-    super("The base layer has no text for some families in that language.", { locale, missing });
-  }
-}
-
 /** What a text in itself can be refused for: the three rules of `CuratedText.of`. */
 export type CuratedTextError = EmptyText | TextTooLong | UnresolvedPlaceholder;
 
@@ -129,5 +116,4 @@ export type MessageError =
   | DuplicateAttributeLabel
   | TextKeyUnknown
   | BaseTextRequired
-  | TextVersionNotFound
-  | LocaleIncomplete;
+  | TextVersionNotFound;

@@ -89,8 +89,16 @@ paths:
     $ref: ./paths/admin-treatment-defaults-version.yaml
   /v1/admin/texts:
     $ref: ./paths/admin-texts.yaml
+  /v1/admin/texts/{family}/{locale}/versions:
+    $ref: ./paths/admin-texts-versions.yaml
+  /v1/admin/texts/{family}/{locale}/versions/{version}:
+    $ref: ./paths/admin-texts-version.yaml
   /v1/admin/merchants/{merchantId}/texts:
     $ref: ./paths/admin-merchant-texts.yaml
+  /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions:
+    $ref: ./paths/admin-merchant-texts-versions.yaml
+  /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions/{version}:
+    $ref: ./paths/admin-merchant-texts-version.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`

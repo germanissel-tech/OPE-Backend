@@ -1,0 +1,59 @@
+get:
+  operationId: listTextVersions
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - texts:read
+  x-collection: true
+  summary: The published versions of a base text
+  description: "Every version of the key in the base layer, newest first: nothing is
+    overwritten and nothing is deleted (feature 038). The first one came with the seed of the release; the
+    rest an operator published. Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/textFamily.yaml
+    - $ref: ../components/parameters/textLocale.yaml
+    - $ref: ../components/parameters/textAttributeValue.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of versions.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersionPage.yaml
+          example:
+            items:
+              - family: fit.variant_selector.information
+                locale: es
+                layer: base
+                version: 2
+                messageVersionId: base/fit.variant_selector.information/-/es#2
+                text: Sizes vary between brands; check the guide before choosing.
+                removed: false
+                corrective: true
+                reason: wording
+                publishedAt: 2026-10-04T12:00:00Z
+                operatorId: ops-1
+              - family: fit.variant_selector.information
+                locale: es
+                layer: base
+                version: 1
+                messageVersionId: base/fit.variant_selector.information/-/es#1
+                text: Sizes vary between brands.
+                removed: false
+                corrective: false
+                publishedAt: 2026-10-04T12:00:00Z
+                operatorId: system
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

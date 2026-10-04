@@ -7,6 +7,7 @@ import { replace } from "../../src/composition/graph/index.js";
 import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
+import { TextKey } from "../../src/domain/messages/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import {
@@ -168,6 +169,16 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect((await recorded(fresh.decision.decisionId))?.inference?.evidence).toMatchObject({
       stockAndPrice: "fresh",
     });
+
+    // A language enters only with a complete base (feature 038): the texts come first, by the API.
+    for (const locale of ["es-AR", "en"]) {
+      for (const family of TextKey.unconditionalFamilies()) {
+        const res = await admin(app.app, "POST", "/v1/admin/texts", {
+          body: { family, locale, text: `${family}, in ${locale}.`, corrective: true, reason: "completing" },
+        });
+        expect(res.statusCode, `${family} in ${locale}`).toBe(201);
+      }
+    }
 
     // An experiment is active: the version must be corrective, with its reason (03 §4.10).
     const frozen = await configure({ declared: { freshness: { stockAndPriceMs: ONE_MINUTE } } });

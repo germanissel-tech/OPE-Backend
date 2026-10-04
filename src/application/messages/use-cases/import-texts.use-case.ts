@@ -10,12 +10,12 @@
 // answer. After the seed, the rule lives in the publications (feature 038, FR-018).
 import {
   BaseTexts,
-  LocaleIncomplete,
   TextVersion,
   type TextDraftError,
   type TextKeyRecord,
 } from "../../../domain/messages/index.js";
 import {
+  LocaleIncomplete,
   fail,
   ok,
   type ConfigurationReasonRequired,
@@ -77,7 +77,7 @@ export class ImportTextsUseCase implements UseCase<ImportTextsRequest, ImportTex
     const base = BaseTexts.of(request.texts.map((seed) => seed.key));
     for (const locale of request.locales) {
       const missing = base.missingFor(locale);
-      if (missing.length > 0) return fail(new LocaleIncomplete(locale, missing.join(", ")));
+      if (missing.length > 0) return fail(new LocaleIncomplete(locale, missing.join(", "), undefined));
     }
     return ok({ imported: request.texts.length });
   }

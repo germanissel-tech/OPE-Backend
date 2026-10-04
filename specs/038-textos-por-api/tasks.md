@@ -262,29 +262,29 @@ de la 036.
 
 **Independent Test**: quickstart paso 5; `tests/integration/configuration/complete-locales.test.ts`.
 
-- [ ] T050 [US4] `contracts/` — `publishTreatmentDefaults` y `publishMerchantConfiguration` ganan
+- [x] T050 [US4] `contracts/` — `publishTreatmentDefaults` y `publishMerchantConfiguration` ganan
       `422 locale-incomplete` con su `x-invariants` (sobre la operación: depende de otro recurso) y el tipo
       en `problem-types.yaml` con las familias que faltan en `details`. `contract:check`, `contract:types`.
-- [ ] T051 [US4] `src/application/configuration/ports/text-completeness.ts` — el puerto que
+- [x] T051 [US4] `src/application/configuration/ports/text-completeness.ts` — el puerto que
       `configuration` pregunta: qué familias faltan en la base para un idioma. Lo implementa el almacén de
       textos; la composición enlaza.
-- [ ] T052 [US4] `tests/unit/application/configuration/complete-locales.test.ts` — **antes del
+- [x] T052 [US4] `tests/unit/application/configuration/complete-locales.test.ts` — **antes del
       decorador**: juzga sólo los idiomas que **entran** (soportado nuevo o reserva nueva); uno que ya
       estaba no se vuelve a juzgar; quitar uno no pide nada; rechaza con `LocaleIncomplete` nombrando las
       familias; con todo completo delega al caso de uso sin tocar el request.
-- [ ] T053 [US4] `src/application/configuration/decorators/complete-locales.ts` y
+- [x] T053 [US4] `src/application/configuration/decorators/complete-locales.ts` y
       `src/domain/configuration/errors.ts` — el decorador (R-05) y `LocaleIncomplete`. Envuelve
       `UseCase<Request, Response>` y lee los idiomas de los dos requests por su forma.
-- [ ] T054 [US4] `src/composition/modules/configuration.ts` — el decorador alrededor de las dos
+- [x] T054 [US4] `src/composition/modules/configuration.ts` — el decorador alrededor de las dos
       publicaciones (defaults y merchant), con el puerto enlazado a `messages`. Los dos casos de uso no
       cambian de forma.
-- [ ] T055 [US4] `tests/integration/configuration/complete-locales.test.ts` — los cuatro escenarios de
+- [x] T055 [US4] `tests/integration/configuration/complete-locales.test.ts` — los cuatro escenarios de
       la spec: rechazo que nombra familias; completar por la API y aceptar; quitar un idioma se acepta; un
       arranque sobre un almacén con textos y niveles no juzga contra el release.
-- [ ] T056 [US4] `npx vitest run tests/integration/levels.test.ts tests/integration/admin-configuration.test.ts
+- [x] T056 [US4] `npx vitest run tests/integration/levels.test.ts tests/integration/admin-configuration.test.ts
 tests/integration/platform-level.test.ts` — la 036 con el decorador puesto, sin cambios de
       expectativa (SC-007).
-- [ ] T057 [US4] `npm run test:mutation` acotado al diff de la historia.
+- [x] T057 [US4] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: el hueco está cerrado donde se puede rechazar.
 
@@ -297,20 +297,20 @@ publicación.
 
 **Independent Test**: `tests/integration/messages/history.test.ts`.
 
-- [ ] T058 [US5] `contracts/` — las cuatro lecturas pasan a `built`: `paths/admin-texts-versions.yaml`,
+- [x] T058 [US5] `contracts/` — las cuatro lecturas pasan a `built`: `paths/admin-texts-versions.yaml`,
       `admin-texts-version.yaml`, `admin-merchant-texts-versions.yaml`, `admin-merchant-texts-version.yaml`,
       con `attributeValue` como parámetro de consulta, `x-collection` y paginación por `$ref`,
       `TextVersionPage`. `contract:check`, `contract:types`.
-- [ ] T059 [US5] `tests/unit/application/messages/text-history.test.ts`,
+- [x] T059 [US5] `tests/unit/application/messages/text-history.test.ts`,
       `src/application/messages/use-cases/list-text-versions.use-case.ts` y
       `src/application/messages/use-cases/get-text-version.use-case.ts` — más nueva primero, paginado,
       «quitado» incluido; una versión concreta inmutable; alcance: la base la lee cualquier operador, la
       del merchant exige alcance sobre él.
-- [ ] T060 [P] [US5] `src/interface-adapters/messages/controllers/` — los cuatro controllers, con el
+- [x] T060 [P] [US5] `src/interface-adapters/messages/controllers/` — los cuatro controllers, con el
       presenter de T034 y el cursor por `boundary.ts`.
-- [ ] T061 [US5] `src/composition/modules/messages.ts` — los cuatro handlers.
-- [ ] T062 [US5] `tests/integration/messages/history.test.ts` — los tres escenarios de la spec.
-- [ ] T063 [US5] `npm run test:mutation` acotado al diff de la historia.
+- [x] T061 [US5] `src/composition/modules/messages.ts` — los cuatro handlers.
+- [x] T062 [US5] `tests/integration/messages/history.test.ts` — los tres escenarios de la spec.
+- [x] T063 [US5] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las cinco historias completas.
 
@@ -318,11 +318,11 @@ publicación.
 
 ## Phase 7: Lo que queda dicho
 
-- [ ] T064 `.specify/memory/constitution.md` — la enmienda de redacción a X por `/speckit-constitution`
+- [x] T064 `.specify/memory/constitution.md` — la enmienda de redacción a X por `/speckit-constitution`
       (PATCH): el merchant recibe el último texto publicado de cada clave y lo que se estampa es la
       versión del texto; «con qué voz» se retira. Con su línea en el registro de cambios de la
       constitución.
-- [ ] T065 [P] `docs/adr/` — una enmienda a ADR-036 (vocabulario cerrado y mapa del merchant): el texto
+- [x] T065 [P] `docs/adr/` — una enmienda a ADR-036 (vocabulario cerrado y mapa del merchant): el texto
       de un merchant es la tercera instancia del patrón, y la voz se retiró porque con una capa por
       merchant no nombraba nada. Cita esta spec como fuente.
 - [ ] T066 [P] `docs/deudas.md` — **D-34, el tercero llegó**: el almacén de textos es el tercer historial
@@ -330,7 +330,7 @@ publicación.
       o se extrae lo común en las dos tecnologías en esta feature, o se deja escrito por qué no (la clave
       compuesta y «quitado» lo hacen distinto). La fila cambia de estado con la decisión. **Depende de
       que la 037 esté mergeada**, que es donde D-34 vive.
-- [ ] T067 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `config/` (la semilla),
+- [x] T067 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `config/` (la semilla),
       `migrations/` (006), `tests/` (`durability/texts`), `contracts/` si una extensión nueva lo pide.
 - [ ] T068 Correr el **quickstart** de punta a punta, los siete pasos y el uso desde afuera, y completar
       «Cambios respecto del plan» con fecha: la cifra de SC-006 al lado de la de la misma máquina sin la

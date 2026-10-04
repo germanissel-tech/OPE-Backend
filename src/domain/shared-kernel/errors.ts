@@ -80,5 +80,30 @@ export class ConfigurationReasonRequired extends DomainError {
   }
 }
 
+/**
+ * A language with no complete base (feature 038): it cannot be supported, named as reserve, or left by the
+ * seed. It lives in the kernel because the seed of the texts and the publications of languages —two modules
+ * that cannot depend on each other— refuse with it. The families it lacks travel in the details as one
+ * string, which is what an operator needs to complete it (the details of an error are scalars); `pointer`
+ * says where the language was declared, when it was declared in a request.
+ */
+export class LocaleIncomplete extends DomainError {
+  readonly code = "locale-incomplete" as const;
+  readonly module = MODULE;
+  constructor(locale: string, missing: string, pointer: string | undefined) {
+    super("The base layer has no text for some families in that language.", {
+      locale,
+      missing,
+      problem: `${locale}: ${missing}`,
+      ...(pointer === undefined ? {} : { pointer }),
+    });
+  }
+}
+
 export type SharedKernelError =
-  InvalidMoney | IdempotencyConflict | StoreUnavailable | ConfigurationFrozen | ConfigurationReasonRequired;
+  | InvalidMoney
+  | IdempotencyConflict
+  | StoreUnavailable
+  | ConfigurationFrozen
+  | ConfigurationReasonRequired
+  | LocaleIncomplete;

@@ -1,0 +1,61 @@
+get:
+  operationId: listMerchantTextVersions
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - texts:read
+  x-collection: true
+  summary: The published versions of a merchant's text
+  description: "Every version of the key in the merchant's layer, newest first: nothing is
+    overwritten and nothing is deleted (feature 038). A version without a text is the one that removed the merchant's
+    text, after which the key resolved to the base. Within the operator's scope over the merchant. Paginated with an opaque cursor (ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/textFamily.yaml
+    - $ref: ../components/parameters/textLocale.yaml
+    - $ref: ../components/parameters/textAttributeValue.yaml
+    - $ref: ../components/parameters/cursor.yaml
+    - $ref: ../components/parameters/limit.yaml
+  responses:
+    "200":
+      description: A page of versions.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersionPage.yaml
+          example:
+            items:
+              - family: fit.variant_selector.information
+                locale: es
+                layer: mrc_7f3k5d2q4m6x
+                version: 2
+                messageVersionId: mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#2
+                removed: true
+                corrective: true
+                reason: wording
+                publishedAt: 2026-10-04T12:00:00Z
+                operatorId: ops-1
+              - family: fit.variant_selector.information
+                locale: es
+                layer: mrc_7f3k5d2q4m6x
+                version: 1
+                messageVersionId: mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1
+                text: In this shop sizes run small; check the guide before choosing.
+                removed: false
+                corrective: false
+                publishedAt: 2026-10-04T12:00:00Z
+                operatorId: ops-1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

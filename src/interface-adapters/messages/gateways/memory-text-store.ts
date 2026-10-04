@@ -2,7 +2,12 @@
 // published — the number is the size of the list of **that key and layer** plus one, assigned and written
 // without an await in between (01 §6). Nothing is overwritten. It is also the corpus: what is in force is
 // the last version of each list, and a merchant's layer is asked before the base inside one language.
-import { TextVersion, type CuratedText, type TextKeyRecord } from "../../../domain/messages/index.js";
+import {
+  BaseTexts,
+  TextVersion,
+  type CuratedText,
+  type TextKeyRecord,
+} from "../../../domain/messages/index.js";
 import { ok, type MerchantId } from "../../../domain/shared-kernel/index.js";
 import { pageOf } from "../../shared-kernel/index.js";
 import type { MessageCorpus, TextLayer, TextStore } from "../../../application/messages/index.js";
@@ -42,6 +47,9 @@ export function memoryTextStore(): TextStore & MessageCorpus {
           keys.push(last.key.record());
       }
       return Promise.resolve(keys);
+    },
+    async missingFor(locale) {
+      return BaseTexts.of(await this.baseKeys()).missingFor(locale);
     },
     versionsOf(layer, key, query) {
       return Promise.resolve(pageOf([...versionsOf(layer, key)].reverse(), query));

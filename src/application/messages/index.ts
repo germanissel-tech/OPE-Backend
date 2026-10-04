@@ -22,3 +22,17 @@ export type {
 } from "./use-cases/publish-merchant-text.use-case.js";
 export { ImportTextsUseCase } from "./use-cases/import-texts.use-case.js";
 export type { ImportTextsRequest, ImportTextsResponse, SeedText } from "./use-cases/import-texts.use-case.js";
+export { ListTextVersionsUseCase } from "./use-cases/list-text-versions.use-case.js";
+export type { ListTextVersionsRequest } from "./use-cases/list-text-versions.use-case.js";
+export { GetTextVersionUseCase } from "./use-cases/get-text-version.use-case.js";
+export type { GetTextVersionRequest, GetTextVersionResponse } from "./use-cases/get-text-version.use-case.js";
+export { ListMerchantTextVersionsUseCase } from "./use-cases/list-merchant-text-versions.use-case.js";
+export type {
+  ListMerchantTextVersionsRequest,
+  ListMerchantTextVersionsResponse,
+} from "./use-cases/list-merchant-text-versions.use-case.js";
+export { GetMerchantTextVersionUseCase } from "./use-cases/get-merchant-text-version.use-case.js";
+export type {
+  GetMerchantTextVersionRequest,
+  GetMerchantTextVersionResponse,
+} from "./use-cases/get-merchant-text-version.use-case.js";

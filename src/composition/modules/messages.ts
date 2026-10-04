@@ -5,7 +5,11 @@
 // survives, and `sqlite`, which does.
 import { ActiveExperiments, WindowRestarts } from "../../application/experiment/index.js";
 import {
+  GetMerchantTextVersionUseCase,
+  GetTextVersionUseCase,
   ImportTextsUseCase,
+  ListMerchantTextVersionsUseCase,
+  ListTextVersionsUseCase,
   Messages,
   PublishMerchantTextUseCase,
   PublishTextUseCase,
@@ -20,6 +24,10 @@ import {
   type TextStore,
 } from "../../application/messages/index.js";
 import {
+  makeGetMerchantTextVersion,
+  makeGetTextVersion,
+  makeListMerchantTextVersions,
+  makeListTextVersions,
   makePublishMerchantText,
   makePublishText,
   memoryTextStore,
@@ -34,8 +42,11 @@ import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
 const MessageCorpusPort = port("messages.corpus")<MessageCorpus>();
-/** Where the texts are published and their history read; the very instance that answers the corpus. */
-const TextStorePort = port("messages.texts")<TextStore>();
+/**
+ * Where the texts are published and their history read; the very instance that answers the corpus. Exported
+ * because configuration asks it whether a language could be served (feature 038, US4).
+ */
+export const TextStorePort = port("messages.texts")<TextStore>();
 /** What a merchant declared about the texts it is served: its languages and its labels (constitution X). */
 export const MessageDirectoryPort = port("messages.settings")<MessageDirectory>();
 /** The texts of the release become version 1 of each key in the base, audited as the system (feature 038). */
@@ -119,6 +130,27 @@ export const messagesModule = compositionModule({
           result: (r) => (r.ok ? { windowRestarted: r.value.windowsRestarted.length > 0 } : undefined),
           reason: (request) => request.reason,
         },
+      ),
+      // The history of a key (US5): the base with the capability, the merchant's within the scope over it.
+      listTextVersions: served(
+        { texts: TextStorePort },
+        { name: "listTextVersions", build: (deps) => new ListTextVersionsUseCase(deps) },
+        (useCase) => makeListTextVersions(useCase),
+      ),
+      getTextVersion: served(
+        { texts: TextStorePort },
+        { name: "getTextVersion", build: (deps) => new GetTextVersionUseCase(deps) },
+        (useCase) => makeGetTextVersion(useCase),
+      ),
+      listMerchantTextVersions: served(
+        { scoped: ScopedMerchantPort, texts: TextStorePort },
+        { name: "listMerchantTextVersions", build: (deps) => new ListMerchantTextVersionsUseCase(deps) },
+        (useCase) => makeListMerchantTextVersions(useCase),
+      ),
+      getMerchantTextVersion: served(
+        { scoped: ScopedMerchantPort, texts: TextStorePort },
+        { name: "getMerchantTextVersion", build: (deps) => new GetMerchantTextVersionUseCase(deps) },
+        (useCase) => makeGetMerchantTextVersion(useCase),
       ),
     },
   },

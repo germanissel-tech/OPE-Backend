@@ -366,6 +366,46 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published versions of a merchant's text
+         * @description Every version of the key in the merchant's layer, newest first: nothing is overwritten and nothing is deleted (feature 038). A version without a text is the one that removed the merchant's text, after which the key resolved to the base. Within the operator's scope over the merchant. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listMerchantTextVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of a merchant's text
+         * @description A version of the key as it was published, by its number: what every intervention that stamped its identifier showed. Immutable, so what it answers today is what it answered the day it was created (feature 038). Within the operator's scope over the merchant.
+         */
+        get: operations["getMerchantTextVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/unmapped-attribute-values": {
         parameters: {
             query?: never;
@@ -468,6 +508,46 @@ export type paths = {
          *     A text identical to the version in force repeats it (`200`) instead of creating one. The text **reaches** every merchant without its own text for that key and language: while an experiment it reaches is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the measurement window of each one. A key outside OPE's vocabulary, or a text that is blank, too long or still a template, is refused and no version is created. The base never loses a text. It takes an operator over every merchant, because the text reaches them all. A text in a language no level supports yet is accepted: the base of a language can be completed before the language is.
          */
         post: operations["publishText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/texts/{family}/{locale}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published versions of a base text
+         * @description Every version of the key in the base layer, newest first: nothing is overwritten and nothing is deleted (feature 038). The first one came with the seed of the release; the rest an operator published. Paginated with an opaque cursor (ADR-020).
+         */
+        get: operations["listTextVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/texts/{family}/{locale}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of a base text
+         * @description A version of the key as it was published, by its number: what every intervention that stamped its identifier showed. Immutable, so what it answers today is what it answered the day it was created (feature 038).
+         */
+        get: operations["getTextVersion"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2211,6 +2291,13 @@ export type components = {
             /** @description The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches. */
             windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
+        /** @description A page of the published versions of a text key in one layer, newest first. */
+        TextVersionPage: {
+            /** @description Versions of this page, newest first. */
+            items: components["schemas"]["TextVersion"][];
+            /** @description Cursor of the next page; absent on the last page. */
+            nextCursor?: string;
+        };
         /** @description Level 2 (constitution XI): what every merchant gets unless it declares otherwise, with the name of the version in force. The release file (`config/treatment-defaults.json`) is the seed of version 1; from there on an operator publishes it by API (ADR-031 as amended by feature 036). */
         TreatmentDefaults: {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
@@ -2800,6 +2887,24 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description No version of that key in that layer carries that number. */
+        TextVersionNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:text-version-not-found",
+                 *       "title": "The text version does not exist",
+                 *       "status": 404,
+                 *       "detail": "The key has no version 7.",
+                 *       "instance": "/v1/admin/texts/fit.variant_selector.information/es/versions/7"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description Valid request rejected on semantics: the `x-invariants` of a version of the treatment defaults (ADR-007), and the one the operation declares: a language entering as supported or as reserve without a complete base (feature 038). */
         TreatmentDefaultsUnprocessable: {
             headers: {
@@ -2838,6 +2943,14 @@ export type components = {
         limit: number;
         /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
         merchantId: components["schemas"]["MerchantId"];
+        /** @description The attribute value of the key, when the family speaks of the product: a query parameter because it is optional, and a route with an optional segment does not exist. */
+        textAttributeValue: components["schemas"]["AttributeValue"];
+        /** @description The message family of the key, of OPE's closed vocabulary. */
+        textFamily: components["schemas"]["MessageFamily"];
+        /** @description The language of the key, as a BCP 47 tag. */
+        textLocale: string;
+        /** @description The number of the version, as the key's layer assigned it when it was published. */
+        textVersion: number;
         /**
          * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
          *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
@@ -4048,6 +4161,128 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    listMerchantTextVersions: {
+        parameters: {
+            query?: {
+                /** @description The attribute value of the key, when the family speaks of the product: a query parameter because it is optional, and a route with an optional segment does not exist. */
+                attributeValue?: components["parameters"]["textAttributeValue"];
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The message family of the key, of OPE's closed vocabulary. */
+                family: components["parameters"]["textFamily"];
+                /** @description The language of the key, as a BCP 47 tag. */
+                locale: components["parameters"]["textLocale"];
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "family": "fit.variant_selector.information",
+                     *           "locale": "es",
+                     *           "layer": "mrc_7f3k5d2q4m6x",
+                     *           "version": 2,
+                     *           "messageVersionId": "mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#2",
+                     *           "removed": true,
+                     *           "corrective": true,
+                     *           "reason": "wording",
+                     *           "publishedAt": "2026-10-04T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         },
+                     *         {
+                     *           "family": "fit.variant_selector.information",
+                     *           "locale": "es",
+                     *           "layer": "mrc_7f3k5d2q4m6x",
+                     *           "version": 1,
+                     *           "messageVersionId": "mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1",
+                     *           "text": "In this shop sizes run small; check the guide before choosing.",
+                     *           "removed": false,
+                     *           "corrective": false,
+                     *           "publishedAt": "2026-10-04T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchantTextVersion: {
+        parameters: {
+            query?: {
+                /** @description The attribute value of the key, when the family speaks of the product: a query parameter because it is optional, and a route with an optional segment does not exist. */
+                attributeValue?: components["parameters"]["textAttributeValue"];
+            };
+            header?: never;
+            path: {
+                /** @description The message family of the key, of OPE's closed vocabulary. */
+                family: components["parameters"]["textFamily"];
+                /** @description The language of the key, as a BCP 47 tag. */
+                locale: components["parameters"]["textLocale"];
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+                /** @description The number of the version, as the key's layer assigned it when it was published. */
+                version: components["parameters"]["textVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "mrc_7f3k5d2q4m6x",
+                     *       "version": 1,
+                     *       "messageVersionId": "mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1",
+                     *       "text": "In this shop sizes run small; check the guide before choosing.",
+                     *       "removed": false,
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantTextNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     listUnmappedAttributeValues: {
         parameters: {
             query?: {
@@ -4437,6 +4672,125 @@ export interface operations {
             403: components["responses"]["PlatformWideForbidden"];
             409: components["responses"]["ConfigurationFrozenConflict"];
             422: components["responses"]["TextUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listTextVersions: {
+        parameters: {
+            query?: {
+                /** @description The attribute value of the key, when the family speaks of the product: a query parameter because it is optional, and a route with an optional segment does not exist. */
+                attributeValue?: components["parameters"]["textAttributeValue"];
+                /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
+                cursor?: components["parameters"]["cursor"];
+                /** @description Maximum number of items per page (ADR-020). */
+                limit?: components["parameters"]["limit"];
+            };
+            header?: never;
+            path: {
+                /** @description The message family of the key, of OPE's closed vocabulary. */
+                family: components["parameters"]["textFamily"];
+                /** @description The language of the key, as a BCP 47 tag. */
+                locale: components["parameters"]["textLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "family": "fit.variant_selector.information",
+                     *           "locale": "es",
+                     *           "layer": "base",
+                     *           "version": 2,
+                     *           "messageVersionId": "base/fit.variant_selector.information/-/es#2",
+                     *           "text": "Sizes vary between brands; check the guide before choosing.",
+                     *           "removed": false,
+                     *           "corrective": true,
+                     *           "reason": "wording",
+                     *           "publishedAt": "2026-10-04T12:00:00Z",
+                     *           "operatorId": "ops-1"
+                     *         },
+                     *         {
+                     *           "family": "fit.variant_selector.information",
+                     *           "locale": "es",
+                     *           "layer": "base",
+                     *           "version": 1,
+                     *           "messageVersionId": "base/fit.variant_selector.information/-/es#1",
+                     *           "text": "Sizes vary between brands.",
+                     *           "removed": false,
+                     *           "corrective": false,
+                     *           "publishedAt": "2026-10-04T12:00:00Z",
+                     *           "operatorId": "system"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTextVersion: {
+        parameters: {
+            query?: {
+                /** @description The attribute value of the key, when the family speaks of the product: a query parameter because it is optional, and a route with an optional segment does not exist. */
+                attributeValue?: components["parameters"]["textAttributeValue"];
+            };
+            header?: never;
+            path: {
+                /** @description The message family of the key, of OPE's closed vocabulary. */
+                family: components["parameters"]["textFamily"];
+                /** @description The language of the key, as a BCP 47 tag. */
+                locale: components["parameters"]["textLocale"];
+                /** @description The number of the version, as the key's layer assigned it when it was published. */
+                version: components["parameters"]["textVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "base",
+                     *       "version": 2,
+                     *       "messageVersionId": "base/fit.variant_selector.information/-/es#2",
+                     *       "text": "Sizes vary between brands; check the guide before choosing.",
+                     *       "removed": false,
+                     *       "corrective": true,
+                     *       "reason": "wording",
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["TextVersionNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

@@ -13,6 +13,7 @@
 // cannot leave the index answering a text the table does not have. The same limit applies: it is sound
 // while there is one process (D-21).
 import {
+  BaseTexts,
   TextVersion,
   type CuratedText,
   type TextDraft,
@@ -118,6 +119,9 @@ export function sqliteTextStore(deps: DurableGatewayDeps): TextStore & MessageCo
           .filter((version) => version.merchantId === undefined && !version.isRemoved())
           .map((version) => version.key.record()),
       ),
+    async missingFor(locale) {
+      return BaseTexts.of(await this.baseKeys()).missingFor(locale);
+    },
     versionsOf: (layer, key, query) =>
       pagedByVersion(deps, { sql: VERSIONS, params: keyParams(layer, key), itemOf: versionOf }, query),
     versionOf: (layer, key, version) =>

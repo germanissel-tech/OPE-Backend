@@ -27,3 +27,14 @@ content:
           errors:
             - pointer: /declared/attributeLabels/3/label
               message: This label already corresponds to a value of OPE's vocabulary.
+      localeIncomplete:
+        summary: A language that enters as supported or as reserve without a complete base (locale-incomplete)
+        value:
+          type: urn:ope:problem:locale-incomplete
+          title: The base texts are not complete in that language
+          status: 422
+          detail: The base layer has no text for some families in that language.
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
+          errors:
+            - pointer: /declared/locales/supported/1
+              message: "pt-BR: fit.policies.reassurance, returns.policies.information"

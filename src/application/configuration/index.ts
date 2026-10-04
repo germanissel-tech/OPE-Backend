@@ -79,3 +79,6 @@ export type {
   ReachedExperimentsDependencies,
   ReachedExperimentsService,
 } from "./services/reached-experiments.service.js";
+export { CompleteLocales } from "./decorators/complete-locales.js";
+export type { CompleteLocalesDependencies, LocaleReaders } from "./decorators/complete-locales.js";
+export type { TextCompleteness } from "./ports/text-completeness.js";

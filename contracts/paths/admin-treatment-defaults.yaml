@@ -136,11 +136,21 @@ post:
     "409":
       $ref: ../components/responses/ConfigurationFrozenConflict.yaml
     "422":
-      $ref: ../components/responses/LevelUnprocessable.yaml
+      $ref: ../components/responses/TreatmentDefaultsUnprocessable.yaml
     "500":
       $ref: ../components/responses/InternalServerError.yaml
     "503":
       $ref: ../components/responses/ServiceUnavailable.yaml
+  x-invariants:
+    - type: locale-incomplete
+      status: 422
+      rule: a language enters the supported list or becomes the reserve only when the base layer holds a text
+        for every unconditional family in it
+      description:
+        "A merchant served in a language with no texts would be served nothing (feature 038, FR-010):
+        the check is crossed against the texts published by API, not against the files of the release. Only
+        the languages that **enter** are judged; one already there, or one that leaves, asks nothing. The
+        details name the families that are missing, which is what completing the base needs. Judged over the content of this level."
 get:
   operationId: getTreatmentDefaults
   tags:

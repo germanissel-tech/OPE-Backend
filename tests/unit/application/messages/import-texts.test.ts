@@ -58,7 +58,11 @@ describe("ImportTextsUseCase", () => {
     expect(done.ok).toBe(false);
     if (done.ok) return;
     expect(done.error.code).toBe("locale-incomplete");
-    expect(done.error.details).toEqual({ locale: "es", missing: TextKey.unconditionalFamilies()[0] });
+    expect(done.error.details).toEqual({
+      locale: "es",
+      missing: TextKey.unconditionalFamilies()[0],
+      problem: `es: ${TextKey.unconditionalFamilies()[0] ?? ""}`,
+    });
   });
 
   it("refuses a seed complete in one language when the levels support another too", async () => {

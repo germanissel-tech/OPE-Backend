@@ -13,6 +13,7 @@ import {
 import {
   fail,
   ok,
+  type LocaleIncomplete,
   type MerchantId,
   type Result,
   type StoreUnavailable,
@@ -42,9 +43,15 @@ export interface PublishedConfiguration {
   windowRestarted: boolean;
 }
 
+/** `LocaleIncomplete` is the word of the decorator in front of this use case (feature 038, US4), never of its own deed. */
 export type PublishMerchantConfigurationResponse = Result<
   PublishedConfiguration,
-  MerchantOutOfScope | MerchantNotFound | ConfigurationFrozen | VersionError | StoreUnavailable
+  | MerchantOutOfScope
+  | MerchantNotFound
+  | ConfigurationFrozen
+  | VersionError
+  | LocaleIncomplete
+  | StoreUnavailable
 >;
 
 export interface PublishMerchantConfigurationDependencies {

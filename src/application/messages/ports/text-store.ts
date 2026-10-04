@@ -21,6 +21,8 @@ export interface TextStore {
   inForce(layer: TextLayer, key: TextKeyRecord): Promise<TextVersion | undefined>;
   /** Every key the base holds a text in force for (not removed): what completeness is judged on. */
   baseKeys(): Promise<readonly TextKeyRecord[]>;
+  /** The unconditional families the base holds no text for in `locale`, in the order of the vocabulary. */
+  missingFor(locale: string): Promise<readonly string[]>;
   /** The versions of a key in a layer, newest first. */
   versionsOf(layer: TextLayer, key: TextKeyRecord, query: PageQuery): Promise<Page<TextVersion>>;
   /** One version of a key in a layer, as it was published, or undefined when there is no such number. */
