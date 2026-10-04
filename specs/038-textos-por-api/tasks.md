@@ -194,12 +194,12 @@ contract:check && npm run contract:types`. Fixture en `tests/contract-rules/fixt
       comparten.
 - [x] T035 [US1] `src/composition/modules/messages.ts` — `serves.handlers.publishText` con `served(...)`;
       el módulo no elige si se audita: el mapa ya lo dice.
-- [ ] T036 [US1] `tests/integration/messages/base-text.test.ts` — historia 1 de punta a punta en memoria:
+- [x] T036 [US1] `tests/integration/messages/base-text.test.ts` — historia 1 de punta a punta en memoria:
       los siete escenarios de la spec, incluido el que publica un idioma no soportado y se acepta, y el
       del almacén que no escribe (ni versión ni auditoría: `tests/helpers/unavailable-ledgers.ts`).
-- [ ] T037 [US1] `tests/integration/isolation.test.ts` — la operación nueva entra a la suite de
+- [x] T037 [US1] `tests/integration/isolation.test.ts` — la operación nueva entra a la suite de
       aislamiento entre merchants, como toda operación de administración.
-- [ ] T038 [US1] `npm run test:mutation` acotado al diff de la historia.
+- [x] T038 [US1] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: un texto base se corrige desde la API y la intervención siguiente lo muestra.
 
@@ -211,24 +211,24 @@ contract:check && npm run contract:types`. Fixture en `tests/contract-rules/fixt
 
 **Independent Test**: quickstart paso 3 para el merchant; `tests/integration/messages/merchant-text.test.ts`.
 
-- [ ] T039 [US2] `contracts/` — `publishMerchantText` pasa a `built`: `paths/admin-merchant-texts.yaml`,
-      `MerchantTextInput` con `text` nullable (`null` quita), `merchantId` por `$ref` del parámetro.
+- [x] T039 [US2] `contracts/` — `publishMerchantText` pasa a `built`: `paths/admin-merchant-texts.yaml`,
+      `MerchantTextInput` con `remove: true` en lugar del texto (quita), `merchantId` por `$ref` del parámetro.
       `contract:check` y `contract:types`.
-- [ ] T040 [US2] `tests/unit/application/messages/publish-merchant-text.test.ts` — **antes del caso de
+- [x] T040 [US2] `tests/unit/application/messages/publish-merchant-text.test.ts` — **antes del caso de
       uso**: alcance sobre el merchant por `ScopedMerchants` (`MerchantOutOfScope`); publicar; quitar es
       una versión «quitado»; quitar lo que no existe o ya está quitado repite; alcanzados son los de ese
       merchant.
-- [ ] T041 [US2] `src/application/messages/use-cases/publish-merchant-text.use-case.ts` —
+- [x] T041 [US2] `src/application/messages/use-cases/publish-merchant-text.use-case.ts` —
       `PublishMerchantTextUseCase` con `{ scoped, texts, reached, clock }`. Un caso de uso propio y no
       una rama del anterior: el alcance, la capa y «quitar» son tres diferencias, no una.
-- [ ] T042 [P] [US2] `src/interface-adapters/messages/controllers/publish-merchant-text.ts` — el
-      controller; `text: null` viaja como «quitar» al request.
-- [ ] T043 [US2] `src/composition/modules/messages.ts` — `serves.handlers.publishMerchantText`.
-- [ ] T044 [US2] `tests/integration/messages/merchant-text.test.ts` — los seis escenarios de la spec:
+- [x] T042 [P] [US2] `src/interface-adapters/messages/controllers/publish-merchant-text.ts` — el
+      controller; `remove: true` viaja como «quitar» al request.
+- [x] T043 [US2] `src/composition/modules/messages.ts` — `serves.handlers.publishMerchantText`.
+- [x] T044 [US2] `tests/integration/messages/merchant-text.test.ts` — los seis escenarios de la spec:
       sólo ese merchant lo ve; el idioma manda; quitar vuelve a la base y queda en el historial; fuera de
       alcance; un texto base nuevo no alcanza al que tiene propio; nada cruza merchants.
-- [ ] T045 [US2] `tests/integration/isolation.test.ts` — la operación de merchant entra a la suite.
-- [ ] T046 [US2] `npm run test:mutation` acotado al diff de la historia.
+- [x] T045 [US2] `tests/integration/isolation.test.ts` — la operación de merchant entra a la suite.
+- [x] T046 [US2] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: las dos capas funcionan por API, con el idioma mandando sobre la personalización.
 
@@ -241,15 +241,15 @@ punta.
 
 **Independent Test**: quickstart paso 4; `tests/integration/messages/frozen.test.ts`.
 
-- [ ] T047 [US3] `tests/integration/messages/frozen.test.ts` — los seis escenarios de la spec: sin
+- [x] T047 [US3] `tests/integration/messages/frozen.test.ts` — los seis escenarios de la spec: sin
       motivo `409 configuration-frozen`; con motivo, versión creada, ventana reiniciada **con causa de
       texto** en el experimento, motivo en el registro; merchant con texto propio no alcanzado por la base;
       texto de merchant alcanza sólo al suyo; diez publicaciones seguidas dejan la ventana reiniciada en la
       última; calibración no bloquea.
-- [ ] T048 [US3] `src/interface-adapters/experiment/presenters.ts` y la lectura de experimentos — si el
+- [x] T048 [US3] `src/interface-adapters/experiment/presenters.ts` y la lectura de experimentos — si el
       historial de reinicios se muestra, la causa de texto se presenta con su clave; si no se muestra, se
       deja dicho dónde en el contrato.
-- [ ] T049 [US3] `npm run test:mutation` acotado al diff de la historia.
+- [x] T049 [US3] `npm run test:mutation` acotado al diff de la historia.
 
 **Checkpoint**: ningún cambio de texto pasa desapercibido con una medición en curso.
 
