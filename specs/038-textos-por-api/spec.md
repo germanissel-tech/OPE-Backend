@@ -290,8 +290,10 @@ historial las lista más nueva primero con su actor, su motivo y su contenido.
 
 **Idiomas y completitud**
 
-- **FR-017**: La capa base MUST estar completa —un texto por cada familia y, para las que lo llevan,
-  por cada valor de atributo— en cada idioma que algún nivel soporte o nombre como reserva.
+- **FR-017**: La capa base MUST estar completa —un texto por cada familia **que no depende del
+  producto**— en cada idioma que algún nivel soporte o nombre como reserva. Una familia que habla de un
+  atributo del producto es decible sólo cuando el valor del producto tiene texto, así que no tiene texto
+  incondicional y no cuenta para la completitud; es la regla que el arranque aplica hoy (01 §322).
 - **FR-018**: Una publicación de defaults o de configuración de merchant que agregue un idioma a los
   soportados o lo nombre reserva MUST rechazarse nombrando las familias que faltan cuando la base no
   está completa en ese idioma; quitar un idioma MUST aceptarse.
@@ -368,8 +370,10 @@ historial las lista más nueva primero con su actor, su motivo y su contenido.
   fuente de merchants alcanzados; si no, se construye al lado con la misma forma.
 - **Las familias y los valores de atributo son los que el código declara.** La publicación los juzga
   contra ese vocabulario; cambiarlo sigue siendo un deploy, por diseño.
-- **La completitud se juzga por familia y, para las familias que llevan atributo, por cada valor de
-  atributo**, que es lo que la semilla ya trae.
+- **La completitud se juzga por familia incondicional**, la misma regla que el arranque aplica hoy. La
+  primera versión de esta spec decía «y por cada valor de atributo»; el plan lo corrigió leyendo el
+  código: una familia que habla de un atributo no exige texto, porque un producto cuyo valor no tiene
+  prosa simplemente no dice nada de él.
 - **El operador es responsable del cambio**, y el sistema no lo sustituye: le exige el motivo cuando
   hay medición en curso, lo registra, y reinicia lo que ese cambio invalidó.
 - **Una instancia** (D-21): los textos viven en memoria y una publicación alcanza a este proceso.
