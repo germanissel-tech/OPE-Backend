@@ -1,4 +1,23 @@
 <!--
+Sync Impact Report (1.4.5, 2026-10-04)
+- Version change: 1.4.4 → 1.4.5 (PATCH: redacción de una viñeta de X; ningún principio cambia de
+  sentido).
+- Modified sections: X — la viñeta de lo configurable por merchant decía «versión del catálogo de
+  mensajes: ... lo que el merchant elige es qué versión se le sirve, con qué voz y en qué idiomas».
+  Desde la feature 038 los textos se publican por API, uno por uno, en dos capas —la base, que OPE
+  escribe y reusa entre merchants, y la de cada merchant—, y lo que una intervención estampa es la
+  **versión del texto** que mostró, no la de un catálogo que el merchant elija: el merchant recibe el
+  último texto publicado de cada clave en su idioma. La voz se retira: con una capa por merchant no
+  nombraba nada (ADR-036 enmendado; specs/038-textos-por-api/spec.md, decisión del dueño del
+  2026-10-04).
+- No requiere cambio en los documentos del MVP: 01 §14.2 habla de «versión del catálogo de mensajes»
+  como bandera del merchant, y la feature la lee como lo que hoy es —la versión del texto, estampada
+  por OPE—, sin que el merchant deje de elegir sus idiomas; se deja constancia acá en lugar de en una
+  enmienda a 01 (cláusula de Governance: la fuente no cambió de decisión, cambió el mecanismo).
+- Templates: sin cambios.
+-->
+
+<!--
 Sync Impact Report (1.4.4, 2026-09-25)
 - Version change: 1.4.3 → 1.4.4 (PATCH: dos viñetas de «Contrato de datos e identidad»; ningún
   principio cambia de sentido).
@@ -268,9 +287,10 @@ con intervalo de confianza, tamaño de grupos y estado de acumulación; nunca "p
   **adaptador de prueba** existen desde el día uno; Magento 2 es el primer adaptador real;
   VTEX sólo se verifica documentalmente durante el diseño del puerto.
 - Lo que varía por merchant es **configuración versionada, no código** (perfil de datos,
-  mapa de anclajes, flags, **versión del catálogo de mensajes**: los textos los escribe OPE y se
-  reusan entre merchants; lo que el merchant elige es qué versión se le sirve, con qué voz y en
-  qué idiomas).
+  mapa de anclajes, flags, **textos**: la base la escribe OPE y se reusa entre merchants, y cada
+  merchant puede tener su propio texto para una clave e idioma; lo que recibe es el último texto
+  publicado de cada clave en sus idiomas, y lo que cada intervención estampa es la **versión del
+  texto** que mostró, acuñada por OPE y nunca elegida).
 - Mecanismo A (server-to-server con identificador propagado) es la única fuente autoritativa
   de atribución; B corrobora; C nunca es autoridad.
 
@@ -397,4 +417,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.4.4 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-25
+**Version**: 1.4.5 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-04

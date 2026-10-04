@@ -325,17 +325,17 @@ publicación.
 - [x] T065 [P] `docs/adr/` — una enmienda a ADR-036 (vocabulario cerrado y mapa del merchant): el texto
       de un merchant es la tercera instancia del patrón, y la voz se retiró porque con una capa por
       merchant no nombraba nada. Cita esta spec como fuente.
-- [ ] T066 [P] `docs/deudas.md` — **D-34, el tercero llegó**: el almacén de textos es el tercer historial
+- [ ] T066 [P] (queda para el merge de la 037, donde la fila vive; 2026-10-04) `docs/deudas.md` — **D-34, el tercero llegó**: el almacén de textos es el tercer historial
       numerado e inmutable con uno en vigor (merchant, nivel, texto). La condición de cierre se cumple:
       o se extrae lo común en las dos tecnologías en esta feature, o se deja escrito por qué no (la clave
       compuesta y «quitado» lo hacen distinto). La fila cambia de estado con la decisión. **Depende de
       que la 037 esté mergeada**, que es donde D-34 vive.
 - [x] T067 [P] Los READMEs que el cambio toca, con su inventario (ADR-032): `config/` (la semilla),
       `migrations/` (006), `tests/` (`durability/texts`), `contracts/` si una extensión nueva lo pide.
-- [ ] T068 Correr el **quickstart** de punta a punta, los siete pasos y el uso desde afuera, y completar
+- [x] T068 Correr el **quickstart** de punta a punta, los siete pasos y el uso desde afuera, y completar
       «Cambios respecto del plan» con fecha: la cifra de SC-006 al lado de la de la misma máquina sin la
       feature, con la mutación terminada antes de medir.
-- [ ] T069 La cadena de cierre: `npm run contract:check`, `npm run test:all`, `npm run test:mutation`,
+- [x] T069 La cadena de cierre: `npm run contract:check`, `npm run test:all`, `npm run test:mutation`,
       `npm run build && npm run test:contract`, `npm run release-check`.
 
 ---
