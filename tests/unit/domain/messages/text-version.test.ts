@@ -87,7 +87,10 @@ describe("TextVersion, numbered", () => {
     expect(current.sameTextAs(draft())).toBe(true);
     expect(current.sameTextAs(draft({ text: " Size may vary between brands. " }))).toBe(true);
     expect(current.sameTextAs(draft({ text: "Size may vary." }))).toBe(false);
-    expect(current.sameTextAs(draft({ corrective: true, reason: "r" }))).toBe(false);
+    // The flag and the reason count on their own: the same words published as corrective, or with another
+    // reason, is a corrective version with consequences of its own, not a repetition.
+    expect(current.sameTextAs(draft({ corrective: true }))).toBe(false);
+    expect(current.sameTextAs(draft({ reason: "r" }))).toBe(false);
     const removed = TextVersion.numbered(removal({ merchantId: asMerchantId("m_uno") }), 2);
     expect(removed.sameTextAs(removal({ merchantId: asMerchantId("m_uno") }))).toBe(true);
     expect(removed.sameTextAs(draft({ merchantId: asMerchantId("m_uno") }))).toBe(false);

@@ -267,7 +267,7 @@ describe("Experiment transitions (03 §4.10)", () => {
   it("windowRestarted by a text keeps the key and the layer that caused it (feature 038), and a restart without one reads as before", () => {
     const active = opened().activated(LATER);
     if (!active.ok) throw new Error(active.error.message);
-    const cause = { family: "fit.policies.reassurance", locale: "es", merchantId: asMerchantId("m_a") };
+    const cause = { family: "fit.policies.reassurance", locale: "es", layer: "m_a" };
     const byText = active.value.windowRestarted(EVEN_LATER, "a typo", {
       level: "merchant",
       configurationVersion: 2,

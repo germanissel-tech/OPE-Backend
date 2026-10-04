@@ -6,6 +6,11 @@ export type { HoldoutSource } from "./ports/holdout-source.js";
 export type { ExperimentIdMinter } from "./ports/experiment-id-minter.js";
 export { Assignments } from "./services/assignment.service.js";
 export { ScopedExperiments } from "./services/scoped-experiment.service.js";
+export { ActiveExperiments } from "./services/active-experiments.service.js";
+export type {
+  ActiveExperimentsDependencies,
+  ActiveExperimentsService,
+} from "./services/active-experiments.service.js";
 export { WindowRestarts } from "./services/window-restarts.service.js";
 export type {
   RestartCause,

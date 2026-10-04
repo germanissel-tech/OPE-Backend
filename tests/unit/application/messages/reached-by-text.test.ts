@@ -3,6 +3,7 @@
 // the merchant's. And a restart records the text that caused it.
 import { describe, expect, it } from "vitest";
 import {
+  ActiveExperiments,
   WindowRestarts,
   type ExperimentDirectory,
   type ExperimentStore,
@@ -71,7 +72,7 @@ async function given(tenants: readonly Tenant[]) {
     },
   } as unknown as ExperimentStore;
   const service = new ReachedByText({
-    merchants,
+    active: new ActiveExperiments({ merchants, experiments }),
     experiments,
     texts,
     restarts: new WindowRestarts({ experimentStore }),
@@ -132,7 +133,7 @@ describe("ReachedByText.restart", () => {
       reason: "wording",
       level: "defaults",
       configurationVersion: 2,
-      text: { family: KEY.family, locale: "es" },
+      text: { family: KEY.family, locale: "es", layer: "base" },
     });
   });
 
@@ -146,7 +147,7 @@ describe("ReachedByText.restart", () => {
     expect(updated()[0]?.windowRestarts[0]?.text).toEqual({
       family: KEY.family,
       locale: "es",
-      merchantId: "m_a",
+      layer: "m_a",
     });
     expect(updated()[0]?.windowRestarts[0]?.level).toBe("merchant");
   });

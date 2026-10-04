@@ -2,3 +2,4 @@
 export { memoryTextStore } from "./gateways/memory-text-store.js";
 export { sqliteTextStore } from "./gateways/sqlite-text-store.js";
 export { makePublishText } from "./controllers/publish-text.js";
+export { makePublishMerchantText } from "./controllers/publish-merchant-text.js";

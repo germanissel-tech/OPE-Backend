@@ -11,6 +11,7 @@ import {
   type ReachedExperimentsDependencies,
 } from "../../../../src/application/configuration/index.js";
 import {
+  ActiveExperiments,
   WindowRestarts,
   type ExperimentDirectory,
   type ExperimentStore,
@@ -86,7 +87,8 @@ function given(tenants: readonly Tenant[]): {
   } as unknown as ExperimentStore;
   // The restart is the experiment module's (feature 038); this test still sees what it wrote through the store.
   const restarts = new WindowRestarts({ experimentStore });
-  return { deps: { merchants, configurations, experiments, restarts }, updated: () => updated };
+  const active = new ActiveExperiments({ merchants, experiments });
+  return { deps: { configurations, active, restarts }, updated: () => updated };
 }
 
 const reaching = (from: object, to: object): ChangedLeaves => ChangedLeaves.between(from, to);
@@ -162,7 +164,8 @@ describe("ReachedExperiments.by", () => {
       },
     } as unknown as MerchantStore;
     const { deps } = given([{ id: "m_a" }]);
-    const reached = await new ReachedExperiments({ ...deps, merchants }).by(reaching({ a: 1 }, { a: 1 }));
+    const active = new ActiveExperiments({ merchants, experiments: {} as ExperimentDirectory });
+    const reached = await new ReachedExperiments({ ...deps, active }).by(reaching({ a: 1 }, { a: 1 }));
     expect(reached).toEqual([]);
     expect(asked).toBe(0);
   });

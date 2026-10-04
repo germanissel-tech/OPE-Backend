@@ -6,8 +6,11 @@
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { TextKeyRecord, TextVersion } from "../../../domain/messages/index.js";
 import type { Result, StoreUnavailable } from "../../../domain/shared-kernel/index.js";
-import type { ExperimentDirectory, WindowRestartsService } from "../../experiment/index.js";
-import type { MerchantStore } from "../../merchant/index.js";
+import type {
+  ActiveExperimentsService,
+  ExperimentDirectory,
+  WindowRestartsService,
+} from "../../experiment/index.js";
 import type { TextLayer, TextStore } from "../ports/text-store.js";
 
 export interface ReachedByTextService {
@@ -21,14 +24,12 @@ export interface ReachedByTextService {
 }
 
 export interface ReachedByTextDependencies {
-  merchants: MerchantStore;
+  /** The active experiment of every merchant, for a base text; the directory, for a merchant's own. */
+  active: ActiveExperimentsService;
   experiments: ExperimentDirectory;
   texts: TextStore;
   restarts: WindowRestartsService;
 }
-
-/** How many merchants are walked while looking for active experiments; D-21 keeps this a single process. */
-const EVERY_MERCHANT_PAGE = 1000;
 
 export class ReachedByText implements ReachedByTextService {
   readonly #deps: ReachedByTextDependencies;
@@ -38,18 +39,15 @@ export class ReachedByText implements ReachedByTextService {
   }
 
   async by(layer: TextLayer, key: TextKeyRecord): Promise<readonly Experiment[]> {
-    const { merchants, experiments, texts } = this.#deps;
+    const { active, experiments, texts } = this.#deps;
     if (layer !== undefined) {
       const own = await experiments.activeFor(layer);
       return own?.isActive() === true ? [own] : [];
     }
-    const page = await merchants.list({ limit: EVERY_MERCHANT_PAGE });
     const reached: Experiment[] = [];
-    for (const merchant of page.items) {
-      const open = await experiments.activeFor(merchant.merchantId);
-      if (open?.isActive() !== true) continue;
+    for (const open of await active.everywhere()) {
       // A merchant with its own text in force for the key is out of reach: the base is not what it shows.
-      const own = await texts.inForce(merchant.merchantId, key);
+      const own = await texts.inForce(open.merchantId, key);
       if (own !== undefined && !own.isRemoved()) continue;
       reached.push(open);
     }
@@ -67,10 +65,7 @@ export class ReachedByText implements ReachedByTextService {
       // a merchant stands where a merchant's version did, a base text where the defaults did.
       level: version.merchantId === undefined ? "defaults" : "merchant",
       version: version.version,
-      text: {
-        ...version.key.record(),
-        ...(version.merchantId === undefined ? {} : { merchantId: version.merchantId }),
-      },
+      text: { ...version.key.record(), layer: version.layer() },
     });
   }
 }

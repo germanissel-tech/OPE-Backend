@@ -17,13 +17,13 @@ import {
 import { CuratedText } from "./curated-text.js";
 import { BaseTextRequired, type TextDraftError } from "./errors.js";
 import { messageVersion, type MessageVersion } from "./ids.js";
-import { TextKey, type TextKeyRecord } from "./text-key.js";
+import { TextKey, type TextKeyInput, type TextKeyRecord } from "./text-key.js";
 import type { OperatorId } from "../operator/index.js";
 
 /** What stands for the base layer wherever a layer is written as one string. */
 const BASE = "base";
 
-/** What is published: everything but the number, which the store assigns. */
+/** What is published, judged: everything but the number, which the store assigns. */
 export interface TextDraft {
   key: TextKeyRecord;
   /** The merchant whose layer this is; absent for the base. */
@@ -40,9 +40,24 @@ export interface TextVersionRecord extends TextDraft {
   version: number;
 }
 
+/**
+ * What an operator declares, before it is judged: the key as the API carries it, and each optional fact
+ * there or `undefined`, which is what a body without it reads as. The guard that turns `undefined` into
+ * «not there» lives once, in `draft`, so the draft a store receives carries only what was declared.
+ */
+export interface TextDeclaration {
+  key: TextKeyInput;
+  merchantId?: MerchantId | undefined;
+  text?: string | undefined;
+  corrective: boolean;
+  reason?: string | undefined;
+  publishedAt: Date;
+  operatorId: OperatorId;
+}
+
 export class TextVersion {
   readonly key: TextKey;
-  readonly merchantId?: MerchantId;
+  readonly merchantId: MerchantId | undefined;
   readonly version: number;
   readonly text?: CuratedText;
   readonly corrective: boolean;
@@ -52,7 +67,7 @@ export class TextVersion {
 
   private constructor(record: TextVersionRecord) {
     this.key = TextKey.rehydrate(record.key);
-    if (record.merchantId !== undefined) this.merchantId = record.merchantId;
+    this.merchantId = record.merchantId;
     this.version = record.version;
     if (record.text !== undefined) {
       this.text = CuratedText.rehydrate({ version: this.messageVersionId(), value: record.text });
@@ -68,22 +83,26 @@ export class TextVersion {
    * that is not blank, the text —when there is one— is a curated text, and only a merchant's layer may
    * remove. The text comes back trimmed, which is what the store keeps and what a repetition compares.
    */
-  static draft(input: TextDraft): Result<TextDraft, TextDraftError | ConfigurationReasonRequired> {
+  static draft(input: TextDeclaration): Result<TextDraft, TextDraftError | ConfigurationReasonRequired> {
     const key = TextKey.of(input.key);
     if (!key.ok) return key;
     if (input.corrective && (input.reason === undefined || input.reason.trim() === "")) {
       return fail(new ConfigurationReasonRequired());
     }
-    if (input.text === undefined) {
-      return input.merchantId === undefined
-        ? fail(new BaseTextRequired())
-        : ok({ ...input, key: key.value.record() });
-    }
+    if (input.text === undefined && input.merchantId === undefined) return fail(new BaseTextRequired());
     // Judged with a provisional identifier: the number is the store's, and the rules of a text do not
     // depend on it.
-    const judged = CuratedText.of(messageVersion("draft"), input.text);
-    if (!judged.ok) return judged;
-    return ok({ ...input, key: key.value.record(), text: judged.value.value });
+    const judged = input.text === undefined ? undefined : CuratedText.of(messageVersion("draft"), input.text);
+    if (judged?.ok === false) return judged;
+    return ok({
+      key: key.value.record(),
+      ...(input.merchantId === undefined ? {} : { merchantId: input.merchantId }),
+      ...(judged === undefined ? {} : { text: judged.value.value }),
+      corrective: input.corrective,
+      ...(input.reason === undefined ? {} : { reason: input.reason }),
+      publishedAt: input.publishedAt,
+      operatorId: input.operatorId,
+    });
   }
 
   /** The draft with the number the store assigned. */
@@ -114,7 +133,12 @@ export class TextVersion {
    * minted and never declared, so «version 3» of one key cannot be mistaken for version 3 of another.
    */
   messageVersionId(): MessageVersion {
-    return messageVersion(`${this.merchantId ?? BASE}/${this.key.toString()}#${this.version}`);
+    return messageVersion(`${this.layer()}/${this.key.toString()}#${this.version}`);
+  }
+
+  /** Whose layer the version belongs to, as one string: `base`, or the merchant. */
+  layer(): string {
+    return this.merchantId ?? BASE;
   }
 
   record(): TextVersionRecord {

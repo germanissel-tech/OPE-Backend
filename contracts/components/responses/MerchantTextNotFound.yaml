@@ -1,0 +1,22 @@
+description: "No merchant with that identifier within the operator's scope, or —when removing— the merchant
+  has no text of its own for the key: there is no version to repeat, so nothing is created."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      merchantNotFound:
+        summary: No such merchant within the operator's scope (merchant-not-found)
+        value:
+          type: urn:ope:problem:merchant-not-found
+          title: The merchant does not exist
+          status: 404
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/texts
+      nothingToRemove:
+        summary: Removing a text the merchant never published (text-version-not-found)
+        value:
+          type: urn:ope:problem:text-version-not-found
+          title: The text version does not exist
+          status: 404
+          detail: The merchant has no text of its own for the key.
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/texts

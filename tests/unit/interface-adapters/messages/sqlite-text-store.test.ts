@@ -56,6 +56,21 @@ describe("sqliteTextStore", () => {
     expect(reads()).toBe(1);
   });
 
+  it("two values of one family are two slots of the index: each answers its own text", async () => {
+    const spoken = { family: "fit.variant_selector.uncertainty", locale: "es" };
+    const linen = TextVersion.numbered(
+      draft({ key: { ...spoken, attributeValue: "linen" }, text: "Linen." }),
+      1,
+    );
+    const denim = TextVersion.numbered(
+      draft({ key: { ...spoken, attributeValue: "denim" }, text: "Denim." }),
+      1,
+    );
+    const { texts } = subject([linen, denim]);
+    expect((await texts.find(UNO, { ...spoken, attributeValue: "linen" }))?.value).toBe("Linen.");
+    expect((await texts.find(UNO, { ...spoken, attributeValue: "denim" }))?.value).toBe("Denim.");
+  });
+
   it("updates the index after the store accepted, so the next decision sees the text without a restart", async () => {
     const { texts } = subject([TextVersion.numbered(draft(), 1)]);
     const published = await texts.publish(draft({ text: "Base, corrected." }));

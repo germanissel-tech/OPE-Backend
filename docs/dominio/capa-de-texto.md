@@ -3,8 +3,8 @@ es: capa de texto
 en: layer
 contexto: decision
 estado: aprobado
+uso: disponible
 fuente: specs/038-textos-por-api/spec.md#Lo decidido antes de la spec
-uso: pendiente
 ---
 
 # capa de texto -> `layer`

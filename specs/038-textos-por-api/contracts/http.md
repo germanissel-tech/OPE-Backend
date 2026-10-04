@@ -10,14 +10,14 @@ necesariamente quien publica políticas.
 
 ## Las operaciones
 
-| operationId                | Método y ruta                                                                     | Capacidad     | Qué hace                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------- |
-| `publishText`              | `POST /v1/admin/texts`                                                            | `texts:write` | Publica el texto base de una clave e idioma; `201` creada, `200` repetida                         |
-| `listTextVersions`         | `GET /v1/admin/texts/{family}/{locale}/versions`                                  | `texts:read`  | Las versiones de la clave base, más nueva primero, paginadas                                      |
-| `getTextVersion`           | `GET /v1/admin/texts/{family}/{locale}/versions/{version}`                        | `texts:read`  | Una versión concreta tal como se publicó                                                          |
-| `publishMerchantText`      | `POST /v1/admin/merchants/{merchantId}/texts`                                     | `texts:write` | Publica el texto del merchant de una clave e idioma, o lo **quita** (`text: null`); `201` / `200` |
-| `listMerchantTextVersions` | `GET /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions`           | `texts:read`  | Las versiones de la clave del merchant                                                            |
-| `getMerchantTextVersion`   | `GET /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions/{version}` | `texts:read`  | Una versión concreta del merchant                                                                 |
+| operationId                | Método y ruta                                                                     | Capacidad     | Qué hace                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------- |
+| `publishText`              | `POST /v1/admin/texts`                                                            | `texts:write` | Publica el texto base de una clave e idioma; `201` creada, `200` repetida                           |
+| `listTextVersions`         | `GET /v1/admin/texts/{family}/{locale}/versions`                                  | `texts:read`  | Las versiones de la clave base, más nueva primero, paginadas                                        |
+| `getTextVersion`           | `GET /v1/admin/texts/{family}/{locale}/versions/{version}`                        | `texts:read`  | Una versión concreta tal como se publicó                                                            |
+| `publishMerchantText`      | `POST /v1/admin/merchants/{merchantId}/texts`                                     | `texts:write` | Publica el texto del merchant de una clave e idioma, o lo **quita** (`remove: true`); `201` / `200` |
+| `listMerchantTextVersions` | `GET /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions`           | `texts:read`  | Las versiones de la clave del merchant                                                              |
+| `getMerchantTextVersion`   | `GET /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions/{version}` | `texts:read`  | Una versión concreta del merchant                                                                   |
 
 El valor de atributo va **en el cuerpo** al publicar y como **parámetro de consulta** `attributeValue` al
 leer: es opcional y una ruta con un segmento opcional no existe. El `merchantId` en la ruta sólo bajo
@@ -30,13 +30,15 @@ capa del merchant, alcance sobre ese merchant (`merchant-out-of-scope`, como tod
 es sólo lectura); nada que declarar.
 
 **Idempotencia**: `x-idempotency` con clave `text`, `first: "201"`, `repeat: "200"`, como la publicación
-de la configuración de merchant. Para la capa del merchant, quitar lo que ya está quitado repite.
+de la configuración de merchant. Para la capa del merchant, quitar lo que ya está quitado repite; quitar lo que nunca se publicó es `404`,
+porque el cuerpo del repetido es la versión vigente y ahí no hay ninguna.
 
 ## Los esquemas
 
 - `TextInput`: `family`, `attributeValue?`, `locale`, `text` (1 a 512 caracteres), `corrective`,
   `reason?`. `additionalProperties: false`.
-- `MerchantTextInput`: lo mismo con `text` **nullable**: `null` quita.
+- `MerchantTextInput`: lo mismo con `remove: true` **en lugar del texto**, excluyentes por `oneOf`: el
+  validador del servidor habla el meta-esquema 3.0 y un `null` no es expresable en él.
 - `TextVersion`: `family`, `attributeValue?`, `locale`, `layer` (`base` o el merchant), `version`,
   `messageVersionId` (el identificador que una intervención estampa), `text?` (ausente cuando la versión
   dice «quitado»), `removed`, `publishedAt`, `operatorId`, `corrective`, `reason?`.
@@ -45,13 +47,14 @@ de la configuración de merchant. Para la capa del merchant, quitar lo que ya es
 
 ## Invariantes y tipos de problema
 
-| Slug                                                                       | Status | Dónde                                                      | Regla                                                                                    |
-| -------------------------------------------------------------------------- | ------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `text-key-unknown`                                                         | 422    | las dos publicaciones                                      | La familia o el valor de atributo no están en el vocabulario de OPE, o no van juntos     |
-| `base-text-required`                                                       | 422    | `publishText`                                              | La base no admite quitar: tiene que seguir completa                                      |
-| `locale-incomplete`                                                        | 422    | `publishTreatmentDefaults`, `publishMerchantConfiguration` | Un idioma que entra como soportado o reserva no tiene base completa; nombra las familias |
-| `configuration-frozen`                                                     | 409    | las dos publicaciones (existe)                             | Experimentos activos alcanzados y sin motivo                                             |
-| `corpus-text-empty`, `corpus-text-too-long`, `corpus-text-has-placeholder` | 422    | las dos publicaciones (existen)                            | El texto en sí                                                                           |
+| Slug                                                                       | Status | Dónde                                                      | Regla                                                                                        |
+| -------------------------------------------------------------------------- | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `text-key-unknown`                                                         | 422    | las dos publicaciones                                      | La familia o el valor de atributo no están en el vocabulario de OPE, o no van juntos         |
+| `base-text-required`                                                       | 422    | `publishText`                                              | La base no admite quitar: tiene que seguir completa                                          |
+| `text-version-not-found`                                                   | 404    | `publishMerchantText`, las lecturas del historial          | Quitar lo que nunca se publicó no tiene versión que repetir; un número que la clave no tiene |
+| `locale-incomplete`                                                        | 422    | `publishTreatmentDefaults`, `publishMerchantConfiguration` | Un idioma que entra como soportado o reserva no tiene base completa; nombra las familias     |
+| `configuration-frozen`                                                     | 409    | las dos publicaciones (existe)                             | Experimentos activos alcanzados y sin motivo                                                 |
+| `corpus-text-empty`, `corpus-text-too-long`, `corpus-text-has-placeholder` | 422    | las dos publicaciones (existen)                            | El texto en sí                                                                               |
 
 Cada `422` nombra en su ejemplo la invariante que la produce (ADR-007); `x-invariants` sobre la operación
 cuando depende de otro recurso (`locale-incomplete`, `configuration-frozen`) y sobre el esquema cuando

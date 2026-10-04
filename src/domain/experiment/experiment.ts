@@ -44,22 +44,23 @@ export interface WindowRestart {
   level: ConfigurationLevel;
   configurationVersion: number;
   /** The text that caused it (feature 038): then the number is the version of this key in this layer. Absent before. */
-  text?: TextRestartCause;
+  text?: TextRestartCause | undefined;
 }
 
 /** The key and the layer of a text that restarted a window: plain data, so this module needs nothing of `messages`. */
 export interface TextRestartCause {
   family: string;
-  attributeValue?: string;
+  attributeValue?: string | undefined;
   locale: string;
-  merchantId?: MerchantId;
+  /** Whose layer the version belongs to: `base`, or the merchant. */
+  layer: string;
 }
 
 /** What a restart records of its cause: the version of a level, or of a text in a layer. */
 export interface RestartSource {
   level: ConfigurationLevel;
   configurationVersion: number;
-  text?: TextRestartCause;
+  text?: TextRestartCause | undefined;
 }
 
 /** What an operator declares to open an experiment; the instants and the state are the entity's. */
@@ -273,7 +274,7 @@ export class Experiment {
       reason,
       level: source.level,
       configurationVersion: source.configurationVersion,
-      ...(source.text === undefined ? {} : { text: source.text }),
+      text: source.text,
     };
     return ok(
       new Experiment({

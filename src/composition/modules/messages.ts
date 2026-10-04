@@ -3,20 +3,24 @@
 // memory, because it answers on the critical path of a decision; and it owns the store of the texts an
 // operator publishes, which is what fills that index. Two technologies since 038: `memory`, which never
 // survives, and `sqlite`, which does.
-import { WindowRestarts } from "../../application/experiment/index.js";
+import { ActiveExperiments, WindowRestarts } from "../../application/experiment/index.js";
 import {
   ImportTextsUseCase,
   Messages,
+  PublishMerchantTextUseCase,
   PublishTextUseCase,
   ReachedByText,
+  TextPublications,
   type ImportTextsRequest,
   type ImportTextsResponse,
   type MessageCorpus,
   type MessageDirectory,
   type ReachedByTextService,
+  type TextPublicationService,
   type TextStore,
 } from "../../application/messages/index.js";
 import {
+  makePublishMerchantText,
   makePublishText,
   memoryTextStore,
   sqliteTextStore,
@@ -25,7 +29,7 @@ import { bind, bindAll, compositionModule, port, served } from "../graph/index.j
 import { SqlStorePort } from "../release.js";
 import { MessagePlanePort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort } from "./experiment.js";
-import { MerchantStorePort } from "./merchant.js";
+import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
 
@@ -41,6 +45,8 @@ export const ImportTextsPort = port("messages.import")<UseCase<ImportTextsReques
  * dependency, which is what keeps the use cases inside the six of ADR-023 and gives the question a name.
  */
 const ReachedByTextPort = port("messages.reached")<ReachedByTextService>();
+/** What a publication does once judged, shared by the two layers: repeat, freeze, publish, restart. */
+const TextPublicationPort = port("messages.publications")<TextPublicationService>();
 
 export const messagesModule = compositionModule({
   provides: {
@@ -72,20 +78,44 @@ export const messagesModule = compositionModule({
         texts: TextStorePort,
         experimentStore: ExperimentStorePort,
       },
-      // The restart is the experiment module's (feature 038); the question of who is reached is this one's.
-      ({ experimentStore, ...rest }) =>
-        new ReachedByText({ ...rest, restarts: new WindowRestarts({ experimentStore }) }),
+      // The walk and the restart are the experiment module's; the question of who is reached is this one's.
+      ({ merchants, experiments, texts, experimentStore }) =>
+        new ReachedByText({
+          active: new ActiveExperiments({ merchants, experiments }),
+          experiments,
+          texts,
+          restarts: new WindowRestarts({ experimentStore }),
+        }),
+    ),
+    bind(
+      TextPublicationPort,
+      { texts: TextStorePort, reached: ReachedByTextPort },
+      (deps) => new TextPublications(deps),
     ),
   ],
   serves: {
     handlers: {
       publishText: served(
-        { texts: TextStorePort, reached: ReachedByTextPort, clock: ClockPort },
+        { publications: TextPublicationPort, clock: ClockPort },
         { name: "publishText", build: (deps) => new PublishTextUseCase(deps) },
         (useCase) => makePublishText(useCase),
         {
           // What the entry of the log can carry today: whether a window restarted. The version a text got
           // is readable in its history by its key, which is what the entry names in its request.
+          result: (r) => (r.ok ? { windowRestarted: r.value.windowsRestarted.length > 0 } : undefined),
+          reason: (request) => request.reason,
+        },
+      ),
+      publishMerchantText: served(
+        {
+          scoped: ScopedMerchantPort,
+          texts: TextStorePort,
+          publications: TextPublicationPort,
+          clock: ClockPort,
+        },
+        { name: "publishMerchantText", build: (deps) => new PublishMerchantTextUseCase(deps) },
+        (useCase) => makePublishMerchantText(useCase),
+        {
           result: (r) => (r.ok ? { windowRestarted: r.value.windowsRestarted.length > 0 } : undefined),
           reason: (request) => request.reason,
         },

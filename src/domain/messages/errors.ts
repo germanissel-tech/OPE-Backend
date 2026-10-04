@@ -62,13 +62,14 @@ export class DuplicateAttributeLabel extends DomainError {
 /**
  * A key no text can have (feature 038): a family the plane cannot choose, a value OPE writes no texts for,
  * a value on a family that says nothing of the product, or a language that is not a language tag. The
- * API never creates keys; `part` says which of the four was wrong.
+ * API never creates keys; the pointer says which of the four was wrong.
  */
 export class TextKeyUnknown extends DomainError {
   readonly code = "text-key-unknown" as const;
   readonly module = MODULE;
   constructor(part: "family" | "attributeValue" | "locale", value: string) {
-    super("The text key names something OPE has no text for.", { part, value });
+    // `pointer` is what the HTTP border turns into the field of the body that is wrong; `value` says what it held.
+    super("The text key names something OPE has no text for.", { pointer: part, value });
   }
 }
 
@@ -81,12 +82,23 @@ export class BaseTextRequired extends DomainError {
   }
 }
 
-/** No version of that key carries that number (feature 038): a history is read by number. */
-class TextVersionNotFound extends DomainError {
+/**
+ * No version of the key where one was asked for (feature 038): a history is read by number, and removing a
+ * merchant's text needs one in force to repeat or to send back to the base.
+ */
+export class TextVersionNotFound extends DomainError {
   readonly code = "text-version-not-found" as const;
   readonly module = MODULE;
-  constructor(version: number) {
-    super(`The key has no version ${version}.`);
+  private constructor(message: string) {
+    super(message);
+  }
+
+  static numbered(version: number): TextVersionNotFound {
+    return new TextVersionNotFound(`The key has no version ${version}.`);
+  }
+
+  static inForce(): TextVersionNotFound {
+    return new TextVersionNotFound("The merchant has no text of its own for the key.");
   }
 }
 

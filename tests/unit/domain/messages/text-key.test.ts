@@ -8,7 +8,7 @@ const UNCONDITIONAL = "fit.variant_selector.information";
 const WITH_ATTRIBUTE = "fit.variant_selector.uncertainty";
 
 const part = (result: ReturnType<typeof TextKey.of>): string | undefined =>
-  result.ok ? undefined : String(result.error.details["part"]);
+  result.ok ? undefined : String(result.error.details["pointer"]);
 
 describe("TextKey.of", () => {
   it("accepts a family the plane can choose, in a language by shape", () => {
@@ -20,10 +20,20 @@ describe("TextKey.of", () => {
     expect(key.value.locale).toBe("es-AR");
   });
 
-  it("accepts a family that speaks of the product with a value of OPE's vocabulary", () => {
+  it("accepts a family that speaks of the product with a value of OPE's vocabulary, and records it", () => {
     const key = TextKey.of({ family: WITH_ATTRIBUTE, attributeValue: "linen", locale: "es" });
     expect(key.ok).toBe(true);
     expect(key.ok ? key.value.attributeValue : undefined).toBe("linen");
+    expect(key.ok ? key.value.record() : undefined).toEqual({
+      family: WITH_ATTRIBUTE,
+      attributeValue: "linen",
+      locale: "es",
+    });
+  });
+
+  it("a value that arrives as undefined is a key without one: the record does not carry the key", () => {
+    const key = TextKey.of({ family: UNCONDITIONAL, attributeValue: undefined, locale: "es" });
+    expect(key.ok ? key.value.record() : undefined).toStrictEqual({ family: UNCONDITIONAL, locale: "es" });
   });
 
   it("refuses a family the plane cannot choose, naming the part", () => {

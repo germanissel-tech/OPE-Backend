@@ -225,8 +225,11 @@ historial las lista más nueva primero con su actor, su motivo y su contenido.
 - **Un texto del merchant para una clave que la base no tiene en ese idioma.** Se acepta: la capa del
   merchant es dispersa y su texto gana en su idioma. Lo que no puede pasar es que ese idioma esté
   soportado sin base completa, y eso lo impide la historia 4.
-- **Quitar lo que no existe.** Quitar un texto de merchant que nunca se publicó, o que ya está
-  quitado, no crea versión y la respuesta lo dice, igual que un cuerpo idéntico.
+- **Quitar lo que no existe.** Quitar un texto de merchant que ya está quitado no crea versión y la
+  respuesta repite la versión vigente, igual que un cuerpo idéntico. En el cuerpo, quitar es `remove: true`
+  en lugar del texto, nunca los dos: el validador del servidor habla el meta-esquema 3.0 y un `null` no es
+  expresable en él. Quitar uno que nunca se publicó
+  tampoco crea versión, y la respuesta dice que no hay ninguna: no hay versión vigente que repetir.
 - **Diez publicaciones seguidas.** Cada una exige su motivo si hay experimentos alcanzados, y cada una
   reinicia la ventana. Reiniciar una ventana recién reiniciada no pierde nada más. La fricción del
   motivo repetido se acepta y se mide con el uso; un modo borrador queda fuera.

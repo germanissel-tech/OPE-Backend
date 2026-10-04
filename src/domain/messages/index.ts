@@ -7,11 +7,11 @@ export type { AttributeLabelRecord, AttributeLabelsError } from "./attribute-lab
 export { CuratedText } from "./curated-text.js";
 export type { CuratedTextRecord } from "./curated-text.js";
 export { TextKey } from "./text-key.js";
-export type { TextKeyRecord } from "./text-key.js";
+export type { TextKeyInput, TextKeyRecord } from "./text-key.js";
 export { TextVersion } from "./text-version.js";
-export type { TextDraft, TextVersionRecord } from "./text-version.js";
+export type { TextDeclaration, TextDraft, TextVersionRecord } from "./text-version.js";
 export { BaseTexts } from "./base-texts.js";
-export { LocaleIncomplete } from "./errors.js";
+export { LocaleIncomplete, TextVersionNotFound } from "./errors.js";
 export type { CuratedTextError, MessageError, TextDraftError } from "./errors.js";
 export { messageVersion } from "./ids.js";
 export type { MessageVersion } from "./ids.js";

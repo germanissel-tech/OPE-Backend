@@ -13,8 +13,7 @@
 import type { ChangedLeaves, LevelVersion } from "../../../domain/configuration/index.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { Result, StoreUnavailable } from "../../../domain/shared-kernel/index.js";
-import type { ExperimentDirectory, WindowRestartsService } from "../../experiment/index.js";
-import type { MerchantStore } from "../../merchant/index.js";
+import type { ActiveExperimentsService, WindowRestartsService } from "../../experiment/index.js";
 import type { ConfigurationStore } from "../ports/configuration-store.js";
 
 /** What a publication of a level asks before deciding whether it may go through. */
@@ -29,15 +28,12 @@ export interface ReachedExperimentsService {
 }
 
 export interface ReachedExperimentsDependencies {
-  merchants: MerchantStore;
   configurations: ConfigurationStore;
-  experiments: ExperimentDirectory;
+  /** The active experiment of every merchant: the walk is the experiment module's since feature 038. */
+  active: ActiveExperimentsService;
   /** The restart itself, which is the experiment module's since feature 038: the texts restart the same way. */
   restarts: WindowRestartsService;
 }
-
-/** How many merchants are walked while looking for active experiments; D-21 keeps this a single process. */
-const EVERY_MERCHANT_PAGE = 1000;
 
 export class ReachedExperiments implements ReachedExperimentsService {
   readonly #deps: ReachedExperimentsDependencies;
@@ -49,13 +45,10 @@ export class ReachedExperiments implements ReachedExperimentsService {
   async by(changed: ChangedLeaves): Promise<readonly Experiment[]> {
     // Nothing changed reaches nobody, and saying so first keeps a repeated publication from walking anything.
     if (changed.none()) return [];
-    const { merchants, configurations, experiments } = this.#deps;
-    const page = await merchants.list({ limit: EVERY_MERCHANT_PAGE });
+    const { configurations, active } = this.#deps;
     const reached: Experiment[] = [];
-    for (const merchant of page.items) {
-      const open = await experiments.activeFor(merchant.merchantId);
-      if (open?.isActive() !== true) continue;
-      const declared = (await configurations.latestOf(merchant.merchantId))?.declared ?? {};
+    for (const open of await active.everywhere()) {
+      const declared = (await configurations.latestOf(open.merchantId))?.declared ?? {};
       if (!changed.coveredBy(declared)) reached.push(open);
     }
     return reached;

@@ -21,4 +21,5 @@ export const AUDITED_OPERATIONS = Object.freeze([
   "publishPlatformConfiguration",
   "publishTreatmentDefaults",
   "publishText",
+  "publishMerchantText",
 ]);

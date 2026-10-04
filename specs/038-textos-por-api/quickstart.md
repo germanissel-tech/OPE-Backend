@@ -93,7 +93,7 @@ Con `npm run dev` y un merchant de la semilla:
 4. Publicar un texto del merchant para la misma clave: `POST /v1/admin/merchants/{merchantId}/texts`.
    Repetir el lote: trae el texto del merchant. Enviarlo con la página en otro idioma soportado: trae la
    base en ese idioma.
-5. Quitar el texto del merchant con `text: null`: el historial de la clave lo lista como quitado y el lote
+5. Quitar el texto del merchant con `remove: true`: el historial de la clave lo lista como quitado y el lote
    siguiente vuelve a la base.
 6. Publicar defaults con un idioma sin textos: `422 locale-incomplete` nombrando las familias.
 

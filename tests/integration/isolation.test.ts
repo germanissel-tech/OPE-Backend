@@ -594,6 +594,39 @@ describe("isolation between merchants", () => {
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/ingest-keys", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/deactivate", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b/log", asA)).statusCode).toBe(403);
+    // A base text reaches every merchant (feature 038), so an operator scoped to A cannot publish one.
+    expect(
+      (
+        await admin(app.app, "POST", "/v1/admin/texts", {
+          ...asA,
+          body: { family: "fit.policies.reassurance", locale: "es", text: "A text of A." },
+        })
+      ).statusCode,
+    ).toBe(403);
+    // B's own text is B's: the same operator publishes A's and is refused B's.
+    expect(
+      (
+        await admin(app.app, "POST", "/v1/admin/merchants/m_b/texts", {
+          ...asA,
+          body: { family: "fit.policies.reassurance", locale: "es", text: "A text of A." },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await admin(app.app, "POST", "/v1/admin/merchants/m_a/texts", {
+          ...asA,
+          // A's experiment is active, so A's own text is a corrective version with its reason.
+          body: {
+            family: "fit.policies.reassurance",
+            locale: "es",
+            text: "A text of A.",
+            corrective: true,
+            reason: "A's wording",
+          },
+        })
+      ).statusCode,
+    ).toBe(201);
     expect(
       (
         await admin(app.app, "PUT", "/v1/admin/merchants/m_a/kill-switch", {

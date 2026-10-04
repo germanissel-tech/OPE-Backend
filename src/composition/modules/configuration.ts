@@ -30,6 +30,7 @@ import {
   type PublishLevelResponse,
 } from "../../application/configuration/index.js";
 import {
+  ActiveExperiments,
   WindowRestarts,
   type ExperimentDirectory,
   type ExperimentStore,
@@ -158,9 +159,13 @@ const publishesALevel = (deps: {
   experiments: ExperimentDirectory;
   experimentStore: ExperimentStore;
 }): PublishLevelUseCase => {
-  const { levels, configuration, clock, experimentStore, ...rest } = deps;
-  // The restart is the experiment module's (feature 038); the question of who is reached stays here.
-  const reached = new ReachedExperiments({ ...rest, restarts: new WindowRestarts({ experimentStore }) });
+  const { levels, configuration, clock, experimentStore, merchants, experiments, configurations } = deps;
+  // The walk and the restart are the experiment module's (feature 038); who is reached stays here.
+  const reached = new ReachedExperiments({
+    configurations,
+    active: new ActiveExperiments({ merchants, experiments }),
+    restarts: new WindowRestarts({ experimentStore }),
+  });
   return new PublishLevelUseCase({ levels, configuration, clock, reached });
 };
 

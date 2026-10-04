@@ -66,6 +66,16 @@ describe("memoryTextStore", () => {
     expect(await store.inForce(DOS, KEY)).toBeUndefined();
   });
 
+  it("two values of one family are two keys: each is found by its own value", async () => {
+    const store = memoryTextStore();
+    const spoken = { family: "fit.variant_selector.uncertainty", locale: "es" };
+    await published(store, draft({ key: { ...spoken, attributeValue: "linen" }, text: "Linen." }));
+    await published(store, draft({ key: { ...spoken, attributeValue: "denim" }, text: "Denim." }));
+    expect((await store.find(UNO, { ...spoken, attributeValue: "linen" }))?.value).toBe("Linen.");
+    expect((await store.find(UNO, { ...spoken, attributeValue: "denim" }))?.value).toBe("Denim.");
+    expect((await store.inForce(undefined, { ...spoken, attributeValue: "denim" }))?.version).toBe(1);
+  });
+
   it("names the keys the base holds a text for, and not the ones a merchant holds", async () => {
     const store = memoryTextStore();
     await published(store, draft());

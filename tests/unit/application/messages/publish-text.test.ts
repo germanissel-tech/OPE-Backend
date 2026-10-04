@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PublishTextUseCase,
+  TextPublications,
   type ReachedByTextService,
   type TextStore,
 } from "../../../../src/application/messages/index.js";
@@ -44,7 +45,10 @@ function reaching(reached: readonly Experiment[]) {
 const subject = (texts: TextStore, reached: readonly Experiment[] = []) => {
   const reach = reaching(reached);
   return {
-    useCase: new PublishTextUseCase({ texts, reached: reach.service, clock }),
+    useCase: new PublishTextUseCase({
+      publications: new TextPublications({ texts, reached: reach.service }),
+      clock,
+    }),
     restarted: reach.restarted,
   };
 };

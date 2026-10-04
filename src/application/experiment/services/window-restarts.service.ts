@@ -14,7 +14,7 @@ export interface RestartCause {
   reason?: string | undefined;
   level: ConfigurationLevel;
   version: number;
-  text?: TextRestartCause;
+  text?: TextRestartCause | undefined;
 }
 
 export interface WindowRestartsService {
@@ -50,7 +50,7 @@ export class WindowRestarts implements WindowRestartsService {
       const restarted = experiment.windowRestarted(cause.at, cause.reason, {
         level: cause.level,
         configurationVersion: cause.version,
-        ...(cause.text === undefined ? {} : { text: cause.text }),
+        text: cause.text,
       });
       if (!restarted.ok) throw new Error("The window of an experiment that is not active cannot restart.");
       const updated = await this.#deps.experimentStore.update(restarted.value);

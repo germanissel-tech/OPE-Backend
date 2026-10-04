@@ -344,6 +344,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/texts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a version of a merchant's text, or remove it
+         * @description Creates the next version of the merchant's own text for a key —a family, the attribute value it speaks of when it does, and a language— (feature 038; constitution X): numbered per key, immutable, effective on the merchant's next intervention without a restart. Inside one language the merchant's text is tried before the base; the language of the page rules over the personalisation, so a page in another language shows the base in that language.
+         *
+         *     `remove: true` **removes** the merchant's text: a version too, in the history, after which the key resolves to the base. A text identical to the version in force repeats it (`200`), and so does removing what is already removed; removing a text the merchant never published finds nothing to repeat (`404`). While the merchant's experiment is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the measurement window. A key outside OPE's vocabulary, or a text that is blank, too long or still a template, is refused and no version is created. It takes an operator over this merchant; another merchant never sees the text.
+         */
+        post: operations["publishMerchantText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/unmapped-attribute-values": {
         parameters: {
             query?: never;
@@ -1673,6 +1695,28 @@ export type components = {
          */
         MerchantStatus: "active" | "off" | "deactivated";
         /**
+         * @description What an operator publishes as the next version of a merchant's text for a key (feature 038): the key —a family of OPE's vocabulary, the attribute value it speaks of when the family does, and the language— and either the text as a person will read it or `remove: true`, which removes the merchant's text and sends the key back to the base. One or the other, never both. A key is never created here: it has to exist in the vocabulary.
+         *
+         *     A merchant's text reaches only that merchant, so while its experiment is active only a corrective version is accepted — and it restarts the measurement window (03 §4.10). The reason is where the operator's awareness of that is recorded.
+         */
+        MerchantTextInput: {
+            attributeValue?: components["schemas"]["AttributeValue"];
+            /** @description A corrective version: the only kind accepted while the merchant's experiment is active; it restarts its measurement window. */
+            corrective?: boolean;
+            family: components["schemas"]["MessageFamily"];
+            /** @description The language the text is written in, as a BCP 47 tag. */
+            locale: string;
+            /** @description Why the version is published; required when corrective. */
+            reason?: string;
+            /**
+             * @description Removes the merchant's text for the key, which then resolves to the base: a version in the history like any other, without a text.
+             * @enum {boolean}
+             */
+            remove?: true;
+            /** @description The text, complete prose, as a person will read it. */
+            text?: string;
+        } & (unknown | unknown);
+        /**
          * @description A message family of OPE's closed vocabulary, `<barrier>.<anchor>.<step>`: the candidate the decision plane may show, and what a text is keyed by (ADR-027). Never created through the API.
          * @example fit.variant_selector.information
          */
@@ -2317,6 +2361,8 @@ export type components = {
          * @description A restart of the accumulation window (03 §4.10, D-G): a corrective configuration version published while the experiment was active.
          *
          *     **It says which level the version belongs to** (feature 036). With only the merchant publishing, a number identified a version; with three levels publishing, «version 3» could be the third of the merchant, of the treatment defaults or of the platform.
+         *
+         *     **And which text, when a text caused it** (feature 038): a version of a text is treatment too, and it restarts the window the same way.
          */
         WindowRestart: {
             /**
@@ -2329,6 +2375,15 @@ export type components = {
             level: components["schemas"]["ConfigurationLevel"];
             /** @description The reason the operator declared with the corrective version. */
             reason: string;
+            /** @description The text whose version caused the restart (feature 038): its key and its layer. Then `configurationVersion` is the version of that key in that layer, and `level` stands where the layer would — `defaults` for the base, `merchant` for the merchant's own. Absent when a configuration version caused the restart. */
+            text?: {
+                attributeValue?: components["schemas"]["AttributeValue"];
+                family: components["schemas"]["MessageFamily"];
+                /** @description Whose layer the version belongs to: `base`, or the identifier of the merchant. */
+                layer: string;
+                /** @description The language of the text, as a BCP 47 tag. */
+                locale: string;
+            };
         };
     };
     responses: {
@@ -2609,6 +2664,15 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description No merchant with that identifier within the operator's scope, or —when removing— the merchant has no text of its own for the key: there is no version to repeat, so nothing is created. */
+        MerchantTextNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /**
          * @description Valid request rejected on semantics: one of the `x-invariants` of the merchant (ADR-007). The
          *     `type` names the invariant.
@@ -2729,6 +2793,15 @@ export type components = {
         };
         /** @description Valid request rejected on semantics: the `x-invariants` of a text (ADR-007). */
         TextUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description Valid request rejected on semantics: the `x-invariants` of a version of the treatment defaults (ADR-007), and the one the operation declares: a language entering as supported or as reserve without a complete base (feature 038). */
+        TreatmentDefaultsUnprocessable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3886,6 +3959,95 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    publishMerchantText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "family": "fit.variant_selector.information",
+                 *       "locale": "es",
+                 *       "text": "In this shop sizes run small; check the guide before choosing.",
+                 *       "corrective": true,
+                 *       "reason": "the shop's own wording"
+                 *     }
+                 */
+                "application/json": components["schemas"]["MerchantTextInput"];
+            };
+        };
+        responses: {
+            /** @description The version in force, identical to what was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "mrc_7f3k5d2q4m6x",
+                     *       "version": 1,
+                     *       "messageVersionId": "mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1",
+                     *       "text": "In this shop sizes run small; check the guide before choosing.",
+                     *       "removed": false,
+                     *       "corrective": true,
+                     *       "reason": "the shop's own wording",
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_7f3k5d2q4m6x"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            /** @description The version created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "mrc_7f3k5d2q4m6x",
+                     *       "version": 1,
+                     *       "messageVersionId": "mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1",
+                     *       "text": "In this shop sizes run small; check the guide before choosing.",
+                     *       "removed": false,
+                     *       "corrective": true,
+                     *       "reason": "the shop's own wording",
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_7f3k5d2q4m6x"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantTextNotFound"];
+            409: components["responses"]["ConfigurationFrozenConflict"];
+            422: components["responses"]["TextUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     listUnmappedAttributeValues: {
         parameters: {
             query?: {
@@ -4216,7 +4378,7 @@ export interface operations {
                  * @example {
                  *       "family": "fit.variant_selector.information",
                  *       "locale": "es",
-                 *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                 *       "text": "Sizes vary between brands; check the guide before choosing.",
                  *       "corrective": false
                  *     }
                  */
@@ -4237,7 +4399,7 @@ export interface operations {
                      *       "layer": "base",
                      *       "version": 2,
                      *       "messageVersionId": "base/fit.variant_selector.information/-/es#2",
-                     *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                     *       "text": "Sizes vary between brands; check the guide before choosing.",
                      *       "removed": false,
                      *       "corrective": false,
                      *       "publishedAt": "2026-10-04T12:00:00Z",
@@ -4260,7 +4422,7 @@ export interface operations {
                      *       "layer": "base",
                      *       "version": 2,
                      *       "messageVersionId": "base/fit.variant_selector.information/-/es#2",
-                     *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                     *       "text": "Sizes vary between brands; check the guide before choosing.",
                      *       "removed": false,
                      *       "corrective": false,
                      *       "publishedAt": "2026-10-04T12:00:00Z",
@@ -4762,7 +4924,7 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["PlatformWideForbidden"];
             409: components["responses"]["ConfigurationFrozenConflict"];
-            422: components["responses"]["LevelUnprocessable"];
+            422: components["responses"]["TreatmentDefaultsUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

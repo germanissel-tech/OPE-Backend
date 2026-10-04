@@ -12,11 +12,23 @@ import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type CataloguedError, type ProblemOf } from "../http/to-problem.js";
 import type { UseCase } from "../../application/shared-kernel/index.js";
-import type { Experiment } from "../../domain/experiment/index.js";
+import type { Experiment, TextRestartCause } from "../../domain/experiment/index.js";
 import type { Operator } from "../../domain/operator/index.js";
 import type { TypedRequest, components, operations } from "../http/typed.js";
 
 type ExperimentDto = components["schemas"]["Experiment"];
+type RestartTextDto = NonNullable<components["schemas"]["WindowRestart"]["text"]>;
+
+/** The text that caused a restart, as the contract publishes it: the key was judged, so the value is one of the contract's. */
+function restartTextDto(text: TextRestartCause): RestartTextDto {
+  const attributeValue = text.attributeValue as RestartTextDto["attributeValue"];
+  return {
+    family: text.family,
+    ...(attributeValue === undefined ? {} : { attributeValue }),
+    locale: text.locale,
+    layer: text.layer,
+  };
+}
 
 export function experimentDto(experiment: Experiment): ExperimentDto {
   const { activatedAt, windowStartedAt, closedAt } = experiment;
@@ -36,7 +48,7 @@ export function experimentDto(experiment: Experiment): ExperimentDto {
       level: r.level,
       configurationVersion: r.configurationVersion,
       // A restart a text caused says which key and layer (feature 038); the field is absent otherwise.
-      ...(r.text === undefined ? {} : { text: r.text }),
+      ...(r.text === undefined ? {} : { text: restartTextDto(r.text) }),
     })),
   };
 }

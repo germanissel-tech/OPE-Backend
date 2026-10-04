@@ -3,7 +3,7 @@
 // refuses is the failure of the port.
 import { describe, expect, it } from "vitest";
 import { WindowRestarts, type ExperimentStore } from "../../../../src/application/experiment/index.js";
-import { StoreUnavailable, asMerchantId, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
+import { StoreUnavailable, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 import type { Experiment } from "../../../../src/domain/experiment/index.js";
 
@@ -45,7 +45,7 @@ describe("WindowRestarts", () => {
 
   it("records the text that caused it, key and layer, when the cause is a text", async () => {
     const { store, written } = storeOf();
-    const text = { family: "fit.policies.reassurance", locale: "es", merchantId: asMerchantId("m_a") };
+    const text = { family: "fit.policies.reassurance", locale: "es", layer: "m_a" };
     await new WindowRestarts({ experimentStore: store }).restart([activeOf("m_a")], {
       at: AT,
       reason: "wording",

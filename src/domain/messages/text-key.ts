@@ -12,11 +12,21 @@ import { LOCALE_PATTERN, fail, ok, type Result } from "../shared-kernel/index.js
 import { ATTRIBUTE_VALUES } from "./attribute-values.js";
 import { TextKeyUnknown } from "./errors.js";
 
-/** The plain data of a key, as the API and a store carry it. */
+/** The plain data of a key, as a store carries it: the value is there or it is not, never `undefined`. */
 export interface TextKeyRecord {
   family: string;
   /** The value of OPE's vocabulary the text speaks of; only on a family that speaks of the product. */
   attributeValue?: string;
+  locale: string;
+}
+
+/**
+ * A key as the API declares it, before it is judged: the value may arrive as `undefined`, which is what a
+ * body without it reads as. The guard that turns `undefined` into «not there» lives once, in `of`.
+ */
+export interface TextKeyInput {
+  family: string;
+  attributeValue?: string | undefined;
   locale: string;
 }
 
@@ -40,14 +50,14 @@ export class TextKey implements TextKeyRecord {
   readonly attributeValue?: string;
   readonly locale: string;
 
-  private constructor(record: TextKeyRecord) {
+  private constructor(record: TextKeyInput) {
     this.family = record.family;
     if (record.attributeValue !== undefined) this.attributeValue = record.attributeValue;
     this.locale = record.locale;
   }
 
   /** A key as the API declares it: judged against the vocabularies, naming the part that is not in them. */
-  static of(record: TextKeyRecord): Result<TextKey, TextKeyUnknown> {
+  static of(record: TextKeyInput): Result<TextKey, TextKeyUnknown> {
     const speaks = SPEAKS_OF_ATTRIBUTE.get(record.family);
     if (speaks === undefined) return fail(new TextKeyUnknown("family", record.family));
     if (record.attributeValue === undefined) {

@@ -35,7 +35,7 @@ post:
         example:
           family: fit.variant_selector.information
           locale: es
-          text: El talle puede variar entre marcas; conviene chequearlo antes de elegir.
+          text: Sizes vary between brands; check the guide before choosing.
           corrective: false
   responses:
     "200":
@@ -50,7 +50,7 @@ post:
             layer: base
             version: 2
             messageVersionId: base/fit.variant_selector.information/-/es#2
-            text: El talle puede variar entre marcas; conviene chequearlo antes de elegir.
+            text: Sizes vary between brands; check the guide before choosing.
             removed: false
             corrective: false
             publishedAt: 2026-10-04T12:00:00Z
