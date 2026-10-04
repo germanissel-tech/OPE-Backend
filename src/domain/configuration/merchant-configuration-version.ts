@@ -4,10 +4,16 @@
 // active, 03 §4.10) and why. Its own rules are here; the values are judged once resolved over
 // the treatment defaults (EffectiveConfiguration).
 import { AttributeLabels, type AttributeLabelRecord, type AttributeLabelsError } from "../messages/index.js";
-import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
+import {
+  ConfigurationReasonRequired,
+  fail,
+  ok,
+  type MerchantId,
+  type Result,
+} from "../shared-kernel/index.js";
 import { AnchorMap, type AnchorMapRecord } from "./anchor-map.js";
 import { ChangedLeaves } from "./changed-leaves.js";
-import { ConfigurationReasonRequired, type InvalidConfigurationValue } from "./errors.js";
+import type { InvalidConfigurationValue } from "./errors.js";
 import type { DeclaredTreatmentValues } from "./treatment-values.js";
 import type { OperatorId } from "../operator/index.js";
 

@@ -59,5 +59,57 @@ export class DuplicateAttributeLabel extends DomainError {
   }
 }
 
+/**
+ * A key no text can have (feature 038): a family the plane cannot choose, a value OPE writes no texts for,
+ * a value on a family that says nothing of the product, or a language that is not a language tag. The
+ * API never creates keys; `part` says which of the four was wrong.
+ */
+export class TextKeyUnknown extends DomainError {
+  readonly code = "text-key-unknown" as const;
+  readonly module = MODULE;
+  constructor(part: "family" | "attributeValue" | "locale", value: string) {
+    super("The text key names something OPE has no text for.", { part, value });
+  }
+}
+
+/** The base layer never loses a text: it has to stay complete for every supported language (feature 038). */
+export class BaseTextRequired extends DomainError {
+  readonly code = "base-text-required" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A base text cannot be removed: the base layer stays complete.");
+  }
+}
+
+/** No version of that key carries that number (feature 038): a history is read by number. */
+class TextVersionNotFound extends DomainError {
+  readonly code = "text-version-not-found" as const;
+  readonly module = MODULE;
+  constructor(version: number) {
+    super(`The key has no version ${version}.`);
+  }
+}
+
+/**
+ * A language with no complete base (feature 038): it cannot be supported, named as reserve, or left by the seed.
+ * The families it lacks travel in the details as one string, which is what an operator needs to complete it;
+ * the details of an error are scalars, so whoever has the list joins it.
+ */
+export class LocaleIncomplete extends DomainError {
+  readonly code = "locale-incomplete" as const;
+  readonly module = MODULE;
+  constructor(locale: string, missing: string) {
+    super("The base layer has no text for some families in that language.", { locale, missing });
+  }
+}
+
 export type MessageError =
-  EmptyText | TextTooLong | UnresolvedPlaceholder | UnknownAttributeValue | DuplicateAttributeLabel;
+  | EmptyText
+  | TextTooLong
+  | UnresolvedPlaceholder
+  | UnknownAttributeValue
+  | DuplicateAttributeLabel
+  | TextKeyUnknown
+  | BaseTextRequired
+  | TextVersionNotFound
+  | LocaleIncomplete;

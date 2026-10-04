@@ -107,12 +107,10 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     if (version.reason === undefined) throw new Error("A corrective version carries a reason.");
     // The level the version belongs to travels with the restart (feature 036): with three levels publishing,
     // a bare number no longer identifies which version caused it.
-    const restarted = active.windowRestarted(
-      version.publishedAt,
-      version.reason,
-      version.version,
-      "merchant",
-    );
+    const restarted = active.windowRestarted(version.publishedAt, version.reason, {
+      level: "merchant",
+      configurationVersion: version.version,
+    });
     if (!restarted.ok) throw new Error("The window of an experiment that is not active cannot restart.");
     return experimentStore.update(restarted.value);
   }

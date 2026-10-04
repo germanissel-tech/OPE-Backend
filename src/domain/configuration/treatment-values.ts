@@ -10,7 +10,15 @@ import {
   type SyncLevelRulesRecord,
 } from "../catalog/index.js";
 import { Experiment } from "../experiment/index.js";
-import { isRate, BARRIERS, fail, ok, type Barrier, type Result } from "../shared-kernel/index.js";
+import {
+  isRate,
+  BARRIERS,
+  LOCALE_PATTERN,
+  fail,
+  ok,
+  type Barrier,
+  type Result,
+} from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 import {
   PolicyInput,
@@ -22,7 +30,6 @@ import {
   type EvidenceProfileInput,
 } from "./policy-inputs.js";
 import {
-  LOCALE_PATTERN,
   SURFACES,
   SYNC_FLOWS,
   SYNC_MODES,

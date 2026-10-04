@@ -22,6 +22,7 @@ import {
 } from "../../src/interface-adapters/experiment/index.js";
 import { sqliteEventLog } from "../../src/interface-adapters/ingestion/index.js";
 import { memoryMerchantStore, sqliteMerchantStore } from "../../src/interface-adapters/merchant/index.js";
+import { sqliteTextStore } from "../../src/interface-adapters/messages/index.js";
 import { testExperiment } from "../helpers/experiments.js";
 import { testMerchant } from "../helpers/merchants.js";
 import { decided } from "../unit/interface-adapters/ingestion/event-log.contract.js";
@@ -104,6 +105,18 @@ beforeEach(async () => {
         receivedAt: new Date(NOW.getTime() + n),
       }),
     ]);
+  }
+
+  // The texts (feature 038): a history of one base key, so the walk by key has rows to discriminate.
+  const texts = sqliteTextStore({ store, logger });
+  for (let n = 0; n < ROWS; n += 1) {
+    await texts.publish({
+      key: { family: "fit.policies.reassurance", locale: "es" },
+      text: `Version ${String(n)}.`,
+      corrective: false,
+      publishedAt: NOW,
+      operatorId: asOperatorId("op_ana"),
+    });
   }
 });
 
@@ -217,6 +230,23 @@ describe("the reads feature 033 added use their indexes", () => {
          ORDER BY received_at DESC, id DESC LIMIT 100`,
       ),
     ).toContain("USE TEMP B-TREE FOR LAST TERM OF ORDER BY");
+  });
+
+  it("walks the key of the texts for the next number, the history of a key and the load of what is in force (feature 038)", () => {
+    const key = `layer = 'base' AND family = 'fit.policies.reassurance' AND attribute_value = '' AND locale = 'es'`;
+    expect(planOf(`SELECT COALESCE(MAX(version), 0) + 1 AS next FROM texts WHERE ${key}`)).toContain(
+      "texts_key",
+    );
+    expect(
+      planOf(
+        `SELECT version, document FROM texts WHERE ${key} AND version < 5000 ORDER BY version DESC LIMIT 3`,
+      ),
+    ).toContain("texts_key");
+    // The load at boot walks the whole index in key order, which is what lets the gateway keep the last
+    // version of each key without sorting anything: no temp b-tree.
+    expect(
+      planOf(`SELECT document FROM texts ORDER BY layer, family, attribute_value, locale, version`),
+    ).not.toContain("TEMP B-TREE");
   });
 
   it("reads the whole table of merchants once, and that is not a scan to fix", () => {

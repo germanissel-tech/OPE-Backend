@@ -22,10 +22,9 @@ import {
   type MerchantConfigurationVersionRecord,
 } from "../../../domain/configuration/index.js";
 import {
-  descending,
   fetched,
   fromDocument,
-  pageTo,
+  pagedByVersion,
   stored,
   toDocument,
   type DurableGatewayDeps,
@@ -78,19 +77,7 @@ export function sqliteConfigurationStore(deps: DurableGatewayDeps): Configuratio
         const row = deps.store.all(LATEST, { merchant: merchantId })[0];
         return row === undefined ? undefined : versionOf(row);
       }),
-    versionsOf: (merchantId, query) => {
-      const window = descending(query);
-      return fetched(deps, () => {
-        const rows = deps.store.all(VERSIONS, {
-          merchant: merchantId,
-          below: window.below,
-          limit: window.limit,
-        });
-        return pageTo(
-          rows.map((row) => ({ key: Number(row["version"]), item: versionOf(row) })),
-          window,
-        );
-      });
-    },
+    versionsOf: (merchantId, query) =>
+      pagedByVersion(deps, { sql: VERSIONS, params: { merchant: merchantId }, itemOf: versionOf }, query),
   };
 }

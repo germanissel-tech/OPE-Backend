@@ -71,7 +71,8 @@ describe("GET /v1/admin/log", () => {
       items: { operation: string }[];
       nextCursor?: string;
     };
-    expect(third.items.map((e) => e.operation)).toEqual(["importConfigurationLevels"]);
+    // The texts of the release right after the levels (feature 038), both audited as the system.
+    expect(third.items.map((e) => e.operation)).toEqual(["importTexts", "importConfigurationLevels"]);
     expect(third).not.toHaveProperty("nextCursor");
   });
 

@@ -7,9 +7,14 @@
 // declared values of a merchant are judged by the resolution and not by the entity. What lives here are the
 // two rules that are the same for both levels: a corrective version carries its reason, and a content equal
 // to the one in force is a repetition and not a new version.
-import { fail, ok, type ReleaseLevel, type Result } from "../shared-kernel/index.js";
+import {
+  ConfigurationReasonRequired,
+  fail,
+  ok,
+  type ReleaseLevel,
+  type Result,
+} from "../shared-kernel/index.js";
 import { ChangedLeaves } from "./changed-leaves.js";
-import { ConfigurationReasonRequired } from "./errors.js";
 import { MEASURING_PLATFORM_FIELDS } from "./platform-configuration.js";
 import type { OperatorId } from "../operator/index.js";
 

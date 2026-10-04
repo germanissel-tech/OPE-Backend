@@ -28,8 +28,12 @@ import {
   type PlatformLevelReader,
   type PublishLevelRequest,
   type PublishLevelResponse,
-  type ReachedExperimentsDependencies,
 } from "../../application/configuration/index.js";
+import {
+  WindowRestarts,
+  type ExperimentDirectory,
+  type ExperimentStore,
+} from "../../application/experiment/index.js";
 import {
   catalogPoliciesOf,
   holdoutSourceOf,
@@ -61,6 +65,7 @@ import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./exp
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
+import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
 import type { LevelVersion } from "../../domain/configuration/index.js";
 
@@ -144,15 +149,19 @@ const PUBLISHES_A_LEVEL = {
   clock: ClockPort,
 } as const;
 
-const publishesALevel = (
-  deps: {
-    levels: LevelStore;
-    configuration: ConfigurationService;
-    clock: Clock;
-  } & ReachedExperimentsDependencies,
-): PublishLevelUseCase => {
-  const { levels, configuration, clock, ...rest } = deps;
-  return new PublishLevelUseCase({ levels, configuration, clock, reached: new ReachedExperiments(rest) });
+const publishesALevel = (deps: {
+  levels: LevelStore;
+  configuration: ConfigurationService;
+  clock: Clock;
+  merchants: MerchantStore;
+  configurations: ConfigurationStore;
+  experiments: ExperimentDirectory;
+  experimentStore: ExperimentStore;
+}): PublishLevelUseCase => {
+  const { levels, configuration, clock, experimentStore, ...rest } = deps;
+  // The restart is the experiment module's (feature 038); the question of who is reached stays here.
+  const reached = new ReachedExperiments({ ...rest, restarts: new WindowRestarts({ experimentStore }) });
+  return new PublishLevelUseCase({ levels, configuration, clock, reached });
 };
 
 /**

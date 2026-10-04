@@ -13,7 +13,7 @@
 import type { ChangedLeaves, LevelVersion } from "../../../domain/configuration/index.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { Result, StoreUnavailable } from "../../../domain/shared-kernel/index.js";
-import type { ExperimentDirectory, ExperimentStore } from "../../experiment/index.js";
+import type { ExperimentDirectory, WindowRestartsService } from "../../experiment/index.js";
 import type { MerchantStore } from "../../merchant/index.js";
 import type { ConfigurationStore } from "../ports/configuration-store.js";
 
@@ -32,7 +32,8 @@ export interface ReachedExperimentsDependencies {
   merchants: MerchantStore;
   configurations: ConfigurationStore;
   experiments: ExperimentDirectory;
-  experimentStore: ExperimentStore;
+  /** The restart itself, which is the experiment module's since feature 038: the texts restart the same way. */
+  restarts: WindowRestartsService;
 }
 
 /** How many merchants are walked while looking for active experiments; D-21 keeps this a single process. */
@@ -60,27 +61,15 @@ export class ReachedExperiments implements ReachedExperimentsService {
     return reached;
   }
 
-  async restart(
+  restart(
     experiments: readonly Experiment[],
     version: LevelVersion,
   ): Promise<Result<undefined, StoreUnavailable>> {
-    // **Nothing to restart demands nothing**, and asking the other way round was a defect: a publication
-    // that reaches nobody needs no reason, and the guard below would have refused it.
-    if (experiments.length === 0) return { ok: true, value: undefined };
-    // With something to restart, the version is corrective and the draft guaranteed its reason: a version
-    // that arrives here without one is a programming error, not a business outcome.
-    if (version.reason === undefined) throw new Error("A corrective version carries a reason.");
-    for (const experiment of experiments) {
-      const restarted = experiment.windowRestarted(
-        version.publishedAt,
-        version.reason,
-        version.version,
-        version.level,
-      );
-      if (!restarted.ok) throw new Error("The window of an experiment that is not active cannot restart.");
-      const updated = await this.#deps.experimentStore.update(restarted.value);
-      if (!updated.ok) return updated;
-    }
-    return { ok: true, value: undefined };
+    return this.#deps.restarts.restart(experiments, {
+      at: version.publishedAt,
+      reason: version.reason,
+      level: version.level,
+      version: version.version,
+    });
   }
 }

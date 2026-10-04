@@ -44,113 +44,113 @@ resuelve merchant antes que base dentro de cada idioma, la semilla se importa un
 
 ### El mapa y el dominio
 
-- [ ] T001 `contracts/api-map.yaml` — las **seis** operaciones como `planned` (paso 0): `publishText`,
+- [x] T001 `contracts/api-map.yaml` — las **seis** operaciones como `planned` (paso 0): `publishText`,
       `listTextVersions`, `getTextVersion`, `publishMerchantText`, `listMerchantTextVersions`,
       `getMerchantTextVersion`, con consumidor `admin`, tag, capacidades nuevas `texts:write` /
       `texts:read` en `consumers.admin.capabilities`, `roadmap` y fuente. `npm run check:api-map`.
-- [ ] T002 [P] `tests/unit/domain/messages/text-key.test.ts` — **antes de la clase**: una familia fuera
+- [x] T002 [P] `tests/unit/domain/messages/text-key.test.ts` — **antes de la clase**: una familia fuera
       del vocabulario de candidatos falla nombrándola; un valor fuera del de atributos, ídem; una familia
       sin atributo rechaza un valor; una que habla de atributo lo exige; un idioma por forma (el patrón de
       `Locales`); `rehydrate` no re-juzga.
-- [ ] T003 `src/domain/messages/text-key.ts` y `src/domain/messages/errors.ts` — `TextKey` como clase
+- [x] T003 `src/domain/messages/text-key.ts` y `src/domain/messages/errors.ts` — `TextKey` como clase
       (ADR-024) juzgada contra `CANDIDATES` (selection) y `ATTRIBUTE_VALUES`; `TextKeyUnknown` con la
       parte que falla en `details`. Exportado por el `index.ts` del módulo.
-- [ ] T004 [P] `tests/unit/domain/messages/text-version.test.ts` — **antes de la clase**: una versión
+- [x] T004 [P] `tests/unit/domain/messages/text-version.test.ts` — **antes de la clase**: una versión
       «quitado» sólo existe en la capa de un merchant (`BaseTextRequired` en la base); el identificador
       de versión se deriva de capa, clave y número y **no lleva voz**; `record()` declara el texto como
       registro plano y `rehydrate` lo convierte (feature 037); `sameTextAs` para repetir.
-- [ ] T005 `src/domain/messages/text-version.ts` — la entidad: `private constructor`, `of(...)` que
+- [x] T005 `src/domain/messages/text-version.ts` — la entidad: `private constructor`, `of(...)` que
       devuelve `Result`, `rehydrate`, `record()`, y la derivación del identificador que una intervención
       estampa (`messageVersionId`). El número **no** se declara: lo acuña el almacén.
-- [ ] T006 [P] `tests/unit/domain/messages/completeness.test.ts` — **antes de mudar la regla**: dado un
+- [x] T006 [P] `tests/unit/domain/messages/completeness.test.ts` — **antes de mudar la regla**: dado un
       idioma y lo vigente de la base, qué familias **incondicionales** faltan; una familia que habla de
       atributo no cuenta (R-01); vacío es completo.
-- [ ] T007 `src/domain/messages/completeness.ts` — la regla mudada desde `composition/corpus-config.ts`
+- [x] T007 `src/domain/messages/completeness.ts` — la regla mudada desde `composition/corpus-config.ts`
       como método de quien lo sabe, no como función suelta (`src/domain/` no exporta funciones sueltas):
       un conjunto de textos vigentes sabe qué le falta para un idioma.
 
 ### La voz se retira
 
-- [ ] T008 `src/domain/shared-kernel/voice.ts`, `src/application/messages/ports/message-corpus.ts`,
+- [x] T008 `src/domain/shared-kernel/voice.ts`, `src/application/messages/ports/message-corpus.ts`,
       `src/application/messages/ports/message-directory.ts`,
       `src/interface-adapters/configuration/gateways/message-settings.ts` — se retira el tipo `Voice` y
       `DEFAULT_VOICE`; `TextKey` del puerto pierde `voice` y gana `merchantId`; `MessageSettings` pierde
       `voice`. Lo que compila después de esto es la lista de sitios que la nombraban.
-- [ ] T009 [P] `docs/dominio/voz.md` y `docs/dominio/version-de-mensaje.md` — la voz se retira del
+- [x] T009 [P] `docs/dominio/voz.md` y `docs/dominio/version-de-mensaje.md` — la voz se retira del
       glosario (ADR-008) y la versión de mensaje pasa a derivarse de capa, clave y número; nota nueva
       `docs/dominio/capa-de-texto.md` para el sustantivo nuevo (paso previo al contrato de la regla).
       `check:identifiers` verifica lo citado.
 
 ### El reinicio de ventanas, en su dueño
 
-- [ ] T010 `tests/unit/domain/experiment/experiment.test.ts` — **antes de tocar la entidad**: un reinicio
+- [x] T010 `tests/unit/domain/experiment/experiment.test.ts` — **antes de tocar la entidad**: un reinicio
       con causa de texto guarda la clave y la capa; un registro **sin** causa (escrito por la 036) se
       rehidrata y se lee igual que hoy.
-- [ ] T011 `src/domain/experiment/experiment.ts` — `WindowRestart` gana `cause` (configuración o texto,
+- [x] T011 `src/domain/experiment/experiment.ts` — `WindowRestart` gana `cause` (configuración o texto,
       discriminada por `kind`) conservando `level` y `configurationVersion`; `windowRestarted` la recibe.
-- [ ] T012 `tests/unit/application/experiment/window-restarts.test.ts` — **antes del servicio**: reinicia
+- [x] T012 `tests/unit/application/experiment/window-restarts.test.ts` — **antes del servicio**: reinicia
       cada experimento activo con la causa dada y escribe cada uno; uno que no está activo no se toca; un
       almacén que rechaza devuelve `StoreUnavailable`.
-- [ ] T013 `src/application/experiment/services/window-restarts.service.ts` — `WindowRestarts`, extraído
+- [x] T013 `src/application/experiment/services/window-restarts.service.ts` — `WindowRestarts`, extraído
       de `ReachedExperiments.restart` (036). Exportado por el índice de `experiment`.
-- [ ] T014 `src/application/configuration/services/reached-experiments.service.ts` y
+- [x] T014 `src/application/configuration/services/reached-experiments.service.ts` y
       `src/composition/modules/configuration.ts` — `ReachedExperiments` pierde el reinicio y lo pide a
       `WindowRestarts`, pasando la causa de configuración. `npx vitest run tests/integration/levels.test.ts
 tests/integration/admin-configuration.test.ts` **sin cambios de expectativa**: es la red.
 
 ### El almacén
 
-- [ ] T015 `src/application/messages/ports/text-store.ts` — el puerto: publicar (numerando por capa y
+- [x] T015 `src/application/messages/ports/text-store.ts` — el puerto: publicar (numerando por capa y
       clave, con «quitado» como una versión), lo vigente de una capa entera, el historial de una clave
       paginado, una versión, y qué familias faltan en la base para un idioma. `Result` con
       `StoreUnavailable` en las escrituras (ADR-021).
-- [ ] T016 `tests/unit/interface-adapters/messages/memory-text-store.test.ts` y
+- [x] T016 `tests/unit/interface-adapters/messages/memory-text-store.test.ts` y
       `src/interface-adapters/messages/gateways/memory-text-store.ts` — el gateway en memoria, que
       **también sirve `MessageCorpus`**: merchant primero y base después para una clave y un idioma.
       Reemplaza `memory-message-corpus.ts`, que se retira.
-- [ ] T017 `migrations/006-texts.sql` — la tabla de `data-model.md`: capa y valor de atributo con
+- [x] T017 `migrations/006-texts.sql` — la tabla de `data-model.md`: capa y valor de atributo con
       centinela y no `NULL` (un índice único trata los `NULL` como distintos), clave `(layer, family,
 attribute_value, locale, version)`, las dos columnas del dueño, `PRAGMA user_version = 6`. Con
       su fila en el inventario de `migrations/README.md`.
-- [ ] T018 `tests/unit/interface-adapters/messages/sqlite-text-store.test.ts` — con el doble de
+- [x] T018 `tests/unit/interface-adapters/messages/sqlite-text-store.test.ts` — con el doble de
       `tests/helpers/sql-store.ts`: llena su índice una vez al construirse y nunca vuelve a leer la tabla
       para resolver; toca el índice **después** de que el almacén aceptó y nunca antes (ADR-041); una
       escritura rechazada deja el índice intacto.
-- [ ] T019 `src/interface-adapters/messages/gateways/sqlite-text-store.ts` — el gateway durable:
+- [x] T019 `src/interface-adapters/messages/gateways/sqlite-text-store.ts` — el gateway durable:
       `MAX(version)+1` **dentro de la transacción** por capa y clave, `record()` al escribir,
       `rehydrate` sobre el documento al leer (feature 037: ninguna parte a mano), el índice de lo vigente
       mantenido con `store.committed`, y el corpus servido desde ese índice.
-- [ ] T020 `tests/durability/texts.test.ts` — lo que sólo se ve contra un almacén de verdad: las versiones
+- [x] T020 `tests/durability/texts.test.ts` — lo que sólo se ve contra un almacén de verdad: las versiones
       y lo vigente cruzan un reinicio; «quitado» cruza un reinicio y resuelve a la base; dos publicaciones
       no comparten número; un merchant no ve el texto de otro; una escritura rechazada degrada al canal
       del puerto y no deja índice.
-- [ ] T021 `tests/architecture/storage-inventory.test.ts` — el almacén nuevo gana su fila
+- [x] T021 `tests/architecture/storage-inventory.test.ts` — el almacén nuevo gana su fila
       (`born-durable`), en los dos sentidos.
-- [ ] T022 `tests/durability/query-plans.test.ts` — el historial de una clave y la carga de lo vigente
+- [x] T022 `tests/durability/query-plans.test.ts` — el historial de una clave y la carga de lo vigente
       usan el índice, sobre tablas con filas.
 
 ### La semilla y la resolución
 
-- [ ] T023 `config/messages.json` y `src/composition/corpus-config.ts` — la semilla pierde `voice`; el
+- [x] T023 `config/messages.json` y `src/composition/corpus-config.ts` — la semilla pierde `voice`; el
       lector juzga sólo la **forma** y deja de juzgar la completitud, que se muda al caso de uso de
       importación. Fila de `config/README.md` reescrita: es semilla, se aplica una vez.
-- [ ] T024 `tests/unit/application/messages/import-texts.test.ts` y
+- [x] T024 `tests/unit/application/messages/import-texts.test.ts` y
       `src/application/messages/use-cases/import-texts.use-case.ts` — importa la semilla sólo en un
       almacén vacío, a nombre del sistema, juzgando la completitud contra los idiomas que recibe en el
       request (los de los niveles sembrados: la composición los calcula, porque `messages` no depende de
       `configuration`); una semilla incompleta no arranca (constitución II); un almacén con textos la deja
       y lo dice.
-- [ ] T025 `src/composition/bootstrap.ts` y `src/composition/modules/messages.ts` — el corpus deja de
+- [x] T025 `src/composition/bootstrap.ts` y `src/composition/modules/messages.ts` — el corpus deja de
       venir de `CorpusPort`; `messages` gana tabla por tecnología (memoria y SQLite) y la importación de la
       semilla entra en `importSeed` **después** de los niveles, que son los que dicen qué idiomas juzgar.
       `tests/integration/bootstrap.test.ts`: dos arranques, el segundo no importa y lo dice (SC-008).
-- [ ] T026 `.dependency-cruiser.cjs` — `messages` gana `operator`, `merchant` y `experiment` en
+- [x] T026 `.dependency-cruiser.cjs` — `messages` gana `operator`, `merchant` y `experiment` en
       `CONTEXT_MAP` (R-02). `npm run arch` en verde.
-- [ ] T027 `tests/unit/application/messages/message.service.test.ts` y
+- [x] T027 `tests/unit/application/messages/message.service.test.ts` y
       `src/application/messages/services/message.service.ts` — dentro de cada idioma, primero el texto
       del merchant y después el base; el orden de idiomas no cambia; el caso de la spec: merchant
       personalizado en español con la página en inglés muestra la base en inglés.
-- [ ] T028 Correr `npm run format:check && npm run quality && npm run typecheck && npm test` y
+- [x] T028 Correr `npm run format:check && npm run quality && npm run typecheck && npm test` y
       `npx vitest run --project durability`: el mecanismo está, la voz no compila en ningún sitio, y nada
       de HTTP cambió todavía.
 

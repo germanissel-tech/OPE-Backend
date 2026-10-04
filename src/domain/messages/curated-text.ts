@@ -16,7 +16,13 @@ const MAX_LENGTH = 512;
  */
 const PLACEHOLDER = /\{[^}]*\}/u;
 
-export class CuratedText {
+/** The plain data of a curated text, as a store gives it back (feature 037). */
+export interface CuratedTextRecord {
+  version: MessageVersion;
+  value: string;
+}
+
+export class CuratedText implements CuratedTextRecord {
   readonly version: MessageVersion;
   readonly value: string;
 
@@ -31,5 +37,14 @@ export class CuratedText {
     if (trimmed.length > MAX_LENGTH) return fail(new TextTooLong(version, trimmed.length));
     if (PLACEHOLDER.test(trimmed)) return fail(new UnresolvedPlaceholder(version));
     return ok(new CuratedText(version, trimmed));
+  }
+
+  /** A text a store already judged: not re-judged (ADR-024). */
+  static rehydrate(record: CuratedTextRecord): CuratedText {
+    return new CuratedText(record.version, record.value);
+  }
+
+  record(): CuratedTextRecord {
+    return { version: this.version, value: this.value };
   }
 }

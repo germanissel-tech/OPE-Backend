@@ -115,6 +115,7 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
       ["importExperiments", "system", "accepted"],
       ["importMerchantConfiguration", "system", "accepted"],
       ["importMerchants", "system", "accepted"],
+      ["importTexts", "system", "accepted"],
       ["importConfigurationLevels", "system", "accepted"],
     ]);
     expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });

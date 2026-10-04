@@ -56,4 +56,29 @@ export class StoreUnavailable extends DomainError {
   }
 }
 
-export type SharedKernelError = InvalidMoney | IdempotencyConflict | StoreUnavailable;
+/**
+ * A publication of treatment —a configuration version or a text— while an experiment is active: only a
+ * corrective one, with its reason, is accepted (03 §4.10, D-G). It lives in the kernel since feature 038
+ * because two modules that cannot depend on each other publish treatment, and a code is one class.
+ */
+export class ConfigurationFrozen extends DomainError {
+  readonly code = "configuration-frozen" as const;
+  readonly module = MODULE;
+  constructor() {
+    super(
+      "The configuration is frozen while an experiment is active: only a corrective version is accepted.",
+    );
+  }
+}
+
+/** A corrective publication carries its reason; without one there is nothing to record in the window it restarts. */
+export class ConfigurationReasonRequired extends DomainError {
+  readonly code = "configuration-reason-required" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A corrective configuration version needs a reason.", { pointer: "reason" });
+  }
+}
+
+export type SharedKernelError =
+  InvalidMoney | IdempotencyConflict | StoreUnavailable | ConfigurationFrozen | ConfigurationReasonRequired;

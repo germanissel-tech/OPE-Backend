@@ -15,8 +15,8 @@ import { readMerchants, type MerchantConfig } from "./merchants-config.js";
 import { readOperators } from "./operators-config.js";
 import { readStoreLocation, type StoreLocation } from "./sqlite-config.js";
 import { readStateRetention, type StateRetention } from "./state-retention-config.js";
+import type { SeedText } from "../application/messages/index.js";
 import type { Operator } from "../domain/operator/index.js";
-import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 
 export type { MerchantConfig } from "./merchants-config.js";
 export type { ReleaseLevels } from "./levels-config.js";
@@ -31,7 +31,7 @@ export interface AppConfig {
   operators: Operator[];
   levels: ReleaseLevels;
   /** The curated texts of the release (feature 027). */
-  corpus: readonly CorpusEntry[];
+  corpus: readonly SeedText[];
   /** Where the durable store lives (feature 030); only a deployment that chooses it opens the file. */
   store: StoreLocation;
   /** How the register's queue is tuned (feature 031): environment, like the store's location. */
@@ -60,21 +60,11 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     merchants,
     operators,
     levels,
-    corpus: readCorpus(env, readFile, defaultLocaleOf(levels)),
+    corpus: readCorpus(env, readFile),
     store: readStoreLocation(env),
     eventLog: readEventLogTuning(env),
     stateRetention: readStateRetention(env),
   };
-}
-
-/**
- * The language a corpus must be complete in: the merchant's reserve language when the release
- * declares one, else the first it serves. A release that declares neither has nothing to be
- * complete in, and the corpus check has nothing to say.
- */
-function defaultLocaleOf(levels: ReleaseLevels): string {
-  const { locales } = levels.defaults.values;
-  return locales.fallback ?? locales.supported[0] ?? "";
 }
 
 /** Decimal digits only: `Number()` would also accept hex, exponents and blanks. */

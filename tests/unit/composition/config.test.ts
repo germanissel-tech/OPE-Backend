@@ -53,7 +53,7 @@ describe("readConfig", () => {
       stateRetention: { sessionMs: 86_400_000 },
     });
     expect(corpus.length).toBeGreaterThan(0);
-    expect(corpus.every((entry) => entry.text.value.length > 0)).toBe(true);
+    expect(corpus.every((entry) => entry.text.length > 0)).toBe(true);
   });
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {
@@ -559,55 +559,57 @@ describe("readConfig — operators (feature 017)", () => {
 // `src/composition/**` is excluded from mutation on purpose and every text is valid prose. What can
 // be judged is whether it is *servable*, and a corpus that is not does not start the server
 // (constitution II). These are the only checks standing between a broken corpus and a person.
-describe("readCorpus — a corpus that cannot be served does not start the server", () => {
+describe("readCorpus — the seed of the base texts is read by shape; what it means is judged at the import (feature 038)", () => {
   const CORPUS = path.resolve("config/messages.json");
-  /** The corpus of the release with `over` applied to each entry named by its family. */
   const corpusWith = (texts: readonly Record<string, unknown>[]): string =>
     JSON.stringify({ version: "corpus-test", texts });
   const entry = (over: Record<string, unknown> = {}) => ({
     family: "fit.policies.reassurance",
     locale: "es",
-    voice: "neutral",
-    version: "mv_test_1",
     text: "A curated text.",
     ...over,
   });
   /** Reads the levels of the release and the corpus the test names. */
   const withCorpus = (raw: string) => (file: string) => (file === CORPUS ? raw : readFileSync(file, "utf8"));
 
-  it("refuses a text of a family no candidate has: unreachable, and almost always a typo", () => {
-    const read = withCorpus(corpusWith([entry({ family: "fit.policies.reassurence" })]));
-    expect(() => readConfig({}, read)).toThrow(/names a family no candidate has/u);
-  });
-
-  it("refuses one version saying two different things: the ledger records the version, a person read one text", () => {
+  it("reads a key and its text, with the attribute value when there is one", () => {
     const read = withCorpus(
-      corpusWith([entry(), entry({ family: "returns.policies.reassurance", text: "Another text." })]),
+      corpusWith([entry(), entry({ family: "fit.variant_selector.uncertainty", attributeValue: "linen" })]),
     );
-    expect(() => readConfig({}, read)).toThrow(/says two different things/u);
+    const { corpus } = readConfig({}, read);
+    expect(corpus).toEqual([
+      { key: { family: "fit.policies.reassurance", locale: "es" }, text: "A curated text." },
+      {
+        key: { family: "fit.variant_selector.uncertainty", attributeValue: "linen", locale: "es" },
+        text: "A curated text.",
+      },
+    ]);
   });
 
-  it("refuses a corpus incomplete in the default language: silence would be the normal answer", () => {
-    // Every entry is valid and reachable; what is missing is the rest of the families, so a merchant
-    // that configured nothing would hear `message-unavailable` as the rule instead of the exception.
-    const read = withCorpus(corpusWith([entry()]));
-    expect(() => readConfig({}, read)).toThrow(/has no text for .* in es\/neutral/u);
+  it("refuses a field a seed text does not have: a voice or a declared version are a file of another release", () => {
+    expect(() => readConfig({}, withCorpus(corpusWith([entry({ voice: "neutral" })])))).toThrow(
+      /texts\[0\]\.voice is not a field of a seed text/u,
+    );
+    expect(() => readConfig({}, withCorpus(corpusWith([entry({ version: "mv_1" })])))).toThrow(
+      /texts\[0\]\.version is not a field of a seed text/u,
+    );
   });
 
-  it("refuses a text that is empty, too long, or still a template, naming which", () => {
-    for (const [over, expected] of [
-      [{ text: "   " }, /cannot be empty/u],
-      [{ text: "a".repeat(513) }, /longer than the contract allows/u],
-      [{ text: "Fabric {material}." }, /still carries a placeholder/u],
-    ] as const) {
-      const read = withCorpus(corpusWith([entry(over)]));
-      expect(() => readConfig({}, read), JSON.stringify(over)).toThrow(expected);
-    }
+  it("refuses a key or a text that is not a non-empty string, naming the field", () => {
+    expect(() => readConfig({}, withCorpus(corpusWith([entry({ text: 3 })])))).toThrow(/texts\[0\]\.text/u);
+    expect(() => readConfig({}, withCorpus(corpusWith([entry({ family: "" })])))).toThrow(
+      /texts\[0\]\.family/u,
+    );
+    expect(() => readConfig({}, withCorpus(corpusWith([entry({ attributeValue: 1 })])))).toThrow(
+      /texts\[0\]\.attributeValue must be a string/u,
+    );
   });
 
-  it("refuses a voice OPE writes no texts in", () => {
-    const read = withCorpus(corpusWith([entry({ voice: "streetwear" })]));
-    expect(() => readConfig({}, read)).toThrow(/not a voice OPE writes texts in/u);
+  it("does not judge the vocabulary nor the completeness: that is the import's, against the store", () => {
+    // A family no candidate has, and a base complete in nothing: the reader lets both through, because
+    // the rules live with their owner now and a file that passed here can still be refused at the import.
+    const read = withCorpus(corpusWith([entry({ family: "fit.policies.reassurence" })]));
+    expect(() => readConfig({}, read)).not.toThrow();
   });
 
   it("refuses a corpus that is not a list of texts at all", () => {

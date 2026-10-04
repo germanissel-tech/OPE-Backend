@@ -16,10 +16,9 @@
 // what a cold boot already costs (research R-03).
 import { LevelVersion, type LevelVersionRecord } from "../../../domain/configuration/index.js";
 import {
-  descending,
   fetched,
   fromDocument,
-  pageTo,
+  pagedByVersion,
   stored,
   toDocument,
   type DurableGatewayDeps,
@@ -72,16 +71,8 @@ export function sqliteLevelStore(deps: DurableGatewayDeps): LevelStore {
         const row = deps.store.all(LATEST, { level })[0];
         return row === undefined ? undefined : versionOf(row);
       }),
-    versionsOf: (level, query) => {
-      const window = descending(query);
-      return fetched(deps, () => {
-        const rows = deps.store.all(VERSIONS, { level, below: window.below, limit: window.limit });
-        return pageTo(
-          rows.map((row) => ({ key: Number(row["version"]), item: versionOf(row) })),
-          window,
-        );
-      });
-    },
+    versionsOf: (level, query) =>
+      pagedByVersion(deps, { sql: VERSIONS, params: { level }, itemOf: versionOf }, query),
     versionOf: (level, version) =>
       fetched(deps, () => {
         const row = deps.store.all(ONE, { level, version })[0];

@@ -41,6 +41,8 @@ consumers:
         experiments:read,
         experiments:write,
         log:read,
+        texts:read,
+        texts:write,
       ]
 roadmap:
   persistence-and-resilience: Persistence and resilience — durable ledgers and catalogue; record acceptance decoupled from ledger latency; read ports with a failure channel; decision plane separated from measurement; per-session budget atomicity; the administration entry commits with the action it records, which closes the window ADR-034 leaves open (audit 014 F-043, F-045, F-046; ADR-034)
@@ -418,3 +420,57 @@ operations:
     feature: "027"
     status: built
     source: mvp:01-arquitectura-mvp.md#3.1.1
+  - operationId: publishText
+    method: post
+    path: /v1/admin/texts
+    consumer: admin
+    tag: admin
+    capabilities: [texts:write]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md
+  - operationId: listTextVersions
+    method: get
+    path: /v1/admin/texts/{family}/{locale}/versions
+    consumer: admin
+    tag: admin
+    capabilities: [texts:read]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md
+  - operationId: getTextVersion
+    method: get
+    path: /v1/admin/texts/{family}/{locale}/versions/{version}
+    consumer: admin
+    tag: admin
+    capabilities: [texts:read]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md
+  - operationId: publishMerchantText
+    method: post
+    path: /v1/admin/merchants/{merchantId}/texts
+    consumer: admin
+    tag: admin
+    capabilities: [texts:write]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md
+  - operationId: listMerchantTextVersions
+    method: get
+    path: /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions
+    consumer: admin
+    tag: admin
+    capabilities: [texts:read]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md
+  - operationId: getMerchantTextVersion
+    method: get
+    path: /v1/admin/merchants/{merchantId}/texts/{family}/{locale}/versions/{version}
+    consumer: admin
+    tag: admin
+    capabilities: [texts:read]
+    roadmap: admin-panel
+    status: planned
+    source: specs/038-textos-por-api/spec.md

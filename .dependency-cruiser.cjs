@@ -43,7 +43,10 @@ const CONTEXT_MAP = {
   // Feature 027: messages owns the curated corpus. It needs selection for the message family
   // (barrier, anchor, step) and nothing else — it receives the attribute value already resolved,
   // never the product, so it does not depend on catalog.
-  messages: ["shared-kernel", "selection", "decision"],
+  // Feature 038: messages owns the texts an operator publishes, so its use cases need the actor
+  // (operator), the merchant of the route (merchant) and the experiments a text reaches (experiment).
+  // None of the three depends on messages; configuration and admin keep depending on it.
+  messages: ["shared-kernel", "selection", "decision", "operator", "merchant", "experiment"],
   commercial: ["shared-kernel", "barrier", "selection"],
   decision: [
     "shared-kernel",

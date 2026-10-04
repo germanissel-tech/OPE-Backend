@@ -35,6 +35,8 @@ export function experimentDto(experiment: Experiment): ExperimentDto {
       reason: r.reason,
       level: r.level,
       configurationVersion: r.configurationVersion,
+      // A restart a text caused says which key and layer (feature 038); the field is absent otherwise.
+      ...(r.text === undefined ? {} : { text: r.text }),
     })),
   };
 }

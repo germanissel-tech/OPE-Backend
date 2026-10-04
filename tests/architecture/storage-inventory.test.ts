@@ -177,12 +177,15 @@ const INVENTORY: readonly Store[] = [
     durable: "ingestion/gateways/recovering-event-dedup.ts",
   },
 
-  // Not a store of the platform: it is read from the files of the release at every boot, so a restart
-  // cannot lose it — and if the files changed, the new texts are what the boot brings.
+  // Feature 038: the curated texts stopped being a file read at every boot and became published versions,
+  // in the base layer and in each merchant's. The file is the seed of an empty store, so what survives a
+  // restart is what was published — and the durable gateway answers the decision path from an index in
+  // memory its own writes maintain (ADR-041).
   {
-    keeps: "the curated texts of the release",
-    column: "deployment-configuration",
-    memory: "messages/gateways/memory-message-corpus.ts",
+    keeps: "the versions of the texts, in the base layer and in each merchant's",
+    column: "born-durable",
+    memory: "messages/gateways/memory-text-store.ts",
+    durable: "messages/gateways/sqlite-text-store.ts",
   },
 ];
 
@@ -255,13 +258,9 @@ describe("the inventory of what survives a restart (SC-011)", () => {
     // The first four are the spec's; the fifth arrived with feature 036 and carries its reason where it
     // is declared. What this still forbids is a sixth appearing without one.
     const columns = new Set(INVENTORY.map((store) => store.column));
-    expect([...columns].sort()).toEqual([
-      "already-durable",
-      "born-durable",
-      "deployment-configuration",
-      "recoverable",
-      "this-feature",
-    ]);
+    // `deployment-configuration` has no store since feature 038: the texts were its only row and they became
+    // published versions. The column stays declared for the next thing a release brings at every boot.
+    expect([...columns].sort()).toEqual(["already-durable", "born-durable", "recoverable", "this-feature"]);
   });
 });
 

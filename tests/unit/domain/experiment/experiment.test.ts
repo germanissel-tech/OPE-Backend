@@ -229,7 +229,10 @@ describe("Experiment transitions (03 §4.10)", () => {
   it("windowRestarted: only while active; the window moves and the restart is kept in order", () => {
     const active = opened().activated(LATER);
     if (!active.ok) throw new Error(active.error.message);
-    const once = active.value.windowRestarted(EVEN_LATER, "anchor fix", 3, "merchant");
+    const once = active.value.windowRestarted(EVEN_LATER, "anchor fix", {
+      level: "merchant",
+      configurationVersion: 3,
+    });
     if (!once.ok) throw new Error(once.error.message);
     expect(once.value.record()).toMatchObject({
       status: "active",
@@ -238,7 +241,7 @@ describe("Experiment transitions (03 §4.10)", () => {
       windowRestarts: [{ at: EVEN_LATER, reason: "anchor fix", configurationVersion: 3 }],
     });
     const final = new Date("2026-10-01T00:00:00.000Z");
-    const twice = once.value.windowRestarted(final, "margin", 4, "defaults");
+    const twice = once.value.windowRestarted(final, "margin", { level: "defaults", configurationVersion: 4 });
     // **Each restart says which level's version caused it** (feature 036): with three levels publishing,
     // «version 3» and «version 4» would otherwise be two numbers of nothing in particular.
     expect(twice.ok && twice.value.windowRestarts).toEqual([
@@ -247,14 +250,41 @@ describe("Experiment transitions (03 §4.10)", () => {
     ]);
     expect(twice.ok && twice.value.windowStartedAt).toBe(final);
     expect(active.value.windowRestarts).toEqual([]);
-    expect(opened().windowRestarted(LATER, "x", 1, "merchant")).toMatchObject({
+    expect(
+      opened().windowRestarted(LATER, "x", { level: "merchant", configurationVersion: 1 }),
+    ).toMatchObject({
       ok: false,
       error: { code: "experiment-not-open" },
     });
-    expect(active.value.closed(final).windowRestarted(final, "x", 1, "merchant")).toMatchObject({
+    expect(
+      active.value.closed(final).windowRestarted(final, "x", { level: "merchant", configurationVersion: 1 }),
+    ).toMatchObject({
       ok: false,
       error: { code: "experiment-not-open" },
     });
+  });
+
+  it("windowRestarted by a text keeps the key and the layer that caused it (feature 038), and a restart without one reads as before", () => {
+    const active = opened().activated(LATER);
+    if (!active.ok) throw new Error(active.error.message);
+    const cause = { family: "fit.policies.reassurance", locale: "es", merchantId: asMerchantId("m_a") };
+    const byText = active.value.windowRestarted(EVEN_LATER, "a typo", {
+      level: "merchant",
+      configurationVersion: 2,
+      text: cause,
+    });
+    expect(byText.ok && byText.value.windowRestarts).toEqual([
+      { at: EVEN_LATER, reason: "a typo", level: "merchant", configurationVersion: 2, text: cause },
+    ]);
+    // A record written before texts were published by API has no cause and rehydrates as it was.
+    const old = Experiment.rehydrate({
+      ...active.value.record(),
+      windowRestarts: [{ at: EVEN_LATER, reason: "margin", level: "defaults", configurationVersion: 4 }],
+    });
+    expect(old.windowRestarts[0]?.text).toBeUndefined();
+    expect(old.record().windowRestarts).toEqual([
+      { at: EVEN_LATER, reason: "margin", level: "defaults", configurationVersion: 4 },
+    ]);
   });
 
   it("the arm of a visitor does not depend on the state: calibrating, active and closed assign alike", () => {

@@ -38,14 +38,28 @@ export interface WindowRestart {
   at: Date;
   reason: string;
   /**
-   * Which level the version that caused the restart belongs to (feature 036).
-   *
-   * **Without it the number identifies nothing.** While only a merchant published versions, «version 3» was
-   * unambiguous; with the two levels of the release publishing too, the same number names three different
-   * things.
+   * Which level the version that caused the restart belongs to (feature 036): **without it the number
+   * identifies nothing**, because three levels publish and «version 3» would name three different things.
    */
   level: ConfigurationLevel;
   configurationVersion: number;
+  /** The text that caused it (feature 038): then the number is the version of this key in this layer. Absent before. */
+  text?: TextRestartCause;
+}
+
+/** The key and the layer of a text that restarted a window: plain data, so this module needs nothing of `messages`. */
+export interface TextRestartCause {
+  family: string;
+  attributeValue?: string;
+  locale: string;
+  merchantId?: MerchantId;
+}
+
+/** What a restart records of its cause: the version of a level, or of a text in a layer. */
+export interface RestartSource {
+  level: ConfigurationLevel;
+  configurationVersion: number;
+  text?: TextRestartCause;
 }
 
 /** What an operator declares to open an experiment; the instants and the state are the entity's. */
@@ -252,14 +266,15 @@ export class Experiment {
    * The accumulation window restarts at `now` because a corrective configuration version was
    * published (D-G); only an active experiment has a window to restart.
    */
-  windowRestarted(
-    now: Date,
-    reason: string,
-    configurationVersion: number,
-    level: ConfigurationLevel,
-  ): Result<Experiment, ExperimentNotOpen> {
+  windowRestarted(now: Date, reason: string, source: RestartSource): Result<Experiment, ExperimentNotOpen> {
     if (this.status !== ACTIVE) return fail(new ExperimentNotOpen());
-    const restart: WindowRestart = { at: now, reason, level, configurationVersion };
+    const restart: WindowRestart = {
+      at: now,
+      reason,
+      level: source.level,
+      configurationVersion: source.configurationVersion,
+      ...(source.text === undefined ? {} : { text: source.text }),
+    };
     return ok(
       new Experiment({
         ...this.record(),
