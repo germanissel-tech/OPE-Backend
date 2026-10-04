@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.10.0
+  version: 1.11.0
   # While no merchant consumes the contract, incompatible changes pass contract:diff with a
   # MINOR bump (ADR-003, precision of 2026-09-20). Remove before the first pilot.
   x-stability: building
@@ -87,6 +87,8 @@ paths:
     $ref: ./paths/admin-treatment-defaults-versions.yaml
   /v1/admin/treatment-defaults/versions/{version}:
     $ref: ./paths/admin-treatment-defaults-version.yaml
+  /v1/admin/texts:
+    $ref: ./paths/admin-texts.yaml
 # Almost no `components` at the root: each file under components/ is referenced directly from
 # where it is used and the bundle promotes them to `#/components/<type>/<FileName>`. Declaring
 # them here would also trigger `oas3-unused-component`. Single exception (ADR-014): `security`

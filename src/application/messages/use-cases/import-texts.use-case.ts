@@ -12,7 +12,7 @@ import {
   BaseTexts,
   LocaleIncomplete,
   TextVersion,
-  type MessageError,
+  type TextDraftError,
   type TextKeyRecord,
 } from "../../../domain/messages/index.js";
 import {
@@ -41,7 +41,7 @@ export interface ImportTextsRequest {
 
 export type ImportTextsResponse = Result<
   { imported: number } | { outcome: "skipped" },
-  MessageError | ConfigurationReasonRequired | StoreUnavailable
+  TextDraftError | LocaleIncomplete | ConfigurationReasonRequired | StoreUnavailable
 >;
 
 export interface ImportTextsDependencies {

@@ -103,6 +103,12 @@ export class LocaleIncomplete extends DomainError {
   }
 }
 
+/** What a text in itself can be refused for: the three rules of `CuratedText.of`. */
+export type CuratedTextError = EmptyText | TextTooLong | UnresolvedPlaceholder;
+
+/** What a publication of a text can be refused for, before anything is written (feature 038). */
+export type TextDraftError = CuratedTextError | TextKeyUnknown | BaseTextRequired;
+
 export type MessageError =
   | EmptyText
   | TextTooLong

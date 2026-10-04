@@ -166,33 +166,33 @@ quede en el registro.
 
 **Independent Test**: quickstart pasos 1 a 3 para la base; `tests/integration/messages/base-text.test.ts`.
 
-- [ ] T029 [US1] `contracts/` — `publishText` pasa a `built`: `paths/admin-texts.yaml`, esquemas
+- [x] T029 [US1] `contracts/` — `publishText` pasa a `built`: `paths/admin-texts.yaml`, esquemas
       `TextInput`, `TextVersion`, `PublishedText`, tipos de problema `text-key-unknown` y
       `base-text-required` en `problem-types.yaml` con su `x-invariants`, `x-idempotency` con clave
       `text`; `Intervention.messageVersionId` sube su `maxLength`; `Voice.yaml` se retira. `npm run
 contract:check && npm run contract:types`. Fixture en `tests/contract-rules/fixtures/` si una regla
       lo pide.
-- [ ] T030 [US1] `tests/unit/application/messages/reached-by-text.test.ts` — **antes del servicio**: un
+- [x] T030 [US1] `tests/unit/application/messages/reached-by-text.test.ts` — **antes del servicio**: un
       texto base alcanza a los experimentos activos de los merchants **sin** texto propio vigente en esa
       clave e idioma; con texto propio, fuera; en calibración, fuera; un texto de merchant alcanza sólo a
       los de ese merchant.
-- [ ] T031 [US1] `src/application/messages/services/reached-by-text.service.ts` — `ReachedByText` con los
+- [x] T031 [US1] `src/application/messages/services/reached-by-text.service.ts` — `ReachedByText` con los
       merchants, el directorio de experimentos, el almacén de textos y `WindowRestarts` (R-03, R-04): `by`
       y `restart` con causa de texto. Cuatro interfaces en un servicio para que el caso de uso lo pida en
       una dependencia.
-- [ ] T032 [US1] `tests/unit/application/messages/publish-text.test.ts` — **antes del caso de uso**:
+- [x] T032 [US1] `tests/unit/application/messages/publish-text.test.ts` — **antes del caso de uso**:
       alcance total o `OperatorScopeTooNarrow`; clave inválida; texto inválido (los tres errores del
       texto); repetido no crea versión y lo dice; sin experimentos alcanzados no pide motivo; con
       alcanzados y sin motivo, `ConfigurationFrozen`; con motivo, publica y reinicia; el almacén que
       rechaza devuelve `StoreUnavailable`.
-- [ ] T033 [US1] `src/application/messages/use-cases/publish-text.use-case.ts` — `PublishTextUseCase`
+- [x] T033 [US1] `src/application/messages/use-cases/publish-text.use-case.ts` — `PublishTextUseCase`
       con `{ texts, reached, clock }` y `publishedBy` (036) para los cuatro hechos de la publicación.
       Devuelve, nunca lanza (ADR-023).
-- [ ] T034 [P] [US1] `src/interface-adapters/messages/controllers/publish-text.ts` y
+- [x] T034 [P] [US1] `src/interface-adapters/messages/controllers/publish-text.ts` y
       `src/interface-adapters/messages/presenters.ts` — `OperationHandler<"publishText">`: DTO → request,
       `201`/`200` por `outcome`, `toProblem` en fallo. El presenter de una versión, que las seis operaciones
       comparten.
-- [ ] T035 [US1] `src/composition/modules/messages.ts` — `serves.handlers.publishText` con `served(...)`;
+- [x] T035 [US1] `src/composition/modules/messages.ts` — `serves.handlers.publishText` con `served(...)`;
       el módulo no elige si se audita: el mapa ya lo dice.
 - [ ] T036 [US1] `tests/integration/messages/base-text.test.ts` — historia 1 de punta a punta en memoria:
       los siete escenarios de la spec, incluido el que publica un idioma no soportado y se acepta, y el

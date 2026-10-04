@@ -430,6 +430,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/texts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a version of a base text
+         * @description Creates the next version of a base text for a key —a family, the attribute value it speaks of when it does, and a language— (feature 038; constitution VIII and X): numbered per key, immutable, effective on the next intervention without a restart. Until then a text changed only with a deploy, which changes a treatment in course the same way without leaving a version, an entry in the log or a restarted window.
+         *
+         *     A text identical to the version in force repeats it (`200`) instead of creating one. The text **reaches** every merchant without its own text for that key and language: while an experiment it reaches is active only a corrective version — with its reason — is accepted (`409 configuration-frozen`), and it restarts the measurement window of each one. A key outside OPE's vocabulary, or a text that is blank, too long or still a template, is refused and no version is created. The base never loses a text. It takes an operator over every merchant, because the text reaches them all. A text in a language no level supports yet is accepted: the base of a language can be completed before the language is.
+         */
+        post: operations["publishText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/treatment-defaults": {
         parameters: {
             query?: never;
@@ -1650,6 +1672,11 @@ export type components = {
          * @enum {string}
          */
         MerchantStatus: "active" | "off" | "deactivated";
+        /**
+         * @description A message family of OPE's closed vocabulary, `<barrier>.<anchor>.<step>`: the candidate the decision plane may show, and what a text is keyed by (ADR-027). Never created through the API.
+         * @example fit.variant_selector.information
+         */
+        MessageFamily: string;
         /** @description Monetary amount. The amount travels as a decimal string so no precision is lost (ADR-014). */
         Money: {
             /** @description Amount with up to two decimals, dot as separator, no sign and no thousands separators. */
@@ -2093,6 +2120,52 @@ export type components = {
             orders?: components["schemas"]["SyncMode"];
             returns?: components["schemas"]["SyncMode"];
             stockAndPrice?: components["schemas"]["SyncMode"];
+        };
+        /**
+         * @description What an operator publishes as the next version of a base text (feature 038): the key —a family of OPE's vocabulary, the attribute value it speaks of when the family does, and the language— and the text as a person will read it. A key is never created here: it has to exist in the vocabulary.
+         *
+         *     A base text reaches every merchant without its own text for that key and language, so while an experiment it reaches is active only a corrective version is accepted — and it restarts the measurement window of each one (03 §4.10). The reason is where the operator's awareness of that is recorded.
+         */
+        TextInput: {
+            attributeValue?: components["schemas"]["AttributeValue"];
+            /** @description A corrective version: the only kind accepted while an experiment this text reaches is active; it restarts the measurement window of each one. */
+            corrective?: boolean;
+            family: components["schemas"]["MessageFamily"];
+            /** @description The language the text is written in, as a BCP 47 tag. */
+            locale: string;
+            /** @description Why the version is published; required when corrective. */
+            reason?: string;
+            /** @description The text, complete prose, as a person will read it; never a template. */
+            text: string;
+        };
+        /** @description A published version of a text (feature 038): its key, its layer —the base, or a merchant—, its number, what it says, and who published it, when and why. Immutable. `messageVersionId` is what every intervention that showed it stamps, minted from layer, key and number and never declared. A version that removed a merchant's text has no `text` and says `removed`. */
+        TextVersion: {
+            attributeValue?: components["schemas"]["AttributeValue"];
+            /** @description Whether the version was published as corrective. */
+            corrective: boolean;
+            family: components["schemas"]["MessageFamily"];
+            /** @description Whose layer the version belongs to: `base`, or the identifier of the merchant. */
+            layer: string;
+            /** @description The language the text is written in, as a BCP 47 tag. */
+            locale: string;
+            /** @description What an intervention stamps when it shows this text: minted from layer, key and number. */
+            messageVersionId: string;
+            operatorId: components["schemas"]["OperatorId"];
+            /**
+             * Format: date-time
+             * @description Instant of publication.
+             */
+            publishedAt: string;
+            /** @description The reason the operator declared, when any. */
+            reason?: string;
+            /** @description Whether this version removed the merchant's text, sending the key back to the base. */
+            removed: boolean;
+            /** @description The text as it was published; absent when the version removed the merchant's text. */
+            text?: string;
+            /** @description Sequential number of the key in its layer, assigned at publication. */
+            version: number;
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches. */
+            windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
         /** @description Level 2 (constitution XI): what every merchant gets unless it declares otherwise, with the name of the version in force. The release file (`config/treatment-defaults.json`) is the seed of version 1; from there on an operator publishes it by API (ADR-031 as amended by feature 036). */
         TreatmentDefaults: {
@@ -2651,6 +2724,15 @@ export type components = {
                  *       "instance": "/v1/exposures"
                  *     }
                  */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description Valid request rejected on semantics: the `x-invariants` of a text (ADR-007). */
+        TextUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -4117,6 +4199,82 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["ConfigurationVersionNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    publishText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "family": "fit.variant_selector.information",
+                 *       "locale": "es",
+                 *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                 *       "corrective": false
+                 *     }
+                 */
+                "application/json": components["schemas"]["TextInput"];
+            };
+        };
+        responses: {
+            /** @description The version in force, identical to what was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "base",
+                     *       "version": 2,
+                     *       "messageVersionId": "base/fit.variant_selector.information/-/es#2",
+                     *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                     *       "removed": false,
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            /** @description The version created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "family": "fit.variant_selector.information",
+                     *       "locale": "es",
+                     *       "layer": "base",
+                     *       "version": 2,
+                     *       "messageVersionId": "base/fit.variant_selector.information/-/es#2",
+                     *       "text": "El talle puede variar entre marcas; conviene chequearlo antes de elegir.",
+                     *       "removed": false,
+                     *       "corrective": false,
+                     *       "publishedAt": "2026-10-04T12:00:00Z",
+                     *       "operatorId": "ops-1"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TextVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["PlatformWideForbidden"];
+            409: components["responses"]["ConfigurationFrozenConflict"];
+            422: components["responses"]["TextUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

@@ -1,0 +1,63 @@
+type: object
+description: "What an operator publishes as the next version of a base text (feature 038): the key —a family
+  of OPE's vocabulary, the attribute value it speaks of when the family does, and the language— and the
+  text as a person will read it. A key is never created here: it has to exist in the vocabulary.
+
+
+  A base text reaches every merchant without its own text for that key and language, so while an experiment
+  it reaches is active only a corrective version is accepted — and it restarts the measurement window of
+  each one (03 §4.10). The reason is where the operator's awareness of that is recorded."
+additionalProperties: false
+required:
+  - family
+  - locale
+  - text
+properties:
+  family:
+    $ref: ./MessageFamily.yaml
+  attributeValue:
+    $ref: ./AttributeValue.yaml
+  locale:
+    type: string
+    description: The language the text is written in, as a BCP 47 tag.
+    pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+    maxLength: 35
+  text:
+    type: string
+    description: The text, complete prose, as a person will read it; never a template.
+    minLength: 1
+    maxLength: 512
+  corrective:
+    type: boolean
+    description: "A corrective version: the only kind accepted while an experiment this text reaches is
+      active; it restarts the measurement window of each one."
+  reason:
+    type: string
+    description: Why the version is published; required when corrective.
+    minLength: 1
+    maxLength: 512
+x-invariants:
+  - type: configuration-reason-required
+    status: 422
+    rule: a corrective version carries a reason
+    description:
+      A base text reaches every merchant without its own, so a corrective one while measurements run
+      must be explained in the log (03 §4.10).
+  - type: text-key-unknown
+    status: 422
+    rule:
+      the family and the attribute value are OPE's closed vocabulary, and a value goes only with a family that
+      speaks of the product
+    description: "The API never creates keys: a text is published for a key the vocabulary already has."
+  - type: corpus-text-empty
+    status: 422
+    rule: a text is not blank
+    description: Nothing to show is not a text, it is an absent one.
+  - type: corpus-text-too-long
+    status: 422
+    rule: a text is at most as long as an intervention may carry
+    description: It would be cut where nobody decided to cut it.
+  - type: corpus-text-has-placeholder
+    status: 422
+    rule: a text carries no unresolved placeholder
+    description: The corpus is complete prose, never a template (03 §4.4).

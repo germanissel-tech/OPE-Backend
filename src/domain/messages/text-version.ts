@@ -15,7 +15,7 @@ import {
   type Result,
 } from "../shared-kernel/index.js";
 import { CuratedText } from "./curated-text.js";
-import { BaseTextRequired, type MessageError } from "./errors.js";
+import { BaseTextRequired, type TextDraftError } from "./errors.js";
 import { messageVersion, type MessageVersion } from "./ids.js";
 import { TextKey, type TextKeyRecord } from "./text-key.js";
 import type { OperatorId } from "../operator/index.js";
@@ -68,7 +68,7 @@ export class TextVersion {
    * that is not blank, the text —when there is one— is a curated text, and only a merchant's layer may
    * remove. The text comes back trimmed, which is what the store keeps and what a repetition compares.
    */
-  static draft(input: TextDraft): Result<TextDraft, MessageError | ConfigurationReasonRequired> {
+  static draft(input: TextDraft): Result<TextDraft, TextDraftError | ConfigurationReasonRequired> {
     const key = TextKey.of(input.key);
     if (!key.ok) return key;
     if (input.corrective && (input.reason === undefined || input.reason.trim() === "")) {

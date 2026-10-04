@@ -14,7 +14,7 @@ properties:
   messageVersionId:
     type: string
     description: Version of the curated text that was rendered; stable and immutable, so a result can be attributed to what the person actually read.
-    maxLength: 128
+    maxLength: 256
   text:
     type: string
     description: The curated text to render, written and reviewed by a person before it was served (constitution VIII). Complete prose, never a template with slots to fill.
