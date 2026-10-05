@@ -62,7 +62,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                      | `implementada` | 2026-09-30 | `4c439bf` (feature 035, ADR-016 enmendado)              |
 | D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                          | `abierta`      | 2026-09-30 | —                                                       |
 | D-33 | Una lectura durable que falla responde `500 internal-error` en vez de `503` con reintento                 | Evaluación de la persistencia con el dueño, 2026-10-02 | `abierta`      | 2026-10-02 | —                                                       |
-| D-34 | El almacén de versiones de merchant y el de niveles son copia literal, en memoria y en SQLite             | Evaluación de la persistencia con el dueño, 2026-10-02 | `evaluada`     | 2026-10-02 | —                                                       |
+| D-34 | El almacén de versiones de merchant y el de niveles son copia literal, en memoria y en SQLite             | Evaluación de la persistencia con el dueño, 2026-10-02 | `implementada` | 2026-10-05 | `c5881c8` (feature 038: llegó el tercero)               |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -754,6 +754,27 @@ numerado e inmutable con uno en vigor» es diseñar una abstracción para un req
 existe, que es el error que la evaluación del 2026-10-02 encontró cuatro veces en propuestas más grandes
 (ADR-043). El día que aparezca el tercero, lo común se extrae en las dos tecnologías a la vez y los dos
 puertos de hoy pasan a ser dos instancias de lo mismo.
+
+### Cierre (2026-10-05, feature 038): llegó el tercero y se extrajo lo que era igual
+
+El almacén de textos es el tercer historial numerado e inmutable con uno en vigor —configuración de
+merchant, nivel del release, texto—, así que la condición escrita arriba se cumplió y **lo común se extrajo
+en las dos tecnologías**, no se toleró una tercera vez:
+
+- `pagedByVersion` (`interface-adapters/shared-kernel/durable-store.ts`): la ventana descendente y el cursor
+  por versión, que es lo que los tres hacían igual. Lo que varía llega por parámetro —la sentencia, qué
+  identifica al historial, cómo una fila se vuelve un ítem—; lo que es lo mismo quedó en un lugar.
+- `publicationDto` (`interface-adapters/shared-kernel/publication.ts`): los cuatro hechos de una publicación
+  —si fue correctiva y por qué, cuándo, de quién, qué ventanas reinició— que los presentadores de niveles y
+  de textos escribían dos veces.
+
+**Y lo que no se extrajo, con su motivo.** Los tres puertos **no** pasaron a ser instancias de uno: la clave
+de un texto es compuesta (familia, idioma, capa) donde las otras dos es un identificador, y un texto admite
+un estado que las otras no —**quitado**, que deja la clave sin texto propio y hace caer la resolución a la
+base—. Un puerto que abarcara los tres tendría que admitir las dos cosas para todos, y entonces cada
+consumidor cargaría con un vocabulario que no usa. Lo que la duplicación pedía era que no se escribiera dos
+veces **el mecanismo**, y eso es lo que se hizo; unificar la **forma** sería diseñar para un requisito que
+sigue sin existir, que es el error que ADR-043 nombra.
 
 ## Lo que **no** es deuda, y por eso no está acá
 
