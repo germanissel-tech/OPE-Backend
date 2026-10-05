@@ -7,18 +7,11 @@
 //
 // A return is the one write of this schema that is not an append: it is the RETURNED state of the
 // chain (ADR-028), not an edit of what the platform sent.
-import {
-  Correlation,
-  IncentiveRedemption,
-  Order,
-  Return,
-  type OrderId,
-  type OrderRecord,
-} from "../../../domain/outcomes/index.js";
-import { Money, type MerchantId } from "../../../domain/shared-kernel/index.js";
+import { Order, type OrderId, type OrderRecord } from "../../../domain/outcomes/index.js";
 import { attempted, type DurableGatewayDeps } from "../../ledger/index.js";
 import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
 import type { OrderLedger, OrderRecording, ReturnRecording } from "../../../application/outcomes/index.js";
+import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
 const BY_ID = `SELECT document FROM orders WHERE merchant_id = :merchant AND order_id = :order`;
 
@@ -80,24 +73,9 @@ export function sqliteOrderLedger(deps: DurableGatewayDeps): OrderLedger {
 }
 
 /**
- * The document back as an order. **Every part of it that is a class is rehydrated, not left as
- * the plain object `JSON.parse` produced**: an order whose `total` is a bare `{amount, currency}`
- * has no `equals`, and one whose `returned` has no `sameContentAs` throws when a return is
- * repeated — the sort of thing that looks fine in every read and fails on the one write that
- * matters. The four here are the four the order carries today; a fifth would fail `typecheck`,
- * which is why they are named rather than walked.
- *
- * The cast is where the reasoning leaves the compiler: the document was written from an order
- * this code had already judged, and `rehydrate` is defined not to judge it again (ADR-024).
+ * The document back as an order. The cast is true: `OrderRecord` declares its parts as the plain records
+ * a document holds, and the order's constructor is what turns each one into its class (feature 037). The
+ * document was written from an order this code had already judged, and `rehydrate` is defined not to
+ * judge it again (ADR-024).
  */
-function orderOf(document: unknown): Order {
-  const record = fromDocument(String(document)) as OrderRecord;
-  return Order.rehydrate({
-    ...record,
-    total: Money.rehydrate(record.total),
-    correlation: record.correlation === undefined ? undefined : Correlation.rehydrate(record.correlation),
-    redemption:
-      record.redemption === undefined ? undefined : IncentiveRedemption.rehydrate(record.redemption),
-    returned: record.returned === undefined ? undefined : Return.rehydrate(record.returned),
-  });
-}
+const orderOf = (document: unknown): Order => Order.rehydrate(fromDocument(String(document)) as OrderRecord);

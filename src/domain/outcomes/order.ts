@@ -5,21 +5,27 @@
 // correlation with a session is decided once, when it is recorded, never re-judged, and
 // travels apart from the chain (PENDING_CORRELATION | ATTRIBUTED).
 import {
+  Money,
   fail,
   ok,
   type Incentive,
   type MerchantId,
-  type Money,
+  type MoneyRecord,
   type Result,
   type SessionId,
 } from "../shared-kernel/index.js";
+import {
+  Correlation,
+  IncentiveRedemption,
+  type CorrelationRecord,
+  type IncentiveRedemptionRecord,
+} from "./correlation.js";
 import {
   DuplicateOrderItem,
   OrderConfirmedInFuture,
   ReturnItemsNotInOrder,
   type OutcomesError,
 } from "./errors.js";
-import type { Correlation, IncentiveRedemption } from "./correlation.js";
 import type { OrderId } from "./ids.js";
 
 /** A line of an order or of a return: SKU and quantity only. */
@@ -34,11 +40,19 @@ export type OrderStatus = "VERIFIED_ORDER" | "ATTRIBUTED_ORDER" | "RETURNED";
 /** Whether OPE could link the order to one of its sessions; replica of `Correlation.yaml`. */
 export type CorrelationStatus = "PENDING_CORRELATION" | "ATTRIBUTED";
 
-/** What the platform sent, as the domain reads it. */
+/**
+ * What the platform sent, as the domain reads it.
+ *
+ * The total is a **record, not a `Money`** (feature 037), and so are the three parts of `OrderRecord`
+ * below: a ledger gives back plain objects, and the constructor is what turns each one into its class.
+ * A `Money` satisfies `MoneyRecord`, so whoever builds an order with instances still compiles; a record
+ * assigned to a field typed `Money` does not, and that is what makes a part nobody converted a compile
+ * error instead of a `sameContentAs` that throws on the one write that matters.
+ */
 export interface OrderFacts {
   merchantId: MerchantId;
   orderId: OrderId;
-  total: Money;
+  total: MoneyRecord;
   items: readonly OrderItem[];
   confirmedAt: Date;
   sessionId?: SessionId | undefined;
@@ -49,9 +63,9 @@ export interface OrderFacts {
 
 /** The facts plus what OPE derived when it recorded them. */
 export interface OrderRecord extends OrderFacts {
-  correlation?: Correlation | undefined;
-  redemption?: IncentiveRedemption | undefined;
-  returned?: Return | undefined;
+  correlation?: CorrelationRecord | undefined;
+  redemption?: IncentiveRedemptionRecord | undefined;
+  returned?: ReturnRecord | undefined;
 }
 
 export class Order implements OrderRecord {
@@ -70,15 +84,19 @@ export class Order implements OrderRecord {
   private constructor(record: OrderRecord) {
     this.merchantId = record.merchantId;
     this.orderId = record.orderId;
-    this.total = record.total;
+    // Each part that is a class is built here and nowhere else: a copy (`correlated`, `withReturn`)
+    // passes instances, which satisfy their records and come back equal by value.
+    this.total = Money.rehydrate(record.total);
     this.items = [...record.items];
     this.confirmedAt = record.confirmedAt;
     if (record.sessionId !== undefined) this.sessionId = record.sessionId;
     if (record.declared !== undefined) this.declared = record.declared;
     this.receivedAt = record.receivedAt;
-    if (record.correlation !== undefined) this.correlation = record.correlation;
-    if (record.redemption !== undefined) this.redemption = record.redemption;
-    if (record.returned !== undefined) this.returned = record.returned;
+    if (record.correlation !== undefined) this.correlation = Correlation.rehydrate(record.correlation);
+    if (record.redemption !== undefined) {
+      this.redemption = IncentiveRedemption.rehydrate(record.redemption);
+    }
+    if (record.returned !== undefined) this.returned = Return.rehydrate(record.returned);
   }
 
   /**

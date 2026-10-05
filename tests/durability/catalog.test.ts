@@ -42,7 +42,7 @@ const productOf = (id: string): Product => ({
     {
       variantId: asVariantId(`${id}-1`),
       available: true,
-      price: Money.rehydrate({ amount: "100.00", currency: "ARS" }),
+      price: { amount: "100.00", currency: "ARS" },
       attributes: [{ key: "size", value: "L" }],
     },
   ],
@@ -77,6 +77,19 @@ describe("the catalogue across a restart", () => {
     expect(product?.variants[0]?.variantId).toBe("SKU-1-1");
     expect(product?.variants[0]?.attributes).toEqual([{ key: "size", value: "L" }]);
     expect(current?.counts()).toEqual({ products: 1, variants: 1 });
+  });
+
+  it("brings a price back whole, and the rule of money applies to it where it is asked for (feature 037)", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+
+    fixture.restart();
+
+    const price = (await store().current(MERCHANT))?.product(asProductId("SKU-1"))?.variants[0]?.price;
+    // Before this feature the type of that price said Money and the store gave back a plain object: a case
+    // that only compared fields passed, and the first `equals` would have failed here and nowhere else.
+    expect(price).toEqual({ amount: "100.00", currency: "ARS" });
+    if (price === undefined) throw new Error("no price came back");
+    expect(Money.rehydrate(price).equals(Money.rehydrate({ amount: "100.00", currency: "ARS" }))).toBe(true);
   });
 
   it("keeps the freshness it had: the capture instant is an instant, not the string JSON made of it", async () => {

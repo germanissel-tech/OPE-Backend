@@ -18,7 +18,7 @@ import {
   RotationGraceTooLong,
   type MerchantError,
 } from "./errors.js";
-import { Origin } from "./origin.js";
+import { Origin, type OriginRecord } from "./origin.js";
 
 /** On, off by the kill switch (decides nothing, still measures), or deactivated for good. */
 export type MerchantStatus = "active" | "off" | "deactivated";
@@ -34,11 +34,17 @@ export interface MerchantInput {
   status?: MerchantStatus | undefined;
 }
 
-/** The recorded facts of a merchant; origins already canonical. */
+/**
+ * The recorded facts of a merchant; origins already canonical.
+ *
+ * The origins are **records, not `Origin`s** (feature 037): a store gives back plain objects, and the
+ * constructor is what turns them into the class — so a merchant read from a store authenticates, and a
+ * part nobody converted does not compile instead of failing at the CORS edge of another request.
+ */
 export interface MerchantRecord {
   merchantId: MerchantId;
   status: MerchantStatus;
-  origins: readonly Origin[];
+  origins: readonly OriginRecord[];
   credentials: readonly Credential[];
   createdAt: Date;
 }
@@ -67,7 +73,7 @@ export class Merchant implements MerchantRecord {
   private constructor(record: MerchantRecord) {
     this.merchantId = record.merchantId;
     this.status = record.status;
-    this.origins = [...record.origins];
+    this.origins = record.origins.map((origin) => Origin.rehydrate(origin));
     this.credentials = record.credentials.map((c) => ({ ...c }));
     this.createdAt = record.createdAt;
   }
