@@ -2,7 +2,7 @@
 // Closed allow-list: exactly these types, these fields. The HTTP contract validates it; here
 // lives the shape the domain understands, without depending on the generated types.
 import type { EventId } from "./ids.js";
-import type { Money, SessionId, VisitorId } from "../shared-kernel/index.js";
+import type { MoneyRecord, SessionId, VisitorId } from "../shared-kernel/index.js";
 
 /** Replica of the contract's Event discriminator mapping; a test verifies they match. */
 export const EVENT_TYPES = [
@@ -30,7 +30,8 @@ export interface PageContext {
   pageType: PageType;
   productId?: string;
   variantId?: string;
-  price?: Money;
+  /** The data of the price, as the register gives it back; nothing after the ingest applies a rule to it (feature 037). */
+  price?: MoneyRecord;
   availability?: Availability;
   /** Language of the page as the SDK read it (BCP 47, validated by shape at the boundary; 01 §3.1.1). */
   locale?: string;

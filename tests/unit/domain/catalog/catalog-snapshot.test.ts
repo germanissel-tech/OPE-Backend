@@ -8,6 +8,7 @@ import {
   CatalogDuplicateProductId,
   CatalogDuplicateVariantId,
   CatalogSnapshot,
+  type CatalogSnapshotRecord,
   type Product,
 } from "../../../../src/domain/catalog/index.js";
 import { asMerchantId, minutes, Money } from "../../../../src/domain/shared-kernel/index.js";
@@ -236,5 +237,39 @@ describe("CatalogSnapshot facts", () => {
       products: [product("P1"), product("P1")],
     });
     expect(odd.products).toHaveLength(2);
+  });
+});
+
+describe("CatalogSnapshot from a plain record (feature 037: a price is the data of a Money, not the class)", () => {
+  it("keeps the price as the store gives it back, and whoever needs the rule gets it from the data", () => {
+    /** Exactly what a store gives back: the price is an object literal. */
+    const plain: CatalogSnapshotRecord = {
+      merchantId: A,
+      capturedAt: receivedAt,
+      receivedAt,
+      products: [
+        {
+          productId: asProductId("P-1"),
+          title: "Product P-1",
+          attributes: [],
+          variants: [
+            {
+              variantId: asVariantId("P-1-M"),
+              attributes: [],
+              available: true,
+              price: { amount: "19990.00", currency: "ARS" },
+            },
+          ],
+        },
+      ],
+    };
+    const snapshot = CatalogSnapshot.rehydrate(plain);
+    const price = snapshot.product(asProductId("P-1"))?.variants[0]?.price;
+    expect(price).toEqual({ amount: "19990.00", currency: "ARS" });
+    expect(
+      Money.rehydrate(price ?? { amount: "", currency: "" }).equals(
+        Money.rehydrate({ amount: "19990.00", currency: "ARS" }),
+      ),
+    ).toBe(true);
   });
 });

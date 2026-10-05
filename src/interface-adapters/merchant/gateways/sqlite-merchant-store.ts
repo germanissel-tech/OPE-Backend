@@ -20,7 +20,7 @@
 // ledger and the hot state would be **two truths** that can disagree about the same fact. Here there is
 // **one** truth — the table — and the index is a view of it kept by the same operation that changes it.
 // The difference is testable: if they could disagree there would be two write paths, and there are not.
-import { Merchant, Origin, type MerchantRecord } from "../../../domain/merchant/index.js";
+import { Merchant, type MerchantRecord } from "../../../domain/merchant/index.js";
 import { fromDocument, stored, toDocument, type DurableGatewayDeps } from "../../shared-kernel/index.js";
 import type { MerchantDirectory, MerchantStore } from "../../../application/merchant/index.js";
 import type { Page, PageQuery } from "../../../application/shared-kernel/index.js";
@@ -122,24 +122,10 @@ export function sqliteMerchantStore(deps: SqliteMerchantStoreDeps): MerchantStor
 }
 
 /**
- * The document back as the entity, **with its origins rehydrated**. That is the line where this gateway
- * would fail in the way that is hardest to find: `Origin` is a class with `equals`, `JSON.parse` returns
- * plain objects, and a merchant whose origins are plain objects lists fine, looks fine in the panel and
- * **authenticates nothing** — `allowsOrigin` throws at the CORS edge, in another request.
- *
- * The credentials come back on their own: `Credential` is a type with no methods, and the instants are
- * marked by `toDocument`, so a new `Date` field would travel without this function knowing (ADR-024).
+ * The document back as the entity. The cast is true: `MerchantRecord` declares its origins as the plain
+ * records a document holds, and the merchant's constructor is what turns them into `Origin`s (feature 037)
+ * — the part that, left plain, lists fine and authenticates nothing. The instants are marked by
+ * `toDocument`, so a new `Date` field travels without this function knowing (ADR-024).
  */
-function merchantOf(document: unknown): Merchant {
-  const record = fromDocument(String(document)) as StoredMerchant;
-  return Merchant.rehydrate({ ...record, origins: record.origins.map((o) => Origin.rehydrate(o.value)) });
-}
-
-/**
- * The record as the document actually holds it: the origins are plain objects with a `value`, because
- * that is what `JSON.parse` gives back. Typing it as `MerchantRecord` would say they are `Origin`s and
- * hide exactly the mistake this file is about.
- */
-interface StoredMerchant extends Omit<MerchantRecord, "origins"> {
-  origins: readonly { value: string }[];
-}
+const merchantOf = (document: unknown): Merchant =>
+  Merchant.rehydrate(fromDocument(String(document)) as MerchantRecord);

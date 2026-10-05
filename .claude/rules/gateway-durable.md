@@ -40,13 +40,17 @@ primeras son las que se equivocan.
   pierde en silencio**, y lo nota la prueba que casualmente lo llevaba. Un spread de la instancia
   tampoco: pierde el prototipo, y el lint lo rechaza.
 
-- **Al leer, toda clase anidada se rehidrata.** Es el error que se ve bien en toda lectura y falla
-  en la única escritura que importa. Un `Order` cuyo `total` volvió como `{amount, currency}` no
-  tiene `equals`; uno cuyo `returned` volvió como objeto plano **lanza** cuando alguien repite la
-  devolución. `JSON.parse` no devuelve clases: cada parte que lo es se nombra y se rehidrata (ver
-  `src/interface-adapters/outcomes/gateways/sqlite-order-ledger.ts`, que rehidrata cuatro). Las fechas sí vuelven solas —`toDocument` y
-  `fromDocument` las marcan (`src/interface-adapters/shared-kernel/document.ts`), así que un campo `Date` nuevo viaja sin
-  que ningún gateway se entere—. **Nada más vuelve solo.**
+- **Al leer, la entidad vuelve sola de su registro: una llamada a `rehydrate` sobre el documento, y el
+  gateway no nombra ninguna parte** (feature 037). `JSON.parse` no devuelve clases, y el error que eso
+  produce se ve bien en toda lectura y falla en la única escritura que importa: un `Order` cuyo `total`
+  volvió como `{amount, currency}` no tiene `equals`; uno cuyo `returned` volvió plano **lanza** cuando
+  alguien repite la devolución. La defensa no está en el gateway: está en que el **registro de la
+  entidad declara sus partes como registros planos** y su **constructor** las convierte, así que el
+  `as XRecord` del gateway es verdadero y una parte que nadie convirtió **no compila** (regla de
+  entidades, `.claude/rules/entidad.md`). Si una parte vuelve plana, el defecto está en `src/domain/`,
+  nunca se arregla rehidratando a mano acá. Las fechas vuelven solas —`toDocument` y `fromDocument`
+  las marcan (`src/interface-adapters/shared-kernel/document.ts`)—, así que un campo `Date` nuevo viaja
+  sin que ningún gateway se entere.
 
 - **El fallo se traduce con `attempted`, y sólo en las escrituras.** Devuelve el valor o
   `LedgerUnavailable` (ADR-021), y **loguea la causa antes de tragarla**: el canal de fallo dice «no
@@ -67,6 +71,27 @@ primeras son las que se equivocan.
   cobertura es entera de esa suite, y por eso lleva un caso por puerto y por garantía —lectura,
   idempotencia, aislamiento entre merchants, degradación— y no una muestra. Cruzar el reinicio es lo
   único que se prueba ahí: si un caso pasa sin `restart()`, va en `fast`.
+
+## Qué no se abstrae, y por qué
+
+Cuatro abstracciones se evaluaron el 2026-10-02 y se descartaron (ADR-043). Antes de proponer una, leer
+ahí la razón; acá, la línea que la resume:
+
+- **`SqlStore` no es una interfaz entre motores**: es el vocabulario del motor SQLite, síncrono porque
+  el driver `node:sqlite` lo es. La costura para un motor nuevo es el **puerto de aplicación**; un motor
+  nuevo escribe sus gateways y reutiliza lo de arriba y lo de al lado (códec, `record`/`rehydrate`,
+  suites de durabilidad).
+- **No se vuelve asíncrono**: lo que impide portar las transacciones no es la firma, es el **escritor
+  único**. Las siete transacciones que leen antes de escribir se reescriben por motor, con pruebas de
+  concurrencia entre procesos; ADR-043 las lista.
+- **No hay tabla de documentos genérica ni ORM**: casi ningún gateway es pura convención, y el SQL a
+  mano es lo que la suite de planes de consulta verifica.
+- **El índice en memoria de ADR-041 no es un decorador**: la mitad durable de esos dos gateways no
+  implementa las lecturas del camino caliente, y escribirlas en SQL repetiría reglas del dominio para
+  código que ningún despliegue ejecuta.
+- **Los gateways quedan planos**, `memory-*.ts` y `sqlite-*.ts` en la misma carpeta: el prefijo ya
+  agrupa, lo que se edita junto es un puerto con sus implementaciones, y la prueba de inventario de
+  almacenes define qué es un almacén por ese prefijo.
 
 ## El esquema y sus migraciones
 

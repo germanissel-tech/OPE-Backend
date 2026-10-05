@@ -178,9 +178,10 @@ describe("Order — the record, the return and the lines", () => {
     });
     const again = Order.rehydrate(record);
     expect(again.sameContentAs(order)).toBe(true);
-    expect(again.correlation).toBe(correlation);
-    expect(again.redemption).toBe(redemption);
-    expect(again.returned).toBe(returned);
+    // Equal by value and not by reference: the constructor builds every part from its record (feature 037).
+    expect(again.correlation).toEqual(correlation);
+    expect(again.redemption).toEqual(redemption);
+    expect(again.returned).toEqual(returned);
     const bare = valid().record();
     expect(bare.sessionId).toBeUndefined();
     expect(bare.declared).toBeUndefined();
@@ -192,7 +193,8 @@ describe("Order — the record, the return and the lines", () => {
   it("correlated attaches what OPE derived and nothing else; without a correlation the order stays pending", () => {
     const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
     const attributed = valid().correlated(correlation, undefined);
-    expect(attributed.correlation).toBe(correlation);
+    // By value: a copy rebuilds its parts from their records (feature 037).
+    expect(attributed.correlation).toEqual(correlation);
     expect(attributed.redemption).toBeUndefined();
     expect(attributed.status()).toBe("ATTRIBUTED_ORDER");
     expect(attributed.correlationStatus()).toBe("ATTRIBUTED");
@@ -210,7 +212,7 @@ describe("Order — the record, the return and the lines", () => {
       Return.rehydrate({ orderId: base.orderId, returnedAt: NOW, receivedAt: NOW }),
     );
     expect(returned.returned?.returnedAt).toEqual(NOW);
-    expect(returned.correlation).toBe(correlation);
+    expect(returned.correlation).toEqual(correlation);
     expect(returned.status()).toBe("RETURNED");
     expect(returned.correlationStatus()).toBe("ATTRIBUTED");
     expect(order.returned).toBeUndefined();
@@ -240,5 +242,57 @@ describe("Order — the record, the return and the lines", () => {
     ]);
     expect(items[0]?.sku).toBe("b");
     expect(Order.duplicatedSku(items)).toBeUndefined();
+  });
+});
+
+describe("Order from a plain record (feature 037: the record declares data, the constructor converts)", () => {
+  /** Exactly what a store gives back: object literals, no instance anywhere. */
+  const plain: OrderRecord = {
+    merchantId: asMerchantId("m_a"),
+    orderId: asOrderId("A-9"),
+    total: { amount: "100.00", currency: "ARS" },
+    items: [{ sku: "SKU-1", quantity: 2 }],
+    confirmedAt: new Date("2026-09-19T11:59:00.000Z"),
+    receivedAt: NOW,
+    correlation: { sessionId: asSessionId("s"), visitorId: asVisitorId("v") },
+    redemption: { verdict: "not-granted", declared: { kind: "percent", value: 0.05 } },
+    returned: { orderId: asOrderId("A-9"), returnedAt: NOW, receivedAt: NOW },
+  };
+
+  it("turns every part into its class, so each one answers its own rules", () => {
+    const order = Order.rehydrate(plain);
+    expect(order.total.equals(Money.rehydrate({ amount: "100.00", currency: "ARS" }))).toBe(true);
+    expect(order.correlation).toBeInstanceOf(Correlation);
+    expect(order.redemption).toBeInstanceOf(IncentiveRedemption);
+    const repeated = Return.rehydrate({
+      orderId: asOrderId("A-9"),
+      returnedAt: NOW,
+      receivedAt: new Date(NOW.getTime() + 1),
+    });
+    expect(order.returned?.sameContentAs(repeated)).toBe(true);
+    expect(order.status()).toBe("RETURNED");
+  });
+
+  it("built from a copy is the same as built from the plain record: converting an instance is idempotent", () => {
+    const copied = Order.rehydrate({ ...plain, returned: undefined }).withReturn(
+      Return.rehydrate({ orderId: asOrderId("A-9"), returnedAt: NOW, receivedAt: NOW }),
+    );
+    const direct = Order.rehydrate(plain);
+    expect(copied).toEqual(direct);
+    expect(copied.sameContentAs(direct)).toBe(true);
+    expect(copied.record()).toEqual(direct.record());
+  });
+
+  it("leaves an absent optional part absent instead of inventing one", () => {
+    const order = Order.rehydrate({
+      ...plain,
+      correlation: undefined,
+      redemption: undefined,
+      returned: undefined,
+    });
+    expect(order.correlation).toBeUndefined();
+    expect(order.redemption).toBeUndefined();
+    expect(order.returned).toBeUndefined();
+    expect(order.correlationStatus()).toBe("PENDING_CORRELATION");
   });
 });

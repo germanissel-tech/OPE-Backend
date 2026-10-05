@@ -1,9 +1,9 @@
-// notifyOrder (ADR-028): DTO → domain (ids branded, total as Money) → use case → 201 created |
+// notifyOrder (ADR-028): DTO → domain (ids branded, total as the contract validated it) → use case → 201 created |
 // 200 repeated | the Problem Details of the returned error (422 invariant, 409 conflict, 503
 // ledger unavailable). The response carries the status of the order in the evidence chain
 // and what OPE knows of its correlation, and nothing of the ledger.
 import { asOrderId, type Order } from "../../../domain/outcomes/index.js";
-import { asSessionId, Money } from "../../../domain/shared-kernel/index.js";
+import { asSessionId } from "../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf } from "../../http/boundary.js";
 import { merchantOf } from "../../http/security/principal.js";
 import { toProblem } from "../../http/to-problem.js";
@@ -32,7 +32,7 @@ export function makeNotifyOrder(
     const result = await notifyOrder.execute({
       merchantId: merchant.merchantId,
       orderId: asOrderId(body.orderId),
-      total: Money.rehydrate(body.total),
+      total: body.total,
       items: linesOf(body.items),
       confirmedAt: instantOf(body.confirmedAt),
       // Stryker disable next-line ConditionalExpression: asSessionId is a brand, on undefined it yields undefined
