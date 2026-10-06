@@ -47,6 +47,17 @@ cuando Stryker se queda sin tiempo o sin memoria, que es el peor lugar donde bus
 
 Después, en CI, el rojo es un job con nombre propio.
 
+**Corrido el 2026-10-06** (T009), reemplazando `Order.rehydrate(...)` por el registro crudo en
+`sqlite-order-ledger.ts`. Lo atraparon **tres** pruebas de `tests/durability/outcomes.test.ts`, y las tres
+dicen qué se rompió:
+
+- «reads the order back with its money, its lines and its instants»
+- «calls the same notification a repeat, and a different one a conflict, after the restart»
+- «records a return after the restart, and calls a repeated one a repeat»
+
+Ninguna prueba del proyecto `fast` se enteró, que es el motivo por el que esta suite es la única cobertura de
+esos gateways.
+
 ## 5. El workflow lo dice, y la cadena entera sigue verde
 
 ```bash

@@ -28,7 +28,7 @@ describe(".github/workflows/ci.yml", () => {
     ).concurrency;
     expect(concurrency.group).toContain("github.ref");
     expect(concurrency["cancel-in-progress"]).toBe(true);
-    for (const job of ["checks", "mutation"]) {
+    for (const job of ["checks", "durability", "mutation"]) {
       expect(workflow.jobs[job]?.if, job).toContain("pull_request");
       expect(workflow.jobs[job]?.if, job).toContain("head.repo.full_name != github.repository");
     }
@@ -43,6 +43,24 @@ describe(".github/workflows/ci.yml", () => {
     expect(checks).not.toContain("npm test");
     expect(checks).not.toContain("npm run test:all");
     expect(checks).not.toContain("npm run test:mutation");
+  });
+
+  it("runs the durability suite in its own job, always, and not through the scoped choice (039)", () => {
+    // **The only cover the durable gateways have** (feature 030, research R-06), and until feature 039 the
+    // job that decides did not run it: the choice of suites was written in feature 017, before the project
+    // existed, and what covered it was the initial test run of the mutation job — a red that says «the
+    // mutation run failed» and sends you to read the worst of the three places.
+    const job = workflow.jobs["durability"];
+    expect(job?.if).toContain("schedule");
+    expect(runs("durability")).toContain("npm run test:durability");
+    // Behaviour, not measurements: what decides does not measure (the ceiling of a measurement was
+    // calibrated on a development machine and never ran in CI).
+    expect(runs("durability")).not.toContain("npm run test:measures");
+    expect(runs("durability")).not.toContain("npm run test:all");
+    // It compares against nothing, so it neither needs the whole history nor main.
+    const checkout = job?.steps.find((s) => s.uses?.startsWith("actions/checkout"));
+    expect(checkout?.with?.["fetch-depth"]).toBeUndefined();
+    expect(runs("durability").some((r) => r.includes("origin main"))).toBe(false);
   });
 
   it("runs the mutation gate in its own job, incrementally, on every change", () => {

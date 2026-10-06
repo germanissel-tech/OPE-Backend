@@ -60,18 +60,20 @@ se nombra solo.
 **Independent Test**: quickstart paso 4 — romper a propósito la rehidratación de una entidad en un gateway
 durable y ver que falla nombrando la durabilidad.
 
-- [ ] T006 [US1] `tests/hooks/ci.test.ts` — **antes del workflow**: el job de durabilidad existe, corre
+- [x] T006 [US1] `tests/hooks/ci.test.ts` — **antes del workflow**: el job de durabilidad existe, corre
       `npm run test:durability`, tiene la misma condición de disparo que `checks` y `mutation` (no en el
       schedule; no en una PR del mismo repositorio) y **no** declara `fetch-depth: 0` ni trae `main`, porque no
       compara contra nada. Que falle antes de T007 es parte de la verificación.
-- [ ] T007 [US1] `.github/workflows/ci.yml` — el job, en paralelo a los otros dos: checkout, Node de
+- [x] T007 [US1] `.github/workflows/ci.yml` — el job, en paralelo a los otros dos: checkout, Node de
       `.nvmrc` con caché de npm, `npm ci`, `npm run test:durability`. `timeout-minutes` con margen sobre los
       ~165 s de esta máquina. Sin artefactos: no hay reporte que leer.
-- [ ] T008 [US1] El encabezado del workflow (el comentario que dice qué hace cada job y por qué) nombra el
+- [x] T008 [US1] El encabezado del workflow (el comentario que dice qué hace cada job y por qué) nombra el
       tercero y dice **por qué está aparte**: que un rojo diga qué falló. Hoy ese comentario dice «dos jobs».
-- [ ] T009 [US1] Verificación de la historia, de punta a punta en local: romper la rehidratación de una
-      entidad en un gateway durable, correr `npm run test:durability`, ver el rojo, y restaurar. Anotar en el
-      quickstart qué prueba lo atrapó.
+- [x] T009 [US1] Verificación de la historia, de punta a punta en local: romper la rehidratación de una
+      entidad en un gateway durable, correr `npm run test:durability`, ver el rojo, y restaurar. Hecho el
+      2026-10-06 sobre `sqlite-order-ledger.ts`: lo atraparon **tres** pruebas de `tests/durability/outcomes.test.ts`
+      —la lectura, la idempotencia de la notificación y la de la devolución— y **ninguna del proyecto `fast`**,
+      que es el motivo por el que esta suite es la única cobertura de esos gateways. Anotado en el quickstart.
 
 **Checkpoint**: la durabilidad se verifica en CI con nombre propio, y no depende del arranque de la mutación.
 
