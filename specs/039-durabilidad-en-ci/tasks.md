@@ -119,12 +119,14 @@ cambio.
 
 **Independent Test**: `npm run test:measures` corre las tres e informa sus cifras.
 
-- [ ] T016 [US3] `npm run test:measures` corrido, con las cifras anotadas en el quickstart al lado de las de
-      esta máquina: es el primer dato de qué cuestan fuera del arranque de la mutación.
-- [ ] T017 [US3] `tests/hooks/ci.test.ts` — el job de durabilidad **no** corre las mediciones: lo que decide
+- [x] T016 [US3] `npm run test:measures` corrido el 2026-10-06, con las cuatro cifras anotadas en el
+      quickstart. **Y un detalle que hacía falta saber**: las imprime `console.info` y el reporter por defecto
+      las esconde, así que leerlas pide `--silent=false --reporter=verbose` — una medición que corre y nadie
+      lee no mide más que una que no corre, y el quickstart ahora dice cómo.
+- [x] T017 [US3] `tests/hooks/ci.test.ts` — el job de durabilidad **no** corre las mediciones: lo que decide
       no mide. Se verifica sobre el comando del job, no sobre la configuración, porque lo que importa es qué
       ejecuta CI.
-- [ ] T018 [P] [US3] `tests/README.md` — el inventario gana la fila del proyecto `measures` y la de
+- [x] T018 [P] [US3] `tests/README.md` — el inventario gana la fila del proyecto `measures` y la de
       `durability` dice que ahora es comportamiento (ADR-032, sin cifras de estado).
 
 **Checkpoint**: «no son un gate» deja de significar «no se corren nunca».

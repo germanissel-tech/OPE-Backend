@@ -31,6 +31,25 @@ npm run test:measures
 Las tres de durabilidad, con sus cifras. Es lo que no existía: hacía tres features que no se ejecutaban
 fuera de la máquina de quien las escribió.
 
+**Las cifras se imprimen con `console.info` y el reporter por defecto las esconde**, así que para leerlas hay
+que pedirlas:
+
+```bash
+npx vitest run --project measures --silent=false --reporter=verbose
+```
+
+Lo que dieron el **2026-10-06** en esta máquina, que es la primera vez que se corren desde la feature 034:
+
+| Medición                                                     | Cifra                                                                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Escritura durable en el camino crítico                       | memoria p95 **1,63 ms**, sqlite p95 **7,13 ms**, delta **5,50 ms**                                           |
+| Lo mismo con 20 merchants, resolviendo el último             | memoria p95 **1,19 ms**, sqlite p95 **5,90 ms**, delta **4,71 ms**                                           |
+| Lo que cuesta reconstruir una sesión                         | reconstruida p95 **29,33 ms**, de memoria p95 **27,68 ms**, delta p95 **1,65 ms**                            |
+| Lo que una acción de administración le cuesta a una decisión | quieto p95 **6,91 ms**, bajo 130 lecturas **13,32 ms**, bajo 66 acciones **18,41 ms**; turno p95 **5,08 ms** |
+
+Las cuatro pasan sus techos. Anotarlas acá es la mitad que hace que la categoría sirva: una medición que
+nadie corre no mide nada, y una que corre y nadie anota tampoco.
+
 ## 4. Romper una garantía y ver quién lo atrapa
 
 Éste es el paso que ningún gate reemplaza.

@@ -63,6 +63,15 @@ describe(".github/workflows/ci.yml", () => {
     expect(runs("durability").some((r) => r.includes("origin main"))).toBe(false);
   });
 
+  it("no job runs the measurements: a figure against a ceiling is not what decides (039)", () => {
+    // Their ceiling was calibrated on a development machine and never ran in CI; demanding it on a runner
+    // would be demanding a number nobody measured there. `npm run test:measures` is what runs them when
+    // somebody wants the figure, and the quickstart keeps the last ones.
+    for (const job of Object.keys(workflow.jobs)) {
+      expect(runs(job), job).not.toContain("npm run test:measures");
+    }
+  });
+
   it("runs the mutation gate in its own job, incrementally, on every change", () => {
     const job = workflow.jobs["mutation"];
     expect(job?.if).toContain("schedule");
