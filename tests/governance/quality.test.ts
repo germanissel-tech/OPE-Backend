@@ -25,7 +25,7 @@ beforeAll(async () => {
 });
 
 describe("quality", () => {
-  it("chains lint, arch, duplication, dead code, language, behaviour constants and ports bound, in that order", () => {
+  it("chains lint, arch, duplication, dead code, language, behaviour constants, ports bound and suite coverage, in that order", () => {
     expect(mod.GATES.map((g) => g.name)).toEqual([
       "lint",
       "arch",
@@ -34,6 +34,9 @@ describe("quality", () => {
       "check:language",
       "check:behaviour-constants",
       "check:ports-bound",
+      // Last on purpose (feature 039): it spawns Vitest to ask what each project resolves, so the cheap
+      // gates have already spoken by the time it costs its seconds.
+      "check:suite-coverage",
     ]);
     const duplication = mod.GATES.find((g) => g.name === "check:duplication");
     expect(duplication).toBeDefined();
@@ -55,7 +58,7 @@ describe("quality", () => {
   it("reports no failure when every gate is green", () => {
     const { failed, ran } = mod.runQuality(() => 0);
     expect(failed).toBeNull();
-    expect(ran).toHaveLength(7);
+    expect(ran).toHaveLength(mod.GATES.length);
   });
 
   it("--json returns one entry per gate with a status", () => {
@@ -71,6 +74,7 @@ describe("quality", () => {
       "language",
       "behaviour-constants",
       "ports-bound",
+      "suite-coverage",
     ]);
     expect(j.gates.every((g) => g.status === "pass" || g.status === "fail")).toBe(true);
   }, 120_000);

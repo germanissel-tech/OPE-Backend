@@ -1,6 +1,6 @@
 // quality — every deterministic gate in one command (ADR-016, FR-050).
 //
-//   node scripts/quality.mjs          # lint → arch → check:duplication → check:dead-code → check:language → check:behaviour-constants → check:ports-bound
+//   node scripts/quality.mjs          # lint → arch → check:duplication → check:dead-code → check:language → check:behaviour-constants → check:ports-bound → check:suite-coverage
 //   node scripts/quality.mjs --json   # { gates: [<each gate's own JSON>] }, all of them, no early stop
 //
 // Without --json it stops at the first red gate and names it on the first line of its output.
@@ -21,6 +21,9 @@ export const GATES = /** @type {readonly Gate[]} */ ([
   { name: "check:language", script: "check-language.mjs", args: [] },
   { name: "check:behaviour-constants", script: "check-behaviour-constants.mjs", args: [] },
   { name: "check:ports-bound", script: "check-ports-bound.mjs", args: [] },
+  // Last because it is the one that spawns Vitest to ask what each project resolves (feature 039): the
+  // cheap gates have already spoken by the time it costs its seconds.
+  { name: "check:suite-coverage", script: "check-suite-coverage.mjs", args: [] },
 ]);
 
 /** How a gate is launched: node_modules CLIs by their entry file, repo scripts by path. */
@@ -71,6 +74,7 @@ const JSON_CAPABLE = new Set([
   "check:language",
   "check:behaviour-constants",
   "check:ports-bound",
+  "check:suite-coverage",
 ]);
 
 /** @returns {number} */

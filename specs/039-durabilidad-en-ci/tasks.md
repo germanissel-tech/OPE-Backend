@@ -86,22 +86,27 @@ medición declarada que ya no existe también.
 
 **Independent Test**: agregar un archivo de durabilidad sin clasificar y ver fallar el build con su nombre.
 
-- [ ] T010 [P] [US2] `tests/governance/fixtures/suite-coverage/` — los fixtures de los tres casos: un árbol
-      donde todo está clasificado, uno con un archivo de durabilidad que no está en ninguna categoría, y uno
-      con una medición declarada que no existe en el disco.
-- [ ] T011 [US2] `tests/governance/suite-coverage.test.ts` — **antes del script** (como
-      `ports-bound.test.ts`): pasa sobre el repositorio de verdad, y falla sobre cada fixture **nombrando** el
-      archivo o la ruta. Los dos sentidos, que es el punto (FR-005, FR-006).
-- [ ] T012 [US2] `scripts/check-suite-coverage.mjs` — lee los archivos de `tests/durability/` del disco y las
-      dos categorías de la configuración, y falla nombrando lo que no pertenece a ninguna o lo que se declaró
-      y no existe. Con `--src` (o equivalente) para que la prueba lo corra sobre un fixture. Firma JSDoc de
-      toda función exportada (`checkJs`).
-- [ ] T013 [US2] `scripts/quality.mjs` — el gate nuevo entra a la cadena (`GATES`), y
+- [x] T010 [P] [US2] **Cambió de forma, y la verificación es más fuerte**: en vez de árboles de fixtures,
+      `scripts/suite-coverage-lib.mjs` con las comparaciones puras y sus casos con listas a mano (la forma de
+      `readme-inventory-lib.mjs`). El motivo: lo que decide qué corre son los `include` y `exclude` de cada
+      proyecto, así que el script le **pregunta a Vitest** (`vitest list --filesOnly`) en vez de rehacer el calce
+      de globs — un fixture habría probado mi copia de las reglas, no la configuración.
+- [x] T011 [US2] `tests/governance/suite-coverage.test.ts` — **antes del script**: once casos, los nueve
+      puros con listas a mano y dos sobre el repositorio de verdad. Falló sólo donde faltaba el script, que es
+      lo que hace que su verde signifique algo.
+- [x] T012 [US2] `scripts/check-suite-coverage.mjs` — y **cubre más de lo que la tarea pedía**: en vez de
+      `tests/durability/` solo, compara **los 226 archivos de prueba del repositorio** contra lo que los cuatro
+      proyectos resuelven, más la declaración contra el disco. La regla queda: toda prueba la corre algún
+      proyecto, que es literalmente el título de la historia.
+- [x] T013 [US2] `scripts/quality.mjs` — el gate nuevo entra a la cadena (`GATES`), y
       `tests/governance/quality.test.ts` lo espera: la cadena pasa de siete gates a ocho.
-- [ ] T014 [P] [US2] `scripts/README.md` — la fila del script en el inventario (qué es, fuente, quién lo
+- [x] T014 [P] [US2] `scripts/README.md` — la fila del script en el inventario (qué es, fuente, quién lo
       corre, su prueba, tipo), que su propia prueba verifica fila por fila (ADR-032).
-- [ ] T015 [US2] Verificación de la historia: `npm run check:suite-coverage` en verde sobre el repositorio;
-      crear un archivo de durabilidad vacío y ver fallar `npm run quality` nombrándolo; borrarlo.
+- [x] T015 [US2] Verificación de la historia, y **la receta de la tarea no servía**: un archivo nuevo de
+      durabilidad entra al proyecto que decide **por construcción**, así que crearlo no exhibe nada — es el
+      diseño funcionando. Lo que sí la exhibe: excluir un archivo en un proyecto sin incluirlo en otro, que es
+      la forma real del hueco. Hecho el 2026-10-06 con `tests/unit/composition/config.test.ts`:
+      `check:suite-coverage` lo nombró y `quality` cayó **después de siete gates verdes**.
 
 **Checkpoint**: el hueco no puede volver por olvido.
 
