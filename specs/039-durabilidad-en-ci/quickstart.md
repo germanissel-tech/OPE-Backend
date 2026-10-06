@@ -1,0 +1,91 @@
+# Quickstart — verificar que la durabilidad se verifica (039)
+
+Cinco pasos. **El paso 4 es el que ningún gate reemplaza**: romper a propósito una garantía que sólo se ve
+cruzando un reinicio y comprobar que lo que la atrapa nombra la durabilidad.
+
+## 1. Las dos categorías cubren todo, y la declaración no miente
+
+```bash
+npm run check:suite-coverage
+npx vitest run --project tools tests/governance/suite-coverage.test.ts
+```
+
+La verificación sobre el repositorio de verdad y sobre sus fixtures: un archivo de durabilidad sin clasificar
+falla nombrándolo, y una medición declarada que ya no existe también.
+
+## 2. Lo que decide corre, y corre solo
+
+```bash
+npm run test:durability
+```
+
+Las 20 de comportamiento, un archivo a la vez. **No** tiene que correr ninguna de las tres mediciones: si la
+duración se parece a los 207 s de antes de la feature en vez de a ~165 s, están entrando.
+
+## 3. Las mediciones se pueden correr cuando alguien quiere el número
+
+```bash
+npm run test:measures
+```
+
+Las tres de durabilidad, con sus cifras. Es lo que no existía: hacía tres features que no se ejecutaban
+fuera de la máquina de quien las escribió.
+
+## 4. Romper una garantía y ver quién lo atrapa
+
+Éste es el paso que ningún gate reemplaza.
+
+```bash
+# Que una entidad vuelva del almacén como registro plano, que es el defecto que la 037 cerró:
+#   en un gateway durable, reemplazar `Entidad.rehydrate(registro)` por el registro crudo.
+npm run test:durability
+```
+
+Lo que tiene que pasar: **falla**, y lo que informa nombra el proyecto de durabilidad. Antes de la feature,
+ese mismo cambio llegaba a CI y lo atrapaba el **arranque del job de mutación** — el mismo rojo que aparece
+cuando Stryker se queda sin tiempo o sin memoria, que es el peor lugar donde buscar.
+
+Después, en CI, el rojo es un job con nombre propio.
+
+## 5. El workflow lo dice, y la cadena entera sigue verde
+
+```bash
+npx vitest run --project fast tests/hooks/ci.test.ts
+npm run quality
+npm run test:all
+npm run contract:check && npm run release-check
+```
+
+`test:all` tiene que seguir corriendo **todo**, mediciones incluidas: el comando local de cierre de una
+historia no cambia de alcance porque CI haya elegido qué exigir. Y `contract:check` tiene que estar verde
+**sin cambios en `contracts/`**: si algo ahí cambió, esta feature se salió de su alcance.
+
+## 6. Usarlo: el job nuevo en CI
+
+```bash
+git push
+"C:\Program Files\GitHub CLI\gh.exe" run list --limit 1
+"C:\Program Files\GitHub CLI\gh.exe" run view <id>
+```
+
+Lo que hay que ver:
+
+- **tres jobs** donde antes había dos (más el semanal), y el nuevo con nombre propio;
+- el reloj de pared del run **no empeora** (SC-004): lo sigue dominando la mutación;
+- el job nuevo pasa sin `fetch-depth: 0` ni `main` traído: no compara contra nada.
+
+Anotar la duración del job nuevo al lado de los 207 s / ~165 s de esta máquina: es el primer dato de cuánto
+cuesta la durabilidad donde CI corre, y hasta ahora no existía.
+
+---
+
+## Lo que este quickstart **no** puede mostrar
+
+- **Que un cambio en rojo no se pueda mergear.** No se puede: `main` no tiene protección de rama (**D-35**).
+  Lo que se muestra es que el rojo aparece y dice qué falló; que eso impida el merge es una configuración del
+  repositorio y una decisión del dueño.
+- **Que el techo de las mediciones valga en CI.** Por eso no son gate: nadie midió esos techos en un runner, y
+  medirlos es su propia tarea con su propia evidencia (ADR-038 es el precedente).
+- **Que ninguna otra prueba del repositorio corra en ningún lado.** La verificación cubre
+  `tests/durability/`, que es donde el hueco existía; si mañana otro proyecto gana exclusiones escritas a
+  mano, el hueco vuelve en otro lugar y lo que lo evitaría es extender la misma regla, no esta corrida.
