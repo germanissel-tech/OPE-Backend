@@ -63,6 +63,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                          | `abierta`      | 2026-09-30 | —                                                       |
 | D-33 | Una lectura durable que falla responde `500 internal-error` en vez de `503` con reintento                 | Evaluación de la persistencia con el dueño, 2026-10-02 | `abierta`      | 2026-10-02 | —                                                       |
 | D-34 | El almacén de versiones de merchant y el de niveles son copia literal, en memoria y en SQLite             | Evaluación de la persistencia con el dueño, 2026-10-02 | `implementada` | 2026-10-05 | `c5881c8` (feature 038: llegó el tercero)               |
+| D-35 | `main` no tiene protección de rama: nada impide mergear con CI en rojo                                    | Fase 0 de la feature 039 (R-04)                        | `abierta`      | 2026-10-06 | Checks requeridos configurados, con la lista decidida   |
 
 Las filas D-01 a D-06 vienen de la feature 019, que creó este registro dentro de su propia
 especificación; ahí queda su historia.
@@ -775,6 +776,30 @@ base—. Un puerto que abarcara los tres tendría que admitir las dos cosas para
 consumidor cargaría con un vocabulario que no usa. Lo que la duplicación pedía era que no se escribiera dos
 veces **el mecanismo**, y eso es lo que se hizo; unificar la **forma** sería diseñar para un requisito que
 sigue sin existir, que es el error que ADR-043 nombra.
+
+## D-35 — `main` no tiene protección de rama: nada **impide** mergear con CI en rojo
+
+**La encontró la fase 0 de la feature 039**, buscando cómo cumplir un requisito que decía «la verificación no
+se da por aprobada si la durabilidad no terminó»: `GET /repos/.../branches/main/protection` responde **404**.
+No hay checks requeridos, no hay revisión obligatoria. Lo único que hay es que un job rojo pone el run rojo y
+que nosotros no mergeamos en rojo.
+
+**Por qué es deuda y no una decisión pendiente**: el repositorio tiene tres jobs que gatean cada cambio y una
+cadena de ocho gates, y toda esa maquinaria **informa** sin bloquear. La disciplina de mirar antes de mergear
+ha alcanzado hasta hoy porque mergea la misma persona que escribe; el día que no, el verde deja de ser una
+condición y pasa a ser una sugerencia.
+
+**Lo que haría falta para cerrarla**, y es una decisión del dueño sobre el repositorio más que un cambio de
+código:
+
+1. **Qué checks se exigen.** `checks` y `durability` son los obvios. `mutation` tarda unos 20 minutos, así que
+   exigirlo hace que cada merge espere eso; no exigirlo deja el gate de mutación como informativo, que
+   contradice ADR-016.
+2. **Qué pasa con los pushes directos a `main`.** Hoy se puede; con protección, todo entra por PR.
+3. **Quién puede saltarla**, si alguien puede.
+
+No la cierra la feature 039 a propósito: habilitar checks requeridos se decide una vez para todos los jobs, y
+hacerlo de paso en una feature que agrega uno sería tomar la decisión sin nombrarla.
 
 ## Lo que **no** es deuda, y por eso no está acá
 

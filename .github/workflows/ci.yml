@@ -1,8 +1,13 @@
 # FR-060: on every change, contract verification (lint, bundle, compatibility against main,
 # type drift), build, typecheck, quality gates (ADR-016), the tests the change needs and contract
-# tests in one job, and mutation testing on the changed lines in a parallel job, so the PR waits
-# for the slower of the two rather than for their sum. A weekly job mutates everything,
-# informatively.
+# tests in one job; the durability suite in a second; and mutation testing on the changed lines in a
+# third, so the PR waits for the slowest of the three rather than for their sum. A weekly job
+# mutates everything, informatively.
+#
+# **Why durability is a job of its own** (feature 039): it is the only cover the durable gateways have, and
+# until this feature the job that decides did not run it — what covered it was the initial test run of the
+# mutation job, so a broken gateway showed up as «the mutation run failed». Three jobs cost the same wall
+# clock as two, because the mutation one is longer than either; what changes is that a red says what failed.
 name: ci
 
 on:
@@ -64,6 +69,31 @@ jobs:
           name: schemathesis-junit
           path: .schemathesis/
           if-no-files-found: ignore
+
+  durability:
+    # The suite that closes a store and reopens it (feature 030): the only cover the durable gateways have,
+    # so it runs on every change and not by the scoped choice of `checks` — a change that does not touch
+    # persistence can still break a read, and guessing which one does is how this stopped running at all.
+    # Behaviour only: the measurements of the same directory are `measures`, and their ceilings were
+    # calibrated on a development machine (feature 039).
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
+    runs-on: ubuntu-latest
+    # 143 s on the development machine (2026-10-06), one file at a time; the margin is for a smaller runner.
+    timeout-minutes: 15
+    steps:
+      # No history and no main: this job compares against nothing.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      # The server boots from the bundled contract, which is derived and not versioned: without this step
+      # every boot of the suite fails before testing anything (the first run of this job showed it).
+      - run: npm run contract:bundle
+      - run: npm run test:durability
 
   mutation:
     # The mutation gate on the lines the change introduced (ADR-016): every mutant must die.

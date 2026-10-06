@@ -71,5 +71,19 @@ paths:
   local y en minutos — `format:check`, `typecheck`, `quality`, `npm test` (proyecto `fast`) — y
   commit. Por hito — el cierre de la feature (antes de la PR) y cada push de la rama — CI corre
   todo: `contract:check`, `quality`, `test:scoped` (el proyecto `tools` sólo cuando el cambio
-  toca una herramienta), `test:contract`, `release-check` y `test:mutation` en su job. La `--all` informativa y `test:load` son medidas de tendencia para hitos más gruesos
-  (varias features, un piloto), no gates.
+  toca una herramienta), `test:contract`, `release-check`, y en sus propios jobs `test:durability`
+  y `test:mutation`. La `--all` informativa y `test:load` son medidas de tendencia para hitos más
+  gruesos (varias features, un piloto), no gates.
+- **Qué decide y qué mide** (feature 039). La frontera: **si el resultado puede cambiar porque la
+  máquina está ocupada, es una medición**, y una medición no decide si un cambio entra. Las seis que
+  hay viven declaradas en `MEASURED_SUITES` de `vitest.config.ts`, que es lo que lee el proyecto
+  `measures`, lo que la mutación excluye y lo que `check:suite-coverage` cruza contra el disco.
+  Las tres del proyecto `fast` **siguen siendo gate** —miden contra memoria, cuestan segundos y
+  están verdes en CI desde la 004— y las tres de durabilidad **no**: su techo se calibró contra el
+  disco de una máquina de desarrollo y nunca corrió en CI, así que exigirlo en un runner sería
+  exigir un número que nadie midió ahí. Las cifras se leen con
+  `npm run test:measures -- --silent=false --reporter=verbose`: el reporter por defecto las esconde.
+- **Y toda prueba la corre algún proyecto**, verificado por `check:suite-coverage` sobre lo que
+  Vitest dice que resuelve cada uno, no sobre una copia de los globs. El hueco que cierra duró tres
+  features: tres archivos excluidos a mano en la configuración de la mutación, en un proyecto que no
+  corría en ningún job de CI, así que no corrían en ninguna parte y nada lo decía.

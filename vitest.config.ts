@@ -23,8 +23,48 @@ export const TOOL_SUITES = [
  * guarantee rather than a sample.
  */
 export const DURABILITY_SUITES = ["tests/durability/**/*.test.ts"];
+/**
+ * The tests that **measure**: a figure against a ceiling, rather than a guarantee (feature 039).
+ *
+ * **The border is the clock, not the directory**: if the result can change because the machine is busy, it
+ * measures. `tests/durability/query-plans.test.ts` lives beside two of these and asserts that an index is
+ * used, which is true or false whatever the machine is doing; the three below report a percentile, a size or
+ * the cost of a turn, and their ceiling was calibrated on one machine.
+ *
+ * Paths and not globs, on purpose: a path can be checked against the disk, and a glob can only be
+ * interpreted again. `check:suite-coverage` crosses this list with `tests/durability/` in **both**
+ * directions, so a file that belongs to no category and a declaration whose file is gone both fail the build.
+ *
+ * **What each reader does with it** (and why the gate is not the same for all six): the mutation runner
+ * excludes them all, because they cost seconds per mutant and kill nothing the rest does not. The three of
+ * `fast` keep running in that project, where they have been green since feature 004 and cost seconds against
+ * in-memory stores. The three of `durability` do **not** gate: their ceiling was measured against a real
+ * store on a development machine and never ran in CI at all, so demanding it on a runner would be demanding
+ * a number nobody measured there. `npm run test:measures` is what runs them when somebody wants the figure.
+ */
+export const MEASURED_SUITES = [
+  "tests/integration/ingest-latency.test.ts",
+  "tests/integration/catalog-size.test.ts",
+  "tests/integration/outcomes-latency.test.ts",
+  "tests/durability/ingest-latency.test.ts",
+  "tests/durability/rebuild-latency.test.ts",
+  "tests/durability/admin-concurrency.test.ts",
+];
+/** The measured ones of the durability directory: what `measures` runs and `durability` leaves out. */
+export const MEASURED_DURABILITY_SUITES = MEASURED_SUITES.filter((file) =>
+  file.startsWith("tests/durability/"),
+);
 /** Several tests invoke CLIs (Spectral, Redocly, oasdiff): a wide margin. */
 const TIMEOUTS = { testTimeout: 60_000, hookTimeout: 60_000 };
+/**
+ * What a project over `tests/durability/` is, whichever half of it it runs.
+ *
+ * **The two come from this one object and not from two copies**: a store is a file, so one file at a time
+ * with its own process and its own temporary directory is not a preference of the gated half — it is what
+ * makes any of those tests mean something. Written twice, the day somebody tunes one the other keeps the old
+ * value and nobody notices until two suites write the same store.
+ */
+const OVER_A_STORE = { exclude: NOT_SUITES, fileParallelism: false, ...TIMEOUTS } as const;
 
 export default defineConfig({
   test: {
@@ -49,11 +89,19 @@ export default defineConfig({
         test: {
           name: "durability",
           include: DURABILITY_SUITES,
-          exclude: NOT_SUITES,
-          // A store is a file, and two suites writing the same one would prove nothing about
-          // either. Each file gets its own process and its own temporary directory.
-          fileParallelism: false,
-          ...TIMEOUTS,
+          ...OVER_A_STORE,
+          // The behaviour half, which is what decides whether a change enters (feature 039): the measured
+          // ones are excluded here and run in `measures`.
+          exclude: [...NOT_SUITES, ...MEASURED_DURABILITY_SUITES],
+        },
+      },
+      {
+        test: {
+          name: "measures",
+          // The other half of the same directory. `--exclude` on the command line does not trim a project's
+          // `include`, which is why the split lives here and not in a flag (feature 039, research R-03).
+          include: MEASURED_DURABILITY_SUITES,
+          ...OVER_A_STORE,
         },
       },
     ],
