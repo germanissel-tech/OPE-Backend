@@ -53,6 +53,11 @@ describe(".github/workflows/ci.yml", () => {
     const job = workflow.jobs["durability"];
     expect(job?.if).toContain("schedule");
     expect(runs("durability")).toContain("npm run test:durability");
+    // The suite boots the server, and the server boots from the bundled contract, which is derived and not
+    // versioned: the first run of this job in CI failed every boot for want of it.
+    const steps = runs("durability");
+    expect(steps.indexOf("npm run contract:bundle")).toBeGreaterThanOrEqual(0);
+    expect(steps.indexOf("npm run contract:bundle")).toBeLessThan(steps.indexOf("npm run test:durability"));
     // Behaviour, not measurements: what decides does not measure (the ceiling of a measurement was
     // calibrated on a development machine and never ran in CI).
     expect(runs("durability")).not.toContain("npm run test:measures");

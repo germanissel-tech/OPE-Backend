@@ -144,3 +144,12 @@ de su alcance, además de que `contract:check` pasó sin un solo cambio en `cont
 - **Que ninguna otra prueba del repositorio corra en ningún lado.** La verificación cubre
   `tests/durability/`, que es donde el hueco existía; si mañana otro proyecto gana exclusiones escritas a
   mano, el hueco vuelve en otro lugar y lo que lo evitaría es extender la misma regla, no esta corrida.
+
+## Lo que CI mostró (2026-10-06, PR #47)
+
+El primer run del job `durability` en un runner falló los 29 arranques de la suite antes de probar nada:
+`contracts/dist/openapi.yaml` no existía. El servidor arranca desde el bundle del contrato, que es un
+derivado no versionado, y el job lo omitía; el de mutación lo genera y el de `checks` lo obtiene de
+`contract:check`. Corregido con un paso `contract:bundle` antes de la suite, y `ci.test.ts` lo exige en ese
+orden. Es exactamente lo que este quickstart decía que no podía mostrar: el rojo apareció, **nombró la
+durabilidad**, y nada impidió que llegara a un PR — que es D-35.

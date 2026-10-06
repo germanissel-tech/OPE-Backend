@@ -90,6 +90,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+      # The server boots from the bundled contract, which is derived and not versioned: without this step
+      # every boot of the suite fails before testing anything (the first run of this job showed it).
+      - run: npm run contract:bundle
       - run: npm run test:durability
 
   mutation:
