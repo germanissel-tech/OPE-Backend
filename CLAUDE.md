@@ -29,8 +29,9 @@ tocás `contracts/`.
 ### Comandos
 
 El lazo de una historia: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`.
-Antes de cerrar la feature se agregan `npm run contract:check`, `npm run test:mutation`,
-`npm run test:contract` y `npm run release-check`.
+Antes de cerrar la feature se agregan `npm run contract:check`, `npm run test:durability`,
+`npm run test:mutation`, `npm run test:contract` y `npm run release-check`. **Qué decide y qué mide**
+—y por qué una medición no es un gate— está en `.claude/rules/gates-de-calidad.md`.
 
 | Comando                           | Qué hace                                                                                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |

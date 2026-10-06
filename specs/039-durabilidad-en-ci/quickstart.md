@@ -7,7 +7,7 @@ cruzando un reinicio y comprobar que lo que la atrapa nombra la durabilidad.
 
 ```bash
 npm run check:suite-coverage
-npx vitest run --project tools tests/governance/suite-coverage.test.ts
+npx vitest run --project fast tests/governance/suite-coverage.test.ts
 ```
 
 La verificación sobre el repositorio de verdad y sobre sus fixtures: un archivo de durabilidad sin clasificar
@@ -106,6 +106,31 @@ Lo que hay que ver:
 
 Anotar la duración del job nuevo al lado de los 207 s / ~165 s de esta máquina: es el primer dato de cuánto
 cuesta la durabilidad donde CI corre, y hasta ahora no existía.
+
+---
+
+## Lo corrido (2026-10-06)
+
+Los pasos 1 a 5, en esta máquina, con la feature entera:
+
+| Paso                              | Resultado                                                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. las dos categorías cubren todo | `check:suite-coverage` — **226 archivos**, todos los corre algún proyecto; 11 casos de su prueba en verde                                                    |
+| 2. lo que decide corre solo       | `test:durability` — **20 archivos, 193 pruebas, 143 s** (era 23 / 197 / 207)                                                                                 |
+| 3. las mediciones se corren       | `test:measures` — **3 / 4 / 41 s**, con sus cuatro cifras arriba                                                                                             |
+| 4. romper una garantía            | tres pruebas de `outcomes.test.ts` la atraparon; ninguna del proyecto `fast`                                                                                 |
+| 5. el workflow y la cadena        | `ci.test.ts` 6 casos, `quality` **8 gates**, `test:all` **2008 pruebas en 226 archivos**, `contract:check` y `release-check` en verde, `test:contract` 36/36 |
+
+**Y el gate de mutación dijo lo que el plan predijo**: `test:mutation — skipped: no production lines`. La
+feature no toca `src/`, así que no hay mutante que juzgar — que es la forma de comprobar que se quedó dentro
+de su alcance, además de que `contract:check` pasó sin un solo cambio en `contracts/`.
+
+**Dos cosas que aparecieron corriéndolo**, las dos sobre el propio quickstart:
+
+- El paso 1 nombraba el proyecto equivocado: la prueba del gate vive en `tests/governance/` y ésa es del
+  proyecto `fast`, no de `tools` (de `governance/` sólo `quality.test.ts` es de `tools`). Corregido.
+- El paso 3 pasaba en verde **sin mostrar un número**: el reporter por defecto esconde el `console.info` de
+  las mediciones. Ahora el paso dice cómo pedirlas.
 
 ---
 

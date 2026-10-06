@@ -135,21 +135,26 @@ cambio.
 
 ## Phase 5: Lo que queda dicho
 
-- [ ] T019 `CLAUDE.md` — la tabla de comandos gana `test:measures` y la fila de `test:durability` dice que es
+- [x] T019 `CLAUDE.md` — la tabla de comandos gana `test:measures` y la fila de `test:durability` dice que es
       el comportamiento; el ritmo de dos velocidades dice que **CI corre la durabilidad en su propio job**.
       Cuidar el límite de 200 líneas: lo que entra tiene que ser lo que hace falta en toda sesión.
-- [ ] T020 [P] `.claude/rules/gates-de-calidad.md` — la regla: **qué decide y qué mide**, con la frontera y
+- [x] T020 [P] `.claude/rules/gates-de-calidad.md` — la regla: **qué decide y qué mide**, con la frontera y
       con el motivo de que las tres de `fast` sigan siendo gate y las tres de durabilidad no (la tabla de
       R-02). Es la regla y pertenece ahí, no en CLAUDE.md.
-- [ ] T021 [P] `docs/deudas.md` — **D-35**: `main` no tiene protección de rama, así que nada impide mergear
+- [x] T021 [P] `docs/deudas.md` — **D-35**: `main` no tiene protección de rama, así que nada impide mergear
       en rojo (R-04). Con lo que haría falta para cerrarla y por qué esta feature no la cierra: es una
       decisión del dueño sobre quién mergea y qué jobs son obligatorios, incluido si se exige el de mutación.
-- [ ] T022 Correr el **quickstart** de punta a punta, los seis pasos, y anotar lo que aparezca. El paso 6
-      necesita un push, así que se corre con el dueño enterado.
-- [ ] T023 La cadena de cierre: `npm run format:check`, `npm run typecheck`, `npm run quality`,
+- [x] T022 Correr el **quickstart** de punta a punta y anotar lo que aparezca. Pasos 1 a 5 corridos el
+      2026-10-06, con su tabla en el quickstart; el **paso 6 queda para el push**, porque es el job en CI.
+      Dos cosas que aparecieron, las dos del propio quickstart: el paso 1 nombraba el proyecto equivocado
+      (`tests/governance/` es `fast`, no `tools`) y el paso 3 pasaba en verde **sin mostrar un número**.
+- [x] T023 La cadena de cierre: `npm run format:check`, `npm run typecheck`, `npm run quality`,
       `npm run test:all`, `npm run contract:check`, `npm run test:mutation`, `npm run release-check`.
       **`contract:check` tiene que pasar sin ningún cambio en `contracts/`**: si algo ahí cambió, la feature se
-      salió de su alcance. El gate de mutación no debería tener líneas de `src/` que juzgar.
+      salió de su alcance. El gate de mutación no debería tener líneas de `src/` que juzgar. Corrida el
+      2026-10-06: las dos condiciones se cumplieron —`contracts/` intacto y
+      `test:mutation — skipped: no production lines`—, `test:all` **2008 pruebas en 226 archivos**,
+      `test:contract` 36/36 en sus tres fases, `release-check: OK`.
 
 ---
 
