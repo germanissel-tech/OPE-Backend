@@ -10,7 +10,7 @@
 // above — feature 033 gave one of them four applications and a seed of twenty merchants, which is
 // seconds per mutant to kill nothing.
 import { defineConfig } from "vitest/config";
-import { TOOL_SUITES } from "./vitest.config.js";
+import { MEASURED_SUITES, TOOL_SUITES } from "./vitest.config.js";
 
 export default defineConfig({
   test: {
@@ -19,15 +19,11 @@ export default defineConfig({
       "**/node_modules/**",
       "**/fixtures/**",
       ...TOOL_SUITES,
-      "tests/integration/ingest-latency.test.ts",
-      "tests/integration/catalog-size.test.ts",
-      "tests/integration/outcomes-latency.test.ts",
-      "tests/durability/ingest-latency.test.ts",
-      "tests/durability/rebuild-latency.test.ts",
-      // Feature 034: three measured windows of ingest, ten seconds of them, and what it asserts about
-      // behaviour —a flush that finds the store busy holds its arrivals— is killed in milliseconds by
-      // `tests/unit/interface-adapters/ingestion/event-log-queue.test.ts`, which stays in this suite.
-      "tests/durability/admin-concurrency.test.ts",
+      // The six measured ones, by the one declaration that names them (feature 039). They used to be listed
+      // here by hand, and that is how three of them ended up running in no job at all: a list in the
+      // configuration of one tool was the only place that knew they existed. What each measures and why the
+      // exclusion is the same for the six is in `MEASURED_SUITES`.
+      ...MEASURED_SUITES,
     ],
     // **Three minutes and not the one the suite uses on its own** (feature 034). Everything here runs
     // instrumented, with five runner processes on one machine, so a hook that seeds four hundred rows per

@@ -32,18 +32,19 @@ El lazo de una historia: `npm run format:check`, `npm run quality`, `npm run typ
 Antes de cerrar la feature se agregan `npm run contract:check`, `npm run test:mutation`,
 `npm run test:contract` y `npm run release-check`.
 
-| Comando                           | Qué hace                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `npm test`                        | Vitest, proyecto `fast`: unitarias, integración, contrato, gobernanza, arquitectura                                 |
-| `npm run test:tools`              | Proyecto `tools`: auditoría, cadena de calidad, documentación. Sólo cuando el cambio toca una herramienta           |
-| `npm run test:durability`         | Proyecto `durability`: lo único que sólo se ve cruzando un reinicio. Es la única cobertura de los gateways durables |
-| `npm run test:all`                | Los dos proyectos, como CI                                                                                          |
-| `npm run build`                   | `tsc` a `dist/`                                                                                                     |
-| `npm run dev`                     | El servidor real, sin mock (ADR-018), sobre el almacén durable: un reinicio no borra lo que probaste                |
-| `npm run arch`                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                           |
-| `npm run format` / `format:check` | Prettier sobre todo / falla si algo difiere del formato canónico (ADR-011)                                          |
-| `npm run lint:fix`                | Arregla lo que el lint puede arreglar solo                                                                          |
-| `npm run release-check`           | `contract:check` más los marcadores en modo estricto: la puerta antes de publicar                                   |
+| Comando                           | Qué hace                                                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm test`                        | Vitest, proyecto `fast`: unitarias, integración, contrato, gobernanza, arquitectura                                                                          |
+| `npm run test:tools`              | Proyecto `tools`: auditoría, cadena de calidad, documentación. Sólo cuando el cambio toca una herramienta                                                    |
+| `npm run test:durability`         | Proyecto `durability`: el comportamiento que sólo se ve cruzando un reinicio. Es la única cobertura de los gateways durables, y CI lo corre en su propio job |
+| `npm run test:measures`           | Proyecto `measures`: lo que informa una cifra contra un techo. No es un gate — lo corre quien quiere el número                                               |
+| `npm run test:all`                | Los cuatro proyectos: el cierre local de una historia, mediciones incluidas                                                                                  |
+| `npm run build`                   | `tsc` a `dist/`                                                                                                                                              |
+| `npm run dev`                     | El servidor real, sin mock (ADR-018), sobre el almacén durable: un reinicio no borra lo que probaste                                                         |
+| `npm run arch`                    | dependency-cruiser sobre `src/`: anillos, módulos y composición (ADR-013)                                                                                    |
+| `npm run format` / `format:check` | Prettier sobre todo / falla si algo difiere del formato canónico (ADR-011)                                                                                   |
+| `npm run lint:fix`                | Arregla lo que el lint puede arreglar solo                                                                                                                   |
+| `npm run release-check`           | `contract:check` más los marcadores en modo estricto: la puerta antes de publicar                                                                            |
 
 **Qué hace cada uno de los demás está en el inventario de `scripts/`**, que su propia prueba
 verifica fila por fila. No se copia acá: tenerlo en dos lugares fue lo que esta partición vino a

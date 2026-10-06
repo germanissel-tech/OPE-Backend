@@ -46,6 +46,7 @@
     "test": "vitest run --project fast",
     "test:tools": "vitest run --project tools",
     "test:durability": "vitest run --project durability",
+    "test:measures": "vitest run --project measures",
     "test:all": "vitest run",
     "test:scoped": "node scripts/test-scope.mjs",
     "test:contract": "npm run contract:bundle && node scripts/test-contract.mjs",

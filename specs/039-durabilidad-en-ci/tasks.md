@@ -27,22 +27,26 @@ que cierran el hueco.
 **Purpose**: la declaración de mediciones y los dos proyectos que la leen. Sin esto, ninguna historia tiene
 dónde pararse.
 
-- [ ] T001 `vitest.config.ts` — la **declaración de mediciones** como constante exportada
+- [x] T001 `vitest.config.ts` — la **declaración de mediciones** como constante exportada
       (`MEASURED_SUITES`), con las seis rutas que hoy viven escritas a mano en la configuración de mutación
       (R-02) y un comentario que diga la frontera: **si el resultado puede cambiar porque la máquina está
       ocupada, es una medición**. Rutas de archivo, no globs, porque una ruta se verifica contra el disco
       (data-model).
-- [ ] T002 `vitest.config.ts` — el proyecto `durability` **excluye** las mediciones y un proyecto nuevo
+- [x] T002 `vitest.config.ts` — el proyecto `durability` **excluye** las mediciones y un proyecto nuevo
       (`measures`) incluye **sólo las de durabilidad**. Los dos salen del **mismo objeto de configuración**
       —`fileParallelism: false`, timeouts, temporal por archivo— para que FR-009 valga por construcción y no
       por una copia que alguien recuerde actualizar (R-03).
-- [ ] T003 `vitest.mutation.config.ts` — importa `MEASURED_SUITES` en vez de repetir los seis nombres. El
+- [x] T003 `vitest.mutation.config.ts` — importa `MEASURED_SUITES` en vez de repetir los seis nombres. El
       comentario que explica por qué se excluyen se queda (es el motivo, no la lista) y pierde los nombres.
-- [ ] T004 `package.json` — `test:durability` sigue siendo el comportamiento (ahora sin las mediciones) y
+- [x] T004 `package.json` — `test:durability` sigue siendo el comportamiento (ahora sin las mediciones) y
       `test:measures` corre el proyecto nuevo. `test:all` **no cambia**: el cierre local de una historia sigue
       corriendo todo, mediciones incluidas (quickstart, paso 5).
-- [ ] T005 Verificación de la fase: `npm run test:durability` corre 20 archivos y ~165 s en vez de 23 y 207 s;
-      `npm run test:measures` corre los 3 y da sus cifras; `npm run test:all` sigue corriendo los 23.
+      **Y obligó a adelantar parte de T019**: `check:instructions` verifica los comandos en los dos sentidos,
+      así que agregar `test:measures` a `package.json` sin su fila en la tabla de CLAUDE.md pone `contract:check`
+      en rojo — abrir un comando obliga a documentarlo, que es para lo que ese gate existe.
+- [x] T005 Verificación de la fase, medida el 2026-10-06: `npm run test:durability` **20 archivos, 193
+      pruebas, 143 s** (era 23 / 197 / 207); `npm run test:measures` **3 archivos, 4 pruebas, 38 s**;
+      `npm run test:all` **225 archivos, 1995 pruebas** — los mismos que antes, que es SC-005.
 
 **Checkpoint**: las dos categorías existen y se pueden correr por separado. Nada de CI todavía.
 
