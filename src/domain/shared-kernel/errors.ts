@@ -56,4 +56,54 @@ export class StoreUnavailable extends DomainError {
   }
 }
 
-export type SharedKernelError = InvalidMoney | IdempotencyConflict | StoreUnavailable;
+/**
+ * A publication of treatment —a configuration version or a text— while an experiment is active: only a
+ * corrective one, with its reason, is accepted (03 §4.10, D-G). It lives in the kernel since feature 038
+ * because two modules that cannot depend on each other publish treatment, and a code is one class.
+ */
+export class ConfigurationFrozen extends DomainError {
+  readonly code = "configuration-frozen" as const;
+  readonly module = MODULE;
+  constructor() {
+    super(
+      "The configuration is frozen while an experiment is active: only a corrective version is accepted.",
+    );
+  }
+}
+
+/** A corrective publication carries its reason; without one there is nothing to record in the window it restarts. */
+export class ConfigurationReasonRequired extends DomainError {
+  readonly code = "configuration-reason-required" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A corrective configuration version needs a reason.", { pointer: "reason" });
+  }
+}
+
+/**
+ * A language with no complete base (feature 038): it cannot be supported, named as reserve, or left by the
+ * seed. It lives in the kernel because the seed of the texts and the publications of languages —two modules
+ * that cannot depend on each other— refuse with it. The families it lacks travel in the details as one
+ * string, which is what an operator needs to complete it (the details of an error are scalars); `pointer`
+ * says where the language was declared, when it was declared in a request.
+ */
+export class LocaleIncomplete extends DomainError {
+  readonly code = "locale-incomplete" as const;
+  readonly module = MODULE;
+  constructor(locale: string, missing: string, pointer: string | undefined) {
+    super("The base layer has no text for some families in that language.", {
+      locale,
+      missing,
+      problem: `${locale}: ${missing}`,
+      ...(pointer === undefined ? {} : { pointer }),
+    });
+  }
+}
+
+export type SharedKernelError =
+  | InvalidMoney
+  | IdempotencyConflict
+  | StoreUnavailable
+  | ConfigurationFrozen
+  | ConfigurationReasonRequired
+  | LocaleIncomplete;

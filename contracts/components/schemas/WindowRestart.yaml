@@ -5,7 +5,11 @@ description: "A restart of the accumulation window (03 §4.10, D-G): a correctiv
 
   **It says which level the version belongs to** (feature 036). With only the merchant publishing, a number
   identified a version; with three levels publishing, «version 3» could be the third of the merchant, of the
-  treatment defaults or of the platform."
+  treatment defaults or of the platform.
+
+
+  **And which text, when a text caused it** (feature 038): a version of a text is treatment too, and it
+  restarts the window the same way."
 additionalProperties: false
 required:
   - at
@@ -27,3 +31,29 @@ properties:
     type: integer
     description: The corrective version that restarted the window, of the level named above.
     minimum: 1
+  text:
+    type: object
+    description: "The text whose version caused the restart (feature 038): its key and its layer. Then
+      `configurationVersion` is the version of that key in that layer, and `level` stands where the layer
+      would — `defaults` for the base, `merchant` for the merchant's own. Absent when a configuration
+      version caused the restart."
+    additionalProperties: false
+    required:
+      - family
+      - locale
+      - layer
+    properties:
+      family:
+        $ref: ./MessageFamily.yaml
+      attributeValue:
+        $ref: ./AttributeValue.yaml
+      locale:
+        type: string
+        description: The language of the text, as a BCP 47 tag.
+        pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+        maxLength: 35
+      layer:
+        type: string
+        description: "Whose layer the version belongs to: `base`, or the identifier of the merchant."
+        minLength: 1
+        maxLength: 64

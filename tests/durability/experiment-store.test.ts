@@ -96,7 +96,10 @@ describe("the experiments across a restart", () => {
     );
     const restarted =
       active?.ok === true
-        ? active.value.windowRestarted(later(2000), "corrective", 3, "merchant")
+        ? active.value.windowRestarted(later(2000), "corrective", {
+            level: "merchant",
+            configurationVersion: 3,
+          })
         : undefined;
     expect(restarted?.ok).toBe(true);
     if (restarted?.ok === true) await store.update(restarted.value);

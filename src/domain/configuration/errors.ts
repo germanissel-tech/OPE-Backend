@@ -1,6 +1,10 @@
 // Errors of the configuration module (constitution XI; ADR-031): a value of any level that
 // violates the invariants of its type, and the rules of publishing a merchant version.
-import { DomainError } from "../shared-kernel/index.js";
+import {
+  DomainError,
+  type ConfigurationFrozen,
+  type ConfigurationReasonRequired,
+} from "../shared-kernel/index.js";
 
 const MODULE = "configuration" as const;
 
@@ -23,25 +27,6 @@ export class InvalidConfigurationValue extends DomainError {
   /** The same offence, located under the field that carried the values (`declared.` in the body of the API). */
   under(prefix: string): InvalidConfigurationValue {
     return new InvalidConfigurationValue(`${prefix}.${this.pointer}`, this.problem);
-  }
-}
-
-/** An experiment is active: only a corrective version, with its reason, may be published (03 §4.10). */
-export class ConfigurationFrozen extends DomainError {
-  readonly code = "configuration-frozen" as const;
-  readonly module = MODULE;
-  constructor() {
-    super(
-      "The configuration is frozen while an experiment is active: only a corrective version is accepted.",
-    );
-  }
-}
-
-export class ConfigurationReasonRequired extends DomainError {
-  readonly code = "configuration-reason-required" as const;
-  readonly module = MODULE;
-  constructor() {
-    super("A corrective configuration version needs a reason.", { pointer: "reason" });
   }
 }
 

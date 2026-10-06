@@ -1,0 +1,39 @@
+description: "Valid request rejected on semantics: the `x-invariants` of a text (ADR-007)."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      keyUnknown:
+        summary: A family or a value outside OPE's vocabulary (text-key-unknown)
+        value:
+          type: urn:ope:problem:text-key-unknown
+          title: The text key names something OPE has no text for
+          status: 422
+          detail: The text key names something OPE has no text for.
+          instance: /v1/admin/texts
+          errors:
+            - pointer: /family
+              message: fit.variant_selector.typo
+      placeholder:
+        summary: A text that still carries a placeholder (corpus-text-has-placeholder)
+        value:
+          type: urn:ope:problem:corpus-text-has-placeholder
+          title: A curated text of the corpus still carries a placeholder
+          status: 422
+          detail: A curated text still carries a placeholder; the corpus takes complete prose.
+          instance: /v1/admin/texts
+          errors:
+            - pointer: /text
+              message: A curated text still carries a placeholder; the corpus takes complete prose.
+      reasonRequired:
+        summary: A corrective version without its reason (configuration-reason-required)
+        value:
+          type: urn:ope:problem:configuration-reason-required
+          title: A corrective configuration version needs a reason
+          status: 422
+          detail: A corrective configuration version needs a reason.
+          instance: /v1/admin/texts
+          errors:
+            - pointer: /reason
+              message: A corrective configuration version needs a reason.

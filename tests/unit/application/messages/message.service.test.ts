@@ -25,19 +25,24 @@ const rung = (step: Step): Candidate => {
 const information = rung("information");
 const reassurance = rung("reassurance");
 
-/** A corpus that holds exactly the entries a test names, and answers nothing else. */
-const corpusOf = (entries: readonly (TextKey & { text: string })[]): MessageCorpus => ({
-  find: (key: TextKey) => {
-    // The voice is not compared: with a single voice the comparison is always true and the
-    // compiler says so. It returns to this corpus with the second one.
-    const found = entries.find(
-      (entry) =>
-        entry.family === key.family &&
-        entry.locale === key.locale &&
-        entry.attributeValue === key.attributeValue,
-    );
+/** An entry a test names: a key, what it says, and whose layer it is (the base when no merchant is named). */
+type Entry = TextKey & { text: string; merchantId?: MerchantId };
+
+/**
+ * A corpus that holds exactly the entries a test names, and answers nothing else: the merchant's layer
+ * first and the base second, which is what the real one does (feature 038).
+ */
+const corpusOf = (entries: readonly Entry[]): MessageCorpus => ({
+  find: (merchantId: MerchantId, key: TextKey) => {
+    const matches = (entry: Entry): boolean =>
+      entry.family === key.family &&
+      entry.locale === key.locale &&
+      entry.attributeValue === key.attributeValue;
+    const found =
+      entries.find((entry) => entry.merchantId === merchantId && matches(entry)) ??
+      entries.find((entry) => entry.merchantId === undefined && matches(entry));
     if (found === undefined) return Promise.resolve(undefined);
-    const version = `mv_${found.family}_${found.attributeValue ?? "any"}_${found.locale}`;
+    const version = `${found.merchantId ?? "base"}/${found.family}/${found.attributeValue ?? "-"}/${found.locale}#1`;
     const text = CuratedText.of(messageVersion(version), found.text);
     if (!text.ok) throw new Error(found.text);
     return Promise.resolve(text.value);
@@ -45,7 +50,7 @@ const corpusOf = (entries: readonly (TextKey & { text: string })[]): MessageCorp
 });
 
 const directoryOf = (settings: Partial<MessageSettings> = {}): MessageDirectory => ({
-  settingsFor: () => Promise.resolve({ voice: "neutral", labels: AttributeLabels.empty(), ...settings }),
+  settingsFor: () => Promise.resolve({ labels: AttributeLabels.empty(), ...settings }),
 });
 
 const ask = (corpus: MessageCorpus, directory: MessageDirectory, locale?: string) =>
@@ -76,14 +81,12 @@ describe("Messages.sayable — what the product is made of", () => {
       family: family(uncertainty),
       attributeValue: "combed-cotton",
       locale: "es",
-      voice: "neutral",
       text: "The combed cotton text.",
     },
     {
       family: family(uncertainty),
       attributeValue: "linen",
       locale: "es",
-      voice: "neutral",
       text: "The linen text.",
     },
   ]);
@@ -118,7 +121,7 @@ describe("Messages.sayable — what the product is made of", () => {
     // careless corpus looks like, and it is the only thing between OPE and talking about a fabric it
     // knows nothing about. What decides is the claim of the candidate, not what the corpus answers.
     const careless = corpusOf([
-      { family: family(uncertainty), locale: "es", voice: "neutral", text: "The text with no material." },
+      { family: family(uncertainty), locale: "es", text: "The text with no material." },
     ]);
     const said = await new Messages({ corpus: careless, directory: directoryOf({ labels }) }).sayable({
       merchantId: MERCHANT,
@@ -156,8 +159,8 @@ describe("Messages.sayable — what the product is made of", () => {
 describe("Messages.sayable — what can be said", () => {
   it("answers only the families the corpus holds, in the order given (the ladder)", async () => {
     const corpus = corpusOf([
-      { family: family(reassurance), locale: "es", voice: "neutral", text: "The reassurance text." },
-      { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
+      { family: family(reassurance), locale: "es", text: "The reassurance text." },
+      { family: family(information), locale: "es", text: "The information text." },
     ]);
     const said = await ask(corpus, directoryOf(), "es");
     expect(said.map((s) => s.candidate.step)).toEqual(["information", "reassurance"]);
@@ -165,9 +168,7 @@ describe("Messages.sayable — what can be said", () => {
   });
 
   it("drops a family the corpus has no text for: it is not a candidate, not a candidate with no text", async () => {
-    const corpus = corpusOf([
-      { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
-    ]);
+    const corpus = corpusOf([{ family: family(information), locale: "es", text: "The information text." }]);
     const said = await ask(corpus, directoryOf(), "es");
     expect(said).toHaveLength(1);
     expect(said.every((s) => s.said.text.length > 0)).toBe(true);
@@ -178,9 +179,7 @@ describe("Messages.sayable — what can be said", () => {
   });
 
   it("uses the reserve language when the page's has no text, and never a text of another language", async () => {
-    const corpus = corpusOf([
-      { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
-    ]);
+    const corpus = corpusOf([{ family: family(information), locale: "es", text: "The information text." }]);
     // The page is in Portuguese and the corpus is not: with a reserve language it answers, without
     // one it says nothing — what it never does is answer in Portuguese with the Spanish text.
     expect(await ask(corpus, directoryOf({ fallback: "es" }), "pt-BR")).toHaveLength(1);
@@ -188,18 +187,14 @@ describe("Messages.sayable — what can be said", () => {
   });
 
   it("uses the reserve language when the page declares none", async () => {
-    const corpus = corpusOf([
-      { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
-    ]);
+    const corpus = corpusOf([{ family: family(information), locale: "es", text: "The information text." }]);
     expect(await ask(corpus, directoryOf({ fallback: "es" }))).toHaveLength(1);
     expect(await ask(corpus, directoryOf())).toEqual([]);
   });
 
   it("carries the version of the text it found, which is what the ledger keeps", async () => {
-    const corpus = corpusOf([
-      { family: family(information), locale: "es", voice: "neutral", text: "The information text." },
-    ]);
+    const corpus = corpusOf([{ family: family(information), locale: "es", text: "The information text." }]);
     const said = await ask(corpus, directoryOf(), "es");
-    expect(said[0]?.said.messageVersionId).toBe(`mv_${family(information)}_any_es`);
+    expect(said[0]?.said.messageVersionId).toBe(`base/${family(information)}/-/es#1`);
   });
 });

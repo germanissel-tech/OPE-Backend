@@ -57,7 +57,7 @@ describe("bootstrap", () => {
     expect(app.resolve(ClockPort)).toBeDefined();
     const res = await app.app.inject({ method: "GET", url: "/v1/health" });
     expect(res.statusCode).toBe(200);
-    expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.10.0" });
+    expect(json(res)).toMatchObject({ status: "ok", contractVersion: "1.11.0" });
   });
 
   it("a port override replaces the profile one: the fixed clock shows in the response", async () => {
@@ -115,6 +115,7 @@ describe("bootstrap — the seed of the merchants (feature 017, FR-009)", () => 
       ["importExperiments", "system", "accepted"],
       ["importMerchantConfiguration", "system", "accepted"],
       ["importMerchants", "system", "accepted"],
+      ["importTexts", "system", "accepted"],
       ["importConfigurationLevels", "system", "accepted"],
     ]);
     expect(log.items[0]?.result).toEqual({ configurationVersion: 1 });

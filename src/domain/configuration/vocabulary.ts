@@ -15,9 +15,6 @@ export type SyncStrategy = Readonly<Record<SyncFlow, SyncMode>>;
 export const SURFACES = ["product", "cart"] as const;
 export type Surface = (typeof SURFACES)[number];
 
-/** The shape of a BCP 47 language tag (`es-AR`, `en`); the contract publishes the same pattern. */
-export const LOCALE_PATTERN = /^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/;
-
 /** The languages of a merchant's store and the one to fall back to; an empty list restricts nothing. */
 export interface Locales {
   supported: readonly string[];

@@ -1,137 +1,61 @@
-// The curated corpus of the release (feature 027, constitution VIII): the texts a person sees,
-// written and reviewed before being served. This reads its shape and the domain judges every
-// entry; an entry the domain refuses is a ConfigError, so a corpus that cannot be shown does not
-// start the server (constitution II).
+// The seed of the base texts (feature 027, constitution VIII; a seed since feature 038): the texts a
+// person sees, written and reviewed before they are served. The file is read for its **shape** only —
+// what a key and a text look like— and nothing more: the vocabulary, the rules of a text and the
+// completeness of the base are the domain's, judged when the seed is imported into an empty store
+// (`ImportTextsUseCase`), and never again at boot. From the second boot on, what is in force is what an
+// operator published and editing this file does nothing.
 import path from "node:path";
-import {
-  ATTRIBUTE_VALUES,
-  CuratedText,
-  messageVersion,
-  type AttributeValue,
-} from "../domain/messages/index.js";
-import { CANDIDATES } from "../domain/selection/index.js";
-import { DEFAULT_VOICE, VOICES, type Voice } from "../domain/shared-kernel/index.js";
 import { ConfigError } from "./config-error.js";
 import { parseJson, text } from "./env.js";
-import type { CorpusEntry } from "../interface-adapters/messages/index.js";
+import type { SeedText } from "../application/messages/index.js";
 
-/** The file of the release that holds the corpus. */
+/** The file of the release that holds the seed. */
 const CORPUS_FILE = "config/messages.json";
+
 const VARIABLE = "OPE_MESSAGE_CORPUS";
 
-const ALL_CANDIDATES = Object.values(CANDIDATES).flat();
+const FAMILY = "family";
+const ATTRIBUTE_VALUE = "attributeValue";
+const LOCALE = "locale";
+const TEXT = "text";
 
-/** Every message family the decision plane may choose: what a corpus entry is allowed to name. */
-const FAMILIES: ReadonlySet<string> = new Set(ALL_CANDIDATES.map((candidate) => candidate.candidateId));
+/** The fields a seed text may carry; anything else —a `voice`, a declared `version`— is a file of another release. */
+const FIELDS: ReadonlySet<string> = new Set([FAMILY, ATTRIBUTE_VALUE, LOCALE, TEXT]);
 
-/**
- * The families that must have a text in the default language. A family that claims an attribute of
- * the product is **not** among them: it is sayable exactly when the value the product carries has
- * prose, so it has no unconditional text and requiring one would force writing about materials
- * nobody studied. A product whose value has no text simply says nothing about it (01 §322).
- */
-const UNCONDITIONAL: ReadonlySet<string> = new Set(
-  ALL_CANDIDATES.filter(
-    (candidate) => !candidate.claims.some((claim) => claim.kind === "product-attribute"),
-  ).map((candidate) => candidate.candidateId),
-);
-
-/**
- * `OPE_MESSAGE_CORPUS` names the file; the one of the repository otherwise. Beyond the shape of
- * each entry, three things make a corpus servable, and a corpus that is not does not start the
- * server (constitution II):
- *
- * 1. every entry names a family the plane can actually choose — a text nobody can reach is a text
- *    that was written for nothing, and almost always a typo in the family;
- * 2. no version says two different things, because the ledger records the version and a person read
- *    one of them;
- * 3. every family that does not depend on the product has a text in the default language and voice,
- *    so a merchant that configured nothing can still say something. Without this
- *    `message-unavailable` would be the normal case instead of the exception, and silence would look
- *    like a decision.
- */
-export function readCorpus(
-  env: NodeJS.ProcessEnv,
-  readFile: (file: string) => string,
-  defaultLocale: string,
-): readonly CorpusEntry[] {
+/** `OPE_MESSAGE_CORPUS` names the file; the one of the repository otherwise. */
+export function readCorpus(env: NodeJS.ProcessEnv, readFile: (file: string) => string): readonly SeedText[] {
   const raw = parseJson(VARIABLE, readFile(path.resolve(text(env, VARIABLE) ?? CORPUS_FILE)));
   const texts = isObject(raw) ? raw["texts"] : undefined;
   if (!Array.isArray(texts)) throw new ConfigError(VARIABLE, "must hold a list of texts");
-  const entries = texts.map((entry, index) => entryOf(entry, index));
-  refuseUnreachable(entries);
-  refuseAmbiguousVersions(entries);
-  refuseIncompleteDefault(entries, defaultLocale);
-  return entries;
-}
-
-/** A text of a family the plane cannot choose is unreachable: almost always a typo. */
-function refuseUnreachable(entries: readonly CorpusEntry[]): void {
-  const stray = entries.find((entry) => !FAMILIES.has(entry.key.family));
-  if (stray !== undefined) {
-    throw new ConfigError(VARIABLE, `names a family no candidate has: ${stray.key.family}`);
-  }
-}
-
-/** One version, one text: the ledger records the version and a person read one text, not two. */
-function refuseAmbiguousVersions(entries: readonly CorpusEntry[]): void {
-  const byVersion = new Map<string, string>();
-  for (const { text: curated } of entries) {
-    const seen = byVersion.get(curated.version);
-    if (seen !== undefined && seen !== curated.value) {
-      throw new ConfigError(VARIABLE, `version ${curated.version} says two different things`);
-    }
-    byVersion.set(curated.version, curated.value);
-  }
-}
-
-/** Without a text per family in the default language, silence would be the normal answer. */
-function refuseIncompleteDefault(entries: readonly CorpusEntry[], defaultLocale: string): void {
-  // The voice is not compared: with a single voice every entry is in the default one and the
-  // compiler knows it. It returns to this filter with the second voice.
-  const served = new Set(
-    entries.filter((entry) => entry.key.locale === defaultLocale).map((entry) => entry.key.family),
-  );
-  const missing = [...UNCONDITIONAL].find((family) => !served.has(family));
-  if (missing !== undefined) {
-    throw new ConfigError(VARIABLE, `has no text for ${missing} in ${defaultLocale}/${DEFAULT_VOICE}`);
-  }
+  return texts.map((entry, index) => entryOf(entry, index));
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-function entryOf(raw: unknown, index: number): CorpusEntry {
+function entryOf(raw: unknown, index: number): SeedText {
   const where = `texts[${index}]`;
   if (!isObject(raw)) throw new ConfigError(VARIABLE, `${where} is not an object`);
-  const family = keyAt(raw, "family", where);
-  const locale = keyAt(raw, "locale", where);
-  const voice = keyAt(raw, "voice", where);
-  if (!isVoice(voice)) throw new ConfigError(VARIABLE, `${where}.voice is not a voice OPE writes texts in`);
-  // The text itself is the domain's to judge: empty, too long or still a template are its rules,
-  // and repeating them here would give the same fault two messages.
-  const value = raw["text"];
-  if (typeof value !== "string") throw new ConfigError(VARIABLE, `${where}.text must be a string`);
-  const text = CuratedText.of(messageVersion(keyAt(raw, "version", where)), value);
-  if (!text.ok) throw new ConfigError(VARIABLE, `${where}: ${text.error.message}`);
-  // A text that speaks of what the product is made of names the value of OPE's vocabulary it is
-  // written for; one that speaks of nothing of the product names none.
-  const attributeValue = raw["attributeValue"];
-  if (attributeValue !== undefined && !isAttributeValue(attributeValue)) {
-    throw new ConfigError(VARIABLE, `${where}.attributeValue is not a value OPE writes texts for`);
+  // A field this release does not know is almost always a seed of the previous one: the voice left in
+  // feature 038, and the per-text version is minted by the store since then.
+  const stranger = Object.keys(raw).find((field) => !FIELDS.has(field));
+  if (stranger !== undefined)
+    throw new ConfigError(VARIABLE, `${where}.${stranger} is not a field of a seed text`);
+  const family = fieldAt(raw, FAMILY, where);
+  const locale = fieldAt(raw, LOCALE, where);
+  const value = fieldAt(raw, TEXT, where);
+  const attributeValue = raw[ATTRIBUTE_VALUE];
+  if (attributeValue !== undefined && typeof attributeValue !== "string") {
+    throw new ConfigError(VARIABLE, `${where}.${ATTRIBUTE_VALUE} must be a string`);
   }
   return {
-    key: { family, locale, voice, ...(attributeValue === undefined ? {} : { attributeValue }) },
-    text: text.value,
+    key: { family, locale, ...(attributeValue === undefined ? {} : { attributeValue }) },
+    text: value,
   };
 }
 
-const isVoice = (value: string): value is Voice => (VOICES as readonly string[]).includes(value);
-const isAttributeValue = (value: unknown): value is AttributeValue =>
-  typeof value === "string" && (ATTRIBUTE_VALUES as readonly string[]).includes(value);
-
-/** A field of the key: the reader owns its shape, because no factory of the domain judges it. */
-function keyAt(raw: Record<string, unknown>, field: string, where: string): string {
+/** A field of the seed: the reader owns its shape; what it means is the domain's. */
+function fieldAt(raw: Record<string, unknown>, field: string, where: string): string {
   const value = raw[field];
   if (typeof value !== "string" || value.trim() === "") {
     throw new ConfigError(VARIABLE, `${where}.${field} must be a non-empty string`);

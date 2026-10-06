@@ -1,0 +1,78 @@
+post:
+  operationId: publishText
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - texts:write
+  x-idempotency:
+    key: text
+    first: "201"
+    repeat: "200"
+  summary: Publish a version of a base text
+  description: "Creates the next version of a base text for a key —a family, the attribute value it speaks
+    of when it does, and a language— (feature 038; constitution VIII and X): numbered per key, immutable,
+    effective on the next intervention without a restart. Until then a text changed only with a deploy,
+    which changes a treatment in course the same way without leaving a version, an entry in the log or a
+    restarted window.
+
+
+    A text identical to the version in force repeats it (`200`) instead of creating one. The text
+    **reaches** every merchant without its own text for that key and language: while an experiment it
+    reaches is active only a corrective version — with its reason — is accepted (`409
+    configuration-frozen`), and it restarts the measurement window of each one. A key outside OPE's
+    vocabulary, or a text that is blank, too long or still a template, is refused and no version is
+    created. The base never loses a text. It takes an operator over every merchant, because the text
+    reaches them all. A text in a language no level supports yet is accepted: the base of a language can be
+    completed before the language is."
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/TextInput.yaml
+        example:
+          family: fit.variant_selector.information
+          locale: es
+          text: Sizes vary between brands; check the guide before choosing.
+          corrective: false
+  responses:
+    "200":
+      description: The version in force, identical to what was published.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersion.yaml
+          example: &version
+            family: fit.variant_selector.information
+            locale: es
+            layer: base
+            version: 2
+            messageVersionId: base/fit.variant_selector.information/-/es#2
+            text: Sizes vary between brands; check the guide before choosing.
+            removed: false
+            corrective: false
+            publishedAt: 2026-10-04T12:00:00Z
+            operatorId: ops-1
+    "201":
+      description: The version created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersion.yaml
+          example: *version
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/PlatformWideForbidden.yaml
+    "409":
+      $ref: ../components/responses/ConfigurationFrozenConflict.yaml
+    "422":
+      $ref: ../components/responses/TextUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

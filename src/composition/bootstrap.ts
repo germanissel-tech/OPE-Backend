@@ -25,6 +25,7 @@ import {
 import { ImportExperimentsPort } from "./modules/experiment.js";
 import { EventLogPort } from "./modules/ingestion.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
+import { ImportTextsPort } from "./modules/messages.js";
 import { LoggerPort } from "./modules/shared-kernel.js";
 import { ContractPort, PlatformLevelPort, type SqlStorePort } from "./release.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
@@ -85,6 +86,10 @@ export async function importSeed(
   // store, and everything below —a merchant's declared configuration, its experiments— is judged against
   // them. A boot that imported the merchants first would judge them against a level that holds nothing.
   await importLevels(config, actor, graph);
+  // **And the texts right after the levels** (feature 038): the seed of the base is judged complete against
+  // the languages the seeded levels support, so the levels have to be in first. A seed that leaves the base
+  // incomplete does not start the server (constitution II): silence would be the normal answer.
+  await importTexts(config, actor, graph);
   // **And the levels are read before anything is served** (feature 036). Eleven components read level 1
   // synchronously when they use one of its values, so the service has to be holding it by the time the
   // server listens; this is also what makes a stored level this build cannot read a boot that fails loudly
@@ -98,7 +103,7 @@ export async function importSeed(
   // already holds merchants made this silent, so editing the file after the first boot did nothing and
   // said nothing. Now the log names the situation, and the way to change anything is the API.
   const logger = graph.resolve(LoggerPort);
-  if ("imported" in imported.value) {
+  if (IMPORTED in imported.value) {
     logger.info({ merchants: imported.value.imported }, "merchant seed imported");
   } else {
     // Without a count, and on purpose: the use case answers `skipped` and nothing else, and counting the
@@ -156,6 +161,42 @@ async function importLevels(
     );
   }
 }
+
+/**
+ * The texts of the release into an empty store (feature 038), as version 1 of each key in the base layer.
+ * From the second boot on what is in force is what an operator published, and the boot says so instead of
+ * reporting an import that did not happen.
+ */
+async function importTexts(
+  config: AppConfig,
+  actor: Operator,
+  graph: Pick<Instance<DeployedComponents>, "resolve">,
+): Promise<void> {
+  const { locales } = config.levels.defaults.values;
+  const imported = await graph.resolve(ImportTextsPort).execute({
+    actor,
+    texts: config.corpus,
+    locales: [...locales.supported, ...(locales.fallback === undefined ? [] : [locales.fallback])],
+  });
+  if (!imported.ok) {
+    // The details carry what an operator needs to fix the seed: the language and the families it lacks.
+    throw new Error(
+      `The texts seed was rejected: ${imported.error.code} ${JSON.stringify(imported.error.details)}.`,
+    );
+  }
+  const logger = graph.resolve(LoggerPort);
+  if (IMPORTED in imported.value) {
+    logger.info({ texts: imported.value.imported }, "texts seed imported");
+  } else {
+    logger.info(
+      {},
+      "texts seed not applied: the store already holds texts; change them through the administration API",
+    );
+  }
+}
+
+/** The branch a use case of the seed answers when it applied the file. */
+const IMPORTED = "imported";
 
 /** The branch a use case of the seed answers when the store already held what the file brings. */
 const SKIPPED = "skipped";

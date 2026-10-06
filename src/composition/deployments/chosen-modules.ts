@@ -18,6 +18,7 @@ import { experimentModule } from "../modules/experiment.js";
 import { ingestionModule } from "../modules/ingestion.js";
 import { ledgerModule } from "../modules/ledger.js";
 import { merchantModule } from "../modules/merchant.js";
+import { messagesModule } from "../modules/messages.js";
 import { outcomesModule } from "../modules/outcomes.js";
 import { kernelModule } from "../modules/shared-kernel.js";
 
@@ -37,6 +38,9 @@ export const modulesWith = <T extends Technology>(technology: T) =>
     // The merchants joined in feature 033. In `sqlite` the gateway answers its reads from an in-memory
     // index, so this choice is about where the writes land and not about where the hot path reads.
     merchantModule.with(technology),
+    // The texts joined in feature 038: what the technology chooses is where a publication lands; the reads
+    // of the decision path come from an index in memory in both.
+    messagesModule.with(technology),
     outcomesModule.with(technology),
     // The kernel joined in feature 034, and what it chooses is the unit of work: the store's transaction
     // where there is a store, and nothing to compose where there is not.

@@ -18,8 +18,9 @@ import {
   ok,
   type Result,
 } from "../../domain/shared-kernel/index.js";
-import type { SqlStore } from "./sql-store.js";
-import type { Logger } from "../../application/shared-kernel/index.js";
+import { descending, pageTo } from "./paging.js";
+import type { SqlParams, SqlRow, SqlStore } from "./sql-store.js";
+import type { Logger, Page, PageQuery } from "../../application/shared-kernel/index.js";
 
 export interface DurableGatewayDeps {
   readonly store: SqlStore;
@@ -89,3 +90,39 @@ export function stored<T>(
 ): Promise<Result<T, StoreUnavailable>> {
   return tried(deps, what, work, () => new StoreUnavailable());
 }
+
+/**
+ * A page of a versioned history, newest first, resuming **below** the version the cursor names: the key
+ * of a row never moves when a version is added, so the page is stable while somebody publishes.
+ *
+ * It exists because the third store with a numbered history arrived (feature 038, D-34): the merchant
+ * configurations, the levels of the release and the texts page their versions the same way, and three
+ * copies of the window and the cursor were the duplication the gate refused. What varies —the statement,
+ * what identifies the history, how a row becomes an item— arrives; what is the same stays here.
+ */
+export function pagedByVersion<T>(
+  deps: DurableGatewayDeps,
+  history: VersionedHistory<T>,
+  query: PageQuery,
+): Promise<Page<T>> {
+  const window = descending(query);
+  return fetched(deps, () =>
+    pageTo(
+      deps.store
+        .all(history.sql, { ...history.params, below: window.below, limit: window.limit })
+        .map((row) => ({ key: Number(row[VERSION]), item: history.itemOf(row) })),
+      window,
+    ),
+  );
+}
+
+/** What identifies one versioned history: the statement, what names it, and how a row becomes an item. */
+export interface VersionedHistory<T> {
+  /** Selects `version` and the document, with `:below` and `:limit` where the window goes. */
+  readonly sql: string;
+  readonly params: SqlParams;
+  readonly itemOf: (row: SqlRow) => T;
+}
+
+/** The column every versioned history numbers its rows by. */
+const VERSION = "version";

@@ -22,5 +22,7 @@ export type {
   ExperimentPhase,
   ExperimentRecord,
   ExperimentStatus,
+  RestartSource,
+  TextRestartCause,
   WindowRestart,
 } from "./experiment.js";

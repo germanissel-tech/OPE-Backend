@@ -1,0 +1,8 @@
+name: locale
+in: path
+required: true
+description: The language of the key, as a BCP 47 tag.
+schema:
+  type: string
+  pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+  maxLength: 35

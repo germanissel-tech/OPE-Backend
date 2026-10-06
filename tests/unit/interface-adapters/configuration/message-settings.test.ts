@@ -52,12 +52,11 @@ const serving = (effective: EffectiveConfiguration): ConfigurationService => ({
 });
 
 describe("messageSettingsOf", () => {
-  it("carries the declared fallback language, the default voice and the correspondence", async () => {
+  it("carries the declared fallback language and the correspondence", async () => {
     const settings = await messageSettingsOf(
       serving(effectiveOf({ supported: ["es-AR", "en"], fallback: "es-AR" })),
     ).settingsFor(A);
     expect(settings.fallback).toBe("es-AR");
-    expect(settings.voice).toBe("neutral");
     expect(settings.labels.valueOf("Denim 12oz")).toBe("denim");
   });
 

@@ -56,10 +56,10 @@ const SHOP_CONFIGURES = [
 ];
 
 const corpus: MessageCorpus = {
-  find: (key: TextKey) => {
+  find: (_merchantId: MerchantId, key: TextKey) => {
     const found = OPE_WRITES.find(([value]) => value === key.attributeValue);
     if (found === undefined || key.family !== uncertainty.candidateId) return Promise.resolve(undefined);
-    const text = CuratedText.of(messageVersion(`mv_${found[0]}_es_neutral_1`), found[1]);
+    const text = CuratedText.of(messageVersion(`base/${uncertainty.candidateId}/${found[0]}/es#1`), found[1]);
     if (!text.ok) throw new Error(found[1]);
     return Promise.resolve(text.value);
   },
@@ -69,7 +69,7 @@ const labels = AttributeLabels.of(SHOP_CONFIGURES);
 if (!labels.ok) throw new Error(labels.error.message);
 const messages = new Messages({
   corpus,
-  directory: { settingsFor: () => Promise.resolve({ voice: "neutral", labels: labels.value }) },
+  directory: { settingsFor: () => Promise.resolve({ labels: labels.value }) },
 });
 
 const whatItSays = async (material: string | undefined) =>

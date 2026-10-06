@@ -17,6 +17,7 @@ import { pageDto, pageQueryOf, type PageQueryDto } from "../http/boundary.js";
 import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type ProblemOf } from "../http/to-problem.js";
+import { publicationDto } from "../shared-kernel/index.js";
 import type {
   GetLevelVersionResponse,
   LevelHistoryReader,
@@ -192,12 +193,6 @@ function levelVersionDto<Content>(published: PublishedLevel): LevelVersionDto<Co
     version: version.version,
     stampedAs: version.versionName(),
     content: version.content as Content,
-    corrective: version.corrective,
-    ...(version.reason === undefined ? {} : { reason: version.reason }),
-    publishedAt: version.publishedAt.toISOString(),
-    operatorId: version.operatorId,
-    ...(published.windowsRestarted.length === 0
-      ? {}
-      : { windowsRestarted: published.windowsRestarted.map((e) => e.experimentId) }),
+    ...publicationDto(version, published.windowsRestarted),
   };
 }

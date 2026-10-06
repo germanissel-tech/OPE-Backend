@@ -1,0 +1,7 @@
+name: attributeValue
+in: query
+required: false
+description: "The attribute value of the key, when the family speaks of the product: a query parameter because
+  it is optional, and a route with an optional segment does not exist."
+schema:
+  $ref: ../schemas/AttributeValue.yaml

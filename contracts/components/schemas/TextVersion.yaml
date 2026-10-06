@@ -1,0 +1,68 @@
+type: object
+description: "A published version of a text (feature 038): its key, its layer —the base, or a merchant—,
+  its number, what it says, and who published it, when and why. Immutable. `messageVersionId` is what every
+  intervention that showed it stamps, minted from layer, key and number and never declared. A version that
+  removed a merchant's text has no `text` and says `removed`."
+additionalProperties: false
+required:
+  - family
+  - locale
+  - layer
+  - version
+  - messageVersionId
+  - removed
+  - corrective
+  - publishedAt
+  - operatorId
+properties:
+  family:
+    $ref: ./MessageFamily.yaml
+  attributeValue:
+    $ref: ./AttributeValue.yaml
+  locale:
+    type: string
+    description: The language the text is written in, as a BCP 47 tag.
+    pattern: ^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$
+    maxLength: 35
+  layer:
+    type: string
+    description: "Whose layer the version belongs to: `base`, or the identifier of the merchant."
+    minLength: 1
+    maxLength: 64
+  version:
+    type: integer
+    description: Sequential number of the key in its layer, assigned at publication.
+    minimum: 1
+  messageVersionId:
+    type: string
+    description: "What an intervention stamps when it shows this text: minted from layer, key and number."
+    minLength: 1
+    maxLength: 256
+  text:
+    type: string
+    description: The text as it was published; absent when the version removed the merchant's text.
+    minLength: 1
+    maxLength: 512
+  removed:
+    type: boolean
+    description: Whether this version removed the merchant's text, sending the key back to the base.
+  corrective:
+    type: boolean
+    description: Whether the version was published as corrective.
+  reason:
+    type: string
+    description: The reason the operator declared, when any.
+    maxLength: 512
+  publishedAt:
+    type: string
+    format: date-time
+    description: Instant of publication.
+  operatorId:
+    $ref: ./OperatorId.yaml
+  windowsRestarted:
+    type: array
+    description: "The experiments whose measurement window this version restarted, when it was corrective:
+      the active ones of every merchant the text reaches."
+    uniqueItems: true
+    items:
+      $ref: ./ExperimentId.yaml

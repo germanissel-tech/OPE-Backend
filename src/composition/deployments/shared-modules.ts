@@ -11,17 +11,9 @@
 import { accessModule } from "../modules/access.js";
 import { barrierModule } from "../modules/barrier.js";
 import { decisionModule } from "../modules/decision.js";
-import { messagesModule } from "../modules/messages.js";
 import { systemModule } from "../modules/system.js";
 import { releaseComponents } from "../release.js";
 import type { AppConfig } from "../config.js";
 
 export const sharedModules = (config: AppConfig) =>
-  [
-    releaseComponents(config),
-    systemModule,
-    accessModule,
-    barrierModule,
-    messagesModule,
-    decisionModule,
-  ] as const;
+  [releaseComponents(config), systemModule, accessModule, barrierModule, decisionModule] as const;

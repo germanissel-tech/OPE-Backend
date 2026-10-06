@@ -4,6 +4,7 @@
 // and it binds the read ports its consumers declare: the policies of the decision plane, the
 // budgets of the catalogue and the holdout of the experiment. Nobody imports it for that.
 import {
+  CompleteLocales,
   Configurations,
   GetMerchantConfigurationUseCase,
   GetLevelVersionUseCase,
@@ -28,8 +29,16 @@ import {
   type PlatformLevelReader,
   type PublishLevelRequest,
   type PublishLevelResponse,
-  type ReachedExperimentsDependencies,
+  type PublishMerchantConfigurationRequest,
+  type TextCompleteness,
+  readTreatmentDefaults,
 } from "../../application/configuration/index.js";
+import {
+  ActiveExperiments,
+  WindowRestarts,
+  type ExperimentDirectory,
+  type ExperimentStore,
+} from "../../application/experiment/index.js";
 import {
   catalogPoliciesOf,
   holdoutSourceOf,
@@ -59,8 +68,9 @@ import { CatalogPoliciesPort } from "./catalog.js";
 import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
-import { MessageDirectoryPort } from "./messages.js";
+import { MessageDirectoryPort, TextStorePort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
+import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
 import type { LevelVersion } from "../../domain/configuration/index.js";
 
@@ -70,6 +80,8 @@ const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>()
 const LevelStorePort = port("configuration.level-store")<LevelStore>();
 /** The resolution, shared by every consumer: what it serves changes when a version is published. */
 export const ConfigurationServicePort = port("configuration.service")<ConfigurationService>();
+/** Whether a language could be served: which families the base texts lack in it (feature 038, US4). */
+const TextCompletenessPort = port("configuration.text-completeness")<TextCompleteness>();
 /** The two levels of the release become version 1 of each, audited as the system (feature 036). */
 export const ImportConfigurationLevelsPort = port("configuration.import-levels")<
   UseCase<ImportConfigurationLevelsRequest, ImportConfigurationLevelsResponse>
@@ -144,15 +156,23 @@ const PUBLISHES_A_LEVEL = {
   clock: ClockPort,
 } as const;
 
-const publishesALevel = (
-  deps: {
-    levels: LevelStore;
-    configuration: ConfigurationService;
-    clock: Clock;
-  } & ReachedExperimentsDependencies,
-): PublishLevelUseCase => {
-  const { levels, configuration, clock, ...rest } = deps;
-  return new PublishLevelUseCase({ levels, configuration, clock, reached: new ReachedExperiments(rest) });
+const publishesALevel = (deps: {
+  levels: LevelStore;
+  configuration: ConfigurationService;
+  clock: Clock;
+  merchants: MerchantStore;
+  configurations: ConfigurationStore;
+  experiments: ExperimentDirectory;
+  experimentStore: ExperimentStore;
+}): PublishLevelUseCase => {
+  const { levels, configuration, clock, experimentStore, merchants, experiments, configurations } = deps;
+  // The walk and the restart are the experiment module's (feature 038); who is reached stays here.
+  const reached = new ReachedExperiments({
+    configurations,
+    active: new ActiveExperiments({ merchants, experiments }),
+    restarts: new WindowRestarts({ experimentStore }),
+  });
+  return new PublishLevelUseCase({ levels, configuration, clock, reached });
 };
 
 /**
@@ -173,6 +193,19 @@ const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
 /** What a read of a level's history needs, which is the store of the versions and nothing else. */
 const READS_A_LEVEL = { levels: LevelStorePort } as const;
 
+/**
+ * The languages a level's content declares, read by the reader of the level: an invalid content declares
+ * none here and is refused by the use case, which names the field. Only the treatment defaults carry
+ * languages, and only they are wrapped (feature 038, US4).
+ */
+const localesOfDefaults = (content: Record<string, unknown>) => {
+  // The reader wants the level named; a placeholder stands in for the shape of the check, as it does when
+  // the use case judges the content, and it is never stored.
+  const read = readTreatmentDefaults({ ...content, version: DEFAULTS_DRAFT });
+  return read.ok ? read.value.values.locales : undefined;
+};
+const DEFAULTS_DRAFT = "defaults-draft";
+
 export const configurationModule = compositionModule({
   // The only component with a technology to choose is the store of the published versions; the rest is
   // the same in every deployment and is spread in from `resolution`.
@@ -191,6 +224,9 @@ export const configurationModule = compositionModule({
     ],
   },
   assembles: [
+    // The store of the texts answers the question as it is: what it lacks for a language is what the
+    // question asks (feature 038, US4).
+    bind(TextCompletenessPort, { texts: TextStorePort }, ({ texts }) => texts),
     // **Without a result, and that is D-29 and not an oversight.** `AdminResult` is a published schema of
     // the contract with three fields, none of which is «which levels were imported»; saying it would be a
     // contract change, and this feature declared it does not make one. The log line of the boot does say it.
@@ -226,8 +262,25 @@ export const configurationModule = compositionModule({
         { result: levelVersionNumbered, reason: levelReasonDeclared },
       ),
       publishTreatmentDefaults: served(
-        PUBLISHES_A_LEVEL,
-        { name: "publishTreatmentDefaults", build: publishesALevel },
+        { ...PUBLISHES_A_LEVEL, completeness: TextCompletenessPort },
+        {
+          name: "publishTreatmentDefaults",
+          // A language enters the defaults only with a complete base (feature 038, US4): the check wraps
+          // the use case, which stays the one its twin shares.
+          build: ({ completeness, ...deps }) =>
+            new CompleteLocales<PublishLevelRequest, PublishLevelResponse>(
+              publishesALevel(deps),
+              { completeness },
+              {
+                declared: (request) => localesOfDefaults(request.content),
+                inForce: async (request) => {
+                  const latest = await deps.levels.latestOf(request.level);
+                  return latest === undefined ? undefined : localesOfDefaults(latest.content);
+                },
+                at: "content.locales",
+              },
+            ),
+        },
         (useCase) => makePublishTreatmentDefaults(useCase),
         { result: levelVersionNumbered, reason: levelReasonDeclared },
       ),
@@ -239,11 +292,20 @@ export const configurationModule = compositionModule({
           experiments: ExperimentDirectoryPort,
           experimentStore: ExperimentStorePort,
           clock: ClockPort,
+          completeness: TextCompletenessPort,
         },
         {
           name: "publishMerchantConfiguration",
-          build: ({ experimentStore, ...deps }) =>
-            new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+          build: ({ experimentStore, completeness, ...deps }) =>
+            new CompleteLocales(
+              new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+              { completeness },
+              {
+                declared: (request: PublishMerchantConfigurationRequest) => request.declared.locales,
+                inForce: async (request) => (await deps.store.latestOf(request.merchantId))?.declared.locales,
+                at: "declared.locales",
+              },
+            ),
         },
         (useCase) => makePublishMerchantConfiguration(useCase),
         {

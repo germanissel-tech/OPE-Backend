@@ -2,14 +2,14 @@
 // what text. It implements the port the decision plane owns, so the plane never depends on the
 // corpus.
 //
-// **The language rules over the voice.** A text in the wrong language is broken; one in the wrong
-// voice is off-brand but understood. So the language resolves first —the page's, then the
-// merchant's reserve language— and inside the language resolved the merchant's voice is tried and
-// then the default one. Nothing resolves to a text in another language: the family stops being a
-// candidate instead (01 §322).
+// **The language rules over the merchant's own text** (feature 038). A text in the wrong language is
+// broken; one that is the base's instead of the merchant's is less personal but understood. So the
+// language resolves first —the page's, then the merchant's reserve language— and inside the language
+// resolved the corpus answers the merchant's layer and then the base. Nothing resolves to a text in
+// another language: the family stops being a candidate instead (01 §322).
 import type { AttributeValue, CuratedText } from "../../../domain/messages/index.js";
 import type { Candidate, Sayable } from "../../../domain/selection/index.js";
-import type { Voice } from "../../../domain/shared-kernel/index.js";
+import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 import type { MessagePlane, MessageRequest } from "../../decision/index.js";
 import type { MessageCorpus } from "../ports/message-corpus.js";
 import type { MessageDirectory, MessageSettings } from "../ports/message-directory.js";
@@ -33,7 +33,7 @@ export class Messages implements MessagePlane {
     const locales = localesOf(request.locale, settings);
     const resolved = await Promise.all(
       request.candidates.map(async (candidate) =>
-        this.#say(candidate, locales, settings.voice, valueOf(candidate, request, settings)),
+        this.#say(request.merchantId, candidate, locales, valueOf(candidate, request, settings)),
       ),
     );
     // The order given is the order of the incentive ladder, and the ladder is what decides which
@@ -41,18 +41,18 @@ export class Messages implements MessagePlane {
     return resolved.filter((sayable): sayable is Sayable => sayable !== undefined);
   }
 
-  /** The text for one candidate, language first and voice second, or undefined when there is none. */
+  /** The text for one candidate, language first and layer second, or undefined when there is none. */
   async #say(
+    merchantId: MerchantId,
     candidate: Candidate,
     locales: readonly string[],
-    voice: Voice,
     attributeValue: AttributeValue | undefined,
   ): Promise<Sayable | undefined> {
     // A candidate that claims an attribute and found no value for it cannot be said: the product
     // does not carry it, or the merchant mapped nothing to what it carries (01 §322).
     if (claimsAnAttribute(candidate) && attributeValue === undefined) return undefined;
     for (const locale of locales) {
-      const text = await this.#look(candidate, locale, voice, attributeValue);
+      const text = await this.#look(merchantId, candidate, locale, attributeValue);
       if (text !== undefined) {
         return { candidate, said: { messageVersionId: text.version, text: text.value } };
       }
@@ -61,15 +61,14 @@ export class Messages implements MessagePlane {
   }
 
   async #look(
+    merchantId: MerchantId,
     candidate: Candidate,
     locale: string,
-    voice: Voice,
     attributeValue: AttributeValue | undefined,
   ): Promise<CuratedText | undefined> {
-    return this.#corpus.find({
+    return this.#corpus.find(merchantId, {
       family: candidate.candidateId,
       locale,
-      voice,
       ...(attributeValue === undefined ? {} : { attributeValue }),
     });
   }

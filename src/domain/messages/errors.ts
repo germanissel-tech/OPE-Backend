@@ -59,5 +59,61 @@ export class DuplicateAttributeLabel extends DomainError {
   }
 }
 
+/**
+ * A key no text can have (feature 038): a family the plane cannot choose, a value OPE writes no texts for,
+ * a value on a family that says nothing of the product, or a language that is not a language tag. The
+ * API never creates keys; the pointer says which of the four was wrong.
+ */
+export class TextKeyUnknown extends DomainError {
+  readonly code = "text-key-unknown" as const;
+  readonly module = MODULE;
+  constructor(part: "family" | "attributeValue" | "locale", value: string) {
+    // `pointer` is what the HTTP border turns into the field of the body that is wrong; `value` says what it held.
+    super("The text key names something OPE has no text for.", { pointer: part, value });
+  }
+}
+
+/** The base layer never loses a text: it has to stay complete for every supported language (feature 038). */
+export class BaseTextRequired extends DomainError {
+  readonly code = "base-text-required" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A base text cannot be removed: the base layer stays complete.");
+  }
+}
+
+/**
+ * No version of the key where one was asked for (feature 038): a history is read by number, and removing a
+ * merchant's text needs one in force to repeat or to send back to the base.
+ */
+export class TextVersionNotFound extends DomainError {
+  readonly code = "text-version-not-found" as const;
+  readonly module = MODULE;
+  private constructor(message: string) {
+    super(message);
+  }
+
+  static numbered(version: number): TextVersionNotFound {
+    return new TextVersionNotFound(`The key has no version ${version}.`);
+  }
+
+  static inForce(): TextVersionNotFound {
+    return new TextVersionNotFound("The merchant has no text of its own for the key.");
+  }
+}
+
+/** What a text in itself can be refused for: the three rules of `CuratedText.of`. */
+export type CuratedTextError = EmptyText | TextTooLong | UnresolvedPlaceholder;
+
+/** What a publication of a text can be refused for, before anything is written (feature 038). */
+export type TextDraftError = CuratedTextError | TextKeyUnknown | BaseTextRequired;
+
 export type MessageError =
-  EmptyText | TextTooLong | UnresolvedPlaceholder | UnknownAttributeValue | DuplicateAttributeLabel;
+  | EmptyText
+  | TextTooLong
+  | UnresolvedPlaceholder
+  | UnknownAttributeValue
+  | DuplicateAttributeLabel
+  | TextKeyUnknown
+  | BaseTextRequired
+  | TextVersionNotFound;

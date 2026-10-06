@@ -1,0 +1,42 @@
+description: "Valid request rejected on semantics: the `x-invariants` of a version of the treatment defaults
+  (ADR-007), and the one the operation declares: a language entering as supported or as reserve without a
+  complete base (feature 038)."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      invalidValue:
+        summary: A value its own type refuses (invalid-configuration-value)
+        value:
+          type: urn:ope:problem:invalid-configuration-value
+          title: A configuration value violates an invariant of its type
+          status: 422
+          detail: content.commercialPolicy.incentiveLadderShare is invalid (The incentive ladder is not
+            strictly increasing within 1 and the ceiling).
+          instance: /v1/admin/treatment-defaults
+          errors:
+            - pointer: /content/commercialPolicy/incentiveLadderShare
+              message: The incentive ladder is not strictly increasing within 1 and the ceiling.
+      reasonRequired:
+        summary: A corrective version with no reason (configuration-reason-required)
+        value:
+          type: urn:ope:problem:configuration-reason-required
+          title: A corrective configuration version needs a reason
+          status: 422
+          detail: A corrective configuration version needs a reason.
+          instance: /v1/admin/treatment-defaults
+          errors:
+            - pointer: /reason
+              message: A corrective version carries the reason it is published for.
+      localeIncomplete:
+        summary: A language that enters as supported or as reserve without a complete base (locale-incomplete)
+        value:
+          type: urn:ope:problem:locale-incomplete
+          title: The base texts are not complete in that language
+          status: 422
+          detail: The base layer has no text for some families in that language.
+          instance: /v1/admin/treatment-defaults
+          errors:
+            - pointer: /content/locales/supported/1
+              message: "pt-BR: fit.policies.reassurance, returns.policies.information"

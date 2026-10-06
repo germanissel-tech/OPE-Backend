@@ -1,0 +1,84 @@
+post:
+  operationId: publishMerchantText
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - texts:write
+  x-idempotency:
+    key: text
+    first: "201"
+    repeat: "200"
+  summary: Publish a version of a merchant's text, or remove it
+  description: "Creates the next version of the merchant's own text for a key —a family, the attribute value
+    it speaks of when it does, and a language— (feature 038; constitution X): numbered per key, immutable,
+    effective on the merchant's next intervention without a restart. Inside one language the merchant's text
+    is tried before the base; the language of the page rules over the personalisation, so a page in another
+    language shows the base in that language.
+
+
+    `remove: true` **removes** the merchant's text: a version too, in the history, after which the key resolves
+    to the base. A text identical to the version in force repeats it (`200`), and so does removing what is
+    already removed; removing a text the merchant never published finds nothing to repeat (`404`). While the merchant's experiment is active only a corrective version — with its reason
+    — is accepted (`409 configuration-frozen`), and it restarts the measurement window. A key outside OPE's
+    vocabulary, or a text that is blank, too long or still a template, is refused and no version is created.
+    It takes an operator over this merchant; another merchant never sees the text."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MerchantTextInput.yaml
+        example:
+          family: fit.variant_selector.information
+          locale: es
+          text: In this shop sizes run small; check the guide before choosing.
+          corrective: true
+          reason: the shop's own wording
+  responses:
+    "200":
+      description: The version in force, identical to what was published.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersion.yaml
+          example: &version
+            family: fit.variant_selector.information
+            locale: es
+            layer: mrc_7f3k5d2q4m6x
+            version: 1
+            messageVersionId: mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1
+            text: In this shop sizes run small; check the guide before choosing.
+            removed: false
+            corrective: true
+            reason: the shop's own wording
+            publishedAt: 2026-10-04T12:00:00Z
+            operatorId: ops-1
+            windowsRestarted:
+              - exp_7f3k5d2q4m6x
+    "201":
+      description: The version created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersion.yaml
+          example: *version
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantTextNotFound.yaml
+    "409":
+      $ref: ../components/responses/ConfigurationFrozenConflict.yaml
+    "422":
+      $ref: ../components/responses/TextUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

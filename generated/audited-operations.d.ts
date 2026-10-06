@@ -19,7 +19,9 @@ export type AuditedOperation =
   | "activateExperiment"
   | "closeExperiment"
   | "publishPlatformConfiguration"
-  | "publishTreatmentDefaults";
+  | "publishTreatmentDefaults"
+  | "publishText"
+  | "publishMerchantText";
 
 /** The same list, for the composition to read while it wires. */
 export declare const AUDITED_OPERATIONS: readonly AuditedOperation[];

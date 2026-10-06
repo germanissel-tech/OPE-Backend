@@ -27,6 +27,7 @@ import {
 import {
   fail,
   ok,
+  type LocaleIncomplete,
   type ReleaseLevel,
   type Result,
   type StoreUnavailable,
@@ -62,12 +63,14 @@ export interface PublishedLevel {
   windowsRestarted: readonly Experiment[];
 }
 
+/** `LocaleIncomplete` is the word of the decorator in front of the defaults (feature 038, US4), never of this use case's deed. */
 export type PublishLevelResponse = Result<
   PublishedLevel,
   | OperatorScopeTooNarrow
   | ConfigurationReasonRequired
   | ConfigurationFrozen
   | InvalidConfigurationValue
+  | LocaleIncomplete
   | StoreUnavailable
 >;
 

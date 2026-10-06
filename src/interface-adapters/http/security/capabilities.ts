@@ -14,6 +14,8 @@ export const CONSUMER_CAPABILITIES = {
     "experiments:read",
     "experiments:write",
     "log:read",
+    "texts:read",
+    "texts:write",
   ],
 } as const;
 

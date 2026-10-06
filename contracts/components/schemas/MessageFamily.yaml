@@ -1,0 +1,7 @@
+type: string
+description: "A message family of OPE's closed vocabulary, `<barrier>.<anchor>.<step>`: the candidate the
+  decision plane may show, and what a text is keyed by (ADR-027). Never created through the API."
+pattern: ^[a-z]+\.[a-z_]+\.[a-z_]+$
+minLength: 5
+maxLength: 64
+example: fit.variant_selector.information

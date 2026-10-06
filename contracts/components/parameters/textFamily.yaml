@@ -1,0 +1,6 @@
+name: family
+in: path
+required: true
+description: The message family of the key, of OPE's closed vocabulary.
+schema:
+  $ref: ../schemas/MessageFamily.yaml

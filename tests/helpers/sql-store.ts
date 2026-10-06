@@ -18,6 +18,12 @@ export interface FakeStoreOptions {
   readonly refuses?: boolean;
   /** Whether a unit of work is open elsewhere, which is what the queue of the register asks. */
   readonly busy?: boolean;
+  /**
+   * What a read answers when a test needs more than documents: a gateway that numbers its versions asks
+   * the store for the next number before it writes (feature 038), and the rows of that read are not
+   * documents. When given, it answers every read; `rows` is ignored.
+   */
+  readonly answer?: (sql: string, params?: SqlParams) => readonly SqlRow[];
 }
 
 export interface FakeStore {
@@ -49,6 +55,7 @@ export function fakeStore(options: FakeStoreOptions = {}): FakeStore {
   const store: SqlStore = {
     all: (sql, given) => {
       asked(sql, given);
+      if (options.answer !== undefined) return options.answer(sql, given);
       return (options.rows ?? []).map((document): SqlRow => ({ document }));
     },
     run: (sql, given) => {

@@ -11,6 +11,12 @@ import {
   type ReachedExperimentsDependencies,
 } from "../../../../src/application/configuration/index.js";
 import {
+  ActiveExperiments,
+  WindowRestarts,
+  type ExperimentDirectory,
+  type ExperimentStore,
+} from "../../../../src/application/experiment/index.js";
+import {
   ChangedLeaves,
   LevelVersion,
   MerchantConfigurationVersion,
@@ -20,7 +26,6 @@ import { asOperatorId } from "../../../../src/domain/operator/index.js";
 import { asMerchantId, ok } from "../../../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 import { testMerchant } from "../../../helpers/merchants.js";
-import type { ExperimentDirectory, ExperimentStore } from "../../../../src/application/experiment/index.js";
 import type { MerchantStore } from "../../../../src/application/merchant/index.js";
 import type { Experiment, ExperimentStatus } from "../../../../src/domain/experiment/index.js";
 
@@ -80,7 +85,10 @@ function given(tenants: readonly Tenant[]): {
       return Promise.resolve(ok(experiment));
     },
   } as unknown as ExperimentStore;
-  return { deps: { merchants, configurations, experiments, experimentStore }, updated: () => updated };
+  // The restart is the experiment module's (feature 038); this test still sees what it wrote through the store.
+  const restarts = new WindowRestarts({ experimentStore });
+  const active = new ActiveExperiments({ merchants, experiments });
+  return { deps: { configurations, active, restarts }, updated: () => updated };
 }
 
 const reaching = (from: object, to: object): ChangedLeaves => ChangedLeaves.between(from, to);
@@ -156,7 +164,8 @@ describe("ReachedExperiments.by", () => {
       },
     } as unknown as MerchantStore;
     const { deps } = given([{ id: "m_a" }]);
-    const reached = await new ReachedExperiments({ ...deps, merchants }).by(reaching({ a: 1 }, { a: 1 }));
+    const active = new ActiveExperiments({ merchants, experiments: {} as ExperimentDirectory });
+    const reached = await new ReachedExperiments({ ...deps, active }).by(reaching({ a: 1 }, { a: 1 }));
     expect(reached).toEqual([]);
     expect(asked).toBe(0);
   });
@@ -212,7 +221,10 @@ describe("ReachedExperiments.restart", () => {
     const refusing = {
       update: () => Promise.resolve({ ok: false as const, error: { code: "store-unavailable" } }),
     } as unknown as ExperimentStore;
-    const service = new ReachedExperiments({ ...deps, experimentStore: refusing });
+    const service = new ReachedExperiments({
+      ...deps,
+      restarts: new WindowRestarts({ experimentStore: refusing }),
+    });
     const reached = await service.by(reaching({ x: 1 }, { x: 2 }));
 
     const done = await service.restart(reached, corrective("why"));

@@ -1,0 +1,48 @@
+get:
+  operationId: getMerchantTextVersion
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - texts:read
+  summary: One published version of a merchant's text
+  description: "A version of the key as it was published, by its number: what every intervention that stamped
+    its identifier showed. Immutable, so what it answers today is what it answered the day it was created
+    (feature 038). Within the operator's scope over the merchant."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/textFamily.yaml
+    - $ref: ../components/parameters/textLocale.yaml
+    - $ref: ../components/parameters/textVersion.yaml
+    - $ref: ../components/parameters/textAttributeValue.yaml
+  responses:
+    "200":
+      description: The version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TextVersion.yaml
+          example:
+            family: fit.variant_selector.information
+            locale: es
+            layer: mrc_7f3k5d2q4m6x
+            version: 1
+            messageVersionId: mrc_7f3k5d2q4m6x/fit.variant_selector.information/-/es#1
+            text: In this shop sizes run small; check the guide before choosing.
+            removed: false
+            corrective: false
+            publishedAt: 2026-10-04T12:00:00Z
+            operatorId: ops-1
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantTextNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

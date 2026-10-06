@@ -256,11 +256,23 @@ types:
     status: 500
     title: An operator needs one or two non-empty token fingerprints
   - slug: corpus-text-empty
-    status: 500
+    status: 422
     title: A curated text of the corpus is empty
   - slug: corpus-text-too-long
-    status: 500
+    status: 422
     title: A curated text of the corpus is longer than the contract allows
   - slug: corpus-text-has-placeholder
-    status: 500
+    status: 422
     title: A curated text of the corpus still carries a placeholder
+  - slug: text-key-unknown
+    status: 422
+    title: The text key names something OPE has no text for
+  - slug: base-text-required
+    status: 422
+    title: A base text cannot be removed
+  - slug: text-version-not-found
+    status: 404
+    title: The text version does not exist
+  - slug: locale-incomplete
+    status: 422
+    title: The base texts are not complete in that language

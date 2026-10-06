@@ -9,3 +9,4 @@ export * from "./sql-store.js";
 export * from "./document.js";
 export * from "./durable-store.js";
 export * from "./unit-of-work.js";
+export * from "./publication.js";

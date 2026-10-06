@@ -16,7 +16,6 @@ import type { StateRetention } from "./state-retention-config.js";
 import type { PlatformLevelReader } from "../application/configuration/index.js";
 import type { Operator } from "../domain/operator/index.js";
 import type { ContractDocument } from "../infrastructure/http/build-server.js";
-import type { CorpusEntry } from "../interface-adapters/messages/index.js";
 import type { SqlStore } from "../interface-adapters/shared-kernel/index.js";
 
 /** The published contract the server is governed by (version, operations, examples). */
@@ -34,8 +33,6 @@ export const ContractPort = port("release.contract")<ContractDocument>();
  * restart.
  */
 export const PlatformLevelPort = port("release.platform")<PlatformLevelReader>();
-/** The curated texts of the release: read once, judged at startup, served from memory. */
-export const CorpusPort = port("release.corpus")<readonly CorpusEntry[]>();
 /** The operators of the platform, as the configuration lists them. */
 export const OperatorsPort = port("release.operators")<readonly Operator[]>();
 /**
@@ -63,7 +60,6 @@ export const releaseComponents = (config: AppConfig) =>
     provides: [
       bind(ContractPort, {}, () => loadContract(config.contractPath)),
       bind(OperatorsPort, {}, () => config.operators),
-      bind(CorpusPort, {}, () => config.corpus),
       bind(EventLogTuningPort, {}, () => config.eventLog),
       bind(StateRetentionPort, {}, () => config.stateRetention),
     ],

@@ -121,3 +121,38 @@ conoce la vertical y qué no.
   de que la revisión humana sea el code review, y se acepta.
 - **Un vocabulario cerrado se vuelve deuda cuando nombra la vertical.** Es lo que D-14 registra: el
   patrón es bueno y el contenido de un vocabulario puede estar mal puesto, y son dos cosas distintas.
+
+## Enmienda (2026-10-04): los textos se publican por API, en dos capas, y la voz se retira
+
+Fuente: `specs/038-textos-por-api/spec.md` (decisión del dueño del 2026-10-04, tras tensionar las
+alternativas). Tres de las cuatro decisiones de arriba se mantienen; la primera cambia de mecanismo.
+
+- **El corpus deja de ser un activo del release**. Cambiar un texto o agregar un idioma era un deploy, y
+  un deploy cambia un tratamiento en curso sin versión, sin entrada en el registro y sin reiniciar la
+  ventana de medición. Ahora cada texto se publica por API, uno por uno, como una **versión inmutable
+  de su clave** (familia, valor de atributo, idioma) en su capa, numerada por el almacén; el archivo del
+  release pasa a ser la **semilla** de la capa base, importada sólo sobre un almacén vacío e inerte
+  después, como los niveles de la feature 036. La revisión humana que 03 §4.4 pedía la da el motivo
+  obligatorio cuando la publicación alcanza un experimento activo, y el registro de administración.
+- **Dos capas, y el idioma manda sobre la personalización**. La base, cerrada en familias y completa por
+  idioma soportado; la de cada merchant, dispersa. Dentro de un idioma se resuelve primero el texto del
+  merchant y después el base; entre idiomas, primero el de la página y después el de reserva. Un
+  merchant con texto propio para una clave e idioma no es alcanzado por un cambio de la base en esa
+  clave e idioma. El texto de un merchant es la **tercera instancia construida del patrón** que este
+  ADR bautiza: la clave —familia, valor de atributo, idioma— es el vocabulario chico y cerrado de OPE,
+  y lo que el merchant declara sobre ella es su propio texto, en su capa versionada; la traducción al
+  vocabulario sigue ocurriendo una sola vez y en el borde, que ahora es la publicación. El criterio de
+  la decisión 4 se mantiene: la prosa de la base la escribe OPE; lo que el merchant puede escribir es
+  **su** prosa para **su** tienda, que nunca se reusa entre tiendas.
+- **La voz se retira**. `Voice` tenía un solo valor (`neutral`) y el contrato la describía como un estilo
+  compartido entre merchants; con una capa de textos **por merchant**, una voz no nombra nada que la
+  capa no diga mejor. El contrato está en construcción (ADR-003), así que retirarla y cambiar los
+  identificadores de versión de texto —que llevaban la voz— se acepta y se reporta.
+- **Un idioma entra a la lista de soportados sólo con base completa**. Es la comprobación cruzada que
+  faltaba: la completitud se verificaba al arrancar contra el idioma de reserva del release, y desde la
+  feature 036 ese idioma cambia por API. Ahora las dos publicaciones de idiomas la preguntan a los
+  textos antes de aceptar (`locale-incomplete`), y sólo por los idiomas que **entran**.
+
+Lo que no cambia: el vocabulario sigue cerrado y de OPE (la API nunca crea claves), la correspondencia
+de etiquetas sigue siendo del merchant, y sin texto la familia sigue sin ser candidata. La constitución
+X se enmendó en la **1.4.5** con la misma lectura.
