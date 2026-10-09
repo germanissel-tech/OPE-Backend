@@ -11,6 +11,7 @@ import {
   DefaultIngestKeyResolver,
   DefaultPlatformKeyResolver,
   DefaultPlatformSignatureVerifier,
+  GetOperatorUseCase,
   type MessageAuthenticator,
   type OperatorDirectory,
   type SignatureWindow,
@@ -23,6 +24,7 @@ import {
   INGEST_KEY_HEADER,
   INGEST_KEY_SCHEME,
   makeAdminTokenSecurity,
+  makeGetOperator,
   makeIngestKeySecurity,
   makePlatformKeySecurity,
   nodeMessageAuthenticator,
@@ -32,7 +34,7 @@ import {
   rotationPolicyOf,
   signatureWindowOf,
 } from "../../interface-adapters/access/index.js";
-import { bind, compositionModule, from, port } from "../graph/index.js";
+import { bind, compositionModule, from, port, served } from "../graph/index.js";
 import { OperatorsPort, PlatformLevelPort } from "../release.js";
 import { CredentialMinterPort, MerchantDirectoryPort, RotationPolicyPort } from "./merchant.js";
 import { ClockPort } from "./shared-kernel.js";
@@ -60,6 +62,13 @@ export const accessModule = compositionModule({
     ),
   ],
   serves: {
+    handlers: {
+      // Who the token belongs to (ADR-044): the principal the security handler resolved, and nothing
+      // more. It needs no component: the operator arrives in the request.
+      getOperator: served({}, { name: "getOperator", build: () => new GetOperatorUseCase() }, (useCase) =>
+        makeGetOperator(useCase),
+      ),
+    },
     // Which origins may reach a merchant from a page is also a question of access: the directory
     // answers it, and CORS derives the headers of the browser schemes from what is wired here.
     cors: from({ merchants: MerchantDirectoryPort }, ({ merchants }) => merchants),

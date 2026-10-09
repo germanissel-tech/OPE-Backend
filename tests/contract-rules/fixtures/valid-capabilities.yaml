@@ -71,6 +71,30 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       x-required-capabilities:
         - events:write
+  /v1/whoami:
+    get:
+      operationId: getWhoami
+      tags:
+        - ingest
+      summary: Who the credential is
+      description: Identifies the principal behind the credential.
+      security:
+        - ingestKey: []
+      x-required-capabilities: []
+      x-identifies-principal: true
+      responses:
+        "200":
+          description: The principal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 components:
   schemas:
     Health:

@@ -23,4 +23,5 @@ export interface ProblemBody {
   detail?: string;
   instance?: string;
   errors?: { pointer: string; message: string }[];
+  requestId?: string;
 }

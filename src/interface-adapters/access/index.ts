@@ -2,6 +2,8 @@
 // contract declares, and the gateways of what authentication needs — the HMAC of the signature,
 // the fingerprint of a token, the operators of the release and the two policies of the platform
 // level (the signature window and the longest grace a rotation may give).
+export * from "./controllers/get-operator.js";
+export * from "./presenters.js";
 export * from "./security/admin-token.js";
 export * from "./security/ingest-key.js";
 export * from "./security/platform-key.js";

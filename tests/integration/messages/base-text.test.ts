@@ -193,7 +193,7 @@ describe("publishing a base text (US1)", () => {
     expect(stray.statusCode).toBe(422);
     expect(json(stray)).toMatchObject({
       type: "urn:ope:problem:text-key-unknown",
-      errors: [{ pointer: "/family" }],
+      errors: [{ pointer: "/body/family" }],
     });
     // A value on a family that speaks of nothing of the product is a key no text can have either.
     const misplaced = await publish(base({ attributeValue: "linen" }));

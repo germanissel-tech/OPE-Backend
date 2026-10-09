@@ -130,6 +130,7 @@ describe("real server over the contract", () => {
       title: "Internal error",
       status: 500,
       instance: "/v1/health",
+      requestId: res.headers["x-request-id"],
     });
     expect(res.body).not.toContain("boom");
     expect((await srv.inject({ method: "GET", url: "/v1/health" })).statusCode).toBe(200);
@@ -214,6 +215,7 @@ describe("real server over the contract", () => {
       title: "Internal error",
       status: 500,
       instance: "/v1/things",
+      requestId: res.headers["x-request-id"],
     });
     expect(res.body).not.toContain("secret detail");
     const logged = lines.join("");

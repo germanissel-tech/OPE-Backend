@@ -83,4 +83,41 @@ y `npm run release-check` (la constitución en 1.5.0 y sin `ABIERTO`).
 
 ## Lo corrido
 
-_(se completa al implementar, con fecha)_
+### 2026-10-09 — tramos 1 y 2 (contrato y servidor)
+
+Lo que difirió del plan, y por qué:
+
+- **La excepción de `ope-no-pii` no vive en el ruleset** (`functionOptions.allow`, como decía el plan)
+  sino en el esquema que lleva el dato: `x-personal-datum: { property, reason }` en `Operator.yaml`.
+  Spectral recorre el documento resuelto, donde el esquema del operador aparece copiado bajo cada
+  operación que lo responde; una lista en el ruleset habría tenido que nombrar cada copia, y la
+  marca sobre el esquema viaja con él. La regla la exige con `property` y `reason`, y con que la
+  propiedad exista en ese esquema.
+- **Los dos tramos van en un solo commit.** Con `getOperator` en el contrato y sin handler, el
+  arranque se niega (ADR-013) y `npm test` queda rojo; un commit del contrato solo habría violado
+  «no commitear sin que las pruebas pasen».
+- **`invalid-operator-display-name` sí entra al catálogo** (`status: 500`, como
+  `invalid-operator-scope`): la prueba de réplica exige que todo código de dominio tenga su entrada.
+  No sale al contrato: lo ve la configuración al arrancar y lo convierte en `ConfigError` con el
+  campo `operators[N].displayName`.
+- **El caso de uso vive en `application/access`**, que es el módulo que resuelve el token y sirve
+  `adminToken`; no hay módulo `operator` en el mapa de contextos y abrir uno por una operación que no
+  tiene regla no se justificaba. Como no puede fallar, `execute` devuelve el `Operator` directo
+  (ADR-023), no un `Result`.
+- **`check:invariant-tests` exige el campo** (T011): un invariante con `pointer` pasa sólo si alguna
+  prueba que lo nombra contiene `/body/<primer segmento>`. Hoy: 28 declarados, 28 con prueba, 4 que
+  nombran el campo.
+- **Los ejemplos de las `422`** de configuración, niveles, textos y defaults pasaron a `/body/...`
+  junto con las aserciones que los afirmaban; `toProblem` publica el prefijo una sola vez.
+
+§2 corrido contra `npm run dev` (el watcher de `tsx` recargó el código solo): `getOperator` →
+`200`, `X-Request-Id: req-2`, `{ operatorId: "dev-operator", displayName: "Operador de desarrollo", scope: "*" }`;
+token desconocido → `401 operator-unknown` con `requestId` igual al encabezado; `X-Request-Id: pegado`
+→ el servidor devuelve el suyo; origen repetido → `422 origin-already-registered` con
+`errors: [{ pointer: "/body/origins/1" }]`; gracia excesiva → `422 rotation-grace-too-long` con
+`/body/graceSeconds`; y cada `reqId` del registro coincide con el `X-Request-Id` de su respuesta.
+
+Gates: `format:check`, `quality` (8 gates), `typecheck`, `npm test`, `arch`, `contract:check`,
+`test:contract` (schemathesis, 0 fallos) en verde. Mutación del diff: 72 mutantes en 9 archivos, uno sobrevivió
+—la guarda `res.body === null` antes del spread de `requestId`, que no hacía nada porque un `null` se
+esparce a nada— y se borró; re-juzgado el archivo, todo mutante muere.

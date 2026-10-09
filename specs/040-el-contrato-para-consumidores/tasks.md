@@ -31,49 +31,49 @@ historia que sirve: US1 artefactos, US2 operador, US3 punteros, US4 identificado
 **Purpose**: que el contrato diga todo lo nuevo antes de que el servidor lo haga, con sus reglas y sus
 fixtures, y que sea un cambio menor.
 
-- [ ] T001 [US2] `contracts/api-map.yaml` — `getOperator` entra como `planned` bajo el hito
+- [x] T001 [US2] `contracts/api-map.yaml` — `getOperator` entra como `planned` bajo el hito
       `admin-panel` (`method: get`, `path: /v1/admin/operator`, `consumer: admin`, `tag: admin`,
       `capabilities: []`, `source: specs/040-el-contrato-para-consumidores/spec.md`), y en la misma fase
       pasa a `built` con `feature: "040"` cuando el path exista (orden 0 de `contrato.md`)
-- [ ] T002 [P] [US2] `tests/contract-rules/fixtures/` — **antes de tocar la regla**:
+- [x] T002 [P] [US2] `tests/contract-rules/fixtures/` — **antes de tocar la regla**:
       `ope-required-capabilities.identifies-empty.yaml` (autenticada, `x-required-capabilities: []`, sin
       marca → falla) y `ope-required-capabilities.identifies-public.yaml` (`security: []` con
       `x-identifies-principal: true` → falla); `valid-capabilities.yaml` gana una operación con marca y
       lista vacía que tiene que pasar
-- [ ] T003 [US2] `contracts/rules/functions/requiredCapabilities.js` — admite la lista vacía **sólo**
+- [x] T003 [US2] `contracts/rules/functions/requiredCapabilities.js` — admite la lista vacía **sólo**
       con `x-identifies-principal: true`, y la marca sólo en una operación autenticada; mensajes que
       nombran la marca; `contracts/.spectral.yaml` sin cambio de forma (la función lee la extensión)
-- [ ] T004 [P] [US2] `tests/contract-rules/fixtures/ope-no-pii.display-name.yaml` — `displayName` en
+- [x] T004 [P] [US2] `tests/contract-rules/fixtures/ope-no-pii.display-name.yaml` — `displayName` en
       un esquema que no es el del operador → falla; y una fixture válida con
       `components.schemas.Operator.properties.displayName` → pasa
-- [ ] T005 [US2] `contracts/rules/pii-denylist.json` gana `displayName`; `contracts/.spectral.yaml`
+- [x] T005 [US2] `contracts/rules/pii-denylist.json` gana `displayName`; `contracts/.spectral.yaml`
       (`ope-no-pii.functionOptions.allow`, una entrada con `path` igual a
       `components.schemas.Operator.properties.displayName` y su `reason`) y
       `contracts/rules/functions/noPii.js` honran la excepción: un `allow` sin `reason` es un problema
       de la regla misma (R-05)
-- [ ] T006 [P] [US3] `tests/contract-rules/fixtures/ope-invariants.pointer-on-operation.yaml` —
+- [x] T006 [P] [US3] `tests/contract-rules/fixtures/ope-invariants.pointer-on-operation.yaml` —
       `pointer` en un invariante de operación → falla; `valid-invariants.yaml` gana un invariante de
       esquema con `pointer: origins[N]`
-- [ ] T007 [US3] `contracts/rules/functions/invariants.js` — `pointer` opcional, string no vacío, sólo
+- [x] T007 [US3] `contracts/rules/functions/invariants.js` — `pointer` opcional, string no vacío, sólo
       cuando el invariante cuelga de un esquema (no de una operación) (R-02)
-- [ ] T008 [P] [US2] `contracts/components/schemas/Operator.yaml` (NUEVO) según
+- [x] T008 [P] [US2] `contracts/components/schemas/Operator.yaml` (NUEVO) según
       `contracts/consumer-artifacts.md` §1, y `contracts/paths/admin-operator.yaml` (NUEVO) con
       `getOperator`; `contracts/openapi.yaml` lo referencia como `/v1/admin/operator`
-- [ ] T009 [P] [US4] `contracts/components/schemas/ProblemDetails.yaml` — `requestId` opcional con su
+- [x] T009 [P] [US4] `contracts/components/schemas/ProblemDetails.yaml` — `requestId` opcional con su
       descripción
-- [ ] T010 [P] [US3] `x-invariants[].pointer` en `contracts/components/schemas/MerchantCreate.yaml`
+- [x] T010 [P] [US3] `x-invariants[].pointer` en `contracts/components/schemas/MerchantCreate.yaml`
       (`invalid-origin` y `origin-already-registered`: `origins[N]`), `CredentialRotation.yaml`
       (`rotation-grace-too-long`: `graceSeconds`) y los cuatro esquemas con `configuration-reason-required`
       (`reason`); los ejemplos de `contracts/components/responses/RotationUnprocessable.yaml` y
       `MerchantUnprocessable.yaml` con punteros bajo `/body` y `origin-already-registered` con su
       `errors[]`
-- [ ] T011 [US3] `scripts/check-invariant-tests.mjs` — un invariante con `pointer` exige que su prueba
+- [x] T011 [US3] `scripts/check-invariant-tests.mjs` — un invariante con `pointer` exige que su prueba
       `[invariant:<slug>]` contenga `/body/<primer segmento>`; `tests/governance/invariant-tests.test.ts`
       gana el caso sobre fixtures (una prueba que lo nombra pasa, una que no, falla)
-- [ ] T012 [US1] `contracts/openapi.yaml` — `info.version: 1.12.0`; `tests/integration/bootstrap.test.ts`
+- [x] T012 [US1] `contracts/openapi.yaml` — `info.version: 1.12.0`; `tests/integration/bootstrap.test.ts`
       afirma la versión nueva; `contracts/README.md` gana la fila de `x-identifies-principal` en la
       tabla de extensiones y el campo `pointer` en la fila de `x-invariants`
-- [ ] T013 `npm run contract:check` en verde (lint con las fixtures nuevas, bundle, diff «No
+- [x] T013 `npm run contract:check` en verde (lint con las fixtures nuevas, bundle, diff «No
       incompatible changes», api-map, invariant-tests —que ahora falla hasta que las pruebas del tramo
       2 nombren los punteros: se deja en rojo **sólo** si el tramo 2 va en el mismo commit; si no, las
       pruebas se tocan acá—, glossary, identifiers, adrs, markers, language, instructions);
@@ -89,29 +89,29 @@ fixture. Commit: `feat(040): el contrato declara getOperator, requestId y el cam
 **Purpose**: que el servidor haga lo que el contrato dice, con las pruebas de integración que lo afirman
 y sin un mutante vivo en lo nuevo.
 
-- [ ] T014 [P] [US4] `tests/integration/operator.test.ts` (NUEVO) — **antes del código**: toda
+- [x] T014 [P] [US4] `tests/integration/operator.test.ts` (NUEVO) — **antes del código**: toda
       respuesta lleva `X-Request-Id`; un Problem Details lleva `requestId` igual al encabezado; un
       `X-Request-Id` pegado no se adopta; el valor es el `reqId` del registro (el logger de prueba lo
       captura); `getOperator` con un operador con nombre y alcance `*` devuelve `operatorId`,
       `displayName` y `scope`; sin nombre → sin `displayName`; credencial desconocida →
       `401 operator-unknown`; y que la respuesta no nombra ningún merchant ni credencial
-- [ ] T015 [US4] `src/infrastructure/http/build-server.ts` — `requestIdHeader: false`; hook `onRequest`
+- [x] T015 [US4] `src/infrastructure/http/build-server.ts` — `requestIdHeader: false`; hook `onRequest`
       que fija `x-request-id` con `request.id` (al lado de `retryAfterOn503`, con el mismo estilo);
       `src/infrastructure/http/http-response.ts` — `send()` agrega `requestId` al cuerpo cuando el
       `content-type` es el de problema (R-03)
-- [ ] T016 [P] [US3] `tests/integration/admin-merchants.test.ts` — `[invariant:origin-already-registered]`
+- [x] T016 [P] [US3] `tests/integration/admin-merchants.test.ts` — `[invariant:origin-already-registered]`
       afirma `errors: [{ pointer: "/body/origins/1", message }]` con el repetido en la segunda posición;
       `[invariant:invalid-origin]` afirma `/body/origins/0`; la prueba de `[invariant:rotation-grace-too-long]`
       (donde viva) afirma `/body/graceSeconds`; las de configuración y textos que afirmaban `/declared/...`
       pasan a `/body/declared/...`
-- [ ] T017 [US3] `src/interface-adapters/http/to-problem.ts` — publica `/body` + puntero;
+- [x] T017 [US3] `src/interface-adapters/http/to-problem.ts` — publica `/body` + puntero;
       `src/domain/merchant/errors.ts` — `OriginAlreadyRegistered(index)` e `InvalidOrigin(index)` llevan
       `pointer: origins[${index}]`, `RotationGraceTooLong` lleva `pointer: "graceSeconds"`; las pruebas
       unitarias de dominio (`tests/unit/domain/merchant/merchant.test.ts`) afirman el detalle
-- [ ] T018 [P] [US2] `tests/unit/domain/operator/operator.test.ts` — `Operator.of` con `displayName`
+- [x] T018 [P] [US2] `tests/unit/domain/operator/operator.test.ts` — `Operator.of` con `displayName`
       válido, vacío (falla), con espacios en los bordes (falla), más largo que el máximo (falla);
       `rehydrate` no juzga; `system()` sin nombre
-- [ ] T019 [US2] `src/domain/operator/operator.ts` — `OperatorRecord.displayName?`, `MAX_DISPLAY_NAME`
+- [x] T019 [US2] `src/domain/operator/operator.ts` — `OperatorRecord.displayName?`, `MAX_DISPLAY_NAME`
       como constante nombrada del dominio, la regla en `of`, y el error (`InvalidOperatorDisplayName`
       en `src/domain/operator/errors.ts`, sin tipo de problema: no sale al contrato, lo ve la
       configuración al arrancar); `src/composition/operators-config.ts` lo lee y lo convierte en
@@ -119,14 +119,14 @@ y sin un mutante vivo en lo nuevo.
       `maxLength` igual al del dominio); `config/dev-operators.json` gana el `displayName`
       «Operador de desarrollo»; la prueba del parser (`tests/unit/composition/…operators…`) cubre con y
       sin nombre
-- [ ] T020 [US2] `src/application/operator/use-cases/get-operator.use-case.ts` (NUEVO) —
+- [x] T020 [US2] `src/application/operator/use-cases/get-operator.use-case.ts` (NUEVO) —
       `GetOperatorUseCase` trivial (`execute({ actor }) → ok(actor)`, ADR-023), exportado por el
       `index.ts` del módulo; `src/interface-adapters/operator/presenters.ts` (`operatorDto`: `operatorId`,
       `displayName` si lo hay, `scope`) y `controllers/get-operator.ts` tipado
       `OperationHandler<"getOperator">` con `operatorOf(req)`; cableado con `served()` en el módulo que
       hoy sirve `admin` y resuelve el token (`src/composition/modules/`), sin módulo nuevo; `npm run arch`
       en verde
-- [ ] T021 `npm run format:check && npm run quality && npm run typecheck && npm test` en verde;
+- [x] T021 `npm run format:check && npm run quality && npm run typecheck && npm test` en verde;
       `npm run test:contract`; `npm run test:mutation` sin sobrevivientes en lo nuevo (`to-problem.ts`,
       `build-server.ts`, `http-response.ts`, `operator.ts`, `operators-config.ts`, el caso de uso y el
       controller); contra `npm run dev`, el quickstart §2 entero. Anotar lo visto en `quickstart.md`

@@ -19,12 +19,18 @@ export class OriginNotAllowed extends DomainError {
   }
 }
 
+/** The body field an origin rule is about: `origins[N]`, which the border publishes as `/body/origins/N` (ADR-044). */
+const originPointer = (index: number): string => `origins[${index}]`;
+
 /** A registered origin that is not `scheme://host[:port]` (configuration; fail-closed). */
 export class InvalidOrigin extends DomainError {
   readonly code = "invalid-origin" as const;
   readonly module = MODULE;
   constructor(index: number) {
-    super("A registered origin must be scheme://host[:port] without a path.", { index });
+    super("A registered origin must be scheme://host[:port] without a path.", {
+      index,
+      pointer: originPointer(index),
+    });
   }
 }
 
@@ -145,12 +151,12 @@ export class MerchantNotFound extends DomainError {
   }
 }
 
-/** A rotation grace beyond what the platform allows. */
+/** A rotation grace beyond what the platform allows; the field is the grace the request named (ADR-044). */
 export class RotationGraceTooLong extends DomainError {
   readonly code = "rotation-grace-too-long" as const;
   readonly module = MODULE;
   constructor(maxGraceMs: number) {
-    super("The rotation grace exceeds the platform maximum.", { maxGraceMs });
+    super("The rotation grace exceeds the platform maximum.", { maxGraceMs, pointer: "graceSeconds" });
   }
 }
 
@@ -159,6 +165,6 @@ export class OriginAlreadyRegistered extends DomainError {
   readonly code = "origin-already-registered" as const;
   readonly module = MODULE;
   constructor(index: number) {
-    super("An origin already belongs to another merchant.", { index });
+    super("An origin already belongs to another merchant.", { index, pointer: originPointer(index) });
   }
 }

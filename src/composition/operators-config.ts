@@ -20,6 +20,7 @@ const OPERATORS_VARIABLE = "OPE_ADMIN_OPERATORS";
 const FIELD_BY_CODE: Readonly<Record<string, string>> = {
   "invalid-operator-tokens": ".tokenFingerprints",
   "invalid-operator-scope": ".scope",
+  "invalid-operator-display-name": ".displayName",
 } satisfies Readonly<Partial<Record<OperatorError["code"], string>>>;
 
 function rejected(at: OperatorField, error: DomainError): ConfigError {
@@ -67,10 +68,15 @@ function parseOperator(item: unknown, at: OperatorField): Operator {
   }
   if (!isStringArray(fingerprints))
     throw new ConfigError(`${at}.tokenFingerprints`, "must be an array of strings");
+  const displayName = o["displayName"];
+  if (displayName !== undefined && typeof displayName !== "string") {
+    throw new ConfigError(`${at}.displayName`, "must be a string");
+  }
   const operator = Operator.of({
     operatorId: asOperatorId(operatorId),
     tokenFingerprints: fingerprints,
     scope: scopeOf(o["scope"], at),
+    displayName,
   });
   if (!operator.ok) throw rejected(at, operator.error);
   return operator.value;

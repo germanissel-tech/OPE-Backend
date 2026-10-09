@@ -38,6 +38,19 @@ export interface BuildServerOptions<Ops extends OperationsMap<Ops> = operations>
 
 const SERVICE_UNAVAILABLE = 503;
 const RETRY_AFTER = "retry-after";
+const REQUEST_ID = "x-request-id";
+
+/**
+ * Every response names its request (ADR-044): the identifier Fastify minted, the same the log carries
+ * as `reqId`, so what an operator quotes is what the log has. Set on arrival and not on send: an error
+ * of the framework answers before any hook of the reply runs, and it carries the header all the same.
+ */
+function nameEveryRequest(app: FastifyInstance): void {
+  app.addHook("onRequest", (request, reply, done) => {
+    reply.header(REQUEST_ID, request.id);
+    done();
+  });
+}
 
 /** Every 503 carries `Retry-After` (ADR-021): a write a store could not accept is retried, not lost. */
 function retryAfterOn503(app: FastifyInstance, seconds: () => number): void {
@@ -61,6 +74,9 @@ async function createApp(
   const loggerInstance = fastifyLoggerOf(options.logger);
   const app = Fastify({
     bodyLimit: BODY_LIMIT_BYTES,
+    // The identifier is the server's (ADR-044): one a client pastes is not adopted, so a quoted value
+    // is always one this server minted. Fastify would otherwise take it from `request-id`.
+    requestIdHeader: false,
     // A URL that cannot be decoded (`FST_ERR_BAD_URL`) is answered as Problem Details, like every error.
     frameworkErrors: (error, request, reply) => {
       send(reply, badUrl(error, request.url));
@@ -68,6 +84,7 @@ async function createApp(
     // Stryker disable next-line ConditionalExpression: to Fastify an undefined loggerInstance is no logger; the mutant is equivalent
     ...(loggerInstance ? { loggerInstance } : {}),
   });
+  nameEveryRequest(app);
   keepRawBodies(app);
   retryAfterOn503(app, options.retryAfterSeconds);
   // Only the credentials a browser sends are announced to a preflight (ADR-025 §5: platformKey without CORS).

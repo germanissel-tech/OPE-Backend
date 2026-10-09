@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.11.0
+  version: 1.12.0
   # While no merchant consumes the contract, incompatible changes pass contract:diff with a
   # MINOR bump (ADR-003, precision of 2026-09-20). Remove before the first pilot.
   x-stability: building
@@ -43,6 +43,8 @@ paths:
     $ref: ./paths/order-corroborations.yaml
   /v1/returns:
     $ref: ./paths/returns.yaml
+  /v1/admin/operator:
+    $ref: ./paths/admin-operator.yaml
   /v1/admin/log:
     $ref: ./paths/admin-log.yaml
   /v1/admin/merchants:

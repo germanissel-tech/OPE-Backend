@@ -507,13 +507,13 @@ describe("readConfig — operators (feature 017)", () => {
 
   it("reads OPE_ADMIN_OPERATORS inline or from a file; the token never appears, only fingerprints", () => {
     const raw = JSON.stringify([
-      { operatorId: "ops-1", tokenFingerprints: ["f1", "f2"], scope: "*" },
+      { operatorId: "ops-1", tokenFingerprints: ["f1", "f2"], scope: "*", displayName: "Ana" },
       { operatorId: "ops-a", tokenFingerprints: ["f3"], scope: ["m_a"] },
     ]);
     const inline = readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile).operators;
-    expect(inline.map((o) => [o.operatorId, o.scope])).toEqual([
-      ["ops-1", "*"],
-      ["ops-a", ["m_a"]],
+    expect(inline.map((o) => [o.operatorId, o.scope, o.displayName])).toEqual([
+      ["ops-1", "*", "Ana"],
+      ["ops-a", ["m_a"], undefined],
     ]);
     expect(inline[0]?.holds("f2")).toBe(true);
     expect(readConfig({ OPE_ADMIN_OPERATORS_FILE: "ops.json" }, withFile(raw)).operators).toHaveLength(2);
@@ -548,6 +548,17 @@ describe("readConfig — operators (feature 017)", () => {
       "empty merchant in scope",
       JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f"], scope: ["m_a", ""] }]),
       "operators[0].scope[1] is invalid",
+    ],
+    // Feature 040: a display name is a string, and a name to show (not blank, not padded).
+    [
+      "display name not a string",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f"], scope: "*", displayName: 1 }]),
+      "operators[0].displayName must be",
+    ],
+    [
+      "blank display name",
+      JSON.stringify([{ operatorId: "o", tokenFingerprints: ["f"], scope: "*", displayName: " " }]),
+      "operators[0].displayName is invalid",
     ],
   ])("%s → ConfigError naming the field", (_name, raw, message) => {
     expect(() => readConfig({ OPE_ADMIN_OPERATORS: raw }, noFile)).toThrow(ConfigError);

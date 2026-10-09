@@ -15,7 +15,7 @@ content:
           detail: A registered origin must be scheme://host[:port] without a path.
           instance: /v1/admin/merchants
           errors:
-            - pointer: /origins/0
+            - pointer: /body/origins/0
               message: A registered origin must be scheme://host[:port] without a path.
       origin-already-registered:
         summary: origin-already-registered
@@ -26,5 +26,5 @@ content:
           detail: An origin already belongs to another merchant.
           instance: /v1/admin/merchants
           errors:
-            - pointer: /origins/0
+            - pointer: /body/origins/1
               message: An origin already belongs to another merchant.

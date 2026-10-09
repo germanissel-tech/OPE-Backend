@@ -30,10 +30,22 @@ export function toHttp(res: ProblemResponse): HttpResponse {
 
 export function send(reply: FastifyReply, res: HttpResponse): FastifyReply {
   if (res.headers) reply.headers(res.headers);
+  const contentType = res.contentType ?? JSON_CONTENT_TYPE;
   return reply
     .status(res.status)
-    .type(res.contentType ?? JSON_CONTENT_TYPE)
-    .send(res.body);
+    .type(contentType)
+    .send(withRequestId(reply, res, contentType));
+}
+
+/**
+ * A Problem Details names its request (ADR-044): `requestId` is the identifier the transport minted,
+ * the same as the `X-Request-Id` header. Added here, where every error passes, so that no controller
+ * has to know the request to say which one failed.
+ */
+function withRequestId(reply: FastifyReply, res: HttpResponse, contentType: string): unknown {
+  // A null body spreads to nothing, so it needs no guard of its own: the mutant that drops one survives.
+  if (contentType !== PROBLEM_CONTENT_TYPE || typeof res.body !== "object") return res.body;
+  return { ...res.body, requestId: reply.request.id };
 }
 
 /** The path of a request URL, without its query string: the `instance` of its problems. */

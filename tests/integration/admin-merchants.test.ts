@@ -93,12 +93,18 @@ describe("POST /v1/admin/merchants → a merchant is born with its credentials, 
       body: { origins: ["https://x.example", "https://A.example"], signature: false },
     });
     expect(taken.statusCode).toBe(422);
-    expect(problemOf(taken)).toMatchObject({ type: "urn:ope:problem:origin-already-registered" });
+    expect(problemOf(taken)).toMatchObject({
+      type: "urn:ope:problem:origin-already-registered",
+      errors: [{ pointer: "/body/origins/1", message: expect.stringContaining("already belongs") as string }],
+    });
     const bad = await admin(app.app, "POST", "/v1/admin/merchants", {
       body: { origins: ["nope"], signature: false },
     });
     expect(bad.statusCode).toBe(422);
-    expect(problemOf(bad)).toMatchObject({ type: "urn:ope:problem:invalid-origin" });
+    expect(problemOf(bad)).toMatchObject({
+      type: "urn:ope:problem:invalid-origin",
+      errors: [{ pointer: "/body/origins/0" }],
+    });
     const extra = await admin(app.app, "POST", "/v1/admin/merchants", {
       body: { origins: ["https://z.example"], signature: false, name: "Zed" },
     });
@@ -162,7 +168,10 @@ describe("rotation (scenario 2)", () => {
       },
     );
     expect(res.statusCode).toBe(422);
-    expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:rotation-grace-too-long" });
+    expect(problemOf(res)).toMatchObject({
+      type: "urn:ope:problem:rotation-grace-too-long",
+      errors: [{ pointer: "/body/graceSeconds" }],
+    });
   });
 });
 
@@ -225,7 +234,8 @@ describe("scope (scenarios 5 and 6)", () => {
     const onB = await admin(app.app, "GET", "/v1/admin/merchants/m_b", { as: "ops-a" });
     const onNobody = await admin(app.app, "GET", "/v1/admin/merchants/mrc_nobody000000", { as: "ops-a" });
     expect([onB.statusCode, onNobody.statusCode]).toEqual([403, 403]);
-    const strip = (r: typeof onB) => ({ ...problemOf(r), instance: undefined });
+    // The instance and the request identifier are the only things that may differ (ADR-044).
+    const strip = (r: typeof onB) => ({ ...problemOf(r), instance: undefined, requestId: undefined });
     expect(strip(onB)).toEqual(strip(onNobody));
     expect(problemOf(onB).type).toBe("urn:ope:problem:merchant-out-of-scope");
     expect(

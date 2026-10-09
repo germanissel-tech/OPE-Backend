@@ -11,5 +11,5 @@ content:
       detail: The rotation grace exceeds the platform maximum.
       instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/ingest-keys
       errors:
-        - pointer: /graceSeconds
+        - pointer: /body/graceSeconds
           message: The rotation grace exceeds the platform maximum.

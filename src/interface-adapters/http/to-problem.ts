@@ -27,10 +27,13 @@ export type ProblemOf<E extends CataloguedError> = {
   };
 }[E["code"]];
 
-/** `a.b[2].c` → `/a/b/2/c`: the field a domain error names, as the contract publishes pointers. */
+/** A domain error can only ever name a field of the body: `ProblemDetails` publishes pointers relative to the request (ADR-044). */
+const BODY = "/body";
+
+/** `a.b[2].c` → `/body/a/b/2/c`: the field a domain error names, as the contract publishes pointers. */
 function jsonPointerOf(field: string): string {
   const segments = field.split(".").flatMap((part) => part.split("[").map((s) => s.replace("]", "")));
-  return `/${segments.join("/")}`;
+  return `${BODY}/${segments.join("/")}`;
 }
 
 /** The field the error is about, when it names one. */

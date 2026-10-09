@@ -16,7 +16,7 @@ content:
             strictly increasing within 1 and the ceiling).
           instance: /v1/admin/treatment-defaults
           errors:
-            - pointer: /content/commercialPolicy/incentiveLadderShare
+            - pointer: /body/content/commercialPolicy/incentiveLadderShare
               message: The incentive ladder is not strictly increasing within 1 and the ceiling.
       reasonRequired:
         summary: A corrective version with no reason (configuration-reason-required)
@@ -27,7 +27,7 @@ content:
           detail: A corrective configuration version needs a reason.
           instance: /v1/admin/treatment-defaults
           errors:
-            - pointer: /reason
+            - pointer: /body/reason
               message: A corrective version carries the reason it is published for.
       localeIncomplete:
         summary: A language that enters as supported or as reserve without a complete base (locale-incomplete)
@@ -38,5 +38,5 @@ content:
           detail: The base layer has no text for some families in that language.
           instance: /v1/admin/treatment-defaults
           errors:
-            - pointer: /content/locales/supported/1
+            - pointer: /body/content/locales/supported/1
               message: "pt-BR: fit.policies.reassurance, returns.policies.information"

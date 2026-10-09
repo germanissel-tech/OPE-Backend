@@ -31,3 +31,5 @@ export type {
   AdminTokenResolver,
   AdminTokenResolverDependencies,
 } from "./services/admin-token.service.js";
+export { GetOperatorUseCase } from "./use-cases/get-operator.use-case.js";
+export type { GetOperatorRequest, GetOperatorResponse } from "./use-cases/get-operator.use-case.js";

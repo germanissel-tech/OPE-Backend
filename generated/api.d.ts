@@ -426,6 +426,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/operator": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who the authenticated operator is
+         * @description The operator the credential belongs to: its identifier, its display name when configured, and
+         *     its scope (ADR-031, ADR-044). Any valid credential may ask: identifying oneself demands no
+         *     capability, which is what `x-identifies-principal` declares. Reading it is not logged.
+         */
+        get: operations["getOperator"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/platform-configuration": {
         parameters: {
             query?: never;
@@ -1829,6 +1851,14 @@ export type components = {
         NotCondition: {
             not: components["schemas"]["NestedCondition"];
         };
+        /** @description The operator behind an admin credential (ADR-031, ADR-044). `displayName` is the only personal name the contract carries: the operator is an identified and audited person, and the name is served only to the operator it names (constitution VII, 1.5.0). */
+        Operator: {
+            /** @description The name the operator sees in the panel. Never an identifier, never in the administration log. */
+            displayName?: string;
+            operatorId: components["schemas"]["OperatorId"];
+            /** @description Which merchants the operator reaches, as configured (ADR-031): every one, or a list. */
+            scope: "*" | components["schemas"]["MerchantId"][];
+        };
         /** @description Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up). */
         OperatorId: string;
         /**
@@ -2060,6 +2090,8 @@ export type components = {
             }[];
             /** @description URI reference of the occurrence; usually the request path. */
             instance?: string;
+            /** @description The identifier the server minted for this request, the same as the `X-Request-Id` header of every response and the `reqId` of the server's own log; quote it when reporting (ADR-044). */
+            requestId?: string;
             /** @description HTTP status code of the response, repeated in the body. */
             status: number;
             /** @description Short, fixed summary for the problem type. */
@@ -2846,7 +2878,7 @@ export type components = {
                  *       "instance": "/v1/admin/merchants/mrc_7f3k5d2q4m6x/ingest-keys",
                  *       "errors": [
                  *         {
-                 *           "pointer": "/graceSeconds",
+                 *           "pointer": "/body/graceSeconds",
                  *           "message": "The rotation grace exceeds the platform maximum."
                  *         }
                  *       ]
@@ -4327,6 +4359,35 @@ export interface operations {
             404: components["responses"]["MerchantNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getOperator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authenticated operator. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "operatorId": "ops-1",
+                     *       "displayName": "Ana",
+                     *       "scope": "*"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Operator"];
+                };
+            };
+            401: components["responses"]["OperatorUnauthorized"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     getPlatformConfiguration: {

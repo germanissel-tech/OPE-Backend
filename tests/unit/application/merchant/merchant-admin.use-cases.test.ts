@@ -91,7 +91,7 @@ describe("CreateMerchantUseCase", () => {
     });
     expect(r.ok ? undefined : [r.error.code, r.error.details]).toEqual([
       "origin-already-registered",
-      { index: 1 },
+      { index: 1, pointer: "origins[1]" },
     ]);
     await deactivate.execute({ actor: all, merchantId: asMerchantId("m_a") });
     const again = await create.execute({ actor: all, origins: ["https://a.example"], signature: false });

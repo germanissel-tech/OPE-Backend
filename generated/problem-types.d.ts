@@ -88,6 +88,7 @@ export declare const PROBLEM_TYPES: {
   readonly "experiment-not-found": { readonly status: 404; readonly title: "The experiment does not exist" };
   readonly "invalid-operator-scope": { readonly status: 500; readonly title: "The scope of an operator is neither \"*\" nor a list of merchants" };
   readonly "invalid-operator-tokens": { readonly status: 500; readonly title: "An operator needs one or two non-empty token fingerprints" };
+  readonly "invalid-operator-display-name": { readonly status: 500; readonly title: "The display name of an operator is a trimmed, non-empty string of at most 80 characters" };
   readonly "corpus-text-empty": { readonly status: 422; readonly title: "A curated text of the corpus is empty" };
   readonly "corpus-text-too-long": { readonly status: 422; readonly title: "A curated text of the corpus is longer than the contract allows" };
   readonly "corpus-text-has-placeholder": { readonly status: 422; readonly title: "A curated text of the corpus still carries a placeholder" };

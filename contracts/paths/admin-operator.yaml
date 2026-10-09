@@ -1,0 +1,27 @@
+get:
+  operationId: getOperator
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities: []
+  x-identifies-principal: true
+  summary: Who the authenticated operator is
+  description: |
+    The operator the credential belongs to: its identifier, its display name when configured, and
+    its scope (ADR-031, ADR-044). Any valid credential may ask: identifying oneself demands no
+    capability, which is what `x-identifies-principal` declares. Reading it is not logged.
+  responses:
+    "200":
+      description: The authenticated operator.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Operator.yaml
+          example:
+            operatorId: ops-1
+            displayName: Ana
+            scope: "*"
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

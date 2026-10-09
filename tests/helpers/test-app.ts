@@ -150,17 +150,22 @@ const adminToken = (name: TestOperator): string => TEST_OPERATOR_TOKENS[name];
 
 const fingerprint = (token: string): string => createHash("sha256").update(token, "utf8").digest("hex");
 
-function operatorOf(name: TestOperator, scope: "*" | string[]): Operator {
+function operatorOf(name: TestOperator, scope: "*" | string[], displayName?: string): Operator {
   const built = Operator.of({
     operatorId: asOperatorId(name),
     tokenFingerprints: [fingerprint(TEST_OPERATOR_TOKENS[name])],
     scope: scope === EVERY_MERCHANT ? EVERY_MERCHANT : scope.map(asMerchantId),
+    displayName,
   });
   if (!built.ok) throw new Error(`test operator ${name}: ${built.error.message}`);
   return built.value;
 }
 
-const testOperators: Operator[] = [operatorOf("ops-all", EVERY_MERCHANT), operatorOf("ops-a", ["m_a"])];
+// One operator with a name and one without (feature 040): what `getOperator` answers for each.
+const testOperators: Operator[] = [
+  operatorOf("ops-all", EVERY_MERCHANT, "Operator All"),
+  operatorOf("ops-a", ["m_a"]),
+];
 
 /** What a test may override of the configuration; merchants as specs, not entities. */
 export interface TestConfig extends Omit<Partial<AppConfig>, "merchants"> {

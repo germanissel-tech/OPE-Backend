@@ -61,7 +61,7 @@ describe("Merchant.of", () => {
     const built = Merchant.of(inputOf({ origins: ["https://a.example", "not an origin"] }));
     expect(built).toMatchObject({
       ok: false,
-      error: { code: "invalid-origin", module: "merchant", details: { index: 1 } },
+      error: { code: "invalid-origin", module: "merchant", details: { index: 1, pointer: "origins[1]" } },
     });
     if (!built.ok) expect(built.error).toBeInstanceOf(InvalidOrigin);
   });
@@ -307,7 +307,7 @@ describe("Merchant.rotated (ADR-014, ADR-031)", () => {
     const rotated = merchant.rotated(ingest("k3"), { graceMs: HOUR + 1, maxGraceMs: HOUR }, NOW);
     expect(rotated.ok ? undefined : [rotated.error.code, rotated.error.details]).toEqual([
       "rotation-grace-too-long",
-      { maxGraceMs: HOUR },
+      { maxGraceMs: HOUR, pointer: "graceSeconds" },
     ]);
   });
 
