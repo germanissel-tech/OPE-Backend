@@ -78,5 +78,17 @@
   {
     "identifier": "multipleOf",
     "reason": "JSON Schema keyword, not an identifier of the system; ADR-035 names it to discard it."
+  },
+  {
+    "identifier": "updateMerchantProfile",
+    "reason": "Operation ADR-045 (propuesta) decides before feature 041 builds it; the entry leaves with the feature documentation stage."
+  },
+  {
+    "identifier": "invalid-merchant-profile",
+    "reason": "Problem type ADR-045 (propuesta) decides before feature 041 builds it; the entry leaves with the feature documentation stage."
+  },
+  {
+    "identifier": "storeUrl",
+    "reason": "Merchant field ADR-045 (propuesta) decides before feature 041 builds it; the entry leaves with the feature documentation stage."
   }
 ]
