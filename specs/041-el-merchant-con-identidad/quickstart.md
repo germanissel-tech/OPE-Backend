@@ -125,3 +125,23 @@ rechaza un `https://` sin host, y dos veces la guarda «sin ningún campo, sin i
 que ninguna prueba distinguía de una identidad vacía— y se resolvieron borrando la comprobación y
 afirmando que una semilla sin identidad importa un merchant sin ella; re-juzgadas esas líneas, todo
 mutante muere.
+
+### 2026-10-09 — tramo 3 (los artefactos) y tramo 4 (los documentos)
+
+- **Los tramos 1 a 3 van en un commit**: `contract:types` regenera `generated/contract/` en el tramo
+  1, y la prueba de gobernanza de los artefactos ya afirma `MerchantContact`, `MerchantProfileInput`
+  y `updateMerchantProfile` contra el bundle real; no quedó nada que commitear aparte.
+- **OPE-Web**: sobre su `main` (con la PR #3 unida), `npm run contract:sync` copió los ocho archivos
+  sin emitir nada y `npx ope-check` pasó sus 8 comprobaciones con 35 operaciones `admin` y 35
+  esquemas de pedido, sin tocar `conformity`. El árbol de OPE-Web quedó limpio: listar por nombre y
+  mostrar la ficha es su feature siguiente, y ella sincroniza.
+- **El glosario pidió «contacto»**: `check:glossary` no resuelve `MerchantContact` sin una nota de
+  dominio; `docs/dominio/contacto.md` la da. No estaba en las tareas.
+- **Constitución 1.5.1**, ADR-045 aceptada con el texto del diff y la respuesta compartida de los
+  dos controllers, nota fechada en ADR-031, la identidad en `docs/dominio/merchant.md`, y la lista
+  de identificadores sin las tres entradas provisorias. `.claude/rules/contrato.md` y `CLAUDE.md` no
+  nombran `x-personal-datum`: sin cambio.
+
+Cierre: `release-check` OK (las dos advertencias de siempre más el diff aceptado por `building`),
+`contract:check` en verde, `tests/docs` en verde, y `npm run test:all` —los cuatro proyectos— en
+verde: 230 archivos, 2086 pruebas, 0 fallos.

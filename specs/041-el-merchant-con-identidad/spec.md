@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Construida (2026-10-09)
 
 **Input**: Decisión del dueño del 2026-10-09, después de construir la consola (OPE-Web 005 y 006) y la
 feature 040: la ficha del merchant lleva sólo lo operativo y no hay forma de saber qué merchant es sin

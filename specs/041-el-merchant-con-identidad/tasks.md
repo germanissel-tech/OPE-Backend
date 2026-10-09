@@ -172,14 +172,14 @@ npm run test:durability` en verde; `npm run test:contract`; `npm run test:mutati
 
 **Purpose**: que lo emitido traiga la operación y los esquemas, y que OPE-Web lo copie sin tocar nada.
 
-- [ ] T022 [US2] `tests/governance/consumer-artifacts.test.ts` — `OPERATIONS.updateMerchantProfile`
+- [x] T022 [US2] `tests/governance/consumer-artifacts.test.ts` — `OPERATIONS.updateMerchantProfile`
       con `['merchants:write']` e `idempotent: false`; `CONSTRAINTS.MerchantContact.required ===
 ['name', 'email']` con `email.format === 'email'`; `CONSTRAINTS.MerchantProfileInput.required ===
 ['displayName']` y `fields.contact` igual a `{ type: 'object', ref: 'MerchantContact' }`;
       `CONSTRAINTS.MerchantCreate.required` contiene `displayName`
-- [ ] T023 [US2] `npm run contract:types && npm run contract:types:check` en verde con
+- [x] T023 [US2] `npm run contract:types && npm run contract:types:check` en verde con
       `generated/contract/` regenerada y versionada
-- [ ] T024 [US2] En OPE-Web, contra este backend: `npm run contract:sync` copia los ocho archivos y
+- [x] T024 [US2] En OPE-Web, contra este backend: `npm run contract:sync` copia los ocho archivos y
       `npx ope-check` pasa sin tocar `conformity` (R-07). Anotar lo visto. Si algo no pasa, es un
       hallazgo del quickstart, no un cambio allá: la consola es su feature siguiente
 
@@ -193,21 +193,21 @@ npm run test:durability` en verde; `npm run test:contract`; `npm run test:mutati
 **Purpose**: que lo decidido quede escrito donde se busca, y que la constitución diga lo que el lint y
 el código ya hacen.
 
-- [ ] T025 [US3] `.specify/memory/constitution.md` — la viñeta de VII pasa a nombrar «las personas
+- [x] T025 [US3] `.specify/memory/constitution.md` — la viñeta de VII pasa a nombrar «las personas
       identificadas de la relación comercial: el operador y el contacto del merchant», servidas sólo a
       `admin`; versión **1.5.1**, `Last Amended` 2026-10-09, Sync Impact Report al tope (PATCH; la fuente
       del MVP no habla del contacto porque no tenía backoffice, 01 §13; plantillas sin cambio)
-- [ ] T026 [P] `docs/adr/045-el-merchant-con-identidad.md` — `estado: aceptada`, con lo que difirió si
+- [x] T026 [P] `docs/adr/045-el-merchant-con-identidad.md` — `estado: aceptada`, con lo que difirió si
       algo difirió y el texto del reporte de `contract:diff` (R-09); `docs/adr/031-…` gana la nota fechada
       «el merchant tiene identidad (feature 041)»; `scripts/identifiers-allowlist.json` **pierde** las
       tres entradas de la 041
-- [ ] T027 [P] `docs/dominio/merchant.md` — la identidad: nombre para reconocer, URL para una persona,
+- [x] T027 [P] `docs/dominio/merchant.md` — la identidad: nombre para reconocer, URL para una persona,
       contacto como persona identificada de la relación comercial, notas; que no entra en decisiones,
       SDK, plataforma ni registros; `check:glossary` en verde
-- [ ] T028 [P] `.claude/rules/contrato.md` — si la viñeta de consumidores o de `x-invariants` nombra
+- [x] T028 [P] `.claude/rules/contrato.md` — si la viñeta de consumidores o de `x-invariants` nombra
       `x-personal-datum`, que diga que admite una lista; `CLAUDE.md` sin cambio salvo que alguna tabla lo
       nombre
-- [ ] T029 `specs/041-el-merchant-con-identidad/quickstart.md` — «Lo corrido» con fecha, incluido lo
+- [x] T029 `specs/041-el-merchant-con-identidad/quickstart.md` — «Lo corrido» con fecha, incluido lo
       que difirió y el texto del diff; `spec.md` con **Status**: construida; en verde
       `npm run release-check`, `npm run contract:check`, `npm run test:durability` y `npm run test:all`
 

@@ -1,7 +1,7 @@
 ---
 numero: 045
 titulo: El merchant con identidad — nombre, URL, contacto y notas como valor del agregado, y la persona de contacto como persona identificada
-estado: propuesta
+estado: aceptada
 fecha: 2026-10-09
 fuente: specs/041-el-merchant-con-identidad/research.md; decisión del dueño del 2026-10-09
 ---
@@ -66,6 +66,14 @@ teléfono el contrato lleva.
   esquemas objeto de cuerpos `admin`).
 - Sin migración: el merchant es un documento (ADR-041) y la identidad viaja adentro; un documento
   viejo rehidrata un merchant sin identidad.
+- Lo que `contract:diff` dijo al construirla, para que quede: `error [new-required-request-property]
+… in API POST /v1/admin/merchants: added the new required request property displayName`, y a
+  continuación `Incompatible change accepted: the contract is building (info.x-stability: building,
+1.13.0); remove the mark before the first pilot`. Es la primera vez que la marca admite un
+  `required` nuevo.
+- Las dos operaciones que responden con el merchant entero (desactivación y reemplazo de la
+  identidad) comparten la respuesta en el presentador: `check:duplication` no admite dos
+  controllers con las mismas seis líneas.
 - El régimen de retención y borrado de los datos del contacto sigue siendo D5 (ADR-010): desactivar
   un merchant no borra su identidad, porque no existe borrado.
 - Un segundo contacto, o un contacto como cuenta que entra a algún lado, es otra decisión; el portal
