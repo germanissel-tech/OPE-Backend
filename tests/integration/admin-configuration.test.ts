@@ -257,14 +257,14 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     const cases: [unknown, string][] = [
       [
         { commercialPolicy: { version: "c-2", incentiveLadderShare: [0.1, 0.05] } },
-        "/declared/commercialPolicy/incentiveLadderShare/1",
+        "/body/declared/commercialPolicy/incentiveLadderShare/1",
       ],
-      [{ decisionPolicy: { version: "d-2", priority: ["fit"] } }, "/declared/decisionPolicy/priority"],
-      [{ locales: { supported: ["es"], fallback: "en" } }, "/declared/locales/fallback"],
+      [{ decisionPolicy: { version: "d-2", priority: ["fit"] } }, "/body/declared/decisionPolicy/priority"],
+      [{ locales: { supported: ["es"], fallback: "en" } }, "/body/declared/locales/fallback"],
 
-      [{ anchors: { price: { selectors: [".p", " "] } } }, "/declared/anchors/price/selectors/1"],
+      [{ anchors: { price: { selectors: [".p", " "] } } }, "/body/declared/anchors/price/selectors/1"],
       // Feature 023: in range, but finer than a bucket of the split — it would keep nobody out.
-      [{ holdoutShare: 0.004 }, "/declared/holdoutShare"],
+      [{ holdoutShare: 0.004 }, "/body/declared/holdoutShare"],
     ];
     for (const [declared, pointer] of cases) {
       const res = await configure({ declared, corrective: true, reason: "test" });
@@ -339,7 +339,7 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(res.statusCode).toBe(422);
     expect(problemOf(res)).toMatchObject({
       type: "urn:ope:problem:configuration-reason-required",
-      errors: [{ pointer: "/reason" }],
+      errors: [{ pointer: "/body/reason" }],
     });
   });
 

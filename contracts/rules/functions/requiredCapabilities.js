@@ -1,6 +1,8 @@
 // ope-required-capabilities (FR-031; ADR-020): every authenticated operation declares the
 // capability it demands (`x-required-capabilities`, shape resource:action, within the vocabulary
-// of its consumer in the contract map); a public operation declares none.
+// of its consumer in the contract map); a public operation declares none. The one exception is
+// explicit (ADR-044): an operation that only identifies the principal (`x-identifies-principal:
+// true`) declares an empty list, because identifying oneself demands no capability.
 "use strict";
 const { consumerOf, loadApiMap } = require("./_apiMap.js");
 const { isAuthenticated } = require("./_auth.js");
@@ -9,6 +11,7 @@ const { get, isObject } = require("./_walk.js");
 /** @import { SpectralFunction } from "./_walk.js" */
 
 const CAPABILITY = /^[a-z][a-z-]*:[a-z][a-z-]*$/;
+const IDENTIFIES = "x-identifies-principal";
 
 /** @type {SpectralFunction} */
 const requiredCapabilities = (operation, opts, context) => {
@@ -16,9 +19,18 @@ const requiredCapabilities = (operation, opts, context) => {
   const authenticated = isAuthenticated(operation, context);
   const id = String(operation["operationId"] ?? "(no operationId)");
   const caps = operation["x-required-capabilities"];
+  const identifies = operation[IDENTIFIES] === true;
   const at = [...context.path, "x-required-capabilities"];
 
   if (!authenticated) {
+    if (identifies) {
+      return [
+        {
+          message: `Operation ${id} is public (security: []) and must not declare ${IDENTIFIES}: identifying a principal needs a credential.`,
+          path: [...context.path, IDENTIFIES],
+        },
+      ];
+    }
     if (caps !== undefined) {
       return [
         {
@@ -29,10 +41,19 @@ const requiredCapabilities = (operation, opts, context) => {
     }
     return [];
   }
+  if (identifies) {
+    if (Array.isArray(caps) && caps.length === 0) return [];
+    return [
+      {
+        message: `Operation ${id} declares ${IDENTIFIES} and must declare x-required-capabilities: [] — identifying oneself demands no capability, and a capability here would make the mark a lie.`,
+        path: at,
+      },
+    ];
+  }
   if (!Array.isArray(caps) || caps.length === 0) {
     return [
       {
-        message: `Operation ${id} is authenticated and declares no x-required-capabilities (non-empty list of resource:action capabilities, for example events:write).`,
+        message: `Operation ${id} is authenticated and declares no x-required-capabilities (non-empty list of resource:action capabilities, for example events:write; an empty list is only for an operation marked ${IDENTIFIES}).`,
         path: context.path,
       },
     ];

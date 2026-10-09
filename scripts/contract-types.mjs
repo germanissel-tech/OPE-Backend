@@ -1,7 +1,8 @@
 // contract:types — generates what the server reads of the contract, outside src/ (FR-030;
 // feature 018): generated/api.d.ts from the bundle, generated/problem-types.{js,d.ts} from
 // contracts/problem-types.yaml, generated/audited-operations.d.ts from the bundle and the map
-// (feature 021), and generated/schemas/*.schema.json (the configuration files) from the bundle.
+// (feature 021), generated/schemas/*.schema.json (the configuration files) from the bundle, and
+// generated/contract/ (what a consumer copies, feature 040) from the bundle and the two type files.
 // Deterministic: fixed options and LF line endings.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -10,6 +11,7 @@ import {
   generatedAuditedOperationsDts,
   generatedAuditedOperationsJs,
 } from "./contract-audited-operations-lib.mjs";
+import { generateConsumerArtifacts } from "./contract-consumer-artifacts-lib.mjs";
 import {
   generateProblemTypes,
   generatedProblemTypesDts,
@@ -37,4 +39,9 @@ for (const [file, content] of generateConfigSchemas()) {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, content, "utf8");
   console.log(`Configuration schema generated at ${file}`);
+}
+for (const [file, content] of generateConsumerArtifacts(source, dts)) {
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, content, "utf8");
+  console.log(`Consumer artifact generated at ${file}`);
 }

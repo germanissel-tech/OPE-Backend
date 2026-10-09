@@ -1,0 +1,24 @@
+type: object
+description: "The operator behind an admin credential (ADR-031, ADR-044). `displayName` is the only personal name the contract carries: the operator is an identified and audited person, and the name is served only to the operator it names (constitution VII, 1.5.0)."
+additionalProperties: false
+required: [operatorId, scope]
+x-personal-datum:
+  property: displayName
+  reason: The operator is an identified and audited person (constitution VII, 1.5.0); the name is served only to the operator it names, never to public, sdk, platform or portal (ADR-044).
+properties:
+  operatorId:
+    $ref: ./OperatorId.yaml
+  displayName:
+    type: string
+    description: The name the operator sees in the panel. Never an identifier, never in the administration log.
+    minLength: 1
+    maxLength: 80
+  scope:
+    description: "Which merchants the operator reaches, as configured (ADR-031): every one, or a list."
+    oneOf:
+      - type: string
+        enum: ["*"]
+      - type: array
+        minItems: 1
+        items:
+          $ref: ./MerchantId.yaml

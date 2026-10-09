@@ -1,6 +1,11 @@
 // Feature 017 — US1 (FR-007): an operator holds tokens by fingerprint and acts within a scope.
 import { describe, expect, it } from "vitest";
-import { EVERY_MERCHANT, Operator, asOperatorId } from "../../../../src/domain/operator/index.js";
+import {
+  EVERY_MERCHANT,
+  MAX_DISPLAY_NAME,
+  Operator,
+  asOperatorId,
+} from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 
 const A = asMerchantId("mrc_a");
@@ -39,8 +44,27 @@ describe("Operator.of", () => {
     ]);
   });
 
+  // Feature 040 (ADR-044): a display name is optional, and when given it is a name to show.
+  it("accepts a display name of up to the maximum, and none at all", () => {
+    expect(valid({ displayName: "Ana" }).displayName).toBe("Ana");
+    expect(valid({ displayName: "x".repeat(MAX_DISPLAY_NAME) }).displayName).toHaveLength(MAX_DISPLAY_NAME);
+    expect(valid().displayName).toBeUndefined();
+  });
+
+  it.each([
+    ["empty", ""],
+    ["blank", "   "],
+    ["padded", " Ana"],
+    ["padded at the end", "Ana "],
+    ["longer than the maximum", "x".repeat(MAX_DISPLAY_NAME + 1)],
+  ])("rejects a %s display name", (_what, displayName) => {
+    const r = Operator.of(record({ displayName }));
+    expect(r.ok ? undefined : r.error.code).toBe("invalid-operator-display-name");
+  });
+
   it("rehydrate does not re-judge", () => {
     expect(Operator.rehydrate(record({ tokenFingerprints: [] })).tokenFingerprints).toEqual([]);
+    expect(Operator.rehydrate(record({ displayName: " " })).displayName).toBe(" ");
   });
 });
 
@@ -56,6 +80,7 @@ describe("Operator rules", () => {
     expect(system.operatorId).toBe("system");
     expect(system.scopeFor(A).ok).toBe(true);
     expect(system.tokenFingerprints).toEqual([]);
+    expect(system.displayName).toBeUndefined();
   });
 
   it("scopeFor: * allows every merchant; a list allows only its members; the error never names the merchant", () => {

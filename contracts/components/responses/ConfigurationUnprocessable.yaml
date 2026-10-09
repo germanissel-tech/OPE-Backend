@@ -14,7 +14,7 @@ content:
             not strictly increasing within 1 and the ceiling).
           instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
           errors:
-            - pointer: /declared/commercialPolicy/incentiveLadderShare
+            - pointer: /body/declared/commercialPolicy/incentiveLadderShare
               message: The incentive ladder is not strictly increasing within 1 and the ceiling.
       duplicateAttributeLabel:
         summary: One label pointing at two values (duplicate-attribute-label)
@@ -25,7 +25,7 @@ content:
           detail: 'declared.attributeLabels has one label twice: "Combed Cotton 24/1".'
           instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
           errors:
-            - pointer: /declared/attributeLabels/3/label
+            - pointer: /body/declared/attributeLabels/3/label
               message: This label already corresponds to a value of OPE's vocabulary.
       localeIncomplete:
         summary: A language that enters as supported or as reserve without a complete base (locale-incomplete)
@@ -36,5 +36,5 @@ content:
           detail: The base layer has no text for some families in that language.
           instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration
           errors:
-            - pointer: /declared/locales/supported/1
+            - pointer: /body/declared/locales/supported/1
               message: "pt-BR: fit.policies.reassurance, returns.policies.information"

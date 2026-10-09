@@ -62,7 +62,7 @@ describe("a language without texts (US4)", () => {
     expect(refused.statusCode).toBe(422);
     const problem = json(refused) as { type: string; errors: { pointer: string; message: string }[] };
     expect(problem.type).toBe(PROBLEM);
-    expect(problem.errors[0]?.pointer).toBe("/content/locales/supported/1");
+    expect(problem.errors[0]?.pointer).toBe("/body/content/locales/supported/1");
     expect(problem.errors[0]?.message).toBe(`pt-BR: ${[...TextKey.unconditionalFamilies()].join(", ")}`);
     expect(json(await admin(app.app, "GET", "/v1/admin/treatment-defaults"))).toMatchObject({
       version: "defaults-1",
@@ -88,7 +88,7 @@ describe("a language without texts (US4)", () => {
     expect(refused.statusCode).toBe(422);
     expect(json(refused)).toMatchObject({
       type: PROBLEM,
-      errors: [{ pointer: "/declared/locales/supported/1" }],
+      errors: [{ pointer: "/body/declared/locales/supported/1" }],
     });
     await completeBase("en");
     expect((await declare({ locales: { supported: ["es", "en"], fallback: "es" } })).statusCode).toBe(201);

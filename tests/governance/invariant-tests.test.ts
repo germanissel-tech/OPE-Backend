@@ -25,6 +25,20 @@ describe("check:invariant-tests", () => {
     expect(r.output).toContain("/paths//v1/health/get");
   });
 
+  // Feature 040: an invariant that names a field is tested by a test that names it as published.
+  it("a pointed invariant passes when its test names the field under /body", () => {
+    const r = check("pointer-named");
+    expect(r.status, r.output).toBe(0);
+    expect(r.output).toContain("1 naming the field");
+  });
+
+  it("a pointed invariant fails when its test does not name the field, saying which", () => {
+    const r = check("pointer-unnamed");
+    expect(r.status).toBe(1);
+    expect(r.output).toContain("/body/kinds");
+    expect(r.output).toContain("pointer `kinds[N]`");
+  });
+
   it("with zero invariants it passes and says so", () => {
     const r = check("none");
     expect(r.status).toBe(0);

@@ -255,6 +255,9 @@ types:
   - slug: invalid-operator-tokens
     status: 500
     title: An operator needs one or two non-empty token fingerprints
+  - slug: invalid-operator-display-name
+    status: 500
+    title: The display name of an operator is a trimmed, non-empty string of at most 80 characters
   - slug: corpus-text-empty
     status: 422
     title: A curated text of the corpus is empty

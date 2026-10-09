@@ -18,8 +18,10 @@ x-invariants:
   - type: invalid-origin
     status: 422
     rule: every origin is scheme://host[:port] without a path
+    pointer: origins[N]
     description: The pair credential + origin protects the tag (ADR-014); an origin that is not one would protect nothing.
   - type: origin-already-registered
     status: 422
     rule: no origin belongs to another merchant (deactivated ones included)
+    pointer: origins[N]
     description: An origin speaks for one merchant only; the credential + origin pair is the protection of the tag (ADR-014).

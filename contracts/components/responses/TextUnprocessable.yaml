@@ -13,7 +13,7 @@ content:
           detail: The text key names something OPE has no text for.
           instance: /v1/admin/texts
           errors:
-            - pointer: /family
+            - pointer: /body/family
               message: fit.variant_selector.typo
       placeholder:
         summary: A text that still carries a placeholder (corpus-text-has-placeholder)
@@ -24,7 +24,7 @@ content:
           detail: A curated text still carries a placeholder; the corpus takes complete prose.
           instance: /v1/admin/texts
           errors:
-            - pointer: /text
+            - pointer: /body/text
               message: A curated text still carries a placeholder; the corpus takes complete prose.
       reasonRequired:
         summary: A corrective version without its reason (configuration-reason-required)
@@ -35,5 +35,5 @@ content:
           detail: A corrective configuration version needs a reason.
           instance: /v1/admin/texts
           errors:
-            - pointer: /reason
+            - pointer: /body/reason
               message: A corrective configuration version needs a reason.

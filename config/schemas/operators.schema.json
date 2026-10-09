@@ -24,6 +24,12 @@
           "description": "Identifier of the operator, as the administration log records it.",
           "minLength": 1
         },
+        "displayName": {
+          "type": "string",
+          "description": "What the operator sees as their name in the panel (ADR-044). Never an identifier, never in the log; served only to the operator it names.",
+          "minLength": 1,
+          "maxLength": 80
+        },
         "tokenFingerprints": {
           "type": "array",
           "description": "SHA-256 fingerprints (hex) of the operator's bearer tokens (`Authorization: Bearer ope_at_…`). One or two: a rotation keeps both for a while.",

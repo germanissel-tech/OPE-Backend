@@ -25,6 +25,7 @@ x-invariants:
   - type: configuration-reason-required
     status: 422
     rule: a corrective version carries a reason
+    pointer: reason
     description: A change of a level reaches every merchant that does not override it, so a corrective one
       while measurements run must be explained in the log (03 §4.10).
   - type: invalid-configuration-value

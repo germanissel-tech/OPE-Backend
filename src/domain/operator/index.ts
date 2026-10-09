@@ -5,5 +5,5 @@ export { MerchantOutOfScope, OperatorScopeTooNarrow, OperatorUnknown } from "./e
 export type { OperatorError } from "./errors.js";
 export { asOperatorId } from "./ids.js";
 export type { OperatorId } from "./ids.js";
-export { EVERY_MERCHANT, Operator } from "./operator.js";
+export { EVERY_MERCHANT, MAX_DISPLAY_NAME, Operator } from "./operator.js";
 export type { OperatorRecord, OperatorScope } from "./operator.js";

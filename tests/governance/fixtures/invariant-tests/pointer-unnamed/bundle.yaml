@@ -1,0 +1,22 @@
+openapi: 3.1.0
+info:
+  title: f
+  version: 1.0.0
+paths:
+  /v1/things:
+    post:
+      operationId: createThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-invariants:
+                - type: kind-unknown
+                  status: 422
+                  rule: x
+                  description: y
+                  pointer: kinds[N]
+      responses:
+        "201":
+          description: ok

@@ -402,6 +402,15 @@ operations:
     feature: "017"
     status: built
     source: docs/adr/020-consumidores-autenticacion-idempotencia-paginacion.md
+  - operationId: getOperator
+    method: get
+    path: /v1/admin/operator
+    consumer: admin
+    tag: admin
+    capabilities: []
+    feature: "040"
+    status: built
+    source: specs/040-el-contrato-para-consumidores/spec.md
   - operationId: listAnchorDiagnostics
     method: get
     path: /v1/admin/merchants/{merchantId}/anchor-diagnostics

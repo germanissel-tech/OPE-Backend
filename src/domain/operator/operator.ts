@@ -1,9 +1,11 @@
-// Operator (ADR-020, ADR-031): a person of OPE who administers the platform with a token of
-// their own. The token never lives here: only its fingerprints (one, or two while rotating).
-// The scope says which merchants the operator may act on: every one (`*`) or a list. An
+// Operator (ADR-020, ADR-031, ADR-044): a person of OPE who administers the platform with a token
+// of their own. The token never lives here: only its fingerprints (one, or two while rotating).
+// The scope says which merchants the operator may act on: every one (`*`) or a list. The display
+// name is what the operator sees in the panel: never an identifier, never in the log. An
 // Operator only exists valid: `of` enforces the rules, `rehydrate` trusts recorded facts.
 import { fail, ok, type MerchantId, type Result } from "../shared-kernel/index.js";
 import {
+  InvalidOperatorDisplayName,
   InvalidOperatorScope,
   InvalidOperatorTokens,
   MerchantOutOfScope,
@@ -21,25 +23,37 @@ export interface OperatorRecord {
   /** SHA-256 hex of each token the operator may present; at most two (a rotation). */
   tokenFingerprints: readonly string[];
   scope: OperatorScope;
+  /** What the operator sees as their name; absent for an operator nobody named. */
+  displayName?: string | undefined;
 }
 
 /** One token, or two during a rotation. */
 const MAX_TOKENS = 2;
 
+/** A name is for showing: short, and the same the contract publishes (`Operator.displayName`). */
+export const MAX_DISPLAY_NAME = 80;
+
+export type OperatorRule = InvalidOperatorScope | InvalidOperatorTokens | InvalidOperatorDisplayName;
+
 export class Operator implements OperatorRecord {
   readonly operatorId: OperatorId;
   readonly tokenFingerprints: readonly string[];
   readonly scope: OperatorScope;
+  readonly displayName: string | undefined;
 
   private constructor(record: OperatorRecord) {
     this.operatorId = record.operatorId;
     this.tokenFingerprints = [...record.tokenFingerprints];
     this.scope = record.scope === EVERY_MERCHANT ? EVERY_MERCHANT : [...record.scope];
+    this.displayName = record.displayName;
   }
 
-  /** A configured operator: one or two non-empty fingerprints; a scope of `*` or merchant ids, none empty. */
-  static of(record: OperatorRecord): Result<Operator, InvalidOperatorScope | InvalidOperatorTokens> {
-    const { tokenFingerprints, scope } = record;
+  /**
+   * A configured operator: one or two non-empty fingerprints; a scope of `*` or merchant ids, none
+   * empty; a display name, if given, that is not blank, not padded and not longer than shown.
+   */
+  static of(record: OperatorRecord): Result<Operator, OperatorRule> {
+    const { tokenFingerprints, scope, displayName } = record;
     if (tokenFingerprints.length === 0 || tokenFingerprints.length > MAX_TOKENS) {
       return fail(new InvalidOperatorTokens());
     }
@@ -48,6 +62,12 @@ export class Operator implements OperatorRecord {
     if (scope !== EVERY_MERCHANT) {
       const empty = scope.findIndex((m) => String(m).trim() === "");
       if (empty !== -1) return fail(new InvalidOperatorScope(empty));
+    }
+    if (displayName !== undefined) {
+      const trimmed = displayName.trim();
+      if (trimmed === "" || trimmed !== displayName || displayName.length > MAX_DISPLAY_NAME) {
+        return fail(new InvalidOperatorDisplayName());
+      }
     }
     return ok(new Operator(record));
   }

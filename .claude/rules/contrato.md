@@ -132,9 +132,15 @@ adminToken: [] }]`. El security handler resuelve el merchant antes de validar el
 - Todo schema de un media type es `$ref` a `components/schemas` (nunca inline).
 - `x-invariants` sobre la operación (si depende de otro recurso) o sobre el schema (si sólo
   involucra sus campos): `type` (slug del catálogo, nunca `unprocessable`), `status`, `rule`,
-  `description`. Toda `422` nombra en su ejemplo la invariante que la produce.
+  `description`. Un invariante de schema que señala un campo lleva `pointer` (`origins[N]`,
+  `graceSeconds`; ADR-044): el error de dominio lo nombra en `details.pointer`, el borde lo publica
+  como `/body/...` en `errors[]`, y su prueba `[invariant:<slug>]` nombra ese `/body/<campo>`
+  (`check:invariant-tests`). Uno de operación no puede llevarlo. Toda `422` nombra en su ejemplo la
+  invariante que la produce.
 - Operación autenticada ⇒ `x-required-capabilities: [recurso:accion]`; pública ⇒ sin él. El
   vocabulario de capacidades es cerrado por consumidor (`consumers.<x>.capabilities` del mapa).
+  Única excepción: una operación que **identifica al principal** (`getOperator`) declara
+  `x-identifies-principal: true` y la lista vacía, y el lint admite sólo esa combinación (ADR-044).
 - **Consumidores**: el tag fija el consumidor y su esquema de seguridad, y
   `ope-consumer-security` exige exactamente ése. La tabla de los cinco, en ADR-020; qué hacer con
   un componente que todavía ninguna operación usa, en `contracts/README.md`.

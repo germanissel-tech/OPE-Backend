@@ -64,9 +64,19 @@ export class InvalidOperatorTokens extends DomainError {
   }
 }
 
+/** An operator whose display name is blank, padded or longer than a name that is shown (configuration; fail-closed). */
+export class InvalidOperatorDisplayName extends DomainError {
+  readonly code = "invalid-operator-display-name" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The display name of an operator is a trimmed, non-empty string of at most 80 characters.");
+  }
+}
+
 export type OperatorError =
   | OperatorUnknown
   | MerchantOutOfScope
   | OperatorScopeTooNarrow
   | InvalidOperatorScope
-  | InvalidOperatorTokens;
+  | InvalidOperatorTokens
+  | InvalidOperatorDisplayName;

@@ -417,9 +417,40 @@ const fixtures = {
     ];
     health(d).responses["404"] = { $ref: "#/components/responses/NotFound" };
     d.components.responses.NotFound = problemResponse("No encontrado.", 404, "not-found");
+    // A schema invariant may point at the body field it is about (ADR-044).
+    withThings(d);
+    bodySchema(d)["x-invariants"][0].pointer = "kind";
     return d;
   },
-  "valid-capabilities.yaml": (d) => withAuth(withThings(d), things(d)),
+  "valid-capabilities.yaml": (d) => {
+    withAuth(withThings(d), things(d));
+    // An operation that only identifies the principal declares the mark and an empty list (ADR-044).
+    d.paths["/v1/whoami"] = {
+      get: {
+        operationId: "getWhoami",
+        tags: ["ingest"],
+        summary: "Who the credential is",
+        description: "Identifies the principal behind the credential.",
+        security: [{ ingestKey: [] }],
+        "x-required-capabilities": [],
+        "x-identifies-principal": true,
+        responses: {
+          200: {
+            description: "The principal.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Health" },
+                example: { status: "ok" },
+              },
+            },
+          },
+          401: { $ref: "#/components/responses/Unauthorized" },
+          500: { $ref: "#/components/responses/InternalServerError" },
+        },
+      },
+    };
+    return d;
+  },
   "valid-outcomes.yaml": (d) => withNotifyOrder(d),
   "valid-portal.yaml": (d) => withPortal(d),
   "valid-admin-path.yaml": (d) => {
@@ -439,6 +470,22 @@ const fixtures = {
         schema: { type: "string" },
       },
     ];
+    // The operator's schema is the one place `displayName` is allowed (ADR-044): the 201 answers it.
+    d.components.schemas.Operator = {
+      type: "object",
+      description: "The operator.",
+      additionalProperties: false,
+      required: ["operatorId"],
+      "x-personal-datum": { property: "displayName", reason: "An identified, audited person." },
+      properties: {
+        operatorId: { type: "string", description: "Identifier." },
+        displayName: { type: "string", description: "Display name." },
+      },
+    };
+    things(d).responses["201"].content["application/json"] = {
+      schema: { $ref: "#/components/schemas/Operator" },
+      example: { operatorId: "ops-1", displayName: "Ana" },
+    };
     d.paths["/v1/admin/merchants/{merchantId}/things"] = d.paths["/v1/things"];
     delete d.paths["/v1/things"];
     return d;
@@ -537,6 +584,16 @@ const fixtures = {
   // FR-016
   "ope-no-pii.yaml": (d) => {
     d.components.schemas.Health.properties.Email = { type: "string", description: "Correo." };
+    return d;
+  },
+  // ADR-044: `displayName` is denied everywhere but a schema that declares its exception, which valid-admin-path carries.
+  "ope-no-pii.display-name.yaml": (d) => {
+    d.components.schemas.Health.properties.displayName = { type: "string", description: "Name." };
+    return d;
+  },
+  "ope-no-pii.exception-without-reason.yaml": (d) => {
+    d.components.schemas.Health.properties.displayName = { type: "string", description: "Name." };
+    d.components.schemas.Health["x-personal-datum"] = { property: "displayName" };
     return d;
   },
   "ope-no-pii.parameter.yaml": (d) => {
@@ -649,6 +706,15 @@ const fixtures = {
     health(d)["x-invariants"] = [{ type: "unprocessable", status: 422, rule: "x", description: "y" }];
     return d;
   },
+  // ADR-044: an operation invariant has no body field to point at.
+  "ope-invariants.pointer-on-operation.yaml": (d) => {
+    health(d)["x-invariants"] = [
+      { type: "not-found", status: 404, rule: "x", description: "y", pointer: "x" },
+    ];
+    health(d).responses["404"] = { $ref: "#/components/responses/NotFound" };
+    d.components.responses.NotFound = problemResponse("No encontrado.", 404, "not-found");
+    return d;
+  },
   // ope-no-generic-422 (FR-004)
   "ope-no-generic-422.generic-example.yaml": (d) => {
     withThings(d);
@@ -666,6 +732,16 @@ const fixtures = {
   "ope-required-capabilities.bad-format.yaml": (d) => withAuth(withThings(d), things(d), ["Events Write"]),
   "ope-required-capabilities.public.yaml": (d) => {
     health(d)["x-required-capabilities"] = ["system:read"];
+    return d;
+  },
+  // ADR-044: the mark needs a credential, and excludes any capability.
+  "ope-required-capabilities.identifies-public.yaml": (d) => {
+    health(d)["x-identifies-principal"] = true;
+    return d;
+  },
+  "ope-required-capabilities.identifies-with-capabilities.yaml": (d) => {
+    withAuth(withThings(d), things(d), ["events:write"]);
+    things(d)["x-identifies-principal"] = true;
     return d;
   },
   "ope-required-capabilities.inherited.yaml": (d) => {
