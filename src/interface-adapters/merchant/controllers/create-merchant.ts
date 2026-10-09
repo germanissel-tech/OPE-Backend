@@ -3,7 +3,7 @@
 import { operatorOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
 import { toProblem } from "../../http/to-problem.js";
-import { merchantDto } from "../presenters.js";
+import { merchantDto, profileOf } from "../presenters.js";
 import type {
   CreateMerchantFailure,
   CreateMerchantRequest,
@@ -22,6 +22,7 @@ export function makeCreateMerchant(
       actor: operatorOf(req),
       origins: req.body.origins,
       signature: req.body.signature,
+      profile: profileOf(req.body),
     });
     if (!result.ok) return toProblem(result.error, req.instance);
     const { merchant, ingestKey, platformKey, platformSecret } = result.value;

@@ -215,8 +215,12 @@ describe("constraints: what a form can verify of each request body", () => {
 
   it("reads bounds, items and minimums as the bundle declares them", () => {
     expect(constraints.CONSTRAINTS["MerchantCreate"]).toEqual({
-      required: ["origins", "signature"],
+      required: ["origins", "signature", "displayName"],
       fields: {
+        displayName: { type: "string", minLength: 1, maxLength: 120 },
+        storeUrl: { type: "string", pattern: "^https?://", minLength: 1, maxLength: 255 },
+        contact: { type: "object", ref: "MerchantContact" },
+        notes: { type: "string", minLength: 1, maxLength: 2000 },
         origins: { type: "array", minItems: 1, maxItems: 20, items: { type: "string", maxLength: 255 } },
         signature: { type: "boolean" },
       },
@@ -224,6 +228,28 @@ describe("constraints: what a form can verify of each request body", () => {
     expect(constraints.CONSTRAINTS["CredentialRotation"]?.fields["graceSeconds"]).toEqual({
       type: "integer",
       minimum: 0,
+    });
+  });
+
+  // Feature 041 (ADR-045): the identity of the merchant and its contact reach the consumer.
+  it("the identity of the merchant: the contact is a schema of its own, with a format the form can check", () => {
+    expect(constraints.CONSTRAINTS["MerchantContact"]).toEqual({
+      required: ["name", "email"],
+      fields: {
+        name: { type: "string", minLength: 1, maxLength: 120 },
+        email: { type: "string", minLength: 3, maxLength: 254, format: "email" },
+        phone: { type: "string", minLength: 1, maxLength: 32 },
+        role: { type: "string", minLength: 1, maxLength: 80 },
+      },
+    });
+    expect(constraints.CONSTRAINTS["MerchantProfileInput"]?.required).toEqual(["displayName"]);
+    expect(constraints.CONSTRAINTS["MerchantProfileInput"]?.fields["contact"]).toEqual({
+      type: "object",
+      ref: "MerchantContact",
+    });
+    expect(capabilities.OPERATIONS["updateMerchantProfile"]).toEqual({
+      capabilities: ["merchants:write"],
+      idempotent: false,
     });
   });
 

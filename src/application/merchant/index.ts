@@ -47,10 +47,16 @@ export type {
   DeactivateMerchantRequest,
   DeactivateMerchantResponse,
 } from "./use-cases/deactivate-merchant.use-case.js";
-export { ImportMerchantsUseCase } from "./use-cases/import-merchants.use-case.js";
+export { ImportMerchantsUseCase, profileOfSeed } from "./use-cases/import-merchants.use-case.js";
 export type {
   ImportMerchantsDependencies,
   ImportMerchantsRequest,
   ImportMerchantsResponse,
   MerchantSeed,
 } from "./use-cases/import-merchants.use-case.js";
+export { UpdateMerchantProfileUseCase } from "./use-cases/update-merchant-profile.use-case.js";
+export type {
+  UpdateMerchantProfileDependencies,
+  UpdateMerchantProfileRequest,
+  UpdateMerchantProfileResponse,
+} from "./use-cases/update-merchant-profile.use-case.js";

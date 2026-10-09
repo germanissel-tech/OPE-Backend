@@ -210,3 +210,9 @@ opcional en `OPE_ADMIN_OPERATORS` y en `config/dev-operators.json`, validado al 
 espacios en los bordes, hasta 80 caracteres) y servido **sólo a él** por `getOperator`. El registro de
 administración sigue indexado por `operatorId` y no lo lleva; la constitución VII (1.5.0) acota su
 protección a las personas observadas y deja al operador como persona identificada y auditada.
+
+**Nota del 2026-10-09 (feature 041, ADR-045).** El merchant tiene identidad para personas: nombre
+para mostrar (obligatorio al crear por la API, opcional en la semilla), URL de la tienda, persona de
+contacto y notas del operador, como **valor del agregado** que viaja en su documento y se reemplaza
+entero con `updateMerchantProfile`. Lo operativo de este ADR —estado, orígenes, credenciales y sus
+operaciones— no cambia; la identidad no entra en el registro de administración ni en ninguna decisión.

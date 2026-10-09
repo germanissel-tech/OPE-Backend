@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { replace } from "../../src/composition/graph/index.js";
 import { ClockPort, LoggerPort } from "../../src/composition/modules/shared-kernel.js";
 import { pinoLogger } from "../../src/infrastructure/logging/pino-logger.js";
-import { batchOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
+import { admin, batchOf, fixedClock, postEvents, startTestApp } from "../helpers/test-app.js";
 import type { App } from "../../src/composition/bootstrap.js";
 
 let app: App | undefined;
@@ -62,6 +62,37 @@ describe("privacy in logs", () => {
     const log = lines().join("\n");
     expect(log).not.toContain("clave-robada");
     expect(log).not.toContain("198.51.100.7");
+  });
+});
+
+describe("the contact of a merchant (feature 041, ADR-045)", () => {
+  it("an edition with a contact leaves no name, email or phone in the log, and the SDK never sees the identity", async () => {
+    const { logger, lines } = capturedLogger();
+    app = await startTestApp({ ports: [replace(LoggerPort, pinoLogger(logger))] });
+    const edited = await admin(app.app, "PUT", "/v1/admin/merchants/m_a/profile", {
+      body: {
+        displayName: "Tienda A",
+        contact: { name: "Ana Secreta", email: "ana.secreta@a.example", phone: "+54 11 5555-9999" },
+        notes: "Operator private note",
+      },
+    });
+    expect(edited.statusCode, edited.body).toBe(200);
+    const log = lines().join("\n");
+    expect(log).not.toContain("Ana Secreta");
+    expect(log).not.toContain("ana.secreta@a.example");
+    expect(log).not.toContain("5555-9999");
+    expect(log).not.toContain("Operator private");
+    expect(log).toContain("updateMerchantProfile");
+    // What the SDK reads of its merchant carries nothing of the identity (constitution VII).
+    const sdk = await app.app.inject({
+      method: "GET",
+      url: "/v1/sdk/config",
+      headers: { "x-ope-ingest-key": "key-a-1", origin: "https://a.example" },
+    });
+    expect(sdk.statusCode, sdk.body).toBe(200);
+    for (const word of ["Tienda A", "Ana Secreta", "ana.secreta", "displayName", "contact", "notes"]) {
+      expect(sdk.body).not.toContain(word);
+    }
   });
 });
 

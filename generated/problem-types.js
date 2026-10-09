@@ -26,6 +26,7 @@ export const PROBLEM_TYPES = Object.freeze({
   "treatment-share-too-fine": Object.freeze({ status: 422, title: "The treatment share is finer than the split can resolve" }),
   "invalid-seed": Object.freeze({ status: 422, title: "The seed of an experiment is empty" }),
   "invalid-origin": Object.freeze({ status: 422, title: "A registered origin is not scheme://host[:port]" }),
+  "invalid-merchant-profile": Object.freeze({ status: 422, title: "A field of the merchant identity is not what it says it is" }),
   "invalid-platform-secret": Object.freeze({ status: 500, title: "A platform signing secret is empty or collides with a key" }),
   "invalid-money": Object.freeze({ status: 500, title: "A monetary amount or currency is malformed" }),
   "platform-key-collision": Object.freeze({ status: 500, title: "A platform key is empty or equal to an ingest key" }),

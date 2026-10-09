@@ -344,6 +344,31 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the identity of a merchant
+         * @description The display name, the store URL, the contact and the operator's notes, whole (ADR-045): a field
+         *     left out is cleared. Origins, status and credentials have operations of their own and are not
+         *     touched here. A deactivated merchant admits it: the identity belongs to the commercial
+         *     relationship, not to the operative state. A merchant outside the operator's scope is refused
+         *     without revealing whether it exists. Audited: who, which operation, which merchant — never the
+         *     values written.
+         */
+        put: operations["updateMerchantProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/texts": {
         parameters: {
             query?: never;
@@ -1691,8 +1716,9 @@ export type components = {
             /** @description Languages the store serves, as BCP 47 tags. */
             supported: string[];
         };
-        /** @description A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources. */
+        /** @description A merchant as the administration reads it (ADR-031), with its identity when it has one (ADR-045: a merchant created before it, or never edited, comes without). Credentials by kind without their values; its configuration and experiments live in their own resources. */
         Merchant: {
+            contact?: components["schemas"]["MerchantContact"];
             /**
              * Format: date-time
              * @description When the merchant was created.
@@ -1700,10 +1726,16 @@ export type components = {
             createdAt: string;
             /** @description The credentials still valid, by kind; never their values. */
             credentials: components["schemas"]["CredentialSummary"][];
+            /** @description The name of the store or legal entity, as the console lists and heads it. */
+            displayName?: string;
             merchantId: components["schemas"]["MerchantId"];
+            /** @description Free text of the operator about the relationship. */
+            notes?: string;
             /** @description Registered origins of the store, as written. */
             origins: string[];
             status: components["schemas"]["MerchantStatus"];
+            /** @description The canonical URL of the store for a person, kept as written. */
+            storeUrl?: string;
         };
         /** @description The configuration of a merchant as it is served: the effective values, what it declared in the version in force, and the three versions. */
         MerchantConfiguration: {
@@ -1761,12 +1793,33 @@ export type components = {
             /** @description Cursor of the next page; absent on the last page. */
             nextCursor?: string;
         };
-        /** @description What an operator gives to create a merchant; OPE mints everything else (ADR-031). */
+        /** @description The person the merchant relationship is handled with (ADR-045): an identified party of the commercial relationship, never an observed one (constitution VII, 1.5.1). Served to the administration only; never in a decision, in what the SDK or the platform sees, in the admin log or in the server logs. */
+        MerchantContact: {
+            /**
+             * Format: email
+             * @description The contact's email address.
+             */
+            email: string;
+            /** @description The contact's name, as written. */
+            name: string;
+            /** @description The contact's phone number, as written. */
+            phone?: string;
+            /** @description The contact's role at the merchant (e.g. e-commerce manager). Not a personal datum. */
+            role?: string;
+        };
+        /** @description What an operator gives to create a merchant — its origins, whether the platform signs, and its identity (ADR-045); OPE mints everything else (ADR-031). */
         MerchantCreate: {
+            contact?: components["schemas"]["MerchantContact"];
+            /** @description The name of the store or legal entity, as the console lists and heads it. */
+            displayName: string;
+            /** @description Free text of the operator about the relationship (why it was created, which stage, who to talk to). */
+            notes?: string;
             /** @description Registered origins of the store: `scheme://host[:port]`, no path. An origin belongs to one merchant. */
             origins: string[];
             /** @description Whether the platform will sign its notifications (ADR-029); mints a signing secret too. */
             signature: boolean;
+            /** @description The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them. */
+            storeUrl?: string;
         };
         /** @description The merchant just created and the values of its credentials — the only time they travel. */
         MerchantCreated: {
@@ -1790,6 +1843,16 @@ export type components = {
             items: components["schemas"]["Merchant"][];
             /** @description Cursor of the next page; absent on the last page. */
             nextCursor?: string;
+        };
+        /** @description The identity of a merchant as an operator writes it, whole (ADR-045): a field left out is cleared. Never its origins, status or credentials, which have operations of their own. */
+        MerchantProfileInput: {
+            contact?: components["schemas"]["MerchantContact"];
+            /** @description The name of the store or legal entity, as the console lists and heads it. */
+            displayName: string;
+            /** @description Free text of the operator about the relationship (why it was created, which stage, who to talk to). */
+            notes?: string;
+            /** @description The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them. */
+            storeUrl?: string;
         };
         /**
          * @description Whether OPE works for the merchant: `active`; `off` by the kill switch (decides nothing, still measures); `deactivated` for good (no credential resolves, every record stays).
@@ -2783,6 +2846,18 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /**
+         * @description Valid request rejected on semantics: the `x-invariants` of the merchant identity (ADR-007, ADR-045).
+         *     The `type` names the invariant and `errors[]` names the field.
+         */
+        MerchantProfileUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description No merchant with that identifier within the operator's scope, or —when removing— the merchant has no text of its own for the key: there is no version to repeat, so nothing is created. */
         MerchantTextNotFound: {
             headers: {
@@ -3123,7 +3198,9 @@ export interface operations {
                  *       "origins": [
                  *         "https://tienda.example"
                  *       ],
-                 *       "signature": true
+                 *       "signature": true,
+                 *       "displayName": "Tienda Ejemplo",
+                 *       "storeUrl": "https://tienda.example"
                  *     }
                  */
                 "application/json": components["schemas"]["MerchantCreate"];
@@ -4100,6 +4177,80 @@ export interface operations {
             404: components["responses"]["MerchantNotFound"];
             409: components["responses"]["MerchantDeactivatedConflict"];
             422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    updateMerchantProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "displayName": "Tienda Norte",
+                 *       "storeUrl": "https://www.tiendanorte.example",
+                 *       "contact": {
+                 *         "name": "Ana Smith",
+                 *         "email": "ana@tiendanorte.example",
+                 *         "role": "e-commerce manager"
+                 *       },
+                 *       "notes": "Pilot since October; weekly call on Tuesdays."
+                 *     }
+                 */
+                "application/json": components["schemas"]["MerchantProfileInput"];
+            };
+        };
+        responses: {
+            /** @description The merchant as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "merchantId": "mrc_7f3a9c2e1b",
+                     *       "status": "active",
+                     *       "origins": [
+                     *         "https://www.tiendanorte.example"
+                     *       ],
+                     *       "createdAt": "2026-10-09T12:00:00Z",
+                     *       "credentials": [
+                     *         {
+                     *           "kind": "ingest",
+                     *           "issuedAt": "2026-10-09T12:00:00Z"
+                     *         },
+                     *         {
+                     *           "kind": "platform",
+                     *           "issuedAt": "2026-10-09T12:00:00Z"
+                     *         }
+                     *       ],
+                     *       "displayName": "Tienda Norte",
+                     *       "storeUrl": "https://www.tiendanorte.example",
+                     *       "contact": {
+                     *         "name": "Ana Smith",
+                     *         "email": "ana@tiendanorte.example",
+                     *         "role": "e-commerce manager"
+                     *       },
+                     *       "notes": "Pilot since October; weekly call on Tuesdays."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Merchant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            422: components["responses"]["MerchantProfileUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

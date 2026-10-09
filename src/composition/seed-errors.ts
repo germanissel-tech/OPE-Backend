@@ -12,7 +12,7 @@ import type { DomainError } from "../domain/shared-kernel/index.js";
  * list (ingest, then platform, then signing): the index is translated back to the seed's field.
  */
 export function rejected(at: MerchantField, error: DomainError, seed?: MerchantSeed): ConfigError {
-  const field = FIELD_BY_CODE[error.code] ?? "";
+  const field = FIELD_BY_CODE[error.code] ?? pointedField(error);
   const position = error.details[INDEX_DETAIL];
   const offset = seed === undefined ? 0 : credentialOffset(field, seed);
   const index = typeof position === "number" ? `[${position - offset}]` : "";
@@ -28,6 +28,14 @@ function credentialOffset(field: ConfiguredField | "", seed: MerchantSeed): numb
 
 /** The detail a domain error uses to name the offending element of a list. */
 const INDEX_DETAIL = "index";
+/** The detail a domain error uses to name the field it is about (`contact.email`, ADR-045). */
+const POINTER_DETAIL = "pointer";
+
+/** The field an error names itself, when it does (the identity of the merchant): `.contact.email`. */
+function pointedField(error: DomainError): ConfiguredField | "" {
+  const pointer = error.details[POINTER_DETAIL];
+  return typeof pointer === "string" ? `.${pointer}` : "";
+}
 
 /** The configured fields a domain error of a merchant or an experiment can point at. */
 type ConfiguredField =
@@ -39,7 +47,8 @@ type ConfiguredField =
   | ".platformSecrets"
   | ".experiments"
   | ".targetSample"
-  | ".cuts";
+  | ".cuts"
+  | `.${string}`;
 
 /** The errors the factories of a seed can return: the codes this file is allowed to name. */
 type SeedCode = MerchantError["code"] | ExperimentError["code"] | ExperimentSetError["code"];

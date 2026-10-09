@@ -154,6 +154,40 @@ describe("readConfig", () => {
     ).toEqual([]);
   });
 
+  // Feature 041 (ADR-045): the seed may bring the identity, judged by the same rules as the API.
+  it("a seed brings its identity, or none, and a bad one stops the start naming the field", () => {
+    const named = {
+      ...merchant,
+      displayName: "Tienda A",
+      storeUrl: "https://a.example",
+      contact: { name: "Ana", email: "ana@a.example", role: "owner" },
+      notes: "Pilot.",
+    };
+    const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([named]) }, noFile).merchants[0];
+    expect(parsed?.seed).toMatchObject({
+      displayName: "Tienda A",
+      storeUrl: "https://a.example",
+      contact: { name: "Ana", email: "ana@a.example", role: "owner" },
+      notes: "Pilot.",
+    });
+    const plain = readConfig({ OPE_MERCHANTS: JSON.stringify([merchant]) }, noFile).merchants[0];
+    expect(plain?.seed.displayName).toBeUndefined();
+    expect(plain?.seed.contact).toBeUndefined();
+    for (const [raw, field] of [
+      [{ ...merchant, displayName: " " }, "merchants[0].displayName is invalid"],
+      [{ ...merchant, storeUrl: "https://" }, "merchants[0].storeUrl is invalid"],
+      [
+        { ...merchant, contact: { name: "Ana", email: " a@b.example" } },
+        "merchants[0].contact.email is invalid",
+      ],
+      [{ ...merchant, displayName: 7 }, "merchants[0].displayName must be a string"],
+      [{ ...merchant, contact: "Ana" }, "merchants[0].contact is not an object"],
+      [{ ...merchant, contact: { name: "Ana" } }, "merchants[0].contact.email must be"],
+    ] as const) {
+      expect(() => readConfig({ OPE_MERCHANTS: JSON.stringify([raw]) }, noFile)).toThrow(field);
+    }
+  });
+
   it("experiments are optional, the treatment share is required, and the shape is validated", () => {
     const withExp = { ...merchant, experiments: [exp] };
     const parsed = readConfig({ OPE_MERCHANTS: JSON.stringify([withExp]) }, noFile).merchants[0];

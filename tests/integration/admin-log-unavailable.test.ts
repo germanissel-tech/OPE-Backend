@@ -48,7 +48,7 @@ beforeEach(async () => {
 describe("an administration action with the log refusing writes", () => {
   it("creating a merchant answers 503 and not the 201 of an action nobody audited", async () => {
     const res = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://new.example"], signature: false },
+      body: { origins: ["https://new.example"], signature: false, displayName: "Nueva" },
     });
     expect(res.statusCode).toBe(503);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:store-unavailable" });

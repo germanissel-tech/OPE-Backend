@@ -1,8 +1,29 @@
 type: object
-description: What an operator gives to create a merchant; OPE mints everything else (ADR-031).
+description: "What an operator gives to create a merchant — its origins, whether the platform signs, and its identity (ADR-045); OPE mints everything else (ADR-031)."
 additionalProperties: false
-required: [origins, signature]
+required: [origins, signature, displayName]
+x-personal-datum:
+  - property: displayName
+    reason: "The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only."
 properties:
+  displayName:
+    type: string
+    description: The name of the store or legal entity, as the console lists and heads it.
+    minLength: 1
+    maxLength: 120
+  storeUrl:
+    type: string
+    description: The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them.
+    pattern: "^https?://"
+    minLength: 1
+    maxLength: 255
+  contact:
+    $ref: ./MerchantContact.yaml
+  notes:
+    type: string
+    description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
+    minLength: 1
+    maxLength: 2000
   origins:
     type: array
     description: "Registered origins of the store: `scheme://host[:port]`, no path. An origin belongs to one merchant."
@@ -25,3 +46,8 @@ x-invariants:
     rule: no origin belongs to another merchant (deactivated ones included)
     pointer: origins[N]
     description: An origin speaks for one merchant only; the credential + origin pair is the protection of the tag (ADR-014).
+  - type: invalid-merchant-profile
+    status: 422
+    rule: a text field has no leading or trailing whitespace, and storeUrl parses as an absolute http(s) URL
+    pointer: displayName
+    description: What the schema cannot say legibly — padding, and a URL that only looks like one — is judged by the domain and named by field; a value is kept as written, never trimmed (ADR-045).

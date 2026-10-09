@@ -54,6 +54,37 @@
           "minItems": 1,
           "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://[^/?#\\s]+$" }
         },
+        "displayName": {
+          "type": "string",
+          "description": "The name of the store or legal entity (ADR-045); optional in a seed, mandatory when created through the API.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "storeUrl": {
+          "type": "string",
+          "description": "The canonical URL of the store for a person, kept as written (ADR-045).",
+          "pattern": "^https?://",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "contact": {
+          "type": "object",
+          "description": "The person the merchant relationship is handled with (ADR-045): an identified party, served to the administration only.",
+          "additionalProperties": false,
+          "required": ["name", "email"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "email": { "type": "string", "format": "email", "minLength": 3, "maxLength": 254 },
+            "phone": { "type": "string", "minLength": 1, "maxLength": 32 },
+            "role": { "type": "string", "minLength": 1, "maxLength": 80 }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Free text of the operator about the relationship (ADR-045).",
+          "minLength": 1,
+          "maxLength": 2000
+        },
         "experiments": {
           "type": "array",
           "description": "Experiments opened at start-up with the store empty (ADR-022); the holdout does not judge the seed. At most one open (calibrating or active) per merchant.",

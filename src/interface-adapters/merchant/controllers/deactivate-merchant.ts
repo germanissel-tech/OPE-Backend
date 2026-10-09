@@ -1,9 +1,7 @@
 // deactivateMerchant (ADR-031): path → use case → 200 with the merchant deactivated.
 import { merchantIdOf } from "../../http/boundary.js";
 import { operatorOf } from "../../http/security/principal.js";
-import { HTTP_STATUS } from "../../http/status.js";
-import { toProblem } from "../../http/to-problem.js";
-import { merchantDto } from "../presenters.js";
+import { merchantResponse } from "../presenters.js";
 import type {
   DeactivateMerchantRequest,
   DeactivateMerchantResponse,
@@ -20,7 +18,6 @@ export function makeDeactivateMerchant(
       actor: operatorOf(req),
       merchantId: merchantIdOf(req.path),
     });
-    if (!result.ok) return toProblem(result.error, req.instance);
-    return { status: HTTP_STATUS.OK, body: merchantDto(result.value, clock.now()) };
+    return merchantResponse(result, req.instance, clock.now());
   };
 }

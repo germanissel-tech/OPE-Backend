@@ -21,3 +21,13 @@ sus orígenes y sus credenciales. Su configuración y sus experimentos son agreg
 vidas distintas (ADR-031). **Ninguna operación sobre un merchant requiere reinicio**; el
 servidor se reinicia sólo con un deploy. La variable `OPE_MERCHANTS` es una semilla que se
 importa por el mismo camino sólo en un entorno vacío.
+
+Desde la feature 041 (ADR-045) tiene además una **identidad para personas**: un nombre para mostrar
+(`displayName`, el de la tienda o su razón social; obligatorio al crear, no al leer), la URL de la
+tienda para una persona (`storeUrl`, distinta de los orígenes, que son técnicos), una persona de
+contacto (`contact`: nombre, email, teléfono y rol; una persona identificada de la relación comercial,
+no una observada, constitución VII 1.5.1) y notas del operador (`notes`). Es un valor del agregado,
+no otro agregado: se lee con el merchant y se reemplaza entero con `updateMerchantProfile`. Nada de
+eso entra en una decisión, en lo que ve el SDK o la plataforma, en el registro de administración ni
+en los registros del servidor; sólo el consumidor `admin` lo ve. El nombre es para reconocer, no para
+identificar: dos merchants pueden llamarse igual.

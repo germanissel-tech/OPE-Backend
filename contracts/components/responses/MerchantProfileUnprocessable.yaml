@@ -1,0 +1,19 @@
+description: |
+  Valid request rejected on semantics: the `x-invariants` of the merchant identity (ADR-007, ADR-045).
+  The `type` names the invariant and `errors[]` names the field.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      invalid-merchant-profile:
+        summary: invalid-merchant-profile
+        value:
+          type: urn:ope:problem:invalid-merchant-profile
+          title: A field of the merchant identity is not what it says it is
+          status: 422
+          detail: The store URL must parse as an absolute http(s) URL.
+          instance: /v1/admin/merchants/mrc_7f3a9c2e1b/profile
+          errors:
+            - pointer: /body/storeUrl
+              message: The store URL must parse as an absolute http(s) URL.

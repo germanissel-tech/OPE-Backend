@@ -1,0 +1,33 @@
+type: object
+description: "The person the merchant relationship is handled with (ADR-045): an identified party of the commercial relationship, never an observed one (constitution VII, 1.5.1). Served to the administration only; never in a decision, in what the SDK or the platform sees, in the admin log or in the server logs."
+additionalProperties: false
+required: [name, email]
+x-personal-datum:
+  - property: name
+    reason: "The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded."
+  - property: email
+    reason: "The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded."
+  - property: phone
+    reason: "The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded."
+properties:
+  name:
+    type: string
+    description: The contact's name, as written.
+    minLength: 1
+    maxLength: 120
+  email:
+    type: string
+    description: The contact's email address.
+    format: email
+    minLength: 3
+    maxLength: 254
+  phone:
+    type: string
+    description: The contact's phone number, as written.
+    minLength: 1
+    maxLength: 32
+  role:
+    type: string
+    description: The contact's role at the merchant (e.g. e-commerce manager). Not a personal datum.
+    minLength: 1
+    maxLength: 80

@@ -1,0 +1,32 @@
+type: object
+description: "The identity of a merchant as an operator writes it, whole (ADR-045): a field left out is cleared. Never its origins, status or credentials, which have operations of their own."
+additionalProperties: false
+required: [displayName]
+x-personal-datum:
+  - property: displayName
+    reason: "The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only."
+x-invariants:
+  - type: invalid-merchant-profile
+    status: 422
+    rule: a text field has no leading or trailing whitespace, and storeUrl parses as an absolute http(s) URL
+    pointer: displayName
+    description: What the schema cannot say legibly — padding, and a URL that only looks like one — is judged by the domain and named by field; a value is kept as written, never trimmed.
+properties:
+  displayName:
+    type: string
+    description: The name of the store or legal entity, as the console lists and heads it.
+    minLength: 1
+    maxLength: 120
+  storeUrl:
+    type: string
+    description: The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them.
+    pattern: "^https?://"
+    minLength: 1
+    maxLength: 255
+  contact:
+    $ref: ./MerchantContact.yaml
+  notes:
+    type: string
+    description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
+    minLength: 1
+    maxLength: 2000

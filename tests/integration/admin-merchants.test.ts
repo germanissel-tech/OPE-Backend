@@ -42,8 +42,11 @@ interface Created {
 
 const HOUR_MS = 3_600_000;
 
+/** Every creation names the merchant (feature 041): the contract makes `displayName` mandatory. */
+const NAMED = { displayName: "Nueva" };
+
 async function create(origins = ["https://new.example"], signature = true): Promise<Created> {
-  const res = await admin(app.app, "POST", "/v1/admin/merchants", { body: { origins, signature } });
+  const res = await admin(app.app, "POST", "/v1/admin/merchants", { body: { origins, signature, ...NAMED } });
   expect(res.statusCode, res.body).toBe(201);
   return json(res) as Created;
 }
@@ -90,7 +93,7 @@ describe("POST /v1/admin/merchants → a merchant is born with its credentials, 
 
   it("[invariant:origin-already-registered] an origin of another merchant is refused with the pointer; [invariant:invalid-origin] as is one that is not an origin", async () => {
     const taken = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://x.example", "https://A.example"], signature: false },
+      body: { origins: ["https://x.example", "https://A.example"], signature: false, displayName: "Tienda" },
     });
     expect(taken.statusCode).toBe(422);
     expect(problemOf(taken)).toMatchObject({
@@ -98,7 +101,7 @@ describe("POST /v1/admin/merchants → a merchant is born with its credentials, 
       errors: [{ pointer: "/body/origins/1", message: expect.stringContaining("already belongs") as string }],
     });
     const bad = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["nope"], signature: false },
+      body: { origins: ["nope"], signature: false, displayName: "Tienda" },
     });
     expect(bad.statusCode).toBe(422);
     expect(problemOf(bad)).toMatchObject({
@@ -106,7 +109,7 @@ describe("POST /v1/admin/merchants → a merchant is born with its credentials, 
       errors: [{ pointer: "/body/origins/0" }],
     });
     const extra = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://z.example"], signature: false, name: "Zed" },
+      body: { origins: ["https://z.example"], signature: false, displayName: "Tienda", name: "Zed" },
     });
     expect(extra.statusCode).toBe(400);
   });
@@ -223,7 +226,7 @@ describe("deactivation (scenario 4)", () => {
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_a/ingest-keys")).statusCode).toBe(409);
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_a/deactivate")).statusCode).toBe(200);
     const taken = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://a.example"], signature: false },
+      body: { origins: ["https://a.example"], signature: false, displayName: "Tienda" },
     });
     expect(taken.statusCode).toBe(422);
   });
@@ -265,10 +268,158 @@ describe("scope (scenarios 5 and 6)", () => {
   it("an unknown token is 401 before the body is read; the capability is checked", async () => {
     const res = await admin(app.app, "POST", "/v1/admin/merchants", {
       token: "nobody",
-      body: { origins: [], signature: false },
+      body: { origins: [], signature: false, displayName: "Tienda" },
     });
     expect(res.statusCode).toBe(401);
     expect(problemOf(res)).toMatchObject({ type: "urn:ope:problem:operator-unknown" });
+  });
+});
+
+// Feature 041 (ADR-045): the identity of a merchant — at creation, read back, replaced whole.
+describe("the identity of a merchant", () => {
+  const identity = {
+    displayName: "Tienda Norte",
+    storeUrl: "https://www.norte.example/es/",
+    contact: { name: "Ana Smith", email: "ana@norte.example", phone: "+54 11 5555", role: "owner" },
+    notes: "Pilot since October.",
+  };
+  type Identified = Created["merchant"] & Partial<typeof identity>;
+  const read = async (id: string): Promise<Identified> =>
+    json(await admin(app.app, "GET", `/v1/admin/merchants/${id}`)) as Identified;
+  const listed = async (id: string): Promise<Identified | undefined> =>
+    (json(await admin(app.app, "GET", "/v1/admin/merchants")) as { items: Identified[] }).items.find(
+      (m) => m.merchantId === id,
+    );
+  const edit = (id: string, body: unknown, as: "ops-all" | "ops-a" = "ops-all") =>
+    admin(app.app, "PUT", `/v1/admin/merchants/${id}/profile`, { as, body });
+
+  it("a creation with a name and a URL answers them, and every reading carries them as written", async () => {
+    const res = await admin(app.app, "POST", "/v1/admin/merchants", {
+      body: {
+        origins: ["https://norte.example"],
+        signature: false,
+        displayName: "Tienda Norte",
+        storeUrl: "https://www.norte.example/es/",
+      },
+    });
+    expect(res.statusCode, res.body).toBe(201);
+    const { merchant } = json(res) as { merchant: Identified };
+    expect(merchant).toMatchObject({
+      displayName: "Tienda Norte",
+      storeUrl: "https://www.norte.example/es/",
+    });
+    expect(merchant).not.toHaveProperty("contact");
+    expect(await read(merchant.merchantId)).toMatchObject({
+      displayName: "Tienda Norte",
+      storeUrl: "https://www.norte.example/es/",
+    });
+    expect(await listed(merchant.merchantId)).toMatchObject({ displayName: "Tienda Norte" });
+  });
+
+  it("a creation without a name is refused by the contract, naming the field, and creates nothing", async () => {
+    const before = (json(await admin(app.app, "GET", "/v1/admin/merchants")) as { items: unknown[] }).items
+      .length;
+    const res = await admin(app.app, "POST", "/v1/admin/merchants", {
+      body: { origins: ["https://nameless.example"], signature: false },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.stringify(problemOf(res).errors)).toContain("displayName");
+    const after = (json(await admin(app.app, "GET", "/v1/admin/merchants")) as { items: unknown[] }).items
+      .length;
+    expect(after).toBe(before);
+  });
+
+  it("[invariant:invalid-merchant-profile] a padded name at creation, and a URL that only looks like one at edition, name their field under /body", async () => {
+    const padded = await admin(app.app, "POST", "/v1/admin/merchants", {
+      body: { origins: ["https://pad.example"], signature: false, displayName: " Tienda " },
+    });
+    expect(padded.statusCode).toBe(422);
+    expect(problemOf(padded)).toMatchObject({
+      type: "urn:ope:problem:invalid-merchant-profile",
+      errors: [{ pointer: "/body/displayName" }],
+    });
+    expect(await admin(app.app, "GET", "/v1/admin/merchants").then((r) => r.body)).not.toContain(
+      "pad.example",
+    );
+    const created = await create();
+    const url = await edit(created.merchant.merchantId, { displayName: "X", storeUrl: "https://" });
+    expect(url.statusCode).toBe(422);
+    expect(problemOf(url)).toMatchObject({
+      type: "urn:ope:problem:invalid-merchant-profile",
+      errors: [
+        { pointer: "/body/storeUrl", message: "The store URL must parse as an absolute http(s) URL." },
+      ],
+    });
+    expect((await read(created.merchant.merchantId)).displayName).toBe("Nueva");
+  });
+
+  it("the edition replaces the identity whole and touches nothing else; a field left out is cleared", async () => {
+    const created = await create();
+    const full = await edit(created.merchant.merchantId, identity);
+    expect(full.statusCode, full.body).toBe(200);
+    expect(json(full)).toMatchObject({ ...created.merchant, ...identity });
+    const back = await read(created.merchant.merchantId);
+    expect(back).toMatchObject(identity);
+    expect(back.origins).toEqual(created.merchant.origins);
+    expect(back.credentials).toEqual(created.merchant.credentials);
+    expect(back.status).toBe("active");
+    const less = await edit(created.merchant.merchantId, {
+      displayName: "Tienda Norte SA",
+      notes: "Renamed.",
+    });
+    expect(less.statusCode).toBe(200);
+    const after = await read(created.merchant.merchantId);
+    expect(after).toMatchObject({ displayName: "Tienda Norte SA", notes: "Renamed." });
+    expect(after).not.toHaveProperty("storeUrl");
+    expect(after).not.toHaveProperty("contact");
+  });
+
+  it("a merchant of the seed has no identity until an operator names it; a body with origins is refused", async () => {
+    expect(await read("m_b")).not.toHaveProperty("displayName");
+    const named = await edit("m_b", { displayName: "Tienda B" });
+    expect(named.statusCode, named.body).toBe(200);
+    expect((await read("m_b")).displayName).toBe("Tienda B");
+    const extra = await edit("m_b", { displayName: "Tienda B", origins: ["https://x.example"] });
+    expect(extra.statusCode).toBe(400);
+    const nameless = await edit("m_b", { notes: "nameless" });
+    expect(nameless.statusCode).toBe(400);
+  });
+
+  it("a deactivated merchant admits the edition", async () => {
+    const created = await create(["https://cerrada.example"]);
+    expect(
+      (await admin(app.app, "POST", `/v1/admin/merchants/${created.merchant.merchantId}/deactivate`))
+        .statusCode,
+    ).toBe(200);
+    const res = await edit(created.merchant.merchantId, { displayName: "Cerrada" });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(json(res)).toMatchObject({ status: "deactivated", displayName: "Cerrada" });
+  });
+
+  it("an operator outside the scope gets 403 with the same body as for a merchant that does not exist, and the identity does not change", async () => {
+    const onB = await edit("m_b", identity, "ops-a");
+    const onNobody = await edit("mrc_nobody000000", identity, "ops-a");
+    expect([onB.statusCode, onNobody.statusCode]).toEqual([403, 403]);
+    const strip = (r: typeof onB) => ({ ...problemOf(r), instance: undefined, requestId: undefined });
+    expect(strip(onB)).toEqual(strip(onNobody));
+    expect(problemOf(onB).type).toBe("urn:ope:problem:merchant-out-of-scope");
+    expect(await read("m_b")).not.toHaveProperty("contact");
+    expect((await edit("m_a", { displayName: "Tienda A" }, "ops-a")).statusCode).toBe(200);
+  });
+
+  it("the edition is audited without any of the values written", async () => {
+    const created = await create();
+    expect((await edit(created.merchant.merchantId, identity)).statusCode).toBe(200);
+    const res = await admin(app.app, "GET", `/v1/admin/merchants/${created.merchant.merchantId}/log`);
+    const log = json(res) as { items: { operation: string; operatorId: string; outcome: string }[] };
+    expect(log.items[0]).toMatchObject({
+      operation: "updateMerchantProfile",
+      operatorId: "ops-all",
+      outcome: "accepted",
+    });
+    for (const word of ["Tienda Norte", "Ana", "ana@norte.example", "5555", "Pilot"]) {
+      expect(res.body).not.toContain(word);
+    }
   });
 });
 

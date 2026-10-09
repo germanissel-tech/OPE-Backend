@@ -1,4 +1,21 @@
 <!--
+Sync Impact Report (1.5.1, 2026-10-09)
+- Version change: 1.5.0 → 1.5.1 (PATCH: redacción de la viñeta de VII que nombra a las personas
+  identificadas; ningún principio cambia de sentido).
+- Modified sections: VII — la viñeta de 1.5.0 nombraba sólo al operador como persona identificada.
+  La feature 041 (ADR-045) registra la persona de contacto del merchant —nombre, email, teléfono,
+  rol— y es la segunda de la misma categoría: parte de la relación comercial, no una persona
+  observada. La viñeta pasa a decir «las personas identificadas de la relación comercial: el
+  operador y el contacto del merchant», con los mismos límites: sus datos se sirven sólo al
+  consumidor `admin` y no entran en ningún registro ni en ninguna decisión; el lint los prohíbe en
+  todo esquema salvo en el que los lleva, con la excepción declarada con nombre y razón.
+- No requiere cambio en los documentos del MVP: 01 §10.2 enumera lo que no se registra del visitante
+  y del comprador, y el MVP no tenía backoffice (01 §13: «al tercer merchant»); la fuente no cambió
+  de decisión (cláusula de Governance).
+- Templates: sin cambios.
+-->
+
+<!--
 Sync Impact Report (1.5.0, 2026-10-09)
 - Version change: 1.4.5 → 1.5.0 (MINOR: VII gana una viñeta que acota a quién protege; ningún
   principio cambia de sentido para las personas que ya protegía).
@@ -280,12 +297,14 @@ Cuatro identidades, cuatro propósitos. Colapsarlas es la fuente de errores más
   código, docs ni API que "no maneja datos personales".
 - Retención configurable por merchant; plazos exactos pendientes de D5.
 - Las personas que este principio protege son las **observadas**: el visitante y el comprador
-  (1.5.0, ADR-044). El operador de OPE es una persona **identificada, autenticada y auditada** por
-  su identificador (ADR-031) y MAY tener un nombre para mostrar (`displayName`) que se sirve **sólo
-  a él** y MUST NOT entrar en ningún registro ni en ninguna decisión. El lint de datos personales
-  del contrato lo prohíbe en todo esquema salvo en el del operador, donde la excepción se declara
-  con nombre y razón (`x-personal-datum`); los consumidores `public`, `sdk`, `platform` y `portal`
-  no llevan ningún dato personal.
+  (1.5.0, ADR-044). Las personas **identificadas de la relación comercial** son otra cosa (1.5.1,
+  ADR-045): el operador de OPE, autenticado y auditado por su identificador (ADR-031), que MAY
+  tener un nombre para mostrar (`displayName`); y la persona de contacto del merchant, registrada
+  por un operador con su nombre, email, teléfono y rol. Sus datos se sirven **sólo** al consumidor
+  `admin` y MUST NOT entrar en ningún registro ni en ninguna decisión. El lint de datos personales
+  del contrato los prohíbe en todo esquema salvo en los que los llevan, donde la excepción se
+  declara con nombre y razón por propiedad (`x-personal-datum`); los consumidores `public`, `sdk`,
+  `platform` y `portal` no llevan ningún dato personal.
 
 ### VIII. Cero modelos de lenguaje en runtime
 
@@ -442,4 +461,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.5.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-09
+**Version**: 1.5.1 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-09

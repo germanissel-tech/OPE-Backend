@@ -6,13 +6,13 @@ import {
   DECLARED_CONFIGURATION_KEYS,
   readDeclaredConfiguration,
 } from "../application/configuration/index.js";
-import { Merchant } from "../domain/merchant/index.js";
+import { profileOfSeed, type MerchantSeed } from "../application/merchant/index.js";
+import { Merchant, MerchantProfile, type MerchantContactRecord } from "../domain/merchant/index.js";
 import { asMerchantId, type DomainError, type MerchantId } from "../domain/shared-kernel/index.js";
 import { ConfigError, type MerchantField } from "./config-error.js";
 import { listOf, NON_EMPTY_STRING, NOT_AN_OBJECT, parseJson, STRING_ARRAY, text } from "./env.js";
 import { parseExperiments } from "./experiments-config.js";
 import { rejected } from "./seed-errors.js";
-import type { MerchantSeed } from "../application/merchant/index.js";
 import type { DeclaredConfiguration } from "../domain/configuration/index.js";
 import type { Experiments } from "../domain/experiment/index.js";
 
@@ -39,6 +39,9 @@ export function readMerchants(env: NodeJS.ProcessEnv, readFile: (file: string) =
  */
 function judgeSeed(seed: MerchantSeed): DomainError | undefined {
   const at = new Date(0);
+  const record = profileOfSeed(seed);
+  const profile = record === undefined ? undefined : MerchantProfile.of(record);
+  if (profile !== undefined && !profile.ok) return profile.error;
   const judged = Merchant.of({
     merchantId: asMerchantId(seed.merchantId),
     origins: seed.origins,
@@ -48,8 +51,35 @@ function judgeSeed(seed: MerchantSeed): DomainError | undefined {
       ...seed.platformSecrets.map((s) => Merchant.credential("signing", s, at, s)),
     ],
     createdAt: at,
+    profile: profile?.value,
   });
   return judged.ok ? undefined : judged.error;
+}
+
+/** An optional text of the seed: absent, or a string; anything else names the field. */
+function optionalText(m: Record<string, unknown>, field: MerchantField): string | undefined {
+  const key = field.slice(field.lastIndexOf(".") + 1);
+  const value = m[key];
+  if (value !== undefined && typeof value !== "string") throw new ConfigError(field, "must be a string");
+  return value;
+}
+
+/** The contact of the seed (ADR-045): absent, or an object with `name` and `email` and optional `phone` and `role`. */
+function contactOf(m: Record<string, unknown>, at: MerchantField): MerchantContactRecord | undefined {
+  const raw = m["contact"];
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "object" || raw === null) throw new ConfigError(`${at}.contact`, NOT_AN_OBJECT);
+  const c = raw as Record<string, unknown>;
+  const name = c["name"];
+  const email = c["email"];
+  if (typeof name !== "string") throw new ConfigError(`${at}.contact.name`, NON_EMPTY_STRING);
+  if (typeof email !== "string") throw new ConfigError(`${at}.contact.email`, NON_EMPTY_STRING);
+  return {
+    name,
+    email,
+    phone: optionalText(c, `${at}.contact.phone`),
+    role: optionalText(c, `${at}.contact.role`),
+  };
 }
 
 /** Parses the shape (an array of merchants with an id and lists of strings); the rules are the Merchant's. */
@@ -73,7 +103,18 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (!isStringArray(platformSecrets)) {
       throw new ConfigError(`merchants[${i}].platformSecrets`, STRING_ARRAY);
     }
-    const seed: MerchantSeed = { merchantId, ingestKeys, origins, platformKeys, platformSecrets };
+    const at: MerchantField = `merchants[${i}]`;
+    const seed: MerchantSeed = {
+      merchantId,
+      ingestKeys,
+      origins,
+      platformKeys,
+      platformSecrets,
+      displayName: optionalText(m, `${at}.displayName`),
+      storeUrl: optionalText(m, `${at}.storeUrl`),
+      contact: contactOf(m, at),
+      notes: optionalText(m, `${at}.notes`),
+    };
     const judged = judgeSeed(seed);
     if (judged !== undefined) throw rejected(`merchants[${i}]`, judged, seed);
     const experiments = parseExperiments(m["experiments"], i, asMerchantId(merchantId));

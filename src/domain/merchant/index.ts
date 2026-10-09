@@ -1,6 +1,7 @@
 // Public API of the merchant module (domain).
 export {
   InvalidIngestKeys,
+  InvalidMerchantProfile,
   InvalidOrigin,
   InvalidOrigins,
   InvalidPlatformKeys,
@@ -24,3 +25,5 @@ export type { MerchantInput, MerchantRecord, MerchantStatus } from "./merchant.j
 export type { Credential, CredentialKind } from "./credential.js";
 export { Origin } from "./origin.js";
 export type { OriginRecord } from "./origin.js";
+export { MerchantProfile } from "./profile.js";
+export type { MerchantContactRecord, MerchantProfileRecord } from "./profile.js";

@@ -486,6 +486,22 @@ const fixtures = {
       schema: { $ref: "#/components/schemas/Operator" },
       example: { operatorId: "ops-1", displayName: "Ana" },
     };
+    // ADR-045: a contact excuses several denied names at once, each with its reason, as a list.
+    d.components.schemas.MerchantContact = {
+      type: "object",
+      description: "The contact.",
+      additionalProperties: false,
+      required: ["name", "email"],
+      "x-personal-datum": [
+        { property: "name", reason: "An identified party of the commercial relationship." },
+        { property: "email", reason: "An identified party of the commercial relationship." },
+      ],
+      properties: {
+        name: { type: "string", description: "Name." },
+        email: { type: "string", description: "Email." },
+      },
+    };
+    bodySchema(d).properties.contact = { $ref: "#/components/schemas/MerchantContact" };
     d.paths["/v1/admin/merchants/{merchantId}/things"] = d.paths["/v1/things"];
     delete d.paths["/v1/things"];
     return d;
@@ -594,6 +610,26 @@ const fixtures = {
   "ope-no-pii.exception-without-reason.yaml": (d) => {
     d.components.schemas.Health.properties.displayName = { type: "string", description: "Name." };
     d.components.schemas.Health["x-personal-datum"] = { property: "displayName" };
+    return d;
+  },
+  // ADR-045: the contact's names are excused in its own schema and nowhere else; a list excuses
+  // only the entries that are complete, and an empty list is not an exception.
+  "ope-no-pii.contact-elsewhere.yaml": (d) => {
+    withThings(d);
+    bodySchema(d).properties.email = { type: "string", description: "Email." };
+    return d;
+  },
+  "ope-no-pii.list-without-reason.yaml": (d) => {
+    d.components.schemas.Health.properties.email = { type: "string", description: "Email." };
+    d.components.schemas.Health.properties.phone = { type: "string", description: "Phone." };
+    d.components.schemas.Health["x-personal-datum"] = [
+      { property: "email", reason: "A contact." },
+      { property: "phone" },
+    ];
+    return d;
+  },
+  "ope-no-pii.list-empty.yaml": (d) => {
+    d.components.schemas.Health["x-personal-datum"] = [];
     return d;
   },
   "ope-no-pii.parameter.yaml": (d) => {

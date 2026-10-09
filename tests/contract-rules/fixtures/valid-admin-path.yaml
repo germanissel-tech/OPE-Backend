@@ -130,6 +130,8 @@ components:
             note:
               type: string
               description: Nota.
+        contact:
+          $ref: "#/components/schemas/MerchantContact"
       x-invariants:
         - type: validation-failed
           status: 400
@@ -151,6 +153,25 @@ components:
         displayName:
           type: string
           description: Display name.
+    MerchantContact:
+      type: object
+      description: The contact.
+      additionalProperties: false
+      required:
+        - name
+        - email
+      x-personal-datum:
+        - property: name
+          reason: An identified party of the commercial relationship.
+        - property: email
+          reason: An identified party of the commercial relationship.
+      properties:
+        name:
+          type: string
+          description: Name.
+        email:
+          type: string
+          description: Email.
   responses:
     InternalServerError:
       description: Error interno.

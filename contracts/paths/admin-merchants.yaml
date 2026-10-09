@@ -65,6 +65,8 @@ post:
         example:
           origins: ["https://tienda.example"]
           signature: true
+          displayName: Tienda Ejemplo
+          storeUrl: https://tienda.example
   responses:
     "201":
       description: Merchant created; the credentials travel here and never again.
