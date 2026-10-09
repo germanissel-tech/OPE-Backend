@@ -1,13 +1,14 @@
 // contract:types:check — fails if any generated artefact (generated/api.d.ts,
 // generated/problem-types.{js,d.ts}, generated/audited-operations.d.ts,
-// generated/schemas/*.schema.json) differs from its regeneration (FR-031; feature 018; feature
-// 019 D-04; feature 021).
+// generated/schemas/*.schema.json, generated/contract/*) differs from its regeneration (FR-031;
+// feature 018; feature 019 D-04; feature 021; feature 040).
 import { existsSync, readFileSync } from "node:fs";
 import {
   generateAuditedOperations,
   generatedAuditedOperationsDts,
   generatedAuditedOperationsJs,
 } from "./contract-audited-operations-lib.mjs";
+import { generateConsumerArtifacts } from "./contract-consumer-artifacts-lib.mjs";
 import {
   generateProblemTypes,
   generatedProblemTypesDts,
@@ -22,14 +23,16 @@ const current = (file) => (existsSync(file) ? readFileSync(file, "utf8").replace
 
 const { js, dts } = generateProblemTypes();
 const audited = generateAuditedOperations();
+const types = await generateTypes();
 /** @type {[string, string][]} */
 const artefacts = [
-  [generatedTypesPath, await generateTypes()],
+  [generatedTypesPath, types],
   [generatedProblemTypesJs, js],
   [generatedProblemTypesDts, dts],
   [generatedAuditedOperationsJs, audited.js],
   [generatedAuditedOperationsDts, audited.dts],
   ...generateConfigSchemas(),
+  ...generateConsumerArtifacts(types, dts),
 ];
 const outdated = artefacts.filter(([file, expected]) => current(file) !== expected);
 if (outdated.length > 0) {
