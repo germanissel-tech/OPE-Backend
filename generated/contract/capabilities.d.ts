@@ -3,8 +3,8 @@
 
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
-  readonly version: '1.12.0'
-  readonly sha256: '08b9a75e6121f2a70331d8c4955924950bdc195dc8f6df61273aa694f6250017'
+  readonly version: '1.13.0'
+  readonly sha256: '06ea91708eac4c2b4f3e2447c8026b030a49e2963ae0d43c7ac4cba13eb06289'
 }
 
 /** The consumer this module describes: its operations and its vocabulary. */
@@ -53,6 +53,10 @@ export declare const OPERATIONS: {
     readonly idempotent: false
   }
   readonly setKillSwitch: {
+    readonly capabilities: readonly ['merchants:write']
+    readonly idempotent: false
+  }
+  readonly updateMerchantProfile: {
     readonly capabilities: readonly ['merchants:write']
     readonly idempotent: false
   }

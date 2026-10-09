@@ -19,6 +19,7 @@ import {
   type MerchantError,
 } from "./errors.js";
 import { Origin, type OriginRecord } from "./origin.js";
+import { MerchantProfile, type MerchantProfileRecord } from "./profile.js";
 
 /** On, off by the kill switch (decides nothing, still measures), or deactivated for good. */
 export type MerchantStatus = "active" | "off" | "deactivated";
@@ -32,6 +33,8 @@ export interface MerchantInput {
   credentials: readonly Credential[];
   createdAt: Date;
   status?: MerchantStatus | undefined;
+  /** The identity for people (ADR-045), already judged by `MerchantProfile.of`; none for a merchant nobody named. */
+  profile?: MerchantProfile | undefined;
 }
 
 /**
@@ -47,6 +50,8 @@ export interface MerchantRecord {
   origins: readonly OriginRecord[];
   credentials: readonly Credential[];
   createdAt: Date;
+  /** Absent in every document written before ADR-045, and in a merchant nobody named since. */
+  profile?: MerchantProfileRecord | undefined;
 }
 
 /** A credential set is one credential, or two during a rotation (ADR-014, ADR-025, ADR-029). */
@@ -69,6 +74,7 @@ export class Merchant implements MerchantRecord {
   readonly origins: readonly Origin[];
   readonly credentials: readonly Credential[];
   readonly createdAt: Date;
+  readonly profile: MerchantProfile | undefined;
 
   private constructor(record: MerchantRecord) {
     this.merchantId = record.merchantId;
@@ -76,6 +82,8 @@ export class Merchant implements MerchantRecord {
     this.origins = record.origins.map((origin) => Origin.rehydrate(origin));
     this.credentials = record.credentials.map((c) => ({ ...c }));
     this.createdAt = record.createdAt;
+    // Every nested class is rehydrated here, like the origins (feature 037): a document gives plain objects.
+    this.profile = record.profile === undefined ? undefined : MerchantProfile.rehydrate(record.profile);
   }
 
   /**
@@ -95,6 +103,7 @@ export class Merchant implements MerchantRecord {
         origins: origins.value,
         credentials: input.credentials,
         createdAt: input.createdAt,
+        profile: input.profile,
       }),
     );
   }
@@ -230,6 +239,14 @@ export class Merchant implements MerchantRecord {
     return new Merchant({ ...this.record(), status: "deactivated" });
   }
 
+  /**
+   * The same merchant with its identity replaced whole (ADR-045). It does not look at the status: the
+   * identity belongs to the commercial relationship, so a deactivated merchant admits it too.
+   */
+  withProfile(profile: MerchantProfile): Merchant {
+    return new Merchant({ ...this.record(), profile: profile.record() });
+  }
+
   /** The record as a store would keep it. */
   record(): MerchantRecord {
     return {
@@ -238,6 +255,7 @@ export class Merchant implements MerchantRecord {
       origins: this.origins,
       credentials: this.credentials,
       createdAt: this.createdAt,
+      profile: this.profile?.record(),
     };
   }
 }

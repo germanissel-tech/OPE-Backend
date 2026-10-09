@@ -117,10 +117,26 @@ export class SignatureExpired extends DomainError {
 
 export type SignatureError = SignatureMissing | SignatureInvalid | SignatureExpired;
 
+/** What is wrong with a field of the merchant identity: the schema cannot say it, so the domain does (ADR-045). */
+const profileProblemOf = (field: string): string =>
+  field === "storeUrl"
+    ? "The store URL must parse as an absolute http(s) URL."
+    : "A text of the merchant identity is blank or has leading or trailing whitespace.";
+
+/** A field of the merchant identity that is not what it says it is; `pointer` names it (`contact.email`). */
+export class InvalidMerchantProfile extends DomainError {
+  readonly code = "invalid-merchant-profile" as const;
+  readonly module = MODULE;
+  constructor(field: string) {
+    super(profileProblemOf(field), { pointer: field, problem: profileProblemOf(field) });
+  }
+}
+
 export type MerchantError =
   | Unauthorized
   | OriginNotAllowed
   | InvalidIngestKeys
+  | InvalidMerchantProfile
   | InvalidOrigins
   | InvalidOrigin
   | InvalidPlatformKeys

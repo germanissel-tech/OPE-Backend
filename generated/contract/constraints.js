@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.12.0', sha256: '08b9a75e6121f2a70331d8c4955924950bdc195dc8f6df61273aa694f6250017' }
+export const CONTRACT = { version: '1.13.0', sha256: '06ea91708eac4c2b4f3e2447c8026b030a49e2963ae0d43c7ac4cba13eb06289' }
 
 /** What a form can verify locally of each request body of the admin consumer (layer 1). */
 export const CONSTRAINTS = {
@@ -624,12 +624,62 @@ export const CONSTRAINTS = {
       }
     }
   },
+  "MerchantContact": {
+    "required": [
+      "name",
+      "email"
+    ],
+    "fields": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "email": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 254,
+        "format": "email"
+      },
+      "phone": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      },
+      "role": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      }
+    }
+  },
   "MerchantCreate": {
     "required": [
       "origins",
-      "signature"
+      "signature",
+      "displayName"
     ],
     "fields": {
+      "displayName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "storeUrl": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^https?://"
+      },
+      "contact": {
+        "type": "object",
+        "ref": "MerchantContact"
+      },
+      "notes": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      },
       "origins": {
         "type": "array",
         "minItems": 1,
@@ -641,6 +691,33 @@ export const CONSTRAINTS = {
       },
       "signature": {
         "type": "boolean"
+      }
+    }
+  },
+  "MerchantProfileInput": {
+    "required": [
+      "displayName"
+    ],
+    "fields": {
+      "displayName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "storeUrl": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^https?://"
+      },
+      "contact": {
+        "type": "object",
+        "ref": "MerchantContact"
+      },
+      "notes": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
       }
     }
   },

@@ -1,8 +1,29 @@
 type: object
-description: A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources.
+description: "A merchant as the administration reads it (ADR-031), with its identity when it has one (ADR-045: a merchant created before it, or never edited, comes without). Credentials by kind without their values; its configuration and experiments live in their own resources."
 additionalProperties: false
 required: [merchantId, status, origins, createdAt, credentials]
+x-personal-datum:
+  - property: displayName
+    reason: "The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only."
 properties:
+  displayName:
+    type: string
+    description: The name of the store or legal entity, as the console lists and heads it.
+    minLength: 1
+    maxLength: 120
+  storeUrl:
+    type: string
+    description: The canonical URL of the store for a person, kept as written.
+    pattern: "^https?://"
+    minLength: 1
+    maxLength: 255
+  contact:
+    $ref: ./MerchantContact.yaml
+  notes:
+    type: string
+    description: Free text of the operator about the relationship.
+    minLength: 1
+    maxLength: 2000
   merchantId:
     $ref: ./MerchantId.yaml
   status:

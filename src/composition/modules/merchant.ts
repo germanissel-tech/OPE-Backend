@@ -12,6 +12,7 @@ import {
   ListMerchantsUseCase,
   RotateCredentialUseCase,
   SetKillSwitchUseCase,
+  UpdateMerchantProfileUseCase,
   type CredentialMinter,
   type ImportMerchantsRequest,
   type ImportMerchantsResponse,
@@ -31,6 +32,7 @@ import {
   makeRotatePlatformKey,
   makeRotatePlatformSecret,
   makeSetKillSwitch,
+  makeUpdateMerchantProfile,
   memoryMerchantStore,
   nodeCredentialMinter,
   sqliteMerchantStore,
@@ -137,6 +139,15 @@ export const merchantModule = compositionModule({
         { scoped: ScopedMerchantPort, merchants: MerchantStorePort },
         { name: "setKillSwitch", build: (deps) => new SetKillSwitchUseCase(deps) },
         (useCase) => makeSetKillSwitch(useCase),
+      ),
+      // No audit readers (ADR-045): the entry says who, which operation and which merchant, never the values.
+      updateMerchantProfile: served(
+        { scoped: ScopedMerchantPort, merchants: MerchantStorePort, clock: ClockPort },
+        {
+          name: "updateMerchantProfile",
+          build: ({ scoped, merchants }) => new UpdateMerchantProfileUseCase({ scoped, merchants }),
+        },
+        (useCase, { clock }) => makeUpdateMerchantProfile(useCase, clock),
       ),
       rotateIngestKey: served(
         { rotate: RotateCredentialPort },

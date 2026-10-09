@@ -249,6 +249,15 @@ operations:
     feature: "017"
     status: built
     source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: updateMerchantProfile
+    method: put
+    path: /v1/admin/merchants/{merchantId}/profile
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:write]
+    feature: "041"
+    status: built
+    source: specs/041-el-merchant-con-identidad/spec.md
   - operationId: getMerchant
     method: get
     path: /v1/admin/merchants/{merchantId}

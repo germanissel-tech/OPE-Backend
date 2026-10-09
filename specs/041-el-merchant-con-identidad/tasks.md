@@ -32,50 +32,50 @@ US3 contacto.
 **Purpose**: que el contrato diga todo lo nuevo antes de que el servidor lo haga, con sus reglas y sus
 fixtures, y que `contract:diff` diga lo que cambia.
 
-- [ ] T001 [US2] `contracts/api-map.yaml` — `updateMerchantProfile` (`method: put`,
+- [x] T001 [US2] `contracts/api-map.yaml` — `updateMerchantProfile` (`method: put`,
       `path: /v1/admin/merchants/{merchantId}/profile`, `consumer: admin`, `tag: admin`,
       `capabilities: [merchants:write]`, `feature: "041"`, `status: built`,
       `source: specs/041-el-merchant-con-identidad/spec.md`), después de `setKillSwitch` (orden 0 de
       `contrato.md`)
-- [ ] T002 [P] [US3] `tests/contract-rules/gen-fixtures.mjs` — **antes de tocar la regla**:
+- [x] T002 [P] [US3] `tests/contract-rules/gen-fixtures.mjs` — **antes de tocar la regla**:
       `ope-no-pii.contact-elsewhere.yaml` (`email` en el esquema de una orden → falla),
       `ope-no-pii.list-without-reason.yaml` (`x-personal-datum` como lista con una entrada sin `reason`
       → falla), `ope-no-pii.list-empty.yaml` (lista vacía → falla); `valid-admin-path.yaml` gana un
       esquema `MerchantContact` con `name` y `email` excusados en una lista, que pasa; regenerar y
       agregar las tres a `tests/contract-rules/rules.test.ts`
-- [ ] T003 [US3] `contracts/rules/functions/noPii.js` — `exceptionOf` acepta un objeto o una lista de
+- [x] T003 [US3] `contracts/rules/functions/noPii.js` — `exceptionOf` acepta un objeto o una lista de
       `{ property, reason }` y devuelve el conjunto excusado; cada entrada con `property` declarada en
       ese esquema y `reason` no vacía; lista vacía es un problema (R-05); `contracts/rules/pii-denylist.json`
       `_doc` dice que admite una lista
-- [ ] T004 [P] [US3] `contracts/components/schemas/MerchantContact.yaml` (NUEVO) según
+- [x] T004 [P] [US3] `contracts/components/schemas/MerchantContact.yaml` (NUEVO) según
       `contracts/merchant-identity.md` §1: `required: [name, email]`, `name` 1..120, `email`
       `format: email` 3..254, `phone` 1..32, `role` 1..80, `additionalProperties: false`,
       `x-personal-datum` con las tres entradas y sus razones completas
-- [ ] T005 [P] [US2] `contracts/components/schemas/MerchantProfileInput.yaml` (NUEVO):
+- [x] T005 [P] [US2] `contracts/components/schemas/MerchantProfileInput.yaml` (NUEVO):
       `required: [displayName]`, `displayName` 1..120, `storeUrl` `pattern: "^https?://"` 1..255,
       `contact` `$ref: ./MerchantContact.yaml`, `notes` 1..2000, `x-personal-datum` para `displayName`
       (razón: nombre de la tienda, no de una persona), `x-invariants` con `invalid-merchant-profile`
       (`status: 422`, `pointer: displayName`, `rule` y `description` de `merchant-identity.md`)
-- [ ] T006 [P] [US1] `contracts/components/schemas/MerchantCreate.yaml` — `displayName` en `required`
+- [x] T006 [P] [US1] `contracts/components/schemas/MerchantCreate.yaml` — `displayName` en `required`
       (`[origins, signature, displayName]`), `storeUrl`, `contact`, `notes` con las mismas formas, la
       marca para `displayName`, y el invariante `invalid-merchant-profile` junto a los dos existentes;
       `contracts/components/schemas/Merchant.yaml` — los cuatro opcionales con las mismas formas y la
       marca; `required` sin cambio
-- [ ] T007 [P] [US2] `contracts/paths/admin-merchant-profile.yaml` (NUEVO) con `updateMerchantProfile`
+- [x] T007 [P] [US2] `contracts/paths/admin-merchant-profile.yaml` (NUEVO) con `updateMerchantProfile`
       (`put`, `adminToken`, `x-required-capabilities: [merchants:write]`, parámetro
       `../components/parameters/merchantId.yaml`, cuerpo `MerchantProfileInput` con ejemplo, `200`
       `Merchant`, `400 BadRequest`, `401 OperatorUnauthorized`, `403 MerchantForbidden`,
       `404 MerchantNotFound`, `422 MerchantProfileUnprocessable`, `503 ServiceUnavailable`,
       `500 InternalServerError`); `contracts/openapi.yaml` lo referencia como
       `/v1/admin/merchants/{merchantId}/profile` y pasa a `info.version: 1.13.0`
-- [ ] T008 [P] [US2] `contracts/components/responses/MerchantProfileUnprocessable.yaml` (NUEVO) con el
+- [x] T008 [P] [US2] `contracts/components/responses/MerchantProfileUnprocessable.yaml` (NUEVO) con el
       ejemplo `invalid-merchant-profile` y `errors: [{ pointer: /body/storeUrl, message }]`;
       `contracts/components/responses/MerchantUnprocessable.yaml` gana el ejemplo con
       `/body/displayName`; `contracts/problem-types.yaml` gana `invalid-merchant-profile` (`422`, título
       de `merchant-identity.md`)
-- [ ] T009 [US2] `contracts/README.md` — la fila de `x-personal-datum` dice que admite un objeto o una
+- [x] T009 [US2] `contracts/README.md` — la fila de `x-personal-datum` dice que admite un objeto o una
       lista; `tests/integration/bootstrap.test.ts` afirma `1.13.0`
-- [ ] T010 `npm run contract:check` con el diff **reportando** `displayName` required en `MerchantCreate`
+- [x] T010 `npm run contract:check` con el diff **reportando** `displayName` required en `MerchantCreate`
       como incompatible y aceptándolo por `building` (anotar el texto exacto en el quickstart, §1);
       lint con las fixtures nuevas; `contract:types` regenera `api.d.ts` con `updateMerchantProfile` y
       los esquemas; `api-map` con la operación `built`; `invariant-tests` falla hasta que exista la prueba
@@ -90,7 +90,7 @@ cerrar el tramo 2**.
 
 **Purpose**: que el servidor haga lo que el contrato dice, con las pruebas antes del código.
 
-- [ ] T011 [P] [US1] `tests/unit/domain/merchant/profile.test.ts` (NUEVO) — **antes del valor**:
+- [x] T011 [P] [US1] `tests/unit/domain/merchant/profile.test.ts` (NUEVO) — **antes del valor**:
       `MerchantProfile.of` acepta los cuatro campos y ninguno; rechaza `displayName` vacío, con espacios
       en los bordes; `storeUrl` que no parsea (`https://`, `http://a b`) y acepta una con camino;
       `contact.name` con espacios; `contact.email` con espacios; `notes` vacío; cada rechazo con
@@ -99,14 +99,14 @@ cerrar el tramo 2**.
       `Merchant.withProfile` reemplaza entero, no falla, y lo admite un merchant desactivado;
       `Merchant.rehydrate` de un record con `profile` devuelve una clase (`instanceof MerchantProfile`)
       y de uno sin `profile` queda `undefined`
-- [ ] T012 [US1] `src/domain/merchant/profile.ts` (NUEVO) — `MerchantContactRecord`,
+- [x] T012 [US1] `src/domain/merchant/profile.ts` (NUEVO) — `MerchantContactRecord`,
       `MerchantProfileRecord`, clase `MerchantProfile` con `private constructor`, `of` (`Result`,
       reglas de `data-model.md` en orden), `rehydrate`, `record()`; `src/domain/merchant/errors.ts` —
       `InvalidMerchantProfile(field)` con `details: { pointer: field }`; `src/domain/merchant/merchant.ts`
       — `profile?: MerchantProfileRecord` en `MerchantRecord`, `profile?: MerchantProfile` en
       `MerchantInput`, el constructor rehidrata la clase anidada, `withProfile(profile): Merchant`,
       `record()` lo incluye sólo si lo hay; `src/domain/merchant/index.ts` exporta
-- [ ] T013 [P] [US2] `tests/integration/admin-merchants.test.ts` — **antes del caso de uso**: alta con
+- [x] T013 [P] [US2] `tests/integration/admin-merchants.test.ts` — **antes del caso de uso**: alta con
       `displayName` y `storeUrl` → `201` con los dos en `merchant` y en el `GET` y la lista; alta sin
       `displayName` → `400` con puntero (del validador); `[invariant:invalid-merchant-profile]` alta con
       `displayName: " Tienda "` → `422` con `errors: [{ pointer: "/body/displayName" }]` y ningún
@@ -117,18 +117,18 @@ cerrar el tramo 2**.
       desactivado → `200`; el registro de administración del merchant tiene la entrada
       `updateMerchantProfile` con `operatorId` y `outcome: accepted` y `res.body` del log no contiene
       el nombre del contacto ni el email
-- [ ] T014 [P] [US2] `tests/integration/isolation.test.ts` — `ops-a` edita el perfil de `m_b` → `403
+- [x] T014 [P] [US2] `tests/integration/isolation.test.ts` — `ops-a` edita el perfil de `m_b` → `403
 merchant-out-of-scope`, mismo cuerpo (sin `instance` ni `requestId`) que para `mrc_nobody`, y el
       perfil de `m_b` no cambió; `ops-a` edita `m_a` → `200`
-- [ ] T015 [P] [US3] `tests/integration/logging-privacy.test.ts` — una edición con `contact`
+- [x] T015 [P] [US3] `tests/integration/logging-privacy.test.ts` — una edición con `contact`
       (`name`, `email`, `phone`) deja en el registro del servidor (logger capturado) `incoming request` y
       `request completed` sin el nombre, el email ni el teléfono; y `GET /v1/sdk-config` (o la lectura
       `sdk` que exista) del mismo merchant no trae `displayName`, `contact` ni `notes`
-- [ ] T016 [P] [US1] `tests/durability/merchant-store.test.ts` — un merchant creado con identidad
+- [x] T016 [P] [US1] `tests/durability/merchant-store.test.ts` — un merchant creado con identidad
       sobrevive un reinicio con `profile` como clase (`instanceof MerchantProfile`) y el contacto
       entero; un documento escrito **sin** `profile` (insertado a mano con `toDocument` de un record sin
       el campo) rehidrata un merchant con `profile === undefined` y sigue autenticando
-- [ ] T017 [P] [US1] `tests/unit/application/merchant/merchant-admin.use-cases.test.ts` —
+- [x] T017 [P] [US1] `tests/unit/application/merchant/merchant-admin.use-cases.test.ts` —
       `CreateMerchantUseCase` con `profile` inválido devuelve `invalid-merchant-profile` **sin** llamar a
       `ownerOfOrigin` ni al acuñador (contar llamadas); con `profile` válido crea con él;
       `UpdateMerchantProfileUseCase`: fuera del alcance → `merchant-out-of-scope` sin tocar el store;
@@ -136,28 +136,28 @@ merchant-out-of-scope`, mismo cuerpo (sin `instance` ni `requestId`) que para `m
       la respuesta es ese merchant; `tests/unit/composition/config.test.ts` — la semilla con los cuatro
       campos y sin ninguno; una semilla con `displayName: " "` falla al arrancar nombrando
       `merchants[0].displayName`
-- [ ] T018 [US2] `src/application/merchant/use-cases/update-merchant-profile.use-case.ts` (NUEVO) —
+- [x] T018 [US2] `src/application/merchant/use-cases/update-merchant-profile.use-case.ts` (NUEVO) —
       `UpdateMerchantProfileRequest { actor, merchantId, profile: MerchantProfileRecord }`,
       `UpdateMerchantProfileDependencies { scoped, merchants }`, `execute`: `find` → `MerchantProfile.of`
       → `withProfile` → `update`, cada error devuelto (ADR-023); `create-merchant.use-case.ts` —
       `profile: MerchantProfileRecord` en el request, juzgado **antes** de `ownerOfOrigin`;
       `import-merchants.use-case.ts` — `MerchantSeed` con los cuatro opcionales, `MerchantProfile.of`
       cuando trae alguno; `src/application/merchant/index.ts` exporta
-- [ ] T019 [US2] `src/interface-adapters/merchant/presenters.ts` — `merchantDto` gana los cuatro
+- [x] T019 [US2] `src/interface-adapters/merchant/presenters.ts` — `merchantDto` gana los cuatro
       campos cuando el merchant los tiene (`contact` entero, sin inventar `undefined`s en el JSON);
       `profileOf(body)` convierte el cuerpo tipado (`MerchantProfileInput` o la parte de
       `MerchantCreate`) en `MerchantProfileRecord`; `controllers/update-merchant-profile.ts` (NUEVO)
       tipado `OperationHandler<"updateMerchantProfile">` con `merchantIdOf(req.path)` y `profileOf`,
       `200` con `merchantDto`; `controllers/create-merchant.ts` pasa `profile`;
       `src/interface-adapters/merchant/index.ts` exporta
-- [ ] T020 [US2] `src/composition/modules/merchant.ts` — `updateMerchantProfile: served({ scoped:
+- [x] T020 [US2] `src/composition/modules/merchant.ts` — `updateMerchantProfile: served({ scoped:
 ScopedMerchantPort, merchants: MerchantStorePort }, { name, build }, controller)` sin lectores
       (R-06); `src/composition/merchants-config.ts` y `src/composition/seed-errors.ts` — la semilla lee
       los cuatro y nombra `merchants[N].<campo>` en un `ConfigError`;
       `config/schemas/merchants-seed.schema.json` los admite con los largos del contrato;
       `config/dev-merchants.json` gana `displayName: "Tienda de desarrollo"` y
       `storeUrl: "http://localhost:3000"`; `npm run arch` en verde
-- [ ] T021 `npm run format:check && npm run quality && npm run typecheck && npm test &&
+- [x] T021 `npm run format:check && npm run quality && npm run typecheck && npm test &&
 npm run test:durability` en verde; `npm run test:contract`; `npm run test:mutation` sin
       sobrevivientes en lo nuevo (`profile.ts`, `merchant.ts`, los dos casos de uso, el controller, el
       presentador, `noPii.js` no entra: es de `contracts/`); contra `npm run dev`, el quickstart §2 entero

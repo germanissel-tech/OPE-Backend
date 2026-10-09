@@ -4,9 +4,12 @@
 // one merchant only.
 import {
   Merchant,
+  MerchantProfile,
   OriginAlreadyRegistered,
+  type InvalidMerchantProfile,
   type InvalidOrigin,
   type InvalidOrigins,
+  type MerchantProfileRecord,
 } from "../../../domain/merchant/index.js";
 import { fail, ok, type Result, type StoreUnavailable } from "../../../domain/shared-kernel/index.js";
 import type { Operator } from "../../../domain/operator/index.js";
@@ -19,6 +22,8 @@ export interface CreateMerchantRequest {
   origins: readonly string[];
   /** Whether the platform will sign its notifications (ADR-029): mints a signing secret too. */
   signature: boolean;
+  /** The identity for people (ADR-045); the contract makes `displayName` mandatory at creation. */
+  profile: MerchantProfileRecord;
 }
 
 /** The merchant and the values of its credentials: the only time they travel. */
@@ -31,7 +36,7 @@ export interface CreateMerchantResponse {
 
 /** What creation can refuse: an origin that is not one, or one that belongs to another merchant; a store down. */
 export type CreateMerchantFailure =
-  InvalidOrigin | InvalidOrigins | OriginAlreadyRegistered | StoreUnavailable;
+  InvalidOrigin | InvalidOrigins | InvalidMerchantProfile | OriginAlreadyRegistered | StoreUnavailable;
 
 export interface CreateMerchantDependencies {
   merchants: MerchantStore;
@@ -55,6 +60,9 @@ export class CreateMerchantUseCase implements UseCase<
     const { merchants, minter, clock } = this.#deps;
     const origins = Merchant.judgeOrigins(request.origins);
     if (!origins.ok) return origins;
+    // Judged before asking the store or minting anything: a refused identity leaves nothing behind.
+    const profile = MerchantProfile.of(request.profile);
+    if (!profile.ok) return profile;
     for (const [index, origin] of request.origins.entries()) {
       if ((await merchants.ownerOfOrigin(origin)) !== undefined)
         return fail(new OriginAlreadyRegistered(index));
@@ -75,6 +83,7 @@ export class CreateMerchantUseCase implements UseCase<
       origins: request.origins,
       credentials,
       createdAt: now,
+      profile: profile.value,
     });
     // The origins were judged above and the credentials were just minted: a rejection here is a bug.
     if (!merchant.ok) throw new Error(`A freshly minted merchant was rejected: ${merchant.error.code}.`);

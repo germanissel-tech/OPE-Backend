@@ -3,7 +3,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.12.0
+  version: 1.13.0
   x-stability: building
   description: |
     HTTP API of the OPE backend. This document is the single source of truth for every HTTP
@@ -722,6 +722,8 @@ paths:
               origins:
                 - https://tienda.example
               signature: true
+              displayName: Tienda Ejemplo
+              storeUrl: https://tienda.example
       responses:
         '201':
           description: Merchant created; the credentials travel here and never again.
@@ -1059,6 +1061,78 @@ paths:
           $ref: '#/components/responses/MerchantNotFound'
         '409':
           $ref: '#/components/responses/MerchantDeactivatedConflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/admin/merchants/{merchantId}/profile:
+    put:
+      operationId: updateMerchantProfile
+      tags:
+        - admin
+      security:
+        - adminToken: []
+      x-required-capabilities:
+        - merchants:write
+      summary: Replace the identity of a merchant
+      description: |
+        The display name, the store URL, the contact and the operator's notes, whole (ADR-045): a field
+        left out is cleared. Origins, status and credentials have operations of their own and are not
+        touched here. A deactivated merchant admits it: the identity belongs to the commercial
+        relationship, not to the operative state. A merchant outside the operator's scope is refused
+        without revealing whether it exists. Audited: who, which operation, which merchant — never the
+        values written.
+      parameters:
+        - $ref: '#/components/parameters/merchantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantProfileInput'
+            example:
+              displayName: Tienda Norte
+              storeUrl: https://www.tiendanorte.example
+              contact:
+                name: Ana Smith
+                email: ana@tiendanorte.example
+                role: e-commerce manager
+              notes: Pilot since October; weekly call on Tuesdays.
+      responses:
+        '200':
+          description: The merchant as it is now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+              example:
+                merchantId: mrc_7f3a9c2e1b
+                status: active
+                origins:
+                  - https://www.tiendanorte.example
+                createdAt: '2026-10-09T12:00:00Z'
+                credentials:
+                  - kind: ingest
+                    issuedAt: '2026-10-09T12:00:00Z'
+                  - kind: platform
+                    issuedAt: '2026-10-09T12:00:00Z'
+                displayName: Tienda Norte
+                storeUrl: https://www.tiendanorte.example
+                contact:
+                  name: Ana Smith
+                  email: ana@tiendanorte.example
+                  role: e-commerce manager
+                notes: Pilot since October; weekly call on Tuesdays.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/OperatorUnauthorized'
+        '403':
+          $ref: '#/components/responses/MerchantForbidden'
+        '404':
+          $ref: '#/components/responses/MerchantNotFound'
+        '422':
+          $ref: '#/components/responses/MerchantProfileUnprocessable'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -4365,6 +4439,42 @@ components:
           type: string
           description: Cursor of the next page; absent on the last page.
           maxLength: 512
+    MerchantContact:
+      type: object
+      description: 'The person the merchant relationship is handled with (ADR-045): an identified party of the commercial relationship, never an observed one (constitution VII, 1.5.1). Served to the administration only; never in a decision, in what the SDK or the platform sees, in the admin log or in the server logs.'
+      additionalProperties: false
+      required:
+        - name
+        - email
+      x-personal-datum:
+        - property: name
+          reason: The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded.
+        - property: email
+          reason: The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded.
+        - property: phone
+          reason: The contact is an identified party of the commercial relationship, not an observed person (constitution VII 1.5.1, ADR-045); served only to the admin consumer and never recorded.
+      properties:
+        name:
+          type: string
+          description: The contact's name, as written.
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          description: The contact's email address.
+          format: email
+          minLength: 3
+          maxLength: 254
+        phone:
+          type: string
+          description: The contact's phone number, as written.
+          minLength: 1
+          maxLength: 32
+        role:
+          type: string
+          description: The contact's role at the merchant (e.g. e-commerce manager). Not a personal datum.
+          minLength: 1
+          maxLength: 80
     MerchantStatus:
       type: string
       description: 'Whether OPE works for the merchant: `active`; `off` by the kill switch (decides nothing, still measures); `deactivated` for good (no credential resolves, every record stays).'
@@ -4399,7 +4509,7 @@ components:
           description: When it stops being valid; only after a rotation gave it a grace.
     Merchant:
       type: object
-      description: A merchant as the administration reads it (ADR-031). Credentials by kind without their values; its configuration and experiments live in their own resources.
+      description: 'A merchant as the administration reads it (ADR-031), with its identity when it has one (ADR-045: a merchant created before it, or never edited, comes without). Credentials by kind without their values; its configuration and experiments live in their own resources.'
       additionalProperties: false
       required:
         - merchantId
@@ -4407,7 +4517,28 @@ components:
         - origins
         - createdAt
         - credentials
+      x-personal-datum:
+        - property: displayName
+          reason: The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only.
       properties:
+        displayName:
+          type: string
+          description: The name of the store or legal entity, as the console lists and heads it.
+          minLength: 1
+          maxLength: 120
+        storeUrl:
+          type: string
+          description: The canonical URL of the store for a person, kept as written.
+          pattern: ^https?://
+          minLength: 1
+          maxLength: 255
+        contact:
+          $ref: '#/components/schemas/MerchantContact'
+        notes:
+          type: string
+          description: Free text of the operator about the relationship.
+          minLength: 1
+          maxLength: 2000
         merchantId:
           $ref: '#/components/schemas/MerchantId'
         status:
@@ -4446,12 +4577,34 @@ components:
           maxLength: 512
     MerchantCreate:
       type: object
-      description: What an operator gives to create a merchant; OPE mints everything else (ADR-031).
+      description: What an operator gives to create a merchant — its origins, whether the platform signs, and its identity (ADR-045); OPE mints everything else (ADR-031).
       additionalProperties: false
       required:
         - origins
         - signature
+        - displayName
+      x-personal-datum:
+        - property: displayName
+          reason: The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only.
       properties:
+        displayName:
+          type: string
+          description: The name of the store or legal entity, as the console lists and heads it.
+          minLength: 1
+          maxLength: 120
+        storeUrl:
+          type: string
+          description: The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them.
+          pattern: ^https?://
+          minLength: 1
+          maxLength: 255
+        contact:
+          $ref: '#/components/schemas/MerchantContact'
+        notes:
+          type: string
+          description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
+          minLength: 1
+          maxLength: 2000
         origins:
           type: array
           description: 'Registered origins of the store: `scheme://host[:port]`, no path. An origin belongs to one merchant.'
@@ -4474,6 +4627,11 @@ components:
           rule: no origin belongs to another merchant (deactivated ones included)
           pointer: origins[N]
           description: An origin speaks for one merchant only; the credential + origin pair is the protection of the tag (ADR-014).
+        - type: invalid-merchant-profile
+          status: 422
+          rule: a text field has no leading or trailing whitespace, and storeUrl parses as an absolute http(s) URL
+          pointer: displayName
+          description: What the schema cannot say legibly — padding, and a URL that only looks like one — is judged by the domain and named by field; a value is kept as written, never trimmed (ADR-045).
     MerchantCredentials:
       type: object
       description: The values of the credentials, shown once (ADR-031). Give them to the merchant out of band; no reading returns them.
@@ -4555,6 +4713,40 @@ components:
         enabled:
           type: boolean
           description: Whether OPE decides for this merchant.
+    MerchantProfileInput:
+      type: object
+      description: 'The identity of a merchant as an operator writes it, whole (ADR-045): a field left out is cleared. Never its origins, status or credentials, which have operations of their own.'
+      additionalProperties: false
+      required:
+        - displayName
+      x-personal-datum:
+        - property: displayName
+          reason: The name of the store or of its legal entity, not of a person (ADR-045); served to the admin consumer only.
+      x-invariants:
+        - type: invalid-merchant-profile
+          status: 422
+          rule: a text field has no leading or trailing whitespace, and storeUrl parses as an absolute http(s) URL
+          pointer: displayName
+          description: What the schema cannot say legibly — padding, and a URL that only looks like one — is judged by the domain and named by field; a value is kept as written, never trimmed.
+      properties:
+        displayName:
+          type: string
+          description: The name of the store or legal entity, as the console lists and heads it.
+          minLength: 1
+          maxLength: 120
+        storeUrl:
+          type: string
+          description: The canonical URL of the store for a person, kept as written; not an origin, and not necessarily one of them.
+          pattern: ^https?://
+          minLength: 1
+          maxLength: 255
+        contact:
+          $ref: '#/components/schemas/MerchantContact'
+        notes:
+          type: string
+          description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
+          minLength: 1
+          maxLength: 2000
     Freshness:
       type: object
       description: Freshness budgets by class of datum (01 §8, ADR-025), measured from `capturedAt`.
@@ -6896,6 +7088,17 @@ components:
                 errors:
                   - pointer: /body/origins/1
                     message: An origin already belongs to another merchant.
+            invalid-merchant-profile:
+              summary: invalid-merchant-profile
+              value:
+                type: urn:ope:problem:invalid-merchant-profile
+                title: A field of the merchant identity is not what it says it is
+                status: 422
+                detail: A text of the merchant identity has leading or trailing whitespace.
+                instance: /v1/admin/merchants
+                errors:
+                  - pointer: /body/displayName
+                    message: A text of the merchant identity has leading or trailing whitespace.
     MerchantNotFound:
       description: No merchant with that identifier within the operator's scope.
       content:
@@ -6934,6 +7137,26 @@ components:
             errors:
               - pointer: /body/graceSeconds
                 message: The rotation grace exceeds the platform maximum.
+    MerchantProfileUnprocessable:
+      description: |
+        Valid request rejected on semantics: the `x-invariants` of the merchant identity (ADR-007, ADR-045).
+        The `type` names the invariant and `errors[]` names the field.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            invalid-merchant-profile:
+              summary: invalid-merchant-profile
+              value:
+                type: urn:ope:problem:invalid-merchant-profile
+                title: A field of the merchant identity is not what it says it is
+                status: 422
+                detail: The store URL must parse as an absolute http(s) URL.
+                instance: /v1/admin/merchants/mrc_7f3a9c2e1b/profile
+                errors:
+                  - pointer: /body/storeUrl
+                    message: The store URL must parse as an absolute http(s) URL.
     ConfigurationFrozenConflict:
       description: 'The configuration is frozen: an experiment is active and the version is not corrective (03 §4.10).'
       content:

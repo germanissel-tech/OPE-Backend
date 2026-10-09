@@ -68,7 +68,7 @@ describe("an action and its audit entry are one fact (SC-001)", () => {
     refusing.refuse();
 
     const response = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://reverted.example"], signature: false },
+      body: { origins: ["https://reverted.example"], signature: false, displayName: "Atomic" },
     });
 
     expect(response.statusCode).toBe(503);
@@ -86,7 +86,7 @@ describe("an action and its audit entry are one fact (SC-001)", () => {
     app = await boot();
 
     const response = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://kept.example"], signature: false },
+      body: { origins: ["https://kept.example"], signature: false, displayName: "Atomic" },
     });
     expect(response.statusCode).toBe(201);
     const created = (json(response) as { merchant: { merchantId: string } }).merchant.merchantId;
@@ -108,7 +108,7 @@ describe("an action and its audit entry are one fact (SC-001)", () => {
     app = await boot();
 
     const response = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://at-once.example"], signature: false },
+      body: { origins: ["https://at-once.example"], signature: false, displayName: "Atomic" },
     });
     expect(response.statusCode).toBe(201);
     const created = (json(response) as { merchant: { merchantId: string } }).merchant.merchantId;
@@ -123,12 +123,12 @@ describe("an action and its audit entry are one fact (SC-001)", () => {
     // the entry an operator goes looking for. The action wrote nothing; the entry is the whole record.
     app = await boot();
     const first = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://taken.example"], signature: false },
+      body: { origins: ["https://taken.example"], signature: false, displayName: "Atomic" },
     });
     expect(first.statusCode).toBe(201);
 
     const clash = await admin(app.app, "POST", "/v1/admin/merchants", {
-      body: { origins: ["https://taken.example"], signature: false },
+      body: { origins: ["https://taken.example"], signature: false, displayName: "Atomic" },
     });
     expect(clash.statusCode).toBe(422);
 

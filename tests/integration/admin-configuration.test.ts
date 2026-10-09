@@ -131,7 +131,7 @@ describe("a merchant without a version (scenario 1)", () => {
   it("decides with the defaults and the platform of the release and stamps the two versions, without a merchant one", async () => {
     const created = json(
       await admin(app.app, "POST", "/v1/admin/merchants", {
-        body: { origins: ["https://new.example"], signature: false },
+        body: { origins: ["https://new.example"], signature: false, displayName: "Nueva" },
       }),
     ) as { merchant: { merchantId: string }; credentials: { ingestKey: string } };
     const id = created.merchant.merchantId;

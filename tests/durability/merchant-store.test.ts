@@ -8,7 +8,7 @@
 // and `JSON.parse` does not return classes, so this suite asks `allowsOrigin` and the lookup by
 // fingerprint rather than the listing.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Merchant } from "../../src/domain/merchant/index.js";
+import { Merchant, MerchantProfile } from "../../src/domain/merchant/index.js";
 import { asMerchantId, hours } from "../../src/domain/shared-kernel/index.js";
 import { memoryMerchantStore, sqliteMerchantStore } from "../../src/interface-adapters/merchant/index.js";
 import { fingerprintOf, testMerchant } from "../helpers/merchants.js";
@@ -167,6 +167,48 @@ describe("the merchants across a restart", () => {
       ingestKeys: ["key-10"],
     });
     expect(await after.create(other)).toEqual({ ok: true, value: undefined });
+  });
+
+  // Feature 041 (ADR-045): the identity travels inside the document — no column, no migration.
+  it("keeps the identity of a merchant across a restart, as a class, and a document without one still rehydrates", async () => {
+    const profile = MerchantProfile.of({
+      displayName: "Tienda Once",
+      storeUrl: "https://once.example/tienda",
+      contact: { name: "Ana", email: "ana@once.example", phone: "+54 11 5555", role: "owner" },
+      notes: "Pilot.",
+    });
+    if (!profile.ok) throw new Error(profile.error.message);
+    const named = testMerchant({
+      merchantId: "m_once",
+      origins: ["https://once.example"],
+      ingestKeys: ["key-11"],
+    }).withProfile(profile.value);
+    await merchants().create(named);
+    // A merchant written before ADR-045: its document has no `profile` at all.
+    const old = testMerchant({
+      merchantId: "m_doce",
+      origins: ["https://doce.example"],
+      ingestKeys: ["key-12"],
+    });
+    await merchants().create(old);
+
+    fixture.restart();
+
+    const after = merchants();
+    const found = await after.get(asMerchantId("m_once"));
+    expect(found?.profile).toBeInstanceOf(MerchantProfile);
+    expect(found?.profile?.record()).toEqual(profile.value.record());
+    expect(found?.allowsOrigin("https://once.example")).toBe(true);
+    const plain = await after.get(asMerchantId("m_doce"));
+    expect(plain?.profile).toBeUndefined();
+    expect((await after.findByIngestKey(fingerprintOf("key-12"), NOW))?.merchantId).toBe("m_doce");
+    // And replacing it after the restart is written, not only indexed.
+    const renamed = MerchantProfile.of({ displayName: "Doce" });
+    if (!renamed.ok) throw new Error(renamed.error.message);
+    if (plain === undefined) throw new Error("m_doce is missing");
+    await after.update(plain.withProfile(renamed.value));
+    fixture.restart();
+    expect((await merchants().get(asMerchantId("m_doce")))?.profile?.displayName).toBe("Doce");
   });
 
   it("degrades instead of throwing when the store cannot accept a write", async () => {

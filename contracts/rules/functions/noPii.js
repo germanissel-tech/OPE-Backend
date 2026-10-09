@@ -37,43 +37,64 @@ function message(name) {
   return `'${name}' is a forbidden personal datum (contracts/rules/pii-denylist.json). OPE stores no identifying information: remove the property or replace it with a pseudonymous key.`;
 }
 
-/** The one way a schema may carry a denied name: declared on the schema itself, with its reason (ADR-044). */
+/** The one way a schema may carry a denied name: declared on the schema itself, with its reason (ADR-044, ADR-045). */
 const EXCEPTION = "x-personal-datum";
 
 /**
- * The exception a schema declares: `x-personal-datum: { property, reason }`. It travels with the
- * schema wherever the resolved document repeats it, which is why it lives there and not in the
- * ruleset. A malformed one is reported at the schema and allows nothing.
+ * One entry of the exception: the property it excuses, declared by this schema, with its reason.
  * @param {Record<string, unknown>} schema
- * @param {(string | number)[]} at
- * @param {SpectralResult[]} results
- * @returns {string | undefined} the property it excuses
+ * @param {unknown} entry
+ * @param {(string | number)[]} at where the entry is
+ * @returns {{ property: string } | { problem: string }}
  */
-function exceptionOf(schema, at, results) {
-  const raw = schema[EXCEPTION];
-  if (raw === undefined) return undefined;
-  const property = get(raw, "property");
-  const reason = get(raw, "reason");
+function entryOf(schema, entry, at) {
+  const property = get(entry, "property");
+  const reason = get(entry, "reason");
   if (typeof property !== "string" || property.trim() === "") {
-    results.push({ message: `${EXCEPTION} names the one property it excuses.`, path: [...at, EXCEPTION] });
-    return undefined;
+    return { problem: `${EXCEPTION} names the property it excuses (at ${at.join("/")}).` };
   }
   if (typeof reason !== "string" || reason.trim() === "") {
-    results.push({
-      message: `${EXCEPTION} (${property}) is written with its reason.`,
-      path: [...at, EXCEPTION],
-    });
-    return undefined;
+    return { problem: `${EXCEPTION} (${property}) is written with its reason.` };
   }
   const properties = get(schema, "properties");
   if (!properties || typeof properties !== "object" || !(property in properties)) {
+    return { problem: `${EXCEPTION} excuses '${property}', which this schema does not declare.` };
+  }
+  return { property };
+}
+
+/**
+ * The exception a schema declares: `x-personal-datum`, one `{ property, reason }` or a list of them
+ * (ADR-045: a contact carries a name, an email and a phone). It travels with the schema wherever the
+ * resolved document repeats it, which is why it lives there and not in the ruleset. A malformed entry
+ * is reported at the schema and excuses nothing; an empty list is a malformed exception.
+ * @param {Record<string, unknown>} schema
+ * @param {(string | number)[]} at
+ * @param {SpectralResult[]} results
+ * @returns {Set<string>} the properties it excuses
+ */
+function exceptionOf(schema, at, results) {
+  const raw = schema[EXCEPTION];
+  /** @type {Set<string>} */
+  const excused = new Set();
+  if (raw === undefined) return excused;
+  const entries = Array.isArray(raw)
+    ? raw.map((entry, i) => [entry, [...at, EXCEPTION, i]])
+    : [[raw, [...at, EXCEPTION]]];
+  if (entries.length === 0) {
     results.push({
-      message: `${EXCEPTION} excuses '${property}', which this schema does not declare.`,
+      message: `${EXCEPTION} is a list with nothing in it: excuse a property or remove it.`,
       path: [...at, EXCEPTION],
     });
-    return undefined;
+    return excused;
   }
-  return property;
+  for (const [entry, where] of entries) {
+    const read = entryOf(schema, entry, /** @type {(string | number)[]} */ (where));
+    if ("problem" in read)
+      results.push({ message: read.problem, path: /** @type {(string | number)[]} */ (where) });
+    else excused.add(read.property);
+  }
+  return excused;
 }
 
 /**
@@ -88,7 +109,7 @@ function deniedProperties(node, at, deny, results) {
   if (!properties || typeof properties !== "object" || Array.isArray(properties)) return;
   const excused = exceptionOf(node, at, results);
   for (const name of Object.keys(properties)) {
-    if (deny.has(name.toLowerCase()) && name !== excused) {
+    if (deny.has(name.toLowerCase()) && !excused.has(name)) {
       results.push({ message: message(name), path: [...at, "properties", name] });
     }
   }

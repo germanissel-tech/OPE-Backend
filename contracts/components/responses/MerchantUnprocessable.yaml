@@ -28,3 +28,14 @@ content:
           errors:
             - pointer: /body/origins/1
               message: An origin already belongs to another merchant.
+      invalid-merchant-profile:
+        summary: invalid-merchant-profile
+        value:
+          type: urn:ope:problem:invalid-merchant-profile
+          title: A field of the merchant identity is not what it says it is
+          status: 422
+          detail: A text of the merchant identity has leading or trailing whitespace.
+          instance: /v1/admin/merchants
+          errors:
+            - pointer: /body/displayName
+              message: A text of the merchant identity has leading or trailing whitespace.

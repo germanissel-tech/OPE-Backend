@@ -1,5 +1,5 @@
 {
-  "_doc": "Property, parameter or header names that can never appear in the contract (constitution VII: OPE stores no identifying information). Case-insensitive comparison. Extending this list is the only way to add a prohibition; the ope-no-pii rule reads it from here. An exception is `x-personal-datum: { property, reason }` declared on the one schema that carries the datum (ADR-044: `displayName` of the operator); `password` in the portal login will be one when that schema exists.",
+  "_doc": "Property, parameter or header names that can never appear in the contract (constitution VII: OPE stores no identifying information). Case-insensitive comparison. Extending this list is the only way to add a prohibition; the ope-no-pii rule reads it from here. An exception is `x-personal-datum: { property, reason }`, or a list of them, declared on the schema that carries the datum (ADR-044: `displayName` of the operator; ADR-045: the merchant contact); `password` in the portal login will be one when that schema exists.",
   "deny": [
     "email",
     "name",

@@ -2,7 +2,13 @@
 // door as the API — the same entity, the same rules, the same store — with the credentials the
 // seed brings (fingerprinted here) on behalf of the system operator. A store that already holds
 // merchants ignores the seed: it is a start, not a source of truth.
-import { Merchant, type MerchantError } from "../../../domain/merchant/index.js";
+import {
+  Merchant,
+  MerchantProfile,
+  type MerchantContactRecord,
+  type MerchantError,
+  type MerchantProfileRecord,
+} from "../../../domain/merchant/index.js";
 import {
   asMerchantId,
   fail,
@@ -22,6 +28,20 @@ export interface MerchantSeed {
   origins: readonly string[];
   platformKeys: readonly string[];
   platformSecrets: readonly string[];
+  /** The identity for people (ADR-045), optional in a seed; judged by the same rules as the API. */
+  displayName?: string | undefined;
+  storeUrl?: string | undefined;
+  contact?: MerchantContactRecord | undefined;
+  notes?: string | undefined;
+}
+
+/** The identity a seed brings, or none: the four fields are what the seed says, as written. */
+export function profileOfSeed(seed: MerchantSeed): MerchantProfileRecord | undefined {
+  const { displayName, storeUrl, contact, notes } = seed;
+  if (displayName === undefined && storeUrl === undefined && contact === undefined && notes === undefined) {
+    return undefined;
+  }
+  return { displayName, storeUrl, contact, notes };
 }
 
 export interface ImportMerchantsRequest {
@@ -68,11 +88,15 @@ export class ImportMerchantsUseCase implements UseCase<ImportMerchantsRequest, I
           ),
         )),
       ];
+      const record = profileOfSeed(seed);
+      const profile = record === undefined ? undefined : MerchantProfile.of(record);
+      if (profile !== undefined && !profile.ok) return fail(profile.error);
       const merchant = Merchant.of({
         merchantId: asMerchantId(seed.merchantId),
         origins: seed.origins,
         credentials,
         createdAt: now,
+        profile: profile?.value,
       });
       if (!merchant.ok) return fail(merchant.error);
       const created = await merchants.create(merchant.value);

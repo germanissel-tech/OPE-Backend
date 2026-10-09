@@ -14,6 +14,7 @@ export type AuditedOperation =
   | "rotatePlatformKey"
   | "rotatePlatformSecret"
   | "setKillSwitch"
+  | "updateMerchantProfile"
   | "publishMerchantConfiguration"
   | "createExperiment"
   | "activateExperiment"

@@ -1,0 +1,69 @@
+put:
+  operationId: updateMerchantProfile
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:write
+  summary: Replace the identity of a merchant
+  description: |
+    The display name, the store URL, the contact and the operator's notes, whole (ADR-045): a field
+    left out is cleared. Origins, status and credentials have operations of their own and are not
+    touched here. A deactivated merchant admits it: the identity belongs to the commercial
+    relationship, not to the operative state. A merchant outside the operator's scope is refused
+    without revealing whether it exists. Audited: who, which operation, which merchant — never the
+    values written.
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MerchantProfileInput.yaml
+        example:
+          displayName: Tienda Norte
+          storeUrl: https://www.tiendanorte.example
+          contact:
+            name: Ana Smith
+            email: ana@tiendanorte.example
+            role: e-commerce manager
+          notes: Pilot since October; weekly call on Tuesdays.
+  responses:
+    "200":
+      description: The merchant as it is now.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Merchant.yaml
+          example:
+            merchantId: mrc_7f3a9c2e1b
+            status: active
+            origins: ["https://www.tiendanorte.example"]
+            createdAt: "2026-10-09T12:00:00Z"
+            credentials:
+              - kind: ingest
+                issuedAt: "2026-10-09T12:00:00Z"
+              - kind: platform
+                issuedAt: "2026-10-09T12:00:00Z"
+            displayName: Tienda Norte
+            storeUrl: https://www.tiendanorte.example
+            contact:
+              name: Ana Smith
+              email: ana@tiendanorte.example
+              role: e-commerce manager
+            notes: Pilot since October; weekly call on Tuesdays.
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "422":
+      $ref: ../components/responses/MerchantProfileUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

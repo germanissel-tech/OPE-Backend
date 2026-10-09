@@ -68,6 +68,9 @@ types:
   - slug: invalid-origin
     status: 422
     title: A registered origin is not scheme://host[:port]
+  - slug: invalid-merchant-profile
+    status: 422
+    title: A field of the merchant identity is not what it says it is
   - slug: invalid-platform-secret
     status: 500
     title: A platform signing secret is empty or collides with a key

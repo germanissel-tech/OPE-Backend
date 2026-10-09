@@ -88,4 +88,40 @@ npm run release-check && npm run contract:check && npm run test:all
 
 ## Lo corrido
 
-_(se completa al implementar, con fecha)_
+### 2026-10-09 — tramos 1 y 2 (contrato y servidor)
+
+Lo que difirió del plan, y por qué:
+
+- **El caso de aislamiento de la edición vive en `tests/integration/admin-merchants.test.ts`**, junto
+  a los de alcance de las demás operaciones del merchant (escenarios 5 y 6), y no en
+  `isolation.test.ts`, que cubre el aislamiento de los datos de los visitantes. Es donde ya estaban
+  sus hermanos.
+- **Un helper compartido para «el merchant como quedó»** (`merchantResponse` en el presentador):
+  `check:duplication` detectó que el controller nuevo repetía seis líneas del de desactivación, así
+  que las dos operaciones que responden con el merchant entero usan la misma respuesta.
+- **El esquema JSON de la semilla y el contrato dicen lo mismo a mano** (largos y formato del
+  contacto): la semilla no sale del contrato, como ya pasa con sus demás campos.
+- **Las pruebas y los ejemplos no llevan nombres en castellano**: `check:language` los detecta; los
+  ejemplos del contrato y de las pruebas usan nombres en inglés.
+- **El texto del diff**, tal como `contract:diff` lo reporta:
+  `error [new-required-request-property] … in API POST /v1/admin/merchants: added the new required
+request property displayName` → `Incompatible change accepted: the contract is building
+(info.x-stability: building, 1.13.0); remove the mark before the first pilot.`
+
+§2 corrido contra `npm run dev` (reiniciado a mano: el watcher de `tsx` había quedado sin servidor
+tras una tanda de recargas): alta con nombre y URL → `201` con los dos en `merchant`; alta sin nombre
+→ `400` con `errors: [{ pointer: "/body/displayName" }]` del validador; edición completa → `200` con
+el contacto y las notas y sin `storeUrl`; `" Tienda "` → `422 invalid-merchant-profile` con
+`/body/displayName`; `"https://"` → `422` con `/body/storeUrl`; el registro del merchant tiene las
+entradas `updateMerchantProfile` con operador, resultado y código, sin ningún valor; y el registro del
+servidor no contiene el nombre ni el email del contacto. La identidad sobrevivió el reinicio del
+servidor (el `dev-merchant` del almacén de desarrollo ya traía una, escrita por `test:contract`, que
+comparte el almacén durable: no es la de la semilla, que sólo entra en un almacén vacío).
+
+Gates: `format:check`, `quality` (8 gates), `typecheck`, `npm test`, `test:durability`, `arch`,
+`contract:check` (diff reportado y aceptado), `test:contract` (schemathesis, 0 fallos) en verde. Mutación del diff: 169 mutantes en 10 archivos, tres
+sobrevivieron —la comprobación de `hostname` de la URL de la tienda, inalcanzable porque el parser ya
+rechaza un `https://` sin host, y dos veces la guarda «sin ningún campo, sin identidad» de la semilla,
+que ninguna prueba distinguía de una identidad vacía— y se resolvieron borrando la comprobación y
+afirmando que una semilla sin identidad importa un merchant sin ella; re-juzgadas esas líneas, todo
+mutante muere.

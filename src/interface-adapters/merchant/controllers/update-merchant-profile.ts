@@ -1,22 +1,23 @@
-// deactivateMerchant (ADR-031): path → use case → 200 with the merchant deactivated.
+// updateMerchantProfile (ADR-045): body → use case → 200 with the merchant as it is now.
 import { merchantIdOf } from "../../http/boundary.js";
 import { operatorOf } from "../../http/security/principal.js";
-import { merchantResponse } from "../presenters.js";
+import { merchantResponse, profileOf } from "../presenters.js";
 import type {
-  DeactivateMerchantRequest,
-  DeactivateMerchantResponse,
+  UpdateMerchantProfileRequest,
+  UpdateMerchantProfileResponse,
 } from "../../../application/merchant/index.js";
 import type { Clock, UseCase } from "../../../application/shared-kernel/index.js";
 import type { OperationHandler } from "../../http/typed.js";
 
-export function makeDeactivateMerchant(
-  deactivateMerchant: UseCase<DeactivateMerchantRequest, DeactivateMerchantResponse>,
+export function makeUpdateMerchantProfile(
+  updateMerchantProfile: UseCase<UpdateMerchantProfileRequest, UpdateMerchantProfileResponse>,
   clock: Clock,
-): OperationHandler<"deactivateMerchant"> {
+): OperationHandler<"updateMerchantProfile"> {
   return async (req) => {
-    const result = await deactivateMerchant.execute({
+    const result = await updateMerchantProfile.execute({
       actor: operatorOf(req),
       merchantId: merchantIdOf(req.path),
+      profile: profileOf(req.body),
     });
     return merchantResponse(result, req.instance, clock.now());
   };
