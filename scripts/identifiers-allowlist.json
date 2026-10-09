@@ -78,25 +78,5 @@
   {
     "identifier": "multipleOf",
     "reason": "JSON Schema keyword, not an identifier of the system; ADR-035 names it to discard it."
-  },
-  {
-    "identifier": "X-Request-Id",
-    "reason": "Header ADR-044 (propuesta) decides before feature 040 builds it; the entry leaves with the feature's documentation stage."
-  },
-  {
-    "identifier": "requestId",
-    "reason": "ProblemDetails member ADR-044 (propuesta) decides before feature 040 builds it; the entry leaves with the feature's documentation stage."
-  },
-  {
-    "identifier": "getOperator",
-    "reason": "Operation ADR-044 (propuesta) decides before feature 040 builds it; the entry leaves with the feature's documentation stage."
-  },
-  {
-    "identifier": "displayName",
-    "reason": "Operator field ADR-044 (propuesta) decides before feature 040 builds it; the entry leaves with the feature's documentation stage."
-  },
-  {
-    "identifier": "x-identifies-principal",
-    "reason": "Contract extension ADR-044 (propuesta) decides before feature 040 builds it; the entry leaves with the feature's documentation stage."
   }
 ]

@@ -106,10 +106,13 @@ la constitución VII («MUST NOT registrarse nunca: nombre»), no la herramienta
 
 **Decisión.** Dos cosas, para que la herramienta diga lo mismo que la constitución enmendada:
 `displayName` **entra a la lista** (es un nombre, y en cualquier otro esquema sería el dato que VII
-prohíbe), y el lint gana una **excepción acotada** declarada en el ruleset —`functionOptions.allow`
-con el camino `components.schemas.Operator.properties.displayName` y la razón («el operador es una
-persona identificada y auditada; constitución VII v1.5.0»)— que `noPii` honra. Fixture: `displayName`
-en el esquema de un merchant sigue fallando; en el del operador, no.
+prohíbe), y el lint gana una **excepción acotada** con nombre y razón que `noPii` honra. Se planeó en
+el ruleset (`functionOptions.allow` con un camino); **al implementar se movió al esquema**
+(`x-personal-datum: { property: displayName, reason }` en `Operator.yaml`): Spectral recorre el
+documento resuelto, donde el esquema del operador aparece copiado bajo cada operación que lo responde,
+y una marca sobre el esquema viaja con cada copia mientras que una lista de caminos tendría que
+nombrarlas una por una. Fixtures: `displayName` en el esquema de un merchant sigue fallando; en el del
+operador, no; una marca sin razón, falla.
 
 **Dónde vive el nombre.** `OperatorRecord` gana `displayName?: string`; `Operator.of` lo valida (no
 vacío, sin espacios en los bordes, largo máximo razonable); el parser de `operators-config.ts` lo

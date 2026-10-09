@@ -177,20 +177,20 @@ la copie sin emitir nada.
 **Purpose**: que lo decidido quede escrito donde se busca, y que la constitución diga lo que el lint y el
 código ya hacen.
 
-- [ ] T027 [US2] `.specify/memory/constitution.md` — VII acotada a las personas observadas (visitante
+- [x] T027 [US2] `.specify/memory/constitution.md` — VII acotada a las personas observadas (visitante
       y comprador) con el operador como persona identificada, autenticada y auditada cuyo nombre para
       mostrar se sirve sólo a él; versión **1.5.0**, `Last Amended` 2026-10-09, Sync Impact Report al
       tope (MINOR; la fuente del MVP no cambia de decisión; plantillas sin cambio); `check:instructions`
       e `identifiers` en verde
-- [ ] T028 [P] `docs/adr/044-el-contrato-para-consumidores.md` — `estado: aceptada`; `docs/adr/031-…`
+- [x] T028 [P] `docs/adr/044-el-contrato-para-consumidores.md` — `estado: aceptada`; `docs/adr/031-…`
       gana la nota fechada «el operador tiene nombre para mostrar (feature 040)»;
       `scripts/identifiers-allowlist.json` **pierde** las cinco entradas de la 040 (ya existen)
-- [ ] T029 [P] [US2] `docs/dominio/operador.md` — el nombre para mostrar, y que no entra al registro;
+- [x] T029 [P] [US2] `docs/dominio/operador.md` — el nombre para mostrar, y que no entra al registro;
       `check:glossary` en verde
-- [ ] T030 [P] `CLAUDE.md` — sólo si alguna tabla nombra qué genera `contract:types` o las muletas;
+- [x] T030 [P] `CLAUDE.md` — sólo si alguna tabla nombra qué genera `contract:types` o las muletas;
       `.claude/rules/contrato.md` — la viñeta de `x-required-capabilities` dice la excepción de
       `x-identifies-principal`, y la de `x-invariants` nombra `pointer`
-- [ ] T031 `specs/040-el-contrato-para-consumidores/quickstart.md` — «Lo corrido» con fecha, incluido
+- [x] T031 `specs/040-el-contrato-para-consumidores/quickstart.md` — «Lo corrido» con fecha, incluido
       lo que difirió; `spec.md` con **Status**: construida; en verde `npm run release-check`,
       `npm run contract:check`, `npm run test:durability` y `npm run test:all`
 

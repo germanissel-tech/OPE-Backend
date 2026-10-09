@@ -143,3 +143,23 @@ Lo que difirió del plan, y por qué:
 `npm run contract:sync` copia los ocho sin emitir nada y `npx ope-check` pasa sus 8 comprobaciones
 (34 operaciones `admin`, 33 esquemas de pedido). `npm test`, `test:tools` (cambió una librería de la
 cadena), `quality` y `contract:check` en verde.
+
+### 2026-10-09 — tramo 4 (los documentos) y cierre
+
+- Constitución **1.5.0**: VII gana la viñeta que acota a quién protege (las personas observadas) y
+  deja al operador como persona identificada y auditada con nombre para mostrar; Sync Impact Report
+  al tope, la fuente del MVP no cambia de decisión.
+- ADR-044 **aceptada**, con dos precisiones de lo construido: el `sha256` es el de la copia del bundle
+  (lleva cabecera) y la excepción del lint vive en el esquema (`x-personal-datum`). ADR-031 gana la
+  nota fechada del nombre para mostrar; `docs/dominio/operador.md` lo describe.
+- `scripts/identifiers-allowlist.json` pierde las cinco entradas provisorias de la 040: lo que
+  nombraban ya existe en el contrato y en el código.
+- `.claude/rules/contrato.md`: la viñeta de `x-invariants` dice `pointer` y la de
+  `x-required-capabilities` dice la excepción de `x-identifies-principal`. `CLAUDE.md` no nombra qué
+  genera `contract:types` ni las muletas: sin cambio.
+- `plan.md` y `research.md` dejan de decir `functionOptions.allow` donde lo construido es
+  `x-personal-datum`, con el motivo.
+
+Cierre: `release-check` OK (con las dos advertencias de siempre: el PROPUESTO del portal en ADR-020 y
+la marca `building` del contrato), `contract:check` en verde, y `npm run test:all` —los cuatro
+proyectos, durabilidad y mediciones incluidas— en verde: 228 archivos, 2043 pruebas, 0 fallos.

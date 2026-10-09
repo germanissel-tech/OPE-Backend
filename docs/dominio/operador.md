@@ -18,3 +18,9 @@ merchants (`*`) o una lista. Una operación sobre un merchant fuera del alcance 
 como `merchant-out-of-scope` sin revelar si el merchant existe, y queda en el registro de
 administración. No es el merchant (que no se administra a sí mismo en el MVP) ni una persona
 del portal.
+
+Puede tener un **nombre para mostrar** (`displayName`, feature 040; ADR-044): lo que el operador
+ve como su nombre en el panel, opcional en la configuración de operadores y servido sólo a él por
+`getOperator`. No es un identificador —el registro de administración sigue indexado por
+`operatorId` y no lo lleva— y es el único dato personal del contrato: el operador es una persona
+identificada y auditada, no una de las que la constitución VII (1.5.0) observa.

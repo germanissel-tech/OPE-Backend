@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Construida (2026-10-09)
 
 **Input**: Lo que OPE-Web le pide al backend, escrito en los planes de sus features 005
 (`specs/005-la-base-de-ope/plan.md`, «Dependencia con OPE-Backend: la feature 040») y 006

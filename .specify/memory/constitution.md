@@ -1,4 +1,22 @@
 <!--
+Sync Impact Report (1.5.0, 2026-10-09)
+- Version change: 1.4.5 → 1.5.0 (MINOR: VII gana una viñeta que acota a quién protege; ningún
+  principio cambia de sentido para las personas que ya protegía).
+- Modified sections: VII — decía «OPE observa comportamiento, no personas» sin decir qué personas.
+  Las protegidas son las **observadas**: el visitante y el comprador. El operador de OPE es otra
+  cosa —una persona identificada, autenticada y auditada por su identificador (ADR-031)— y desde la
+  feature 040 puede tener un nombre para mostrar (`displayName`) que se sirve sólo a él y no entra en
+  ningún registro ni en ninguna decisión (ADR-044). El lint de datos personales lo prohíbe en todo
+  esquema del contrato salvo en el del operador, donde la excepción se declara con nombre y razón
+  (`x-personal-datum`), y los consumidores `public`, `sdk`, `platform` y `portal` siguen sin ningún
+  dato personal.
+- No requiere cambio en los documentos del MVP: 01 §10.2 enumera lo que no se registra del visitante
+  y del comprador; el operador no aparece ahí porque no es una persona observada, y la fuente no
+  cambió de decisión (cláusula de Governance).
+- Templates: sin cambios.
+-->
+
+<!--
 Sync Impact Report (1.4.5, 2026-10-04)
 - Version change: 1.4.4 → 1.4.5 (PATCH: redacción de una viñeta de X; ningún principio cambia de
   sentido).
@@ -261,6 +279,13 @@ Cuatro identidades, cuatro propósitos. Colapsarlas es la fuente de errores más
 - La frase autorizada es "OPE no almacena información identificatoria". MUST NOT afirmarse en
   código, docs ni API que "no maneja datos personales".
 - Retención configurable por merchant; plazos exactos pendientes de D5.
+- Las personas que este principio protege son las **observadas**: el visitante y el comprador
+  (1.5.0, ADR-044). El operador de OPE es una persona **identificada, autenticada y auditada** por
+  su identificador (ADR-031) y MAY tener un nombre para mostrar (`displayName`) que se sirve **sólo
+  a él** y MUST NOT entrar en ningún registro ni en ninguna decisión. El lint de datos personales
+  del contrato lo prohíbe en todo esquema salvo en el del operador, donde la excepción se declara
+  con nombre y razón (`x-personal-datum`); los consumidores `public`, `sdk`, `platform` y `portal`
+  no llevan ningún dato personal.
 
 ### VIII. Cero modelos de lenguaje en runtime
 
@@ -417,4 +442,4 @@ capacidad.
   D5 (régimen de datos personales), D6 (tamaño de muestra y duración). Se registran en los
   documentos del MVP y se incorporan aquí cuando se cierren.
 
-**Version**: 1.4.5 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-04
+**Version**: 1.5.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-09

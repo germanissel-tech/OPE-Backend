@@ -1,7 +1,7 @@
 ---
 numero: 044
 titulo: El contrato para consumidores — artefactos emitidos, identificador de pedido y punteros bajo /body
-estado: propuesta
+estado: aceptada
 fecha: 2026-10-09
 fuente: specs/040-el-contrato-para-consumidores/research.md; lo pedido por OPE-Web en specs/005-la-base-de-ope/plan.md y specs/006-el-merchant-completo/plan.md de ese repositorio
 ---
@@ -31,11 +31,15 @@ declara, y no para los dos que el panel más necesita).
    el módulo de capacidades (`capabilities.{js,d.ts}`: operación → capacidades e idempotencia;
    vocabulario del consumidor como unión ordenada), las restricciones de cada cuerpo de pedido
    (`constraints.{js,d.ts}`: la capa 1 de validación) y la identidad (`identity.json`: versión y
-   `sha256` del bundle). **La forma la publica el consumidor**: es la de `contract-artifact.md` y
+   `sha256` **de la copia del bundle**, que lleva cabecera como todo lo generado y es lo que el
+   consumidor hashea). **La forma la publica el consumidor**: es la de `contract-artifact.md` y
    `constraints-artifact.md` de OPE-Web, reproducida en la feature 040. Un consumidor que necesite
    otra cosa la pide; no la emite por su cuenta. Lo emitido es **determinista**: no lleva el commit
    (lo agrega quien copia, leyendo `git`), porque un generado que cambia con `HEAD` no se puede
-   verificar contra lo commiteado.
+   verificar contra lo commiteado. En las restricciones, una `$ref` a un esquema objeto es el nombre
+   de ese objeto, que tiene restricciones propias; una `$ref` a cualquier otra cosa (un string con
+   `enum`) se lee a través y llega como el campo que es: un formulario verifica un valor, no un
+   nombre.
 2. **Toda respuesta lleva `X-Request-Id`, y todo Problem Details lleva `requestId`**, con el
    identificador que el servidor acuña y escribe como `reqId` en sus registros. Es el mismo valor en
    los tres lugares, y **es del servidor**: un `X-Request-Id` que venga en el pedido no se adopta,
@@ -57,8 +61,11 @@ declara, y no para los dos que el panel más necesita).
    operadores y se sirve sólo a él, por `getOperator`. La constitución VII se acota a las personas
    observadas (1.5.0): el operador es una persona identificada, autenticada y auditada por su
    identificador, no por el nombre, que no entra en ningún registro. La lista de datos personales
-   del contrato **gana** `displayName`, y el lint lleva una sola excepción, con nombre y razón, para
-   el esquema del operador bajo `admin`.
+   del contrato **gana** `displayName`, y el lint lleva una sola excepción, con nombre y razón,
+   **declarada en el esquema del operador** (`x-personal-datum: { property, reason }`) y no en el
+   ruleset: el lint recorre el documento resuelto, donde ese esquema aparece copiado bajo cada
+   operación que lo responde, y una marca sobre el esquema viaja con cada copia; una lista de
+   caminos en el ruleset habría tenido que nombrarlas una por una.
 
 ## Consecuencias
 

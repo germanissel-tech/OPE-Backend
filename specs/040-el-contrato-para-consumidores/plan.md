@@ -129,7 +129,7 @@ contracts/
 ├── components/schemas/ProblemDetails.yaml requestId
 ├── components/schemas/{MerchantCreate,CredentialRotation,*Input}.yaml   x-invariants[].pointer
 ├── components/responses/{Rotation,Merchant}Unprocessable.yaml          ejemplos con /body
-├── .spectral.yaml                         ope-no-pii allow; (las funciones leen las extensiones)
+├── components/schemas/Operator.yaml       x-personal-datum (la excepción vive en el esquema, no en .spectral.yaml; ver research R-05)
 ├── rules/pii-denylist.json                + displayName
 ├── rules/functions/{noPii,requiredCapabilities,invariants}.js
 └── README.md                              filas de x-identifies-principal y pointer

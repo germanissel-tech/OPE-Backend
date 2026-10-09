@@ -202,3 +202,11 @@ Lo que **no** cambia: qué valores existen, el orden de resolución de los tres 
 decisión estampa, y que la configuración efectiva se sirva desde memoria para que el camino de decisión no
 gane I/O. Y la frontera sigue siendo la del hito: la unidad es del **proceso** y una instancia (**D-21**);
 con dos, un cambio no alcanzaría al otro.
+
+---
+
+**Nota del 2026-10-09 (feature 040, ADR-044).** El operador tiene nombre para mostrar: `displayName`,
+opcional en `OPE_ADMIN_OPERATORS` y en `config/dev-operators.json`, validado al arrancar (no vacío, sin
+espacios en los bordes, hasta 80 caracteres) y servido **sólo a él** por `getOperator`. El registro de
+administración sigue indexado por `operatorId` y no lo lleva; la constitución VII (1.5.0) acota su
+protección a las personas observadas y deja al operador como persona identificada y auditada.
