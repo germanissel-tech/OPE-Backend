@@ -152,12 +152,12 @@ la historia que sirve: US1 las publicaciones, US2 la identidad, US3 el reintento
       `docs/adr/README.md` con su fila
 - [x] T024 [P] `docs/dominio/testigo.md` (NUEVO, con la forma de `contacto.md`), y lo que el inventario de
       `docs/dominio/` pida
-- [ ] T025 La cadena: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`,
+- [x] T025 La cadena: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`,
       `npm run test:durability`, `npm run build`, `npm run test:contract`, `npm run release-check`, y
       `npm run test:mutation` a un archivo (sin mutantes vivos en lo nuevo, ADR-016)
-- [ ] T026 El quickstart a mano contra `npm run dev` (los siete pasos), con «Lo corrido» fechado; romper a
+- [x] T026 El quickstart a mano contra `npm run dev` (los siete pasos), con «Lo corrido» fechado; romper a
       propósito lo de la tabla «Romperle algo»
-- [ ] T027 `spec.md`: **Status**: Construida. Commit: `docs(043): cierre — ADR-046, lo corrido y el estado`.
+- [x] T027 `spec.md`: **Status**: Construida. Commit: `docs(043): cierre — ADR-046, lo corrido y el estado`.
       Push y PR, con la base en `main` después de que entre la 042
 
 ---

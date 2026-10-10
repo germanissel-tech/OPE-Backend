@@ -39,4 +39,45 @@ Con el token del operador de desarrollo (`README.md`):
 
 ## Lo corrido
 
-_(se completa al implementar, con fecha, tramo por tramo)_
+**El dominio (2026-10-10)** · La revisión del merchant y su testigo. Un cambio que no cambia nada —desactivar
+uno desactivado, el interruptor donde ya está— devuelve el mismo merchant y no sube la revisión. Durabilidad:
+la revisión sobrevive un reinicio y un documento viejo lee `0`.
+
+**El contrato y el servidor (2026-10-10)** · `contract:diff` de la `1.15.0`: 12 cambios, cuatro
+`new-required-request-parameter` (el `If-Match` de las cuatro escrituras) y ocho respuestas nuevas (`412` y
+`428` en cada una); «Incompatible change accepted: the contract is building». Las pruebas existentes que
+publican o editan pasan sin tocarlas: el helper `admin()` lee el recurso y manda su `ETag`. Dos pruebas de
+alcance ganaron un testigo para seguir siendo sobre el alcance: sin él, el validador responde `428` antes de
+mirar el alcance, que es la forma del pedido y no dice nada del recurso.
+
+**El cierre (2026-10-10)** · `test:contract` falló primero en dos chequeos de Schemathesis que no conocen el
+testigo: «missing header not rejected» (esperaba un `400` y la respuesta es `428`) y «API rejected
+schema-compliant request» (el testigo que genera nunca es el actual, y la respuesta es `412`). Se declararon
+en `scripts/schemathesis.toml`. Cargar ese archivo hizo que Schemathesis empezara a contar como fallas los
+`422` de las invariantes (ADR-007), que sin archivo no contaba: el archivo también lo declara, para todo el
+contrato. Después, 17 743 casos generados y todos pasan.
+
+Contra `npm run dev`:
+
+1. `GET /v1/admin/platform-configuration` → `ETag: "platform-248"`.
+2. Sin `If-Match` → `428 witness-required`, sin `ETag`.
+3. Con `If-Match: "platform-248"` → `201`, `ETag: "platform-249"`.
+4. Otro cambio con el testigo viejo → `412 stale-version`; rige la 249.
+5. El cuerpo del paso 3 con el testigo viejo → `200`, la 249.
+6. «Tienda Sur» estaba desactivada y el interruptor respondió `409`, así que la edición con el testigo de antes
+   **entró** y reemplazó su identidad por sólo el nombre (dato del almacén de desarrollo). Repetido con un
+   merchant nuevo, «Tienda Testigo» (`mrc_7lignrazujar`): `ETag: "mrc_7lignrazujar:1"` al crearlo, `:2` al
+   apagarlo; con el testigo `:1`, la misma identidad → `200` sin escribir, otra → `412`; con `:2` → `200` y
+   `:3`.
+7. La configuración de «Tienda Sur»: `ETag: "mrc_zejvsaiyuqgi:configuration:5"`; publicar con él → `201` y
+   `:6`; otro cambio con el viejo → `412`.
+
+La mutación del diff juzgó todo y dejó 17 supervivientes, todos reales. Diez estaban en `MerchantProfile.sameAs`:
+cada uno hacía que dos identidades distintas se leyeran iguales, y una edición con testigo viejo habría
+respondido `200` sin escribir en vez de `412`. Los mató una prueba campo por campo. Los de `validationFail`
+se mataron extrayendo la decisión a `problemOfMissing`, pura y probada por su cuenta, y afirmando el
+`instance` del `428`. El último, el `[]` de una operación sin parámetros, era equivalente y se quitó
+reestructurando (`parameters?.find`). La confirmación acotada sobre esos archivos: todos los mutantes murieron.
+Rotas a propósito, las de la tabla las agarra su prueba: un método del merchant que no suba la revisión, el
+testigo de la configuración sin el merchant, el testigo antes de la repetición o antes del alcance, y
+`validationFail` sin la extensión.

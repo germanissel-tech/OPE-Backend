@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Borrador
+**Status**: Construida (2026-10-10)
 
 **Input**: Pedido de OPE-Web, con evidencia de su feature 008 (la configuración versionada): publicar la
 configuración arrastra lo que no se edita de la versión que rigió al abrir la pantalla, y si otro operador
