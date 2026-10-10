@@ -104,8 +104,8 @@ afirmar algo viejo es la frescura **por variante** de R-04, que calla cada varia
 Un merchant que refresca pocas variantes muy seguido llega al nivel 2 y sólo esas variantes hablan de stock y precio.
 
 **Lo que se descartó.** Contar sólo los ciclos completos del lote: el `push` parcial no tiene ciclo, y el nivel
-quedaría en 1 para un merchant que refresca en minutos lo que cambia. **PROPUESTO**, porque cambia lo que el nivel
-significa para un merchant con `push` parcial; se confirma con el dueño en la revisión del plan.
+quedaría en 1 para un merchant que refresca en minutos lo que cambia. **DECIDIDO** con el dueño el 2026-10-10, sabiendo que cambia
+lo que el nivel significa para un merchant con `push` parcial.
 
 ## R-06 — El aviso tiene su propia credencial, y entra a una cola durable
 

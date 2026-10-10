@@ -99,8 +99,8 @@ módulo, un caso de uso de catálogo, dos de plataforma, un decorador; tres tabl
   verifica.
 
 **Resultado: pasa.** El cambio incompatible de los contenidos de los niveles es el mismo caso que la 041 y la 043
-resolvieron con `building`. Re-evaluado después del diseño de la fase 1: igual. Queda un punto **PROPUESTO** para
-el dueño: que cada refresco cuente como recepción del nivel de sincronización (R-05).
+resolvieron con `building`. Re-evaluado después del diseño de la fase 1: igual. Que cada refresco cuente como
+recepción del nivel de sincronización (R-05) lo decidió el dueño el 2026-10-10.
 
 ## Project Structure
 
