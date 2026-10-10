@@ -3,7 +3,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.13.0
+  version: 1.14.0
   x-stability: building
   description: |
     HTTP API of the OPE backend. This document is the single source of truth for every HTTP
@@ -5756,6 +5756,10 @@ components:
           status: 422
           rule: every declared value satisfies the invariants of its type (rates 0..1, increasing ladder, ceiling at or above the steps, language tags by shape, closed vocabularies) once resolved over the treatment defaults
           description: 'Nothing invalid becomes a version: the pointer names the field (constitution XI, FR-014).'
+    ExperimentId:
+      type: string
+      description: Identifier of an experiment, minted by OPE when the operator opens it.
+      pattern: ^[A-Za-z0-9_-]{8,64}$
     MerchantConfigurationVersion:
       type: object
       description: 'A published version of a merchant''s configuration (01 §14.2): numbered, immutable, with who published it and why.'
@@ -5786,6 +5790,12 @@ components:
           description: Instant of publication.
         operatorId:
           $ref: '#/components/schemas/OperatorId'
+        windowsRestarted:
+          type: array
+          description: 'The experiment whose measurement window this version restarted, when it was corrective: the active one of this merchant, if the change reached it. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none.'
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ExperimentId'
     MerchantConfigurationVersionPage:
       type: object
       description: A page of a merchant's configuration versions, newest first.
@@ -5802,10 +5812,6 @@ components:
           type: string
           description: Cursor of the next page; absent on the last page.
           maxLength: 512
-    ExperimentId:
-      type: string
-      description: Identifier of an experiment, minted by OPE when the operator opens it.
-      pattern: ^[A-Za-z0-9_-]{8,64}$
     ExperimentStatus:
       type: string
       description: 'The state of an experiment (03 §4.10, D-G): `calibrating` — visitors are assigned and OPE decides, every decision is marked as calibration and counts for nothing, the configuration still moves; `active` — the accumulation window runs and the configuration is frozen (only a corrective version enters, restarting the window); `closed` — terminal: nobody new is assigned, what was recorded stays.'
@@ -6208,7 +6214,7 @@ components:
           $ref: '#/components/schemas/OperatorId'
         windowsRestarted:
           type: array
-          description: 'The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed.'
+          description: 'The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none.'
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ExperimentId'
@@ -6407,7 +6413,7 @@ components:
           $ref: '#/components/schemas/OperatorId'
         windowsRestarted:
           type: array
-          description: 'The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed.'
+          description: 'The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none.'
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ExperimentId'
@@ -6544,7 +6550,7 @@ components:
           $ref: '#/components/schemas/OperatorId'
         windowsRestarted:
           type: array
-          description: 'The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches.'
+          description: 'The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none.'
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ExperimentId'

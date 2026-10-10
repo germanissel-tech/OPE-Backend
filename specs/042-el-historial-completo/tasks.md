@@ -31,12 +31,12 @@ del merchant por número.
 operación nueva entra en el tramo 4, con quien la sirve: `bootstrap` se niega a arrancar si el
 contrato declara una operación que ningún módulo sirve, y un commit no entra sin las pruebas en verde.
 
-- [ ] T001 [P] [US1] `contracts/components/schemas/MerchantConfigurationVersion.yaml`:
+- [x] T001 [P] [US1] `contracts/components/schemas/MerchantConfigurationVersion.yaml`:
       `windowsRestarted`, opcional, la definición de `PlatformConfigurationVersion` (`uniqueItems`,
       `ExperimentId`), y la descripción de §3
-- [ ] T002 [P] [US1] `PlatformConfigurationVersion.yaml`, `TreatmentDefaultsVersion.yaml`,
+- [x] T002 [P] [US1] `PlatformConfigurationVersion.yaml`, `TreatmentDefaultsVersion.yaml`,
       `TextVersion.yaml`: la descripción de `windowsRestarted` dice que toda lectura lo trae (§4)
-- [ ] T003 `npm run contract:check` en verde, sin cambio incompatible en `contract:diff`; después
+- [x] T003 `npm run contract:check` en verde, sin cambio incompatible en `contract:diff`; después
       `npm run contract:types` (pasos 2 y 3); `info.version: 1.14.0`. Commit:
       `feat(042): el contrato — la versión del merchant declara lo que reinició`
 
