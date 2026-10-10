@@ -127,3 +127,43 @@ describe("Merchant with an identity", () => {
     expect(named.deactivated().profile?.displayName).toBe("Norte");
   });
 });
+
+describe("MerchantProfile.sameAs (feature 043)", () => {
+  // What lets the retry of an edition answer without writing: two identities are the same only when every
+  // field is. A false «same» would answer 200 to a stale edition and lose what the other operator wrote.
+  it("the same identity is the same, whatever order the body listed the fields in", () => {
+    const reordered = valid({
+      notes: full.notes,
+      contact: {
+        role: "e-commerce",
+        phone: "+54 11 5555-0000",
+        email: "ana@tiendanorte.example",
+        name: "Ana Smith",
+      },
+      storeUrl: full.storeUrl,
+      displayName: full.displayName,
+    });
+    expect(valid(full).sameAs(reordered)).toBe(true);
+    expect(valid({ displayName: "Alone" }).sameAs(valid({ displayName: "Alone" }))).toBe(true);
+  });
+
+  it("one field apart is another identity, field by field", () => {
+    const contact = full.contact;
+    if (contact === undefined) throw new Error("the full identity has a contact");
+    const others: MerchantProfileRecord[] = [
+      { ...full, displayName: "Tienda Sur" },
+      { ...full, storeUrl: "https://another.example" },
+      { ...full, notes: "Another note." },
+      { ...full, contact: { ...contact, name: "Beto" } },
+      { ...full, contact: { ...contact, email: "beto@tiendanorte.example" } },
+      { ...full, contact: { ...contact, phone: "+54 11 4444-0000" } },
+      { ...full, contact: { ...contact, role: "owner" } },
+      { ...full, contact: undefined },
+    ];
+    for (const other of others) {
+      expect(valid(full).sameAs(valid(other))).toBe(false);
+      expect(valid(other).sameAs(valid(full))).toBe(false);
+    }
+    expect(valid(full).sameAs(undefined)).toBe(false);
+  });
+});

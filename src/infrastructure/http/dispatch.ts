@@ -88,16 +88,18 @@ const isProblemSlug = (value: unknown): value is ProblemSlug =>
  * which. **Only when it is the sole error**: a request that is also malformed is answered as malformed, with
  * every error, because fixing the witness alone would not make it pass.
  */
-function missingWithItsOwnProblem(c: Context): ProblemSlug | undefined {
-  const errors = c.validation.errors ?? [];
+export function problemOfMissing(
+  errors: readonly ErrorObject[],
+  /** The parameters the operation declares, or none at all. */
+  parameters: readonly unknown[] | undefined,
+): ProblemSlug | undefined {
   const [only] = errors;
   if (errors.length !== 1 || only?.keyword !== "required") return undefined;
   // `params` is Record<string, any> in Ajv: read as unknown and narrowed.
   const params: Record<string, unknown> = only.params;
   const missing = params[MISSING_PROPERTY];
   if (typeof missing !== "string") return undefined;
-  const parameters: readonly unknown[] = c.operation.parameters ?? [];
-  const declared = parameters.find(
+  const declared = parameters?.find(
     (p): p is Record<string, unknown> =>
       typeof p === "object" &&
       p !== null &&
@@ -142,7 +144,7 @@ export function registerSpecialHandlers(runtime: Runtime): void {
   api.register({
     unauthorizedHandler: async (c: Context): Promise<HttpResponse> => securityFailure(c as BoundaryContext),
     validationFail: async (c: Context): Promise<HttpResponse> => {
-      const own = missingWithItsOwnProblem(c);
+      const own = problemOfMissing(c.validation.errors ?? [], c.operation.parameters);
       if (own !== undefined) return toHttp(problem(own, { instance: c.request.path }));
       return toHttp(
         problem("validation-failed", {

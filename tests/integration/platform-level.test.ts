@@ -337,6 +337,7 @@ describe("the witness of a level (feature 043)", () => {
     const blind = await send({ content: { ...content, retryAfterSeconds: 7 } }, null);
     expect(blind.statusCode).toBe(428);
     expect(problemOf(blind).type).toBe("urn:ope:problem:witness-required");
+    expect(problemOf(blind).instance).toBe(URL);
     expect(blind.headers.etag).toBeUndefined();
     expect((await inForce())["version"]).toBe("platform-1");
     // A request that is also malformed is answered as malformed: the witness alone would not fix it.
