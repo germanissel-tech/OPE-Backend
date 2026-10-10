@@ -19,146 +19,182 @@ export declare const OPERATIONS: {
   readonly getOperator: {
     readonly capabilities: readonly []
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly listAdminLog: {
     readonly capabilities: readonly ['log:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly listMerchants: {
     readonly capabilities: readonly ['merchants:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly createMerchant: {
     readonly capabilities: readonly ['merchants:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getMerchant: {
     readonly capabilities: readonly ['merchants:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly deactivateMerchant: {
     readonly capabilities: readonly ['merchants:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly rotateIngestKey: {
     readonly capabilities: readonly ['credentials:rotate']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly rotatePlatformKey: {
     readonly capabilities: readonly ['credentials:rotate']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly rotatePlatformSecret: {
     readonly capabilities: readonly ['credentials:rotate']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly setKillSwitch: {
     readonly capabilities: readonly ['merchants:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly updateMerchantProfile: {
     readonly capabilities: readonly ['merchants:write']
     readonly idempotent: false
+    readonly versioned: true
   }
   readonly listMerchantAdminLog: {
     readonly capabilities: readonly ['log:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getMerchantConfiguration: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly publishMerchantConfiguration: {
     readonly capabilities: readonly ['configuration:write']
     readonly idempotent: true
+    readonly versioned: true
   }
   readonly listConfigurationVersions: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getMerchantConfigurationVersion: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly listExperiments: {
     readonly capabilities: readonly ['experiments:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly createExperiment: {
     readonly capabilities: readonly ['experiments:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly activateExperiment: {
     readonly capabilities: readonly ['experiments:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly closeExperiment: {
     readonly capabilities: readonly ['experiments:write']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly listAnchorDiagnostics: {
     readonly capabilities: readonly ['merchants:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly listUnmappedAttributeValues: {
     readonly capabilities: readonly ['merchants:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getPlatformConfiguration: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly publishPlatformConfiguration: {
     readonly capabilities: readonly ['configuration:write']
     readonly idempotent: true
+    readonly versioned: true
   }
   readonly listPlatformConfigurationVersions: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getPlatformConfigurationVersion: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getTreatmentDefaults: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly publishTreatmentDefaults: {
     readonly capabilities: readonly ['configuration:write']
     readonly idempotent: true
+    readonly versioned: true
   }
   readonly listTreatmentDefaultsVersions: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getTreatmentDefaultsVersion: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly publishText: {
     readonly capabilities: readonly ['texts:write']
     readonly idempotent: true
+    readonly versioned: false
   }
   readonly listTextVersions: {
     readonly capabilities: readonly ['texts:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getTextVersion: {
     readonly capabilities: readonly ['texts:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly publishMerchantText: {
     readonly capabilities: readonly ['texts:write']
     readonly idempotent: true
+    readonly versioned: false
   }
   readonly listMerchantTextVersions: {
     readonly capabilities: readonly ['texts:read']
     readonly idempotent: false
+    readonly versioned: false
   }
   readonly getMerchantTextVersion: {
     readonly capabilities: readonly ['texts:read']
     readonly idempotent: false
+    readonly versioned: false
   }
 }
 export type OperationId = keyof typeof OPERATIONS
