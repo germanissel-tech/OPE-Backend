@@ -123,6 +123,7 @@ describe("CreateExperimentUseCase", () => {
       update: () => Promise.resolve(fail(new StoreUnavailable())),
       get: () => Promise.resolve(undefined),
       listOf: () => Promise.resolve({ items: [] }),
+      all: () => Promise.resolve([]),
     };
     const { create: createDown } = await subject({ store: down });
     const unavailable = await createDown.execute({ actor: all, merchantId: A, ...OPENING });

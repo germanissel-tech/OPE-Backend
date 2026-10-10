@@ -17,12 +17,5 @@ export {
 export { Experiments } from "./experiments.js";
 export type { ExperimentError, ExperimentSetError } from "./errors.js";
 export { EXPERIMENT_STATUSES, Experiment } from "./experiment.js";
-export type {
-  ExperimentInput,
-  ExperimentPhase,
-  ExperimentRecord,
-  ExperimentStatus,
-  RestartSource,
-  TextRestartCause,
-  WindowRestart,
-} from "./experiment.js";
+export type { ExperimentInput, ExperimentPhase, ExperimentRecord, ExperimentStatus } from "./experiment.js";
+export type { RestartSource, TextRestartCause, WindowRestart } from "./window-restart.js";

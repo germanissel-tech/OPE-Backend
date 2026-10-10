@@ -49,23 +49,23 @@ contrato declara una operación que ningún módulo sirve, y un commit no entra 
 **Purpose**: que el módulo de experimentos conteste qué experimentos reinició una versión (research
 R-01 a R-03).
 
-- [ ] T004 [P] [US1] `tests/unit/domain/experiment/` (el archivo de la entidad): `restartedBy` —
+- [x] T004 [P] [US1] `tests/unit/domain/experiment/` (el archivo de la entidad): `restartedBy` —
       verdadero con el mismo `level` y `configurationVersion`; falso con otro número u otro nivel; un
       reinicio de texto no responde por una causa sin texto del mismo número, ni al revés; con texto,
       cuentan `family`, `attributeValue` (ausente en los dos o igual), `locale` y `layer`; un
       experimento sin reinicios, falso
-- [ ] T005 [US1] `src/domain/experiment/experiment.ts`: `restartedBy(source: RestartSource): boolean`,
+- [x] T005 [US1] `src/domain/experiment/experiment.ts`: `restartedBy(source: RestartSource): boolean`,
       con el comentario de la regla (data-model §1)
-- [ ] T006 [P] [US1] `src/application/experiment/ports/experiment-store.ts`: `all()`, que devuelve `readonly Experiment[]` («todo experimento de todo merchant, el más viejo primero»);
+- [x] T006 [P] [US1] `src/application/experiment/ports/experiment-store.ts`: `all()`, que devuelve `readonly Experiment[]` («todo experimento de todo merchant, el más viejo primero»);
       `interface-adapters/experiment/gateways/memory-experiment-store.ts` la implementa; el durable la
       delega en su índice, como `get` y `listOf`
-- [ ] T007 [P] [US1] `tests/unit/application/experiment/`: `WindowRestarts.restartedBy` — encuentra un
+- [x] T007 [P] [US1] `tests/unit/application/experiment/`: `WindowRestarts.restartedBy` — encuentra un
       experimento reiniciado y cerrado después; con `merchantId`, sólo los de ese merchant; sin
       coincidencias, vacío
-- [ ] T008 [US1] `src/application/experiment/services/window-restarts.service.ts`:
+- [x] T008 [US1] `src/application/experiment/services/window-restarts.service.ts`:
       `restartedBy(source, merchantId?)` en la interfaz y en la clase, sobre `experimentStore.all()`;
       exportado por `application/experiment/index.ts`
-- [ ] T009 [P] [US1] `tests/durability/experiment-store.test.ts`: después de reiniciar el almacén,
+- [x] T009 [P] [US1] `tests/durability/experiment-store.test.ts`: después de reiniciar el almacén,
       `all()` trae los experimentos con sus reinicios, y `restartedBy` los encuentra
 
 **Checkpoint**: `npm test` y `npm run test:durability` en verde; la regla, con su mutación.

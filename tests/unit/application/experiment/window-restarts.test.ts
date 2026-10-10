@@ -3,7 +3,7 @@
 // refuses is the failure of the port.
 import { describe, expect, it } from "vitest";
 import { WindowRestarts, type ExperimentStore } from "../../../../src/application/experiment/index.js";
-import { StoreUnavailable, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
+import { StoreUnavailable, asMerchantId, fail, ok } from "../../../../src/domain/shared-kernel/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 import type { Experiment } from "../../../../src/domain/experiment/index.js";
 
@@ -26,6 +26,7 @@ const storeOf = (refuses = false) => {
     },
     get: () => Promise.resolve(undefined),
     listOf: () => Promise.reject(new Error("not listed here")),
+    all: () => Promise.resolve(written),
   };
   return { store, written };
 };
@@ -65,6 +66,34 @@ describe("WindowRestarts", () => {
     });
     expect(done).toEqual({ ok: true, value: undefined });
     expect(written).toEqual([]);
+  });
+
+  it("restartedBy answers the experiments a version restarted, closed later or not (feature 042)", async () => {
+    const { store } = storeOf();
+    const restarts = new WindowRestarts({ experimentStore: store });
+    const cause = { at: AT, reason: "a typo", level: "defaults" as const, version: 2 };
+    await restarts.restart([activeOf("m_a"), activeOf("m_b")], cause);
+    await restarts.restart([activeOf("m_c")], { ...cause, version: 3 });
+
+    const source = { level: "defaults" as const, configurationVersion: 2 };
+    const ids = (found: readonly Experiment[]) => found.map((e) => e.merchantId);
+    expect(ids(await restarts.restartedBy(source))).toEqual(["m_a", "m_b"]);
+    expect(ids(await restarts.restartedBy({ ...source, configurationVersion: 3 }))).toEqual(["m_c"]);
+    expect(await restarts.restartedBy({ ...source, configurationVersion: 9 })).toEqual([]);
+  });
+
+  it("restartedBy for one merchant answers only that merchant's experiments", async () => {
+    const { store } = storeOf();
+    const restarts = new WindowRestarts({ experimentStore: store });
+    // Merchants number their versions one by one: version 1 of m_a and version 1 of m_b are two versions.
+    const cause = { at: AT, reason: "a typo", level: "merchant" as const, version: 1 };
+    await restarts.restart([activeOf("m_a")], cause);
+    await restarts.restart([activeOf("m_b")], cause);
+    const found = await restarts.restartedBy(
+      { level: "merchant", configurationVersion: 1 },
+      asMerchantId("m_b"),
+    );
+    expect(found.map((e) => e.merchantId)).toEqual(["m_b"]);
   });
 
   it("a store that refuses is the failure of the port", async () => {

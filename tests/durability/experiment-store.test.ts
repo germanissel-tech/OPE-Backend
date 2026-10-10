@@ -117,6 +117,29 @@ describe("the experiments across a restart", () => {
     expect(found?.activatedAt).toEqual(later(1000));
   });
 
+  it("answers every experiment after a restart, closed ones included, and the version that restarted each (feature 042)", async () => {
+    const store = experiments();
+    await store.open(opened({ experimentId: "exp_uno", merchantId: "m_uno" }));
+    await store.open(opened({ experimentId: "exp_dos", merchantId: "m_dos" }));
+    const active = (await store.get(asMerchantId("m_dos"), asExperimentId("exp_dos")))?.activated(
+      later(1000),
+    );
+    if (active?.ok !== true) throw new Error("not activated");
+    const restarted = active.value.windowRestarted(later(2000), "corrective", {
+      level: "platform",
+      configurationVersion: 7,
+    });
+    if (!restarted.ok) throw new Error("not restarted");
+    await store.update(restarted.value.closed(later(3000)));
+
+    fixture.restart();
+
+    const every = await experiments().all();
+    expect(every.map((e) => e.experimentId)).toEqual(["exp_uno", "exp_dos"]);
+    const byVersion = every.filter((e) => e.restartedBy({ level: "platform", configurationVersion: 7 }));
+    expect(byVersion.map((e) => [e.experimentId, e.status])).toEqual([["exp_dos", "closed"]]);
+  });
+
   it("judges the set of the merchant against the store, so a second open one is refused after a restart", async () => {
     // At most one open experiment per merchant is an invariant of the set, and after a restart the only
     // thing that knows the merchant already has one is the table.

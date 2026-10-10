@@ -6,7 +6,6 @@ import {
   type ExperimentId,
   type MerchantId,
   type Result,
-  type ConfigurationLevel,
   type VisitorId,
 } from "../shared-kernel/index.js";
 import {
@@ -19,6 +18,7 @@ import {
   TreatmentExceedsHoldout,
   type ExperimentError,
 } from "./errors.js";
+import type { RestartSource, TextRestartCause, WindowRestart } from "./window-restart.js";
 
 /**
  * The states of an experiment: `calibrating → active → closed`, or `calibrating → closed`
@@ -32,36 +32,6 @@ const [CALIBRATING, ACTIVE, CLOSED] = EXPERIMENT_STATUSES;
 
 /** What a decision taken under the experiment is for: nothing (calibration) or the analysis. */
 export type ExperimentPhase = "calibration" | "accumulation";
-
-/** A restart of the accumulation window: a corrective configuration version while active. */
-export interface WindowRestart {
-  at: Date;
-  reason: string;
-  /**
-   * Which level the version that caused the restart belongs to (feature 036): **without it the number
-   * identifies nothing**, because three levels publish and «version 3» would name three different things.
-   */
-  level: ConfigurationLevel;
-  configurationVersion: number;
-  /** The text that caused it (feature 038): then the number is the version of this key in this layer. Absent before. */
-  text?: TextRestartCause | undefined;
-}
-
-/** The key and the layer of a text that restarted a window: plain data, so this module needs nothing of `messages`. */
-export interface TextRestartCause {
-  family: string;
-  attributeValue?: string | undefined;
-  locale: string;
-  /** Whose layer the version belongs to: `base`, or the merchant. */
-  layer: string;
-}
-
-/** What a restart records of its cause: the version of a level, or of a text in a layer. */
-export interface RestartSource {
-  level: ConfigurationLevel;
-  configurationVersion: number;
-  text?: TextRestartCause | undefined;
-}
 
 /** What an operator declares to open an experiment; the instants and the state are the entity's. */
 export interface ExperimentInput {
@@ -87,6 +57,15 @@ export interface ExperimentRecord extends ExperimentInput {
   closedAt?: Date | undefined;
   windowRestarts: readonly WindowRestart[];
 }
+
+/** Two text causes are the same key in the same layer; two absent ones are the same (no text). */
+const sameText = (a: TextRestartCause | undefined, b: TextRestartCause | undefined): boolean =>
+  a === undefined || b === undefined
+    ? a === b
+    : a.family === b.family &&
+      a.attributeValue === b.attributeValue &&
+      a.locale === b.locale &&
+      a.layer === b.layer;
 
 /** Unit separator: no field can imitate another inside the key. */
 const ASSIGNMENT_KEY_SEPARATOR = "\u001f";
@@ -261,6 +240,26 @@ export class Experiment {
   closed(now: Date): Experiment {
     if (this.status === CLOSED) return this;
     return new Experiment({ ...this.record(), status: CLOSED, closedAt: now });
+  }
+
+  /**
+   * Whether a version restarted this experiment's window (feature 042): one of its restarts names that
+   * version as its cause. It is what a reading of the history answers with, instead of a list kept on
+   * the version: the version is written **before** the windows restart, so only the restart says that
+   * it happened.
+   *
+   * **The same level and number are not enough when a text is involved.** A text records the level its
+   * layer reads from and the number of the version of its key, so «defaults, version 3» is also what
+   * the third version of every base text records: the key and the layer have to match too, and a cause
+   * without a text never answers for one with it, nor the other way round.
+   */
+  restartedBy(source: RestartSource): boolean {
+    return this.windowRestarts.some(
+      (restart) =>
+        restart.level === source.level &&
+        restart.configurationVersion === source.configurationVersion &&
+        sameText(restart.text, source.text),
+    );
   }
 
   /**

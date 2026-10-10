@@ -287,6 +287,52 @@ describe("Experiment transitions (03 §4.10)", () => {
     ]);
   });
 
+  it("restartedBy: a restart answers for the version that caused it, and for no other (feature 042)", () => {
+    const active = opened().activated(LATER);
+    if (!active.ok) throw new Error(active.error.message);
+    const text = { family: "fit.policies.reassurance", locale: "es", layer: "m_a" };
+    const restarted = (source: Parameters<Experiment["windowRestarted"]>[2]): Experiment => {
+      const done = active.value.windowRestarted(EVEN_LATER, "r", source);
+      if (!done.ok) throw new Error(done.error.message);
+      return done.value;
+    };
+    const byLevel = restarted({ level: "defaults", configurationVersion: 4 });
+    expect(byLevel.restartedBy({ level: "defaults", configurationVersion: 4 })).toBe(true);
+    expect(byLevel.restartedBy({ level: "defaults", configurationVersion: 5 })).toBe(false);
+    expect(byLevel.restartedBy({ level: "platform", configurationVersion: 4 })).toBe(false);
+    // A text and a configuration version with the same level and number are two different causes.
+    expect(byLevel.restartedBy({ level: "defaults", configurationVersion: 4, text })).toBe(false);
+
+    const byText = restarted({ level: "merchant", configurationVersion: 2, text });
+    expect(byText.restartedBy({ level: "merchant", configurationVersion: 2, text: { ...text } })).toBe(true);
+    expect(byText.restartedBy({ level: "merchant", configurationVersion: 2 })).toBe(false);
+    for (const other of [
+      { ...text, family: "price.reassurance" },
+      { ...text, locale: "en" },
+      { ...text, layer: "m_b" },
+      { ...text, attributeValue: "linen" },
+    ]) {
+      expect(byText.restartedBy({ level: "merchant", configurationVersion: 2, text: other })).toBe(false);
+    }
+    const withValue = restarted({
+      level: "merchant",
+      configurationVersion: 2,
+      text: { ...text, attributeValue: "linen" },
+    });
+    expect(
+      withValue.restartedBy({
+        level: "merchant",
+        configurationVersion: 2,
+        text: { ...text, attributeValue: "linen" },
+      }),
+    ).toBe(true);
+    expect(withValue.restartedBy({ level: "merchant", configurationVersion: 2, text })).toBe(false);
+
+    // Never restarted, nothing to answer for; and a later close does not erase what happened.
+    expect(active.value.restartedBy({ level: "defaults", configurationVersion: 4 })).toBe(false);
+    expect(byLevel.closed(EVEN_LATER).restartedBy({ level: "defaults", configurationVersion: 4 })).toBe(true);
+  });
+
   it("the arm of a visitor does not depend on the state: calibrating, active and closed assign alike", () => {
     const calibrating = opened();
     const active = calibrating.activated(LATER);
