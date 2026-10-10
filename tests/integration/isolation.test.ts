@@ -594,6 +594,15 @@ describe("isolation between merchants", () => {
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/ingest-keys", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/deactivate", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b/log", asA)).statusCode).toBe(403);
+    // A version of B by its number, which exists or not: the same 403, so the answer reveals neither (feature 042).
+    for (const n of [1, 99]) {
+      expect(
+        (await admin(app.app, "GET", `/v1/admin/merchants/m_b/configuration/versions/${n}`, asA)).statusCode,
+      ).toBe(403);
+    }
+    expect(
+      (await admin(app.app, "GET", "/v1/admin/merchants/m_a/configuration/versions/1", asA)).statusCode,
+    ).toBe(200);
     // A base text reaches every merchant (feature 038), so an operator scoped to A cannot publish one.
     expect(
       (

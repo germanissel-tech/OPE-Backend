@@ -114,40 +114,40 @@ R-01 a R-03).
 **Purpose**: US1 en la configuración del merchant, y US2. La operación entra al contrato acá (pasos
 0 a 3 de `contrato.md`), y se commitea con su controller.
 
-- [ ] T019 [US2] `contracts/api-map.yaml`: `getMerchantConfigurationVersion` (`method: get`,
+- [x] T019 [US2] `contracts/api-map.yaml`: `getMerchantConfigurationVersion` (`method: get`,
       `path: /v1/admin/merchants/{merchantId}/configuration/versions/{version}`, `consumer: admin`,
       `tag: admin`, `capabilities: [configuration:read]`, `status: planned`, `roadmap: admin-panel`,
       `source: specs/042-el-historial-completo/spec.md`), después de `listConfigurationVersions`
       (paso 0 de `contrato.md`)
-- [ ] T020 [P] [US2] `contracts/paths/admin-configuration-version.yaml` (NUEVO) según
+- [x] T020 [P] [US2] `contracts/paths/admin-configuration-version.yaml` (NUEVO) según
       `contracts/historial.md` §2, con `admin-platform-configuration-version.yaml` como molde:
       `merchantId` y `version` (`integer`, `minimum: 1`), `200` `MerchantConfigurationVersion` con un
       ejemplo de una correctiva que reinició `exp_…`, `400`, `401`, `403` (`MerchantForbidden`), `404`
       (`ConfigurationVersionNotFound`); `contracts/openapi.yaml`: la ruta; `contract:check` y `contract:types`
-- [ ] T021 [P] [US1] [US2] `tests/integration/admin-configuration.test.ts` — **antes del código**: la
+- [x] T021 [P] [US1] [US2] `tests/integration/admin-configuration.test.ts` — **antes del código**: la
       correctiva del merchant con su experimento activo trae la lista al publicar, al repetir y en
       `listConfigurationVersions`; `getMerchantConfigurationVersion` de la 2 de tres (lo que declaró,
       correctiva, motivo, instante, operador, la lista), de la 4 (`404 configuration-version-not-found`)
       y de la `0` (`400`)
-- [ ] T022 [P] [US2] `tests/integration/isolation.test.ts`: la versión por número de un merchant fuera
+- [x] T022 [P] [US2] `tests/integration/isolation.test.ts`: la versión por número de un merchant fuera
       del alcance responde `403 merchant-out-of-scope` igual exista o no; la versión 1 de un merchant
       no trae el experimento de otro que también publicó su versión 1 correctiva
-- [ ] T023 [US2] `src/application/configuration/ports/configuration-store.ts`:
+- [x] T023 [US2] `src/application/configuration/ports/configuration-store.ts`:
       `versionOf(merchantId, version)`; `gateways/sqlite-configuration-store.ts` con su consulta
       (data-model §4) y `gateways/memory-configuration-store.ts`
-- [ ] T024 [P] [US2] `tests/durability/configuration-store.test.ts`: `versionOf` después de reiniciar
+- [x] T024 [P] [US2] `tests/durability/configuration-store.test.ts`: `versionOf` después de reiniciar
       el almacén; otro merchant con el mismo número no se cruza
-- [ ] T025 [US1] `publish-merchant-configuration.use-case.ts`: `windowsRestarted` en la respuesta
+- [x] T025 [US1] `publish-merchant-configuration.use-case.ts`: `windowsRestarted` en la respuesta
       (data-model §5), con el `windowRestarted` del registro intacto;
       `list-configuration-versions.use-case.ts`: la lista por versión, preguntando con el merchant
-- [ ] T026 [US2] `src/application/configuration/use-cases/get-merchant-configuration-version.use-case.ts`
+- [x] T026 [US2] `src/application/configuration/use-cases/get-merchant-configuration-version.use-case.ts`
       (NUEVO, según `.claude/rules/caso-de-uso.md`): `scoped`, `store`, `restarts`; alcance, versión,
       `ConfigurationVersionNotFound("merchant", n)`
-- [ ] T027 [US2] `src/interface-adapters/configuration/controllers/get-merchant-configuration-version.ts`
+- [x] T027 [US2] `src/interface-adapters/configuration/controllers/get-merchant-configuration-version.ts`
       (NUEVO, `OperationHandler<"getMerchantConfigurationVersion">`); el presentador de la versión del
       merchant con la lista, para las cuatro respuestas que la llevan; exportado por el `index.ts` del
       módulo
-- [ ] T028 [US2] `src/composition/modules/configuration.ts`: el handler servido; `api-map.yaml`:
+- [x] T028 [US2] `src/composition/modules/configuration.ts`: el handler servido; `api-map.yaml`:
       `built`, `feature: "042"` en lugar de `roadmap`
 
 **Checkpoint**: T021 y T022 en verde; el servidor arranca con la operación nueva.

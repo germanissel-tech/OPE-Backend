@@ -7,6 +7,7 @@ import {
   CompleteLocales,
   Configurations,
   GetMerchantConfigurationUseCase,
+  GetMerchantConfigurationVersionUseCase,
   GetLevelVersionUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
@@ -45,6 +46,7 @@ import {
   holdoutSourceOf,
   makeGetMerchantConfiguration,
   makeGetPlatformConfiguration,
+  makeGetMerchantConfigurationVersion,
   makeGetPlatformConfigurationVersion,
   makeGetTreatmentDefaults,
   makeGetTreatmentDefaultsVersion,
@@ -191,6 +193,13 @@ const levelVersionNumbered = (r: PublishLevelResponse) =>
 const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
 
 /** What a read of a level's history needs, which is the store of the versions and nothing else. */
+/** A reading of a merchant's history, within the scope, also asks the experiments what each version restarted. */
+const READS_A_MERCHANT_VERSION = {
+  scoped: ScopedMerchantPort,
+  store: ConfigurationStorePort,
+  experimentStore: ExperimentStorePort,
+} as const;
+
 /** A reading of a level's history also asks the experiments what each version restarted (feature 042). */
 const READS_A_LEVEL = { levels: LevelStorePort, experimentStore: ExperimentStorePort } as const;
 
@@ -299,7 +308,10 @@ export const configurationModule = compositionModule({
           name: "publishMerchantConfiguration",
           build: ({ experimentStore, completeness, ...deps }) =>
             new CompleteLocales(
-              new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+              new PublishMerchantConfigurationUseCase({
+                ...deps,
+                restarts: new WindowRestarts({ experimentStore }),
+              }),
               { completeness },
               {
                 declared: (request: PublishMerchantConfigurationRequest) => request.declared.locales,
@@ -314,7 +326,7 @@ export const configurationModule = compositionModule({
             r.ok
               ? {
                   configurationVersion: r.value.version.version,
-                  windowRestarted: r.value.windowRestarted,
+                  windowRestarted: r.value.windowsRestarted.length > 0,
                 }
               : undefined,
           reason: (request) => request.reason,
@@ -330,9 +342,29 @@ export const configurationModule = compositionModule({
         (useCase) => makeGetMerchantConfiguration(useCase),
       ),
       listConfigurationVersions: served(
-        { scoped: ScopedMerchantPort, store: ConfigurationStorePort },
-        { name: "listConfigurationVersions", build: (deps) => new ListConfigurationVersionsUseCase(deps) },
+        READS_A_MERCHANT_VERSION,
+        {
+          name: "listConfigurationVersions",
+          build: ({ experimentStore, ...deps }) =>
+            new ListConfigurationVersionsUseCase({
+              ...deps,
+              restarts: new WindowRestarts({ experimentStore }),
+            }),
+        },
         (useCase) => makeListConfigurationVersions(useCase),
+      ),
+      // One version by its number (feature 042), the same one its page carries.
+      getMerchantConfigurationVersion: served(
+        READS_A_MERCHANT_VERSION,
+        {
+          name: "getMerchantConfigurationVersion",
+          build: ({ experimentStore, ...deps }) =>
+            new GetMerchantConfigurationVersionUseCase({
+              ...deps,
+              restarts: new WindowRestarts({ experimentStore }),
+            }),
+        },
+        (useCase) => makeGetMerchantConfigurationVersion(useCase),
       ),
       getPlatformConfiguration: served(
         { configuration: ConfigurationServicePort },

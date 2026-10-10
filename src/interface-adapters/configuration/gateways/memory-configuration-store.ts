@@ -23,5 +23,8 @@ export function memoryConfigurationStore(): ConfigurationStore {
     versionsOf(merchantId, query) {
       return Promise.resolve(pageOf([...versionsOf(merchantId)].reverse(), query));
     },
+    versionOf(merchantId, version) {
+      return Promise.resolve(versionsOf(merchantId).find((each) => each.version === version));
+    },
   };
 }

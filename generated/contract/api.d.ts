@@ -140,6 +140,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/configuration/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of a merchant's configuration
+         * @description A version of the merchant's configuration as it was published, by its number: the same one its page of the history carries, with what it declared, who published it, why, and which measurement window it restarted. Immutable, so what it answers today is what it answered the day it was created (feature 042). Within the operator's scope; the merchant goes in the path because the consumer is admin (constitution V, ADR-020).
+         */
+        get: operations["getMerchantConfigurationVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/deactivate": {
         parameters: {
             query?: never;
@@ -2797,6 +2817,15 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description No merchant with that identifier within the operator's scope, or the merchant published no version with that number. */
+        MerchantConfigurationVersionNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description The merchant was deactivated; nothing can be done to it (ADR-031). */
         MerchantDeactivatedConflict: {
             headers: {
@@ -3676,6 +3705,52 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchantConfigurationVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+                /** @description The number of the version, as the level assigned it when it was published. */
+                version: components["parameters"]["levelVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 2,
+                     *       "declared": {
+                     *         "holdoutShare": 0.07
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "The holdout was declared wrong while the experiment ran.",
+                     *       "publishedAt": "2026-10-10T15:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_nliucusmyzzd"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfigurationVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantConfigurationVersionNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

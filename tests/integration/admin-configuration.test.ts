@@ -375,3 +375,68 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     ).toBe(403);
   });
 });
+
+describe("what a merchant's version restarted, and a version by its number (feature 042)", () => {
+  const versionsOf = (merchant: string, query = "") =>
+    admin(app.app, "GET", `/v1/admin/merchants/${merchant}/configuration/versions${query}`);
+  const versionOf = (merchant: string, n: number | string, as?: "ops-a") =>
+    admin(app.app, "GET", `/v1/admin/merchants/${merchant}/configuration/versions/${n}`, as ? { as } : {});
+
+  const body = { declared: { holdoutShare: 0.1 }, corrective: true, reason: "keep some traffic out" };
+
+  it("the publication, its repetition, the history and the version by number name the experiment it restarted", async () => {
+    const published = await configure(body);
+    expect(published.statusCode).toBe(201);
+    expect(json(published)).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+
+    const page = json(await versionsOf(A)) as { items: Version[] };
+    expect(page.items[0]).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+    // The seed restarted nothing, and says nothing.
+    expect(page.items[1]).not.toHaveProperty("windowsRestarted");
+
+    const repeated = await configure(body);
+    expect(repeated.statusCode).toBe(200);
+    expect(json(repeated)).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+  });
+
+  it("reads one version by its number, the same one its page carries", async () => {
+    await configure(body);
+
+    const second = await versionOf(A, 2);
+    expect(second.statusCode).toBe(200);
+    const page = json(await versionsOf(A)) as { items: Version[] };
+    expect(json(second)).toEqual(page.items[0]);
+    expect(json(second)).toMatchObject({
+      version: 2,
+      declared: { holdoutShare: 0.1 },
+      corrective: true,
+      reason: "keep some traffic out",
+      operatorId: "ops-all",
+      windowsRestarted: ["exp_a_000001"],
+    });
+  });
+
+  it("a number the merchant never published is not found; a number that is not a version is refused", async () => {
+    const missing = await versionOf(A, 7);
+    expect(missing.statusCode).toBe(404);
+    expect(problemOf(missing).type).toBe("urn:ope:problem:configuration-version-not-found");
+    expect((await versionOf(A, 0)).statusCode).toBe(400);
+    expect((await versionOf("m_nobody", 1)).statusCode).toBe(404);
+  });
+
+  it("version 1 of two merchants are two versions: each names only its own experiment", async () => {
+    // B numbers its versions on its own: its seed is 1 and its first publication is 2, like A's.
+    const opened = await admin(app.app, "POST", "/v1/admin/merchants/m_b/experiments", {
+      body: { treatmentShare: 0.5, seed: "seed-b", targetSample: 1000, cuts: [0.5, 1] },
+    });
+    expect(opened.statusCode).toBe(201);
+    const { experimentId } = json(opened) as { experimentId: string };
+    const url = `/v1/admin/merchants/m_b/experiments/${experimentId}/activate`;
+    expect((await admin(app.app, "POST", url)).statusCode).toBe(200);
+    expect((await configure(body)).statusCode).toBe(201);
+    expect((await configure(body, { merchant: "m_b" })).statusCode).toBe(201);
+
+    expect(json(await versionOf(A, 2))).toMatchObject({ windowsRestarted: ["exp_a_000001"] });
+    expect(json(await versionOf("m_b", 2))).toMatchObject({ windowsRestarted: [experimentId] });
+  });
+});

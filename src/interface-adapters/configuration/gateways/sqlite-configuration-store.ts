@@ -52,6 +52,9 @@ const VERSIONS = `SELECT version, document FROM merchant_configurations
   WHERE merchant_id = :merchant AND version < :below
   ORDER BY version DESC LIMIT :limit`;
 
+/** One version of one merchant: the pair is the key, so another merchant's version of the same number never answers. */
+const ONE = `SELECT document FROM merchant_configurations WHERE merchant_id = :merchant AND version = :version`;
+
 const versionOf = (row: SqlRow): MerchantConfigurationVersion =>
   MerchantConfigurationVersion.rehydrate(
     fromDocument(String(row[DOCUMENT])) as MerchantConfigurationVersionRecord,
@@ -79,5 +82,10 @@ export function sqliteConfigurationStore(deps: DurableGatewayDeps): Configuratio
       }),
     versionsOf: (merchantId, query) =>
       pagedByVersion(deps, { sql: VERSIONS, params: { merchant: merchantId }, itemOf: versionOf }, query),
+    versionOf: (merchantId, version) =>
+      fetched(deps, () => {
+        const row = deps.store.all(ONE, { merchant: merchantId, version })[0];
+        return row === undefined ? undefined : versionOf(row);
+      }),
   };
 }

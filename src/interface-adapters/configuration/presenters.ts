@@ -8,7 +8,6 @@ import {
   type ConfigurationVersionNotFound,
   type DeclaredConfiguration,
   type EffectiveConfiguration,
-  type MerchantConfigurationVersion,
   type PlatformConfiguration,
   type TreatmentDefaults,
 } from "../../domain/configuration/index.js";
@@ -21,6 +20,7 @@ import type {
   GetLevelVersionResponse,
   LevelHistoryReader,
   LevelVersionRead,
+  MerchantVersionRead,
   PublishLevelRequest,
   PublishLevelResponse,
 } from "../../application/configuration/index.js";
@@ -66,14 +66,13 @@ export function effectiveDto(effective: EffectiveConfiguration): EffectiveDto {
   };
 }
 
-export function versionDto(version: MerchantConfigurationVersion): VersionDto {
+/** A version of a merchant's configuration as the contract publishes it, with what it restarted (feature 042). */
+export function versionDto(read: MerchantVersionRead): VersionDto {
+  const { version } = read;
   return {
     version: version.version,
     declared: declaredDto(version.declared),
-    corrective: version.corrective,
-    ...(version.reason === undefined ? {} : { reason: version.reason }),
-    publishedAt: version.publishedAt.toISOString(),
-    operatorId: version.operatorId,
+    ...publicationDto(version, read.windowsRestarted),
   };
 }
 

@@ -7,7 +7,7 @@
 //
 // The publication of a level answers it the same way when it repeats the version in force (feature 042,
 // research R-04), so a retry of a corrective version says what the original restarted instead of nothing.
-import type { LevelVersion } from "../../../domain/configuration/index.js";
+import type { LevelVersion, MerchantConfigurationVersion } from "../../../domain/configuration/index.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { WindowRestartsService } from "../../experiment/index.js";
 
@@ -29,5 +29,29 @@ export async function readOfLevel(
       level: version.level,
       configurationVersion: version.version,
     }),
+  };
+}
+
+/** A version of a merchant's configuration with the experiment whose window it restarted. */
+export interface MerchantVersionRead {
+  version: MerchantConfigurationVersion;
+  /** Empty when it restarted nothing; at most the merchant's own active experiment otherwise (D-G). */
+  windowsRestarted: readonly Experiment[];
+}
+
+/**
+ * The version, and what it restarted. **Asked with the merchant**: a merchant numbers its own versions, so
+ * «merchant, version 2» is one version per merchant and only the merchant tells them apart (research R-03).
+ */
+export async function readOfMerchant(
+  restarts: WindowRestartsService,
+  version: MerchantConfigurationVersion,
+): Promise<MerchantVersionRead> {
+  return {
+    version,
+    windowsRestarted: await restarts.restartedBy(
+      { level: "merchant", configurationVersion: version.version },
+      version.merchantId,
+    ),
   };
 }

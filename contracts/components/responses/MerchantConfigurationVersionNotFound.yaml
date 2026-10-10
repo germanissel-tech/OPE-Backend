@@ -1,0 +1,22 @@
+description: "No merchant with that identifier within the operator's scope, or the merchant published no
+  version with that number."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      merchantNotFound:
+        summary: No such merchant within the operator's scope (merchant-not-found)
+        value:
+          type: urn:ope:problem:merchant-not-found
+          title: The merchant does not exist
+          status: 404
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration/versions/2
+      versionNotFound:
+        summary: A number the merchant never published (configuration-version-not-found)
+        value:
+          type: urn:ope:problem:configuration-version-not-found
+          title: The configuration version does not exist
+          status: 404
+          detail: The merchant level has no version 7.
+          instance: /v1/admin/merchants/mrc_7f3k5d2q4m6x/configuration/versions/7
