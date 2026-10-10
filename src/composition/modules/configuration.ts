@@ -23,6 +23,7 @@ import {
   type ImportConfigurationLevelsRequest,
   type ImportConfigurationLevelsResponse,
   type LevelStore,
+  type LevelVersionRead,
   type ListLevelVersionsRequest,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
@@ -72,7 +73,6 @@ import { MessageDirectoryPort, TextStorePort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
-import type { LevelVersion } from "../../domain/configuration/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
@@ -191,7 +191,8 @@ const levelVersionNumbered = (r: PublishLevelResponse) =>
 const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
 
 /** What a read of a level's history needs, which is the store of the versions and nothing else. */
-const READS_A_LEVEL = { levels: LevelStorePort } as const;
+/** A reading of a level's history also asks the experiments what each version restarted (feature 042). */
+const READS_A_LEVEL = { levels: LevelStorePort, experimentStore: ExperimentStorePort } as const;
 
 /**
  * The languages a level's content declares, read by the reader of the level: an invalid content declares
@@ -352,8 +353,8 @@ export const configurationModule = compositionModule({
           // Annotated, and the compiler asks for it: the recipe of a handler fixes the request to `unknown`
           // unless the builder says what the use case is, and a listing answers a page rather than a
           // `Result`, so there is no error union to infer it from.
-          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
-            new ListLevelVersionsUseCase(deps),
+          build: ({ levels, experimentStore }): UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>> =>
+            new ListLevelVersionsUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
         },
         (useCase) => makeListPlatformConfigurationVersions(useCase),
       ),
@@ -361,19 +362,27 @@ export const configurationModule = compositionModule({
         READS_A_LEVEL,
         {
           name: "listTreatmentDefaultsVersions",
-          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
-            new ListLevelVersionsUseCase(deps),
+          build: ({ levels, experimentStore }): UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>> =>
+            new ListLevelVersionsUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
         },
         (useCase) => makeListTreatmentDefaultsVersions(useCase),
       ),
       getPlatformConfigurationVersion: served(
         READS_A_LEVEL,
-        { name: "getPlatformConfigurationVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        {
+          name: "getPlatformConfigurationVersion",
+          build: ({ levels, experimentStore }) =>
+            new GetLevelVersionUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
+        },
         (useCase) => makeGetPlatformConfigurationVersion(useCase),
       ),
       getTreatmentDefaultsVersion: served(
         READS_A_LEVEL,
-        { name: "getTreatmentDefaultsVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        {
+          name: "getTreatmentDefaultsVersion",
+          build: ({ levels, experimentStore }) =>
+            new GetLevelVersionUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
+        },
         (useCase) => makeGetTreatmentDefaultsVersion(useCase),
       ),
     },

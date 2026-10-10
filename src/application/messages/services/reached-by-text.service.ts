@@ -12,6 +12,21 @@ import type {
   WindowRestartsService,
 } from "../../experiment/index.js";
 import type { TextLayer, TextStore } from "../ports/text-store.js";
+import type { TextVersionRead } from "../published-text.js";
+
+/**
+ * What a restart records of a text version, and so what a reading asks to find it: the restart and the
+ * question build it here, once, so the two can never disagree on a field.
+ *
+ * The level is what a reader of the restart knew before texts could cause one (feature 036): a text of a
+ * merchant stands where a merchant's version did, a base text where the defaults did. That is why the key
+ * and the layer go with it — without them «defaults, version 3» would also be every base text's third.
+ */
+const restartSourceOf = (version: TextVersion) => ({
+  level: version.merchantId === undefined ? ("defaults" as const) : ("merchant" as const),
+  configurationVersion: version.version,
+  text: { ...version.key.record(), layer: version.layer() },
+});
 
 export interface ReachedByTextService {
   /** The active experiments a text of that key in that layer reaches, in no particular order. */
@@ -21,6 +36,8 @@ export interface ReachedByTextService {
     experiments: readonly Experiment[],
     version: TextVersion,
   ): Promise<Result<undefined, StoreUnavailable>>;
+  /** The version with what it restarted when it was published (feature 042), asked of the experiments. */
+  restartedBy(version: TextVersion): Promise<TextVersionRead>;
 }
 
 export interface ReachedByTextDependencies {
@@ -58,14 +75,17 @@ export class ReachedByText implements ReachedByTextService {
     experiments: readonly Experiment[],
     version: TextVersion,
   ): Promise<Result<undefined, StoreUnavailable>> {
+    const { level, configurationVersion, text } = restartSourceOf(version);
     return this.#deps.restarts.restart(experiments, {
       at: version.publishedAt,
       reason: version.reason,
-      // The level is what a reader of the restart knew before texts could cause one (feature 036): a text of
-      // a merchant stands where a merchant's version did, a base text where the defaults did.
-      level: version.merchantId === undefined ? "defaults" : "merchant",
-      version: version.version,
-      text: { ...version.key.record(), layer: version.layer() },
+      level,
+      version: configurationVersion,
+      text,
     });
+  }
+
+  async restartedBy(version: TextVersion): Promise<TextVersionRead> {
+    return { version, windowsRestarted: await this.#deps.restarts.restartedBy(restartSourceOf(version)) };
   }
 }

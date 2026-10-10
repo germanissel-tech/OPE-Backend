@@ -14,7 +14,7 @@ export type {
 export type { ReachedByTextDependencies, ReachedByTextService } from "./services/reached-by-text.service.js";
 export { PublishTextUseCase } from "./use-cases/publish-text.use-case.js";
 export type { PublishTextRequest, PublishTextResponse } from "./use-cases/publish-text.use-case.js";
-export type { PublishedText } from "./published-text.js";
+export type { PublishedText, TextVersionRead } from "./published-text.js";
 export { PublishMerchantTextUseCase } from "./use-cases/publish-merchant-text.use-case.js";
 export type {
   PublishMerchantTextRequest,

@@ -171,3 +171,65 @@ describe("the two histories are separate", () => {
     expect(json(await versionOf("defaults", 3))).toMatchObject({ stampedAs: "defaults-3" });
   });
 });
+
+/**
+ * A change of each level that **reaches** the active experiment of `m_a`: the visitor window counts the
+ * visitors, and the threshold of the decision policy decides the treatment. Neither merchant of the seed
+ * declares either, so both resolve from the level.
+ */
+const measuringOf = (level: Level, content: Record<string, unknown>): Record<string, unknown> => {
+  if (level === "platform") return { ...content, visitorWindowMs: 3_000 };
+  const policy = content["decisionPolicy"] as Record<string, unknown>;
+  return { ...content, decisionPolicy: { ...policy, threshold: 0.9 } };
+};
+
+describe.each(["platform", "defaults"] as const)(
+  "what a version of the %s level restarted, in every reading (feature 042)",
+  (level) => {
+    const EXPERIMENT = "/v1/admin/merchants/m_a/experiments/exp_a_000001";
+
+    async function correctiveVersion() {
+      expect((await admin(app.app, "POST", `${EXPERIMENT}/activate`)).statusCode).toBe(200);
+      const { version, ...content } = json(await admin(app.app, "GET", LEVELS[level])) as Record<
+        string,
+        unknown
+      >;
+      expect(version).toBeDefined();
+      const body = { content: measuringOf(level, content), corrective: true, reason: "the value was wrong" };
+      const published = await admin(app.app, "POST", LEVELS[level], { body });
+      expect(published.statusCode).toBe(201);
+      expect(json(published)).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+      return body;
+    }
+
+    it("the history and the version by number say what the publication said", async () => {
+      await correctiveVersion();
+
+      const page = await history(level);
+      expect(page.items[0]).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+      expect(json(await versionOf(level, 2))).toMatchObject({ windowsRestarted: ["exp_a_000001"] });
+    });
+
+    it("a version that restarted nothing reads without the field, as before", async () => {
+      await correctiveVersion();
+
+      expect(json(await versionOf(level, 1))).not.toHaveProperty("windowsRestarted");
+      expect((await history(level)).items[1]).not.toHaveProperty("windowsRestarted");
+    });
+
+    it("repeating the same body answers 200 with the same list, not an empty one", async () => {
+      const body = await correctiveVersion();
+
+      const repeated = await admin(app.app, "POST", LEVELS[level], { body });
+      expect(repeated.statusCode).toBe(200);
+      expect(json(repeated)).toMatchObject({ version: 2, windowsRestarted: ["exp_a_000001"] });
+    });
+
+    it("closing the experiment later does not change what the version restarted", async () => {
+      await correctiveVersion();
+      expect((await admin(app.app, "POST", `${EXPERIMENT}/close`)).statusCode).toBe(200);
+
+      expect(json(await versionOf(level, 2))).toMatchObject({ windowsRestarted: ["exp_a_000001"] });
+    });
+  },
+);

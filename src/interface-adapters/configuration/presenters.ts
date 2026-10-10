@@ -8,7 +8,6 @@ import {
   type ConfigurationVersionNotFound,
   type DeclaredConfiguration,
   type EffectiveConfiguration,
-  type LevelVersion,
   type MerchantConfigurationVersion,
   type PlatformConfiguration,
   type TreatmentDefaults,
@@ -21,7 +20,7 @@ import { publicationDto } from "../shared-kernel/index.js";
 import type {
   GetLevelVersionResponse,
   LevelHistoryReader,
-  PublishedLevel,
+  LevelVersionRead,
   PublishLevelRequest,
   PublishLevelResponse,
 } from "../../application/configuration/index.js";
@@ -156,13 +155,11 @@ export function listingOfLevel<Content>(
   });
 }
 
-function levelHistoryPage<Content>(page: Page<LevelVersion>): {
+function levelHistoryPage<Content>(page: Page<LevelVersionRead>): {
   items: LevelVersionDto<Content>[];
   nextCursor?: string;
 } {
-  return pageDto(page, (version) =>
-    levelVersionDto<Content>({ version, outcome: "created", windowsRestarted: [] }),
-  );
+  return pageDto(page, (read) => levelVersionDto<Content>(read));
 }
 
 /** One version of the history, or the problem of a number nobody published. */
@@ -175,7 +172,7 @@ export function levelVersionAnswer<Content>(
   if (!result.ok) return toProblem(result.error, instance);
   return {
     status: HTTP_STATUS.OK,
-    body: levelVersionDto<Content>({ version: result.value, outcome: "created", windowsRestarted: [] }),
+    body: levelVersionDto<Content>(result.value),
   };
 }
 
@@ -187,7 +184,7 @@ export function levelVersionAnswer<Content>(
  * **name minted from the number** and which experiments this version restarted, which is the half an
  * operator needs to see what the change cost.
  */
-function levelVersionDto<Content>(published: PublishedLevel): LevelVersionDto<Content> {
+function levelVersionDto<Content>(published: LevelVersionRead): LevelVersionDto<Content> {
   const { version } = published;
   return {
     version: version.version,

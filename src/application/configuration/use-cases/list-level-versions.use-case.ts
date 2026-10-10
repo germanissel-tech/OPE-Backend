@@ -8,9 +8,10 @@
 // **It does not take an operator's scope, and that is not an oversight.** A level is served to every
 // merchant, so there is no merchant to check against; what the operation does take is the capability
 // `configuration:read` of the admin consumer, which the edge compares before any of this runs (ADR-020).
-import type { LevelVersion } from "../../../domain/configuration/index.js";
+import { readEach, type Page, type PageQuery, type UseCase } from "../../shared-kernel/index.js";
+import { readOfLevel, type LevelVersionRead } from "../services/version-restarts.js";
 import type { ReleaseLevel } from "../../../domain/shared-kernel/index.js";
-import type { Page, PageQuery, UseCase } from "../../shared-kernel/index.js";
+import type { WindowRestartsService } from "../../experiment/index.js";
 import type { LevelStore } from "../ports/level-store.js";
 
 export interface ListLevelVersionsRequest {
@@ -25,13 +26,15 @@ export interface ListLevelVersionsRequest {
  * imports to write it, and two controller files that share five identical lines are a clone — which the
  * duplication gate refuses and the shape rule cannot avoid, since an operation needs a file of its own.
  */
-export type LevelHistoryReader = UseCase<ListLevelVersionsRequest, Page<LevelVersion>>;
+export type LevelHistoryReader = UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>>;
 
 export interface ListLevelVersionsDependencies {
   levels: LevelStore;
+  /** What each version restarted, asked of the experiments (feature 042). */
+  restarts: WindowRestartsService;
 }
 
-export class ListLevelVersionsUseCase implements UseCase<ListLevelVersionsRequest, Page<LevelVersion>> {
+export class ListLevelVersionsUseCase implements UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>> {
   readonly #deps: ListLevelVersionsDependencies;
 
   constructor(deps: ListLevelVersionsDependencies) {
@@ -39,7 +42,10 @@ export class ListLevelVersionsUseCase implements UseCase<ListLevelVersionsReques
   }
 
   /** A listing cannot fail as a business outcome, so it answers the page directly (ADR-023). */
-  execute(request: ListLevelVersionsRequest): Promise<Page<LevelVersion>> {
-    return this.#deps.levels.versionsOf(request.level, request.page);
+  async execute(request: ListLevelVersionsRequest): Promise<Page<LevelVersionRead>> {
+    const { levels, restarts } = this.#deps;
+    return readEach(await levels.versionsOf(request.level, request.page), (version) =>
+      readOfLevel(restarts, version),
+    );
   }
 }

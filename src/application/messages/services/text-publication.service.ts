@@ -38,7 +38,7 @@ export class TextPublications implements TextPublicationService {
     const { texts, reached } = this.#deps;
     const inForce = await texts.inForce(draft.merchantId, draft.key);
     if (inForce?.sameTextAs(draft) === true) {
-      return ok({ version: inForce, outcome: "repeated", windowsRestarted: [] });
+      return ok({ ...(await reached.restartedBy(inForce)), outcome: "repeated" });
     }
     const toRestart = await reached.by(draft.merchantId, draft.key);
     if (toRestart.length > 0 && !draft.corrective) return fail(new ConfigurationFrozen());

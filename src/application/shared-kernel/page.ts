@@ -9,3 +9,8 @@ export interface Page<T> {
   items: readonly T[];
   nextCursor?: string | undefined;
 }
+
+/** The same page with each item read again, keeping the cursor: a history that adds what each version did. */
+export async function readEach<T, U>(page: Page<T>, read: (item: T) => Promise<U>): Promise<Page<U>> {
+  return { ...page, items: await Promise.all(page.items.map(read)) };
+}

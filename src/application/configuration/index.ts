@@ -69,6 +69,7 @@ export type {
   ListLevelVersionsRequest,
 } from "./use-cases/list-level-versions.use-case.js";
 export { PublishLevelUseCase } from "./use-cases/publish-level.use-case.js";
+export type { LevelVersionRead } from "./services/version-restarts.js";
 export type {
   PublishedLevel,
   PublishLevelRequest,

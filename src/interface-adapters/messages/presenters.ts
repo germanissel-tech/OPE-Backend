@@ -5,9 +5,9 @@ import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type CataloguedError, type ProblemOf } from "../http/to-problem.js";
 import { publicationDto } from "../shared-kernel/index.js";
-import type { PublishedText } from "../../application/messages/index.js";
+import type { PublishedText, TextVersionRead } from "../../application/messages/index.js";
 import type { Page } from "../../application/shared-kernel/index.js";
-import type { TextKeyInput, TextVersion } from "../../domain/messages/index.js";
+import type { TextKeyInput } from "../../domain/messages/index.js";
 import type { Operator } from "../../domain/operator/index.js";
 import type { Result } from "../../domain/shared-kernel/index.js";
 import type { SecurityResults, components } from "../http/typed.js";
@@ -40,7 +40,7 @@ export function declaredText(req: { security: SecurityResults; body: TextInputDt
 }
 
 /** A published version of a text, as the contract publishes it. */
-function textVersionDto(published: PublishedText): TextVersionDto {
+function textVersionDto(published: TextVersionRead): TextVersionDto {
   const { version } = published;
   // The key was judged against the vocabulary when it was published, so the value is one of the
   // contract's; the cast is where that reasoning leaves the compiler.
@@ -92,18 +92,21 @@ export function textKeyOf(req: {
  * was published — it is immutable, so a reader of the history and a reader of what is in force see the same
  * thing — and a version of the history restarted nothing it still has to tell.
  */
-export function textHistoryPage(page: Page<TextVersion>): { items: TextVersionDto[]; nextCursor?: string } {
-  return pageDto(page, (version) => textVersionDto({ version, outcome: "created", windowsRestarted: [] }));
+export function textHistoryPage(page: Page<TextVersionRead>): {
+  items: TextVersionDto[];
+  nextCursor?: string;
+} {
+  return pageDto(page, (read) => textVersionDto(read));
 }
 
 /** One version of the history, or the problem of what refused it. */
 export function textVersionAnswer<Refusal extends CataloguedError>(
-  result: Result<TextVersion, Refusal>,
+  result: Result<TextVersionRead, Refusal>,
   instance: string,
 ): { status: typeof HTTP_STATUS.OK; body: TextVersionDto } | ProblemOf<Refusal> {
   if (!result.ok) return toProblem(result.error, instance);
   return {
     status: HTTP_STATUS.OK,
-    body: textVersionDto({ version: result.value, outcome: "created", windowsRestarted: [] }),
+    body: textVersionDto(result.value),
   };
 }

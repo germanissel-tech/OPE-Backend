@@ -76,34 +76,34 @@ R-01 a R-03).
 
 **Purpose**: US1 en plataforma, defaults y textos.
 
-- [ ] T010 [P] [US1] `tests/integration/levels-history.test.ts` — **antes del código**: con un
+- [x] T010 [P] [US1] `tests/integration/levels-history.test.ts` — **antes del código**: con un
       experimento activo, una correctiva de plataforma que lo alcanza; la lista en la respuesta de
       publicar, en repetir el mismo cuerpo (`200`), en `listPlatformConfigurationVersions` y en
       `getPlatformConfigurationVersion`; lo mismo con defaults; una versión normal sin el campo; cerrar
       el experimento no cambia la lista
-- [ ] T011 [US1] `src/application/configuration/use-cases/list-level-versions.use-case.ts` y
+- [x] T011 [US1] `src/application/configuration/use-cases/list-level-versions.use-case.ts` y
       `get-level-version.use-case.ts`: devuelven, por versión, `{ version, windowsRestarted }`
       preguntando a `WindowRestartsService` por `{ level, configurationVersion }`; dependencia nueva
       `restarts`
-- [ ] T012 [US1] `publish-level.use-case.ts`: la rama `repeated` pregunta lo mismo en vez de `[]`
+- [x] T012 [US1] `publish-level.use-case.ts`: la rama `repeated` pregunta lo mismo en vez de `[]`
       (research R-04); como la dependencia `reached` ya envuelve `restarts`, `ReachedExperimentsService`
       gana `restartedBy(version)` y el caso de uso sigue en cuatro dependencias
-- [ ] T013 [US1] `src/interface-adapters/configuration/presenters.ts`: `levelHistoryPage` y
+- [x] T013 [US1] `src/interface-adapters/configuration/presenters.ts`: `levelHistoryPage` y
       `levelVersionAnswer` usan la lista que trae la lectura; ningún `windowsRestarted: []` queda en el
       archivo
-- [ ] T014 [P] [US1] `tests/integration/messages/base-text.test.ts` y `merchant-text.test.ts` — **antes
+- [x] T014 [P] [US1] `tests/integration/messages/base-text.test.ts` y `merchant-text.test.ts` — **antes
       del código**: lo mismo de T010 para un texto de la plataforma y uno de un merchant; un texto y una
       versión de configuración con el mismo número no se mezclan; dos textos de claves distintas con el
       mismo número, tampoco
-- [ ] T015 [US1] `src/application/messages/services/reached-by-text.service.ts`: la causa de un
+- [x] T015 [US1] `src/application/messages/services/reached-by-text.service.ts`: la causa de un
       reinicio de texto se arma en una función (`restartCauseOf(version)`) que usan `restart` y la
       lectura, y el servicio gana `restartedBy(version)`
-- [ ] T016 [US1] `src/application/messages/use-cases/`: `list-text-versions`, `get-text-version`,
+- [x] T016 [US1] `src/application/messages/use-cases/`: `list-text-versions`, `get-text-version`,
       `list-merchant-text-versions`, `get-merchant-text-version` devuelven la lista por versión;
       `publish-text` y `publish-merchant-text` la preguntan al repetir
-- [ ] T017 [US1] `src/interface-adapters/messages/presenters.ts`: sin `windowsRestarted: []`; la página
+- [x] T017 [US1] `src/interface-adapters/messages/presenters.ts`: sin `windowsRestarted: []`; la página
       y la versión usan lo que trajo la lectura
-- [ ] T018 [US1] `src/composition/modules/configuration.ts` y `messages.ts`: las dependencias nuevas
+- [x] T018 [US1] `src/composition/modules/configuration.ts` y `messages.ts`: las dependencias nuevas
 
 **Checkpoint**: T010 y T014 en verde; `npm test` entero.
 

@@ -33,12 +33,12 @@ import {
   type StoreUnavailable,
 } from "../../../domain/shared-kernel/index.js";
 import { publishedBy } from "../services/publication.js";
-import type { Experiment } from "../../../domain/experiment/index.js";
 import type { Operator, OperatorScopeTooNarrow } from "../../../domain/operator/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { LevelStore } from "../ports/level-store.js";
 import type { ConfigurationService } from "../services/configuration.service.js";
 import type { ReachedExperimentsService } from "../services/reached-experiments.service.js";
+import type { LevelVersionRead } from "../services/version-restarts.js";
 
 export interface PublishLevelRequest {
   actor: Operator;
@@ -56,11 +56,12 @@ export interface PublishLevelRequest {
   reason?: string | undefined;
 }
 
-export interface PublishedLevel {
-  version: LevelVersion;
+/**
+ * The version with what it restarted, and whether this request created it. A repetition answers what the
+ * version restarted when it was published (feature 042): the same as any reading of it.
+ */
+export interface PublishedLevel extends LevelVersionRead {
   outcome: "created" | "repeated";
-  /** The experiments whose measurement window this version restarted; empty unless it was corrective. */
-  windowsRestarted: readonly Experiment[];
 }
 
 /** `LocaleIncomplete` is the word of the decorator in front of the defaults (feature 038, US4), never of this use case's deed. */
@@ -100,7 +101,7 @@ export class PublishLevelUseCase implements UseCase<PublishLevelRequest, Publish
     if (!draft.ok) return fail(draft.error);
     const inForce = await levels.latestOf(request.level);
     if (inForce?.sameContentAs(draft.value) === true) {
-      return ok({ version: inForce, outcome: "repeated", windowsRestarted: [] });
+      return ok({ ...(await reached.restartedBy(inForce)), outcome: "repeated" });
     }
     // Judged before anything is written: a value the vocabulary refuses never becomes a version (FR-005).
     const judged = await configuration.judgeLevel(draft.value);

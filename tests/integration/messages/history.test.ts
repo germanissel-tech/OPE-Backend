@@ -127,3 +127,76 @@ describe("the history of a key (US5)", () => {
     expect((await read(`/v1/admin/merchants/m_b/texts/${FAMILY}/es/versions/1`)).statusCode).toBe(404);
   });
 });
+
+describe("what a text version restarted, in every reading (feature 042)", () => {
+  /** Opens and activates an experiment of the merchant through the API, and answers its identifier. */
+  async function running(id: "a" | "b"): Promise<string> {
+    const opened = await admin(app.app, "POST", `/v1/admin/merchants/m_${id}/experiments`, {
+      body: { treatmentShare: 0.5, seed: `seed-${id}`, targetSample: 1000, cuts: [0.5, 1] },
+    });
+    expect(opened.statusCode).toBe(201);
+    const { experimentId } = json(opened) as { experimentId: string };
+    const url = `/v1/admin/merchants/m_${id}/experiments/${experimentId}`;
+    expect((await admin(app.app, "POST", `${url}/activate`)).statusCode).toBe(200);
+    return experimentId;
+  }
+
+  const close = async (id: "a" | "b", experimentId: string) => {
+    expect(
+      (await admin(app.app, "POST", `/v1/admin/merchants/m_${id}/experiments/${experimentId}/close`))
+        .statusCode,
+    ).toBe(200);
+  };
+
+  const corrective = { corrective: true, reason: "the wording was wrong" };
+
+  it("a base text: the publication, its repetition, the history and the version by number say the same", async () => {
+    const reached = [await running("a"), await running("b")].sort();
+    const body = { text: "Second wording.", ...corrective };
+    const published = await publishBase(body);
+    expect(published.statusCode).toBe(201);
+    const listOf = (dto: unknown) => [...((dto as TextVersionDto).windowsRestarted ?? [])].sort();
+    expect(listOf(json(published))).toEqual(reached);
+
+    const page = json(await read(`/v1/admin/texts/${FAMILY}/es/versions`)) as TextVersionPage;
+    expect(listOf(page.items[0])).toEqual(reached);
+    expect(page.items[1]).not.toHaveProperty("windowsRestarted");
+    expect(listOf(json(await read(`/v1/admin/texts/${FAMILY}/es/versions/2`)))).toEqual(reached);
+
+    const repeated = await publishBase(body);
+    expect(repeated.statusCode).toBe(200);
+    expect(listOf(json(repeated))).toEqual(reached);
+  });
+
+  it("another key with the same number answers for itself, not for the version that restarted", async () => {
+    const experiment = await running("a");
+    expect((await publishBase({ text: "Second wording.", ...corrective })).statusCode).toBe(201);
+    await close("a", experiment);
+    // Version 2 of another key in the same layer, published with nothing running: it restarted nothing.
+    expect(
+      (await publishBase({ family: SPOKEN, attributeValue: "linen", text: "Linen, reworded." })).statusCode,
+    ).toBe(201);
+
+    const linen = json(
+      await read(`/v1/admin/texts/${SPOKEN}/es/versions/2?attributeValue=linen`),
+    ) as TextVersionDto;
+    expect(linen).not.toHaveProperty("windowsRestarted");
+    // And the closed experiment stays named by the version that restarted it.
+    expect(json(await read(`/v1/admin/texts/${FAMILY}/es/versions/2`))).toMatchObject({
+      windowsRestarted: [experiment],
+    });
+  });
+
+  it("a merchant's text names its merchant's experiment, never another merchant's version of the same number", async () => {
+    const ofA = await running("a");
+    const ofB = await running("b");
+    expect((await publishOwn("a", { text: "A's words.", ...corrective })).statusCode).toBe(201);
+    expect((await publishOwn("b", { text: "B's words.", ...corrective })).statusCode).toBe(201);
+
+    const page = json(await read(`/v1/admin/merchants/m_a/texts/${FAMILY}/es/versions`)) as TextVersionPage;
+    expect(page.items[0]).toMatchObject({ version: 1, windowsRestarted: [ofA] });
+    expect(json(await read(`/v1/admin/merchants/m_b/texts/${FAMILY}/es/versions/1`))).toMatchObject({
+      windowsRestarted: [ofB],
+    });
+  });
+});
