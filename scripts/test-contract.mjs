@@ -81,10 +81,8 @@ function runSchemathesis(base) {
     "uvx",
     [
       SCHEMATHESIS,
-      // What the four writes that require a witness answer when it is missing or stale (feature 043). An
-      // option of the program, not of `run`: it goes before the command.
-      "--config-file",
-      path.join(repoRoot, "scripts", "schemathesis.toml"),
+      // No --config-file: Schemathesis discovers schemathesis.toml in the working directory, and a file
+      // passed explicitly replaces that one instead of adding to it (feature 043).
       "run",
       bundlePath,
       "--url",

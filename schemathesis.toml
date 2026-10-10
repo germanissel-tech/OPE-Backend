@@ -1,20 +1,39 @@
-# Configuración de Schemathesis (npm run test:contract; scripts/test-contract.mjs).
-# Un request válido según el esquema puede rechazarse por una invariante declarada en
-# `x-invariants` (422 con su tipo del catálogo, ADR-007): para Schemathesis eso no es un
-# rechazo indebido. El resto de los checks queda con sus valores por defecto.
+# Configuration of Schemathesis for npm run test:contract (scripts/test-contract.mjs). Schemathesis
+# discovers this file by itself in the working directory; passing another one with --config-file
+# replaces it instead of adding to it (feature 043 learned that in CI).
+#
+# A schema-valid request may be refused by an invariant declared in `x-invariants` (422 with its type
+# from the catalogue, ADR-007): for Schemathesis that is not an undue rejection. Every other check keeps
+# its defaults.
 [checks.positive_data_acceptance]
 expected-statuses = ["2xx", 401, 403, 404, 409, 422, 429, "5xx"]
 
-# Las operaciones de plataforma (tag `outcomes`) declaran los dos headers de firma (ADR-029) y
-# desde la 015 (F-054) se ejercitan con su credencial. Dos límites de Schemathesis con esos
-# parámetros de header: (a) el caso negativo "propiedad inesperada" los manda como un header
-# desconocido, que ninguna API HTTP rechaza; `allow-extra-parameters = false` lo omite (también
-# para el cuerpo: que un campo desconocido en el body es 400 lo prueban tests/integration); (b) la
-# fase de cobertura no respeta `pattern` en headers y manda `X-OPE-Signature: 0` como conforme,
-# que el contrato rechaza con 400 (`/header/x-ope-signature`): en esa fase el check admite 400.
+# The platform operations (tag `outcomes`) declare the two signature headers (ADR-029) and since 015
+# (F-054) are exercised with their credential. Two limits of Schemathesis with those header parameters:
+# (a) the negative case "unexpected property" sends them as an unknown header, which no HTTP API refuses;
+# `allow-extra-parameters = false` skips it (also for the body: that an unknown body field is a 400 is
+# proved by tests/integration); (b) the coverage phase ignores `pattern` in headers and sends
+# `X-OPE-Signature: 0` as conforming, which the contract refuses with 400 (`/header/x-ope-signature`):
+# in that phase the check admits 400.
 [[operations]]
 include-tag = "outcomes"
 [operations.generation]
 allow-extra-parameters = false
 [operations.phases.coverage.checks.positive_data_acceptance]
 expected-statuses = ["2xx", 400, 401, 403, 404, 409, 422, 429, "5xx"]
+
+# The four writes that replace what they read require the witness of what they read (feature 043,
+# ADR-046). Two checks disagree with the contract there, not with the server:
+#   - missing_required_header expects a 400-family answer; the contract answers 428 witness-required,
+#     a status of its own, declared on the parameter with x-when-missing.
+#   - positive_data_acceptance sends a schema-valid If-Match, which is never the current witness of the
+#     resource; 412 stale-version is the answer the contract declares for it.
+[[operations]]
+include-operation-id = [
+  "publishPlatformConfiguration",
+  "publishTreatmentDefaults",
+  "publishMerchantConfiguration",
+  "updateMerchantProfile",
+]
+checks.missing_required_header.expected-statuses = [428]
+checks.positive_data_acceptance.expected-statuses = ["2xx", 401, 403, 404, 409, 412, 422, 429, "5xx"]

@@ -57,6 +57,13 @@ en `scripts/schemathesis.toml`. Cargar ese archivo hizo que Schemathesis empezar
 `422` de las invariantes (ADR-007), que sin archivo no contaba: el archivo también lo declara, para todo el
 contrato. Después, 17 743 casos generados y todos pasan.
 
+**Corrección (2026-10-10, CI de la #52)** · Lo anterior estaba mal diagnosticado. Ya existía un
+`schemathesis.toml` en la raíz, que Schemathesis descubre solo, y que declaraba el `422` y dos límites de
+las operaciones `outcomes`. Pasarle `--config-file` con otro archivo **lo reemplazó**: CI falló en
+`POST /v1/orders`, `POST /v1/returns` y `PUT /v1/catalog`, justo lo que el de la raíz cubría. En local no
+se vio porque esas operaciones respondían `401` contra el almacén de `npm run dev` (`data/ope.db`). Las
+expectativas del testigo pasaron al archivo de la raíz, y el de `scripts/` y la opción se fueron.
+
 Contra `npm run dev`:
 
 1. `GET /v1/admin/platform-configuration` → `ETag: "platform-248"`.
