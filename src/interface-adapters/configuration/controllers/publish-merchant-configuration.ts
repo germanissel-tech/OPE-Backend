@@ -1,16 +1,17 @@
 // publishMerchantConfiguration (01 §14.2, ADR-031): body → the declared values read by shape →
 // use case → 201 with the version created, or 200 with the version in force it repeats.
 import {
+  merchantConfigurationWitness,
   readDeclaredConfiguration,
   type PublishMerchantConfigurationRequest,
   type PublishMerchantConfigurationResponse,
 } from "../../../application/configuration/index.js";
 import { InvalidConfigurationValue } from "../../../domain/configuration/index.js";
-import { merchantIdOf } from "../../http/boundary.js";
+import { merchantIdOf, witnessIn } from "../../http/boundary.js";
 import { operatorOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
 import { toProblem } from "../../http/to-problem.js";
-import { versionDto } from "../presenters.js";
+import { versionDto, witnessed } from "../presenters.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
 import type { OperationHandler } from "../../http/typed.js";
 
@@ -29,6 +30,7 @@ export function makePublishMerchantConfiguration(
       declared: declared.value,
       corrective: req.body.corrective ?? false,
       reason: req.body.reason,
+      witness: witnessIn(req.headers),
     });
     if (!result.ok) {
       // The resolution names the field from the root of the declared values; the body carries them under `declared`.
@@ -37,8 +39,10 @@ export function makePublishMerchantConfiguration(
       return toProblem(error, req.instance);
     }
     const body = versionDto(result.value);
+    // The witness the answer leaves in place: the merchant and the version now in force.
+    const headers = witnessed(merchantConfigurationWitness(result.value.version.merchantId, body.version));
     return result.value.outcome === "created"
-      ? { status: HTTP_STATUS.CREATED, body }
-      : { status: HTTP_STATUS.OK, body };
+      ? { status: HTTP_STATUS.CREATED, body, headers }
+      : { status: HTTP_STATUS.OK, body, headers };
   };
 }

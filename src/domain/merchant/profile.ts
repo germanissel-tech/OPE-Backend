@@ -72,6 +72,29 @@ export class MerchantProfile implements MerchantProfileRecord {
     return new MerchantProfile(record);
   }
 
+  /**
+   * Whether another identity says the same, field by field (feature 043): what lets the retry of an edition
+   * that went through answer as before instead of being refused for a witness it already moved. Field by
+   * field and not by the shape of the record, so the order in which a body listed them does not count.
+   */
+  sameAs(other: MerchantProfile | undefined): boolean {
+    if (other === undefined) return false;
+    const [mine, theirs] = [this.contact, other.contact];
+    const sameContact =
+      mine === undefined || theirs === undefined
+        ? mine === theirs
+        : mine.name === theirs.name &&
+          mine.email === theirs.email &&
+          mine.phone === theirs.phone &&
+          mine.role === theirs.role;
+    return (
+      this.displayName === other.displayName &&
+      this.storeUrl === other.storeUrl &&
+      this.notes === other.notes &&
+      sameContact
+    );
+  }
+
   /** The record as a store would keep it; an absent field stays absent. */
   record(): MerchantProfileRecord {
     return {

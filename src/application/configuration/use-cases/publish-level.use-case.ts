@@ -28,6 +28,7 @@ import {
   fail,
   ok,
   type LocaleIncomplete,
+  StaleVersion,
   type ReleaseLevel,
   type Result,
   type StoreUnavailable,
@@ -54,6 +55,12 @@ export interface PublishLevelRequest {
    * guard twice produced a branch whose two arms are the same input, which no test can tell apart.
    */
   reason?: string | undefined;
+  /**
+   * The witness of the level as the caller read it (feature 043, ADR-046): the name of the version that was in
+   * force. The publication replaces the whole level with what the caller read and changed, so it is accepted
+   * only if that version is still the one in force.
+   */
+  witness: string;
 }
 
 /**
@@ -72,6 +79,7 @@ export type PublishLevelResponse = Result<
   | ConfigurationFrozen
   | InvalidConfigurationValue
   | LocaleIncomplete
+  | StaleVersion
   | StoreUnavailable
 >;
 
@@ -103,6 +111,13 @@ export class PublishLevelUseCase implements UseCase<PublishLevelRequest, Publish
     if (inForce?.sameContentAs(draft.value) === true) {
       return ok({ ...(await reached.restartedBy(inForce)), outcome: "repeated" });
     }
+    // **After the repetition and before anything else** (ADR-046): an identical body overwrites nothing, so
+    // the retry of a publication that went through answers as before whatever witness it carries; and a
+    // stale witness is refused before the freeze, because explaining the 409 of what changed is no help.
+    // The publication runs inside the unit of work of the audit, which takes its turn: nothing can be
+    // published between this comparison and the write (feature 034).
+    // A level with no version yet has nothing to overwrite, so there is no witness to keep.
+    if (inForce !== undefined && inForce.versionName() !== request.witness) return fail(new StaleVersion());
     // Judged before anything is written: a value the vocabulary refuses never becomes a version (FR-005).
     const judged = await configuration.judgeLevel(draft.value);
     if (!judged.ok) return fail(judged.error);

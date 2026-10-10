@@ -835,6 +835,33 @@ const fixtures = {
     bodySchema(d).properties.merchantId = { type: "string", description: "Merchant." };
     return d;
   },
+  // ope-when-missing (feature 043, ADR-046): only a required parameter can be missing, and its problem exists.
+  "ope-when-missing.yaml": (d) => {
+    withThings(d);
+    things(d).parameters = [
+      {
+        name: "If-Match",
+        in: "header",
+        required: false,
+        "x-when-missing": "witness-required",
+        schema: { type: "string" },
+      },
+    ];
+    return d;
+  },
+  "ope-when-missing.slug.yaml": (d) => {
+    withThings(d);
+    things(d).parameters = [
+      {
+        name: "If-Match",
+        in: "header",
+        required: true,
+        "x-when-missing": "witness-forgotten",
+        schema: { type: "string" },
+      },
+    ];
+    return d;
+  },
   // ope-outcomes-idempotency (feature 006 FR-021, ADR-020)
   "ope-outcomes-idempotency.yaml": (d) => {
     withNotifyOrder(d);

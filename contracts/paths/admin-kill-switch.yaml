@@ -26,6 +26,9 @@ put:
   responses:
     "200":
       description: The switch as it is now.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

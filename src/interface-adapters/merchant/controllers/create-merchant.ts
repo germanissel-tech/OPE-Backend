@@ -3,7 +3,7 @@
 import { operatorOf } from "../../http/security/principal.js";
 import { HTTP_STATUS } from "../../http/status.js";
 import { toProblem } from "../../http/to-problem.js";
-import { merchantDto, profileOf } from "../presenters.js";
+import { merchantDto, profileOf, witnessOfMerchant } from "../presenters.js";
 import type {
   CreateMerchantFailure,
   CreateMerchantRequest,
@@ -28,6 +28,7 @@ export function makeCreateMerchant(
     const { merchant, ingestKey, platformKey, platformSecret } = result.value;
     return {
       status: HTTP_STATUS.CREATED,
+      headers: witnessOfMerchant(merchant),
       body: {
         merchant: merchantDto(merchant, clock.now()),
         credentials: { ingestKey, platformKey, ...(platformSecret === undefined ? {} : { platformSecret }) },

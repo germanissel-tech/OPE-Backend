@@ -81,6 +81,8 @@ function runSchemathesis(base) {
     "uvx",
     [
       SCHEMATHESIS,
+      // No --config-file: Schemathesis discovers schemathesis.toml in the working directory, and a file
+      // passed explicitly replaces that one instead of adding to it (feature 043).
       "run",
       bundlePath,
       "--url",

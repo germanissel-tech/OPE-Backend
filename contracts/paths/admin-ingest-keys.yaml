@@ -24,6 +24,9 @@ post:
   responses:
     "201":
       description: The credential minted; its value travels here and never again.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

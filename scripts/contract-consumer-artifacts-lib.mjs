@@ -23,6 +23,9 @@ export const CONSUMER = "admin";
 /** An operation that identifies the principal asks for no capability (ADR-044). */
 const IDENTIFIES = "x-identifies-principal";
 const IDEMPOTENCY = "x-idempotency";
+/** The header a write sends the witness of what it read in (feature 043, ADR-046). */
+const WITNESS_HEADER = "if-match";
+const PARAMETER_REF = "#/components/parameters/";
 const CAPABILITIES = "x-required-capabilities";
 const METHODS = ["get", "put", "post", "delete", "patch", "options", "head", "trace"];
 const SCHEMA_REF = "#/components/schemas/";
@@ -44,7 +47,7 @@ const CAPABILITY = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u;
 
 /**
  * @typedef {{ version: string; sha256: string }} Identity
- * @typedef {{ id: string; capabilities: string[]; idempotent: boolean }} ConsumerOperation
+ * @typedef {{ id: string; capabilities: string[]; idempotent: boolean; versioned: boolean }} ConsumerOperation
  * @typedef {{ required: string[]; fields: Record<string, FieldConstraints> }} MessageConstraints
  * @typedef {{ [key: string]: unknown; type?: string; ref?: string; items?: FieldConstraints }} FieldConstraints
  * @typedef {{ where: string; op: Record<string, unknown> }} Located an operation and where the bundle has it
@@ -105,12 +108,49 @@ function locatedOperations(doc) {
 }
 
 /**
+ * Whether the operation requires the witness of what it replaces (feature 043, ADR-046): it declares the
+ * `If-Match` header, inline or by reference. It is what a consumer's door reads to know that a
+ * `412 stale-version` can be retried with a fresh witness, so it is derived here and never written by hand.
+ * @param {Record<string, unknown>} op
+ * @param {Record<string, unknown>} doc
+ * @returns {boolean}
+ */
+function requiresWitness(op, doc) {
+  const parameters = op["parameters"];
+  if (!Array.isArray(parameters)) return false;
+  const components = doc["components"];
+  const declared =
+    typeof components === "object" && components !== null
+      ? /** @type {Record<string, unknown>} */ (components)["parameters"]
+      : undefined;
+  return parameters.some((/** @type {unknown} */ each) => {
+    let parameter = each;
+    const ref =
+      typeof each === "object" && each !== null
+        ? /** @type {Record<string, unknown>} */ (each)["$ref"]
+        : undefined;
+    if (
+      typeof ref === "string" &&
+      ref.startsWith(PARAMETER_REF) &&
+      typeof declared === "object" &&
+      declared !== null
+    ) {
+      parameter = /** @type {Record<string, unknown>} */ (declared)[ref.slice(PARAMETER_REF.length)];
+    }
+    if (typeof parameter !== "object" || parameter === null) return false;
+    const { name, in: where } = /** @type {Record<string, unknown>} */ (parameter);
+    return where === "header" && typeof name === "string" && name.toLowerCase() === WITNESS_HEADER;
+  });
+}
+
+/**
  * One operation as the module states it. An operation without a capability is only admitted when
  * it identifies the principal: any other would draw its button for anybody.
  * @param {Located} located
+ * @param {Record<string, unknown>} doc
  * @returns {ConsumerOperation}
  */
-function consumerOperation({ where, op }) {
+function consumerOperation({ where, op }, doc) {
   const id = op["operationId"];
   if (typeof id !== "string" || !OPERATION_ID.test(id)) throw new Error(`${where}: no usable operationId`);
   const capabilities = op[CAPABILITIES];
@@ -123,7 +163,12 @@ function consumerOperation({ where, op }) {
       throw new Error(`${id}: '${String(capability)}' is not shaped like a capability`);
     }
   }
-  return { id, capabilities: capabilities.map(String), idempotent: IDEMPOTENCY in op };
+  return {
+    id,
+    capabilities: capabilities.map(String),
+    idempotent: IDEMPOTENCY in op,
+    versioned: requiresWitness(op, doc),
+  };
 }
 
 /**
@@ -132,7 +177,7 @@ function consumerOperation({ where, op }) {
  * @returns {ConsumerOperation[]}
  */
 export function consumerOperations(doc) {
-  const operations = locatedOperations(doc).map(consumerOperation);
+  const operations = locatedOperations(doc).map((located) => consumerOperation(located, doc));
   if (operations.length === 0) throw new Error(`the bundle has no operation tagged ${CONSUMER}`);
   const ids = operations.map((o) => o.id);
   const repeated = ids.filter((id, at) => ids.indexOf(id) !== at);
@@ -164,7 +209,7 @@ export const CAPABILITIES = [${quoted(vocabulary)}]
 
 /** What the contract demands of each ${CONSUMER} operation. */
 export const OPERATIONS = {
-${operations.map((o) => `  ${o.id}: { capabilities: [${quoted(o.capabilities)}], idempotent: ${o.idempotent} },`).join("\n")}
+${operations.map((o) => `  ${o.id}: { capabilities: [${quoted(o.capabilities)}], idempotent: ${o.idempotent}, versioned: ${o.versioned} },`).join("\n")}
 }
 `;
   const dts = `${JS_BANNER}
@@ -186,7 +231,7 @@ export declare const OPERATIONS: {
 ${operations
   .map(
     (o) =>
-      `  readonly ${o.id}: {\n    readonly capabilities: readonly [${quoted(o.capabilities)}]\n    readonly idempotent: ${o.idempotent}\n  }`,
+      `  readonly ${o.id}: {\n    readonly capabilities: readonly [${quoted(o.capabilities)}]\n    readonly idempotent: ${o.idempotent}\n    readonly versioned: ${o.versioned}\n  }`,
   )
   .join("\n")}
 }

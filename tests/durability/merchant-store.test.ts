@@ -211,6 +211,31 @@ describe("the merchants across a restart", () => {
     expect((await merchants().get(asMerchantId("m_doce")))?.profile?.displayName).toBe("Doce");
   });
 
+  it("keeps the revision across a restart, so the witness a reader got is the one a writer is judged by (feature 043)", async () => {
+    const created = testMerchant({
+      merchantId: "m_trece",
+      origins: ["https://trece.example"],
+      ingestKeys: ["key-13"],
+    });
+    await merchants().create(created);
+    const off = created.switched(false);
+    if (!off.ok) throw new Error(off.error.message);
+    await merchants().update(off.value.deactivated());
+    // A merchant written before the revision existed reads 0 until its first change.
+    const old = testMerchant({
+      merchantId: "m_catorce",
+      origins: ["https://catorce.example"],
+      ingestKeys: ["key-14"],
+    }).record();
+    await merchants().create(Merchant.rehydrate({ ...old, revision: undefined }));
+
+    fixture.restart();
+
+    const after = merchants();
+    expect((await after.get(asMerchantId("m_trece")))?.witness()).toBe("m_trece:3");
+    expect((await after.get(asMerchantId("m_catorce")))?.revision).toBe(0);
+  });
+
   it("degrades instead of throwing when the store cannot accept a write", async () => {
     // The gateway is built **before** the store goes away, because filling the index is what it does when
     // it is built: against a store it cannot read it throws, and at boot that is the right answer — a

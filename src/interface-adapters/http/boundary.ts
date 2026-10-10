@@ -62,6 +62,40 @@ export function numberOf(value: unknown): number {
   return Number(value);
 }
 
+/** A strong entity tag holding one witness: quotes around anything but quotes. */
+const STRONG_TAG = /^"([^"]+)"$/;
+
+/**
+ * The witness an `If-Match` carries (feature 043, ADR-046): the value of a single strong tag.
+ *
+ * **Anything else answers something no witness can equal**, not an error: the wildcard, several tags, a weak
+ * tag or an unquoted value are a client that did not send back what it read, and the use case refuses them
+ * as stale. The prefix is what keeps them from matching: a witness never starts with a quote or a space, so
+ * the header as it came, behind one, equals none.
+ */
+export function witnessOf(header: string): string {
+  return STRONG_TAG.exec(header)?.[1] ?? ` ${header}`;
+}
+
+/**
+ * The witness of a request, from its `If-Match`. **Looked up without regard to case**: the generated type
+ * names the header as the contract declares it, `If-Match`, and the request carries it as HTTP delivers
+ * it, in lowercase. Absent it cannot be here —the validator answered `428` first—, and if it were it would
+ * read as a witness nobody has.
+ */
+export function witnessIn(headers: Readonly<Record<string, unknown>>): string {
+  const value = Object.entries(headers).find(([name]) => name.toLowerCase() === IF_MATCH)?.[1];
+  return witnessOf(typeof value === "string" ? value : "");
+}
+
+/** The header a write sends its witness in, as HTTP delivers it. */
+const IF_MATCH = "if-match";
+
+/** The `ETag` that hands out a witness: the same value, as a strong tag. */
+export function etagOf(witness: string): string {
+  return `"${witness}"`;
+}
+
 /** The merchant identifier of the path (constitution V: the only place it travels). */
 export function merchantIdOf(path: { merchantId: string }): MerchantId {
   return asMerchantId(path.merchantId);

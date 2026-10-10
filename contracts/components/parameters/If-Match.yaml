@@ -1,0 +1,12 @@
+name: If-Match
+in: header
+required: true
+x-when-missing: witness-required
+description: "The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged.
+  A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without
+  it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out
+  would invite sending it back without looking. Any value other than the current witness —one that is old,
+  another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written."
+schema:
+  type: string
+  maxLength: 256

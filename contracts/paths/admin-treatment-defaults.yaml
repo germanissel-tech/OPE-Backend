@@ -23,6 +23,8 @@ post:
     configuration-frozen`), and it restarts the measurement window of each one. An invalid value is
     refused naming the field and no version is created. It takes an operator over every merchant, because
     the change reaches them all."
+  parameters:
+    - $ref: ../components/parameters/If-Match.yaml
   requestBody:
     required: true
     content:
@@ -106,6 +108,9 @@ post:
   responses:
     "200":
       description: The version in force, identical to what was published.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:
@@ -122,6 +127,9 @@ post:
               - exp_a_000001
     "201":
       description: The version created.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:
@@ -137,11 +145,24 @@ post:
       $ref: ../components/responses/ConfigurationFrozenConflict.yaml
     "422":
       $ref: ../components/responses/TreatmentDefaultsUnprocessable.yaml
+    "412":
+      $ref: ../components/responses/StaleVersion.yaml
+    "428":
+      $ref: ../components/responses/WitnessRequired.yaml
     "500":
       $ref: ../components/responses/InternalServerError.yaml
     "503":
       $ref: ../components/responses/ServiceUnavailable.yaml
   x-invariants:
+    - type: stale-version
+      status: 412
+      rule: the witness in If-Match is the current witness of the treatment defaults, unless the body is identical to what is in force
+      description:
+        "The write replaces the treatment defaults whole with what the caller read and changed (ADR-046), so a write in between
+        would be undone without anybody knowing. It is judged after the scope of the operator and after the
+        repetition of an identical body —which answers as before, with any witness, so the retry of a write
+        that went through does not fail— and before anything else, the freeze included. A witness that is not
+        this resource's never matches."
     - type: locale-incomplete
       status: 422
       rule: a language enters the supported list or becomes the reserve only when the base layer holds a text
@@ -166,6 +187,9 @@ get:
   responses:
     "200":
       description: The treatment defaults.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

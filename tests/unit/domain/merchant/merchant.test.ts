@@ -10,6 +10,7 @@ import {
   InvalidPlatformSecret,
   InvalidPlatformSecrets,
   Merchant,
+  MerchantProfile,
   Origin,
   PlatformKeyCollision,
   type Credential,
@@ -370,9 +371,61 @@ describe("Merchant from a plain record (feature 037: the record declares data, t
 
   it("built from a copy is the same as built from the plain record: converting an instance is idempotent", () => {
     const copied = Merchant.rehydrate(plain).deactivated();
-    const direct = Merchant.rehydrate({ ...plain, status: "deactivated" });
+    // A change raises the revision (feature 043), so the record built by hand says so too.
+    const direct = Merchant.rehydrate({
+      ...plain,
+      status: "deactivated",
+      revision: (plain.revision ?? 0) + 1,
+    });
     expect(copied).toEqual(direct);
     expect(copied.record()).toEqual(direct.record());
     expect(copied.allowsOrigin("https://a.example")).toBe(true);
+  });
+});
+
+describe("Merchant revision and witness (feature 043)", () => {
+  const profileOf = (displayName: string): MerchantProfile => {
+    const made = MerchantProfile.of({ displayName });
+    if (!made.ok) throw new Error(made.error.message);
+    return made.value;
+  };
+  const unwrap = <T>(r: { ok: true; value: T } | { ok: false; error: { message: string } }): T => {
+    if (!r.ok) throw new Error(r.error.message);
+    return r.value;
+  };
+
+  it("a new merchant is revision 1, and its witness names the merchant", () => {
+    expect(merchant.revision).toBe(1);
+    expect(merchant.witness()).toBe("m_a:1");
+    // Two merchants at the same revision never share a witness.
+    expect(merchantOf({ merchantId: asMerchantId("m_b") }).witness()).toBe("m_b:1");
+  });
+
+  it("every change adds one: a rotation, the switch, the deactivation and the identity", () => {
+    const rotated = unwrap(merchant.rotated(ingest("k-new", LATER(1)), GRACE, LATER(1)));
+    expect(rotated.revision).toBe(2);
+    const off = unwrap(rotated.switched(false));
+    expect(off.revision).toBe(3);
+    const named = off.withProfile(profileOf("Tienda Norte"));
+    expect(named.revision).toBe(4);
+    const gone = named.deactivated();
+    expect(gone.revision).toBe(5);
+    expect(gone.witness()).toBe("m_a:5");
+    // The original is untouched: each change answers a new merchant.
+    expect(merchant.revision).toBe(1);
+  });
+
+  it("a change that changes nothing keeps the revision: the witness describes the merchant, not the request", () => {
+    expect(unwrap(merchant.switched(true))).toBe(merchant);
+    const gone = merchant.deactivated();
+    expect(gone.deactivated()).toBe(gone);
+  });
+
+  it("a record written before feature 043 has no revision and reads as 0 until its first change", () => {
+    const back = Merchant.rehydrate({ ...merchant.record(), revision: undefined });
+    expect(back.revision).toBe(0);
+    expect(back.witness()).toBe("m_a:0");
+    expect(unwrap(back.switched(false)).revision).toBe(1);
+    expect(merchant.record().revision).toBe(1);
   });
 });

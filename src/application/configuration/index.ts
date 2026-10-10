@@ -70,6 +70,7 @@ export type {
 } from "./use-cases/list-level-versions.use-case.js";
 export { PublishLevelUseCase } from "./use-cases/publish-level.use-case.js";
 export type { LevelVersionRead, MerchantVersionRead } from "./services/version-restarts.js";
+export { merchantConfigurationWitness } from "./services/witness.js";
 export { GetMerchantConfigurationVersionUseCase } from "./use-cases/get-merchant-configuration-version.use-case.js";
 export type {
   GetMerchantConfigurationVersionRequest,

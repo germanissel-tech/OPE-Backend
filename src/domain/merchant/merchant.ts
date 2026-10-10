@@ -52,6 +52,8 @@ export interface MerchantRecord {
   createdAt: Date;
   /** Absent in every document written before ADR-045, and in a merchant nobody named since. */
   profile?: MerchantProfileRecord | undefined;
+  /** How many changes it has had (feature 043): absent in every document written before, which reads as 0. */
+  revision?: number | undefined;
 }
 
 /** A credential set is one credential, or two during a rotation (ADR-014, ADR-025, ADR-029). */
@@ -75,6 +77,8 @@ export class Merchant implements MerchantRecord {
   readonly credentials: readonly Credential[];
   readonly createdAt: Date;
   readonly profile: MerchantProfile | undefined;
+  /** Rises with every change, whatever it changes: what makes the witness of a merchant (feature 043). */
+  readonly revision: number;
 
   private constructor(record: MerchantRecord) {
     this.merchantId = record.merchantId;
@@ -84,6 +88,7 @@ export class Merchant implements MerchantRecord {
     this.createdAt = record.createdAt;
     // Every nested class is rehydrated here, like the origins (feature 037): a document gives plain objects.
     this.profile = record.profile === undefined ? undefined : MerchantProfile.rehydrate(record.profile);
+    this.revision = record.revision ?? 0;
   }
 
   /**
@@ -104,6 +109,7 @@ export class Merchant implements MerchantRecord {
         credentials: input.credentials,
         createdAt: input.createdAt,
         profile: input.profile,
+        revision: 1,
       }),
     );
   }
@@ -225,18 +231,19 @@ export class Merchant implements MerchantRecord {
     );
     const kept = this.credentials.filter((c) => c.kind !== credential.kind || !isLive(c, now));
     const previous = live.map((c, i) => ({ ...c, expiresAt: i < live.length - 1 ? now : expiresAt }));
-    return ok(new Merchant({ ...this.record(), credentials: [...kept, ...previous, credential] }));
+    return ok(this.#changed({ credentials: [...kept, ...previous, credential] }));
   }
 
   /** The same merchant, on or off; a deactivated one has no switch. */
   switched(on: boolean): Result<Merchant, MerchantDeactivated> {
     if (this.isDeactivated()) return fail(new MerchantDeactivated());
-    return ok(new Merchant({ ...this.record(), status: on ? "active" : "off" }));
+    if (this.isOn() === on) return ok(this);
+    return ok(this.#changed({ status: on ? "active" : "off" }));
   }
 
   /** The same merchant, deactivated for good (idempotent). */
   deactivated(): Merchant {
-    return new Merchant({ ...this.record(), status: "deactivated" });
+    return this.isDeactivated() ? this : this.#changed({ status: "deactivated" });
   }
 
   /**
@@ -244,7 +251,25 @@ export class Merchant implements MerchantRecord {
    * identity belongs to the commercial relationship, so a deactivated merchant admits it too.
    */
   withProfile(profile: MerchantProfile): Merchant {
-    return new Merchant({ ...this.record(), profile: profile.record() });
+    return this.#changed({ profile: profile.record() });
+  }
+
+  /**
+   * The witness of the merchant (feature 043, ADR-046): who it is and how many changes it has had. Whoever
+   * replaces something it read sends it back, and a write in between makes it differ. The merchant is in it
+   * because revisions repeat across merchants: the 7th of one is not the 7th of another.
+   */
+  witness(): string {
+    return `${this.merchantId}:${this.revision}`;
+  }
+
+  /**
+   * **The only way to make the next merchant**, and why it exists: a change has to raise the revision, and a
+   * method that built the next one by hand could forget it — the witness would then let a write through over
+   * a merchant that changed, which is the one failure the witness is for, and nothing would fail.
+   */
+  #changed(changes: Partial<MerchantRecord>): Merchant {
+    return new Merchant({ ...this.record(), ...changes, revision: this.revision + 1 });
   }
 
   /** The record as a store would keep it. */
@@ -256,6 +281,7 @@ export class Merchant implements MerchantRecord {
       credentials: this.credentials,
       createdAt: this.createdAt,
       profile: this.profile?.record(),
+      revision: this.revision,
     };
   }
 }

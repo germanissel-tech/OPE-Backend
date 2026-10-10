@@ -70,6 +70,9 @@ post:
   responses:
     "201":
       description: Merchant created; the credentials travel here and never again.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

@@ -100,10 +100,28 @@ export class LocaleIncomplete extends DomainError {
   }
 }
 
+/**
+ * A write that replaces what it read, with the witness of a version that is no longer the one there (feature
+ * 043, ADR-046): somebody wrote the resource in between, or the witness is another resource's. Nothing was
+ * written. It carries no details on purpose: the current witness does not travel in the refusal, because
+ * handing it out invites sending it back without looking at what the other one wrote.
+ *
+ * In the kernel because two modules that cannot depend on each other answer it: the configuration and the
+ * merchants.
+ */
+export class StaleVersion extends DomainError {
+  readonly code = "stale-version" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("The resource changed since it was read.");
+  }
+}
+
 export type SharedKernelError =
   | InvalidMoney
   | IdempotencyConflict
   | StoreUnavailable
   | ConfigurationFrozen
   | ConfigurationReasonRequired
-  | LocaleIncomplete;
+  | LocaleIncomplete
+  | StaleVersion;

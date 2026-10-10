@@ -64,7 +64,7 @@ interface Capabilities {
   CONTRACT: { version: string; sha256: string };
   CONSUMER: string;
   CAPABILITIES: string[];
-  OPERATIONS: Record<string, { capabilities: string[]; idempotent: boolean }>;
+  OPERATIONS: Record<string, { capabilities: string[]; idempotent: boolean; versioned: boolean }>;
 }
 interface Constraints {
   CONTRACT: { version: string; sha256: string };
@@ -146,15 +146,35 @@ describe("capabilities: operation → capabilities and idempotency", () => {
 
   it("copies x-required-capabilities as declared and derives idempotent from x-idempotency", () => {
     for (const op of adminOperations()) {
-      expect(capabilities.OPERATIONS[op.operationId]).toEqual({
+      expect(capabilities.OPERATIONS[op.operationId]).toMatchObject({
         capabilities: op["x-required-capabilities"],
         idempotent: "x-idempotency" in op,
       });
     }
   });
 
+  it("derives versioned from the If-Match the operation declares: exactly the four writes with a witness (feature 043)", () => {
+    const versioned = Object.entries(capabilities.OPERATIONS)
+      .filter(([, o]) => o.versioned)
+      .map(([id]) => id)
+      .sort();
+    expect(versioned).toEqual([
+      "publishMerchantConfiguration",
+      "publishPlatformConfiguration",
+      "publishTreatmentDefaults",
+      "updateMerchantProfile",
+    ]);
+    expect(files.get("capabilities.d.ts") ?? "").toContain(
+      "readonly updateMerchantProfile: {\n    readonly capabilities: readonly ['merchants:write']\n    readonly idempotent: false\n    readonly versioned: true\n  }",
+    );
+  });
+
   it("getOperator asks for nothing: the only empty list, admitted because it identifies the principal", () => {
-    expect(capabilities.OPERATIONS["getOperator"]).toEqual({ capabilities: [], idempotent: false });
+    expect(capabilities.OPERATIONS["getOperator"]).toEqual({
+      capabilities: [],
+      idempotent: false,
+      versioned: false,
+    });
     const empty = Object.entries(capabilities.OPERATIONS).filter(([, o]) => o.capabilities.length === 0);
     expect(empty.map(([id]) => id)).toEqual(["getOperator"]);
   });
@@ -167,7 +187,7 @@ describe("capabilities: operation → capabilities and idempotency", () => {
       `export declare const CAPABILITIES: readonly [${union.map((c) => `'${c}'`).join(", ")}]`,
     );
     expect(dts).toContain(
-      "readonly getOperator: {\n    readonly capabilities: readonly []\n    readonly idempotent: false\n  }",
+      "readonly getOperator: {\n    readonly capabilities: readonly []\n    readonly idempotent: false\n    readonly versioned: false\n  }",
     );
     expect(dts).toContain("export type OperationId = keyof typeof OPERATIONS");
   });
@@ -247,9 +267,11 @@ describe("constraints: what a form can verify of each request body", () => {
       type: "object",
       ref: "MerchantContact",
     });
+    // The edition replaces the identity whole, so it requires the witness of what it read (feature 043).
     expect(capabilities.OPERATIONS["updateMerchantProfile"]).toEqual({
       capabilities: ["merchants:write"],
       idempotent: false,
+      versioned: true,
     });
   });
 

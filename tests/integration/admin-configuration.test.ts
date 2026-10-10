@@ -368,7 +368,14 @@ describe("publishing a version (scenarios 2, 3, 7)", () => {
     expect(
       (await admin(app.app, "GET", "/v1/admin/merchants/m_b/configuration", { as: "ops-a" })).statusCode,
     ).toBe(403);
-    expect((await configure({ declared: {} }, { as: "ops-a", merchant: "m_b" })).statusCode).toBe(403);
+    // With a witness, so the refusal is about the scope: without one the request is incomplete before it is
+    // anybody's, and the validator answers 428 first (ADR-046).
+    const write = await admin(app.app, "POST", "/v1/admin/merchants/m_b/configuration", {
+      as: "ops-a",
+      ifMatch: '"m_b:configuration:1"',
+      body: { declared: {} },
+    });
+    expect(write.statusCode).toBe(403);
     expect(
       (await admin(app.app, "GET", "/v1/admin/merchants/m_b/configuration/versions", { as: "ops-a" }))
         .statusCode,
@@ -438,5 +445,52 @@ describe("what a merchant's version restarted, and a version by its number (feat
 
     expect(json(await versionOf(A, 2))).toMatchObject({ windowsRestarted: ["exp_a_000001"] });
     expect(json(await versionOf("m_b", 2))).toMatchObject({ windowsRestarted: [experimentId] });
+  });
+});
+
+describe("the witness of a merchant's configuration (feature 043)", () => {
+  const url = (merchant = A) => `/v1/admin/merchants/${merchant}/configuration`;
+  const read = async (merchant = A) => {
+    const response = await admin(app.app, "GET", url(merchant));
+    const etag = response.headers.etag;
+    expect(typeof etag).toBe("string");
+    return String(etag);
+  };
+  const send = (body: unknown, ifMatch: string | null, merchant = A) =>
+    admin(app.app, "POST", url(merchant), { body, ifMatch });
+  const body = (holdoutShare: number) => ({ declared: { holdoutShare }, corrective: true, reason: "test" });
+
+  it("a read hands out the witness, named by the merchant, and a write with it hands out the next one", async () => {
+    const etag = await read();
+    expect(etag).toBe('"m_a:configuration:1"');
+    const published = await send(body(0.1), etag);
+    expect(published.statusCode).toBe(201);
+    expect(published.headers.etag).toBe('"m_a:configuration:2"');
+  });
+
+  it("[invariant:stale-version] a stale witness is refused before the freeze, and nothing is written", async () => {
+    const etag = await read();
+    expect((await send(body(0.1), etag)).statusCode).toBe(201);
+    // A's experiment is active: a body without its reason would be 409; the stale witness answers first.
+    const late = await send({ declared: { holdoutShare: 0.2 } }, etag);
+    expect(late.statusCode).toBe(412);
+    expect(problemOf(late).type).toBe("urn:ope:problem:stale-version");
+    expect((await configurationOf()).declared).toMatchObject({ holdoutShare: 0.1 });
+  });
+
+  it("repeating what went through answers what is in force, with the witness of before", async () => {
+    const etag = await read();
+    expect((await send(body(0.1), etag)).statusCode).toBe(201);
+    const again = await send(body(0.1), etag);
+    expect(again.statusCode).toBe(200);
+    expect(again.headers.etag).toBe('"m_a:configuration:2"');
+  });
+
+  it("without a witness it is 428, and the witness of another merchant never matches", async () => {
+    expect((await send(body(0.1), null)).statusCode).toBe(428);
+    // Both merchants are at version 1: the merchant in the witness is what tells them apart.
+    const ofB = await read("m_b");
+    expect(ofB).toBe('"m_b:configuration:1"');
+    expect((await send(body(0.1), ofB)).statusCode).toBe(412);
   });
 });

@@ -1,0 +1,5 @@
+description: "The witness of the resource as this response leaves it (ADR-046): opaque, strong, and the
+  value to send back in `If-Match` when replacing what was read. It changes with every write of the
+  resource, including the ones that do not ask for it."
+schema:
+  type: string

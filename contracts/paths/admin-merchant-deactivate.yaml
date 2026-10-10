@@ -17,6 +17,9 @@ post:
   responses:
     "200":
       description: The merchant, deactivated.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

@@ -1,0 +1,12 @@
+description: "The resource changed since the witness was read (ADR-046): somebody wrote it in between, or
+  the witness is not this resource's. Nothing was written. Read it again to get its current witness, and
+  decide over what is there now."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:stale-version
+      title: The resource changed since it was read
+      status: 412
+      instance: /v1/admin/platform-configuration

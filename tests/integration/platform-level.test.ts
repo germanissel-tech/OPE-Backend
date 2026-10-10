@@ -285,3 +285,73 @@ describe("[US3 scenario 4] only the fields that govern the measurement freeze", 
     expect(json(response)).toMatchObject({ windowsRestarted: ["exp_a_000001"] });
   });
 });
+
+describe("the witness of a level (feature 043)", () => {
+  const DEFAULTS = "/v1/admin/treatment-defaults";
+  const read = async (url = URL) => {
+    const response = await admin(app.app, "GET", url);
+    const etag = response.headers.etag;
+    expect(typeof etag).toBe("string");
+    const { version, ...content } = json(response) as Record<string, unknown>;
+    expect(version).toBeDefined();
+    return { etag: String(etag), content };
+  };
+  const send = (body: unknown, ifMatch: string | null, url = URL) =>
+    admin(app.app, "POST", url, { body, ifMatch });
+
+  it("a read hands out the witness, and a write with it is accepted and hands out the next one", async () => {
+    const { etag, content } = await read();
+    expect(etag).toBe('"platform-1"');
+
+    const published = await send({ content: { ...content, retryAfterSeconds: 7 } }, etag);
+    expect(published.statusCode).toBe(201);
+    expect(published.headers.etag).toBe('"platform-2"');
+    expect((await read()).etag).toBe('"platform-2"');
+  });
+
+  it("[invariant:stale-version] a write with a witness somebody wrote over is refused, and nothing is written", async () => {
+    const { etag, content } = await read();
+    expect((await send({ content: { ...content, retryAfterSeconds: 7 } }, etag)).statusCode).toBe(201);
+
+    const late = await send({ content: { ...content, retryAfterSeconds: 9 } }, etag);
+    expect(late.statusCode).toBe(412);
+    expect(problemOf(late).type).toBe("urn:ope:problem:stale-version");
+    expect(late.headers.etag).toBeUndefined();
+    expect((await inForce())["retryAfterSeconds"]).toBe(7);
+  });
+
+  it("repeating a write that went through answers what is in force, with the witness of before", async () => {
+    const { etag, content } = await read();
+    const body = { content: { ...content, retryAfterSeconds: 7 } };
+    expect((await send(body, etag)).statusCode).toBe(201);
+
+    const again = await send(body, etag);
+    expect(again.statusCode).toBe(200);
+    expect(json(again)).toMatchObject({ version: 2 });
+    expect(again.headers.etag).toBe('"platform-2"');
+  });
+
+  it("without a witness the write is 428, without the current one, and nothing is written", async () => {
+    const { content } = await read();
+
+    const blind = await send({ content: { ...content, retryAfterSeconds: 7 } }, null);
+    expect(blind.statusCode).toBe(428);
+    expect(problemOf(blind).type).toBe("urn:ope:problem:witness-required");
+    expect(problemOf(blind).instance).toBe(URL);
+    expect(blind.headers.etag).toBeUndefined();
+    expect((await inForce())["version"]).toBe("platform-1");
+    // A request that is also malformed is answered as malformed: the witness alone would not fix it.
+    expect((await send({ content: {} }, null)).statusCode).toBe(400);
+  });
+
+  it("a witness of the other level, the wildcard or a weak one never match", async () => {
+    const defaults = await read(DEFAULTS);
+    expect(defaults.etag).toBe('"defaults-1"');
+    const { etag, content } = await read();
+    const body = { content: { ...content, retryAfterSeconds: 7 } };
+    for (const wrong of [defaults.etag, "*", `W/${etag}`, etag.replaceAll('"', "")]) {
+      expect((await send(body, wrong)).statusCode).toBe(412);
+    }
+    expect((await send(body, etag)).statusCode).toBe(201);
+  });
+});
