@@ -156,12 +156,12 @@ R-01 a R-03).
 
 ## Phase 5: El cierre (tramo 5)
 
-- [ ] T029 La cadena: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`,
+- [x] T029 La cadena: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`,
       `npm run test:durability`, `npm run test:mutation` (sin mutantes vivos en lo nuevo, ADR-016),
       `npm run test:contract`, `npm run release-check`
-- [ ] T030 El quickstart a mano contra `npm run dev` (los siete pasos), con «Lo corrido» fechado;
+- [x] T030 El quickstart a mano contra `npm run dev` (los siete pasos), con «Lo corrido» fechado;
       romper a propósito lo de la tabla «Romperle algo»
-- [ ] T031 [P] `spec.md`: **Status**: Construida; `contracts/README.md` o el README que lo pida si el
+- [x] T031 [P] `spec.md`: **Status**: Construida; `contracts/README.md` o el README que lo pida si el
       inventario de `tests/docs` lo exige; `docs/dominio/` no cambia (sin sustantivo nuevo)
 
 **Checkpoint**: todo en verde. Commit: `docs(042): cierre — lo corrido y el estado`. Push y PR.

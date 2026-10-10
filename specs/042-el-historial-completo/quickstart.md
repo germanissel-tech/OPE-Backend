@@ -41,4 +41,37 @@ Con el token del operador de desarrollo (`README.md`) y `Idempotency-Key` en cad
 
 ## Lo corrido
 
-_(se completa al implementar, con fecha, tramo por tramo)_
+**Tramo 1 (2026-10-10)** · Contrato `1.14.0`: `contract:diff` dice «No incompatible changes». La única prueba
+que fijaba la versión era la de `/v1/health`.
+
+**Tramo 2 (2026-10-10)** · La regla, la lectura `all()` y la pregunta, con su prueba de durabilidad: después de
+reiniciar el almacén, un experimento cerrado sigue nombrado por la versión que lo reinició. La entidad pasó el
+límite de 300 líneas de los anillos, y los tipos de la causa se mudaron a `window-restart.ts`.
+
+**Tramo 3 (2026-10-10)** · Las pruebas nuevas de `levels-history` y de `messages/history` fallaron antes del
+código, menos la de «sin el campo», que ya pasaba. La prueba de dos claves con el mismo número separa la
+versión 2 de un texto que reinició de la versión 2 de otra clave que no.
+
+**Tramo 4 (2026-10-10)** · Con la operación en el contrato y sin handler, las 29 pruebas de
+`admin-configuration` y `isolation` se saltaron porque el arranque se negaba: lo que la regla dice. La
+publicación del merchant pasó de escribir el experimento ella misma a reiniciar por `WindowRestarts`, y así
+sigue en seis dependencias. El número de la ruta llega como texto y se lee con `numberOf`, como en los
+niveles; sin eso, todo número daba `404`.
+
+**Tramo 5 (2026-10-10)** · Contra `npm run dev`, con «Tienda Sur» (`mrc_zejvsaiyuqgi`):
+
+0. La versión 161 de plataforma, publicada esta mañana desde la consola **antes** de esta feature, ya dice
+   `windowsRestarted: ["exp_nliucusmyzzd"]`: la derivación cubre lo publicado.
+1. `exp_prguz7gfy6sd` abierto y activado.
+2. La correctiva de plataforma (`sessionDurationMs`) publicó la 248 con el experimento. El almacén de
+   desarrollo iba por la 247 porque `test:contract` escribe en él.
+3. El historial, la versión por número y la repetición (`200`): la misma lista.
+4. La correctiva del merchant publicó su versión 5 con el experimento; el historial y la versión por número,
+   igual.
+5. Después de reiniciar el servidor, las dos versiones por número responden lo mismo.
+6. `…/configuration/versions/999`: `404 configuration-version-not-found`.
+7. Cerrado el experimento, las dos versiones lo siguen nombrando.
+
+La cadena: `format:check`, `quality` (8 gates), `typecheck`, `npm test`, `test:durability`, `test:contract` (18 182
+casos), `release-check` y `test:mutation` en verde; la mutación juzgó los 30 archivos del diff y no sobrevivió
+ningún mutante. Rotas a propósito, las cinco de la tabla: cada una la agarra su prueba.

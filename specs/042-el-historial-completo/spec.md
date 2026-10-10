@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Borrador
+**Status**: Construida (2026-10-10)
 
 **Input**: Pedido de OPE-Web, con evidencia de su feature 008 (la configuración versionada, construida el
 2026-10-10). El historial de configuración y de textos que el contrato promete y el servidor no entrega
