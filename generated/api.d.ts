@@ -1448,15 +1448,20 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
             platform: components["schemas"]["PlatformConfiguration"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
         };
@@ -1771,14 +1776,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. No upper bound of its own: with unique items over a closed vocabulary the list cannot exceed it, and a number here would say «a merchant picks at most N» while meaning «N exist» — two things that stop coinciding the day one more barrier exists. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates?: string[];
             decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];
             evidenceProfile?: components["schemas"]["EvidenceProfileDeclared"];
             freshness?: components["schemas"]["FreshnessDeclared"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare?: number;
             locales?: components["schemas"]["Locales"];
+            noticeRetry?: components["schemas"]["NoticeRetryDeclared"];
+            platformSource?: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces?: components["schemas"]["Surface"][];
+            syncCadence?: components["schemas"]["SyncCadenceDeclared"];
             syncLevel?: components["schemas"]["SyncLevelRulesDeclared"];
             syncStrategy?: components["schemas"]["SyncStrategyDeclared"];
         };
@@ -1936,6 +1946,20 @@ export type components = {
         NotCondition: {
             not: components["schemas"]["NestedCondition"];
         };
+        /** @description How a notice whose read failed is retried (ADR-047). */
+        NoticeRetry: {
+            /** @description Milliseconds between two attempts to read what a notice announced, when the platform did not answer. */
+            afterMs: number;
+            /** @description Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it. */
+            maxAttempts: number;
+        };
+        /** @description The notice retry a merchant declares; an absent value resolves from the treatment defaults. */
+        NoticeRetryDeclared: {
+            /** @description Milliseconds between two attempts to read what a notice announced, when the platform did not answer. */
+            afterMs?: number;
+            /** @description Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it. */
+            maxAttempts?: number;
+        };
         /** @description The operator behind an admin credential (ADR-031, ADR-044). `displayName` is the only personal name the contract carries: the operator is an identified and audited person, and the name is served only to the operator it names (constitution VII, 1.5.0). */
         Operator: {
             /** @description The name the operator sees in the panel. Never an identifier, never in the administration log. */
@@ -2068,6 +2092,8 @@ export type components = {
             dedupWindow: components["schemas"]["DedupWindow"];
             /** @description Milliseconds an event instant may sit in the past (late uploads). */
             eventPastToleranceMs: number;
+            /** @description Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick. */
+            platformSyncTickMs: number;
             /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
             retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
@@ -2096,6 +2122,8 @@ export type components = {
             dedupWindow: components["schemas"]["DedupWindow"];
             /** @description Milliseconds an event instant may sit in the past (late uploads). */
             eventPastToleranceMs: number;
+            /** @description Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick. */
+            platformSyncTickMs: number;
             /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
             retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
@@ -2148,6 +2176,11 @@ export type components = {
             /** @description Cursor of the next page; absent on the last page. */
             nextCursor?: string;
         };
+        /**
+         * @description What OPE reads from the merchant's platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.
+         * @enum {string}
+         */
+        PlatformSource: "generic" | "test";
         /** @description Which barriers need which class of product evidence before OPE speaks (01 §4.3). */
         PolicyEvidence: {
             /** @description Barriers that need an available variant in focus. */
@@ -2317,6 +2350,32 @@ export type components = {
          * @enum {string}
          */
         Surface: "product" | "cart";
+        /** @description How often the scheduler pulls each flow of a merchant whose strategy says `pull`, and how many variants a stock-and-price batch reads (ADR-047). Ignored for a flow in another mode. */
+        SyncCadence: {
+            /** @description Milliseconds between two pulls of the complete catalogue. */
+            catalogMs: number;
+            /** @description Milliseconds between two reads of the order changes. */
+            ordersMs: number;
+            /** @description Milliseconds between two reads of the return changes. */
+            returnsMs: number;
+            /** @description Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes. */
+            stockAndPriceBatchSize: number;
+            /** @description Milliseconds between two batches of the stock-and-price refresh. */
+            stockAndPriceMs: number;
+        };
+        /** @description The pull cadence a merchant declares; an absent value resolves from the treatment defaults. */
+        SyncCadenceDeclared: {
+            /** @description Milliseconds between two pulls of the complete catalogue. */
+            catalogMs?: number;
+            /** @description Milliseconds between two reads of the order changes. */
+            ordersMs?: number;
+            /** @description Milliseconds between two reads of the return changes. */
+            returnsMs?: number;
+            /** @description Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes. */
+            stockAndPriceBatchSize?: number;
+            /** @description Milliseconds between two batches of the stock-and-price refresh. */
+            stockAndPriceMs?: number;
+        };
         /** @description Thresholds of the observed synchronisation level (01 §14.1, ADR-025); the median algorithm is the code's. */
         SyncLevelRules: {
             /** @description Age of the latest receipt beyond which the level cannot be 2. */
@@ -2344,7 +2403,7 @@ export type components = {
             receiptsKept?: number;
         };
         /**
-         * @description How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port feature.
+         * @description How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.
          * @enum {string}
          */
         SyncMode: "push" | "pull" | "subscribe";
@@ -2420,14 +2479,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
             /** @description Name of the version in force (`defaults-3`), minted from its number. */
@@ -2442,14 +2506,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
         };
@@ -3540,6 +3609,19 @@ export interface operations {
                      *           "orders": "push",
                      *           "returns": "push"
                      *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
+                     *         },
                      *         "locales": {
                      *           "supported": [
                      *             "es-AR",
@@ -3560,7 +3642,8 @@ export interface operations {
                      *           "signatureWindowMs": 300000,
                      *           "rotationGraceMaxMs": 604800000,
                      *           "anchorDiagnosticsKept": 200,
-                     *           "retryAfterSeconds": 5
+                     *           "retryAfterSeconds": 5,
+                     *           "platformSyncTickMs": 30000
                      *         }
                      *       },
                      *       "declared": {
@@ -4709,7 +4792,8 @@ export interface operations {
                      *       "rotationGraceMaxMs": 604800000,
                      *       "anchorDiagnosticsKept": 200,
                      *       "unmappedValuesKept": 200,
-                     *       "retryAfterSeconds": 5
+                     *       "retryAfterSeconds": 5,
+                     *       "platformSyncTickMs": 30000
                      *     }
                      */
                     "application/json": components["schemas"]["PlatformConfiguration"];
@@ -4749,7 +4833,8 @@ export interface operations {
                  *         "rotationGraceMaxMs": 604800000,
                  *         "anchorDiagnosticsKept": 200,
                  *         "unmappedValuesKept": 200,
-                 *         "retryAfterSeconds": 5
+                 *         "retryAfterSeconds": 5,
+                 *         "platformSyncTickMs": 30000
                  *       },
                  *       "corrective": true,
                  *       "reason": "session shortened to thirty minutes before the pilot"
@@ -4783,7 +4868,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": true,
                      *       "reason": "session shortened to thirty minutes before the pilot",
@@ -4821,7 +4907,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": true,
                      *       "reason": "session shortened to thirty minutes before the pilot",
@@ -4885,7 +4972,8 @@ export interface operations {
                      *             "rotationGraceMaxMs": 604800000,
                      *             "anchorDiagnosticsKept": 200,
                      *             "unmappedValuesKept": 200,
-                     *             "retryAfterSeconds": 9
+                     *             "retryAfterSeconds": 9,
+                     *             "platformSyncTickMs": 30000
                      *           },
                      *           "corrective": false,
                      *           "publishedAt": "2026-10-01T12:00:00Z",
@@ -4939,7 +5027,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": false,
                      *       "publishedAt": "2026-10-01T10:00:00Z",
@@ -5263,6 +5352,19 @@ export interface operations {
                      *         "orders": "push",
                      *         "returns": "push"
                      *       },
+                     *       "platformSource": "generic",
+                     *       "confirmedOrderStates": [],
+                     *       "syncCadence": {
+                     *         "catalogMs": 86400000,
+                     *         "stockAndPriceMs": 60000,
+                     *         "stockAndPriceBatchSize": 200,
+                     *         "ordersMs": 120000,
+                     *         "returnsMs": 900000
+                     *       },
+                     *       "noticeRetry": {
+                     *         "afterMs": 60000,
+                     *         "maxAttempts": 10
+                     *       },
                      *       "locales": {
                      *         "supported": []
                      *       }
@@ -5385,6 +5487,19 @@ export interface operations {
                  *           "orders": "push",
                  *           "returns": "push"
                  *         },
+                 *         "platformSource": "generic",
+                 *         "confirmedOrderStates": [],
+                 *         "syncCadence": {
+                 *           "catalogMs": 86400000,
+                 *           "stockAndPriceMs": 60000,
+                 *           "stockAndPriceBatchSize": 200,
+                 *           "ordersMs": 120000,
+                 *           "returnsMs": 900000
+                 *         },
+                 *         "noticeRetry": {
+                 *           "afterMs": 60000,
+                 *           "maxAttempts": 10
+                 *         },
                  *         "locales": {
                  *           "supported": []
                  *         }
@@ -5500,6 +5615,19 @@ export interface operations {
                      *           "stockAndPrice": "push",
                      *           "orders": "push",
                      *           "returns": "push"
+                     *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
                      *         },
                      *         "locales": {
                      *           "supported": []
@@ -5620,6 +5748,19 @@ export interface operations {
                      *           "stockAndPrice": "push",
                      *           "orders": "push",
                      *           "returns": "push"
+                     *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
                      *         },
                      *         "locales": {
                      *           "supported": []
@@ -5763,6 +5904,19 @@ export interface operations {
                      *               "orders": "push",
                      *               "returns": "push"
                      *             },
+                     *             "platformSource": "generic",
+                     *             "confirmedOrderStates": [],
+                     *             "syncCadence": {
+                     *               "catalogMs": 86400000,
+                     *               "stockAndPriceMs": 60000,
+                     *               "stockAndPriceBatchSize": 200,
+                     *               "ordersMs": 120000,
+                     *               "returnsMs": 900000
+                     *             },
+                     *             "noticeRetry": {
+                     *               "afterMs": 60000,
+                     *               "maxAttempts": 10
+                     *             },
                      *             "locales": {
                      *               "supported": []
                      *             }
@@ -5895,6 +6049,19 @@ export interface operations {
                      *           "stockAndPrice": "push",
                      *           "orders": "push",
                      *           "returns": "push"
+                     *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
                      *         },
                      *         "locales": {
                      *           "supported": []

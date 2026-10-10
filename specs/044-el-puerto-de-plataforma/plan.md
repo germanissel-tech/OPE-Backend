@@ -37,7 +37,7 @@ contrato, SQL para la migración.
 **Primary Dependencies**: las de hoy (openapi-backend, `node:sqlite` por el enlace, Spectral, Redocly). Ninguna
 nueva.
 
-**Storage**: SQLite, migración `007-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices`, con
+**Storage**: SQLite, migraciones `007-platform-port-values.sql` (los valores en los niveles guardados) y `008-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices`, con
 la convención de `migrations/README.md`. La credencial de aviso viaja en el documento del merchant, sin migración.
 
 **Testing**: unidad (verdad por variante, juicio de la configuración, planificador con reloj y fuente guionada),
@@ -127,8 +127,8 @@ contracts/
 ├── problem-types.yaml                 tres tipos
 ├── components/securitySchemes/noticeKey.yaml               NUEVO
 ├── components/schemas/                StockAndPrice*, PlatformNotice*, PlatformSync*, los valores nuevos
-└── paths/                             stock-and-price, platform-notices, admin-notice-keys, admin-platform-sync
-migrations/007-platform-port.sql       NUEVO
+└── paths/                             catalog-refreshes, platform-notices, admin-notice-keys, admin-platform-sync
+migrations/007-platform-port-values.sql, 008-platform-port.sql   NUEVOS
 config/
 ├── treatment-defaults.json            platform, orderConfirmation, pull, notices
 ├── platform.json                      platformSync.tickMs

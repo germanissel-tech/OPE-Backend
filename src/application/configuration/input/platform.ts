@@ -14,6 +14,7 @@ const NUMBER_KEYS = [
   "anchorDiagnosticsKept",
   "unmappedValuesKept",
   "retryAfterSeconds",
+  "platformSyncTickMs",
 ] as const satisfies readonly Key[];
 const WINDOW: Key = "dedupWindow";
 const KEYS: readonly Key[] = ["version", WINDOW, ...NUMBER_KEYS];

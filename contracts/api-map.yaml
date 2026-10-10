@@ -22,8 +22,12 @@ consumers:
     capabilities: [events:write, config:read, diagnostics:write, orders:corroborate]
   platform:
     securityScheme: platformKey
-    tags: [outcomes]
+    tags: [outcomes, refresh]
     capabilities: [orders:write, returns:write, catalog:write]
+  notifier:
+    securityScheme: noticeKey
+    tags: [notices]
+    capabilities: [notices:write]
   portal:
     securityScheme: portalSession
     tags: [portal]
@@ -132,6 +136,42 @@ operations:
     feature: "010"
     status: built
     source: mvp:02-integracion-ecommerce.md#4
+  - operationId: refreshStockAndPrice
+    method: post
+    path: /v1/catalog/refreshes
+    consumer: platform
+    tag: refresh
+    capabilities: [catalog:write]
+    roadmap: platform-port
+    status: planned
+    source: mvp:02-integracion-ecommerce.md#6
+  - operationId: notifyPlatformChange
+    method: post
+    path: /v1/platform-notices
+    consumer: notifier
+    tag: notices
+    capabilities: [notices:write]
+    roadmap: platform-port
+    status: planned
+    source: docs/verificacion-documental-plataformas.md#Resumen
+  - operationId: rotateNoticeKey
+    method: post
+    path: /v1/admin/merchants/{merchantId}/notice-keys
+    consumer: admin
+    tag: admin
+    capabilities: [credentials:rotate]
+    roadmap: platform-port
+    status: planned
+    source: docs/adr/047-el-puerto-de-plataforma.md
+  - operationId: getMerchantPlatformSync
+    method: get
+    path: /v1/admin/merchants/{merchantId}/platform-sync
+    consumer: admin
+    tag: admin
+    capabilities: [merchants:read]
+    roadmap: platform-port
+    status: planned
+    source: docs/adr/047-el-puerto-de-plataforma.md
   - operationId: getExperimentResults
     method: get
     path: /v1/portal/results

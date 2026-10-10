@@ -28,9 +28,9 @@ export type {
   EvidenceProfileDeclared,
   EvidenceProfileInput,
 } from "./policy-inputs.js";
-export { SURFACES, SYNC_FLOWS, SYNC_MODES } from "./vocabulary.js";
+export { PLATFORM_SOURCES, SURFACES, SYNC_FLOWS, SYNC_MODES } from "./vocabulary.js";
 // Re-exported from the kernel since feature 038, so nothing that read them here moves.
 export { ConfigurationFrozen, ConfigurationReasonRequired, LOCALE_PATTERN } from "../shared-kernel/index.js";
-export type { Locales, Surface, SyncFlow, SyncMode, SyncStrategy } from "./vocabulary.js";
+export type { Locales, PlatformSourceName, Surface, SyncFlow, SyncMode, SyncStrategy } from "./vocabulary.js";
 export { ConfigurationVersionNotFound, InvalidConfigurationValue } from "./errors.js";
 export type { ConfigurationError } from "./errors.js";

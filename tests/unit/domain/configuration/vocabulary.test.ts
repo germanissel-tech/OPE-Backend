@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import {
   LOCALE_PATTERN,
+  PLATFORM_SOURCES,
   SURFACES,
   SYNC_FLOWS,
   SYNC_MODES,
@@ -14,9 +15,10 @@ const schema = (name: string): Record<string, unknown> =>
   parse(readFileSync(`contracts/components/schemas/${name}.yaml`, "utf8")) as Record<string, unknown>;
 
 describe("configuration vocabularies", () => {
-  it("the sync modes and the surfaces replicate exactly the contract enums", () => {
+  it("the sync modes, the platform sources and the surfaces replicate exactly the contract enums", () => {
     expect([...SYNC_MODES].sort()).toEqual([...(schema("SyncMode")["enum"] as string[])].sort());
     expect([...SURFACES].sort()).toEqual([...(schema("Surface")["enum"] as string[])].sort());
+    expect([...PLATFORM_SOURCES].sort()).toEqual([...(schema("PlatformSource")["enum"] as string[])].sort());
   });
 
   it("the flows of the sync strategy are the properties of the contract schema", () => {

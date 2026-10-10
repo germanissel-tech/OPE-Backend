@@ -95,7 +95,17 @@ export type Key =
   | "rotationGraceMaxMs"
   | "anchorDiagnosticsKept"
   | "unmappedValuesKept"
-  | "retryAfterSeconds";
+  | "retryAfterSeconds"
+  | "platformSyncTickMs"
+  | "platformSource"
+  | "confirmedOrderStates"
+  | "syncCadence"
+  | "stockAndPriceBatchSize"
+  | "ordersMs"
+  | "returnsMs"
+  | "noticeRetry"
+  | "afterMs"
+  | "maxAttempts";
 
 /** `parent.key`, or `key` at the root. */
 export const at = (parent: Field, key: Key): Field => named(parent, key);

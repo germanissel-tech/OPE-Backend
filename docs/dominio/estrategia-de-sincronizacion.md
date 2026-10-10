@@ -18,7 +18,7 @@ plataforma con credenciales del merchant, a la cadencia que aguante) o `subscrib
 consume una cola en la que la plataforma publica cada cambio). Se mezclan por flujo. Los tres
 llegan al mismo puerto y el núcleo no sabe quién inició; los adaptadores viven en OPE (ADR-025).
 La estrategia es configuración del merchant (feature 017: el campo de estrategia de su versión
-de configuración, con el default `push` en los cuatro flujos; declarar `pull` o `subscribe`
-se acepta y se estampa, y no cambia el comportamiento hasta la feature del puerto), congelada
-durante el piloto, y se estampa en la versión de configuración. Hoy existe el modo `push`; los otros dos y el refresco parcial de
-stock y precio llegan con la feature del puerto de plataforma del mapa.
+de configuración, con el default `push` en los cuatro flujos), congelada durante el piloto, y se
+estampa en la versión de configuración. Un modo que ninguna fuente ejecuta para ese flujo no se publica, y la
+entrada por un modo que no rige se rechaza; `subscribe` existe sólo para órdenes y devoluciones (ADR-047, feature
+044).

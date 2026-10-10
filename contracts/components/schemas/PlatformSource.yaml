@@ -1,0 +1,8 @@
+type: string
+description: "What OPE reads from the merchant's platform in `pull` and `subscribe` (ADR-047): `generic`
+  reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a
+  deployment asks for it. A configuration naming a source this deployment does not install, or a mode the
+  source does not run for a flow, is rejected when published."
+enum:
+  - generic
+  - test

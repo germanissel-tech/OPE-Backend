@@ -74,7 +74,11 @@ const CONTEXT_MAP = {
     "ingestion",
     "barrier",
     "messages",
+    "platform",
   ],
+  // Feature 044: platform owns how OPE reads a merchant's platform (ADR-047). For now it holds the values
+  // that govern the reading; the scheduler, the notices and the mode gate arrive with their phases.
+  platform: ["shared-kernel"],
   // Feature 027: admin also owns the report of what a catalogue brings that OPE has no word for.
   // It reads the vocabulary of a merchant (messages) and receives the attributes of its catalogue
   // (catalog) to implement the role the catalogue declares; neither of them knows the report.

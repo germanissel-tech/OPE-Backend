@@ -11,6 +11,13 @@ import {
 } from "../catalog/index.js";
 import { Experiment } from "../experiment/index.js";
 import {
+  NoticeRetry,
+  OrderConfirmation,
+  SyncCadence,
+  type NoticeRetryRecord,
+  type SyncCadenceRecord,
+} from "../platform/index.js";
+import {
   isRate,
   BARRIERS,
   LOCALE_PATTERN,
@@ -30,10 +37,12 @@ import {
   type EvidenceProfileInput,
 } from "./policy-inputs.js";
 import {
+  PLATFORM_SOURCES,
   SURFACES,
   SYNC_FLOWS,
   SYNC_MODES,
   type Locales,
+  type PlatformSourceName,
   type Surface,
   type SyncStrategy,
 } from "./vocabulary.js";
@@ -55,6 +64,10 @@ export interface TreatmentValuesRecord {
   surfaces: readonly Surface[];
   barriers: readonly Barrier[];
   syncStrategy: SyncStrategy;
+  platformSource: PlatformSourceName;
+  confirmedOrderStates: readonly string[];
+  syncCadence: SyncCadenceRecord;
+  noticeRetry: NoticeRetryRecord;
   locales: Locales;
 }
 
@@ -69,6 +82,10 @@ export interface DeclaredTreatmentValues {
   surfaces?: readonly Surface[];
   barriers?: readonly Barrier[];
   syncStrategy?: Partial<SyncStrategy>;
+  platformSource?: PlatformSourceName;
+  confirmedOrderStates?: readonly string[];
+  syncCadence?: Partial<SyncCadenceRecord>;
+  noticeRetry?: Partial<NoticeRetryRecord>;
   locales?: Locales;
 }
 
@@ -106,6 +123,13 @@ function judgeLocales(locales: Locales, at: string): InvalidConfigurationValue |
 const located = (at: string, error: { path: string; message: string }): InvalidConfigurationValue =>
   new InvalidConfigurationValue(`${at}.${error.path}`, error.message);
 
+/** The same, for a rule of a list, whose path is an index: `confirmedOrderStates[2]`. */
+const atIndex = (at: string, error: { path: string; message: string }): InvalidConfigurationValue =>
+  new InvalidConfigurationValue(`${at}${error.path}`, error.message);
+
+/** The field the confirmed states are declared under, and the pointer of both of their rules. */
+const CONFIRMED = "confirmedOrderStates";
+
 export class TreatmentValues {
   readonly freshness: FreshnessBudget;
   readonly syncLevel: SyncLevelRules;
@@ -117,6 +141,10 @@ export class TreatmentValues {
   readonly surfaces: readonly Surface[];
   readonly barriers: readonly Barrier[];
   readonly syncStrategy: SyncStrategy;
+  readonly platformSource: PlatformSourceName;
+  readonly orderConfirmation: OrderConfirmation;
+  readonly syncCadence: SyncCadence;
+  readonly noticeRetry: NoticeRetry;
   readonly locales: Locales;
   readonly #record: TreatmentValuesRecord;
 
@@ -127,6 +155,9 @@ export class TreatmentValues {
       syncLevel: SyncLevelRules;
       decision: DecisionPolicy;
       commercial: CommercialPolicy;
+      confirmation: OrderConfirmation;
+      cadence: SyncCadence;
+      retry: NoticeRetry;
     },
   ) {
     this.#record = record;
@@ -142,6 +173,10 @@ export class TreatmentValues {
     this.surfaces = [...record.surfaces];
     this.barriers = [...record.barriers];
     this.syncStrategy = { ...record.syncStrategy };
+    this.platformSource = record.platformSource;
+    this.orderConfirmation = built.confirmation;
+    this.syncCadence = built.cadence;
+    this.noticeRetry = built.retry;
     this.locales = {
       supported: [...record.locales.supported],
       ...(record.locales.fallback === undefined ? {} : { fallback: record.locales.fallback }),
@@ -174,14 +209,30 @@ export class TreatmentValues {
       judgeList(record.surfaces, SURFACES, "surfaces") ??
       judgeList(record.barriers, BARRIERS, "barriers") ??
       TreatmentValues.judgeStrategy(record.syncStrategy) ??
+      TreatmentValues.judgeSource(record.platformSource) ??
       judgeLocales(record.locales, "locales");
     if (offence !== undefined) return fail(offence);
+    const cadence = SyncCadence.of(record.syncCadence);
+    if (!cadence.ok) return fail(located("syncCadence", cadence.error));
+    const retry = NoticeRetry.of(record.noticeRetry);
+    if (!retry.ok) return fail(located("noticeRetry", retry.error));
+    const confirmation = OrderConfirmation.of(record.confirmedOrderStates);
+    if (!confirmation.ok) return fail(atIndex(CONFIRMED, confirmation.error));
+    // The rule reads two values at once, so it lives where both are: orders read from the platform with no
+    // state that confirms them would never enter, and nothing would say so (ADR-047).
+    if (record.syncStrategy.orders !== "push" && confirmation.value.acceptsNone()) {
+      const problem = "must name at least one state while orders are pulled or subscribed";
+      return fail(new InvalidConfigurationValue(CONFIRMED, problem));
+    }
     return ok(
       new TreatmentValues(record, {
         freshness: freshness.value,
         syncLevel: syncLevel.value,
         decision: decision.value,
         commercial: commercial.value,
+        confirmation: confirmation.value,
+        cadence: cadence.value,
+        retry: retry.value,
       }),
     );
   }
@@ -213,6 +264,10 @@ export class TreatmentValues {
       surfaces: declared.surfaces ?? defaults.surfaces,
       barriers: declared.barriers ?? defaults.barriers,
       syncStrategy: PolicyInput.merge(defaults.syncStrategy, declared.syncStrategy),
+      platformSource: declared.platformSource ?? defaults.platformSource,
+      confirmedOrderStates: declared.confirmedOrderStates ?? defaults.confirmedOrderStates,
+      syncCadence: PolicyInput.merge(defaults.syncCadence, declared.syncCadence),
+      noticeRetry: PolicyInput.merge(defaults.noticeRetry, declared.noticeRetry),
       locales: declared.locales ?? defaults.locales,
     };
   }
@@ -227,6 +282,11 @@ export class TreatmentValues {
       }
     }
     return undefined;
+  }
+
+  private static judgeSource(source: PlatformSourceName): InvalidConfigurationValue | undefined {
+    if ((PLATFORM_SOURCES as readonly string[]).includes(source)) return undefined;
+    return new InvalidConfigurationValue("platformSource", `must be one of ${PLATFORM_SOURCES.join(", ")}`);
   }
 
   /** The values as the configuration speaks them, for the contract and the stores. */

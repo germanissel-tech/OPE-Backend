@@ -3,8 +3,8 @@
 
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
-  readonly version: '1.15.0'
-  readonly sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0'
+  readonly version: '1.16.0'
+  readonly sha256: 'a66350be126961d96e263b29ab2f3b605b131ac437c0f66c8be9f303c89ced49'
 }
 
 /** The consumer this module describes: its operations and its vocabulary. */

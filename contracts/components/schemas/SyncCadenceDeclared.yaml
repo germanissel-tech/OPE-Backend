@@ -1,0 +1,29 @@
+type: object
+description: The pull cadence a merchant declares; an absent value resolves from the treatment defaults.
+additionalProperties: false
+properties:
+  catalogMs:
+    type: integer
+    description: Milliseconds between two pulls of the complete catalogue.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceMs:
+    type: integer
+    description: Milliseconds between two batches of the stock-and-price refresh.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceBatchSize:
+    type: integer
+    description: Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes.
+    minimum: 1
+    maximum: 1000
+  ordersMs:
+    type: integer
+    description: Milliseconds between two reads of the order changes.
+    minimum: 1
+    maximum: 31536000000
+  returnsMs:
+    type: integer
+    description: Milliseconds between two reads of the return changes.
+    minimum: 1
+    maximum: 31536000000

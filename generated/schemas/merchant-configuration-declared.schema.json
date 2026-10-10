@@ -53,6 +53,26 @@
     "syncStrategy": {
       "$ref": "#/$defs/SyncStrategyDeclared"
     },
+    "platformSource": {
+      "$ref": "#/$defs/PlatformSource"
+    },
+    "confirmedOrderStates": {
+      "type": "array",
+      "description": "The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so.",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "syncCadence": {
+      "$ref": "#/$defs/SyncCadenceDeclared"
+    },
+    "noticeRetry": {
+      "$ref": "#/$defs/NoticeRetryDeclared"
+    },
     "locales": {
       "$ref": "#/$defs/Locales"
     },
@@ -799,12 +819,76 @@
     },
     "SyncMode": {
       "type": "string",
-      "description": "How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port feature.",
+      "description": "How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.",
       "enum": [
         "push",
         "pull",
         "subscribe"
       ]
+    },
+    "PlatformSource": {
+      "type": "string",
+      "description": "What OPE reads from the merchant's platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.",
+      "enum": [
+        "generic",
+        "test"
+      ]
+    },
+    "SyncCadenceDeclared": {
+      "type": "object",
+      "description": "The pull cadence a merchant declares; an absent value resolves from the treatment defaults.",
+      "additionalProperties": false,
+      "properties": {
+        "catalogMs": {
+          "type": "integer",
+          "description": "Milliseconds between two pulls of the complete catalogue.",
+          "minimum": 1,
+          "maximum": 31536000000
+        },
+        "stockAndPriceMs": {
+          "type": "integer",
+          "description": "Milliseconds between two batches of the stock-and-price refresh.",
+          "minimum": 1,
+          "maximum": 31536000000
+        },
+        "stockAndPriceBatchSize": {
+          "type": "integer",
+          "description": "Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes.",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "ordersMs": {
+          "type": "integer",
+          "description": "Milliseconds between two reads of the order changes.",
+          "minimum": 1,
+          "maximum": 31536000000
+        },
+        "returnsMs": {
+          "type": "integer",
+          "description": "Milliseconds between two reads of the return changes.",
+          "minimum": 1,
+          "maximum": 31536000000
+        }
+      }
+    },
+    "NoticeRetryDeclared": {
+      "type": "object",
+      "description": "The notice retry a merchant declares; an absent value resolves from the treatment defaults.",
+      "additionalProperties": false,
+      "properties": {
+        "afterMs": {
+          "type": "integer",
+          "description": "Milliseconds between two attempts to read what a notice announced, when the platform did not answer.",
+          "minimum": 1,
+          "maximum": 31536000000
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "description": "Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it.",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
     },
     "Locales": {
       "type": "object",

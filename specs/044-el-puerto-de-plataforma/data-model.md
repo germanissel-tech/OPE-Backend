@@ -27,25 +27,25 @@ por `(merchant_id, variant_id)`. `replace` de la foto borra los refrescos con `o
 
 En `TreatmentValues` (defaults de tratamiento, que el merchant pisa; constitución XI):
 
-| valor                         | qué es                                                             | default   |
-| ----------------------------- | ------------------------------------------------------------------ | --------- |
-| `platform`                    | qué fuente usa el merchant: `generic`, `test` (`magento2` después) | `generic` |
-| `orderConfirmation.states`    | estados de la plataforma que cuentan como confirmada               | `[]`      |
-| `pull.catalogEveryMs`         | cada cuánto se trae la foto                                        | 1 día     |
-| `pull.stockAndPriceEveryMs`   | cada cuánto corre un lote                                          | 1 min     |
-| `pull.stockAndPriceBatchSize` | variantes por lote                                                 | 200       |
-| `pull.ordersEveryMs`          | cada cuánto se piden los cambios de órdenes                        | 2 min     |
-| `pull.returnsEveryMs`         | ídem devoluciones                                                  | 15 min    |
-| `notices.retryAfterMs`        | espera entre intentos de leer lo avisado                           | 1 min     |
-| `notices.maxAttempts`         | intentos antes de descartar el aviso con rastro                    | 10        |
+| valor                                | qué es                                                             | default   |
+| ------------------------------------ | ------------------------------------------------------------------ | --------- |
+| `platformSource`                     | qué fuente usa el merchant: `generic`, `test` (`magento2` después) | `generic` |
+| `confirmedOrderStates`               | estados de la plataforma que cuentan como confirmada               | `[]`      |
+| `syncCadence.catalogMs`              | cada cuánto se trae la foto                                        | 1 día     |
+| `syncCadence.stockAndPriceMs`        | cada cuánto corre un lote                                          | 1 min     |
+| `syncCadence.stockAndPriceBatchSize` | variantes por lote                                                 | 200       |
+| `syncCadence.ordersMs`               | cada cuánto se piden los cambios de órdenes                        | 2 min     |
+| `syncCadence.returnsMs`              | ídem devoluciones                                                  | 15 min    |
+| `noticeRetry.afterMs`                | espera entre intentos de leer lo avisado                           | 1 min     |
+| `noticeRetry.maxAttempts`            | intentos antes de descartar el aviso con rastro                    | 10        |
 
 Los números de los defaults son los iniciales del archivo y se revisan con el piloto; no son política en el código.
 
-**Al publicar** (además de lo que ya se juzga): `platform` instalada en el despliegue; cada flujo en `pull` o
+**Al publicar** (además de lo que ya se juzga): `platformSource` instalada en el despliegue; cada flujo en `pull` o
 `subscribe` soportado por esa fuente (`subscribe` nunca en catálogo ni en stock y precio); con órdenes en `pull` o
-`subscribe`, `orderConfirmation.states` no vacío; cadencias y tamaño de lote enteros positivos.
+`subscribe`, `confirmedOrderStates` no vacío; cadencias y tamaño de lote enteros positivos.
 
-En el nivel de plataforma (`config/platform.json`): `platformSync.tickMs`, cada cuánto el planificador mira qué
+En el nivel de plataforma (`config/platform.json`): `platformSyncTickMs`, cada cuánto el planificador mira qué
 venció.
 
 ## Lo que guarda el adaptador

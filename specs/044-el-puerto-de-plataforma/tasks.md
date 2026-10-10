@@ -31,39 +31,52 @@ refresco empujado, US5 el circuito.
 
 **Purpose**: todo lo que se nombra antes de construir, y los valores nuevos de configuración, sin que nada los use.
 
-- [ ] T001 [P] `docs/dominio/`: `aviso.md` (`notice`), `fuente-de-plataforma.md` (`platform source`),
+- [x] T001 [P] `docs/dominio/`: `aviso.md` (`notice`), `fuente-de-plataforma.md` (`platform source`),
       `regla-de-confirmacion.md` (`order confirmation`), `refresco-de-stock-y-precio.md`
       (`stock and price refresh`), con fuente (`02` §6, la verificación documental) y estado; `_tecnicos.json` si
       corresponde; `estrategia-de-sincronizacion.md` deja de decir que `pull` y `subscribe` no cambian nada y remite
       a ADR-047
-- [ ] T002 [P] `docs/adr/047-el-puerto-de-plataforma.md`, **propuesta**: R-01, R-03, R-04, R-05, R-06 (el
+- [x] T002 [P] `docs/adr/047-el-puerto-de-plataforma.md`, **propuesta**: R-01, R-03, R-04, R-05, R-06 (el
       consumidor `notifier`, que agrega una fila a la tabla de ADR-020), R-08, R-12 (el tag `refresh`); enmienda de
       ADR-025 sobre la frescura por variante; `docs/adr/README.md`
-- [ ] T003 `contracts/api-map.yaml`: el consumidor `notifier` (`noticeKey`, tags `[notices]`,
+- [x] T003 `contracts/api-map.yaml`: el consumidor `notifier` (`noticeKey`, tags `[notices]`,
       `[notices:write]`); `platform` gana el tag `refresh`; las cuatro operaciones `planned` con
       `roadmap: platform-port`; `src/interface-adapters/http/security/capabilities.ts` replica el consumidor
-- [ ] T004 `contracts/problem-types.yaml`: `sync-mode-not-configured` (409), `stock-captured-in-future` (422),
+- [x] T004 `contracts/problem-types.yaml`: `sync-mode-not-configured` (409), `stock-captured-in-future` (422),
       `stock-and-price-duplicate-variant-id` (422); `contracts/openapi.yaml` declara los tags `refresh` y `notices`
-- [ ] T005 Los valores nuevos en el contrato: `TreatmentDefaultsContent` (requeridos) y
-      `MerchantConfigurationDeclared` (opcionales) ganan `platform` (enum `generic | test`), `orderConfirmation`
+- [x] T005 Los valores nuevos en el contrato: `TreatmentDefaultsContent` (requeridos) y
+      `MerchantConfigurationDeclared` (opcionales) ganan `platform` (enum `generic | test`), `confirmedOrderStates`
       (`states`: lista de textos ≤ 64, sin duplicados), `pull` (`catalogEveryMs`, `stockAndPriceEveryMs`,
       `stockAndPriceBatchSize`, `ordersEveryMs`, `returnsEveryMs`, enteros positivos) y `notices`
-      (`retryAfterMs`, `maxAttempts`); el contenido de plataforma gana `platformSync.tickMs`. `SyncMode` dice qué
+      (`noticeRetry.afterMs`, `maxAttempts`); el contenido de plataforma gana `platformSyncTickMs`. `SyncMode` dice qué
       ejecuta cada modo. `info.version` `1.16.0`. `npm run contract:check` (incompatible, aceptado por
       `building`; guardar el reporte de `contract:diff` para el quickstart) y `npm run contract:types`
-- [ ] T006 [P] `tests/unit/domain/configuration/`, **antes del código**: los valores nuevos se resuelven
+- [x] T006 [P] `tests/unit/domain/configuration/`, **antes del código**: los valores nuevos se resuelven
       defaults ← declarado; enteros no positivos y estados duplicados se rechazan con su ruta;
       `OrderConfirmation.confirms(state)`
-- [ ] T007 `src/domain/configuration/`: `OrderConfirmation` (clase con reglas), `PullCadence`, `NoticeRetry`, el
+- [x] T007 `src/domain/configuration/`: `OrderConfirmation` (clase con reglas), `PullCadence`, `NoticeRetry`, el
       vocabulario `PLATFORMS`; `TreatmentValues` los gana con su juicio; el nivel de plataforma gana
-      `platformSync.tickMs`
-- [ ] T008 `config/treatment-defaults.json` y `config/platform.json` con los valores de data-model;
+      `platformSyncTickMs`
+- [x] T008 `config/treatment-defaults.json` y `config/platform.json` con los valores de data-model;
       `config/schemas/` y `generated/schemas/` regenerados; los fixtures de pruebas que publican defaults o
       plataforma completos ganan los campos
-- [ ] T009 `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`, `npm run test:tools`.
+- [x] T009 `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`, `npm run test:tools`.
       Commit: `feat(044): los nombres del puerto y los valores de configuración que lo gobiernan`
 
 **Checkpoint**: la configuración acepta y estampa los valores; nada los ejecuta todavía.
+
+> **Hecho el 2026-10-10.** Desvíos: (1) **Los nombres los fijó el glosario**: `check:glossary` exige que todo
+> sustantivo del contrato resuelva a una nota, así que la ruta del refresco es `/v1/catalog/refreshes` (esquemas
+> `Refresh*`) y los valores se llaman `platformSource`, `confirmedOrderStates`, `syncCadence` (nota «cadencia»),
+> `noticeRetry` y `platformSyncTickMs`. (2) **Los tipos de problema del puerto pasan a la fase 2**, que es la primera
+> que los usa; en esta entran los tres de las reglas de los valores (`invalid-sync-cadence`,
+> `invalid-notice-retry`, `invalid-order-confirmation`), porque todo error de dominio tiene su tipo. Los tags
+> `refresh` y `notices` se declaran en el contrato con su primera operación. (3) **`domain/platform` nace acá**: es
+> el dueño de las reglas de la cadencia, del reintento y de la confirmación; la regla cruzada (órdenes en `pull` o
+> `subscribe` sin estados) vive en `TreatmentValues`, que es donde están los dos valores. (4) **Los niveles ya
+> guardados necesitan su migración**: el lector de los niveles se niega a arrancar con una versión que no parsea,
+> así que `007-platform-port-values.sql` les agrega los valores con lo que corría (fuente genérica, ningún estado);
+> las tablas del puerto van en la `008`, en la fase 2.
 
 ---
 
@@ -83,7 +96,7 @@ el catálogo en `pull` y comprobar que el `PUT /v1/catalog` da `409`.
       catálogo sigue siendo la de la foto
 - [ ] T012 [US4] `src/domain/catalog/`: `StockAndPriceRefresh`, `StockCapturedInFuture`, la regla del dato más
       nuevo (método del dueño, no función suelta)
-- [ ] T013 [US4] `migrations/007-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices` (las
+- [ ] T013 [US4] `migrations/008-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices` (las
       tres de una vez: la migración es una sola versión), con `merchant_id` en cada clave única;
       `migrations/README.md`
 - [ ] T014 [US4] `src/application/catalog/ports/catalog-store.ts`: `refreshes(m)`, `refresh(m, items, kept)` que
@@ -98,7 +111,7 @@ el catálogo en `pull` y comprobar que el `PUT /v1/catalog` da `409`.
 - [ ] T018 `src/application/platform/`: el módulo (`index.ts`), `SyncModeNotConfigured` en
       `src/domain/platform/errors.ts`, el puerto `SyncStrategies` (`modeOf(merchant, flow)`) y
       `ModeGatedUseCase`; `.dependency-cruiser.cjs` gana `platform` en `CONTEXT_MAP`
-- [ ] T019 [US4] El contrato de `refreshStockAndPrice` (`paths/stock-and-price.yaml`, `StockAndPriceRefresh*`,
+- [ ] T019 [US4] El contrato de `refreshStockAndPrice` (`paths/catalog-refreshes.yaml`, `Refresh*`,
       ejemplos, `x-invariants`), pasado a `built`; `upsertCatalogSnapshot`, `notifyOrder` y `notifyReturn`
       nombran `sync-mode-not-configured` en su `409`; `contract:check`, `contract:types`
 - [ ] T020 [US4] `src/interface-adapters/catalog/controllers/refresh-stock-and-price.ts`; `composition/modules/`
@@ -191,7 +204,7 @@ credencial, o con datos que contradicen la lectura, no entra nada del aviso.
 - [ ] T042 [US3] El contrato de `rotateNoticeKey` y su controller, auditado, como `rotatePlatformKey`
 - [ ] T043 [P] [US3] `tests/unit/interface-adapters/platform/notices.test.ts`, **antes del código**: el aviso se
       encola una vez mientras está pendiente; al procesarlo lee por la fuente y aplica la regla; si la fuente falla
-      reintenta a `retryAfterMs`; agotados los intentos se descarta con rastro
+      reintenta a `noticeRetry.afterMs`; agotados los intentos se descarta con rastro
 - [ ] T044 [US3] `AcceptNoticeUseCase` (`src/application/platform/`) con el puerto `NoticeQueue`; gateways en
       memoria y SQLite; el contrato de `notifyPlatformChange` (`paths/platform-notices.yaml`, `PlatformNotice*`),
       pasado a `built`; controller; el decorador con `"subscribe"`

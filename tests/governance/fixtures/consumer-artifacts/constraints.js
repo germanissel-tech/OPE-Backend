@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.15.0', sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0' }
+export const CONTRACT = { version: '1.16.0', sha256: 'a66350be126961d96e263b29ab2f3b605b131ac437c0f66c8be9f303c89ced49' }
 
 /** What a form can verify locally of each request body of the admin consumer (layer 1). */
 export const CONSTRAINTS = {
@@ -587,6 +587,30 @@ export const CONSTRAINTS = {
         "type": "object",
         "ref": "SyncStrategyDeclared"
       },
+      "platformSource": {
+        "type": "string",
+        "enum": [
+          "generic",
+          "test"
+        ]
+      },
+      "confirmedOrderStates": {
+        "type": "array",
+        "maxItems": 32,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "syncCadence": {
+        "type": "object",
+        "ref": "SyncCadenceDeclared"
+      },
+      "noticeRetry": {
+        "type": "object",
+        "ref": "NoticeRetryDeclared"
+      },
       "locales": {
         "type": "object",
         "ref": "Locales"
@@ -769,6 +793,39 @@ export const CONSTRAINTS = {
       }
     }
   },
+  "NoticeRetry": {
+    "required": [
+      "afterMs",
+      "maxAttempts"
+    ],
+    "fields": {
+      "afterMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "maxAttempts": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000
+      }
+    }
+  },
+  "NoticeRetryDeclared": {
+    "required": [],
+    "fields": {
+      "afterMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "maxAttempts": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000
+      }
+    }
+  },
   "PlatformConfigurationContent": {
     "required": [
       "dedupWindow",
@@ -780,7 +837,8 @@ export const CONSTRAINTS = {
       "rotationGraceMaxMs",
       "anchorDiagnosticsKept",
       "unmappedValuesKept",
-      "retryAfterSeconds"
+      "retryAfterSeconds",
+      "platformSyncTickMs"
     ],
     "fields": {
       "dedupWindow": {
@@ -831,6 +889,11 @@ export const CONSTRAINTS = {
         "type": "integer",
         "minimum": 1,
         "maximum": 3600
+      },
+      "platformSyncTickMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 3600000
       }
     }
   },
@@ -899,6 +962,72 @@ export const CONSTRAINTS = {
         "type": "number",
         "minimum": 0,
         "maximum": 1
+      }
+    }
+  },
+  "SyncCadence": {
+    "required": [
+      "catalogMs",
+      "stockAndPriceMs",
+      "stockAndPriceBatchSize",
+      "ordersMs",
+      "returnsMs"
+    ],
+    "fields": {
+      "catalogMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "stockAndPriceMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "stockAndPriceBatchSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000
+      },
+      "ordersMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "returnsMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      }
+    }
+  },
+  "SyncCadenceDeclared": {
+    "required": [],
+    "fields": {
+      "catalogMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "stockAndPriceMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "stockAndPriceBatchSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000
+      },
+      "ordersMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
+      },
+      "returnsMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31536000000
       }
     }
   },
@@ -1101,6 +1230,10 @@ export const CONSTRAINTS = {
       "surfaces",
       "barriers",
       "syncStrategy",
+      "platformSource",
+      "confirmedOrderStates",
+      "syncCadence",
+      "noticeRetry",
       "locales"
     ],
     "fields": {
@@ -1157,6 +1290,30 @@ export const CONSTRAINTS = {
       "syncStrategy": {
         "type": "object",
         "ref": "SyncStrategy"
+      },
+      "platformSource": {
+        "type": "string",
+        "enum": [
+          "generic",
+          "test"
+        ]
+      },
+      "confirmedOrderStates": {
+        "type": "array",
+        "maxItems": 32,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "syncCadence": {
+        "type": "object",
+        "ref": "SyncCadence"
+      },
+      "noticeRetry": {
+        "type": "object",
+        "ref": "NoticeRetry"
       },
       "locales": {
         "type": "object",

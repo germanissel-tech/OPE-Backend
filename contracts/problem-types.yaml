@@ -143,6 +143,15 @@ types:
   - slug: invalid-freshness-budget
     status: 500
     title: A freshness budget is not a positive number of milliseconds
+  - slug: invalid-sync-cadence
+    status: 500
+    title: A pull cadence or the batch size is not a positive integer
+  - slug: invalid-notice-retry
+    status: 500
+    title: The notice retry is not a positive integer
+  - slug: invalid-order-confirmation
+    status: 500
+    title: A confirmed order state is blank or repeated
   - slug: invalid-rule-weight
     status: 500
     title: A rule weight or the policy weights are outside 0..1

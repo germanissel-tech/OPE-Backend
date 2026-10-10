@@ -35,6 +35,7 @@ get:
               anchorDiagnosticsKept: 200
               unmappedValuesKept: 200
               retryAfterSeconds: 5
+              platformSyncTickMs: 30000
             corrective: false
             publishedAt: 2026-10-01T10:00:00Z
             operatorId: system

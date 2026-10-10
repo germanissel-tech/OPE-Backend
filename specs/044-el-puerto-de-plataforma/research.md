@@ -140,7 +140,7 @@ pierde el aviso si la lectura falla. Y la firma HMAC: el Hook de VTEX no puede p
 **Lo que hay.** El `push` registra toda orden que llega: la plataforma decide qué empuja. Con `pull` y `subscribe`,
 OPE ve órdenes en cualquier estado.
 
-**Decisión.** Un valor nuevo de configuración del merchant, `orderConfirmation.states`: la lista de estados de la
+**Decisión.** Un valor nuevo de configuración del merchant, `confirmedOrderStates`: la lista de estados de la
 plataforma que cuentan como confirmada. El default de tratamiento es la lista vacía, y **publicar una versión con
 órdenes en `pull` o `subscribe` y la lista vacía se rechaza**: si no, ninguna orden entraría y nada lo diría. La
 regla la aplica el adaptador antes de llamar a `NotifyOrderUseCase`, porque traducir el estado de una plataforma es
@@ -153,7 +153,7 @@ de la observación de OPE.
 
 **Lo que hay.** `judgeStrategy` sólo verifica que el modo esté en el vocabulario.
 
-**Decisión.** La configuración del merchant gana `platform`: qué fuente usa (`generic` por defecto; `test` en esta
+**Decisión.** La configuración del merchant gana `platformSource`: qué fuente usa (`generic` por defecto; `test` en esta
 feature; `magento2` en la siguiente). Al publicar, el servicio de configuración pregunta por un puerto
 (`PlatformSources`) **qué fuentes están instaladas en este despliegue y qué modos soporta cada una por flujo**, y
 rechaza:
@@ -199,8 +199,8 @@ consultada, da lo mismo (US5).
 
 ## R-12 — El contrato: lo que cambia y cómo entra
 
-Cambio menor, `1.16.0`. Compatible, salvo los campos nuevos que el contenido de los defaults exige (`platform`,
-`orderConfirmation`, `pull`, `notices`): `TreatmentDefaultsContent` los declara requeridos, y publicar los defaults
+Cambio menor, `1.16.0`. Compatible, salvo los campos nuevos que el contenido de los defaults exige (`platformSource`,
+`confirmedOrderStates`, `pull`, `notices`): `TreatmentDefaultsContent` los declara requeridos, y publicar los defaults
 sin ellos deja de aceptarse. Entra por la marca `building` (ADR-003), como el `displayName` de la 041, con el reporte
 de `contract:diff` citado. En la configuración del merchant son opcionales.
 

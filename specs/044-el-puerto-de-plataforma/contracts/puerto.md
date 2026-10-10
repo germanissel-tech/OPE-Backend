@@ -6,7 +6,7 @@ entran por la marca `building` (ADR-003; research R-12). Cada operación está a
 
 ## Operaciones nuevas
 
-### `refreshStockAndPrice` — `POST /v1/catalog/stock-and-price`
+### `refreshStockAndPrice` — `POST /v1/catalog/refreshes`
 
 - Consumidor `platform`, tag nuevo `refresh` (research R-12); `platformKey` + firma como el resto del `push`;
   capacidad `catalog:write`.
@@ -46,9 +46,9 @@ Igual que `rotatePlatformKey`: `credentials:rotate`, auditada, la clave en claro
   (el `409` ya existe; se agrega el tipo a su descripción y un ejemplo). Agregar un tipo de problema es compatible.
 - **`SyncMode`**: la descripción dice qué ejecuta cada modo y que `subscribe` existe sólo para órdenes y
   devoluciones.
-- **`TreatmentDefaultsContent`** y **`MerchantConfigurationDeclared`**: `platform`, `orderConfirmation`, `pull`,
-  `notices` (data-model). Requeridos en el contenido de los defaults; opcionales en lo declarado por el merchant.
-- **El contenido de plataforma**: `platformSync.tickMs`, requerido.
+- **`TreatmentDefaultsContent`** y **`MerchantConfigurationDeclared`**: `platformSource`, `confirmedOrderStates`,
+  `syncCadence`, `noticeRetry` (data-model). Requeridos en el contenido de los defaults; opcionales en lo declarado por el merchant.
+- **El contenido de plataforma**: `platformSyncTickMs`, requerido.
 - **`CatalogSummary`** no cambia: la foto sigue respondiendo lo mismo.
 
 ## Catálogos

@@ -5,6 +5,7 @@
 export const CONSUMER_CAPABILITIES = {
   sdk: ["events:write", "config:read", "diagnostics:write", "orders:corroborate"],
   platform: ["orders:write", "returns:write", "catalog:write"],
+  notifier: ["notices:write"],
   admin: [
     "merchants:read",
     "merchants:write",
