@@ -30,24 +30,29 @@ la historia que sirve: US1 las publicaciones, US2 la identidad, US3 el reintento
 
 **Purpose**: la revisión y el testigo del merchant, y el error, sin que nada los use todavía.
 
-- [ ] T001 [P] [US2] `tests/unit/domain/merchant/merchant.test.ts`, **antes del código**:
+- [x] T001 [P] [US2] `tests/unit/domain/merchant/merchant.test.ts`, **antes del código**:
   - `Merchant.of` tiene revisión `1` y testigo `"<merchantId>:1"`;
   - `rotated`, `switched` (también al mismo estado), `deactivated` y `withProfile` suman uno cada uno;
   - un registro sin `revision` rehidrata en `0`;
   - el testigo de dos merchants con la misma revisión difiere.
-- [ ] T002 [US2] `src/domain/merchant/merchant.ts`:
+- [x] T002 [US2] `src/domain/merchant/merchant.ts`:
   - `revision` en `MerchantRecord` (opcional al leer: `revision?: number | undefined`, `0` al rehidratar);
   - `revision` y `witness()` en la entidad;
   - un método privado que arma el siguiente con la revisión más uno, y que usan los cuatro métodos;
   - el archivo sigue debajo de las 300 líneas de los anillos.
 - [ ] T003 [P] [US1] `src/domain/shared-kernel/errors.ts`: `StaleVersion` (`stale-version`, «The resource
       changed since it was read.», sin `details`), en la unión del kernel
-- [ ] T004 [P] [US2] `tests/durability/merchant-store.test.ts`: la revisión después de dos escrituras
+- [x] T004 [P] [US2] `tests/durability/merchant-store.test.ts`: la revisión después de dos escrituras
       sobrevive un reinicio; un documento sin el campo lee `0`
-- [ ] T005 `npm test`, `npm run test:durability`, `npm run quality`. Commit:
+- [x] T005 `npm test`, `npm run test:durability`, `npm run quality`. Commit:
       `feat(043): el merchant tiene revisión, y su testigo cambia en toda escritura`
 
 **Checkpoint**: la revisión existe y se guarda; ninguna operación la mira todavía.
+
+> **Hecho el 2026-10-10.** Desvíos: (1) **Un cambio que no cambia nada no sube la revisión**: desactivar uno
+> desactivado y poner el interruptor donde ya está devuelven el mismo merchant, porque el testigo describe el
+> recurso y el recurso no cambió (`deactivated()` ya se declaraba idempotente). (2) **T003 pasa a la fase 2**:
+> `StaleVersion` exige su entrada en el catálogo del contrato, y una prueba de réplica falla sin ella.
 
 ---
 
