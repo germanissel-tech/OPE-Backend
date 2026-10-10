@@ -19,10 +19,10 @@ import {
   type StoreUnavailable,
 } from "../../../domain/shared-kernel/index.js";
 import { publishedBy } from "../services/publication.js";
-import type { Experiment } from "../../../domain/experiment/index.js";
+import { readOfMerchant, type MerchantVersionRead } from "../services/version-restarts.js";
 import type { MerchantNotFound } from "../../../domain/merchant/index.js";
 import type { MerchantOutOfScope, Operator } from "../../../domain/operator/index.js";
-import type { ExperimentDirectory, ExperimentStore } from "../../experiment/index.js";
+import type { ExperimentDirectory, WindowRestartsService } from "../../experiment/index.js";
 import type { ScopedMerchantService } from "../../merchant/index.js";
 import type { Clock, UseCase } from "../../shared-kernel/index.js";
 import type { ConfigurationStore } from "../ports/configuration-store.js";
@@ -36,11 +36,12 @@ export interface PublishMerchantConfigurationRequest {
   reason?: string | undefined;
 }
 
-export interface PublishedConfiguration {
-  version: MerchantConfigurationVersion;
+/**
+ * The version with what it restarted, and whether this request created it. A repetition answers what the
+ * version in force restarted when it was published (feature 042), the same as any reading of it.
+ */
+export interface PublishedConfiguration extends MerchantVersionRead {
   outcome: "created" | "repeated";
-  /** Whether the version restarted the accumulation window of the active experiment. */
-  windowRestarted: boolean;
 }
 
 /** `LocaleIncomplete` is the word of the decorator in front of this use case (feature 038, US4), never of its own deed. */
@@ -59,7 +60,8 @@ export interface PublishMerchantConfigurationDependencies {
   store: ConfigurationStore;
   configuration: ConfigurationService;
   experiments: ExperimentDirectory;
-  experimentStore: ExperimentStore;
+  /** The restart of the window, and what a version restarted (feature 042): the experiment module's. */
+  restarts: WindowRestartsService;
   clock: Clock;
 }
 
@@ -74,7 +76,7 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
   }
 
   async execute(request: PublishMerchantConfigurationRequest): Promise<PublishMerchantConfigurationResponse> {
-    const { scoped, store, configuration, experiments, experimentStore, clock } = this.#deps;
+    const { scoped, store, configuration, experiments, restarts, clock } = this.#deps;
     const found = await scoped.find(request.actor, request.merchantId);
     if (!found.ok) return found;
     const draft = MerchantConfigurationVersion.draft({
@@ -85,7 +87,7 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     if (!draft.ok) return draft;
     const latest = await store.latestOf(request.merchantId);
     if (latest?.sameContentAs(draft.value) === true) {
-      return ok({ version: latest, outcome: "repeated", windowRestarted: false });
+      return ok({ ...(await readOfMerchant(restarts, latest)), outcome: "repeated" });
     }
     // Only an active experiment freezes; a calibrating one still moves (03 §4.10).
     const open = await experiments.activeFor(request.merchantId);
@@ -96,29 +98,16 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     const published = await store.publish(draft.value);
     if (!published.ok) return published;
     await configuration.apply(published.value);
-    if (active === undefined)
-      return ok({ version: published.value, outcome: "created", windowRestarted: false });
-    const restarted = await this.#restartWindow(active, published.value, experimentStore);
-    if (!restarted.ok) return restarted;
-    return ok({ version: published.value, outcome: "created", windowRestarted: true });
-  }
-
-  /** The corrective version restarts the window of the active experiment (D-G): the entity decides, the store records. */
-  async #restartWindow(
-    active: Experiment,
-    version: MerchantConfigurationVersion,
-    experimentStore: ExperimentStore,
-  ): Promise<Result<Experiment, StoreUnavailable>> {
-    // The draft guarantees the reason of a corrective version and only an active experiment
-    // freezes: a store that answers otherwise is a programming error, not a business outcome.
-    if (version.reason === undefined) throw new Error("A corrective version carries a reason.");
-    // The level the version belongs to travels with the restart (feature 036): with three levels publishing,
-    // a bare number no longer identifies which version caused it.
-    const restarted = active.windowRestarted(version.publishedAt, version.reason, {
+    const reached = active === undefined ? [] : [active];
+    // The corrective version restarts the window of the active experiment (D-G), recording the level and the
+    // number that caused it (feature 036): the same restart the levels and the texts do.
+    const restarted = await restarts.restart(reached, {
+      at: published.value.publishedAt,
+      reason: published.value.reason,
       level: "merchant",
-      configurationVersion: version.version,
+      version: published.value.version,
     });
-    if (!restarted.ok) throw new Error("The window of an experiment that is not active cannot restart.");
-    return experimentStore.update(restarted.value);
+    if (!restarted.ok) return restarted;
+    return ok({ version: published.value, outcome: "created", windowsRestarted: reached });
   }
 }

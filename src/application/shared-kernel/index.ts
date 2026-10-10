@@ -14,3 +14,4 @@ export type {
   AuditedUseCaseReaders,
 } from "./decorators/audited-use-case.js";
 export type { Page, PageQuery } from "./page.js";
+export { readEach } from "./page.js";

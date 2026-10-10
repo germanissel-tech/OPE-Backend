@@ -121,6 +121,7 @@ export function sqliteExperimentStore(
     },
     get: (merchantId, experimentId) => index.get(merchantId, experimentId),
     listOf: (merchantId, query) => index.listOf(merchantId, query),
+    all: () => index.all(),
     activeFor: (merchantId: MerchantId) => index.activeFor(merchantId),
   };
 }

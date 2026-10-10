@@ -52,6 +52,8 @@ function doubles(
     writes?: boolean;
     reached?: readonly Experiment[];
     restart?: StoreUnavailable;
+    /** What the version in force restarted when it was published, for a repetition to answer. */
+    repeatedRestarted?: readonly Experiment[];
   } = {},
 ): Doubles {
   const published: LevelDraft[] = [];
@@ -74,6 +76,7 @@ function doubles(
   } as unknown as ConfigurationService;
   const reached: ReachedExperimentsService = {
     by: () => Promise.resolve(over.reached ?? []),
+    restartedBy: (version) => Promise.resolve({ version, windowsRestarted: over.repeatedRestarted ?? [] }),
     restart: (experiments) => {
       restarts.push([...experiments]);
       return Promise.resolve(over.restart === undefined ? ok(undefined) : fail(over.restart));
@@ -157,6 +160,16 @@ describe("PublishLevelUseCase", () => {
     expect(result.ok && result.value.version.version).toBe(1);
     expect(d.published).toEqual([]);
     expect(d.refreshed()).toBe(0);
+  });
+
+  it("a repetition answers what the version in force restarted when it was published (feature 042)", async () => {
+    const restarted = [testExperiment({ merchantId: "m_a" })];
+    const d = doubles({ inForce: inForce(THRESHOLD), repeatedRestarted: restarted });
+
+    const result = await publish(d, { content: THRESHOLD });
+
+    expect(result.ok && result.value.windowsRestarted).toEqual(restarted);
+    expect(d.restarted()).toEqual([]);
   });
 
   it("writes nothing when the content does not judge", async () => {

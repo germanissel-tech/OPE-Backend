@@ -12,6 +12,7 @@ import {
   PublishMerchantConfigurationUseCase,
   type ConfigurationStore,
 } from "../../../../src/application/configuration/index.js";
+import { WindowRestarts } from "../../../../src/application/experiment/index.js";
 import { ScopedMerchants } from "../../../../src/application/merchant/index.js";
 import { MerchantConfigurationVersion } from "../../../../src/domain/configuration/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
@@ -43,6 +44,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
       return inner.latestOf(m);
     },
     versionsOf: (m, q) => inner.versionsOf(m, q),
+    versionOf: (m, v) => inner.versionOf(m, v),
   };
   const configuration = new Configurations({
     levels: {
@@ -64,6 +66,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
     activeFor: () => Promise.resolve(options.status === undefined ? undefined : experiment),
   };
   if (options.status !== undefined) void experimentStore.open(experiment);
+  const restarts = new WindowRestarts({ experimentStore });
   return {
     calls,
     configuration,
@@ -75,11 +78,11 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
       store,
       configuration,
       experiments,
-      experimentStore,
+      restarts,
       clock,
     }),
     get: new GetMerchantConfigurationUseCase({ scoped, store, configuration }),
-    list: new ListConfigurationVersionsUseCase({ scoped, store }),
+    list: new ListConfigurationVersionsUseCase({ scoped, store, restarts }),
     import: new ImportMerchantConfigurationUseCase({ store, configuration, clock }),
   };
 }
@@ -169,7 +172,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
     const second = await publish.execute({ ...request, declared: { holdoutShare: 0.1 } });
     expect(second.ok ? second.value.version.version : second.error).toBe(2);
     const page = await list.execute({ actor: all, merchantId: A, page: { limit: 10 } });
-    expect(page.ok ? page.value.items.map((v) => v.version) : page.error).toEqual([2, 1]);
+    expect(page.ok ? page.value.items.map((v) => v.version.version) : page.error).toEqual([2, 1]);
     const view = await get.execute({ actor: all, merchantId: A });
     expect(view.ok ? view.value.declared : view.error).toEqual({ holdoutShare: 0.1 });
   });
@@ -207,17 +210,18 @@ describe("PublishMerchantConfigurationUseCase", () => {
       corrective: true,
       reason: "anchor fix",
     });
-    expect(created.ok ? [created.value.outcome, created.value.windowRestarted] : created.error).toEqual([
-      "created",
-      true,
-    ]);
+    expect(
+      created.ok
+        ? [created.value.outcome, created.value.windowsRestarted.map((e) => e.experimentId)]
+        : created.error,
+    ).toEqual(["created", [experiment.experimentId]]);
     const restarted = await experimentStore.get(A, experiment.experimentId);
     expect(restarted?.record()).toMatchObject({
       status: "active",
       windowStartedAt: TEST_NOW,
       windowRestarts: [{ at: TEST_NOW, reason: "anchor fix", configurationVersion: 1 }],
     });
-    // Repeating it restarts nothing.
+    // Repeating it restarts nothing, and says what the version restarted when it was published (feature 042).
     const repeated = await publish.execute({
       actor: all,
       merchantId: A,
@@ -225,7 +229,9 @@ describe("PublishMerchantConfigurationUseCase", () => {
       corrective: true,
       reason: "anchor fix",
     });
-    expect(repeated.ok ? repeated.value.windowRestarted : repeated.error).toBe(false);
+    expect(repeated.ok ? repeated.value.windowsRestarted.map((e) => e.experimentId) : repeated.error).toEqual(
+      [experiment.experimentId],
+    );
     expect((await experimentStore.get(A, experiment.experimentId))?.windowRestarts).toHaveLength(1);
   });
 
@@ -238,10 +244,9 @@ describe("PublishMerchantConfigurationUseCase", () => {
       declared: { holdoutShare: 0 },
       corrective: false,
     });
-    expect(plain.ok ? [plain.value.outcome, plain.value.windowRestarted] : plain.error).toEqual([
-      "created",
-      false,
-    ]);
+    expect(
+      plain.ok ? [plain.value.outcome, plain.value.windowsRestarted.map((e) => e.experimentId)] : plain.error,
+    ).toEqual(["created", []]);
     const corrective = await publish.execute({
       actor: all,
       merchantId: A,
@@ -250,8 +255,10 @@ describe("PublishMerchantConfigurationUseCase", () => {
       reason: "early",
     });
     expect(
-      corrective.ok ? [corrective.value.outcome, corrective.value.windowRestarted] : corrective.error,
-    ).toEqual(["created", false]);
+      corrective.ok
+        ? [corrective.value.outcome, corrective.value.windowsRestarted.map((e) => e.experimentId)]
+        : corrective.error,
+    ).toEqual(["created", []]);
     expect((await experimentStore.get(A, experiment.experimentId))?.record()).toMatchObject({
       status: "calibrating",
       windowRestarts: [],
@@ -270,6 +277,7 @@ describe("PublishMerchantConfigurationUseCase", () => {
       },
       latestOf: (m) => inner.latestOf(m),
       versionsOf: (m, q) => inner.versionsOf(m, q),
+      versionOf: (m, v) => inner.versionOf(m, v),
     };
     const { publish, merchants } = subject({ status: "active", store: forgetful });
     await merchants.create(testMerchant({ merchantId: "m_a" }));

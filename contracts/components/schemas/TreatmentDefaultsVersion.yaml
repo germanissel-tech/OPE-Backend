@@ -38,7 +38,7 @@ properties:
   windowsRestarted:
     type: array
     description: "The experiments whose measurement window this version restarted, when it was corrective:
-      the ones that resolve from this level for something it changed."
+      the ones that resolve from this level for something it changed. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none."
     uniqueItems: true
     items:
       $ref: ./ExperimentId.yaml

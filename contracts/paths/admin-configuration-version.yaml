@@ -1,0 +1,46 @@
+get:
+  operationId: getMerchantConfigurationVersion
+  tags:
+    - admin
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - configuration:read
+  summary: One published version of a merchant's configuration
+  description: "A version of the merchant's configuration as it was published, by its number: the same
+    one its page of the history carries, with what it declared, who published it, why, and which
+    measurement window it restarted. Immutable, so what it answers today is what it answered the day it
+    was created (feature 042). Within the operator's scope; the merchant goes in the path because the
+    consumer is admin (constitution V, ADR-020)."
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/levelVersion.yaml
+  responses:
+    "200":
+      description: The version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MerchantConfigurationVersion.yaml
+          example:
+            version: 2
+            declared:
+              holdoutShare: 0.07
+            corrective: true
+            reason: The holdout was declared wrong while the experiment ran.
+            publishedAt: 2026-10-10T15:00:00Z
+            operatorId: ops-1
+            windowsRestarted:
+              - exp_nliucusmyzzd
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantConfigurationVersionNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

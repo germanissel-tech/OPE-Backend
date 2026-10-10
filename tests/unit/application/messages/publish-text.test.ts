@@ -38,6 +38,7 @@ function reaching(reached: readonly Experiment[]) {
       restarted.push({ experiments, version });
       return Promise.resolve(ok(undefined));
     },
+    restartedBy: (version) => Promise.resolve({ version, windowsRestarted: [] }),
   };
   return { service, restarted };
 }

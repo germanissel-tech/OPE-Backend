@@ -133,22 +133,22 @@ export const messagesModule = compositionModule({
       ),
       // The history of a key (US5): the base with the capability, the merchant's within the scope over it.
       listTextVersions: served(
-        { texts: TextStorePort },
+        { texts: TextStorePort, reached: ReachedByTextPort },
         { name: "listTextVersions", build: (deps) => new ListTextVersionsUseCase(deps) },
         (useCase) => makeListTextVersions(useCase),
       ),
       getTextVersion: served(
-        { texts: TextStorePort },
+        { texts: TextStorePort, reached: ReachedByTextPort },
         { name: "getTextVersion", build: (deps) => new GetTextVersionUseCase(deps) },
         (useCase) => makeGetTextVersion(useCase),
       ),
       listMerchantTextVersions: served(
-        { scoped: ScopedMerchantPort, texts: TextStorePort },
+        { scoped: ScopedMerchantPort, texts: TextStorePort, reached: ReachedByTextPort },
         { name: "listMerchantTextVersions", build: (deps) => new ListMerchantTextVersionsUseCase(deps) },
         (useCase) => makeListMerchantTextVersions(useCase),
       ),
       getMerchantTextVersion: served(
-        { scoped: ScopedMerchantPort, texts: TextStorePort },
+        { scoped: ScopedMerchantPort, texts: TextStorePort, reached: ReachedByTextPort },
         { name: "getMerchantTextVersion", build: (deps) => new GetMerchantTextVersionUseCase(deps) },
         (useCase) => makeGetMerchantTextVersion(useCase),
       ),

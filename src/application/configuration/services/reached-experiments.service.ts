@@ -10,6 +10,7 @@
 // change touches; declaring the object that contains them is not declaring them, because the resolution
 // merges key by key. And only an **active** experiment counts: one in calibration has its decisions excluded
 // from the analysis already, so there is nothing to protect.
+import { readOfLevel, type LevelVersionRead } from "./version-restarts.js";
 import type { ChangedLeaves, LevelVersion } from "../../../domain/configuration/index.js";
 import type { Experiment } from "../../../domain/experiment/index.js";
 import type { Result, StoreUnavailable } from "../../../domain/shared-kernel/index.js";
@@ -25,6 +26,8 @@ export interface ReachedExperimentsService {
     experiments: readonly Experiment[],
     version: LevelVersion,
   ): Promise<Result<undefined, StoreUnavailable>>;
+  /** The version with what it restarted when it was published (feature 042). */
+  restartedBy(version: LevelVersion): Promise<LevelVersionRead>;
 }
 
 export interface ReachedExperimentsDependencies {
@@ -52,6 +55,10 @@ export class ReachedExperiments implements ReachedExperimentsService {
       if (!changed.coveredBy(declared)) reached.push(open);
     }
     return reached;
+  }
+
+  restartedBy(version: LevelVersion): Promise<LevelVersionRead> {
+    return readOfLevel(this.#deps.restarts, version);
   }
 
   restart(

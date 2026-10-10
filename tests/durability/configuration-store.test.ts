@@ -113,6 +113,21 @@ describe("the published configuration across a restart", () => {
     expect((await after.latestOf(asMerchantId("m_cuatro")))?.version).toBe(2);
   });
 
+  it("reads one version by its number from the store, and never another merchant's of the same number (feature 042)", async () => {
+    const store = configurations();
+    await store.publish(draftOf("m_uno", { declared: { holdoutShare: 0.1 } }));
+    await store.publish(draftOf("m_uno", { declared: { holdoutShare: 0.2 }, publishedAt: later(1000) }));
+    await store.publish(draftOf("m_dos", { declared: { holdoutShare: 0.3 } }));
+
+    fixture.restart();
+
+    const reopened = configurations();
+    expect((await reopened.versionOf(asMerchantId("m_uno"), 2))?.declared).toEqual({ holdoutShare: 0.2 });
+    expect((await reopened.versionOf(asMerchantId("m_dos"), 1))?.declared).toEqual({ holdoutShare: 0.3 });
+    expect(await reopened.versionOf(asMerchantId("m_dos"), 2)).toBeUndefined();
+    expect(await reopened.versionOf(asMerchantId("m_tres"), 1)).toBeUndefined();
+  });
+
   it("pages the history by version, and the cursor survives what is published after it", async () => {
     // The cursor is a version and not a position, so publishing between two pages does not shift the
     // second one: what the reader asked for was "older than 2", which stays true.

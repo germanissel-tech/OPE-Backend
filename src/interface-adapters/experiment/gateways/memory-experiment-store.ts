@@ -39,6 +39,9 @@ export function memoryExperimentStore(): ExperimentStore & ExperimentDirectory {
     listOf(merchantId, query) {
       return Promise.resolve(pageOf([...of(merchantId)].reverse(), query));
     },
+    all() {
+      return Promise.resolve([...byMerchant.values()].flat());
+    },
     activeFor(merchantId) {
       return Promise.resolve(set(merchantId).open());
     },

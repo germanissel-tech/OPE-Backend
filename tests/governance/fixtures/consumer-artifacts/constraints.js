@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.13.0', sha256: '06ea91708eac4c2b4f3e2447c8026b030a49e2963ae0d43c7ac4cba13eb06289' }
+export const CONTRACT = { version: '1.14.0', sha256: 'b9724221d57959efa33f5aa0d6b5d97cc78663b456340158a16450331bc49e87' }
 
 /** What a form can verify locally of each request body of the admin consumer (layer 1). */
 export const CONSTRAINTS = {

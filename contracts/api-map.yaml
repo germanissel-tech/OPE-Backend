@@ -303,6 +303,15 @@ operations:
     feature: "017"
     status: built
     source: mvp:01-arquitectura-mvp.md#14.2
+  - operationId: getMerchantConfigurationVersion
+    method: get
+    path: /v1/admin/merchants/{merchantId}/configuration/versions/{version}
+    consumer: admin
+    tag: admin
+    capabilities: [configuration:read]
+    feature: "042"
+    status: built
+    source: specs/042-el-historial-completo/spec.md
   - operationId: listExperiments
     method: get
     path: /v1/admin/merchants/{merchantId}/experiments

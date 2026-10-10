@@ -7,6 +7,7 @@ import {
   GetTextVersionUseCase,
   ListMerchantTextVersionsUseCase,
   ListTextVersionsUseCase,
+  type ReachedByTextService,
 } from "../../../../src/application/messages/index.js";
 import { EVERY_MERCHANT, Operator, asOperatorId } from "../../../../src/domain/operator/index.js";
 import { asMerchantId, ok } from "../../../../src/domain/shared-kernel/index.js";
@@ -36,6 +37,13 @@ const scoped: ScopedMerchantService = {
   },
 };
 
+/** Nothing restarted any of these versions: the history here is about the versions themselves. */
+const reached: ReachedByTextService = {
+  by: () => Promise.resolve([]),
+  restart: () => Promise.resolve(ok(undefined)),
+  restartedBy: (version) => Promise.resolve({ version, windowsRestarted: [] }),
+};
+
 const draft = (over: Partial<TextDraft>): TextDraft => ({
   key: KEY,
   text: "A text.",
@@ -58,23 +66,24 @@ async function given() {
 describe("the history of a base key", () => {
   it("lists the versions newest first, paginated, and reads one by its number", async () => {
     const texts = await given();
-    const list = new ListTextVersionsUseCase({ texts });
+    const list = new ListTextVersionsUseCase({ texts, reached });
     const first = await list.execute({ key: KEY, page: { limit: 2 } });
-    expect(first.items.map((v) => v.version)).toEqual([3, 2]);
+    expect(first.items.map((v) => v.version.version)).toEqual([3, 2]);
     const rest = await list.execute({ key: KEY, page: { limit: 2, cursor: first.nextCursor } });
-    expect(rest.items.map((v) => v.version)).toEqual([1]);
+    expect(rest.items.map((v) => v.version.version)).toEqual([1]);
     expect(rest.nextCursor).toBeUndefined();
-    const read = await new GetTextVersionUseCase({ texts }).execute({ key: KEY, version: 2 });
-    expect(read.ok && read.value.text?.value).toBe("Second.");
+    const read = await new GetTextVersionUseCase({ texts, reached }).execute({ key: KEY, version: 2 });
+    expect(read.ok && read.value.version.text?.value).toBe("Second.");
   });
 
   it("a number nobody published, or a key outside the vocabulary, has no version: the list is empty and the read is not found", async () => {
     const texts = await given();
     const stray = { family: "fit.policies.typo", locale: "es" };
     expect(
-      (await new ListTextVersionsUseCase({ texts }).execute({ key: stray, page: { limit: 10 } })).items,
+      (await new ListTextVersionsUseCase({ texts, reached }).execute({ key: stray, page: { limit: 10 } }))
+        .items,
     ).toEqual([]);
-    const get = new GetTextVersionUseCase({ texts });
+    const get = new GetTextVersionUseCase({ texts, reached });
     const missing = await get.execute({ key: KEY, version: 7 });
     expect(missing.ok ? undefined : missing.error.code).toBe("text-version-not-found");
     expect(missing.ok ? undefined : missing.error.message).toBe("The key has no version 7.");
@@ -85,14 +94,14 @@ describe("the history of a base key", () => {
 describe("the history of a merchant's key", () => {
   it("keeps the removal as a version, and is read only within the operator's scope", async () => {
     const texts = await given();
-    const list = new ListMerchantTextVersionsUseCase({ scoped, texts });
+    const list = new ListMerchantTextVersionsUseCase({ scoped, texts, reached });
     const own = await list.execute({
       actor: operator([String(UNO)]),
       merchantId: UNO,
       key: KEY,
       page: { limit: 10 },
     });
-    expect(own.ok && own.value.items.map((v) => [v.version, v.isRemoved()])).toEqual([
+    expect(own.ok && own.value.items.map(({ version }) => [version.version, version.isRemoved()])).toEqual([
       [2, true],
       [1, false],
     ]);
@@ -114,14 +123,14 @@ describe("the history of a merchant's key", () => {
 
   it("reads one version by its number within the scope, and finds neither a stray number nor a stray key", async () => {
     const texts = await given();
-    const get = new GetMerchantTextVersionUseCase({ scoped, texts });
+    const get = new GetMerchantTextVersionUseCase({ scoped, texts, reached });
     const removal = await get.execute({
       actor: operator(EVERY_MERCHANT),
       merchantId: UNO,
       key: KEY,
       version: 2,
     });
-    expect(removal.ok && removal.value.isRemoved()).toBe(true);
+    expect(removal.ok && removal.value.version.isRemoved()).toBe(true);
     const foreign = await get.execute({ actor: operator(["m_dos"]), merchantId: UNO, key: KEY, version: 1 });
     expect(foreign.ok ? undefined : foreign.error.code).toBe("merchant-out-of-scope");
     const missing = await get.execute({

@@ -16,4 +16,6 @@ export interface ConfigurationStore {
   latestOf(merchantId: MerchantId): Promise<MerchantConfigurationVersion | undefined>;
   /** The versions of the merchant, newest first. */
   versionsOf(merchantId: MerchantId, query: PageQuery): Promise<Page<MerchantConfigurationVersion>>;
+  /** One version of the merchant by its number, or undefined when the merchant never published it (feature 042). */
+  versionOf(merchantId: MerchantId, version: number): Promise<MerchantConfigurationVersion | undefined>;
 }

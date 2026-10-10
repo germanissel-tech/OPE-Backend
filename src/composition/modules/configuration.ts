@@ -7,6 +7,7 @@ import {
   CompleteLocales,
   Configurations,
   GetMerchantConfigurationUseCase,
+  GetMerchantConfigurationVersionUseCase,
   GetLevelVersionUseCase,
   GetPlatformConfigurationUseCase,
   GetTreatmentDefaultsUseCase,
@@ -23,6 +24,7 @@ import {
   type ImportConfigurationLevelsRequest,
   type ImportConfigurationLevelsResponse,
   type LevelStore,
+  type LevelVersionRead,
   type ListLevelVersionsRequest,
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
@@ -44,6 +46,7 @@ import {
   holdoutSourceOf,
   makeGetMerchantConfiguration,
   makeGetPlatformConfiguration,
+  makeGetMerchantConfigurationVersion,
   makeGetPlatformConfigurationVersion,
   makeGetTreatmentDefaults,
   makeGetTreatmentDefaultsVersion,
@@ -72,7 +75,6 @@ import { MessageDirectoryPort, TextStorePort } from "./messages.js";
 import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
 import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
-import type { LevelVersion } from "../../domain/configuration/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
@@ -191,7 +193,15 @@ const levelVersionNumbered = (r: PublishLevelResponse) =>
 const levelReasonDeclared = (request: PublishLevelRequest) => request.reason;
 
 /** What a read of a level's history needs, which is the store of the versions and nothing else. */
-const READS_A_LEVEL = { levels: LevelStorePort } as const;
+/** A reading of a merchant's history, within the scope, also asks the experiments what each version restarted. */
+const READS_A_MERCHANT_VERSION = {
+  scoped: ScopedMerchantPort,
+  store: ConfigurationStorePort,
+  experimentStore: ExperimentStorePort,
+} as const;
+
+/** A reading of a level's history also asks the experiments what each version restarted (feature 042). */
+const READS_A_LEVEL = { levels: LevelStorePort, experimentStore: ExperimentStorePort } as const;
 
 /**
  * The languages a level's content declares, read by the reader of the level: an invalid content declares
@@ -298,7 +308,10 @@ export const configurationModule = compositionModule({
           name: "publishMerchantConfiguration",
           build: ({ experimentStore, completeness, ...deps }) =>
             new CompleteLocales(
-              new PublishMerchantConfigurationUseCase({ ...deps, experimentStore }),
+              new PublishMerchantConfigurationUseCase({
+                ...deps,
+                restarts: new WindowRestarts({ experimentStore }),
+              }),
               { completeness },
               {
                 declared: (request: PublishMerchantConfigurationRequest) => request.declared.locales,
@@ -313,7 +326,7 @@ export const configurationModule = compositionModule({
             r.ok
               ? {
                   configurationVersion: r.value.version.version,
-                  windowRestarted: r.value.windowRestarted,
+                  windowRestarted: r.value.windowsRestarted.length > 0,
                 }
               : undefined,
           reason: (request) => request.reason,
@@ -329,9 +342,29 @@ export const configurationModule = compositionModule({
         (useCase) => makeGetMerchantConfiguration(useCase),
       ),
       listConfigurationVersions: served(
-        { scoped: ScopedMerchantPort, store: ConfigurationStorePort },
-        { name: "listConfigurationVersions", build: (deps) => new ListConfigurationVersionsUseCase(deps) },
+        READS_A_MERCHANT_VERSION,
+        {
+          name: "listConfigurationVersions",
+          build: ({ experimentStore, ...deps }) =>
+            new ListConfigurationVersionsUseCase({
+              ...deps,
+              restarts: new WindowRestarts({ experimentStore }),
+            }),
+        },
         (useCase) => makeListConfigurationVersions(useCase),
+      ),
+      // One version by its number (feature 042), the same one its page carries.
+      getMerchantConfigurationVersion: served(
+        READS_A_MERCHANT_VERSION,
+        {
+          name: "getMerchantConfigurationVersion",
+          build: ({ experimentStore, ...deps }) =>
+            new GetMerchantConfigurationVersionUseCase({
+              ...deps,
+              restarts: new WindowRestarts({ experimentStore }),
+            }),
+        },
+        (useCase) => makeGetMerchantConfigurationVersion(useCase),
       ),
       getPlatformConfiguration: served(
         { configuration: ConfigurationServicePort },
@@ -352,8 +385,8 @@ export const configurationModule = compositionModule({
           // Annotated, and the compiler asks for it: the recipe of a handler fixes the request to `unknown`
           // unless the builder says what the use case is, and a listing answers a page rather than a
           // `Result`, so there is no error union to infer it from.
-          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
-            new ListLevelVersionsUseCase(deps),
+          build: ({ levels, experimentStore }): UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>> =>
+            new ListLevelVersionsUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
         },
         (useCase) => makeListPlatformConfigurationVersions(useCase),
       ),
@@ -361,19 +394,27 @@ export const configurationModule = compositionModule({
         READS_A_LEVEL,
         {
           name: "listTreatmentDefaultsVersions",
-          build: (deps): UseCase<ListLevelVersionsRequest, Page<LevelVersion>> =>
-            new ListLevelVersionsUseCase(deps),
+          build: ({ levels, experimentStore }): UseCase<ListLevelVersionsRequest, Page<LevelVersionRead>> =>
+            new ListLevelVersionsUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
         },
         (useCase) => makeListTreatmentDefaultsVersions(useCase),
       ),
       getPlatformConfigurationVersion: served(
         READS_A_LEVEL,
-        { name: "getPlatformConfigurationVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        {
+          name: "getPlatformConfigurationVersion",
+          build: ({ levels, experimentStore }) =>
+            new GetLevelVersionUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
+        },
         (useCase) => makeGetPlatformConfigurationVersion(useCase),
       ),
       getTreatmentDefaultsVersion: served(
         READS_A_LEVEL,
-        { name: "getTreatmentDefaultsVersion", build: (deps) => new GetLevelVersionUseCase(deps) },
+        {
+          name: "getTreatmentDefaultsVersion",
+          build: ({ levels, experimentStore }) =>
+            new GetLevelVersionUseCase({ levels, restarts: new WindowRestarts({ experimentStore }) }),
+        },
         (useCase) => makeGetTreatmentDefaultsVersion(useCase),
       ),
     },

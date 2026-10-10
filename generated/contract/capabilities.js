@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.13.0', sha256: '06ea91708eac4c2b4f3e2447c8026b030a49e2963ae0d43c7ac4cba13eb06289' }
+export const CONTRACT = { version: '1.14.0', sha256: 'b9724221d57959efa33f5aa0d6b5d97cc78663b456340158a16450331bc49e87' }
 
 /** The consumer this module describes: its operations and its vocabulary. */
 export const CONSUMER = 'admin'
@@ -27,6 +27,7 @@ export const OPERATIONS = {
   getMerchantConfiguration: { capabilities: ['configuration:read'], idempotent: false },
   publishMerchantConfiguration: { capabilities: ['configuration:write'], idempotent: true },
   listConfigurationVersions: { capabilities: ['configuration:read'], idempotent: false },
+  getMerchantConfigurationVersion: { capabilities: ['configuration:read'], idempotent: false },
   listExperiments: { capabilities: ['experiments:read'], idempotent: false },
   createExperiment: { capabilities: ['experiments:write'], idempotent: false },
   activateExperiment: { capabilities: ['experiments:write'], idempotent: false },

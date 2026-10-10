@@ -3,8 +3,13 @@
 // two modules that cannot depend on each other publish treatment —the configuration levels and the texts—
 // and each has to restart the same way. Copied, the rule of «a corrective version carries its reason» and
 // the write of each experiment would have been two things to keep in step.
-import type { Experiment, TextRestartCause } from "../../../domain/experiment/index.js";
-import type { ConfigurationLevel, Result, StoreUnavailable } from "../../../domain/shared-kernel/index.js";
+import type { Experiment, RestartSource, TextRestartCause } from "../../../domain/experiment/index.js";
+import type {
+  ConfigurationLevel,
+  MerchantId,
+  Result,
+  StoreUnavailable,
+} from "../../../domain/shared-kernel/index.js";
 import type { ExperimentStore } from "../ports/experiment-store.js";
 
 /** What caused the restart: a version of a level, or a version of a text in a layer. */
@@ -23,6 +28,12 @@ export interface WindowRestartsService {
     experiments: readonly Experiment[],
     cause: RestartCause,
   ): Promise<Result<undefined, StoreUnavailable>>;
+  /**
+   * The experiments whose window that version restarted (feature 042), in the order of the store. With a
+   * merchant, only that merchant's: a merchant numbers its own versions, so «merchant, version 1» is one
+   * version per merchant, and only the merchant tells them apart.
+   */
+  restartedBy(source: RestartSource, merchantId?: MerchantId): Promise<readonly Experiment[]>;
 }
 
 export interface WindowRestartsDependencies {
@@ -57,5 +68,13 @@ export class WindowRestarts implements WindowRestartsService {
       if (!updated.ok) return updated;
     }
     return { ok: true, value: undefined };
+  }
+
+  async restartedBy(source: RestartSource, merchantId?: MerchantId): Promise<readonly Experiment[]> {
+    const every = await this.#deps.experimentStore.all();
+    return every.filter(
+      (experiment) =>
+        (merchantId === undefined || experiment.merchantId === merchantId) && experiment.restartedBy(source),
+    );
   }
 }

@@ -140,6 +140,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/configuration/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One published version of a merchant's configuration
+         * @description A version of the merchant's configuration as it was published, by its number: the same one its page of the history carries, with what it declared, who published it, why, and which measurement window it restarted. Immutable, so what it answers today is what it answered the day it was created (feature 042). Within the operator's scope; the merchant goes in the path because the consumer is admin (constitution V, ADR-020).
+         */
+        get: operations["getMerchantConfigurationVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/deactivate": {
         parameters: {
             query?: never;
@@ -1785,6 +1805,8 @@ export type components = {
             reason?: string;
             /** @description Sequential number per merchant, assigned at publication. */
             version: number;
+            /** @description The experiment whose measurement window this version restarted, when it was corrective: the active one of this merchant, if the change reached it. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none. */
+            windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
         /** @description A page of a merchant's configuration versions, newest first. */
         MerchantConfigurationVersionPage: {
@@ -2116,7 +2138,7 @@ export type components = {
             stampedAs: string;
             /** @description Sequential number of the level, assigned at publication. */
             version: number;
-            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. */
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none. */
             windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
         /** @description A page of the published versions of level 1, newest first. */
@@ -2383,7 +2405,7 @@ export type components = {
             text?: string;
             /** @description Sequential number of the key in its layer, assigned at publication. */
             version: number;
-            /** @description The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches. */
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the active ones of every merchant the text reaches. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none. */
             windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
         /** @description A page of the published versions of a text key in one layer, newest first. */
@@ -2460,7 +2482,7 @@ export type components = {
             stampedAs: string;
             /** @description Sequential number of the level, assigned at publication. */
             version: number;
-            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. */
+            /** @description The experiments whose measurement window this version restarted, when it was corrective: the ones that resolve from this level for something it changed. Every reading of the version returns it: its publication, a repetition of the same body, the history and the version by number. A version published before its restarts were recorded (feature 036; 038 for texts) carries none. */
             windowsRestarted?: components["schemas"]["ExperimentId"][];
         };
         /** @description A page of the published versions of level 2, newest first. */
@@ -2788,6 +2810,15 @@ export type components = {
         };
         /** @description Valid request rejected on semantics: the `x-invariants` of a version of a configuration level (ADR-007). It is not the 422 of a merchant's configuration because that one also names the duplicate attribute label, which a level cannot carry: a level has no label map. */
         LevelUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /** @description No merchant with that identifier within the operator's scope, or the merchant published no version with that number. */
+        MerchantConfigurationVersionNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3674,6 +3705,52 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchantConfigurationVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+                /** @description The number of the version, as the level assigned it when it was published. */
+                version: components["parameters"]["levelVersion"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "version": 2,
+                     *       "declared": {
+                     *         "holdoutShare": 0.07
+                     *       },
+                     *       "corrective": true,
+                     *       "reason": "The holdout was declared wrong while the experiment ran.",
+                     *       "publishedAt": "2026-10-10T15:00:00Z",
+                     *       "operatorId": "ops-1",
+                     *       "windowsRestarted": [
+                     *         "exp_nliucusmyzzd"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantConfigurationVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantConfigurationVersionNotFound"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

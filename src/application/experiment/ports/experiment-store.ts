@@ -19,4 +19,10 @@ export interface ExperimentStore {
   get(merchantId: MerchantId, experimentId: ExperimentId): Promise<Experiment | undefined>;
   /** The experiments of the merchant, newest first. */
   listOf(merchantId: MerchantId, query: PageQuery): Promise<Page<Experiment>>;
+  /**
+   * Every experiment of every merchant, closed ones included, merchant by merchant and each in the order
+   * it was opened (feature 042). It is what answers which experiments a version restarted, which can be
+   * any merchant's and long closed; it is an administration read, answered from memory (ADR-041).
+   */
+  all(): Promise<readonly Experiment[]>;
 }

@@ -1,18 +1,15 @@
 // getMerchantTextVersion (feature 038, US5): one version of a merchant's key, by its number, as it was
 // published, within the operator's scope over the merchant. A number nobody published never existed, and
 // a key outside the vocabulary has no versions at all: both are a `404`.
-import {
-  TextKey,
-  TextVersionNotFound,
-  type TextKeyInput,
-  type TextVersion,
-} from "../../../domain/messages/index.js";
+import { TextKey, TextVersionNotFound, type TextKeyInput } from "../../../domain/messages/index.js";
 import { fail, ok, type MerchantId, type Result } from "../../../domain/shared-kernel/index.js";
 import type { MerchantNotFound } from "../../../domain/merchant/index.js";
 import type { MerchantOutOfScope, Operator } from "../../../domain/operator/index.js";
 import type { ScopedMerchantService } from "../../merchant/index.js";
 import type { UseCase } from "../../shared-kernel/index.js";
 import type { TextStore } from "../ports/text-store.js";
+import type { TextVersionRead } from "../published-text.js";
+import type { ReachedByTextService } from "../services/reached-by-text.service.js";
 
 export interface GetMerchantTextVersionRequest {
   actor: Operator;
@@ -22,13 +19,15 @@ export interface GetMerchantTextVersionRequest {
 }
 
 export type GetMerchantTextVersionResponse = Result<
-  TextVersion,
+  TextVersionRead,
   MerchantOutOfScope | MerchantNotFound | TextVersionNotFound
 >;
 
 export interface GetMerchantTextVersionDependencies {
   scoped: ScopedMerchantService;
   texts: TextStore;
+  /** What each version restarted, asked of the experiments (feature 042). */
+  reached: ReachedByTextService;
 }
 
 export class GetMerchantTextVersionUseCase implements UseCase<
@@ -48,6 +47,7 @@ export class GetMerchantTextVersionUseCase implements UseCase<
     const version = key.ok
       ? await this.#deps.texts.versionOf(request.merchantId, key.value.record(), request.version)
       : undefined;
-    return version === undefined ? fail(TextVersionNotFound.numbered(request.version)) : ok(version);
+    if (version === undefined) return fail(TextVersionNotFound.numbered(request.version));
+    return ok(await this.#deps.reached.restartedBy(version));
   }
 }

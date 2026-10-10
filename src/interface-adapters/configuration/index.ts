@@ -1,6 +1,7 @@
 // Public API of the configuration module (adapters ring): the configuration levels and the merchant versions (constitution XI, ADR-031) — what the
 // composition wires. Presenters stay internal to the module.
 export * from "./controllers/get-merchant-configuration.js";
+export * from "./controllers/get-merchant-configuration-version.js";
 export * from "./controllers/get-platform-configuration.js";
 export * from "./controllers/get-platform-configuration-version.js";
 export * from "./controllers/get-treatment-defaults.js";

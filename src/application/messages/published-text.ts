@@ -4,9 +4,17 @@
 import type { Experiment } from "../../domain/experiment/index.js";
 import type { TextVersion } from "../../domain/messages/index.js";
 
-export interface PublishedText {
+/** A version of a text with the experiments whose window it restarted (feature 042): what every reading answers. */
+export interface TextVersionRead {
   version: TextVersion;
-  outcome: "created" | "repeated";
-  /** The experiments whose measurement window this version restarted; empty unless it was corrective. */
+  /** Empty when it restarted nothing: a version that is not corrective, or one that reached nobody. */
   windowsRestarted: readonly Experiment[];
+}
+
+/**
+ * The version, what it restarted, and whether this request created it. A repetition answers what the
+ * version restarted when it was published (feature 042), the same as any reading of it.
+ */
+export interface PublishedText extends TextVersionRead {
+  outcome: "created" | "repeated";
 }

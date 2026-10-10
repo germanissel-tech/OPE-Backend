@@ -3,8 +3,8 @@
 
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
-  readonly version: '1.13.0'
-  readonly sha256: '06ea91708eac4c2b4f3e2447c8026b030a49e2963ae0d43c7ac4cba13eb06289'
+  readonly version: '1.14.0'
+  readonly sha256: 'b9724221d57959efa33f5aa0d6b5d97cc78663b456340158a16450331bc49e87'
 }
 
 /** The consumer this module describes: its operations and its vocabulary. */
@@ -73,6 +73,10 @@ export declare const OPERATIONS: {
     readonly idempotent: true
   }
   readonly listConfigurationVersions: {
+    readonly capabilities: readonly ['configuration:read']
+    readonly idempotent: false
+  }
+  readonly getMerchantConfigurationVersion: {
     readonly capabilities: readonly ['configuration:read']
     readonly idempotent: false
   }

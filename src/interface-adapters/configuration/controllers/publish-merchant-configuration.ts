@@ -36,7 +36,7 @@ export function makePublishMerchantConfiguration(
         result.error instanceof InvalidConfigurationValue ? result.error.under(DECLARED) : result.error;
       return toProblem(error, req.instance);
     }
-    const body = versionDto(result.value.version);
+    const body = versionDto(result.value);
     return result.value.outcome === "created"
       ? { status: HTTP_STATUS.CREATED, body }
       : { status: HTTP_STATUS.OK, body };
