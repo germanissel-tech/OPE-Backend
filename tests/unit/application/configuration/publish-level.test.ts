@@ -90,10 +90,15 @@ function doubles(
   };
 }
 
-const publish = (d: Doubles, over: { content?: object; corrective?: boolean; reason?: string } = {}) =>
+const publish = (
+  d: Doubles,
+  over: { content?: object; corrective?: boolean; reason?: string; witness?: string } = {},
+) =>
   d.use.execute({
     actor: operator(EVERY_MERCHANT),
     level: "defaults",
+    // The witness of the version every double holds in force, unless the case is about another one.
+    witness: over.witness ?? "defaults-1",
     content: (over.content ?? { decisionPolicy: { threshold: 0.8 } }) as Record<string, unknown>,
     corrective: over.corrective ?? false,
     ...(over.reason === undefined ? {} : { reason: over.reason }),
@@ -131,6 +136,7 @@ describe("PublishLevelUseCase", () => {
     const result = await d.use.execute({
       actor: operator(["m_a"]),
       level: "defaults",
+      witness: "defaults-1",
       content: THRESHOLD,
       corrective: false,
     });
@@ -170,6 +176,18 @@ describe("PublishLevelUseCase", () => {
 
     expect(result.ok && result.value.windowsRestarted).toEqual(restarted);
     expect(d.restarted()).toEqual([]);
+  });
+
+  it("a witness of a version no longer in force is refused before anything is judged or written (feature 043)", async () => {
+    const d = doubles({ inForce: inForce(THRESHOLD, 2) });
+
+    const result = await publish(d, { witness: "defaults-1" });
+
+    expect(result.ok ? undefined : result.error.code).toBe("stale-version");
+    expect(d.published).toEqual([]);
+    // An identical body overwrites nothing: the retry of what went through answers as before.
+    const again = await publish(d, { content: THRESHOLD, witness: "defaults-1" });
+    expect(again.ok && again.value.outcome).toBe("repeated");
   });
 
   it("writes nothing when the content does not judge", async () => {

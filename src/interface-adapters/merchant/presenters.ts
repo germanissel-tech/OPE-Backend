@@ -1,7 +1,7 @@
 // What the merchant controllers share at the boundary (ADR-031): the merchant as the contract
 // publishes it — credentials by kind and instant, never their values — and the response of a
 // credential rotation, shared by the three rotations.
-import { merchantIdOf } from "../http/boundary.js";
+import { etagOf, merchantIdOf } from "../http/boundary.js";
 import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type CataloguedError, type ProblemOf } from "../http/to-problem.js";
@@ -89,9 +89,21 @@ export function merchantResponse<E extends CataloguedError>(
   result: Result<Merchant, E>,
   instance: string,
   now: Date,
-): { status: typeof HTTP_STATUS.OK; body: MerchantDto } | ProblemOf<E> {
+): { status: typeof HTTP_STATUS.OK; body: MerchantDto; headers: { etag: string } } | ProblemOf<E> {
   if (!result.ok) return toProblem(result.error, instance);
-  return { status: HTTP_STATUS.OK, body: merchantDto(result.value, now) };
+  return {
+    status: HTTP_STATUS.OK,
+    body: merchantDto(result.value, now),
+    headers: witnessOfMerchant(result.value),
+  };
+}
+
+/**
+ * The header that hands out the witness of a merchant as an answer leaves it (feature 043, ADR-046). Every
+ * write of the merchant moves it, so every answer of one says it, even the writes that do not ask for it.
+ */
+export function witnessOfMerchant(merchant: Merchant): { etag: string } {
+  return { etag: etagOf(merchant.witness()) };
 }
 
 /** The grace of a rotation in milliseconds; none when the body says nothing. */
@@ -118,6 +130,7 @@ export async function rotationResponse(
   const { value, issuedAt, previousExpiresAt } = result.value;
   return {
     status: HTTP_STATUS.CREATED,
+    headers: witnessOfMerchant(result.value.merchant),
     body: {
       kind: result.value.kind,
       value,

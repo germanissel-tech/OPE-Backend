@@ -13,6 +13,8 @@ import {
   SetKillSwitchUseCase,
   UpdateMerchantProfileUseCase,
   type MerchantSeed,
+  type MerchantStore,
+  type UpdateMerchantProfileRequest,
 } from "../../../../src/application/merchant/index.js";
 import { asOperatorId, EVERY_MERCHANT, Operator } from "../../../../src/domain/operator/index.js";
 import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
@@ -35,6 +37,20 @@ const rotation = { maxGraceMs: () => Promise.resolve(HOUR) };
 /** Every creation names the merchant (feature 041). */
 const NAMED = { displayName: "New" };
 
+/**
+ * The edition as a well-behaved panel calls it: with the witness of the merchant as it is now, unless the case
+ * is about another witness (feature 043). A merchant that does not exist has none, and any will do.
+ */
+function witnessing(use: UpdateMerchantProfileUseCase, store: MerchantStore) {
+  return {
+    execute: async (request: Omit<UpdateMerchantProfileRequest, "witness"> & { witness?: string }) =>
+      use.execute({
+        ...request,
+        witness: request.witness ?? (await store.get(request.merchantId))?.witness() ?? "",
+      }),
+  };
+}
+
 function subject() {
   const store = memoryMerchantStore();
   const scoped = new ScopedMerchants({ merchants: store });
@@ -47,7 +63,7 @@ function subject() {
     kill: new SetKillSwitchUseCase({ scoped, merchants: store }),
     deactivate: new DeactivateMerchantUseCase({ scoped, merchants: store }),
     import: new ImportMerchantsUseCase({ merchants: store, minter: fakeMinter, clock }),
-    update: new UpdateMerchantProfileUseCase({ scoped, merchants: store }),
+    update: witnessing(new UpdateMerchantProfileUseCase({ scoped, merchants: store }), store),
   };
 }
 
@@ -211,6 +227,29 @@ describe("the identity of a merchant", () => {
       "storeUrl",
     ]);
     expect((await store.get(asMerchantId("m_b")))?.profile).toBeUndefined();
+  });
+
+  it("the replacement refuses a stale witness, and answers an identical identity without writing it (feature 043)", async () => {
+    const { update, store } = subject();
+    await store.create(testMerchant({ merchantId: "m_a" }));
+    const before = (await store.get(asMerchantId("m_a")))?.witness() ?? "";
+    const first = await update.execute({ actor: all, merchantId: asMerchantId("m_a"), profile: identity });
+    if (!first.ok) throw new Error(first.error.code);
+    const stale = await update.execute({
+      actor: all,
+      merchantId: asMerchantId("m_a"),
+      profile: { displayName: "Another one" },
+      witness: before,
+    });
+    expect(stale.ok ? undefined : stale.error.code).toBe("stale-version");
+    const again = await update.execute({
+      actor: all,
+      merchantId: asMerchantId("m_a"),
+      profile: identity,
+      witness: before,
+    });
+    expect(again.ok ? again.value.revision : undefined).toBe(first.value.revision);
+    expect((await store.get(asMerchantId("m_a")))?.profile?.record()).toEqual(identity);
   });
 
   it("a deactivated merchant admits the replacement", async () => {

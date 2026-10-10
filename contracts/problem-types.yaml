@@ -225,6 +225,12 @@ types:
   - slug: configuration-frozen
     status: 409
     title: The configuration is frozen while an experiment is active
+  - slug: stale-version
+    status: 412
+    title: The resource changed since it was read
+  - slug: witness-required
+    status: 428
+    title: The write needs the witness of the resource it replaces
   - slug: configuration-version-not-found
     status: 404
     title: The configuration version does not exist

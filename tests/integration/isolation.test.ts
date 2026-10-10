@@ -594,6 +594,16 @@ describe("isolation between merchants", () => {
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/ingest-keys", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "POST", "/v1/admin/merchants/m_b/deactivate", asA)).statusCode).toBe(403);
     expect((await admin(app.app, "GET", "/v1/admin/merchants/m_b/log", asA)).statusCode).toBe(403);
+    // A write outside the scope is refused for the scope, whatever witness it carries: the witness never
+    // tells an operator that B exists (feature 043).
+    for (const ifMatch of ['"m_b:configuration:1"', '"stale"']) {
+      const write = await admin(app.app, "POST", "/v1/admin/merchants/m_b/configuration", {
+        ...asA,
+        ifMatch,
+        body: { declared: {} },
+      });
+      expect(write.statusCode).toBe(403);
+    }
     // A version of B by its number, which exists or not: the same 403, so the answer reveals neither (feature 042).
     for (const n of [1, 99]) {
       expect(

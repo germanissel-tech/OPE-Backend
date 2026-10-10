@@ -1,5 +1,5 @@
 // updateMerchantProfile (ADR-045): body → use case → 200 with the merchant as it is now.
-import { merchantIdOf } from "../../http/boundary.js";
+import { merchantIdOf, witnessIn } from "../../http/boundary.js";
 import { operatorOf } from "../../http/security/principal.js";
 import { merchantResponse, profileOf } from "../presenters.js";
 import type {
@@ -18,6 +18,7 @@ export function makeUpdateMerchantProfile(
       actor: operatorOf(req),
       merchantId: merchantIdOf(req.path),
       profile: profileOf(req.body),
+      witness: witnessIn(req.headers),
     });
     return merchantResponse(result, req.instance, clock.now());
   };

@@ -14,6 +14,9 @@ get:
   responses:
     "200":
       description: The merchant.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:

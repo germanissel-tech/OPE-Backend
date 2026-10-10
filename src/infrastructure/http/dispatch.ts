@@ -4,7 +4,9 @@
 // unknown route, a body past the limit) come out as Problem Details too.
 import {
   PROBLEM_CONTENT_TYPE,
+  PROBLEM_TYPES,
   problem,
+  type ProblemSlug,
   type ValidationError,
 } from "../../interface-adapters/http/problem-details.js";
 import {
@@ -52,13 +54,16 @@ interface TypedRequestBoundary {
   security: Record<string, unknown>;
 }
 
+/** Where Ajv names the property a `required` error is about. */
+const MISSING_PROPERTY = "missingProperty";
+
 /** Translates Ajv errors to Problem Details `errors[]`, with pointers relative to the request. */
 function toValidationErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
   return (errors ?? []).map((e) => {
     // Ajv points at the containing object for additionalProperties/required; narrow to the field.
     // `params` is Record<string, any> in Ajv: read as unknown and narrowed.
     const params: Record<string, unknown> = e.params;
-    const detail = params["additionalProperty"] ?? params["missingProperty"];
+    const detail = params["additionalProperty"] ?? params[MISSING_PROPERTY];
     const suffix = typeof detail === "string" ? `/${detail}` : "";
     const raw = `${e.instancePath}${suffix}`;
     const pointer = raw.startsWith(REQUEST_BODY_PREFIX)
@@ -66,6 +71,42 @@ function toValidationErrors(errors: ErrorObject[] | null | undefined): Validatio
       : raw;
     return { pointer: pointer || "/", message: e.message ?? "contract violation" };
   });
+}
+
+/** The extension a parameter declares when its absence has a problem of its own (feature 043, ADR-046). */
+const WHEN_MISSING = "x-when-missing";
+
+const isProblemSlug = (value: unknown): value is ProblemSlug =>
+  typeof value === "string" && Object.hasOwn(PROBLEM_TYPES, value);
+
+/**
+ * The problem a missing parameter answers with, when that is **the only** thing wrong with the request.
+ *
+ * The validator says a required header is missing as `required` over the headers, naming it in lowercase.
+ * If the parameter declares `x-when-missing`, its absence is that problem (`428 witness-required` for
+ * `If-Match`) and not a `400`: the client did not mistype a field, it skipped a step, and the problem says
+ * which. **Only when it is the sole error**: a request that is also malformed is answered as malformed, with
+ * every error, because fixing the witness alone would not make it pass.
+ */
+function missingWithItsOwnProblem(c: Context): ProblemSlug | undefined {
+  const errors = c.validation.errors ?? [];
+  const [only] = errors;
+  if (errors.length !== 1 || only?.keyword !== "required") return undefined;
+  // `params` is Record<string, any> in Ajv: read as unknown and narrowed.
+  const params: Record<string, unknown> = only.params;
+  const missing = params[MISSING_PROPERTY];
+  if (typeof missing !== "string") return undefined;
+  const parameters: readonly unknown[] = c.operation.parameters ?? [];
+  const declared = parameters.find(
+    (p): p is Record<string, unknown> =>
+      typeof p === "object" &&
+      p !== null &&
+      "name" in p &&
+      typeof p.name === "string" &&
+      p.name.toLowerCase() === missing.toLowerCase(),
+  );
+  const slug = declared?.[WHEN_MISSING];
+  return isProblemSlug(slug) ? slug : undefined;
 }
 
 /** 405 with `Allow` if the path exists in the contract with other methods; 404 if it does not. */
@@ -100,13 +141,16 @@ export function registerSpecialHandlers(runtime: Runtime): void {
   const { api } = runtime;
   api.register({
     unauthorizedHandler: async (c: Context): Promise<HttpResponse> => securityFailure(c as BoundaryContext),
-    validationFail: async (c: Context): Promise<HttpResponse> =>
-      toHttp(
+    validationFail: async (c: Context): Promise<HttpResponse> => {
+      const own = missingWithItsOwnProblem(c);
+      if (own !== undefined) return toHttp(problem(own, { instance: c.request.path }));
+      return toHttp(
         problem("validation-failed", {
           instance: c.request.path,
           errors: toValidationErrors(c.validation.errors),
         }),
-      ),
+      );
+    },
     notFound: async (c: Context): Promise<HttpResponse> =>
       toHttp(
         problem("not-found", {

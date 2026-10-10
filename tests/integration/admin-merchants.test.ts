@@ -397,8 +397,15 @@ describe("the identity of a merchant", () => {
   });
 
   it("an operator outside the scope gets 403 with the same body as for a merchant that does not exist, and the identity does not change", async () => {
-    const onB = await edit("m_b", identity, "ops-a");
-    const onNobody = await edit("mrc_nobody000000", identity, "ops-a");
+    // With a witness, so the refusal is about the scope and not about a request missing one (ADR-046).
+    const outside = (id: string) =>
+      admin(app.app, "PUT", `/v1/admin/merchants/${id}/profile`, {
+        as: "ops-a",
+        ifMatch: '"m_b:1"',
+        body: identity,
+      });
+    const onB = await outside("m_b");
+    const onNobody = await outside("mrc_nobody000000");
     expect([onB.statusCode, onNobody.statusCode]).toEqual([403, 403]);
     const strip = (r: typeof onB) => ({ ...problemOf(r), instance: undefined, requestId: undefined });
     expect(strip(onB)).toEqual(strip(onNobody));
@@ -441,5 +448,63 @@ describe("the request log never carries a credential", () => {
     await app.resetPorts({ ports: [replace(ClockPort, fixedClock("2026-09-21T00:00:00.000Z"))] });
     const created = await create(["https://t.example"], false);
     expect(created.merchant.credentials[0]?.issuedAt).toBe("2026-09-21T00:00:00.000Z");
+  });
+});
+
+describe("the witness of a merchant (feature 043)", () => {
+  const URL_A = "/v1/admin/merchants/m_a";
+  const read = async () => {
+    const response = await admin(app.app, "GET", URL_A);
+    const etag = response.headers.etag;
+    expect(typeof etag).toBe("string");
+    return String(etag);
+  };
+  const edit = (displayName: string, ifMatch: string | null) =>
+    admin(app.app, "PUT", `${URL_A}/profile`, { ifMatch, body: { displayName } });
+
+  it("a read hands out the witness, and an edition with it is accepted and hands out the next one", async () => {
+    const etag = await read();
+    const edited = await edit("Tienda A", etag);
+    expect(edited.statusCode).toBe(200);
+    expect(edited.headers.etag).not.toBe(etag);
+    expect(edited.headers.etag).toBe(await read());
+  });
+
+  it("[invariant:stale-version] any write of the merchant in between makes the witness stale: the switch, a rotation, the deactivation", async () => {
+    const writes: (() => ReturnType<typeof admin>)[] = [
+      () => admin(app.app, "PUT", `${URL_A}/kill-switch`, { body: { enabled: false } }),
+      () => admin(app.app, "POST", `${URL_A}/ingest-keys`, { body: { graceSeconds: 0 } }),
+      () => admin(app.app, "POST", `${URL_A}/deactivate`),
+    ];
+    for (const write of writes) {
+      const etag = await read();
+      const done = await write();
+      expect(done.statusCode).toBeLessThan(300);
+      // Every write of the merchant says the witness it leaves.
+      expect(done.headers.etag).toBe(await read());
+      const late = await edit("Tienda A", etag);
+      expect(late.statusCode).toBe(412);
+      expect(problemOf(late).type).toBe("urn:ope:problem:stale-version");
+    }
+    expect(json(await admin(app.app, "GET", URL_A))).not.toHaveProperty("displayName");
+  });
+
+  it("repeating the same identity with the witness of before answers it, without writing it again", async () => {
+    const etag = await read();
+    const first = await edit("Tienda A", etag);
+    const again = await edit("Tienda A", etag);
+    expect(again.statusCode).toBe(200);
+    expect(again.headers.etag).toBe(first.headers.etag);
+    expect(await read()).toBe(first.headers.etag);
+  });
+
+  it("without a witness it is 428; a creation hands out the witness of the new merchant", async () => {
+    expect((await edit("Tienda A", null)).statusCode).toBe(428);
+    const created = await admin(app.app, "POST", "/v1/admin/merchants", {
+      body: { origins: ["https://witness.example"], signature: false, displayName: "Testigo" },
+    });
+    expect(created.statusCode).toBe(201);
+    const id = (json(created) as Created).merchant.merchantId;
+    expect(created.headers.etag).toBe(`"${id}:1"`);
   });
 });

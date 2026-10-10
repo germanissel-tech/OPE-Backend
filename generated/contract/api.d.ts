@@ -3016,6 +3016,23 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description The resource changed since the witness was read (ADR-046): somebody wrote it in between, or the witness is not this resource's. Nothing was written. Read it again to get its current witness, and decide over what is there now. */
+        StaleVersion: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:stale-version",
+                 *       "title": "The resource changed since it was read",
+                 *       "status": 412,
+                 *       "instance": "/v1/admin/platform-configuration"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
         /** @description Valid request rejected on semantics: the `x-invariants` of a text (ADR-007). */
         TextUnprocessable: {
             headers: {
@@ -3069,12 +3086,31 @@ export type components = {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
+        /** @description The write replaces what it read and did not say what it read (ADR-046): `If-Match` is missing. Nothing was written, and the answer does not carry the current witness. */
+        WitnessRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:witness-required",
+                 *       "title": "The write needs the witness of the resource it replaces",
+                 *       "status": 428,
+                 *       "instance": "/v1/admin/platform-configuration"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
     };
     parameters: {
         /** @description Opaque cursor returned as `nextCursor` by the previous page. Absent for the first page. */
         cursor: string;
         /** @description The experiment the operation acts on. */
         experimentId: components["schemas"]["ExperimentId"];
+        /** @description The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged. A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out would invite sending it back without looking. Any value other than the current witness —one that is old, another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written. */
+        "If-Match": string;
         /** @description The number of the version, as the level assigned it when it was published. */
         levelVersion: number;
         /** @description Maximum number of items per page (ADR-020). */
@@ -3104,7 +3140,10 @@ export type components = {
         "X-OPE-Timestamp": number;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description The witness of the resource as this response leaves it (ADR-046): opaque, strong, and the value to send back in `If-Match` when replacing what was read. It changes with every write of the resource, including the ones that do not ask for it. */
+        ETag: string;
+    };
     pathItems: never;
 };
 export type $defs = Record<string, never>;
@@ -3241,6 +3280,7 @@ export interface operations {
             /** @description Merchant created; the credentials travel here and never again. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -3301,6 +3341,7 @@ export interface operations {
             /** @description The merchant. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -3400,6 +3441,7 @@ export interface operations {
             /** @description The configuration of the merchant. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -3554,7 +3596,10 @@ export interface operations {
     publishMerchantConfiguration: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged. A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out would invite sending it back without looking. Any value other than the current witness —one that is old, another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written. */
+                "If-Match": components["parameters"]["If-Match"];
+            };
             path: {
                 /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
                 merchantId: components["parameters"]["merchantId"];
@@ -3586,6 +3631,7 @@ export interface operations {
             /** @description The version in force, identical to what was published. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -3615,6 +3661,7 @@ export interface operations {
             /** @description The version created. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -3646,7 +3693,9 @@ export interface operations {
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
             409: components["responses"]["ConfigurationFrozenConflict"];
+            412: components["responses"]["StaleVersion"];
             422: components["responses"]["ConfigurationUnprocessable"];
+            428: components["responses"]["WitnessRequired"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };
@@ -3770,6 +3819,7 @@ export interface operations {
             /** @description The merchant, deactivated. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4049,6 +4099,7 @@ export interface operations {
             /** @description The credential minted; its value travels here and never again. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4097,6 +4148,7 @@ export interface operations {
             /** @description The switch as it is now. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4186,6 +4238,7 @@ export interface operations {
             /** @description The credential minted; its value travels here and never again. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4234,6 +4287,7 @@ export interface operations {
             /** @description The credential minted; its value travels here and never again. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4261,7 +4315,10 @@ export interface operations {
     updateMerchantProfile: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged. A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out would invite sending it back without looking. Any value other than the current witness —one that is old, another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written. */
+                "If-Match": components["parameters"]["If-Match"];
+            };
             path: {
                 /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
                 merchantId: components["parameters"]["merchantId"];
@@ -4289,6 +4346,7 @@ export interface operations {
             /** @description The merchant as it is now. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4327,7 +4385,9 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];
+            412: components["responses"]["StaleVersion"];
             422: components["responses"]["MerchantProfileUnprocessable"];
+            428: components["responses"]["WitnessRequired"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };
@@ -4630,6 +4690,7 @@ export interface operations {
             /** @description The platform configuration. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4664,7 +4725,10 @@ export interface operations {
     publishPlatformConfiguration: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged. A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out would invite sending it back without looking. Any value other than the current witness —one that is old, another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written. */
+                "If-Match": components["parameters"]["If-Match"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -4698,6 +4762,7 @@ export interface operations {
             /** @description The version in force, identical to what was published. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4735,6 +4800,7 @@ export interface operations {
             /** @description The version created. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -4773,7 +4839,9 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["PlatformWideForbidden"];
             409: components["responses"]["ConfigurationFrozenConflict"];
+            412: components["responses"]["StaleVersion"];
             422: components["responses"]["LevelUnprocessable"];
+            428: components["responses"]["WitnessRequired"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };
@@ -5096,6 +5164,7 @@ export interface operations {
             /** @description The treatment defaults. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -5212,7 +5281,10 @@ export interface operations {
     publishTreatmentDefaults: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The witness of the resource as it was read: the `ETag` of its last read, sent back unchanged. A write that replaces what it read is accepted only if nobody wrote the resource since (ADR-046). Without it the write is `428 witness-required`, and the answer does not carry the current witness: handing it out would invite sending it back without looking. Any value other than the current witness —one that is old, another resource's, `*`, several, a weak one— is `412 stale-version`, and nothing is written. */
+                "If-Match": components["parameters"]["If-Match"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -5328,6 +5400,7 @@ export interface operations {
             /** @description The version in force, identical to what was published. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -5447,6 +5520,7 @@ export interface operations {
             /** @description The version created. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -5567,7 +5641,9 @@ export interface operations {
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["PlatformWideForbidden"];
             409: components["responses"]["ConfigurationFrozenConflict"];
+            412: components["responses"]["StaleVersion"];
             422: components["responses"]["TreatmentDefaultsUnprocessable"];
+            428: components["responses"]["WitnessRequired"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

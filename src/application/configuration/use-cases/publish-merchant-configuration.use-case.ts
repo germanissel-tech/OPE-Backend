@@ -13,6 +13,7 @@ import {
 import {
   fail,
   ok,
+  StaleVersion,
   type LocaleIncomplete,
   type MerchantId,
   type Result,
@@ -20,6 +21,7 @@ import {
 } from "../../../domain/shared-kernel/index.js";
 import { publishedBy } from "../services/publication.js";
 import { readOfMerchant, type MerchantVersionRead } from "../services/version-restarts.js";
+import { merchantConfigurationWitness } from "../services/witness.js";
 import type { MerchantNotFound } from "../../../domain/merchant/index.js";
 import type { MerchantOutOfScope, Operator } from "../../../domain/operator/index.js";
 import type { ExperimentDirectory, WindowRestartsService } from "../../experiment/index.js";
@@ -34,6 +36,12 @@ export interface PublishMerchantConfigurationRequest {
   declared: DeclaredConfiguration;
   corrective: boolean;
   reason?: string | undefined;
+  /**
+   * The witness of the merchant's configuration as the caller read it (feature 043, ADR-046). The version
+   * replaces everything the merchant declares —including what the panel does not edit and copied from the
+   * version it read—, so it is accepted only if that version is still the one in force.
+   */
+  witness: string;
 }
 
 /**
@@ -52,6 +60,7 @@ export type PublishMerchantConfigurationResponse = Result<
   | ConfigurationFrozen
   | VersionError
   | LocaleIncomplete
+  | StaleVersion
   | StoreUnavailable
 >;
 
@@ -88,6 +97,13 @@ export class PublishMerchantConfigurationUseCase implements UseCase<
     const latest = await store.latestOf(request.merchantId);
     if (latest?.sameContentAs(draft.value) === true) {
       return ok({ ...(await readOfMerchant(restarts, latest)), outcome: "repeated" });
+    }
+    // After the scope and the repetition, before the freeze (ADR-046): a merchant outside the scope is not
+    // revealed by its witness, the retry of what went through answers as before, and the 409 of something
+    // that changed explains nothing. The unit of work of the audit takes its turn, so nothing is published
+    // between this comparison and the write (feature 034).
+    if (merchantConfigurationWitness(request.merchantId, latest?.version) !== request.witness) {
+      return fail(new StaleVersion());
     }
     // Only an active experiment freezes; a calibrating one still moves (03 §4.10).
     const open = await experiments.activeFor(request.merchantId);

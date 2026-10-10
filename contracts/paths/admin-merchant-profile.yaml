@@ -5,6 +5,16 @@ put:
     - adminToken: []
   x-required-capabilities:
     - merchants:write
+  x-invariants:
+    - type: stale-version
+      status: 412
+      rule: the witness in If-Match is the current witness of the merchant, unless the body is identical to what is in force
+      description:
+        "The write replaces the merchant whole with what the caller read and changed (ADR-046), so a write in between
+        would be undone without anybody knowing. It is judged after the scope of the operator and after the
+        repetition of an identical body —which answers as before, with any witness, so the retry of a write
+        that went through does not fail— and before anything else, the freeze included. A witness that is not
+        this resource's never matches."
   summary: Replace the identity of a merchant
   description: |
     The display name, the store URL, the contact and the operator's notes, whole (ADR-045): a field
@@ -15,6 +25,7 @@ put:
     values written.
   parameters:
     - $ref: ../components/parameters/merchantId.yaml
+    - $ref: ../components/parameters/If-Match.yaml
   requestBody:
     required: true
     content:
@@ -32,6 +43,9 @@ put:
   responses:
     "200":
       description: The merchant as it is now.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
       content:
         application/json:
           schema:
@@ -63,6 +77,10 @@ put:
       $ref: ../components/responses/MerchantNotFound.yaml
     "422":
       $ref: ../components/responses/MerchantProfileUnprocessable.yaml
+    "412":
+      $ref: ../components/responses/StaleVersion.yaml
+    "428":
+      $ref: ../components/responses/WitnessRequired.yaml
     "500":
       $ref: ../components/responses/InternalServerError.yaml
     "503":

@@ -9,8 +9,10 @@ import {
   GetMerchantConfigurationUseCase,
   ImportMerchantConfigurationUseCase,
   ListConfigurationVersionsUseCase,
+  merchantConfigurationWitness,
   PublishMerchantConfigurationUseCase,
   type ConfigurationStore,
+  type PublishMerchantConfigurationRequest,
 } from "../../../../src/application/configuration/index.js";
 import { WindowRestarts } from "../../../../src/application/experiment/index.js";
 import { ScopedMerchants } from "../../../../src/application/merchant/index.js";
@@ -32,6 +34,26 @@ const all = Operator.rehydrate({
   scope: EVERY_MERCHANT,
 });
 const clock = { now: () => TEST_NOW };
+
+/**
+ * The publication as a well-behaved panel calls it: with the witness of what is in force, read from the store
+ * underneath (not the counting one, so the reads a case counts are the use case's), unless the case is about
+ * another witness (feature 043).
+ */
+function witnessing(use: PublishMerchantConfigurationUseCase, inner: ConfigurationStore) {
+  return {
+    execute: async (request: Omit<PublishMerchantConfigurationRequest, "witness"> & { witness?: string }) =>
+      use.execute({
+        ...request,
+        witness:
+          request.witness ??
+          merchantConfigurationWitness(
+            request.merchantId,
+            (await inner.latestOf(request.merchantId))?.version,
+          ),
+      }),
+  };
+}
 
 function subject(options: { status?: ExperimentStatus; store?: ConfigurationStore } = {}) {
   const levels = testLevels();
@@ -73,14 +95,17 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
     merchants,
     experimentStore,
     experiment,
-    publish: new PublishMerchantConfigurationUseCase({
-      scoped,
-      store,
-      configuration,
-      experiments,
-      restarts,
-      clock,
-    }),
+    publish: witnessing(
+      new PublishMerchantConfigurationUseCase({
+        scoped,
+        store,
+        configuration,
+        experiments,
+        restarts,
+        clock,
+      }),
+      inner,
+    ),
     get: new GetMerchantConfigurationUseCase({ scoped, store, configuration }),
     list: new ListConfigurationVersionsUseCase({ scoped, store, restarts }),
     import: new ImportMerchantConfigurationUseCase({ store, configuration, clock }),

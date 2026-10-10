@@ -404,16 +404,45 @@ export function catalogOf(
 }
 
 /** An administration request (feature 017): bearer token of a test operator, JSON body when given. */
-export function admin(
+/**
+ * The resource a protected write replaces (feature 043, ADR-046), read where its witness is handed out: the
+ * three publications read their own URL, and the identity of a merchant is read with the merchant.
+ */
+function witnessedResourceOf(method: string, url: string): string | undefined {
+  const path = url.split("?")[0] ?? url;
+  if (method === "POST" && /^\/v1\/admin\/(platform-configuration|treatment-defaults)$/.test(path))
+    return path;
+  if (method === "POST" && /^\/v1\/admin\/merchants\/[^/]+\/configuration$/.test(path)) return path;
+  const profile = /^(\/v1\/admin\/merchants\/[^/]+)\/profile$/.exec(path);
+  if (method === "PUT" && profile !== null) return profile[1];
+  return undefined;
+}
+
+/**
+ * A request of an operator.
+ *
+ * **A protected write behaves like a well-behaved panel by default**: it reads the resource first and sends
+ * back its `ETag` as `If-Match`, so a test about something else does not have to know the witness exists.
+ * A test about the witness says what to send — a value, or `null` to send none.
+ */
+export async function admin(
   app: FastifyInstance,
   method: "GET" | "POST" | "PUT",
   url: string,
-  o: { as?: TestOperator | null; token?: string; body?: unknown } = {},
+  o: { as?: TestOperator | null; token?: string; body?: unknown; ifMatch?: string | null } = {},
 ): Promise<LightMyRequestResponse> {
   const headers: Record<string, string> = {};
   const token = o.token ?? (o.as === null ? undefined : adminToken(o.as ?? "ops-all"));
   if (token !== undefined) headers["authorization"] = `Bearer ${token}`;
   if (o.body !== undefined) headers["content-type"] = "application/json";
+  const resource = witnessedResourceOf(method, url);
+  if (o.ifMatch !== undefined && o.ifMatch !== null) headers["if-match"] = o.ifMatch;
+  if (o.ifMatch === undefined && resource !== undefined) {
+    // Read as the operator of the test, so a write outside its scope is refused for the scope, not the witness.
+    const read = await app.inject({ method: "GET", url: resource, headers: { ...headers } });
+    const etag = read.headers.etag;
+    if (typeof etag === "string") headers["if-match"] = etag;
+  }
   const options: InjectOptions = { method, url, headers };
   if (o.body !== undefined) options.payload = o.body as Exclude<InjectOptions["payload"], undefined>;
   return app.inject(options);

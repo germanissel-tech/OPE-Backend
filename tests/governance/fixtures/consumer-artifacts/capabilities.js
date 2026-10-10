@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.14.0', sha256: 'b9724221d57959efa33f5aa0d6b5d97cc78663b456340158a16450331bc49e87' }
+export const CONTRACT = { version: '1.15.0', sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0' }
 
 /** The consumer this module describes: its operations and its vocabulary. */
 export const CONSUMER = 'admin'

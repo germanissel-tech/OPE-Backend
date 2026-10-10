@@ -11,7 +11,7 @@ import {
   type PlatformConfiguration,
   type TreatmentDefaults,
 } from "../../domain/configuration/index.js";
-import { pageDto, pageQueryOf, type PageQueryDto } from "../http/boundary.js";
+import { pageDto, pageQueryOf, type PageQueryDto, etagOf, witnessIn } from "../http/boundary.js";
 import { operatorOf } from "../http/security/principal.js";
 import { HTTP_STATUS } from "../http/status.js";
 import { toProblem, type ProblemOf } from "../http/to-problem.js";
@@ -87,12 +87,14 @@ export function publishedLevelRequest(
   level: ReleaseLevel,
   req: {
     security: SecurityResults;
+    headers: Readonly<Record<string, unknown>>;
     body: { content: Record<string, unknown>; corrective?: boolean; reason?: string };
   },
 ): PublishLevelRequest {
   return {
     actor: operatorOf(req),
     level,
+    witness: witnessIn(req.headers),
     content: { ...req.body.content },
     corrective: req.body.corrective ?? false,
     // Handed over as it comes, absent or not. The guard that turns «undefined» into «not there» lives
@@ -116,8 +118,8 @@ export function publishedLevelAnswer<Content>(
   result: PublishLevelResponse,
   instance: string,
 ):
-  | { status: typeof HTTP_STATUS.OK; body: LevelVersionDto<Content> }
-  | { status: typeof HTTP_STATUS.CREATED; body: LevelVersionDto<Content> }
+  | { status: typeof HTTP_STATUS.OK; body: LevelVersionDto<Content>; headers: Record<string, string> }
+  | { status: typeof HTTP_STATUS.CREATED; body: LevelVersionDto<Content>; headers: Record<string, string> }
   | ProblemOf<LevelRefusal> {
   if (!result.ok) {
     // The reader names the field from the root of the content; the body carries it under `content`.
@@ -126,10 +128,18 @@ export function publishedLevelAnswer<Content>(
     return toProblem(error, instance);
   }
   const body = levelVersionDto<Content>(result.value);
+  // The witness of a level is the name of its version in force: the one this answer leaves there.
+  const headers = witnessed(body.stampedAs);
   return result.value.outcome === "created"
-    ? { status: HTTP_STATUS.CREATED, body }
-    : { status: HTTP_STATUS.OK, body };
+    ? { status: HTTP_STATUS.CREATED, body, headers }
+    : { status: HTTP_STATUS.OK, body, headers };
 }
+
+/**
+ * The header that hands out the witness of what an answer leaves in place (feature 043, ADR-046). Typed as the
+ * headers of a response are, a record of strings, so every answer can carry it as it is.
+ */
+export const witnessed = (witness: string): Record<string, string> => ({ etag: etagOf(witness) });
 
 /** The body field the content lives under: the pointer of an offence starts there. */
 const CONTENT = "content";

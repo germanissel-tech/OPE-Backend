@@ -1,0 +1,11 @@
+description: "The write replaces what it read and did not say what it read (ADR-046): `If-Match` is
+  missing. Nothing was written, and the answer does not carry the current witness."
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:witness-required
+      title: The write needs the witness of the resource it replaces
+      status: 428
+      instance: /v1/admin/platform-configuration

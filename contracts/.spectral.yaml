@@ -22,6 +22,7 @@ functions:
   - outcomesIdempotency
   - platformSignatureHeaders
   - collectionPagination
+  - whenMissing
 rules:
   oas3-schema: "off"
   # Inherited from spectral:oas, raised to error (FR-012, FR-004, FR-014).
@@ -228,6 +229,16 @@ rules:
     given: "$.paths[*][get,put,post,delete,patch,options,head,trace]"
     then:
       function: platformSignatureHeaders
+  # Feature 043 (ADR-046): a parameter whose absence has its own problem names it, and is required.
+  ope-when-missing:
+    description: A parameter that declares x-when-missing is required, and names a type of the catalogue.
+    message: "{{error}}"
+    severity: error
+    given: "$..parameters[*]"
+    then:
+      function: whenMissing
+      functionOptions:
+        catalog: ./problem-types.yaml
   ope-outcomes-idempotency:
     description: Every outcomes operation declares x-idempotency (key, first, repeat) and a 409.
     message: "{{error}}"

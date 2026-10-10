@@ -40,7 +40,7 @@ la historia que sirve: US1 las publicaciones, US2 la identidad, US3 el reintento
   - `revision` y `witness()` en la entidad;
   - un método privado que arma el siguiente con la revisión más uno, y que usan los cuatro métodos;
   - el archivo sigue debajo de las 300 líneas de los anillos.
-- [ ] T003 [P] [US1] `src/domain/shared-kernel/errors.ts`: `StaleVersion` (`stale-version`, «The resource
+- [x] T003 [P] [US1] `src/domain/shared-kernel/errors.ts`: `StaleVersion` (`stale-version`, «The resource
       changed since it was read.», sin `details`), en la unión del kernel
 - [x] T004 [P] [US2] `tests/durability/merchant-store.test.ts`: la revisión después de dos escrituras
       sobrevive un reinicio; un documento sin el campo lee `0`
@@ -60,17 +60,17 @@ la historia que sirve: US1 las publicaciones, US2 la identidad, US3 el reintento
 
 **Purpose**: que el contrato diga el testigo antes de que el servidor lo exija.
 
-- [ ] T006 [US1] `contracts/problem-types.yaml`: `stale-version` (`412`) y `witness-required` (`428`), según
+- [x] T006 [US1] `contracts/problem-types.yaml`: `stale-version` (`412`) y `witness-required` (`428`), según
       `contracts/testigo.md` §1
-- [ ] T007 [US1] `contracts/components/parameters/If-Match.yaml` (NUEVO, §2) con `x-when-missing`;
+- [x] T007 [US1] `contracts/components/parameters/If-Match.yaml` (NUEVO, §2) con `x-when-missing`;
       `contracts/components/headers/ETag.yaml` (NUEVO); `contracts/components/responses/StaleVersion.yaml` y
       `WitnessRequired.yaml` (NUEVOS, con ejemplo)
-- [ ] T008 [US1] [US2] `contracts/paths/`: las cuatro operaciones protegidas ganan el parámetro, `412`, `428`,
+- [x] T008 [US1] [US2] `contracts/paths/`: las cuatro operaciones protegidas ganan el parámetro, `412`, `428`,
       `x-invariants` `stale-version` y la descripción de reemplazo (§3); `ETag` en las respuestas de §4
-- [ ] T009 [P] `contracts/README.md`: la fila de `x-when-missing` en la tabla de extensiones; si el lint de
+- [x] T009 [P] `contracts/README.md`: la fila de `x-when-missing` en la tabla de extensiones; si el lint de
       Spectral la verifica, su regla y su fixture en `tests/contract-rules/fixtures/` (un parámetro no
       requerido con la extensión, un slug inexistente)
-- [ ] T010 `contracts/openapi.yaml` `info.version: 1.15.0`; `npm run contract:bundle`, `contract:types`,
+- [x] T010 `contracts/openapi.yaml` `info.version: 1.15.0`; `npm run contract:bundle`, `contract:types`,
       `contract:check`: el reporte de `contract:diff` dice incompatible y aceptado por `building`; se copia al
       quickstart
 
@@ -83,62 +83,74 @@ la historia que sirve: US1 las publicaciones, US2 la identidad, US3 el reintento
 
 **Purpose**: US1, US2 y US3 de punta a punta.
 
-- [ ] T011 [P] [US1] `tests/unit/interface-adapters/http/`: la lectura de `If-Match` —un testigo fuerte y
+- [x] T011 [P] [US1] `tests/unit/interface-adapters/http/`: la lectura de `If-Match` —un testigo fuerte y
       único devuelve su valor; `*`, dos testigos, `W/"…"` y sin comillas devuelven algo que no coincide—, y
       `etagOf` pone las comillas
-- [ ] T012 [US1] `src/interface-adapters/http/boundary.ts`: `witnessOf(header)` y `etagOf(witness)`
-- [ ] T013 [P] [US1] `tests/integration/server.test.ts` (o el que prueba `validationFail`), **antes del
+- [x] T012 [US1] `src/interface-adapters/http/boundary.ts`: `witnessOf(header)` y `etagOf(witness)`
+- [x] T013 [P] [US1] `tests/integration/server.test.ts` (o el que prueba `validationFail`), **antes del
       código**:
   - una publicación sin `If-Match` responde `428 witness-required` sin `ETag`;
   - sin `If-Match` y con el cuerpo mal formado, `400`, porque no es el único error.
-- [ ] T014 [US1] `src/infrastructure/http/dispatch.ts`: `validationFail` responde el problema que declara
+- [x] T014 [US1] `src/infrastructure/http/dispatch.ts`: `validationFail` responde el problema que declara
       `x-when-missing` cuando el único error es la ausencia de ese parámetro; lee la extensión del contrato
       cargado, sin lista propia
-- [ ] T015 [P] [US1] [US3] `tests/integration/levels.test.ts` y `platform-level.test.ts`, **antes del
+- [x] T015 [P] [US1] [US3] `tests/integration/levels.test.ts` y `platform-level.test.ts`, **antes del
       código**:
   - leer da el `ETag`; publicar con él da `201` y el nuevo;
   - con el viejo, `412 stale-version` y nada escrito (`[invariant:stale-version]`);
   - un cuerpo idéntico a lo que rige con el testigo viejo da `200`;
   - el testigo de plataforma no vale para defaults;
   - las publicaciones que ya existen en estas pruebas ganan su `If-Match`.
-- [ ] T016 [US1] `src/application/configuration/use-cases/publish-level.use-case.ts`: `witness` en el
+- [x] T016 [US1] `src/application/configuration/use-cases/publish-level.use-case.ts`: `witness` en el
       request, comparado contra el nombre de la versión que rige, en el orden de R-05; los controllers de las
       dos publicaciones leen `If-Match` y devuelven `ETag`; los de las dos lecturas, `ETag`
-- [ ] T017 [P] [US1] [US3] `tests/integration/admin-configuration.test.ts`, **antes del código**:
+- [x] T017 [P] [US1] [US3] `tests/integration/admin-configuration.test.ts`, **antes del código**:
   - lo mismo de T015 para la configuración de un merchant, también uno sin versión propia;
   - con un experimento activo y el testigo viejo, `412` y no `409`;
   - las publicaciones existentes ganan su `If-Match`.
-- [ ] T018 [US1] `src/application/configuration/services/`: `merchantConfigurationWitness`, del merchant y el número de la versión que rige; `publish-merchant-configuration.use-case.ts` con `witness` en el orden de R-05; el
+- [x] T018 [US1] `src/application/configuration/services/`: `merchantConfigurationWitness`, del merchant y el número de la versión que rige; `publish-merchant-configuration.use-case.ts` con `witness` en el orden de R-05; el
       controller de la publicación lee `If-Match` y devuelve `ETag`; `getMerchantConfiguration` devuelve
       `ETag`
-- [ ] T019 [P] [US2] [US3] `tests/integration/admin-merchants.test.ts`, **antes del código**:
+- [x] T019 [P] [US2] [US3] `tests/integration/admin-merchants.test.ts`, **antes del código**:
   - `getMerchant` da el `ETag`; editar la identidad con él da `200` y el nuevo;
   - después de `setKillSwitch`, de una rotación y de `deactivateMerchant`, el testigo viejo da `412`, y cada
     una de esas respuestas trae su `ETag`;
   - repetir la misma identidad con el testigo viejo da `200` sin subir la revisión;
   - las ediciones existentes ganan su `If-Match`.
-- [ ] T020 [US2] `src/application/merchant/use-cases/update-merchant-profile.use-case.ts`: `witness`;
+- [x] T020 [US2] `src/application/merchant/use-cases/update-merchant-profile.use-case.ts`: `witness`;
       idéntico no escribe; el orden de R-05. Controllers de `getMerchant`, `updateMerchantProfile`,
       `createMerchant`, `setKillSwitch`, `deactivateMerchant` y las tres rotaciones: `ETag` del merchant que
       devuelven
-- [ ] T021 [P] `tests/integration/isolation.test.ts`:
+- [x] T021 [P] `tests/integration/isolation.test.ts`:
   - el testigo de A en una escritura de B da `412`;
   - un operador con alcance A que escribe en B con cualquier testigo recibe `403`, nunca `412`.
-- [ ] T022 Las demás pruebas que publican o editan sin `If-Match` (`grep` sobre `tests/` de las cuatro
+- [x] T022 Las demás pruebas que publican o editan sin `If-Match` (`grep` sobre `tests/` de las cuatro
       rutas) ganan el testigo de una lectura previa; `npm test` entero en verde. Commit con la fase 2:
       `feat(043): las cuatro escrituras que reemplazan lo que leyeron exigen su testigo`
 
 **Checkpoint**: las tres historias de punta a punta; el servidor arranca con el contrato `1.15.0`.
 
+> **Hecho el 2026-10-10.** Desvíos: (1) **Las pruebas existentes no se tocaron una por una**: el helper
+> `admin()` se porta como un panel correcto y, ante una escritura protegida sin `ifMatch`, lee el recurso y
+> manda su `ETag`; las pruebas del testigo lo pasan explícito, y `null` lo omite. (2) **La ausencia del testigo
+> se responde antes del alcance**: es forma del pedido, como un cuerpo mal formado, y `428` no dice nada del
+> recurso; el **valor** del testigo se juzga después del alcance. Dos pruebas de alcance ganaron un testigo
+> para seguir siendo sobre el alcance. (3) **Un nivel sin versión acepta cualquier testigo**: no hay nada que
+> pisar. (4) **`If-Match` se lee sin mirar mayúsculas** (`witnessIn`): el tipo generado lo nombra como el
+> contrato y HTTP lo entrega en minúsculas. (5) **ADR-046 y la nota «testigo» se adelantaron** (T023, T024):
+> el contrato cita la ADR y `check:adrs` falla sin ella. (6) **El testigo de la configuración de un merchant**
+> se calcula en `application/configuration/services/witness.ts`, que usan la lectura, la publicación y la
+> respuesta.
+
 ---
 
 ## Phase 4: El cierre (tramo 4 del plan)
 
-- [ ] T023 [P] `docs/adr/046-el-testigo-de-concurrencia.md` (NUEVO, aceptada): las cuatro exigencias de
+- [x] T023 [P] `docs/adr/046-el-testigo-de-concurrencia.md` (NUEVO, aceptada): las cuatro exigencias de
       `TAN-10`, `x-when-missing`, el formato del testigo, el orden de R-05, lo que el despliegue en memoria
       no serializa (R-01), CORS para `admin` el día que exista (R-07), y el reporte de `contract:diff`;
       `docs/adr/README.md` con su fila
-- [ ] T024 [P] `docs/dominio/testigo.md` (NUEVO, con la forma de `contacto.md`), y lo que el inventario de
+- [x] T024 [P] `docs/dominio/testigo.md` (NUEVO, con la forma de `contacto.md`), y lo que el inventario de
       `docs/dominio/` pida
 - [ ] T025 La cadena: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm test`,
       `npm run test:durability`, `npm run build`, `npm run test:contract`, `npm run release-check`, y
