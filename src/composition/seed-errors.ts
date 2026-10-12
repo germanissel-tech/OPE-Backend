@@ -9,7 +9,7 @@ import type { DomainError } from "../domain/shared-kernel/index.js";
 /**
  * A domain error of a factory becomes a configuration error naming the field: the rule is the
  * domain's; the location is the configuration's. The entity judges the credentials as one
- * list (ingest, then platform, then signing): the index is translated back to the seed's field.
+ * list (ingest, then platform, then signing, then notice): the index is translated back to the seed's field.
  */
 export function rejected(at: MerchantField, error: DomainError, seed?: MerchantSeed): ConfigError {
   const field = FIELD_BY_CODE[error.code] ?? pointedField(error);
@@ -23,6 +23,9 @@ export function rejected(at: MerchantField, error: DomainError, seed?: MerchantS
 function credentialOffset(field: ConfiguredField | "", seed: MerchantSeed): number {
   if (field === ".platformKeys") return seed.ingestKeys.length;
   if (field === ".platformSecrets") return seed.ingestKeys.length + seed.platformKeys.length;
+  if (field === ".noticeKeys") {
+    return seed.ingestKeys.length + seed.platformKeys.length + seed.platformSecrets.length;
+  }
   return 0;
 }
 
@@ -45,6 +48,7 @@ type ConfiguredField =
   | ".origins"
   | ".platformKeys"
   | ".platformSecrets"
+  | ".noticeKeys"
   | ".experiments"
   | ".targetSample"
   | ".cuts"
@@ -70,6 +74,8 @@ const FIELD_BY_CODE: Readonly<Record<string, ConfiguredField>> = {
   "platform-key-collision": ".platformKeys",
   "invalid-platform-secrets": ".platformSecrets",
   "invalid-platform-secret": ".platformSecrets",
+  "invalid-notice-keys": ".noticeKeys",
+  "notice-key-collision": ".noticeKeys",
   "experiment-already-open": ".experiments",
   "duplicate-experiment-id": ".experiments",
   "invalid-target-sample": ".targetSample",

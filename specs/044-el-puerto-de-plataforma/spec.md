@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Borrador
+**Status**: Construida (2026-10-12)
 
 **Input**: Primer tramo del hito `platform-port` de `contracts/api-map.yaml` (constitución X; `02` §4 y §6): el
 puerto de plataforma con sus cuatro operaciones, los modos `pull` y `subscribe` que hoy la configuración declara

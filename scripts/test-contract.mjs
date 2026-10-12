@@ -2,9 +2,9 @@
 // (FR-051, US5). Starts the server on a free port, waits for it to respond, runs
 // `uvx schemathesis` on the bundle and stops the server propagating the exit code.
 //
-// Both credentials travel in every request (015 F-054): the ingest key for the SDK operations
-// and the platform key for the server-to-server ones, so no built operation is exercised only
-// through its 401. The contract merchant declares no platform secret: unsigned requests are
+// Every credential travels in every request (015 F-054): the ingest key for the SDK operations,
+// the platform key for the server-to-server ones and the notice key for the notices (feature 044),
+// so no built operation is exercised only through its 401. The contract merchant declares no platform secret: unsigned requests are
 // what the contract describes, and the signature is tested by tests/integration.
 //
 // Schemathesis reports a "schema validation mismatch" warning: the operations with
@@ -36,6 +36,7 @@ const CONTRACT_MERCHANT = {
   merchantId: "contract-test-merchant",
   ingestKeys: ["ope_contract_test_key"],
   platformKeys: ["ope_contract_platform_key"],
+  noticeKeys: ["ope_contract_notice_key"],
   origins: ["http://127.0.0.1"],
 };
 
@@ -99,6 +100,8 @@ function runSchemathesis(base) {
       `X-OPE-Ingest-Key: ${CONTRACT_MERCHANT.ingestKeys[0] ?? ""}`,
       "-H",
       `X-OPE-Platform-Key: ${CONTRACT_MERCHANT.platformKeys[0] ?? ""}`,
+      "-H",
+      `X-OPE-Notice-Key: ${CONTRACT_MERCHANT.noticeKeys[0] ?? ""}`,
       "-H",
       `Authorization: Bearer ${CONTRACT_ADMIN_TOKEN}`,
       "--report",

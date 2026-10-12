@@ -49,6 +49,7 @@ function judgeSeed(seed: MerchantSeed): DomainError | undefined {
       ...seed.ingestKeys.map((k) => Merchant.credential("ingest", k, at)),
       ...seed.platformKeys.map((k) => Merchant.credential("platform", k, at)),
       ...seed.platformSecrets.map((s) => Merchant.credential("signing", s, at, s)),
+      ...seed.noticeKeys.map((k) => Merchant.credential("notice", k, at)),
     ],
     createdAt: at,
     profile: profile?.value,
@@ -103,6 +104,8 @@ function parseMerchants(raw: string): MerchantConfig[] {
     if (!isStringArray(platformSecrets)) {
       throw new ConfigError(`merchants[${i}].platformSecrets`, STRING_ARRAY);
     }
+    const noticeKeys = m["noticeKeys"] ?? [];
+    if (!isStringArray(noticeKeys)) throw new ConfigError(`merchants[${i}].noticeKeys`, STRING_ARRAY);
     const at: MerchantField = `merchants[${i}]`;
     const seed: MerchantSeed = {
       merchantId,
@@ -110,6 +113,7 @@ function parseMerchants(raw: string): MerchantConfig[] {
       origins,
       platformKeys,
       platformSecrets,
+      noticeKeys,
       displayName: optionalText(m, `${at}.displayName`),
       storeUrl: optionalText(m, `${at}.storeUrl`),
       contact: contactOf(m, at),

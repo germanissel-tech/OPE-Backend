@@ -206,6 +206,15 @@ llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las �
 
 **Checkpoint**: US1 y US2 andan solas con la fuente de prueba.
 
+> **Hecho el 2026-10-12.** Desvíos: (1) **Las pruebas del juicio y de la lectura del estado** van en
+> `platform-pull.test.ts` y en `tests/unit/application/configuration/platform-sources.test.ts`, no en
+> `admin-configuration.test.ts` ni en un `admin-platform-sync.test.ts`: las dos necesitan la fuente de prueba guionada
+> y el planificador. (2) **La configuración lee las fuentes por un puerto propio**, `PlatformSources`, que la
+> composición enlaza a las instaladas. (3) **El temporizador arranca con `start()`** después de leer los niveles,
+> porque su tick es del nivel 1 y el grafo lo construye antes. (4) **Un rechazo del núcleo no frena el flujo** y la
+> cadencia cuenta desde el inicio de la corrida (research R-03, PROPUESTO). (5) **CI encontró** un `400` sin
+> documentar en `getMerchantPlatformSync` y 16 mutantes vivos; se arreglaron en un commit aparte.
+
 ---
 
 ## Phase 4: El aviso (tramo 4) — US3
@@ -239,22 +248,28 @@ credencial, o con datos que contradicen la lectura, no entra nada del aviso.
       `npm run test:durability`, `npm run quality`, mutación acotada. Commit:
       `feat(044): el aviso de la plataforma, con su credencial, que obliga a leer`
 
+> **Hecho el 2026-10-12.** Desvíos: (1) **La lectura de lo avisado es un adaptador propio**, `NoticeReader`, que
+> el planificador llama en cada tick; la fuente gana `order(reference)` y `returnOf(reference)`. (2) **La puerta del
+> modo lee el flujo del pedido** para el aviso. (3) **La semilla de merchants acepta `noticeKeys`**, para que
+> Schemathesis ejerza el aviso con su credencial. (4) **El aviso descartado deja rastro** también en
+> `platform_sync` (`notice-dropped`), además del log.
+
 ---
 
 ## Phase 5: El circuito y el cierre (tramo 5) — US5
 
-- [ ] T050 [US5] `tests/integration/end-to-end.test.ts`: catálogo y stock y precio por `pull`, evento y decisión
+- [x] T050 [US5] `tests/integration/end-to-end.test.ts`: catálogo y stock y precio por `pull`, evento y decisión
       por el SDK, exposición confirmada, orden por `subscribe` con el `sessionId` de la decisión →
       `ATTRIBUTED_ORDER`; y la misma corrida con la foto empujada y la orden consultada da lo mismo
-- [ ] T051 `npm run test:contract` con `OPE_STORE=:memory:`; `schemathesis.toml` si las operaciones nuevas lo
+- [x] T051 `npm run test:contract` con `OPE_STORE=:memory:`; `schemathesis.toml` si las operaciones nuevas lo
       piden
-- [ ] T052 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado, con el reporte de
+- [x] T052 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado, con el reporte de
       `contract:diff`
-- [ ] T053 [P] ADR-047 **aceptada**; `docs/dominio/` con `uso` actualizado; `contracts/README.md` (el consumidor y
+- [x] T053 [P] ADR-047 **aceptada**; `docs/dominio/` con `uso` actualizado; `contracts/README.md` (el consumidor y
       los tags); `.claude/rules/contrato.md` (la línea del puerto dice que `pull` y `subscribe` están construidos);
       `docs/adr/025-…` remite a ADR-047
-- [ ] T054 [P] `spec.md`: **Status** construida; `tasks.md` con lo hecho y los desvíos
-- [ ] T055 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
+- [x] T054 [P] `spec.md`: **Status** construida; `tasks.md` con lo hecho y los desvíos
+- [x] T055 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
       `npm run contract:check`, `npm run test:mutation`, `npm run release-check`. Commit:
       `docs(044): cierre — el puerto construido`. Push y PR
 

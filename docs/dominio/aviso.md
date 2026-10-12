@@ -4,7 +4,6 @@ en: notice
 contexto: plataforma
 estado: aprobado
 fuente: docs/verificacion-documental-plataformas.md#Resumen
-uso: pendiente
 ---
 
 # aviso -> `notice`

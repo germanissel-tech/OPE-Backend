@@ -28,6 +28,7 @@ export interface MerchantSpec {
   merchantId: string;
   ingestKeys: string[];
   platformKeys?: string[];
+  noticeKeys?: string[];
   /** Signing secrets (ADR-029): with any, every platform request of the merchant must be signed. */
   platformSecrets?: string[];
   origins: string[];
@@ -59,6 +60,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
     origins: spec.origins,
     platformKeys: spec.platformKeys ?? [],
     platformSecrets: spec.platformSecrets ?? [],
+    noticeKeys: spec.noticeKeys ?? [],
   };
   const experiments = spec.experiments.map((e) => {
     const openedAt = new Date(e.openedAt);

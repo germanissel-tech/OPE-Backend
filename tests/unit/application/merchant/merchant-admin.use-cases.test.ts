@@ -73,6 +73,7 @@ const seedA: MerchantSeed = {
   origins: ["https://a.example"],
   platformKeys: ["platform-a-1"],
   platformSecrets: ["secret-a"],
+  noticeKeys: ["notice-a-1"],
 };
 
 describe("CreateMerchantUseCase", () => {
@@ -393,6 +394,7 @@ describe("ImportMerchantsUseCase (FR-009)", () => {
     const kept = await store.get(asMerchantId("m_a"));
     expect(kept?.owns(fingerprintOf("key-a-1"), TEST_NOW)).toBe(true);
     expect(kept?.ownsPlatformKey(fingerprintOf("platform-a-1"), TEST_NOW)).toBe(true);
+    expect(kept?.ownsNoticeKey(fingerprintOf("notice-a-1"), TEST_NOW)).toBe(true);
     expect(kept?.signingSecrets(TEST_NOW)).toEqual(["secret-a"]);
     const second = await importer.execute({
       actor: Operator.system(),

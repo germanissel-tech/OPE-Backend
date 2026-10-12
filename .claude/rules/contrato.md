@@ -80,9 +80,9 @@ Acá queda lo normativo:
   indisponibilidad. A qué degrada cada consumidor y cómo se prueba, en ADR-021 (ADR-023 precisa
   el tipo).
 - **Puerto de plataforma y estrategia de sincronización**: los cuatro flujos entran por el mismo
-  puerto, en uno de tres modos negociados con el merchant (`push`, construido; `pull` y
-  `subscribe`, planeados). Cuáles, por qué y qué falta, en ADR-025 y en el hito `platform-port`
-  del roadmap (constitución X).
+  puerto, en uno de tres modos negociados con el merchant, los tres construidos (feature 044): `push`, `pull` por
+  el planificador y `subscribe` por el aviso con su credencial. Lo que falta del hito `platform-port` es el
+  adaptador de cada plataforma real (Magento 2, la siguiente). Por qué y cómo, en ADR-047 (constitución X).
 - **Verdad de producto**: el catálogo entra como snapshot completo por `PUT /v1/catalog` y
   `capturedAt` es su clave de idempotencia; el stock es guardia, nunca un claim. La frescura por
   clase, el nivel de sincronización observado y qué de eso es configuración, en ADR-025.

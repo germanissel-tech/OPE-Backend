@@ -1,7 +1,7 @@
 ---
 numero: 047
 titulo: El puerto de plataforma — cuatro casos de uso, adaptadores que conducen y un modo por flujo que se hace cumplir
-estado: propuesta
+estado: aceptada
 fecha: 2026-10-10
 fuente: specs/044-el-puerto-de-plataforma/research.md; docs/verificacion-documental-plataformas.md; decisiones del dueño del 2026-10-10
 ---
@@ -47,3 +47,16 @@ el diseño del puerto se deciden acá.
 - La fuente de prueba sólo existe donde se instala (las pruebas y `npm run dev`); un servidor de producción no puede
   configurarla.
 - La no superposición de corridas es de instancia única, como todo el MVP (constitución IV).
+
+## Lo que la construcción agregó (2026-10-12, feature 044)
+
+- **Un rechazo del núcleo no frena un flujo**: el planificador y el lector de avisos loguean la orden o la
+  devolución que un caso de uso rechaza y siguen; la indisponibilidad del almacén sí frena, y el cursor no avanza.
+  La cadencia cuenta desde el inicio de la última corrida, termine como termine. Decisiones de la implementación,
+  propuestas al dueño en el `research.md` de la feature.
+- **El temporizador arranca cuando el arranque lo dice**, después de leer los niveles: su tick es del nivel 1.
+- **La puerta del modo puede leer el flujo del pedido**: el aviso nombra si es de una orden o de una devolución.
+- **Una orden sin instante de confirmación, leída dos veces**, lleva dos instantes de observación distintos y el
+  libro de órdenes la ve como conflicto, no como repetida: no se duplica, pero se loguea como rechazo. Queda para
+  decidir con el dueño qué es «la misma orden» cuando el instante no vino de la plataforma; el `quickstart.md` de
+  la feature lo registra.

@@ -41,6 +41,13 @@
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
+        "noticeKeys": {
+          "type": "array",
+          "description": "Raw values of the notice credentials (`X-OPE-Notice-Key`; feature 044): what the notices of its platform carry, granting only `notices:write`. At most two.",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "platformSecrets": {
           "type": "array",
           "description": "Secrets of the platform signature (ADR-029); with at least one, every platform request must be signed. At most two.",
