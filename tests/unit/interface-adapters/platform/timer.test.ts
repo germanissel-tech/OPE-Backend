@@ -74,15 +74,25 @@ describe("schedulerTimer", () => {
   });
 
   it("a tick that throws is logged, and the next one is still set", async () => {
-    const errors: string[] = [];
-    const logger = { ...quiet, error: (_: unknown, message: string) => errors.push(message) };
+    const errors: unknown[] = [];
+    const logger = { ...quiet, error: (fields: unknown, message: string) => errors.push([fields, message]) };
     const { runs, scheduler } = counting(() => Promise.reject(new Error("boom")));
     const timer = schedulerTimer({ scheduler, clock, logger, tickMs: () => 100 });
     timer.start();
     await vi.advanceTimersByTimeAsync(200);
     expect(runs).toHaveLength(2);
-    expect(errors[0]).toBe("The platform scheduler could not finish a tick.");
+    expect(errors[0]).toEqual([{ cause: "boom" }, "The platform scheduler could not finish a tick."]);
     await timer.close();
+  });
+
+  it("closing while it waits for the next tick cancels that tick", async () => {
+    const { runs, scheduler } = counting();
+    const timer = schedulerTimer({ scheduler, clock, logger: quiet, tickMs: () => 100 });
+    timer.start();
+    await vi.advanceTimersByTimeAsync(50);
+    await timer.close();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(runs).toHaveLength(0);
   });
 
   it("a timer closed before it was started never starts", async () => {

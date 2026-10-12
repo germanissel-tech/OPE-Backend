@@ -7,6 +7,7 @@ import {
   SyncCadence,
   type SyncCadenceRecord,
 } from "../../../../src/domain/platform/index.js";
+import { SYNC_FLOWS } from "../../../../src/domain/shared-kernel/index.js";
 
 const cadence = (): SyncCadenceRecord => ({
   catalogMs: 86_400_000,
@@ -36,6 +37,19 @@ describe("SyncCadence.of", () => {
 
   it("one is inside", () => {
     expect(SyncCadence.of({ ...cadence(), stockAndPriceBatchSize: 1, ordersMs: 1 }).ok).toBe(true);
+  });
+});
+
+describe("SyncCadence.intervalOf", () => {
+  it("answers the interval of each flow, and only of that flow", () => {
+    const cadence = SyncCadence.rehydrate({
+      catalogMs: 1,
+      stockAndPriceMs: 2,
+      stockAndPriceBatchSize: 99,
+      ordersMs: 3,
+      returnsMs: 4,
+    });
+    expect(SYNC_FLOWS.map((flow) => cadence.intervalOf(flow))).toEqual([1, 2, 3, 4]);
   });
 });
 

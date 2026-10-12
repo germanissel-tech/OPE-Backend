@@ -1315,6 +1315,8 @@ paths:
                     mode: push
                   returns:
                     mode: push
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/OperatorUnauthorized'
         '403':

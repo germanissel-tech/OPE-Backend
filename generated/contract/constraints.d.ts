@@ -4,7 +4,7 @@
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
   readonly version: '1.16.0'
-  readonly sha256: 'b93fd7ed9816a15656c1b53101c2bc5cdd8320d4ebeab057f0df0bdd89e2656c'
+  readonly sha256: '8f1e42c99fd70d5f6219de810e4f8116cb7e33d243cc471ad13e706f22219a2e'
 }
 
 /** What the contract demands of one field; the same shape `@ope/core` validates with. */

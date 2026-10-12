@@ -95,9 +95,6 @@ const failed = (reason: string, cursor: string | undefined): Run => ({
 const unavailable = (error: DomainError): boolean =>
   error instanceof LedgerUnavailable || error instanceof StoreUnavailable;
 
-/** Lexicographic, which is what the cursor of a batch means (data model, `platform_sync`). */
-const lexicographic = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
-
 const causeOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 export function platformScheduler(deps: PlatformSchedulerDeps): PlatformScheduler {
@@ -126,7 +123,6 @@ class PullScheduler implements PlatformScheduler {
   async #runMerchant(merchantId: MerchantId, now: Date): Promise<void> {
     const policy = await this.#deps.policies.policyFor(merchantId);
     const pulled = SYNC_FLOWS.filter((flow) => policy.strategy[flow] === "pull");
-    if (pulled.length === 0) return;
     const states = await this.#deps.states.statesOf(merchantId);
     for (const flow of pulled) {
       const state = states[flow] ?? {};
@@ -203,7 +199,9 @@ class PullScheduler implements PlatformScheduler {
     const snapshot = await this.#deps.catalog.current(merchantId);
     const variants: VariantId[] = (snapshot?.products ?? [])
       .flatMap((product) => product.variants.map((variant) => variant.variantId))
-      .sort(lexicographic);
+      // The default order of `sort` is by UTF-16 code unit: lexicographic, which is what the cursor of a batch
+      // means (data model, `platform_sync`).
+      .sort();
     const after = variants.filter((variantId) => state.cursor === undefined || variantId > state.cursor);
     // Past the last variant the cycle starts again (SC-002): every variant is read once per cycle.
     const batch = (after.length === 0 ? variants : after).slice(0, policy.cadence.stockAndPriceBatchSize);

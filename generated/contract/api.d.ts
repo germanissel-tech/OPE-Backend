@@ -4600,6 +4600,7 @@ export interface operations {
                     "application/json": components["schemas"]["PlatformSync"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["OperatorUnauthorized"];
             403: components["responses"]["MerchantForbidden"];
             404: components["responses"]["MerchantNotFound"];

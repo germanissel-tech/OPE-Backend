@@ -106,6 +106,8 @@ async function subject(setup: Setup = {}) {
   );
   const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
   const logged: string[] = [];
+  /** What each line logged said besides its message: the merchant and the flow are what make it findable. */
+  const said: unknown[] = [];
   const snapshot = CatalogSnapshot.rehydrate({
     merchantId: A,
     capturedAt: TEST_NOW,
@@ -124,8 +126,14 @@ async function subject(setup: Setup = {}) {
     notifyReturn: returned.useCase,
     logger: {
       info: () => undefined,
-      warn: (_fields, message) => logged.push(message),
-      error: (_fields, message) => logged.push(message),
+      warn: (fields, message) => {
+        said.push(fields);
+        logged.push(message);
+      },
+      error: (fields, message) => {
+        said.push(fields);
+        logged.push(message);
+      },
     },
   });
   const stateOf = async (
@@ -134,7 +142,20 @@ async function subject(setup: Setup = {}) {
   const script = (s: TestPlatformScript) => {
     source.script(A, s);
   };
-  return { scheduler, merchants, policy, upsert, refresh, order, returned, logged, stateOf, script, states };
+  return {
+    scheduler,
+    merchants,
+    policy,
+    upsert,
+    refresh,
+    order,
+    returned,
+    logged,
+    said,
+    stateOf,
+    script,
+    states,
+  };
 }
 
 const CATALOG = { products: [{ productId: "p1", title: "P", variants: [] }] };
@@ -230,12 +251,27 @@ describe("platformScheduler", () => {
     });
   });
 
-  it("with no catalogue there is no batch, and the run is ok with nothing", async () => {
-    const { scheduler, refresh, stateOf } = await subject({ strategy: { stockAndPrice: "pull" } });
+  it("with no catalogue there is no batch: the source is not asked, and the run is ok with nothing", async () => {
+    let asked = 0;
+    const scripted = scriptedTestSource();
+    const source: PlatformSource = {
+      ...scripted,
+      stockAndPrice: (merchantId, variantIds) => {
+        asked += 1;
+        return scripted.stockAndPrice(merchantId, variantIds);
+      },
+    };
+    const { scheduler, refresh, stateOf, states } = await subject({
+      strategy: { stockAndPrice: "pull" },
+      source,
+    });
+    // A cursor from a catalogue that is gone stays where it was: there is nothing to move it to.
+    await states.save(A, "stockAndPrice", { cursor: "v9" });
     await scheduler.runDue(at(0));
+    expect(asked).toBe(0);
     expect(refresh.calls).toHaveLength(0);
     expect(await stateOf("stockAndPrice")).toMatchObject({
-      cursor: undefined,
+      cursor: "v9",
       lastOutcome: { status: "ok", count: 0 },
     });
   });
@@ -253,7 +289,7 @@ describe("platformScheduler", () => {
   });
 
   it("a source that does not answer leaves the run failed with its reason, the cursor where it was and the last ok", async () => {
-    const { scheduler, script, stateOf, logged } = await subject({ strategy: { orders: "pull" } });
+    const { scheduler, script, stateOf, logged, said } = await subject({ strategy: { orders: "pull" } });
     script({ orders: [{ orderId: "o1", state: "paid", total: PRICE, items: [] }] });
     await scheduler.runDue(at(0));
     script({ failing: true });
@@ -266,6 +302,10 @@ describe("platformScheduler", () => {
     });
     expect(logged).toContain("The platform did not answer a read; nothing was deposited.");
     expect(logged).toContain("A run of the platform reading failed.");
+    expect(said).toEqual([
+      { merchantId: A, flow: "orders", cause: "The test platform does not answer." },
+      { merchantId: A, flow: "orders", reason: "source-failed" },
+    ]);
   });
 
   it("a catalogue the core refuses fails the run with the type of the problem", async () => {
@@ -290,6 +330,19 @@ describe("platformScheduler", () => {
       status: "failed",
       reason: "source-not-installed",
     });
+  });
+
+  it("walks every page of the directory: a merchant past the first page is read too", async () => {
+    const source = scriptedTestSource();
+    const { scheduler, merchants, upsert } = await subject({ strategy: { catalog: "pull" }, source });
+    // The directory lists in the order merchants were created, so the last of a hundred more is past a page.
+    for (let i = 0; i < 100; i += 1) {
+      await merchants.create(testMerchant({ merchantId: `m_${String(i).padStart(3, "0")}` }));
+    }
+    const last = "m_099" as MerchantId;
+    source.script(last, { catalog: CATALOG });
+    await scheduler.runDue(at(0));
+    expect(upsert.calls.map((call) => call.merchantId)).toEqual([last]);
   });
 
   it("never runs the same merchant and flow twice at once", async () => {
@@ -370,6 +423,7 @@ describe("platformScheduler", () => {
         script,
         stateOf,
         logged,
+        said,
       } = await subject({
         strategy: { orders: "pull" },
         answers: { order: (request) => (request.orderId === "o1" ? fail(new Refused()) : ok(undefined)) },
@@ -381,6 +435,7 @@ describe("platformScheduler", () => {
       expect(logged).toEqual([
         "The core refused a change read from the platform; the run goes on without it.",
       ]);
+      expect(said).toEqual([{ merchantId: A, flow: "orders", code: "refused-for-the-test" }]);
     });
 
     it("an unavailable store stops the run and the cursor stays: the cursor moves only after depositing", async () => {
