@@ -22,6 +22,8 @@ tags:
     description: Service status and support operations. No authentication.
   - name: outcomes
     description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
+  - name: refresh
+    description: The stock and price of some variants, pushed by the merchant's platform without the rest of the catalogue (ADR-047). Server to server.
   - name: admin
     description: Administration of the platform by operators of OPE (merchants, credentials, configuration, experiments). Every action is logged.
 paths:
@@ -358,6 +360,63 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/CatalogUnprocessable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/catalog/refreshes:
+    post:
+      operationId: refreshStockAndPrice
+      tags:
+        - refresh
+      security:
+        - platformKey: []
+      x-required-capabilities:
+        - catalog:write
+      summary: Refresh the stock and price of some variants
+      description: |
+        The merchant's platform sends the availability and the price of some variants, each with the instant
+        its datum was true (`observedAt`), without the rest of the catalogue (ADR-047). It is a layer over the
+        snapshot: the truth of a variant is the newest of the snapshot (`capturedAt`) and its refresh
+        (`observedAt`), and the freshness of its stock and price is measured from that instant, variant by
+        variant. Whether the product exists and its attributes still come from the snapshot only.
+        The answer is per item and always `200`: `applied`, `repeated`, `superseded` or `unknown` (see
+        `RefreshResult`). Sending the same refresh again answers `repeated` where it answered `applied`, so it
+        needs no idempotency key of its own. Every accepted refresh counts as a receipt for the observed
+        synchronisation level, as a snapshot does. Refused with `409 sync-mode-not-configured` when the
+        merchant's stock and price do not arrive by `push`.
+      parameters:
+        - $ref: '#/components/parameters/X-OPE-Timestamp'
+        - $ref: '#/components/parameters/X-OPE-Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refresh'
+            examples:
+              refresh:
+                $ref: '#/components/examples/catalog-refresh'
+      responses:
+        '200':
+          description: What became of each item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResult'
+              examples:
+                refreshed:
+                  $ref: '#/components/examples/catalog-refresh-result'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/SyncModeConflict'
+        '422':
+          $ref: '#/components/responses/RefreshUnprocessable'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -4357,6 +4416,98 @@ components:
           description: |
             Synchronisation level OPE observes from the cadence of snapshots (01 §14.1: measured, not
             declared): 0 no data, 1 daily dump, 2 minutes, 3 per change (never reached with full snapshots).
+    RefreshItem:
+      type: object
+      description: The availability and the price of one variant at the instant they were true.
+      additionalProperties: false
+      required:
+        - variantId
+        - available
+        - price
+        - observedAt
+      properties:
+        variantId:
+          type: string
+          description: The variant as the snapshot names it. One the snapshot in force does not have is reported as unknown and not kept.
+          pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        available:
+          type: boolean
+          description: 'Availability as a guard (01 §4.3), as in the snapshot: no quantity travels.'
+        price:
+          $ref: '#/components/schemas/Money'
+        observedAt:
+          type: string
+          format: date-time
+          description: |
+            When this datum was true (RFC 3339): the platform's instant, or the one its reader observed it at when the
+            platform gives none. The freshness of the variant is measured from here, and only a newer instant changes it.
+    Refresh:
+      type: object
+      description: |
+        The stock and price of some variants, without the rest of the catalogue (ADR-047). A layer over the snapshot,
+        not a new snapshot: it adds no variant and replaces no product. Each item carries the instant of its own datum.
+      additionalProperties: false
+      required:
+        - items
+      x-invariants:
+        - type: stock-and-price-duplicate-variant-id
+          status: 422
+          rule: items[].variantId are unique
+          description: Two items for the same variant would not say which of them is the truth.
+        - type: stock-captured-in-future
+          status: 422
+          rule: items[].observedAt <= receivedAt + 5 min
+          description: An observation instant in the future would fake freshness; the platform's clock is wrong.
+      properties:
+        items:
+          type: array
+          description: The variants refreshed, each at most once.
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/RefreshItem'
+    RefreshResult:
+      type: object
+      description: |
+        What became of each item, by variant. `applied`: it is now the truth of its variant. `repeated`: the same
+        instant and content were already kept. `superseded`: the variant holds something newer (a later refresh, or a
+        snapshot captured at that instant or after), or something else at the same instant, which stays. `unknown`: the
+        snapshot in force does not have the variant. Every item is in exactly one list.
+      additionalProperties: false
+      required:
+        - applied
+        - repeated
+        - superseded
+        - unknown
+      properties:
+        applied:
+          type: array
+          description: Variants whose truth is now the item sent.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        repeated:
+          type: array
+          description: Variants that already held this instant with this content.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        superseded:
+          type: array
+          description: Variants that hold something newer, or something else at the same instant.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        unknown:
+          type: array
+          description: Variants the snapshot in force does not have; nothing was kept for them.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
     OrderId:
       type: string
       description: Identifier of the order as the platform issues it. Unique per merchant; the idempotency key of orders and returns (01 §6).
@@ -7171,6 +7322,31 @@ components:
         variants: 2
         receivedAt: '2026-09-18T12:00:03Z'
         observedSyncLevel: 1
+    catalog-refresh:
+      summary: Two variants refreshed, each with the instant of its datum
+      value:
+        items:
+          - variantId: SKU-1-M-BLACK
+            available: false
+            price:
+              amount: '19990.00'
+              currency: ARS
+            observedAt: '2026-09-18T12:10:00Z'
+          - variantId: SKU-1-L-BLACK
+            available: true
+            price:
+              amount: '17990.00'
+              currency: ARS
+            observedAt: '2026-09-18T12:09:30Z'
+    catalog-refresh-result:
+      summary: One variant became the truth; the other already held something newer
+      value:
+        applied:
+          - SKU-1-M-BLACK
+        repeated: []
+        superseded:
+          - SKU-1-L-BLACK
+        unknown: []
     order-attributed:
       summary: An order carrying the OPE session the storefront attached at creation
       value:
@@ -7328,18 +7504,31 @@ components:
             instance: /v1/exposures
     Conflict:
       description: |
-        Same identity, different content (ADR-020): the idempotency key of the request matches a
-        record whose content differs. Nothing changed.
+        Nothing changed, for one of two reasons the `type` tells apart. `idempotency-conflict` (ADR-020): the
+        idempotency key of the request matches a record whose content differs. `sync-mode-not-configured`
+        (ADR-047): the merchant has this flow arrive by another mode (`pull`, `subscribe`), so a `push` would be a
+        second writer of the same truth; it is accepted again once a configuration version puts the flow in `push`.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
-          example:
-            type: urn:ope:problem:idempotency-conflict
-            title: Same identity, different content
-            status: 409
-            detail: A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.
-            instance: /v1/catalog
+          examples:
+            idempotency-conflict:
+              summary: idempotency-conflict
+              value:
+                type: urn:ope:problem:idempotency-conflict
+                title: Same identity, different content
+                status: 409
+                detail: A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.
+                instance: /v1/catalog
+            sync-mode-not-configured:
+              summary: sync-mode-not-configured
+              value:
+                type: urn:ope:problem:sync-mode-not-configured
+                title: The flow does not arrive by this mode
+                status: 409
+                detail: The flow catalog of this merchant arrives by pull.
+                instance: /v1/catalog
     CatalogUnprocessable:
       description: |
         Valid request rejected on semantics: one of the `x-invariants` of the snapshot or of the
@@ -7381,6 +7570,45 @@ components:
                 status: 422
                 detail: The current snapshot was captured at 2026-09-18T12:00:00Z; this one at 2026-09-18T11:00:00Z.
                 instance: /v1/catalog
+    SyncModeConflict:
+      description: |
+        The merchant has this flow arrive by another mode (ADR-047): an entry by this one would be a second writer of
+        the same truth. Nothing changed; it is accepted again once a configuration version puts the flow in this mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: urn:ope:problem:sync-mode-not-configured
+            title: The flow does not arrive by this mode
+            status: 409
+            detail: The flow stockAndPrice of this merchant arrives by pull.
+            instance: /v1/catalog/refreshes
+    RefreshUnprocessable:
+      description: |
+        Valid request rejected on semantics: one of the `x-invariants` of the refresh (ADR-007). The `type` names the
+        invariant; nothing was kept.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            duplicate-variant:
+              summary: stock-and-price-duplicate-variant-id
+              value:
+                type: urn:ope:problem:stock-and-price-duplicate-variant-id
+                title: Two items of the refresh name the same variant
+                status: 422
+                detail: Variant SKU-1-M-BLACK appears twice in the refresh.
+                instance: /v1/catalog/refreshes
+            observed-in-future:
+              summary: stock-captured-in-future
+              value:
+                type: urn:ope:problem:stock-captured-in-future
+                title: The observation instant is in the future
+                status: 422
+                detail: observedAt is ahead of the server clock beyond the tolerance.
+                instance: /v1/catalog/refreshes
     OrderUnprocessable:
       description: |
         Valid request rejected on semantics: one of the `x-invariants` of the order (ADR-007). The

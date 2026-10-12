@@ -346,6 +346,10 @@ export const postExposure = (app: FastifyInstance, body: unknown, o: PostOptions
 export const putCatalog = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/catalog", body, { ...o, method: "PUT" });
 
+/** A refresh of stock and price (feature 044, ADR-047). */
+export const postRefresh = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/catalog/refreshes", body, o);
+
 export const postOrder = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/orders", body, o);
 

@@ -5,4 +5,6 @@ export { NoticeRetry } from "./notice-retry.js";
 export type { NoticeRetryRecord } from "./notice-retry.js";
 export { OrderConfirmation } from "./order-confirmation.js";
 export { SyncCadence } from "./sync-cadence.js";
+export { PLATFORM_SOURCES } from "./vocabulary.js";
+export type { PlatformSourceName } from "./vocabulary.js";
 export type { SyncCadenceRecord } from "./sync-cadence.js";

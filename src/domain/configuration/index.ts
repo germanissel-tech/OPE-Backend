@@ -28,9 +28,15 @@ export type {
   EvidenceProfileDeclared,
   EvidenceProfileInput,
 } from "./policy-inputs.js";
-export { PLATFORM_SOURCES, SURFACES, SYNC_FLOWS, SYNC_MODES } from "./vocabulary.js";
+export { SURFACES } from "./vocabulary.js";
+// How a flow reaches OPE and what OPE reads it with are the kernel's and the platform's vocabularies (feature
+// 044); the configuration declares them per merchant.
+export { PLATFORM_SOURCES } from "../platform/index.js";
+export type { PlatformSourceName } from "../platform/index.js";
+export { SYNC_FLOWS, SYNC_MODES } from "../shared-kernel/index.js";
+export type { SyncFlow, SyncMode, SyncStrategy } from "../shared-kernel/index.js";
 // Re-exported from the kernel since feature 038, so nothing that read them here moves.
 export { ConfigurationFrozen, ConfigurationReasonRequired, LOCALE_PATTERN } from "../shared-kernel/index.js";
-export type { Locales, PlatformSourceName, Surface, SyncFlow, SyncMode, SyncStrategy } from "./vocabulary.js";
+export type { Locales, Surface } from "./vocabulary.js";
 export { ConfigurationVersionNotFound, InvalidConfigurationValue } from "./errors.js";
 export type { ConfigurationError } from "./errors.js";

@@ -22,6 +22,8 @@ tags:
     description: Service status and support operations. No authentication.
   - name: outcomes
     description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
+  - name: refresh
+    description: The stock and price of some variants, pushed by the merchant's platform without the rest of the catalogue (ADR-047). Server to server.
   - name: admin
     description: Administration of the platform by operators of OPE (merchants, credentials, configuration, experiments). Every action is logged.
 paths:
@@ -37,6 +39,8 @@ paths:
     $ref: ./paths/sdk-diagnostics.yaml
   /v1/catalog:
     $ref: ./paths/catalog.yaml
+  /v1/catalog/refreshes:
+    $ref: ./paths/catalog-refreshes.yaml
   /v1/orders:
     $ref: ./paths/orders.yaml
   /v1/orders/corroborations:

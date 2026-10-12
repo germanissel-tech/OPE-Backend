@@ -1,0 +1,13 @@
+description: |
+  The merchant has this flow arrive by another mode (ADR-047): an entry by this one would be a second writer of
+  the same truth. Nothing changed; it is accepted again once a configuration version puts the flow in this mode.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    example:
+      type: urn:ope:problem:sync-mode-not-configured
+      title: The flow does not arrive by this mode
+      status: 409
+      detail: The flow stockAndPrice of this merchant arrives by pull.
+      instance: /v1/catalog/refreshes

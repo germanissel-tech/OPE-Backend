@@ -117,7 +117,25 @@ export class StaleVersion extends DomainError {
   }
 }
 
+/**
+ * An entry by a mode that does not govern the flow (feature 044, ADR-047): a `push` to a flow the merchant has OPE
+ * read, or a notice to a flow that is not subscribed. Nothing was recorded. Accepting it would leave two writers
+ * of the same truth, and the one the merchant chose would not know about the other.
+ *
+ * In the kernel because the modules that receive the entries —the catalogue and the outcomes— cannot depend on
+ * the platform module that judges it, which depends on them. The flow and the mode travel as the strings of the
+ * contract's vocabulary: the kernel does not own it.
+ */
+export class SyncModeNotConfigured extends DomainError {
+  readonly code = "sync-mode-not-configured" as const;
+  readonly module = MODULE;
+  constructor(flow: string, configured: string) {
+    super(`The flow ${flow} of this merchant arrives by ${configured}.`, { flow, configured });
+  }
+}
+
 export type SharedKernelError =
+  | SyncModeNotConfigured
   | InvalidMoney
   | IdempotencyConflict
   | StoreUnavailable

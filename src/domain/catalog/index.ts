@@ -8,7 +8,15 @@ export {
   CatalogDuplicateVariantId,
   CatalogOutOfOrder,
 } from "./errors.js";
-export type { CatalogError, CatalogPolicyError } from "./errors.js";
+export type { CatalogError, CatalogPolicyError, RefreshError } from "./errors.js";
+export { StockAndPrice, StockAndPriceRefresh } from "./stock-and-price.js";
+export type {
+  RefreshJudgement,
+  RefreshOutcome,
+  RefreshOutcomes,
+  StockAndPriceRecord,
+  StockAndPriceRefreshRecord,
+} from "./stock-and-price.js";
 export { asProductId, asVariantId } from "./ids.js";
 export { SyncLevelRules } from "./sync-level.js";
 export type { SyncLevel, SyncLevelRulesRecord } from "./sync-level.js";

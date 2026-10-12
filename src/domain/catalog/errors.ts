@@ -70,8 +70,29 @@ export class InvalidFreshnessBudget extends DomainError {
   }
 }
 
+/** Two items of one refresh name the same variant (feature 044): which of the two is the truth is not said. */
+export class StockAndPriceDuplicateVariantId extends DomainError {
+  readonly code = "stock-and-price-duplicate-variant-id" as const;
+  readonly module = MODULE;
+  constructor(variantId: string) {
+    super(`Variant ${variantId} appears twice in the refresh.`, { variantId });
+  }
+}
+
+/** An item of a refresh observed in the future, beyond the tolerance a snapshot has too (feature 044). */
+export class StockCapturedInFuture extends DomainError {
+  readonly code = "stock-captured-in-future" as const;
+  readonly module = MODULE;
+  constructor(variantId: string, toleranceMs: number) {
+    super("observedAt is ahead of the server clock beyond the tolerance.", { variantId, toleranceMs });
+  }
+}
+
 export type CatalogError =
   CatalogDuplicateProductId | CatalogDuplicateVariantId | CatalogCapturedInFuture | CatalogOutOfOrder;
+
+/** What a refresh of stock and price can violate (feature 044). */
+export type RefreshError = StockAndPriceDuplicateVariantId | StockCapturedInFuture;
 
 /** What the treatment configuration of the catalogue can violate (constitution XI); never a request. */
 export type CatalogPolicyError = InvalidSyncLevelRules | InvalidFreshnessBudget;

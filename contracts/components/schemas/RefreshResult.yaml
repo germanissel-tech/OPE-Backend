@@ -1,0 +1,37 @@
+type: object
+description: |
+  What became of each item, by variant. `applied`: it is now the truth of its variant. `repeated`: the same
+  instant and content were already kept. `superseded`: the variant holds something newer (a later refresh, or a
+  snapshot captured at that instant or after), or something else at the same instant, which stays. `unknown`: the
+  snapshot in force does not have the variant. Every item is in exactly one list.
+additionalProperties: false
+required: [applied, repeated, superseded, unknown]
+properties:
+  applied:
+    type: array
+    description: Variants whose truth is now the item sent.
+    maxItems: 1000
+    items:
+      type: string
+      pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  repeated:
+    type: array
+    description: Variants that already held this instant with this content.
+    maxItems: 1000
+    items:
+      type: string
+      pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  superseded:
+    type: array
+    description: Variants that hold something newer, or something else at the same instant.
+    maxItems: 1000
+    items:
+      type: string
+      pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  unknown:
+    type: array
+    description: Variants the snapshot in force does not have; nothing was kept for them.
+    maxItems: 1000
+    items:
+      type: string
+      pattern: "^[A-Za-z0-9_.:-]{1,128}$"

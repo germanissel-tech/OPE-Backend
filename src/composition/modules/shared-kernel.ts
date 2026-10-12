@@ -10,6 +10,8 @@
 import {
   AuditedUseCase,
   LoggedUseCase,
+  ModeGatedUseCase,
+  type SyncStrategies,
   type AdminRequest,
   type AuditTrail,
   type AuditedUseCaseReaders,
@@ -28,6 +30,7 @@ import {
 } from "../../interface-adapters/shared-kernel/index.js";
 import { bind, compositionModule, from, port, type Decorated } from "../graph/index.js";
 import { PlatformLevelPort, SqlStorePort } from "../release.js";
+import type { Fail, MerchantId, SyncFlow, SyncModeNotConfigured } from "../../domain/shared-kernel/index.js";
 
 export const ClockPort = port("kernel.clock")<Clock>();
 export const LoggerPort = port("kernel.logger")<Logger>();
@@ -35,6 +38,20 @@ export const LoggerPort = port("kernel.logger")<Logger>();
 export const ClockTolerancePort = port("kernel.tolerance")<ClockTolerance>();
 /** Where what an operator does is written; whoever owns the log binds it (ADR-034). */
 export const AuditTrailPort = port("kernel.audit-trail")<AuditTrail>();
+
+/** How each flow of a merchant arrives (feature 044); the configuration binds it. */
+export const SyncStrategiesPort = port("kernel.sync-strategies")<SyncStrategies>();
+
+/**
+ * The entrance of the platform's `push` (feature 044, ADR-047): the use case behind it answers only while the
+ * flow is in `push`. Every module that serves an entrance of the generic adapter wraps it with this, so the mode
+ * of that entrance is one word in one place and not a check inside each use case.
+ */
+export type PushGate = <I extends { merchantId: MerchantId }, O>(
+  inner: UseCase<I, O>,
+  flow: SyncFlow,
+) => UseCase<I, O | Fail<SyncModeNotConfigured>>;
+export const PushGatePort = port("kernel.push-gate")<PushGate>();
 /**
  * What makes several writes one fact (feature 034): the deployment chooses which one it has.
  *
@@ -81,6 +98,13 @@ export const kernelModule = compositionModule({
     ],
   },
   assembles: [
+    bind(
+      PushGatePort,
+      { strategies: SyncStrategiesPort },
+      ({ strategies }): PushGate =>
+        (inner, flow) =>
+          new ModeGatedUseCase(inner, { strategies }, { flow, mode: "push" }),
+    ),
     bind(
       AuditPort,
       { clock: ClockPort, log: AuditTrailPort, unit: UnitOfWorkPort },

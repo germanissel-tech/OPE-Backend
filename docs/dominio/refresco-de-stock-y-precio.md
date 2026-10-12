@@ -4,7 +4,6 @@ en: refresh
 contexto: plataforma
 estado: aprobado
 fuente: mvp:02-integracion-ecommerce.md#6
-uso: pendiente
 ---
 
 # refresco de stock y precio -> `refresh`

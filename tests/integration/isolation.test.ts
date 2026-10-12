@@ -32,6 +32,7 @@ import {
   postEvents,
   postExposure,
   postOrder,
+  postRefresh,
   postReturn,
   putCatalog,
   sharedTestApp,
@@ -535,6 +536,34 @@ describe("isolation between merchants", () => {
     expect(
       await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M")),
     ).toMatchObject({ kind: "unknown" });
+  });
+
+  it("refresh (feature 044): A's refresh of a variant does not touch B's variant with the same variantId", async () => {
+    for (const [title, key] of [
+      ["A's shirt", "platform-a-1"],
+      ["B's shirt", "platform-b-1"],
+    ] as const) {
+      const snapshot = { capturedAt: NOW, products: [catalogProductOf("SKU-1", 1, { title })] };
+      expect((await putCatalog(app.app, snapshot, { platformKey: key })).statusCode).toBe(201);
+    }
+    const observedAt = new Date(new Date(NOW).getTime() + 1).toISOString();
+    const item = {
+      variantId: "SKU-1-M",
+      available: false,
+      price: { amount: "1.00", currency: "ARS" },
+      observedAt,
+    };
+    const refreshed = await postRefresh(app.app, { items: [item] }, { platformKey: "platform-a-1" });
+    expect(refreshed.statusCode).toBe(200);
+    expect(json(refreshed)).toEqual({ applied: ["SKU-1-M"], repeated: [], superseded: [], unknown: [] });
+    const truth = app.resolve(ProductTruthPort);
+    const inA = await truth.lookup(asMerchantId(A.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    const inB = await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    expect(inA).toMatchObject({ kind: "known", variant: { available: false, price: { amount: "1.00" } } });
+    expect(inB).toMatchObject({ kind: "known", variant: { available: true, price: { amount: "19990.00" } } });
+    // The same refresh by B applies to B's own variant: A's kept datum is not B's.
+    const byB = await postRefresh(app.app, { items: [item] }, { platformKey: "platform-b-1" });
+    expect(json(byB)).toEqual({ applied: ["SKU-1-M"], repeated: [], superseded: [], unknown: [] });
   });
 
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {

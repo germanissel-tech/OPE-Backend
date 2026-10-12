@@ -88,13 +88,14 @@ de plataforma. `findByNoticeKey(fingerprint, now)` en el directorio de merchants
 
 | error                       | módulo                   | problema                       |
 | --------------------------- | ------------------------ | ------------------------------ |
-| `SyncModeNotConfigured`     | `platform`               | `409 sync-mode-not-configured` |
+| `SyncModeNotConfigured`     | `shared-kernel`          | `409 sync-mode-not-configured` |
 | `StockCapturedInFuture`     | `catalog`                | `422 stock-captured-in-future` |
 | `InvalidConfigurationValue` | `configuration` (existe) | `422`, con la ruta del valor   |
 
 ## Módulo
 
-`platform` es un módulo nuevo: `application/platform` (el decorador del modo, el caso de uso del aviso, la lectura
+El decorador del modo, su puerto (`SyncStrategies`) y su error viven en el núcleo, porque los módulos de las
+entradas y `platform` no pueden depender entre sí (tasks.md, fase 2). `platform` es un módulo nuevo: `application/platform` (el caso de uso del aviso, la lectura
 del estado, sus puertos) e `interface-adapters/platform` (la fuente de prueba, el planificador, el procesador de
 avisos, los gateways). `CONTEXT_MAP`: `platform: ["shared-kernel", "merchant", "catalog", "outcomes"]`; la
 configuración llega por puertos propios, como en el resto de los módulos.

@@ -8,6 +8,7 @@ import { toProblem } from "../../http/to-problem.js";
 import { linesOf } from "../presenters.js";
 import type { NotifyReturnRequest, NotifyReturnResponse } from "../../../application/outcomes/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
+import type { Fail, SyncModeNotConfigured } from "../../../domain/shared-kernel/index.js";
 import type { OperationHandler, components } from "../../http/typed.js";
 
 type ReturnResultDto = components["schemas"]["ReturnResult"];
@@ -22,7 +23,7 @@ function toResult(order: Order): ReturnResultDto {
 }
 
 export function makeNotifyReturn(
-  notifyReturn: UseCase<NotifyReturnRequest, NotifyReturnResponse>,
+  notifyReturn: UseCase<NotifyReturnRequest, NotifyReturnResponse | Fail<SyncModeNotConfigured>>,
 ): OperationHandler<"notifyReturn"> {
   return async (req) => {
     const merchant = merchantOf(req);

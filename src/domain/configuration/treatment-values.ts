@@ -13,8 +13,10 @@ import { Experiment } from "../experiment/index.js";
 import {
   NoticeRetry,
   OrderConfirmation,
+  PLATFORM_SOURCES,
   SyncCadence,
   type NoticeRetryRecord,
+  type PlatformSourceName,
   type SyncCadenceRecord,
 } from "../platform/index.js";
 import {
@@ -23,8 +25,11 @@ import {
   LOCALE_PATTERN,
   fail,
   ok,
+  SYNC_FLOWS,
+  SYNC_MODES,
   type Barrier,
   type Result,
+  type SyncStrategy,
 } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
 import {
@@ -36,16 +41,7 @@ import {
   type EvidenceProfileDeclared,
   type EvidenceProfileInput,
 } from "./policy-inputs.js";
-import {
-  PLATFORM_SOURCES,
-  SURFACES,
-  SYNC_FLOWS,
-  SYNC_MODES,
-  type Locales,
-  type PlatformSourceName,
-  type Surface,
-  type SyncStrategy,
-} from "./vocabulary.js";
+import { SURFACES, type Locales, type Surface } from "./vocabulary.js";
 import type { CommercialPolicy } from "../commercial/index.js";
 import type { DecisionPolicy } from "../decision/index.js";
 

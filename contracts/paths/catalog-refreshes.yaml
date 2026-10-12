@@ -1,0 +1,55 @@
+post:
+  operationId: refreshStockAndPrice
+  tags: [refresh]
+  security:
+    - platformKey: []
+  x-required-capabilities:
+    - catalog:write
+  summary: Refresh the stock and price of some variants
+  description: |
+    The merchant's platform sends the availability and the price of some variants, each with the instant
+    its datum was true (`observedAt`), without the rest of the catalogue (ADR-047). It is a layer over the
+    snapshot: the truth of a variant is the newest of the snapshot (`capturedAt`) and its refresh
+    (`observedAt`), and the freshness of its stock and price is measured from that instant, variant by
+    variant. Whether the product exists and its attributes still come from the snapshot only.
+    The answer is per item and always `200`: `applied`, `repeated`, `superseded` or `unknown` (see
+    `RefreshResult`). Sending the same refresh again answers `repeated` where it answered `applied`, so it
+    needs no idempotency key of its own. Every accepted refresh counts as a receipt for the observed
+    synchronisation level, as a snapshot does. Refused with `409 sync-mode-not-configured` when the
+    merchant's stock and price do not arrive by `push`.
+  parameters:
+    - $ref: ../components/parameters/X-OPE-Timestamp.yaml
+    - $ref: ../components/parameters/X-OPE-Signature.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/Refresh.yaml
+        examples:
+          refresh:
+            $ref: ../examples/catalog-refresh.yaml
+  responses:
+    "200":
+      description: What became of each item.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RefreshResult.yaml
+          examples:
+            refreshed:
+              $ref: ../examples/catalog-refresh-result.yaml
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../components/responses/SyncModeConflict.yaml
+    "422":
+      $ref: ../components/responses/RefreshUnprocessable.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

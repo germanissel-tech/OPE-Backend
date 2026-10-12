@@ -3,7 +3,20 @@
 // (01 §8): beyond the catalogue budget nothing is true; between the two budgets the variant
 // exists but availability and price are stale and sustain no claim. Fail-closed: "unknown" with
 // a reason, and the consumer stays silent (P3).
-import type { Product, ProductId, SyncLevel, Variant, VariantId } from "../../../domain/catalog/index.js";
+//
+// Since feature 044 (ADR-047) stock and price of a variant are the newest of the snapshot and its refresh,
+// and their freshness is the variant's: a variant the refreshes reach stays fresh while the snapshot ages, and
+// one they have not reached yet ages with the snapshot and goes silent on its own. The catalogue itself —
+// whether the product exists, its attributes— is still measured with the snapshot.
+import type {
+  CatalogSnapshot,
+  FreshnessBudget,
+  Product,
+  ProductId,
+  SyncLevel,
+  Variant,
+  VariantId,
+} from "../../../domain/catalog/index.js";
 import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 import type { Clock } from "../../shared-kernel/index.js";
 import type { CatalogPolicies } from "../ports/catalog-policies.js";
@@ -13,13 +26,18 @@ export type Freshness = "fresh" | "stale";
 
 /**
  * A known truth is always inside the catalogue budget (a stale catalogue is `unknown`, reason
- * `stale`), so the only freshness it carries is the one that can vary: stock and price.
+ * `stale`), so the only freshness it carries is the one that can vary: stock and price. `ageMs` is the age
+ * of what that freshness is measured with: the variant's datum, or the snapshot for a product.
  */
 export type ProductTruth =
   | { kind: "known"; product: Product; variant: Variant; stockAndPrice: Freshness; ageMs: number }
   /** The product without a variant in focus: attributes yes, availability and price of nothing. */
   | { kind: "known-product"; product: Product; stockAndPrice: Freshness; ageMs: number }
   | { kind: "unknown"; reason: "absent" | "stale" | "unknown-product" | "unknown-variant" };
+
+/** Stock and price sustain a claim while their datum is inside its budget. */
+const freshness = (ageMs: number, budget: FreshnessBudget): Freshness =>
+  ageMs > budget.stockAndPriceMs ? "stale" : "fresh";
 
 export interface ProductTruthService {
   lookup(merchantId: MerchantId, productId: ProductId, variantId: VariantId): Promise<ProductTruth>;
@@ -43,29 +61,50 @@ export class ProductTruths implements ProductTruthService {
   }
 
   async lookup(merchantId: MerchantId, productId: ProductId, variantId: VariantId): Promise<ProductTruth> {
-    const known = await this.product(merchantId, productId);
-    if (known.kind !== "known-product") return known;
-    const found = known.product.variants.find((v) => v.variantId === variantId);
-    if (found === undefined) return { kind: "unknown", reason: "unknown-variant" };
+    const found = await this.#found(merchantId, productId);
+    if (found.kind === "unknown") return found;
+    const { snapshot, product, budget, now } = found;
+    const variant = product.variants.find((v) => v.variantId === variantId);
+    if (variant === undefined) return { kind: "unknown", reason: "unknown-variant" };
+    const truth = snapshot.stockAndPriceOf(variant, await this.#deps.store.refreshOf(merchantId, variantId));
+    const ageMs = Math.max(0, now.getTime() - truth.at.getTime());
     return {
       kind: "known",
-      product: known.product,
-      variant: found,
-      stockAndPrice: known.stockAndPrice,
-      ageMs: known.ageMs,
+      product,
+      variant: truth.variant,
+      stockAndPrice: freshness(ageMs, budget),
+      ageMs,
     };
   }
 
   async product(merchantId: MerchantId, productId: ProductId): Promise<ProductTruth> {
+    const found = await this.#found(merchantId, productId);
+    if (found.kind === "unknown") return found;
+    const ageMs = found.snapshot.ageAt(found.now);
+    return {
+      kind: "known-product",
+      product: found.product,
+      stockAndPrice: freshness(ageMs, found.budget),
+      ageMs,
+    };
+  }
+
+  /** The product of a snapshot inside the catalogue budget, or why there is none. */
+  async #found(
+    merchantId: MerchantId,
+    productId: ProductId,
+  ): Promise<
+    | { kind: "found"; snapshot: CatalogSnapshot; product: Product; budget: FreshnessBudget; now: Date }
+    | Extract<ProductTruth, { kind: "unknown" }>
+  > {
     const snapshot = await this.#deps.store.current(merchantId);
     if (snapshot === undefined) return { kind: "unknown", reason: "absent" };
     const budget = await this.#deps.policies.freshnessFor(merchantId);
-    const ageMs = snapshot.ageAt(this.#deps.clock.now());
-    if (ageMs > budget.catalogMs) return { kind: "unknown", reason: "stale" };
+    const now = this.#deps.clock.now();
+    if (snapshot.ageAt(now) > budget.catalogMs) return { kind: "unknown", reason: "stale" };
     const product = snapshot.product(productId);
     if (product === undefined) return { kind: "unknown", reason: "unknown-product" };
-    const stockAndPrice: Freshness = ageMs > budget.stockAndPriceMs ? "stale" : "fresh";
-    return { kind: "known-product", product, stockAndPrice, ageMs };
+    return { kind: "found", snapshot, product, budget, now };
   }
 
   async syncLevel(merchantId: MerchantId): Promise<SyncLevel> {

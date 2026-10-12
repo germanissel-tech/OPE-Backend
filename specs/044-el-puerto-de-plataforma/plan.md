@@ -141,7 +141,8 @@ src/
 ├── domain/merchant/                   la credencial notice
 ├── application/catalog/               RefreshStockAndPriceUseCase; el puerto del almacén por variante
 ├── application/configuration/         el juicio contra las fuentes instaladas (puerto PlatformSources)
-├── application/platform/              NUEVO: ModeGatedUseCase, AcceptNoticeUseCase, GetPlatformSyncUseCase, puertos
+├── application/shared-kernel/         ModeGatedUseCase y el puerto SyncStrategies (fase 2: el mapa de contextos)
+├── application/platform/              NUEVO: AcceptNoticeUseCase, GetPlatformSyncUseCase, puertos
 ├── interface-adapters/catalog/        el controller y el gateway del refresco
 ├── interface-adapters/access/         el security handler del aviso
 ├── interface-adapters/platform/       NUEVO: PlatformSource, la fuente de prueba, el planificador, los gateways

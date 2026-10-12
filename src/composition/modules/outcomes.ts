@@ -19,7 +19,7 @@ import {
 import { bind, compositionModule, served, port } from "../graph/index.js";
 import { SqlStorePort } from "../release.js";
 import { DecisionLedgerPort } from "./ledger.js";
-import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
+import { ClockPort, ClockTolerancePort, LoggerPort, PushGatePort } from "./shared-kernel.js";
 
 export const OrderLedgerPort = port("outcomes.orders")<OrderLedger>();
 export const CorroborationLedgerPort = port("outcomes.corroborations")<CorroborationLedger>();
@@ -47,8 +47,12 @@ export const outcomesModule = compositionModule({
           orders: OrderLedgerPort,
           decisions: DecisionLedgerPort,
           corroborations: CorroborationLedgerPort,
+          pushGate: PushGatePort,
         },
-        { name: "notifyOrder", build: (deps) => new NotifyOrderUseCase(deps) },
+        {
+          name: "notifyOrder",
+          build: (deps) => deps.pushGate(new NotifyOrderUseCase(deps), "orders"),
+        },
         (useCase) => makeNotifyOrder(useCase),
       ),
       corroborateOrder: served(
@@ -61,8 +65,11 @@ export const outcomesModule = compositionModule({
         (useCase) => makeCorroborateOrder(useCase),
       ),
       notifyReturn: served(
-        { clock: ClockPort, orders: OrderLedgerPort },
-        { name: "notifyReturn", build: (deps) => new NotifyReturnUseCase(deps) },
+        { clock: ClockPort, orders: OrderLedgerPort, pushGate: PushGatePort },
+        {
+          name: "notifyReturn",
+          build: (deps) => deps.pushGate(new NotifyReturnUseCase(deps), "returns"),
+        },
         (useCase) => makeNotifyReturn(useCase),
       ),
     },

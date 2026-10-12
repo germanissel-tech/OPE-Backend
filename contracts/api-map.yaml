@@ -142,8 +142,8 @@ operations:
     consumer: platform
     tag: refresh
     capabilities: [catalog:write]
-    roadmap: platform-port
-    status: planned
+    feature: "044"
+    status: built
     source: mvp:02-integracion-ecommerce.md#6
   - operationId: notifyPlatformChange
     method: post

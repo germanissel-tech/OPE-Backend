@@ -21,8 +21,9 @@ expected-statuses = ["2xx", 401, 403, 404, 409, 422, 429, "5xx"]
 # proved by tests/integration); (b) the coverage phase ignores `pattern` in headers and sends
 # `X-OPE-Signature: 0` as conforming, which the contract refuses with 400 (`/header/x-ope-signature`):
 # in that phase the check admits 400.
+# The refresh of stock and price (tag `refresh`, feature 044) is signed the same way and has the same two limits.
 [[operations]]
-include-tag = "outcomes"
+include-tag = ["outcomes", "refresh"]
 [operations.generation]
 allow-extra-parameters = false
 [operations.phases.coverage.checks.positive_data_acceptance]

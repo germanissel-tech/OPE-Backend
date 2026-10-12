@@ -3,6 +3,7 @@
 // merchant and binds— and exposes the truth of product the decision plane consults.
 import {
   ProductTruths,
+  RefreshStockAndPriceUseCase,
   UpsertCatalogSnapshotUseCase,
   type CatalogPolicies,
   type CatalogStore,
@@ -10,13 +11,14 @@ import {
   type AttributeLabelReportService,
 } from "../../application/catalog/index.js";
 import {
+  makeRefreshStockAndPrice,
   makeUpsertCatalogSnapshot,
   memoryCatalogStore,
   sqliteCatalogStore,
 } from "../../interface-adapters/catalog/index.js";
 import { bind, compositionModule, served, port } from "../graph/index.js";
 import { SqlStorePort } from "../release.js";
-import { ClockPort, ClockTolerancePort, LoggerPort } from "./shared-kernel.js";
+import { ClockPort, ClockTolerancePort, LoggerPort, PushGatePort } from "./shared-kernel.js";
 
 export const CatalogStorePort = port("catalog.store")<CatalogStore>();
 /** The freshness budgets and the level rules of each merchant; the configuration binds them. */
@@ -50,9 +52,28 @@ export const catalogModule = compositionModule({
           store: CatalogStorePort,
           policies: CatalogPoliciesPort,
           labels: AttributeLabelReportPort,
+          pushGate: PushGatePort,
         },
-        { name: "upsertCatalogSnapshot", build: (deps) => new UpsertCatalogSnapshotUseCase(deps) },
+        {
+          name: "upsertCatalogSnapshot",
+          build: (deps) => deps.pushGate(new UpsertCatalogSnapshotUseCase(deps), "catalog"),
+        },
         (useCase) => makeUpsertCatalogSnapshot(useCase),
+      ),
+      refreshStockAndPrice: served(
+        {
+          clock: ClockPort,
+          tolerance: ClockTolerancePort,
+          logger: LoggerPort,
+          store: CatalogStorePort,
+          policies: CatalogPoliciesPort,
+          pushGate: PushGatePort,
+        },
+        {
+          name: "refreshStockAndPrice",
+          build: (deps) => deps.pushGate(new RefreshStockAndPriceUseCase(deps), "stockAndPrice"),
+        },
+        (useCase) => makeRefreshStockAndPrice(useCase),
       ),
     },
   },

@@ -717,6 +717,35 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/catalog/refreshes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh the stock and price of some variants
+         * @description The merchant's platform sends the availability and the price of some variants, each with the instant
+         *     its datum was true (`observedAt`), without the rest of the catalogue (ADR-047). It is a layer over the
+         *     snapshot: the truth of a variant is the newest of the snapshot (`capturedAt`) and its refresh
+         *     (`observedAt`), and the freshness of its stock and price is measured from that instant, variant by
+         *     variant. Whether the product exists and its attributes still come from the snapshot only.
+         *     The answer is per item and always `200`: `applied`, `repeated`, `superseded` or `unknown` (see
+         *     `RefreshResult`). Sending the same refresh again answers `repeated` where it answered `applied`, so it
+         *     needs no idempotency key of its own. Every accepted refresh counts as a receipt for the observed
+         *     synchronisation level, as a snapshot does. Refused with `409 sync-mode-not-configured` when the
+         *     merchant's stock and price do not arrive by `push`.
+         */
+        post: operations["refreshStockAndPrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/events": {
         parameters: {
             query?: never;
@@ -2270,6 +2299,44 @@ export type components = {
             type: "product_viewed";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /**
+         * @description The stock and price of some variants, without the rest of the catalogue (ADR-047). A layer over the snapshot,
+         *     not a new snapshot: it adds no variant and replaces no product. Each item carries the instant of its own datum.
+         */
+        Refresh: {
+            /** @description The variants refreshed, each at most once. */
+            items: components["schemas"]["RefreshItem"][];
+        };
+        /** @description The availability and the price of one variant at the instant they were true. */
+        RefreshItem: {
+            /** @description Availability as a guard (01 §4.3), as in the snapshot: no quantity travels. */
+            available: boolean;
+            /**
+             * Format: date-time
+             * @description When this datum was true (RFC 3339): the platform's instant, or the one its reader observed it at when the
+             *     platform gives none. The freshness of the variant is measured from here, and only a newer instant changes it.
+             */
+            observedAt: string;
+            price: components["schemas"]["Money"];
+            /** @description The variant as the snapshot names it. One the snapshot in force does not have is reported as unknown and not kept. */
+            variantId: string;
+        };
+        /**
+         * @description What became of each item, by variant. `applied`: it is now the truth of its variant. `repeated`: the same
+         *     instant and content were already kept. `superseded`: the variant holds something newer (a later refresh, or a
+         *     snapshot captured at that instant or after), or something else at the same instant, which stays. `unknown`: the
+         *     snapshot in force does not have the variant. Every item is in exactly one list.
+         */
+        RefreshResult: {
+            /** @description Variants whose truth is now the item sent. */
+            applied: string[];
+            /** @description Variants that already held this instant with this content. */
+            repeated: string[];
+            /** @description Variants that hold something newer, or something else at the same instant. */
+            superseded: string[];
+            /** @description Variants the snapshot in force does not have; nothing was kept for them. */
+            unknown: string[];
+        };
         /** @description Removal from the cart. The return to the product page arrives as a later `product_viewed`; together they are the barrier amplifier (03 §4.2). */
         RemovedFromCart: {
             device: components["schemas"]["DeviceClass"];
@@ -2733,23 +2800,16 @@ export type components = {
             };
         };
         /**
-         * @description Same identity, different content (ADR-020): the idempotency key of the request matches a
-         *     record whose content differs. Nothing changed.
+         * @description Nothing changed, for one of two reasons the `type` tells apart. `idempotency-conflict` (ADR-020): the
+         *     idempotency key of the request matches a record whose content differs. `sync-mode-not-configured`
+         *     (ADR-047): the merchant has this flow arrive by another mode (`pull`, `subscribe`), so a `push` would be a
+         *     second writer of the same truth; it is accepted again once a configuration version puts the flow in `push`.
          */
         Conflict: {
             headers: {
                 [name: string]: unknown;
             };
             content: {
-                /**
-                 * @example {
-                 *       "type": "urn:ope:problem:idempotency-conflict",
-                 *       "title": "Same identity, different content",
-                 *       "status": 409,
-                 *       "detail": "A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.",
-                 *       "instance": "/v1/catalog"
-                 *     }
-                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -3027,6 +3087,18 @@ export type components = {
             };
         };
         /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the refresh (ADR-007). The `type` names the
+         *     invariant; nothing was kept.
+         */
+        RefreshUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
          * @description Valid request rejected on semantics: one of the `x-invariants` of the operation (ADR-007).
          *     The `type` names the invariant.
          */
@@ -3097,6 +3169,27 @@ export type components = {
                  *       "title": "The resource changed since it was read",
                  *       "status": 412,
                  *       "instance": "/v1/admin/platform-configuration"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
+         * @description The merchant has this flow arrive by another mode (ADR-047): an entry by this one would be a second writer of
+         *     the same truth. Nothing changed; it is accepted again once a configuration version puts the flow in this mode.
+         */
+        SyncModeConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:sync-mode-not-configured",
+                 *       "title": "The flow does not arrive by this mode",
+                 *       "status": 409,
+                 *       "detail": "The flow stockAndPrice of this merchant arrives by pull.",
+                 *       "instance": "/v1/catalog/refreshes"
                  *     }
                  */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
@@ -6141,6 +6234,51 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["CatalogUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    refreshStockAndPrice: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Refresh"];
+            };
+        };
+        responses: {
+            /** @description What became of each item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["SyncModeConflict"];
+            422: components["responses"]["RefreshUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

@@ -61,6 +61,7 @@ import {
   sqliteConfigurationStore,
   sqliteLevelStore,
   policySourceOf,
+  syncStrategiesOf,
   storedConfigurationLevels,
   switchAwarePolicyDirectory,
   messageSettingsOf,
@@ -72,7 +73,7 @@ import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort, TextStorePort } from "./messages.js";
-import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
+import { AuditPort, ClockPort, LoggerPort, SyncStrategiesPort } from "./shared-kernel.js";
 import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
 
@@ -131,6 +132,9 @@ const resolution = [
   ),
   bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     holdoutSourceOf(configuration),
+  ),
+  bind(SyncStrategiesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    syncStrategiesOf(configuration),
   ),
   bind(MessageDirectoryPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     messageSettingsOf(configuration),

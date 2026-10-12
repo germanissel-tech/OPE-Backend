@@ -88,48 +88,67 @@ rechace.
 **Independent Test**: empujar un refresco firmado de dos variantes y comprobar que cambian sólo esas; configurar
 el catálogo en `pull` y comprobar que el `PUT /v1/catalog` da `409`.
 
-- [ ] T010 [P] [US4] `tests/unit/domain/catalog/`, **antes del código**: `StockAndPriceRefresh.of` rechaza ids
+- [x] T010 [P] [US4] `tests/unit/domain/catalog/`, **antes del código**: `StockAndPriceRefresh.of` rechaza ids
       duplicados y un instante futuro más allá de la tolerancia; la verdad de una variante es la del dato más nuevo
       entre foto y refresco; igual instante con otro contenido → gana el guardado
-- [ ] T011 [P] [US4] `tests/unit/application/catalog/product-truth.service.test.ts`, **antes del código**: la
+- [x] T011 [P] [US4] `tests/unit/application/catalog/product-truth.service.test.ts`, **antes del código**: la
       frescura de stock y precio es por variante; una variante sin refresco envejece con la foto; la frescura del
       catálogo sigue siendo la de la foto
-- [ ] T012 [US4] `src/domain/catalog/`: `StockAndPriceRefresh`, `StockCapturedInFuture`, la regla del dato más
+- [x] T012 [US4] `src/domain/catalog/`: `StockAndPriceRefresh`, `StockCapturedInFuture`, la regla del dato más
       nuevo (método del dueño, no función suelta)
-- [ ] T013 [US4] `migrations/008-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices` (las
+- [x] T013 [US4] `migrations/008-platform-port.sql`: `stock_and_price`, `platform_sync`, `platform_notices` (las
       tres de una vez: la migración es una sola versión), con `merchant_id` en cada clave única;
       `migrations/README.md`
-- [ ] T014 [US4] `src/application/catalog/ports/catalog-store.ts`: `refreshes(m)`, `refresh(m, items, kept)` que
+- [x] T014 [US4] `src/application/catalog/ports/catalog-store.ts`: `refreshes(m)`, `refresh(m, items, kept)` que
       devuelve el resultado por ítem, y `replace` que borra los refrescos superados; gateways en memoria y SQLite
       (`src/interface-adapters/catalog/gateways/`); cada refresco aceptado agrega una recepción (R-05)
-- [ ] T015 [US4] `src/application/catalog/services/product-truth.service.ts`: stock y precio del dato más nuevo,
+- [x] T015 [US4] `src/application/catalog/services/product-truth.service.ts`: stock y precio del dato más nuevo,
       frescura por variante
-- [ ] T016 [US4] `src/application/catalog/use-cases/refresh-stock-and-price.use-case.ts`: `RefreshStockAndPriceUseCase`
+- [x] T016 [US4] `src/application/catalog/use-cases/refresh-stock-and-price.use-case.ts`: `RefreshStockAndPriceUseCase`
       (`applied`, `repeated`, `superseded`, `unknown`)
-- [ ] T017 [P] `tests/unit/application/platform/mode-gated.use-case.test.ts`, **antes del código**: con el flujo
+- [x] T017 [P] `tests/unit/application/platform/mode-gated.use-case.test.ts`, **antes del código**: con el flujo
       en el modo del decorador, llama al interno; con otro, `SyncModeNotConfigured` sin llamarlo
-- [ ] T018 `src/application/platform/`: el módulo (`index.ts`), `SyncModeNotConfigured` en
+- [x] T018 `src/application/platform/`: el módulo (`index.ts`), `SyncModeNotConfigured` en
       `src/domain/platform/errors.ts`, el puerto `SyncStrategies` (`modeOf(merchant, flow)`) y
       `ModeGatedUseCase`; `.dependency-cruiser.cjs` gana `platform` en `CONTEXT_MAP`
-- [ ] T019 [US4] El contrato de `refreshStockAndPrice` (`paths/catalog-refreshes.yaml`, `Refresh*`,
+- [x] T019 [US4] El contrato de `refreshStockAndPrice` (`paths/catalog-refreshes.yaml`, `Refresh*`,
       ejemplos, `x-invariants`), pasado a `built`; `upsertCatalogSnapshot`, `notifyOrder` y `notifyReturn`
       nombran `sync-mode-not-configured` en su `409`; `contract:check`, `contract:types`
-- [ ] T020 [US4] `src/interface-adapters/catalog/controllers/refresh-stock-and-price.ts`; `composition/modules/`
+- [x] T020 [US4] `src/interface-adapters/catalog/controllers/refresh-stock-and-price.ts`; `composition/modules/`
       `catalog.ts` y `platform.ts` (nuevo, con su línea en `deployments/local.ts`): las cuatro del `push` envueltas
       en `ModeGatedUseCase(…, "push")`; `SyncStrategies` enlazado a la configuración efectiva
-- [ ] T021 [US4] `tests/integration/stock-and-price.test.ts`: los cuatro resultados; `[invariant:…]` de los dos
+- [x] T021 [US4] `tests/integration/stock-and-price.test.ts`: los cuatro resultados; `[invariant:…]` de los dos
       invariantes; el nivel sube con refrescos; `tests/integration/sync-mode.test.ts`: los cuatro `push` con su
       flujo en `pull` → `409`
-- [ ] T022 [US4] `tests/integration/isolation.test.ts`: el refresco de A no toca variantes de B, ni con el mismo
+- [x] T022 [US4] `tests/integration/isolation.test.ts`: el refresco de A no toca variantes de B, ni con el mismo
       `variantId`
-- [ ] T023 [P] [US4] `tests/durability/catalog.test.ts`: los refrescos sobreviven un reinicio, y una foto nueva
+- [x] T023 [P] [US4] `tests/durability/catalog.test.ts`: los refrescos sobreviven un reinicio, y una foto nueva
       borra los superados
-- [ ] T024 Romper a propósito una vez: la frescura con la foto en vez de con la variante; un refresco viejo que
+- [x] T024 Romper a propósito una vez: la frescura con la foto en vez de con la variante; un refresco viejo que
       entra; el decorador olvidado en una operación. `npm test`, `npm run test:durability`, `npm run quality`,
       `npm run test:mutation -- --files` sobre lo nuevo. Commit:
       `feat(044): el refresco parcial de stock y precio, y la entrada sólo por el modo que rige`
 
 **Checkpoint**: el puerto tiene sus cuatro operaciones; el `push` es su adaptador genérico.
+
+> **Hecho el 2026-10-11.** Desvíos: (1) **El decorador del modo, su puerto y su error viven en el núcleo, no en
+> `platform`**: `ModeGatedUseCase` en `application/shared-kernel/decorators/` (junto a `LoggedUseCase` y
+> `AuditedUseCase`), `SyncStrategies` en `application/shared-kernel/ports/`, `SyncModeNotConfigured` en
+> `domain/shared-kernel/errors.ts` y el vocabulario de modos y flujos (`SYNC_MODES`, `SYNC_FLOWS`) en
+> `domain/shared-kernel/sync.ts`; `domain/platform` conserva `PLATFORM_SOURCES` y `configuration` reexporta los
+> dos. El motivo es el mapa de contextos: los módulos de las entradas (`catalog`, `outcomes`) tienen que nombrar
+> el error y envolver sus casos de uso, y `platform` va a depender de ellos en la fase 3 (el planificador llama a
+> sus casos de uso), así que ninguno de los dos puede depender del otro — el mismo caso que las barreras y los
+> anclajes. La composición lo arma una vez como el componente `kernel.push-gate` (`PushGatePort`), como
+> `kernel.audit`, porque un módulo de composición no exporta fábricas. La prueba del decorador quedó en
+> `tests/unit/application/shared-kernel/mode-gated-use-case.test.ts`. (2) **El juicio de un refresco lo hace el
+> almacén, en una transacción**: `refresh(refresh, kept)` lee la foto y los refrescos guardados, juzga con
+> `StockAndPriceRefresh.judgedAgainst` (dominio) y escribe lo aplicado sin hueco entre leer y escribir (01 §6);
+> la verdad de una variante lee `refreshOf(m, variantId)`, no todos los refrescos. (3) **La recepción** (R-05) se
+> registra con cada refresco aceptado mientras hay una foto vigente; sin foto todo es `unknown` y no se registra
+> nada. (4) **El catálogo cerrado de tags** del ruleset (`ope-tags-closed-catalog`) gana `refresh` y `notices`
+> con su motivo. (5) **`Conflict.yaml`** lo usaban sólo las tres entradas del `push`, así que gana el ejemplo de
+> `sync-mode-not-configured`; el refresco tiene su `SyncModeConflict.yaml`.
 
 ---
 

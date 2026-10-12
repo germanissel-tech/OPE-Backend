@@ -169,6 +169,8 @@ function subject(options: Options = {}) {
       return Promise.resolve(options.catalog);
     },
     replace: () => Promise.resolve(ok(undefined)),
+    refreshOf: () => Promise.resolve(undefined),
+    refresh: () => Promise.reject(new Error("a decision never refreshes")),
     receipts: () => Promise.resolve([]),
   };
   const inner = options.inference ?? new RuleBasedBarrierInference();

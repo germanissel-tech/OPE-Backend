@@ -1,0 +1,24 @@
+description: |
+  Valid request rejected on semantics: one of the `x-invariants` of the refresh (ADR-007). The `type` names the
+  invariant; nothing was kept.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml
+    examples:
+      duplicate-variant:
+        summary: stock-and-price-duplicate-variant-id
+        value:
+          type: urn:ope:problem:stock-and-price-duplicate-variant-id
+          title: Two items of the refresh name the same variant
+          status: 422
+          detail: Variant SKU-1-M-BLACK appears twice in the refresh.
+          instance: /v1/catalog/refreshes
+      observed-in-future:
+        summary: stock-captured-in-future
+        value:
+          type: urn:ope:problem:stock-captured-in-future
+          title: The observation instant is in the future
+          status: 422
+          detail: observedAt is ahead of the server clock beyond the tolerance.
+          instance: /v1/catalog/refreshes
