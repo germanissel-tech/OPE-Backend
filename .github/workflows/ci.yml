@@ -30,7 +30,8 @@ jobs:
     # A pull request from a branch of this repository is already verified by its push: no second run.
     if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # The scoped run adds the tools project on a branch, and the job reached 9-10 minutes in 043 and 044.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:

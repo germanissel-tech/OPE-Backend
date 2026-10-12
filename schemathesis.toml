@@ -5,6 +5,12 @@
 # A schema-valid request may be refused by an invariant declared in `x-invariants` (422 with its type
 # from the catalogue, ADR-007): for Schemathesis that is not an undue rejection. Every other check keeps
 # its defaults.
+# The health check filter_too_much stops the fuzzing of an operation when Hypothesis discards too many
+# generated examples. It depends on the random seed: PUT /v1/catalog (a deep body of nested arrays) failed
+# it once in CI and passed on the rerun (feature 044). It says nothing about the API, only about the
+# generator; Schemathesis 4.27.2 accepts it only globally, not per operation.
+suppress-health-check = ["filter_too_much"]
+
 [checks.positive_data_acceptance]
 expected-statuses = ["2xx", 401, 403, 404, 409, 422, 429, "5xx"]
 
