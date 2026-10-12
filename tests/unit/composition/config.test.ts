@@ -51,9 +51,17 @@ describe("readConfig", () => {
       // How long the plane keeps a session in memory (feature 032). Environment for the same reason,
       // and a day by default because that is what the single field it was split out of used to hold.
       stateRetention: { sessionMs: 86_400_000 },
+      // Without OPE_TEST_PLATFORM the test platform is not installed (feature 044, research R-09).
+      testPlatform: [],
     });
     expect(corpus.length).toBeGreaterThan(0);
     expect(corpus.every((entry) => entry.text.length > 0)).toBe(true);
+  });
+
+  it("OPE_TEST_PLATFORM names the file of the test platform, resolved against the working directory", () => {
+    expect(readConfig({ OPE_TEST_PLATFORM: "config/dev-platform.json" }, noFile).testPlatform).toEqual([
+      path.resolve("config/dev-platform.json"),
+    ]);
   });
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {

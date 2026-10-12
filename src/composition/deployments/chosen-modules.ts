@@ -20,6 +20,7 @@ import { ledgerModule } from "../modules/ledger.js";
 import { merchantModule } from "../modules/merchant.js";
 import { messagesModule } from "../modules/messages.js";
 import { outcomesModule } from "../modules/outcomes.js";
+import { platformModule } from "../modules/platform.js";
 import { kernelModule } from "../modules/shared-kernel.js";
 
 /** The two ways a module of this list can be served. Leaving the choice out does not compile. */
@@ -42,6 +43,9 @@ export const modulesWith = <T extends Technology>(technology: T) =>
     // of the decision path come from an index in memory in both.
     messagesModule.with(technology),
     outcomesModule.with(technology),
+    // The platform joined in feature 044: what the technology chooses is where each flow stands, and which test
+    // platform is installed — the one a test scripts, or the file `OPE_TEST_PLATFORM` names.
+    platformModule.with(technology),
     // The kernel joined in feature 034, and what it chooses is the unit of work: the store's transaction
     // where there is a store, and nothing to compose where there is not.
     kernelModule.with(technology),

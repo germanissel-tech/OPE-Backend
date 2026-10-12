@@ -160,15 +160,15 @@ nada.
 **Independent Test**: con la fuente de prueba guionada, configurar un merchant en `pull` en los cuatro flujos y
 llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las órdenes confirmadas y la devolución.
 
-- [ ] T025 [P] [US1] `src/interface-adapters/platform/source.ts`: `PlatformSource` (R-02) y lo que declara cada
+- [x] T025 [P] [US1] `src/interface-adapters/platform/source.ts`: `PlatformSource` (R-02) y lo que declara cada
       fuente (modos por flujo); `src/interface-adapters/platform/test-source/`: la fuente de prueba, guionable en
       memoria y, con un archivo, leída en cada consulta
-- [ ] T026 [P] [US1] `tests/unit/application/configuration/`, **antes del código**: publicar con `pull` y
+- [x] T026 [P] [US1] `tests/unit/application/configuration/`, **antes del código**: publicar con `pull` y
       `generic`, `subscribe` en catálogo o en stock y precio, una fuente no instalada, u órdenes en `pull` o
       `subscribe` sin estados → rechazo con la ruta del valor
-- [ ] T027 [US1] `src/application/configuration/`: el puerto `PlatformSources` (instaladas y sus modos) y el juicio
+- [x] T027 [US1] `src/application/configuration/`: el puerto `PlatformSources` (instaladas y sus modos) y el juicio
       en `ConfigurationService.judge`; enlazado en la composición a las fuentes instaladas
-- [ ] T028 [P] [US1] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**, con reloj
+- [x] T028 [P] [US1] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**, con reloj
       y fuente guionada:
   - respeta la cadencia de cada flujo; salta merchants desactivados o con el interruptor apagado;
   - el lote recorre el catálogo en orden y vuelve al principio (SC-002);
@@ -176,29 +176,29 @@ llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las �
   - un fallo de la fuente deja `failed` con motivo y no avanza el cursor; el cursor avanza sólo después de
     depositar;
   - el instante de un ítem sin instante es el de la observación.
-- [ ] T029 [US1] `src/application/platform/ports/`: `SyncStateStore` (`platform_sync`); gateways en memoria y SQLite
+- [x] T029 [US1] `src/application/platform/ports/`: `SyncStateStore` (`platform_sync`); gateways en memoria y SQLite
       en `src/interface-adapters/platform/gateways/`
-- [ ] T030 [US1] `src/interface-adapters/platform/scheduler/`: `runDue(now)` para catálogo y stock y precio, que
+- [x] T030 [US1] `src/interface-adapters/platform/scheduler/`: `runDue(now)` para catálogo y stock y precio, que
       traduce y llama a los casos de uso envueltos en `ModeGatedUseCase(…, "pull")`; el temporizador con `unref()`
       y `close()` que espera la corrida en curso; cableado en `composition/modules/platform.ts` como `Closable`
-- [ ] T031 [US2] El planificador gana órdenes y devoluciones: `orderChanges`/`returnChanges` desde el cursor,
+- [x] T031 [US2] El planificador gana órdenes y devoluciones: `orderChanges`/`returnChanges` desde el cursor,
       `OrderConfirmation` de la configuración del merchant, `confirmedAt` de la fuente o de la observación, y los
       casos de uso de órdenes y devoluciones
-- [ ] T032 [US1] `GetPlatformSyncUseCase` y el contrato de `getMerchantPlatformSync`
+- [x] T032 [US1] `GetPlatformSyncUseCase` y el contrato de `getMerchantPlatformSync`
       (`paths/admin-platform-sync.yaml`, `PlatformSync*`), pasado a `built`; controller; `contract:check`,
       `contract:types`
-- [ ] T033 [US1] `src/composition/deployments/`: la fuente de prueba instalada siempre en `local.ts`, y en
+- [x] T033 [US1] `src/composition/deployments/`: la fuente de prueba instalada siempre en `local.ts`, y en
       `durable.ts` sólo con `OPE_TEST_PLATFORM` (en `config-error.ts`); `package.json` `dev` la fija;
       `config/dev-platform.json`
-- [ ] T034 [US2] `tests/integration/platform-pull.test.ts`: sólo los estados confirmados entran; una orden vista
+- [x] T034 [US2] `tests/integration/platform-pull.test.ts`: sólo los estados confirmados entran; una orden vista
       dos veces se registra una; una que llega a confirmada después entra en esa corrida; la devolución se vincula;
       cambiar los estados por una versión cambia la corrida siguiente
-- [ ] T035 [US1] `tests/integration/admin-configuration.test.ts` (el juicio, con la ruta) y
+- [x] T035 [US1] `tests/integration/admin-configuration.test.ts` (el juicio, con la ruta) y
       `tests/integration/admin-platform-sync.test.ts` (por flujo; fuera de alcance, `403`)
-- [ ] T036 [US1] `tests/integration/decision-plane.test.ts`: con una fuente que nunca responde y una corrida en
+- [x] T036 [US1] `tests/integration/decision-plane.test.ts`: con una fuente que nunca responde y una corrida en
       curso, la decisión responde igual y la fuente no recibe ninguna llamada desde ella (FR-013, SC-005)
-- [ ] T037 [US1] `tests/integration/isolation.test.ts`: la corrida de A nunca deposita en B
-- [ ] T038 [P] [US1] `tests/durability/platform.test.ts`: el cursor sobrevive un reinicio y el ciclo sigue; un
+- [x] T037 [US1] `tests/integration/isolation.test.ts`: la corrida de A nunca deposita en B
+- [x] T038 [P] [US1] `tests/durability/platform.test.ts`: el cursor sobrevive un reinicio y el ciclo sigue; un
       reinicio en medio de un lote de órdenes no duplica ninguna
 - [ ] T039 Romper a propósito una vez: avanzar el cursor antes de depositar; registrar una orden sin mirar la
       regla. `npm test`, `npm run test:durability`, `npm run quality`, mutación acotada. Commit:

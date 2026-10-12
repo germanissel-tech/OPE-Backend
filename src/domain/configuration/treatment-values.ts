@@ -23,12 +23,14 @@ import {
   isRate,
   BARRIERS,
   LOCALE_PATTERN,
+  NOTICED_FLOWS,
   fail,
   ok,
   SYNC_FLOWS,
   SYNC_MODES,
   type Barrier,
   type Result,
+  type SyncFlow,
   type SyncStrategy,
 } from "../shared-kernel/index.js";
 import { InvalidConfigurationValue } from "./errors.js";
@@ -275,6 +277,11 @@ export class TreatmentValues {
           `syncStrategy.${flow}`,
           `must be one of ${SYNC_MODES.join(", ")}`,
         );
+      }
+      // Whatever the source: a notice of a state could only say "read everything again" (ADR-047).
+      if (strategy[flow] === "subscribe" && !(NOTICED_FLOWS as readonly SyncFlow[]).includes(flow)) {
+        const problem = `may be subscribed only for ${NOTICED_FLOWS.join(", ")}`;
+        return new InvalidConfigurationValue(`syncStrategy.${flow}`, problem);
       }
     }
     return undefined;

@@ -65,6 +65,20 @@ controller: traduce lo que trae la fuente a un pedido y llama al caso de uso. Su
   que el `push`. La decisión sigue leyendo lo guardado (SC-005 se prueba midiendo una decisión con una fuente que no
   responde nunca).
 
+**Agregado en la implementación (2026-10-12), PROPUESTO hasta que el dueño lo revise.** Tres cosas que el plan no
+decía:
+
+- **Un cambio que el núcleo rechaza no frena el flujo.** Una orden o una devolución que su caso de uso rechaza
+  (un conflicto de idempotencia, una devolución de una orden que OPE no tiene) se loguea con merchant, flujo y
+  tipo de problema, y la corrida sigue; si no, una orden rara bloquearía para siempre todas las que vienen
+  detrás. **La indisponibilidad del almacén sí la frena**, y el cursor no avanza: lo que no se escribió se vuelve
+  a leer.
+- **La cadencia cuenta desde el inicio de la última corrida, termine como termine**: una plataforma que falla
+  no se vuelve a consultar en cada tick.
+- **El temporizador arranca cuando el arranque lo dice** (`start()`), después de leer los niveles: su tick es un
+  valor del nivel 1 y el grafo lo construye antes. Así los grafos que una prueba reconstruye tampoco dejan
+  temporizadores andando.
+
 **Lo que se descartó.** Un `RunPullUseCase`: tendría que llamar a los cuatro casos de uso o duplicar su lógica. Y
 un proceso aparte: es una decisión de despliegue que el MVP no necesita (supuesto de la spec).
 

@@ -1,7 +1,7 @@
 // How often the scheduler pulls each flow of a merchant, and how many variants a stock-and-price batch
 // reads (ADR-047). The values are configuration (constitution XI); what lives here is that each one is a
 // positive integer.
-import { fail, ok, type Result } from "../shared-kernel/index.js";
+import { fail, ok, type Result, type SyncFlow } from "../shared-kernel/index.js";
 import { InvalidSyncCadence } from "./errors.js";
 
 export interface SyncCadenceRecord {
@@ -36,6 +36,20 @@ export class SyncCadence {
 
   static rehydrate(record: SyncCadenceRecord): SyncCadence {
     return new SyncCadence(record);
+  }
+
+  /** How long after a run of the flow starts the next one is due. */
+  intervalOf(flow: SyncFlow): number {
+    switch (flow) {
+      case "catalog":
+        return this.catalogMs;
+      case "stockAndPrice":
+        return this.stockAndPriceMs;
+      case "orders":
+        return this.ordersMs;
+      case "returns":
+        return this.returnsMs;
+    }
   }
 
   record(): SyncCadenceRecord {

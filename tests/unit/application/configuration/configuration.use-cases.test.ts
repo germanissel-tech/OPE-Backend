@@ -22,6 +22,7 @@ import { asMerchantId } from "../../../../src/domain/shared-kernel/index.js";
 import { memoryConfigurationStore } from "../../../../src/interface-adapters/configuration/gateways/memory-configuration-store.js";
 import { memoryExperimentStore } from "../../../../src/interface-adapters/experiment/gateways/memory-experiment-store.js";
 import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
+import { installedSources } from "../../../../src/interface-adapters/platform/index.js";
 import { testExperiment } from "../../../helpers/experiments.js";
 import { TEST_NOW, testMerchant } from "../../../helpers/merchants.js";
 import { testLevels } from "../../../helpers/test-app.js";
@@ -74,6 +75,7 @@ function subject(options: { status?: ExperimentStatus; store?: ConfigurationStor
       defaults: () => Promise.resolve(levels.defaults),
     },
     store,
+    sources: installedSources(new Map()),
   });
   const merchants = memoryMerchantStore();
   const scoped = new ScopedMerchants({ merchants });

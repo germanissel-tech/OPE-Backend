@@ -69,6 +69,8 @@ paths:
     $ref: ./paths/admin-merchant-profile.yaml
   /v1/admin/merchants/{merchantId}/log:
     $ref: ./paths/admin-merchant-log.yaml
+  /v1/admin/merchants/{merchantId}/platform-sync:
+    $ref: ./paths/admin-platform-sync.yaml
   /v1/admin/merchants/{merchantId}/configuration:
     $ref: ./paths/admin-configuration.yaml
   /v1/admin/merchants/{merchantId}/configuration/versions:

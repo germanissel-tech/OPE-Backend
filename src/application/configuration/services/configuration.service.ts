@@ -5,18 +5,20 @@
 // applied here counts on the next request, without a restart.
 import {
   EffectiveConfiguration,
+  InvalidConfigurationValue,
   type ConfigurationDraft,
   type LevelDraft,
-  type InvalidConfigurationValue,
   type MerchantConfigurationVersion,
   type PlatformConfiguration,
   type TreatmentDefaults,
+  type TreatmentValues,
 } from "../../../domain/configuration/index.js";
-import { fail, ok, type MerchantId, type Result } from "../../../domain/shared-kernel/index.js";
+import { fail, ok, SYNC_FLOWS, type MerchantId, type Result } from "../../../domain/shared-kernel/index.js";
 import { readTreatmentDefaults } from "../input/declared.js";
 import { readPlatformConfiguration } from "../input/platform.js";
 import type { ConfigurationLevels } from "../ports/configuration-levels.js";
 import type { ConfigurationStore } from "../ports/configuration-store.js";
+import type { PlatformSources } from "../ports/platform-sources.js";
 
 export interface ConfigurationService {
   /** What the merchant is served with now: its version in force over the levels of the release. */
@@ -62,6 +64,7 @@ export interface ConfigurationService {
 export interface ConfigurationServiceDependencies {
   levels: ConfigurationLevels;
   store: ConfigurationStore;
+  sources: PlatformSources;
 }
 
 interface Levels {
@@ -88,7 +91,10 @@ export class Configurations implements ConfigurationService {
 
   async judge(draft: ConfigurationDraft): Promise<Result<EffectiveConfiguration, InvalidConfigurationValue>> {
     const { platform, defaults } = await this.#loadLevels();
-    return EffectiveConfiguration.resolve(platform, defaults, draft);
+    const resolved = EffectiveConfiguration.resolve(platform, defaults, draft);
+    if (!resolved.ok) return resolved;
+    const unread = this.#unread(resolved.value.values);
+    return unread === undefined ? resolved : fail(unread);
   }
 
   apply(version: MerchantConfigurationVersion): Promise<EffectiveConfiguration> {
@@ -105,8 +111,14 @@ export class Configurations implements ConfigurationService {
    */
   judgeLevel(draft: LevelDraft): Promise<Result<undefined, InvalidConfigurationValue>> {
     const named = { ...draft.content, version: `${draft.level}-draft` };
-    const read = draft.level === "platform" ? readPlatformConfiguration(named) : readTreatmentDefaults(named);
-    return Promise.resolve(read.ok ? ok(undefined) : fail(read.error));
+    if (draft.level === "platform") {
+      const read = readPlatformConfiguration(named);
+      return Promise.resolve(read.ok ? ok(undefined) : fail(read.error));
+    }
+    const read = readTreatmentDefaults(named);
+    if (!read.ok) return Promise.resolve(fail(read.error));
+    const unread = this.#unread(read.value.values);
+    return Promise.resolve(unread === undefined ? ok(undefined) : fail(unread));
   }
 
   async refresh(): Promise<void> {
@@ -128,6 +140,27 @@ export class Configurations implements ConfigurationService {
 
   async defaults(): Promise<TreatmentDefaults> {
     return (await this.#loadLevels()).defaults;
+  }
+
+  /**
+   * A mode nothing in this deployment would execute (research R-08): the merchant's source is not installed, or
+   * it does not read a flow by the mode the values give it. `push` needs no source: the platform sends.
+   *
+   * Asked when a version is **published** and never when one is resolved: what the store holds was judged
+   * when it entered, and a deployment that later leaves a source out must still serve the merchant — what
+   * stops is the reading, which the scheduler reports per flow.
+   */
+  #unread(values: TreatmentValues): InvalidConfigurationValue | undefined {
+    const modes = this.#deps.sources.modesOf(values.platformSource);
+    if (modes === undefined) {
+      return new InvalidConfigurationValue("platformSource", "must be a source this deployment installed");
+    }
+    const flow = SYNC_FLOWS.find(
+      (each) => values.syncStrategy[each] !== "push" && !modes[each].includes(values.syncStrategy[each]),
+    );
+    if (flow === undefined) return undefined;
+    const problem = `must be a mode the source ${values.platformSource} reads this flow by`;
+    return new InvalidConfigurationValue(`syncStrategy.${flow}`, problem);
   }
 
   /** A recorded version resolves by construction: what the store holds was judged when published. */

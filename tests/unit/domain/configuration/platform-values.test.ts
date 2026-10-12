@@ -50,6 +50,20 @@ describe("the values of the platform port", () => {
     expect(pointerOf({ ...v, confirmedOrderStates: [] })).toBeUndefined();
   });
 
+  it("subscribe exists only for orders and returns: on the catalogue or on stock and price it is refused", () => {
+    const v = values();
+    for (const flow of ["catalog", "stockAndPrice"] as const) {
+      const record = { ...v, syncStrategy: { ...v.syncStrategy, [flow]: "subscribe" } };
+      expect(pointerOf(record), flow).toBe(`syncStrategy.${flow}`);
+      expect(
+        pointerOf({ ...record, syncStrategy: { ...v.syncStrategy, [flow]: "pull" } }),
+        flow,
+      ).toBeUndefined();
+    }
+    const returns = { ...v, syncStrategy: { ...v.syncStrategy, returns: "subscribe" as const } };
+    expect(pointerOf(returns)).toBeUndefined();
+  });
+
   it("a merchant overrides them value by value", () => {
     const v = values();
     const resolved = TreatmentValues.resolve(v, {

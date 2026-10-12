@@ -364,6 +364,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/platform-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where the reading of a merchant's platform stands
+         * @description Per flow, the mode in force and the last run of the reading of the platform (feature 044,
+         *     ADR-047): when it started, when one last succeeded and how it ended. Within the operator's
+         *     scope: outside it, `403` without saying whether the merchant exists.
+         */
+        get: operations["getMerchantPlatformSync"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/profile": {
         parameters: {
             query?: never;
@@ -2210,6 +2232,44 @@ export type components = {
          * @enum {string}
          */
         PlatformSource: "generic" | "test";
+        /** @description Where the reading of each flow of a merchant's platform stands (feature 044, ADR-047): the source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is never read, so it has no run. */
+        PlatformSync: {
+            /** @description Each flow the merchant negotiates a mode for (02 §6). */
+            flows: {
+                catalog: components["schemas"]["PlatformSyncEntry"];
+                orders: components["schemas"]["PlatformSyncEntry"];
+                returns: components["schemas"]["PlatformSyncEntry"];
+                stockAndPrice: components["schemas"]["PlatformSyncEntry"];
+            };
+            platform: components["schemas"]["PlatformSource"];
+        };
+        /** @description One flow of the platform: the mode in force and the last run of the reading. What is absent never happened — a flow that never ran has no run, and one that never succeeded has no `lastOkAt`. */
+        PlatformSyncEntry: {
+            /**
+             * Format: date-time
+             * @description When the last run that failed nothing started.
+             */
+            lastOkAt?: string;
+            lastOutcome?: components["schemas"]["PlatformSyncOutcome"];
+            /**
+             * Format: date-time
+             * @description When the last run started; the cadence counts from here, whatever it ended in.
+             */
+            lastRunAt?: string;
+            mode: components["schemas"]["SyncMode"];
+        };
+        /** @description How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core returned). Nothing personal: never an order or a variant. */
+        PlatformSyncOutcome: {
+            /** @description Present when `ok`. */
+            count?: number;
+            /** @description Present when `failed`. */
+            reason?: string;
+            /**
+             * @description Whether the run deposited what it read.
+             * @enum {string}
+             */
+            status: "ok" | "failed";
+        };
         /** @description Which barriers need which class of product evidence before OPE speaks (01 §4.3). */
         PolicyEvidence: {
             /** @description Barriers that need an available variant in focus. */
@@ -4486,6 +4546,64 @@ export interface operations {
             422: components["responses"]["RotationUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchantPlatformSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reading of each flow. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "platform": "test",
+                     *       "flows": {
+                     *         "catalog": {
+                     *           "mode": "pull",
+                     *           "lastRunAt": "2026-10-12T03:00:00Z",
+                     *           "lastOkAt": "2026-10-12T03:00:00Z",
+                     *           "lastOutcome": {
+                     *             "status": "ok",
+                     *             "count": 120
+                     *           }
+                     *         },
+                     *         "stockAndPrice": {
+                     *           "mode": "pull",
+                     *           "lastRunAt": "2026-10-12T12:01:00Z",
+                     *           "lastOkAt": "2026-10-12T12:00:00Z",
+                     *           "lastOutcome": {
+                     *             "status": "failed",
+                     *             "reason": "source-failed"
+                     *           }
+                     *         },
+                     *         "orders": {
+                     *           "mode": "push"
+                     *         },
+                     *         "returns": {
+                     *           "mode": "push"
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformSync"];
+                };
+            };
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     updateMerchantProfile: {

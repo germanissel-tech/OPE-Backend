@@ -1,0 +1,23 @@
+type: object
+description: "Where the reading of each flow of a merchant's platform stands (feature 044, ADR-047): the
+  source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is
+  never read, so it has no run."
+additionalProperties: false
+required: [platform, flows]
+properties:
+  platform:
+    $ref: ./PlatformSource.yaml
+  flows:
+    type: object
+    description: Each flow the merchant negotiates a mode for (02 §6).
+    additionalProperties: false
+    required: [catalog, stockAndPrice, orders, returns]
+    properties:
+      catalog:
+        $ref: ./PlatformSyncEntry.yaml
+      stockAndPrice:
+        $ref: ./PlatformSyncEntry.yaml
+      orders:
+        $ref: ./PlatformSyncEntry.yaml
+      returns:
+        $ref: ./PlatformSyncEntry.yaml

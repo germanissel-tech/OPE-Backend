@@ -131,6 +131,14 @@ const INVENTORY: readonly Store[] = [
     durable: "configuration/gateways/sqlite-level-store.ts",
   },
   {
+    // Feature 044: where the reading of each flow stands, so a restart resumes the cycle and the change cursors
+    // instead of starting over (research R-10).
+    keeps: "where the reading of each flow of a platform stands",
+    column: "born-durable",
+    memory: "platform/gateways/memory-sync-state-store.ts",
+    durable: "platform/gateways/sqlite-sync-state-store.ts",
+  },
+  {
     keeps: "experiments and their lifecycle",
     column: "this-feature",
     memory: "experiment/gateways/memory-experiment-store.ts",

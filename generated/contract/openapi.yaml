@@ -1271,6 +1271,58 @@ paths:
           $ref: '#/components/responses/MerchantForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/merchants/{merchantId}/platform-sync:
+    get:
+      operationId: getMerchantPlatformSync
+      tags:
+        - admin
+      security:
+        - adminToken: []
+      x-required-capabilities:
+        - merchants:read
+      summary: Where the reading of a merchant's platform stands
+      description: |
+        Per flow, the mode in force and the last run of the reading of the platform (feature 044,
+        ADR-047): when it started, when one last succeeded and how it ended. Within the operator's
+        scope: outside it, `403` without saying whether the merchant exists.
+      parameters:
+        - $ref: '#/components/parameters/merchantId'
+      responses:
+        '200':
+          description: The reading of each flow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformSync'
+              example:
+                platform: test
+                flows:
+                  catalog:
+                    mode: pull
+                    lastRunAt: '2026-10-12T03:00:00Z'
+                    lastOkAt: '2026-10-12T03:00:00Z'
+                    lastOutcome:
+                      status: ok
+                      count: 120
+                  stockAndPrice:
+                    mode: pull
+                    lastRunAt: '2026-10-12T12:01:00Z'
+                    lastOkAt: '2026-10-12T12:00:00Z'
+                    lastOutcome:
+                      status: failed
+                      reason: source-failed
+                  orders:
+                    mode: push
+                  returns:
+                    mode: push
+        '401':
+          $ref: '#/components/responses/OperatorUnauthorized'
+        '403':
+          $ref: '#/components/responses/MerchantForbidden'
+        '404':
+          $ref: '#/components/responses/MerchantNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/admin/merchants/{merchantId}/configuration:
     post:
       operationId: publishMerchantConfiguration
@@ -5116,6 +5168,87 @@ components:
           description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
           minLength: 1
           maxLength: 2000
+    PlatformSource:
+      type: string
+      description: 'What OPE reads from the merchant''s platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.'
+      enum:
+        - generic
+        - test
+    SyncMode:
+      type: string
+      description: 'How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.'
+      enum:
+        - push
+        - pull
+        - subscribe
+    PlatformSyncOutcome:
+      type: object
+      description: 'How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core returned). Nothing personal: never an order or a variant.'
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Whether the run deposited what it read.
+          enum:
+            - ok
+            - failed
+        count:
+          type: integer
+          minimum: 0
+          description: Present when `ok`.
+        reason:
+          type: string
+          maxLength: 64
+          description: Present when `failed`.
+    PlatformSyncEntry:
+      type: object
+      description: 'One flow of the platform: the mode in force and the last run of the reading. What is absent never happened — a flow that never ran has no run, and one that never succeeded has no `lastOkAt`.'
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/SyncMode'
+        lastRunAt:
+          type: string
+          format: date-time
+          description: When the last run started; the cadence counts from here, whatever it ended in.
+        lastOkAt:
+          type: string
+          format: date-time
+          description: When the last run that failed nothing started.
+        lastOutcome:
+          $ref: '#/components/schemas/PlatformSyncOutcome'
+    PlatformSync:
+      type: object
+      description: 'Where the reading of each flow of a merchant''s platform stands (feature 044, ADR-047): the source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is never read, so it has no run.'
+      additionalProperties: false
+      required:
+        - platform
+        - flows
+      properties:
+        platform:
+          $ref: '#/components/schemas/PlatformSource'
+        flows:
+          type: object
+          description: Each flow the merchant negotiates a mode for (02 §6).
+          additionalProperties: false
+          required:
+            - catalog
+            - stockAndPrice
+            - orders
+            - returns
+          properties:
+            catalog:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            stockAndPrice:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            orders:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            returns:
+              $ref: '#/components/schemas/PlatformSyncEntry'
     Freshness:
       type: object
       description: Freshness budgets by class of datum (01 §8, ADR-025), measured from `capturedAt`.
@@ -5637,13 +5770,6 @@ components:
           items:
             type: string
             maxLength: 64
-    SyncMode:
-      type: string
-      description: 'How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.'
-      enum:
-        - push
-        - pull
-        - subscribe
     SyncStrategy:
       type: object
       description: The mode negotiated with the merchant for each flow (constitution X, ADR-025).
@@ -5662,12 +5788,6 @@ components:
           $ref: '#/components/schemas/SyncMode'
         returns:
           $ref: '#/components/schemas/SyncMode'
-    PlatformSource:
-      type: string
-      description: 'What OPE reads from the merchant''s platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.'
-      enum:
-        - generic
-        - test
     SyncCadence:
       type: object
       description: How often the scheduler pulls each flow of a merchant whose strategy says `pull`, and how many variants a stock-and-price batch reads (ADR-047). Ignored for a flow in another mode.

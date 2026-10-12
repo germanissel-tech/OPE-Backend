@@ -1,0 +1,19 @@
+type: object
+description: "How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with
+  why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core
+  returned). Nothing personal: never an order or a variant."
+additionalProperties: false
+required: [status]
+properties:
+  status:
+    type: string
+    description: Whether the run deposited what it read.
+    enum: [ok, failed]
+  count:
+    type: integer
+    minimum: 0
+    description: Present when `ok`.
+  reason:
+    type: string
+    maxLength: 64
+    description: Present when `failed`.

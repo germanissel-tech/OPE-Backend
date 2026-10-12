@@ -13,3 +13,10 @@ export type SyncMode = (typeof SYNC_MODES)[number];
 export const SYNC_FLOWS = ["catalog", "stockAndPrice", "orders", "returns"] as const;
 export type SyncFlow = (typeof SYNC_FLOWS)[number];
 export type SyncStrategy = Readonly<Record<SyncFlow, SyncMode>>;
+
+/**
+ * The flows a platform can notice (ADR-047; decided with the owner): an order or a return is an event with an
+ * identity to read afterwards, and a catalogue or a stock level is a state that has none, so a notice of it
+ * would only say "read everything again", which is what `pull` already does.
+ */
+export const NOTICED_FLOWS = ["orders", "returns"] as const satisfies readonly SyncFlow[];

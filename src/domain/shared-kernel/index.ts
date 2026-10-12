@@ -36,5 +36,5 @@ export { BARRIERS } from "./barrier.js";
 export type { Barrier } from "./barrier.js";
 export type { ConfigurationVersions } from "./configuration-versions.js";
 export type { AuditEntry, AuditOutcome, AuditResult } from "./audit.js";
-export { SYNC_FLOWS, SYNC_MODES } from "./sync.js";
+export { NOTICED_FLOWS, SYNC_FLOWS, SYNC_MODES } from "./sync.js";
 export type { SyncFlow, SyncMode, SyncStrategy } from "./sync.js";

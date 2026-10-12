@@ -43,7 +43,7 @@ async function configure(merchant: string, syncStrategy: Record<string, string>)
   const res = await admin(app.app, "POST", `/v1/admin/merchants/${merchant}/configuration`, {
     // Corrective, because the merchant of the tests runs an experiment and its configuration is frozen.
     body: {
-      declared: { syncStrategy, confirmedOrderStates: ["paid"] },
+      declared: { platformSource: "test", syncStrategy, confirmedOrderStates: ["paid"] },
       corrective: true,
       reason: "the platform changes how it delivers",
     },

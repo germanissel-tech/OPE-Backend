@@ -191,6 +191,7 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   // A day of hot retention, which is what the server does by default: a test with a fixed clock
   // never reaches it, and one that wants a forgotten session empties the store instead of waiting.
   stateRetention: { sessionMs: 86_400_000 },
+  testPlatform: [],
   ...over,
 });
 

@@ -7,15 +7,18 @@ import { SessionStatePort, VisitorStatePort } from "../../src/composition/module
 import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
 import { DecisionLedgerPort, ExposureLedgerPort } from "../../src/composition/modules/ledger.js";
 import { CorroborationLedgerPort, OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { InstalledSourcesPort, PlatformSchedulerPort } from "../../src/composition/modules/platform.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
+import { asOrderId, type OrderId } from "../../src/domain/outcomes/index.js";
 import {
   asExperimentId,
   asMerchantId,
   asSessionId,
   asVisitorId,
 } from "../../src/domain/shared-kernel/index.js";
+import { installedSources, scriptedTestSource } from "../../src/interface-adapters/platform/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { corpusEntryOf } from "../helpers/sayable.js";
 import { stateOf } from "../helpers/state.js";
@@ -41,7 +44,6 @@ import {
 } from "../helpers/test-app.js";
 import type { components } from "#generated/api.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
-import type { OrderId } from "../../src/domain/outcomes/index.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 
@@ -564,6 +566,49 @@ describe("isolation between merchants", () => {
     // The same refresh by B applies to B's own variant: A's kept datum is not B's.
     const byB = await postRefresh(app.app, { items: [item] }, { platformKey: "platform-b-1" });
     expect(json(byB)).toEqual({ applied: ["SKU-1-M"], repeated: [], superseded: [], unknown: [] });
+  });
+
+  it("platform (feature 044): the run of A deposits only in A, even for the orderId B also has, and each keeps its own reading", async () => {
+    const source = scriptedTestSource();
+    await app.resetPorts({
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", source]])))],
+    });
+    for (const id of [A.id, B.id]) {
+      const res = await admin(app.app, "POST", `/v1/admin/merchants/${id}/configuration`, {
+        body: {
+          declared: {
+            platformSource: "test",
+            syncStrategy: { orders: "pull" },
+            confirmedOrderStates: ["paid"],
+          },
+          corrective: true,
+          reason: "the platform is read by OPE",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    }
+    const order = (amount: string) => ({
+      orderId: "o1",
+      state: "paid",
+      total: { amount, currency: "ARS" },
+      items: [],
+    });
+    source.script(asMerchantId(A.id), { orders: [order("1.00")] });
+    source.script(asMerchantId(B.id), { orders: [order("2.00"), { ...order("3.00"), orderId: "o2" }] });
+    await app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
+    const orders = app.resolve(OrderLedgerPort);
+    const o1 = asOrderId("o1");
+    expect((await orders.find(asMerchantId(A.id), o1))?.total.amount).toBe("1.00");
+    expect((await orders.find(asMerchantId(B.id), o1))?.total.amount).toBe("2.00");
+    expect(await orders.find(asMerchantId(A.id), asOrderId("o2"))).toBeUndefined();
+    const syncOf = async (id: string) =>
+      json(await admin(app.app, "GET", `/v1/admin/merchants/${id}/platform-sync`));
+    expect(await syncOf(A.id)).toMatchObject({
+      flows: { orders: { lastOutcome: { status: "ok", count: 1 } } },
+    });
+    expect(await syncOf(B.id)).toMatchObject({
+      flows: { orders: { lastOutcome: { status: "ok", count: 2 } } },
+    });
   });
 
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {

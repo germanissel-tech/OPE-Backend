@@ -38,6 +38,11 @@ export interface AppConfig {
   eventLog: EventLogTuning;
   /** How long the plane keeps state in memory (feature 032): environment, like the queue above. */
   stateRetention: StateRetention;
+  /**
+   * The file the test platform reads (feature 044, research R-09): none or one. Environment, like the store: a
+   * server without `OPE_TEST_PLATFORM` does not install the test platform, and a merchant cannot name it.
+   */
+  testPlatform: readonly string[];
 }
 
 /** Port when `PORT` is not set: the usual local development port. */
@@ -64,7 +69,13 @@ export function readConfig(env: NodeJS.ProcessEnv, readFile: (file: string) => s
     store: readStoreLocation(env),
     eventLog: readEventLogTuning(env),
     stateRetention: readStateRetention(env),
+    testPlatform: readTestPlatform(text(env, "OPE_TEST_PLATFORM")),
   };
+}
+
+/** The file of the test platform, resolved against the working directory, or none. */
+function readTestPlatform(file: string | undefined): readonly string[] {
+  return file === undefined ? [] : [path.resolve(file)];
 }
 
 /** Decimal digits only: `Number()` would also accept hex, exponents and blanks. */

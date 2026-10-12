@@ -26,6 +26,7 @@ import { ImportExperimentsPort } from "./modules/experiment.js";
 import { EventLogPort } from "./modules/ingestion.js";
 import { ImportMerchantsPort } from "./modules/merchant.js";
 import { ImportTextsPort } from "./modules/messages.js";
+import { SchedulerTimerPort } from "./modules/platform.js";
 import { LoggerPort } from "./modules/shared-kernel.js";
 import { ContractPort, PlatformLevelPort, type SqlStorePort } from "./release.js";
 import type { Handlers } from "../interface-adapters/http/typed.js";
@@ -267,6 +268,8 @@ export async function bootstrap(config: AppConfig, overrides: BootstrapOverrides
     const definition = graph.resolve(ContractPort);
     await importSeed(config, graph);
     await reportWhatWasLost(graph);
+    // The scheduler of the platform ticks at a value of level 1, so it starts only now that one is in force.
+    graph.resolve(SchedulerTimerPort).start();
     const wired = graph.wire();
     const handlers: Handlers = { ...wired.handlers, ...overrides.handlers };
     assertEveryOperationWired(definition, handlers);

@@ -169,8 +169,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [merchants:read]
-    roadmap: platform-port
-    status: planned
+    feature: "044"
+    status: built
     source: docs/adr/047-el-puerto-de-plataforma.md
   - operationId: getExperimentResults
     method: get

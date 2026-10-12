@@ -7,6 +7,7 @@ import type { CatalogPolicies } from "../../../application/catalog/index.js";
 import type { ConfigurationService } from "../../../application/configuration/index.js";
 import type { PolicySource } from "../../../application/decision/index.js";
 import type { HoldoutSource } from "../../../application/experiment/index.js";
+import type { PlatformPolicies } from "../../../application/platform/index.js";
 import type { SyncStrategies } from "../../../application/shared-kernel/index.js";
 
 /** What the decision plane reads: the policies, the active barriers and the versions of each merchant. */
@@ -39,6 +40,23 @@ export function syncStrategiesOf(configuration: ConfigurationService): SyncStrat
   return {
     modeOf: async (merchantId, flow) =>
       (await configuration.effectiveFor(merchantId)).values.syncStrategy[flow],
+  };
+}
+
+/** What the scheduler reads of a merchant: its source, the mode of each flow, the cadence and the confirmation. */
+export function platformPoliciesOf(configuration: ConfigurationService): PlatformPolicies {
+  return {
+    async policyFor(merchantId) {
+      const { platformSource, syncStrategy, syncCadence, orderConfirmation } = (
+        await configuration.effectiveFor(merchantId)
+      ).values;
+      return {
+        source: platformSource,
+        strategy: syncStrategy,
+        cadence: syncCadence,
+        confirmation: orderConfirmation,
+      };
+    },
   };
 }
 
