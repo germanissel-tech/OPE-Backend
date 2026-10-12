@@ -1,6 +1,6 @@
 // upsertCatalogSnapshot (ADR-025): DTO → domain products (ids branded, prices as the contract validated them) → use
 // case → 201 created | 200 repeated | the Problem Details of the returned error (422 invariant,
-// 409 idempotency conflict, 503 store unavailable with Retry-After).
+// 409 idempotency conflict or a catalogue that does not arrive by push, 503 store unavailable with Retry-After).
 import { asProductId, asVariantId, type Product } from "../../../domain/catalog/index.js";
 import { idempotent, instantOf } from "../../http/boundary.js";
 import { merchantOf } from "../../http/security/principal.js";
@@ -11,6 +11,7 @@ import type {
   UpsertCatalogSnapshotResponse,
 } from "../../../application/catalog/index.js";
 import type { UseCase } from "../../../application/shared-kernel/index.js";
+import type { Fail, SyncModeNotConfigured } from "../../../domain/shared-kernel/index.js";
 import type { OperationHandler, components } from "../../http/typed.js";
 
 type ProductDto = components["schemas"]["CatalogProduct"];
@@ -40,7 +41,7 @@ function toSummaryDto(summary: CatalogSummary): SummaryDto {
 }
 
 export function makeUpsertCatalogSnapshot(
-  upsert: UseCase<UpsertCatalogSnapshotRequest, UpsertCatalogSnapshotResponse>,
+  upsert: UseCase<UpsertCatalogSnapshotRequest, UpsertCatalogSnapshotResponse | Fail<SyncModeNotConfigured>>,
 ): OperationHandler<"upsertCatalogSnapshot"> {
   return async (req) => {
     const merchant = merchantOf(req);

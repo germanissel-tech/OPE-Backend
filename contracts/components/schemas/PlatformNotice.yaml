@@ -1,0 +1,17 @@
+type: object
+description: "A notice of the merchant's platform (feature 044, ADR-047): that something changed in an
+  order or a return, and which. It enters nothing by itself — OPE reads the reference from the platform,
+  and what is recorded is what it read."
+additionalProperties: false
+required: [flow, reference]
+properties:
+  flow:
+    type: string
+    enum: [orders, returns]
+    description: What changed; only these two can be noticed.
+  reference:
+    $ref: ./OrderId.yaml
+  state:
+    type: string
+    maxLength: 64
+    description: The state the platform says the order is in. Only recorded with the notice; what counts is the state OPE reads.

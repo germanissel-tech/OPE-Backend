@@ -54,7 +54,9 @@ convenciones rigen, qué significa cada extensión y cómo se agrega algo.
 - **El tag fija el consumidor** y el consumidor fija el esquema de seguridad y el vocabulario
   cerrado de capacidades (`api-map.yaml`, `ope-consumer-security`, `ope-tags-closed-catalog`;
   ADR-020). Toda operación con `platformKey` declara los dos headers de la firma
-  (`ope-platform-signature-headers`, ADR-029).
+  (`ope-platform-signature-headers`, ADR-029). El aviso de la plataforma (consumidor `notifier`, tag `notices`,
+  esquema `noticeKey`, ADR-047) no lleva firma: las plataformas que avisan no pueden producirla, y el aviso no
+  deposita nada por sí mismo.
 - **Versionado** (ADR-003): un cambio incompatible sube la versión mayor y el prefijo `/v<N>/`
   (`ope-path-version-prefix`); mientras `info.x-stability: building`, entra con bump MINOR y
   `contract:diff` lo reporta y acepta.

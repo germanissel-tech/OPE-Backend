@@ -1,5 +1,5 @@
-// access module (ADR-034): who enters and with what. The three security schemes the contract
-// declares, the four resolvers behind them and the policies of the platform level that
+// access module (ADR-034): who enters and with what. The four security schemes the contract
+// declares (the notice key joined in feature 044), the resolvers behind them and the policies of the platform level that
 // authentication depends on — the window of a signature and the longest grace a rotation may give.
 //
 // It reads the merchants through the directory and never writes to them: that direction is the
@@ -9,6 +9,7 @@
 import {
   DefaultAdminTokenResolver,
   DefaultIngestKeyResolver,
+  DefaultNoticeKeyResolver,
   DefaultPlatformKeyResolver,
   DefaultPlatformSignatureVerifier,
   GetOperatorUseCase,
@@ -26,9 +27,12 @@ import {
   makeAdminTokenSecurity,
   makeGetOperator,
   makeIngestKeySecurity,
+  makeNoticeKeySecurity,
   makePlatformKeySecurity,
   nodeMessageAuthenticator,
   nodeTokenFingerprinter,
+  NOTICE_KEY_HEADER,
+  NOTICE_KEY_SCHEME,
   PLATFORM_KEY_HEADER,
   PLATFORM_KEY_SCHEME,
   rotationPolicyOf,
@@ -96,6 +100,14 @@ export const accessModule = compositionModule({
             clock: keys.clock,
           }),
           header: PLATFORM_KEY_HEADER,
+          consumer: "server",
+        }),
+      ),
+      [NOTICE_KEY_SCHEME]: from(
+        { merchants: MerchantDirectoryPort, minter: CredentialMinterPort, clock: ClockPort },
+        (deps) => ({
+          handler: makeNoticeKeySecurity(new DefaultNoticeKeyResolver(deps)),
+          header: NOTICE_KEY_HEADER,
           consumer: "server",
         }),
       ),

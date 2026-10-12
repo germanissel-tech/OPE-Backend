@@ -50,6 +50,8 @@ describe("PlatformConfiguration.of", () => {
       [{ unmappedValuesKept: 1.5 }, "unmappedValuesKept"],
       [{ retryAfterSeconds: 0 }, "retryAfterSeconds"],
       [{ retryAfterSeconds: 1.5 }, "retryAfterSeconds"],
+      [{ platformSyncTickMs: 0 }, "platformSyncTickMs"],
+      [{ platformSyncTickMs: 1.5 }, "platformSyncTickMs"],
     ];
     for (const [over, pointer] of cases) {
       expect(pointerOf(PlatformConfiguration.of({ ...platform(), ...over })), pointer).toBe(pointer);

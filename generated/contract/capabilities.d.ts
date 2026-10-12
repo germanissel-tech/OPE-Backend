@@ -3,8 +3,8 @@
 
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
-  readonly version: '1.15.0'
-  readonly sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0'
+  readonly version: '1.16.0'
+  readonly sha256: 'f997d6dce57299c30b3a77c4e41334600db53996f552b8ae292514f14f503faf'
 }
 
 /** The consumer this module describes: its operations and its vocabulary. */
@@ -56,6 +56,11 @@ export declare const OPERATIONS: {
     readonly idempotent: false
     readonly versioned: false
   }
+  readonly rotateNoticeKey: {
+    readonly capabilities: readonly ['credentials:rotate']
+    readonly idempotent: false
+    readonly versioned: false
+  }
   readonly rotatePlatformSecret: {
     readonly capabilities: readonly ['credentials:rotate']
     readonly idempotent: false
@@ -73,6 +78,11 @@ export declare const OPERATIONS: {
   }
   readonly listMerchantAdminLog: {
     readonly capabilities: readonly ['log:read']
+    readonly idempotent: false
+    readonly versioned: false
+  }
+  readonly getMerchantPlatformSync: {
+    readonly capabilities: readonly ['merchants:read']
     readonly idempotent: false
     readonly versioned: false
   }

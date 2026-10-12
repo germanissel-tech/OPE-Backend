@@ -55,6 +55,12 @@ export const EventLogTuningPort = port("release.event-log-tuning")<EventLogTunin
  */
 export const StateRetentionPort = port("release.state-retention")<StateRetention>();
 
+/**
+ * The file of the test platform, when the environment names one (feature 044, research R-09): environment for
+ * the same reason as the store, and a list of none or one so the deployment installs it without deciding.
+ */
+export const TestPlatformFilesPort = port("release.test-platform")<readonly string[]>();
+
 export const releaseComponents = (config: AppConfig) =>
   compositionModule({
     provides: [
@@ -62,6 +68,7 @@ export const releaseComponents = (config: AppConfig) =>
       bind(OperatorsPort, {}, () => config.operators),
       bind(EventLogTuningPort, {}, () => config.eventLog),
       bind(StateRetentionPort, {}, () => config.stateRetention),
+      bind(TestPlatformFilesPort, {}, () => config.testPlatform),
     ],
   });
 

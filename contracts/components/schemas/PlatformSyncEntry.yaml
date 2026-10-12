@@ -1,0 +1,22 @@
+type: object
+description: "One flow of the platform: the mode in force and the last run of the reading. What is absent
+  never happened — a flow that never ran has no run, and one that never succeeded has no `lastOkAt`."
+additionalProperties: false
+required: [mode]
+properties:
+  mode:
+    $ref: ./SyncMode.yaml
+  lastRunAt:
+    type: string
+    format: date-time
+    description: When the last run started; the cadence counts from here, whatever it ended in.
+  lastOkAt:
+    type: string
+    format: date-time
+    description: When the last run that failed nothing started.
+  lastOutcome:
+    $ref: ./PlatformSyncOutcome.yaml
+  pendingNotices:
+    type: integer
+    minimum: 1
+    description: Notices of this flow waiting to be read (`subscribe`); absent when there are none.

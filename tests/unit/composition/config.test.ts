@@ -51,9 +51,17 @@ describe("readConfig", () => {
       // How long the plane keeps a session in memory (feature 032). Environment for the same reason,
       // and a day by default because that is what the single field it was split out of used to hold.
       stateRetention: { sessionMs: 86_400_000 },
+      // Without OPE_TEST_PLATFORM the test platform is not installed (feature 044, research R-09).
+      testPlatform: [],
     });
     expect(corpus.length).toBeGreaterThan(0);
     expect(corpus.every((entry) => entry.text.length > 0)).toBe(true);
+  });
+
+  it("OPE_TEST_PLATFORM names the file of the test platform, resolved against the working directory", () => {
+    expect(readConfig({ OPE_TEST_PLATFORM: "config/dev-platform.json" }, noFile).testPlatform).toEqual([
+      path.resolve("config/dev-platform.json"),
+    ]);
   });
 
   it("the levels of the release come from OPE_PLATFORM_CONFIG and OPE_TREATMENT_DEFAULTS, or the files of the repository; a bad value names the level and the field", () => {
@@ -532,6 +540,26 @@ describe("readConfig", () => {
     );
     expect(() => read({ platformSecrets: ["s1", ""] })).toThrow("merchants[0].platformSecrets[1] is invalid");
     expect(() => read({ platformSecrets: ["p1"] })).toThrow("merchants[0].platformSecrets[0] is invalid");
+  });
+
+  it("noticeKeys (feature 044): optional, one or two, kept in the seed; invalid ones name the field, counted from its own list", () => {
+    const read = (over: Record<string, unknown>) =>
+      readConfig(
+        {
+          OPE_MERCHANTS: JSON.stringify([
+            { ...merchant, platformKeys: ["p1"], platformSecrets: ["s1"], ...over },
+          ]),
+        },
+        noFile,
+      ).merchants[0]?.seed;
+    expect(read({})?.noticeKeys).toEqual([]);
+    expect(read({ noticeKeys: ["n1", "n2"] })?.noticeKeys).toEqual(["n1", "n2"]);
+    expect(() => read({ noticeKeys: "n1" })).toThrow("merchants[0].noticeKeys must be an array of strings");
+    expect(() => read({ noticeKeys: ["a", "b", "c"] })).toThrow(
+      "merchants[0].noticeKeys is invalid (A merchant has at most two notice keys.)",
+    );
+    expect(() => read({ noticeKeys: ["n1", ""] })).toThrow("merchants[0].noticeKeys[1] is invalid");
+    expect(() => read({ noticeKeys: ["p1"] })).toThrow("merchants[0].noticeKeys[0] is invalid");
   });
 });
 

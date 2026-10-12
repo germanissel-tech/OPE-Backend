@@ -1,0 +1,20 @@
+type: object
+description: "The availability and the price of one variant at the instant they were true."
+additionalProperties: false
+required: [variantId, available, price, observedAt]
+properties:
+  variantId:
+    type: string
+    description: The variant as the snapshot names it. One the snapshot in force does not have is reported as unknown and not kept.
+    pattern: "^[A-Za-z0-9_.:-]{1,128}$"
+  available:
+    type: boolean
+    description: "Availability as a guard (01 §4.3), as in the snapshot: no quantity travels."
+  price:
+    $ref: ./Money.yaml
+  observedAt:
+    type: string
+    format: date-time
+    description: |
+      When this datum was true (RFC 3339): the platform's instant, or the one its reader observed it at when the
+      platform gives none. The freshness of the variant is measured from here, and only a newer instant changes it.

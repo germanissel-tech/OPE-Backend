@@ -1,0 +1,41 @@
+{
+  "merchants": {
+    "dev-merchant": {
+      "catalog": {
+        "products": [
+          {
+            "productId": "dev-p1",
+            "title": "Remera de algodón",
+            "attributes": [{ "key": "fit", "value": "regular" }],
+            "variants": [
+              {
+                "variantId": "dev-p1-m",
+                "attributes": [{ "key": "size", "value": "M" }],
+                "available": true,
+                "price": { "amount": "19990.00", "currency": "ARS" }
+              },
+              {
+                "variantId": "dev-p1-l",
+                "attributes": [{ "key": "size", "value": "L" }],
+                "available": true,
+                "price": { "amount": "19990.00", "currency": "ARS" }
+              }
+            ]
+          }
+        ]
+      },
+      "stockAndPrice": [
+        { "variantId": "dev-p1-l", "available": false, "price": { "amount": "17990.00", "currency": "ARS" } }
+      ],
+      "orders": [
+        {
+          "orderId": "dev-order-1",
+          "state": "pending",
+          "total": { "amount": "19990.00", "currency": "ARS" },
+          "items": [{ "sku": "dev-p1-m", "quantity": 1 }]
+        }
+      ],
+      "returns": []
+    }
+  }
+}

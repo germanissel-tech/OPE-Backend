@@ -194,6 +194,17 @@ get:
                 stockAndPrice: push
                 orders: push
                 returns: push
+              platformSource: generic
+              confirmedOrderStates: []
+              syncCadence:
+                catalogMs: 86400000
+                stockAndPriceMs: 60000
+                stockAndPriceBatchSize: 200
+                ordersMs: 120000
+                returnsMs: 900000
+              noticeRetry:
+                afterMs: 60000
+                maxAttempts: 10
               locales:
                 supported:
                   - es-AR
@@ -212,6 +223,7 @@ get:
                 rotationGraceMaxMs: 604800000
                 anchorDiagnosticsKept: 200
                 retryAfterSeconds: 5
+                platformSyncTickMs: 30000
             declared: *a1
             versions:
               platform: platform-2

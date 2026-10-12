@@ -318,6 +318,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/notice-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the notice key
+         * @description Mints a new notice key for the platform of the merchant (feature 044): the secret its notices carry,
+         *     which grants nothing but `notices:write`. The new value travels in the answer and never again. The previous one stays valid
+         *     for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+         *     are valid at a time — a second rotation within the grace expires the older one at once
+         *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+         */
+        post: operations["rotateNoticeKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/platform-keys": {
         parameters: {
             query?: never;
@@ -358,6 +382,28 @@ export type paths = {
          *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
          */
         post: operations["rotatePlatformSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/merchants/{merchantId}/platform-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where the reading of a merchant's platform stands
+         * @description Per flow, the mode in force and the last run of the reading of the platform (feature 044,
+         *     ADR-047): when it started, when one last succeeded and how it ended. Within the operator's
+         *     scope: outside it, `403` without saying whether the merchant exists.
+         */
+        get: operations["getMerchantPlatformSync"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -717,6 +763,35 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/catalog/refreshes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh the stock and price of some variants
+         * @description The merchant's platform sends the availability and the price of some variants, each with the instant
+         *     its datum was true (`observedAt`), without the rest of the catalogue (ADR-047). It is a layer over the
+         *     snapshot: the truth of a variant is the newest of the snapshot (`capturedAt`) and its refresh
+         *     (`observedAt`), and the freshness of its stock and price is measured from that instant, variant by
+         *     variant. Whether the product exists and its attributes still come from the snapshot only.
+         *     The answer is per item and always `200`: `applied`, `repeated`, `superseded` or `unknown` (see
+         *     `RefreshResult`). Sending the same refresh again answers `repeated` where it answered `applied`, so it
+         *     needs no idempotency key of its own. Every accepted refresh counts as a receipt for the observed
+         *     synchronisation level, as a snapshot does. Refused with `409 sync-mode-not-configured` when the
+         *     merchant's stock and price do not arrive by `push`.
+         */
+        post: operations["refreshStockAndPrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/events": {
         parameters: {
             query?: never;
@@ -846,6 +921,31 @@ export type paths = {
          *     per order and session. `503` with `Retry-After` if the ledger cannot record.
          */
         post: operations["corroborateOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/platform-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notice that an order or a return changed
+         * @description The merchant's platform says that an order or a return changed, and which (feature 044, ADR-047):
+         *     the `subscribe` mode. The notice is queued and OPE reads the reference from the platform outside the
+         *     request; **what is recorded comes from that read, never from the notice**, so the `state` it carries
+         *     is only kept with the notice. A notice repeated while the first is pending is the same notice. A
+         *     read that fails is retried at the merchant's `noticeRetry`, and dropped with a trace when the
+         *     attempts run out. Accepted only while the flow is in `subscribe` (`409 sync-mode-not-configured`).
+         */
+        post: operations["notifyPlatformChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1307,10 +1407,10 @@ export type components = {
             value: string;
         };
         /**
-         * @description The three credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of its notifications (ADR-014, ADR-025, ADR-029).
+         * @description The four credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of what it pushes, and the notice key of the notices it sends (ADR-014, ADR-025, ADR-029; feature 044).
          * @enum {string}
          */
-        CredentialKind: "ingest" | "platform" | "signing";
+        CredentialKind: "ingest" | "platform" | "signing" | "notice";
         /** @description A rotation (ADR-014, ADR-031): the previous credential of the kind lives on for the grace; none by default. */
         CredentialRotation: {
             /**
@@ -1448,15 +1548,20 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
             platform: components["schemas"]["PlatformConfiguration"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
         };
@@ -1771,14 +1876,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. No upper bound of its own: with unique items over a closed vocabulary the list cannot exceed it, and a number here would say «a merchant picks at most N» while meaning «N exist» — two things that stop coinciding the day one more barrier exists. */
             barriers?: components["schemas"]["Barrier"][];
             commercialPolicy?: components["schemas"]["CommercialPolicyDeclared"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates?: string[];
             decisionPolicy?: components["schemas"]["DecisionPolicyDeclared"];
             evidenceProfile?: components["schemas"]["EvidenceProfileDeclared"];
             freshness?: components["schemas"]["FreshnessDeclared"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare?: number;
             locales?: components["schemas"]["Locales"];
+            noticeRetry?: components["schemas"]["NoticeRetryDeclared"];
+            platformSource?: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces?: components["schemas"]["Surface"][];
+            syncCadence?: components["schemas"]["SyncCadenceDeclared"];
             syncLevel?: components["schemas"]["SyncLevelRulesDeclared"];
             syncStrategy?: components["schemas"]["SyncStrategyDeclared"];
         };
@@ -1936,6 +2046,20 @@ export type components = {
         NotCondition: {
             not: components["schemas"]["NestedCondition"];
         };
+        /** @description How a notice whose read failed is retried (ADR-047). */
+        NoticeRetry: {
+            /** @description Milliseconds between two attempts to read what a notice announced, when the platform did not answer. */
+            afterMs: number;
+            /** @description Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it. */
+            maxAttempts: number;
+        };
+        /** @description The notice retry a merchant declares; an absent value resolves from the treatment defaults. */
+        NoticeRetryDeclared: {
+            /** @description Milliseconds between two attempts to read what a notice announced, when the platform did not answer. */
+            afterMs?: number;
+            /** @description Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it. */
+            maxAttempts?: number;
+        };
         /** @description The operator behind an admin credential (ADR-031, ADR-044). `displayName` is the only personal name the contract carries: the operator is an identified and audited person, and the name is served only to the operator it names (constitution VII, 1.5.0). */
         Operator: {
             /** @description The name the operator sees in the panel. Never an identifier, never in the administration log. */
@@ -2068,6 +2192,8 @@ export type components = {
             dedupWindow: components["schemas"]["DedupWindow"];
             /** @description Milliseconds an event instant may sit in the past (late uploads). */
             eventPastToleranceMs: number;
+            /** @description Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick. */
+            platformSyncTickMs: number;
             /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
             retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
@@ -2096,6 +2222,8 @@ export type components = {
             dedupWindow: components["schemas"]["DedupWindow"];
             /** @description Milliseconds an event instant may sit in the past (late uploads). */
             eventPastToleranceMs: number;
+            /** @description Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick. */
+            platformSyncTickMs: number;
             /** @description Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021). */
             retryAfterSeconds: number;
             /** @description Longest grace a credential rotation may give the previous credential. */
@@ -2147,6 +2275,76 @@ export type components = {
             items: components["schemas"]["PlatformConfigurationVersion"][];
             /** @description Cursor of the next page; absent on the last page. */
             nextCursor?: string;
+        };
+        /** @description A notice of the merchant's platform (feature 044, ADR-047): that something changed in an order or a return, and which. It enters nothing by itself — OPE reads the reference from the platform, and what is recorded is what it read. */
+        PlatformNotice: {
+            /**
+             * @description What changed; only these two can be noticed.
+             * @enum {string}
+             */
+            flow: "orders" | "returns";
+            reference: components["schemas"]["OrderId"];
+            /** @description The state the platform says the order is in. Only recorded with the notice; what counts is the state OPE reads. */
+            state?: string;
+        };
+        /** @description The notice is queued to be read. Repeated while it is pending, it is the same notice. */
+        PlatformNoticeResult: {
+            /**
+             * @description The flow the notice is about.
+             * @enum {string}
+             */
+            flow: "orders" | "returns";
+            /**
+             * Format: date-time
+             * @description When OPE received it.
+             */
+            receivedAt: string;
+            reference: components["schemas"]["OrderId"];
+        };
+        /**
+         * @description What OPE reads from the merchant's platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.
+         * @enum {string}
+         */
+        PlatformSource: "generic" | "test";
+        /** @description Where the reading of each flow of a merchant's platform stands (feature 044, ADR-047): the source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is never read, so it has no run. */
+        PlatformSync: {
+            /** @description Each flow the merchant negotiates a mode for (02 §6). */
+            flows: {
+                catalog: components["schemas"]["PlatformSyncEntry"];
+                orders: components["schemas"]["PlatformSyncEntry"];
+                returns: components["schemas"]["PlatformSyncEntry"];
+                stockAndPrice: components["schemas"]["PlatformSyncEntry"];
+            };
+            platform: components["schemas"]["PlatformSource"];
+        };
+        /** @description One flow of the platform: the mode in force and the last run of the reading. What is absent never happened — a flow that never ran has no run, and one that never succeeded has no `lastOkAt`. */
+        PlatformSyncEntry: {
+            /**
+             * Format: date-time
+             * @description When the last run that failed nothing started.
+             */
+            lastOkAt?: string;
+            lastOutcome?: components["schemas"]["PlatformSyncOutcome"];
+            /**
+             * Format: date-time
+             * @description When the last run started; the cadence counts from here, whatever it ended in.
+             */
+            lastRunAt?: string;
+            mode: components["schemas"]["SyncMode"];
+            /** @description Notices of this flow waiting to be read (`subscribe`); absent when there are none. */
+            pendingNotices?: number;
+        };
+        /** @description How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core returned). Nothing personal: never an order or a variant. */
+        PlatformSyncOutcome: {
+            /** @description Present when `ok`. */
+            count?: number;
+            /** @description Present when `failed`. */
+            reason?: string;
+            /**
+             * @description Whether the run deposited what it read.
+             * @enum {string}
+             */
+            status: "ok" | "failed";
         };
         /** @description Which barriers need which class of product evidence before OPE speaks (01 §4.3). */
         PolicyEvidence: {
@@ -2237,6 +2435,44 @@ export type components = {
             type: "product_viewed";
             visitorId: components["schemas"]["VisitorId"];
         };
+        /**
+         * @description The stock and price of some variants, without the rest of the catalogue (ADR-047). A layer over the snapshot,
+         *     not a new snapshot: it adds no variant and replaces no product. Each item carries the instant of its own datum.
+         */
+        Refresh: {
+            /** @description The variants refreshed, each at most once. */
+            items: components["schemas"]["RefreshItem"][];
+        };
+        /** @description The availability and the price of one variant at the instant they were true. */
+        RefreshItem: {
+            /** @description Availability as a guard (01 §4.3), as in the snapshot: no quantity travels. */
+            available: boolean;
+            /**
+             * Format: date-time
+             * @description When this datum was true (RFC 3339): the platform's instant, or the one its reader observed it at when the
+             *     platform gives none. The freshness of the variant is measured from here, and only a newer instant changes it.
+             */
+            observedAt: string;
+            price: components["schemas"]["Money"];
+            /** @description The variant as the snapshot names it. One the snapshot in force does not have is reported as unknown and not kept. */
+            variantId: string;
+        };
+        /**
+         * @description What became of each item, by variant. `applied`: it is now the truth of its variant. `repeated`: the same
+         *     instant and content were already kept. `superseded`: the variant holds something newer (a later refresh, or a
+         *     snapshot captured at that instant or after), or something else at the same instant, which stays. `unknown`: the
+         *     snapshot in force does not have the variant. Every item is in exactly one list.
+         */
+        RefreshResult: {
+            /** @description Variants whose truth is now the item sent. */
+            applied: string[];
+            /** @description Variants that already held this instant with this content. */
+            repeated: string[];
+            /** @description Variants that hold something newer, or something else at the same instant. */
+            superseded: string[];
+            /** @description Variants the snapshot in force does not have; nothing was kept for them. */
+            unknown: string[];
+        };
         /** @description Removal from the cart. The return to the product page arrives as a later `product_viewed`; together they are the barrier amplifier (03 §4.2). */
         RemovedFromCart: {
             device: components["schemas"]["DeviceClass"];
@@ -2317,6 +2553,32 @@ export type components = {
          * @enum {string}
          */
         Surface: "product" | "cart";
+        /** @description How often the scheduler pulls each flow of a merchant whose strategy says `pull`, and how many variants a stock-and-price batch reads (ADR-047). Ignored for a flow in another mode. */
+        SyncCadence: {
+            /** @description Milliseconds between two pulls of the complete catalogue. */
+            catalogMs: number;
+            /** @description Milliseconds between two reads of the order changes. */
+            ordersMs: number;
+            /** @description Milliseconds between two reads of the return changes. */
+            returnsMs: number;
+            /** @description Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes. */
+            stockAndPriceBatchSize: number;
+            /** @description Milliseconds between two batches of the stock-and-price refresh. */
+            stockAndPriceMs: number;
+        };
+        /** @description The pull cadence a merchant declares; an absent value resolves from the treatment defaults. */
+        SyncCadenceDeclared: {
+            /** @description Milliseconds between two pulls of the complete catalogue. */
+            catalogMs?: number;
+            /** @description Milliseconds between two reads of the order changes. */
+            ordersMs?: number;
+            /** @description Milliseconds between two reads of the return changes. */
+            returnsMs?: number;
+            /** @description Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes. */
+            stockAndPriceBatchSize?: number;
+            /** @description Milliseconds between two batches of the stock-and-price refresh. */
+            stockAndPriceMs?: number;
+        };
         /** @description Thresholds of the observed synchronisation level (01 §14.1, ADR-025); the median algorithm is the code's. */
         SyncLevelRules: {
             /** @description Age of the latest receipt beyond which the level cannot be 2. */
@@ -2344,7 +2606,7 @@ export type components = {
             receiptsKept?: number;
         };
         /**
-         * @description How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port feature.
+         * @description How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.
          * @enum {string}
          */
         SyncMode: "push" | "pull" | "subscribe";
@@ -2420,14 +2682,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
             /** @description Name of the version in force (`defaults-3`), minted from its number. */
@@ -2442,14 +2709,19 @@ export type components = {
             /** @description Barriers OPE may infer for the merchant; the others are never dominant. */
             barriers: components["schemas"]["Barrier"][];
             commercialPolicy: components["schemas"]["CommercialPolicy"];
+            /** @description The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so. */
+            confirmedOrderStates: string[];
             decisionPolicy: components["schemas"]["DecisionPolicy"];
             evidenceProfile: components["schemas"]["EvidenceProfile"];
             freshness: components["schemas"]["Freshness"];
             /** @description Share of the traffic kept out of every experiment, as a fraction of 1; a merchant may set it to 0. */
             holdoutShare: number;
             locales: components["schemas"]["Locales"];
+            noticeRetry: components["schemas"]["NoticeRetry"];
+            platformSource: components["schemas"]["PlatformSource"];
             /** @description Page types where OPE may intervene. */
             surfaces: components["schemas"]["Surface"][];
+            syncCadence: components["schemas"]["SyncCadence"];
             syncLevel: components["schemas"]["SyncLevelRules"];
             syncStrategy: components["schemas"]["SyncStrategy"];
         };
@@ -2664,23 +2936,16 @@ export type components = {
             };
         };
         /**
-         * @description Same identity, different content (ADR-020): the idempotency key of the request matches a
-         *     record whose content differs. Nothing changed.
+         * @description Nothing changed, for one of two reasons the `type` tells apart. `idempotency-conflict` (ADR-020): the
+         *     idempotency key of the request matches a record whose content differs. `sync-mode-not-configured`
+         *     (ADR-047): the merchant has this flow arrive by another mode (`pull`, `subscribe`), so a `push` would be a
+         *     second writer of the same truth; it is accepted again once a configuration version puts the flow in `push`.
          */
         Conflict: {
             headers: {
                 [name: string]: unknown;
             };
             content: {
-                /**
-                 * @example {
-                 *       "type": "urn:ope:problem:idempotency-conflict",
-                 *       "title": "Same identity, different content",
-                 *       "status": 409,
-                 *       "detail": "A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.",
-                 *       "instance": "/v1/catalog"
-                 *     }
-                 */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
@@ -2958,6 +3223,18 @@ export type components = {
             };
         };
         /**
+         * @description Valid request rejected on semantics: one of the `x-invariants` of the refresh (ADR-007). The `type` names the
+         *     invariant; nothing was kept.
+         */
+        RefreshUnprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
          * @description Valid request rejected on semantics: one of the `x-invariants` of the operation (ADR-007).
          *     The `type` names the invariant.
          */
@@ -3028,6 +3305,27 @@ export type components = {
                  *       "title": "The resource changed since it was read",
                  *       "status": 412,
                  *       "instance": "/v1/admin/platform-configuration"
+                 *     }
+                 */
+                "application/problem+json": components["schemas"]["ProblemDetails"];
+            };
+        };
+        /**
+         * @description The merchant has this flow arrive by another mode (ADR-047): an entry by this one would be a second writer of
+         *     the same truth. Nothing changed; it is accepted again once a configuration version puts the flow in this mode.
+         */
+        SyncModeConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "type": "urn:ope:problem:sync-mode-not-configured",
+                 *       "title": "The flow does not arrive by this mode",
+                 *       "status": 409,
+                 *       "detail": "The flow stockAndPrice of this merchant arrives by pull.",
+                 *       "instance": "/v1/catalog/refreshes"
                  *     }
                  */
                 "application/problem+json": components["schemas"]["ProblemDetails"];
@@ -3540,6 +3838,19 @@ export interface operations {
                      *           "orders": "push",
                      *           "returns": "push"
                      *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
+                     *         },
                      *         "locales": {
                      *           "supported": [
                      *             "es-AR",
@@ -3560,7 +3871,8 @@ export interface operations {
                      *           "signatureWindowMs": 300000,
                      *           "rotationGraceMaxMs": 604800000,
                      *           "anchorDiagnosticsKept": 200,
-                     *           "retryAfterSeconds": 5
+                     *           "retryAfterSeconds": 5,
+                     *           "platformSyncTickMs": 30000
                      *         }
                      *       },
                      *       "declared": {
@@ -4214,6 +4526,55 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    rotateNoticeKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceSeconds": 3600
+                 *     }
+                 */
+                "application/json": components["schemas"]["CredentialRotation"];
+            };
+        };
+        responses: {
+            /** @description The credential minted; its value travels here and never again. */
+            201: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "kind": "notice",
+                     *       "value": "ope_nk_3Rt7Yb0Q2mXv8KfL1sDw4ZcN6hJpA9eGu5oTiE0nB1M",
+                     *       "issuedAt": "2026-09-20T12:00:00Z",
+                     *       "previousExpiresAt": "2026-09-20T13:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     rotatePlatformKey: {
         parameters: {
             query?: never;
@@ -4310,6 +4671,65 @@ export interface operations {
             422: components["responses"]["RotationUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMerchantPlatformSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reading of each flow. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "platform": "test",
+                     *       "flows": {
+                     *         "catalog": {
+                     *           "mode": "pull",
+                     *           "lastRunAt": "2026-10-12T03:00:00Z",
+                     *           "lastOkAt": "2026-10-12T03:00:00Z",
+                     *           "lastOutcome": {
+                     *             "status": "ok",
+                     *             "count": 120
+                     *           }
+                     *         },
+                     *         "stockAndPrice": {
+                     *           "mode": "pull",
+                     *           "lastRunAt": "2026-10-12T12:01:00Z",
+                     *           "lastOkAt": "2026-10-12T12:00:00Z",
+                     *           "lastOutcome": {
+                     *             "status": "failed",
+                     *             "reason": "source-failed"
+                     *           }
+                     *         },
+                     *         "orders": {
+                     *           "mode": "push"
+                     *         },
+                     *         "returns": {
+                     *           "mode": "push"
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformSync"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     updateMerchantProfile: {
@@ -4709,7 +5129,8 @@ export interface operations {
                      *       "rotationGraceMaxMs": 604800000,
                      *       "anchorDiagnosticsKept": 200,
                      *       "unmappedValuesKept": 200,
-                     *       "retryAfterSeconds": 5
+                     *       "retryAfterSeconds": 5,
+                     *       "platformSyncTickMs": 30000
                      *     }
                      */
                     "application/json": components["schemas"]["PlatformConfiguration"];
@@ -4749,7 +5170,8 @@ export interface operations {
                  *         "rotationGraceMaxMs": 604800000,
                  *         "anchorDiagnosticsKept": 200,
                  *         "unmappedValuesKept": 200,
-                 *         "retryAfterSeconds": 5
+                 *         "retryAfterSeconds": 5,
+                 *         "platformSyncTickMs": 30000
                  *       },
                  *       "corrective": true,
                  *       "reason": "session shortened to thirty minutes before the pilot"
@@ -4783,7 +5205,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": true,
                      *       "reason": "session shortened to thirty minutes before the pilot",
@@ -4821,7 +5244,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": true,
                      *       "reason": "session shortened to thirty minutes before the pilot",
@@ -4885,7 +5309,8 @@ export interface operations {
                      *             "rotationGraceMaxMs": 604800000,
                      *             "anchorDiagnosticsKept": 200,
                      *             "unmappedValuesKept": 200,
-                     *             "retryAfterSeconds": 9
+                     *             "retryAfterSeconds": 9,
+                     *             "platformSyncTickMs": 30000
                      *           },
                      *           "corrective": false,
                      *           "publishedAt": "2026-10-01T12:00:00Z",
@@ -4939,7 +5364,8 @@ export interface operations {
                      *         "rotationGraceMaxMs": 604800000,
                      *         "anchorDiagnosticsKept": 200,
                      *         "unmappedValuesKept": 200,
-                     *         "retryAfterSeconds": 5
+                     *         "retryAfterSeconds": 5,
+                     *         "platformSyncTickMs": 30000
                      *       },
                      *       "corrective": false,
                      *       "publishedAt": "2026-10-01T10:00:00Z",
@@ -5263,6 +5689,19 @@ export interface operations {
                      *         "orders": "push",
                      *         "returns": "push"
                      *       },
+                     *       "platformSource": "generic",
+                     *       "confirmedOrderStates": [],
+                     *       "syncCadence": {
+                     *         "catalogMs": 86400000,
+                     *         "stockAndPriceMs": 60000,
+                     *         "stockAndPriceBatchSize": 200,
+                     *         "ordersMs": 120000,
+                     *         "returnsMs": 900000
+                     *       },
+                     *       "noticeRetry": {
+                     *         "afterMs": 60000,
+                     *         "maxAttempts": 10
+                     *       },
                      *       "locales": {
                      *         "supported": []
                      *       }
@@ -5385,6 +5824,19 @@ export interface operations {
                  *           "orders": "push",
                  *           "returns": "push"
                  *         },
+                 *         "platformSource": "generic",
+                 *         "confirmedOrderStates": [],
+                 *         "syncCadence": {
+                 *           "catalogMs": 86400000,
+                 *           "stockAndPriceMs": 60000,
+                 *           "stockAndPriceBatchSize": 200,
+                 *           "ordersMs": 120000,
+                 *           "returnsMs": 900000
+                 *         },
+                 *         "noticeRetry": {
+                 *           "afterMs": 60000,
+                 *           "maxAttempts": 10
+                 *         },
                  *         "locales": {
                  *           "supported": []
                  *         }
@@ -5500,6 +5952,19 @@ export interface operations {
                      *           "stockAndPrice": "push",
                      *           "orders": "push",
                      *           "returns": "push"
+                     *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
                      *         },
                      *         "locales": {
                      *           "supported": []
@@ -5620,6 +6085,19 @@ export interface operations {
                      *           "stockAndPrice": "push",
                      *           "orders": "push",
                      *           "returns": "push"
+                     *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
                      *         },
                      *         "locales": {
                      *           "supported": []
@@ -5763,6 +6241,19 @@ export interface operations {
                      *               "orders": "push",
                      *               "returns": "push"
                      *             },
+                     *             "platformSource": "generic",
+                     *             "confirmedOrderStates": [],
+                     *             "syncCadence": {
+                     *               "catalogMs": 86400000,
+                     *               "stockAndPriceMs": 60000,
+                     *               "stockAndPriceBatchSize": 200,
+                     *               "ordersMs": 120000,
+                     *               "returnsMs": 900000
+                     *             },
+                     *             "noticeRetry": {
+                     *               "afterMs": 60000,
+                     *               "maxAttempts": 10
+                     *             },
                      *             "locales": {
                      *               "supported": []
                      *             }
@@ -5896,6 +6387,19 @@ export interface operations {
                      *           "orders": "push",
                      *           "returns": "push"
                      *         },
+                     *         "platformSource": "generic",
+                     *         "confirmedOrderStates": [],
+                     *         "syncCadence": {
+                     *           "catalogMs": 86400000,
+                     *           "stockAndPriceMs": 60000,
+                     *           "stockAndPriceBatchSize": 200,
+                     *           "ordersMs": 120000,
+                     *           "returnsMs": 900000
+                     *         },
+                     *         "noticeRetry": {
+                     *           "afterMs": 60000,
+                     *           "maxAttempts": 10
+                     *         },
                      *         "locales": {
                      *           "supported": []
                      *         }
@@ -5974,6 +6478,51 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["CatalogUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    refreshStockAndPrice: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description `v1=` followed by the lowercase hex HMAC-SHA256, keyed with a signing secret of the merchant,
+                 *     of `<X-OPE-Timestamp>.<raw request body bytes>` (ADR-029). Required for merchants with a
+                 *     signing secret; a missing header is `401 signature-missing`, a mismatch `401 signature-invalid`.
+                 *     Verified before the body is read.
+                 */
+                "X-OPE-Signature"?: components["parameters"]["X-OPE-Signature"];
+                /**
+                 * @description Unix time in seconds at which the platform signed the request (ADR-029). Required, together
+                 *     with `X-OPE-Signature`, for merchants with a signing secret configured; must be within 5
+                 *     minutes of the server clock either way (`401 signature-expired` otherwise).
+                 */
+                "X-OPE-Timestamp"?: components["parameters"]["X-OPE-Timestamp"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Refresh"];
+            };
+        };
+        responses: {
+            /** @description What became of each item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["SyncModeConflict"];
+            422: components["responses"]["RefreshUnprocessable"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };
@@ -6168,6 +6717,50 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             422: components["responses"]["CorroborationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    notifyPlatformChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "flow": "orders",
+                 *       "reference": "A-1",
+                 *       "state": "invoiced"
+                 *     }
+                 */
+                "application/json": components["schemas"]["PlatformNotice"];
+            };
+        };
+        responses: {
+            /** @description Queued to be read. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "flow": "orders",
+                     *       "reference": "A-1",
+                     *       "receivedAt": "2026-10-12T12:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformNoticeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["SyncModeConflict"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

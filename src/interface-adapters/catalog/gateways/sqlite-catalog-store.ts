@@ -1,5 +1,6 @@
-// Catalogue store on the durable store (ADR-025): the current snapshot of a merchant and the
-// instants OPE received the last few, which the observed synchronisation level is derived from.
+// Catalogue store on the durable store (ADR-025, ADR-047): the current snapshot of a merchant, the refreshes
+// of stock and price layered over it, and the instants OPE received the last few of either, which the
+// observed synchronisation level is derived from.
 //
 // Losing this is not losing evidence — the platform can publish again — but it does stop the shop:
 // with no catalogue OPE has no truth of product, so it intervenes nowhere until the next
@@ -7,12 +8,20 @@
 //
 // **How many receipts are kept is the merchant's policy and arrives with every write**, so it is
 // not a column, not a constant and not a decision of this file (constitution XI).
-import { CatalogSnapshot, type CatalogSnapshotRecord } from "../../../domain/catalog/index.js";
+import {
+  CatalogSnapshot,
+  StockAndPrice,
+  type CatalogSnapshotRecord,
+  type StockAndPriceRecord,
+} from "../../../domain/catalog/index.js";
 import { attempted, type DurableGatewayDeps } from "../../ledger/index.js";
-import { fetched, fromDocument, toDocument } from "../../shared-kernel/index.js";
+import { fetched, fromDocument, toDocument, type SqlStore } from "../../shared-kernel/index.js";
 import type { CatalogStore } from "../../../application/catalog/index.js";
+import type { MerchantId } from "../../../domain/shared-kernel/index.js";
 
 const DOCUMENT = "document";
+/** What a failed write of this store says it was writing. */
+const WRITE = "catalog";
 const RECEIVED_AT = "received_at";
 
 const CURRENT = `SELECT document FROM catalog_snapshots WHERE merchant_id = :merchant`;
@@ -42,32 +51,91 @@ const PRUNE_RECEIPTS = `DELETE FROM catalog_receipts WHERE merchant_id = :mercha
     SELECT id FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY id DESC LIMIT :kept
   )`;
 
+/**
+ * A snapshot supersedes every refresh observed at its capture or before: the truth of those variants is the
+ * snapshot's again, and the table would otherwise only grow (research R-04).
+ */
+const FORGET_SUPERSEDED = `DELETE FROM stock_and_price WHERE merchant_id = :merchant AND observed_at <= :capturedAt`;
+
+const REFRESH_OF = `SELECT document FROM stock_and_price WHERE merchant_id = :merchant AND variant_id = :variant`;
+
+/**
+ * The refresh is replaced whole: only an applied one is written, and a datum is applied only when it is newer
+ * than the one kept, so the row never moves backwards. The conflict branch sets `updated_at` as the snapshot's
+ * does.
+ */
+const KEEP_REFRESH = `INSERT INTO stock_and_price (merchant_id, variant_id, observed_at, document)
+  VALUES (:merchant, :variant, :observedAt, :document)
+  ON CONFLICT (merchant_id, variant_id) DO UPDATE
+  SET observed_at = excluded.observed_at, document = excluded.document,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`;
+
 /** Oldest first, which is the order the port promises. */
 const RECEIPTS = `SELECT received_at FROM catalog_receipts WHERE merchant_id = :merchant ORDER BY id`;
 
+/** The snapshot in force, read inside whatever transaction the caller is in. */
+function currentOf(store: SqlStore, merchantId: MerchantId): CatalogSnapshot | undefined {
+  const rows = store.all(CURRENT, { merchant: merchantId });
+  return rows.length === 0
+    ? undefined
+    : CatalogSnapshot.rehydrate(fromDocument(String(rows[0]?.[DOCUMENT])) as CatalogSnapshotRecord);
+}
+
+function refreshOf(store: SqlStore, merchantId: MerchantId, variantId: string): StockAndPrice | undefined {
+  const rows = store.all(REFRESH_OF, { merchant: merchantId, variant: variantId });
+  return rows.length === 0
+    ? undefined
+    : StockAndPrice.rehydrate(fromDocument(String(rows[0]?.[DOCUMENT])) as StockAndPriceRecord);
+}
+
+/** Records a receipt and keeps only the last `kept`: a snapshot and a refresh are both receipts (research R-05). */
+function receive(store: SqlStore, merchantId: MerchantId, receivedAt: Date, kept: number): void {
+  store.run(ADD_RECEIPT, { merchant: merchantId, receivedAt: receivedAt.toISOString() });
+  store.run(PRUNE_RECEIPTS, { merchant: merchantId, kept });
+}
+
 export function sqliteCatalogStore(deps: DurableGatewayDeps): CatalogStore {
   return {
-    current: (merchantId) =>
-      fetched(deps, () => {
-        const rows = deps.store.all(CURRENT, { merchant: merchantId });
-        return rows.length === 0
-          ? undefined
-          : CatalogSnapshot.rehydrate(fromDocument(String(rows[0]?.[DOCUMENT])) as CatalogSnapshotRecord);
-      }),
+    current: (merchantId) => fetched(deps, () => currentOf(deps.store, merchantId)),
 
     replace: (merchantId, snapshot, receiptsKept) =>
-      attempted(deps, "catalog", () => {
+      attempted(deps, WRITE, () => {
         // One transaction: a snapshot whose receipt was not recorded would report a
         // synchronisation level that does not match what was actually published.
         deps.store.transaction(() => {
           deps.store.run(REPLACE, { merchant: merchantId, document: toDocument(snapshot.record()) });
-          deps.store.run(ADD_RECEIPT, {
+          deps.store.run(FORGET_SUPERSEDED, {
             merchant: merchantId,
-            receivedAt: snapshot.receivedAt.toISOString(),
+            capturedAt: snapshot.capturedAt.toISOString(),
           });
-          deps.store.run(PRUNE_RECEIPTS, { merchant: merchantId, kept: receiptsKept });
+          receive(deps.store, merchantId, snapshot.receivedAt, receiptsKept);
         });
       }),
+
+    refreshOf: (merchantId, variantId) => fetched(deps, () => refreshOf(deps.store, merchantId, variantId)),
+
+    refresh: (refresh, receiptsKept) =>
+      attempted(deps, WRITE, () =>
+        // One transaction: the judgement reads the snapshot and the refreshes kept, and what it decides is
+        // written before anything else can read them (01 §6).
+        deps.store.transaction(() => {
+          const merchant = refresh.merchantId;
+          const snapshot = currentOf(deps.store, merchant);
+          const judged = refresh.judgedAgainst(snapshot, (variantId) =>
+            refreshOf(deps.store, merchant, variantId),
+          );
+          for (const item of judged.applied) {
+            deps.store.run(KEEP_REFRESH, {
+              merchant,
+              variant: item.variantId,
+              observedAt: item.observedAt.toISOString(),
+              document: toDocument(item.record()),
+            });
+          }
+          if (snapshot !== undefined) receive(deps.store, merchant, refresh.receivedAt, receiptsKept);
+          return judged.outcomes;
+        }),
+      ),
 
     receipts: (merchantId) =>
       fetched(deps, () =>

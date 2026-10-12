@@ -10,6 +10,7 @@ const merchant = testMerchant({ ingestKeys: ["key-a-1"], origins: ["https://shop
 const merchants: MerchantDirectory = {
   findByIngestKey: (fp, now) => Promise.resolve(merchant.owns(fp, now) ? merchant : undefined),
   findByPlatformKey: (fp, now) => Promise.resolve(merchant.ownsPlatformKey(fp, now) ? merchant : undefined),
+  findByNoticeKey: (fp, now) => Promise.resolve(merchant.ownsNoticeKey(fp, now) ? merchant : undefined),
   isRegisteredOrigin: (origin) => Promise.resolve(merchant.allowsOrigin(origin)),
 };
 const resolver = new DefaultIngestKeyResolver({

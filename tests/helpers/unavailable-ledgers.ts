@@ -76,6 +76,8 @@ export const unavailableCorroborationLedger = (): CorroborationLedger => ({
 export const unavailableCatalogStore = (): CatalogStore => ({
   current: nothing,
   replace: unavailable,
+  refreshOf: nothing,
+  refresh: unavailable,
   receipts: none,
 });
 

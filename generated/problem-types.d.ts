@@ -34,6 +34,8 @@ export declare const PROBLEM_TYPES: {
   readonly "invalid-origins": { readonly status: 500; readonly title: "A merchant needs at least one registered origin" };
   readonly "invalid-platform-keys": { readonly status: 500; readonly title: "A merchant has more than two platform keys" };
   readonly "invalid-platform-secrets": { readonly status: 500; readonly title: "A merchant has more than two platform signing secrets" };
+  readonly "invalid-notice-keys": { readonly status: 500; readonly title: "A merchant has more than two notice keys" };
+  readonly "notice-key-collision": { readonly status: 500; readonly title: "A notice key is empty or equal to another credential" };
   readonly "duplicate-experiment-id": { readonly status: 500; readonly title: "Two experiments of a merchant share an identifier" };
   readonly "payload-too-large": { readonly status: 413; readonly title: "The request body exceeds the limit of its consumer" };
   readonly "capability-missing": { readonly status: 403; readonly title: "The credential lacks a capability the operation requires" };
@@ -51,6 +53,12 @@ export declare const PROBLEM_TYPES: {
   readonly "catalog-out-of-order": { readonly status: 422; readonly title: "The snapshot is older than the current one" };
   readonly "invalid-sync-level-rules": { readonly status: 500; readonly title: "A synchronisation level threshold is not a positive integer" };
   readonly "invalid-freshness-budget": { readonly status: 500; readonly title: "A freshness budget is not a positive number of milliseconds" };
+  readonly "invalid-sync-cadence": { readonly status: 500; readonly title: "A pull cadence or the batch size is not a positive integer" };
+  readonly "invalid-notice-retry": { readonly status: 500; readonly title: "The notice retry is not a positive integer" };
+  readonly "invalid-order-confirmation": { readonly status: 500; readonly title: "A confirmed order state is blank or repeated" };
+  readonly "sync-mode-not-configured": { readonly status: 409; readonly title: "The flow does not arrive by this mode" };
+  readonly "stock-captured-in-future": { readonly status: 422; readonly title: "The observation instant is in the future" };
+  readonly "stock-and-price-duplicate-variant-id": { readonly status: 422; readonly title: "Two items of the refresh name the same variant" };
   readonly "invalid-rule-weight": { readonly status: 500; readonly title: "A rule weight or the policy weights are outside 0..1" };
   readonly "invalid-rule-threshold": { readonly status: 500; readonly title: "A rule threshold or the reading seconds are negative" };
   readonly "duplicate-rule-id": { readonly status: 500; readonly title: "Two rules of a decision policy share an id, or an id is empty" };

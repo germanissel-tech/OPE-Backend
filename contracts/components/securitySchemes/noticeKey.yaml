@@ -1,0 +1,10 @@
+type: apiKey
+in: header
+name: X-OPE-Notice-Key
+description: |
+  Secret the merchant's platform sends with every notice (ADR-047), configured as a fixed header
+  wherever the platform lets a merchant declare one (a VTEX Hook, for instance). It identifies the
+  merchant and grants nothing but `notices:write`: a notice carries no data that enters OPE — what
+  is recorded comes from reading the platform — so a leaked key only triggers reads. Up to two
+  active keys during a rotation. No signature: the platforms that publish notices cannot produce
+  one. No CORS applies (there is no browser).

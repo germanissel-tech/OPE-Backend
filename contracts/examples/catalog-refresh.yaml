@@ -1,0 +1,15 @@
+summary: Two variants refreshed, each with the instant of its datum
+value:
+  items:
+    - variantId: SKU-1-M-BLACK
+      available: false
+      price:
+        amount: "19990.00"
+        currency: ARS
+      observedAt: "2026-09-18T12:10:00Z"
+    - variantId: SKU-1-L-BLACK
+      available: true
+      price:
+        amount: "17990.00"
+        currency: ARS
+      observedAt: "2026-09-18T12:09:30Z"

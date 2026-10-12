@@ -13,5 +13,8 @@ export type {
   AuditedUseCaseDependencies,
   AuditedUseCaseReaders,
 } from "./decorators/audited-use-case.js";
+export type { SyncStrategies } from "./ports/sync-strategies.js";
+export { ModeGatedUseCase } from "./decorators/mode-gated-use-case.js";
+export type { ModeGate, ModeGatedUseCaseDependencies } from "./decorators/mode-gated-use-case.js";
 export type { Page, PageQuery } from "./page.js";
 export { readEach } from "./page.js";

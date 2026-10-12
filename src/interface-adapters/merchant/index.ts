@@ -6,6 +6,7 @@ export * from "./controllers/get-merchant.js";
 export * from "./controllers/list-merchants.js";
 export * from "./controllers/rotate-ingest-key.js";
 export * from "./controllers/rotate-platform-key.js";
+export * from "./controllers/rotate-notice-key.js";
 export * from "./controllers/rotate-platform-secret.js";
 export * from "./controllers/set-kill-switch.js";
 export * from "./controllers/update-merchant-profile.js";

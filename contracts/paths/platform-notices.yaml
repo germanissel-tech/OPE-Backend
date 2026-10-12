@@ -1,0 +1,48 @@
+post:
+  operationId: notifyPlatformChange
+  tags: [notices]
+  security:
+    - noticeKey: []
+  x-required-capabilities:
+    - notices:write
+  summary: Notice that an order or a return changed
+  description: |
+    The merchant's platform says that an order or a return changed, and which (feature 044, ADR-047):
+    the `subscribe` mode. The notice is queued and OPE reads the reference from the platform outside the
+    request; **what is recorded comes from that read, never from the notice**, so the `state` it carries
+    is only kept with the notice. A notice repeated while the first is pending is the same notice. A
+    read that fails is retried at the merchant's `noticeRetry`, and dropped with a trace when the
+    attempts run out. Accepted only while the flow is in `subscribe` (`409 sync-mode-not-configured`).
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PlatformNotice.yaml
+        example:
+          flow: orders
+          reference: A-1
+          state: invoiced
+  responses:
+    "202":
+      description: Queued to be read.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformNoticeResult.yaml
+          example:
+            flow: orders
+            reference: A-1
+            receivedAt: "2026-10-12T12:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "409":
+      $ref: ../components/responses/SyncModeConflict.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

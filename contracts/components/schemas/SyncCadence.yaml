@@ -1,0 +1,35 @@
+type: object
+description: How often the scheduler pulls each flow of a merchant whose strategy says `pull`, and how many variants a stock-and-price batch reads (ADR-047). Ignored for a flow in another mode.
+additionalProperties: false
+required:
+  - catalogMs
+  - stockAndPriceMs
+  - stockAndPriceBatchSize
+  - ordersMs
+  - returnsMs
+properties:
+  catalogMs:
+    type: integer
+    description: Milliseconds between two pulls of the complete catalogue.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceMs:
+    type: integer
+    description: Milliseconds between two batches of the stock-and-price refresh.
+    minimum: 1
+    maximum: 31536000000
+  stockAndPriceBatchSize:
+    type: integer
+    description: Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes.
+    minimum: 1
+    maximum: 1000
+  ordersMs:
+    type: integer
+    description: Milliseconds between two reads of the order changes.
+    minimum: 1
+    maximum: 31536000000
+  returnsMs:
+    type: integer
+    description: Milliseconds between two reads of the return changes.
+    minimum: 1
+    maximum: 31536000000

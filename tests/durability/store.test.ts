@@ -559,6 +559,66 @@ describe("the durable store", () => {
         store.close();
       }
     });
+
+    it("upgrades a version-6 store: the levels gain the values of the platform port, and a version that has them is untouched", () => {
+      // Feature 044: the readers of the levels require the new values, so a stored version without them
+      // would stop the boot. What it gains is what was running — the generic source, no confirmed state.
+      withMigrationsUpTo(6);
+      const before = openSqliteStore({ file, migrations: schema });
+      const level = (name: string, version: number, content: Record<string, unknown>): void => {
+        before.run("INSERT INTO configuration_levels (level, version, document) VALUES (:l, :v, :d)", {
+          l: name,
+          v: version,
+          d: JSON.stringify({ level: name, version, content, corrective: false }),
+        });
+      };
+      level("defaults", 1, { holdoutShare: 0.1 });
+      const published = {
+        holdoutShare: 0.1,
+        platformSource: "test",
+        confirmedOrderStates: ["paid"],
+        syncCadence: { catalogMs: 1 },
+        noticeRetry: { afterMs: 1, maxAttempts: 1 },
+      };
+      level("defaults", 2, published);
+      level("platform", 1, { retryAfterSeconds: 5 });
+      level("platform", 2, { retryAfterSeconds: 5, platformSyncTickMs: 1000 });
+      before.close();
+
+      withMigrationsUpTo(7);
+      const after = openSqliteStore({ file, migrations: schema });
+      try {
+        const content = (name: string, version: number): unknown =>
+          (
+            JSON.parse(
+              String(
+                after.all("SELECT document FROM configuration_levels WHERE level = :l AND version = :v", {
+                  l: name,
+                  v: version,
+                })[0]?.["document"],
+              ),
+            ) as { content: unknown }
+          ).content;
+        expect(content("defaults", 1)).toEqual({
+          holdoutShare: 0.1,
+          platformSource: "generic",
+          confirmedOrderStates: [],
+          syncCadence: {
+            catalogMs: 86400000,
+            stockAndPriceMs: 60000,
+            stockAndPriceBatchSize: 200,
+            ordersMs: 120000,
+            returnsMs: 900000,
+          },
+          noticeRetry: { afterMs: 60000, maxAttempts: 10 },
+        });
+        expect(content("defaults", 2)).toEqual(published);
+        expect(content("platform", 1)).toEqual({ retryAfterSeconds: 5, platformSyncTickMs: 30000 });
+        expect(content("platform", 2)).toEqual({ retryAfterSeconds: 5, platformSyncTickMs: 1000 });
+      } finally {
+        after.close();
+      }
+    });
   });
 
   describe("a build with more than one migration", () => {

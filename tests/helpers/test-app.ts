@@ -28,6 +28,7 @@ export interface MerchantSpec {
   merchantId: string;
   ingestKeys: string[];
   platformKeys?: string[];
+  noticeKeys?: string[];
   /** Signing secrets (ADR-029): with any, every platform request of the merchant must be signed. */
   platformSecrets?: string[];
   origins: string[];
@@ -59,6 +60,7 @@ function configured(spec: MerchantSpec): MerchantConfig {
     origins: spec.origins,
     platformKeys: spec.platformKeys ?? [],
     platformSecrets: spec.platformSecrets ?? [],
+    noticeKeys: spec.noticeKeys ?? [],
   };
   const experiments = spec.experiments.map((e) => {
     const openedAt = new Date(e.openedAt);
@@ -191,6 +193,7 @@ export const testConfig = ({ merchants, ...over }: TestConfig = {}): AppConfig =
   // A day of hot retention, which is what the server does by default: a test with a fixed clock
   // never reaches it, and one that wants a forgotten session empties the store instead of waiting.
   stateRetention: { sessionMs: 86_400_000 },
+  testPlatform: [],
   ...over,
 });
 
@@ -345,6 +348,10 @@ export const postExposure = (app: FastifyInstance, body: unknown, o: PostOptions
 
 export const putCatalog = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/catalog", body, { ...o, method: "PUT" });
+
+/** A refresh of stock and price (feature 044, ADR-047). */
+export const postRefresh = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
+  post(app, "/v1/catalog/refreshes", body, o);
 
 export const postOrder = (app: FastifyInstance, body: unknown, o: PostOptions = {}) =>
   post(app, "/v1/orders", body, o);

@@ -78,6 +78,7 @@
     "value",
     "label",
     "content",
-    "stamped"
+    "stamped",
+    "retry"
   ]
 }

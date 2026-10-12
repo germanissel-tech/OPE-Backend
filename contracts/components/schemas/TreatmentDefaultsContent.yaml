@@ -20,6 +20,10 @@ required:
   - surfaces
   - barriers
   - syncStrategy
+  - platformSource
+  - confirmedOrderStates
+  - syncCadence
+  - noticeRetry
   - locales
 properties:
   freshness:
@@ -56,5 +60,23 @@ properties:
       $ref: ./Barrier.yaml
   syncStrategy:
     $ref: ./SyncStrategy.yaml
+  platformSource:
+    $ref: ./PlatformSource.yaml
+  confirmedOrderStates:
+    type: array
+    description: "The states of the platform in which an order brought by `pull` or `subscribe` counts as
+      confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A
+      configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter
+      and nothing would say so."
+    maxItems: 32
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+      maxLength: 64
+  syncCadence:
+    $ref: ./SyncCadence.yaml
+  noticeRetry:
+    $ref: ./NoticeRetry.yaml
   locales:
     $ref: ./Locales.yaml

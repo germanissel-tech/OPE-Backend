@@ -7,15 +7,18 @@ import { SessionStatePort, VisitorStatePort } from "../../src/composition/module
 import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
 import { DecisionLedgerPort, ExposureLedgerPort } from "../../src/composition/modules/ledger.js";
 import { CorroborationLedgerPort, OrderLedgerPort } from "../../src/composition/modules/outcomes.js";
+import { InstalledSourcesPort, PlatformSchedulerPort } from "../../src/composition/modules/platform.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asProductId, asVariantId } from "../../src/domain/catalog/index.js";
 import { InterveneDecision, asDecisionId } from "../../src/domain/ledger/index.js";
+import { asOrderId, type OrderId } from "../../src/domain/outcomes/index.js";
 import {
   asExperimentId,
   asMerchantId,
   asSessionId,
   asVisitorId,
 } from "../../src/domain/shared-kernel/index.js";
+import { installedSources, scriptedTestSource } from "../../src/interface-adapters/platform/index.js";
 import { json, problemOf } from "../helpers/json.js";
 import { corpusEntryOf } from "../helpers/sayable.js";
 import { stateOf } from "../helpers/state.js";
@@ -32,6 +35,7 @@ import {
   postEvents,
   postExposure,
   postOrder,
+  postRefresh,
   postReturn,
   putCatalog,
   sharedTestApp,
@@ -40,7 +44,6 @@ import {
 } from "../helpers/test-app.js";
 import type { components } from "#generated/api.js";
 import type { Assignment } from "../../src/domain/experiment/index.js";
-import type { OrderId } from "../../src/domain/outcomes/index.js";
 
 type IngestResult = components["schemas"]["IngestResult"];
 
@@ -69,6 +72,14 @@ const exposureOf = (decisionId: string) => ({
   visitorId: "vis_00000001",
   exposedAt: NOW,
   anchor: "variant_selector",
+});
+
+/** An order of the test platform in the state the merchants of these tests confirm (feature 044). */
+const paidOrder = (amount: string) => ({
+  orderId: "o1",
+  state: "paid",
+  total: { amount, currency: "ARS" },
+  items: [],
 });
 
 async function intervene(merchantId: string, decisionId: string): Promise<void> {
@@ -535,6 +546,112 @@ describe("isolation between merchants", () => {
     expect(
       await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M")),
     ).toMatchObject({ kind: "unknown" });
+  });
+
+  it("refresh (feature 044): A's refresh of a variant does not touch B's variant with the same variantId", async () => {
+    for (const [title, key] of [
+      ["A's shirt", "platform-a-1"],
+      ["B's shirt", "platform-b-1"],
+    ] as const) {
+      const snapshot = { capturedAt: NOW, products: [catalogProductOf("SKU-1", 1, { title })] };
+      expect((await putCatalog(app.app, snapshot, { platformKey: key })).statusCode).toBe(201);
+    }
+    const observedAt = new Date(new Date(NOW).getTime() + 1).toISOString();
+    const item = {
+      variantId: "SKU-1-M",
+      available: false,
+      price: { amount: "1.00", currency: "ARS" },
+      observedAt,
+    };
+    const refreshed = await postRefresh(app.app, { items: [item] }, { platformKey: "platform-a-1" });
+    expect(refreshed.statusCode).toBe(200);
+    expect(json(refreshed)).toEqual({ applied: ["SKU-1-M"], repeated: [], superseded: [], unknown: [] });
+    const truth = app.resolve(ProductTruthPort);
+    const inA = await truth.lookup(asMerchantId(A.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    const inB = await truth.lookup(asMerchantId(B.id), asProductId("SKU-1"), asVariantId("SKU-1-M"));
+    expect(inA).toMatchObject({ kind: "known", variant: { available: false, price: { amount: "1.00" } } });
+    expect(inB).toMatchObject({ kind: "known", variant: { available: true, price: { amount: "19990.00" } } });
+    // The same refresh by B applies to B's own variant: A's kept datum is not B's.
+    const byB = await postRefresh(app.app, { items: [item] }, { platformKey: "platform-b-1" });
+    expect(json(byB)).toEqual({ applied: ["SKU-1-M"], repeated: [], superseded: [], unknown: [] });
+  });
+
+  it("platform (feature 044): the run of A deposits only in A, even for the orderId B also has, and each keeps its own reading", async () => {
+    const source = scriptedTestSource();
+    await app.resetPorts({
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", source]])))],
+    });
+    for (const id of [A.id, B.id]) {
+      const res = await admin(app.app, "POST", `/v1/admin/merchants/${id}/configuration`, {
+        body: {
+          declared: {
+            platformSource: "test",
+            syncStrategy: { orders: "pull" },
+            confirmedOrderStates: ["paid"],
+          },
+          corrective: true,
+          reason: "the platform is read by OPE",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    }
+    source.script(asMerchantId(A.id), { orders: [paidOrder("1.00")] });
+    source.script(asMerchantId(B.id), {
+      orders: [paidOrder("2.00"), { ...paidOrder("3.00"), orderId: "o2" }],
+    });
+    await app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
+    const orders = app.resolve(OrderLedgerPort);
+    const o1 = asOrderId("o1");
+    expect((await orders.find(asMerchantId(A.id), o1))?.total.amount).toBe("1.00");
+    expect((await orders.find(asMerchantId(B.id), o1))?.total.amount).toBe("2.00");
+    expect(await orders.find(asMerchantId(A.id), asOrderId("o2"))).toBeUndefined();
+    const syncOf = async (id: string) =>
+      json(await admin(app.app, "GET", `/v1/admin/merchants/${id}/platform-sync`));
+    expect(await syncOf(A.id)).toMatchObject({
+      flows: { orders: { lastOutcome: { status: "ok", count: 1 } } },
+    });
+    expect(await syncOf(B.id)).toMatchObject({
+      flows: { orders: { lastOutcome: { status: "ok", count: 2 } } },
+    });
+  });
+
+  it("notices (feature 044): a notice with the key of A is read from A's platform and deposits in A, never in B", async () => {
+    const source = scriptedTestSource();
+    await app.resetPorts({
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", source]])))],
+    });
+    for (const id of [A.id, B.id]) {
+      const res = await admin(app.app, "POST", `/v1/admin/merchants/${id}/configuration`, {
+        body: {
+          declared: {
+            platformSource: "test",
+            syncStrategy: { orders: "subscribe" },
+            confirmedOrderStates: ["paid"],
+          },
+          corrective: true,
+          reason: "the platform notices",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    }
+    source.script(asMerchantId(A.id), { orders: [paidOrder("1.00")] });
+    source.script(asMerchantId(B.id), { orders: [paidOrder("2.00")] });
+    const keyOfA = json(
+      await admin(app.app, "POST", `/v1/admin/merchants/${A.id}/notice-keys`, { body: {} }),
+    ) as {
+      value: string;
+    };
+    const res = await app.app.inject({
+      method: "POST",
+      url: "/v1/platform-notices",
+      headers: { "content-type": "application/json", "x-ope-notice-key": keyOfA.value },
+      payload: JSON.stringify({ flow: "orders", reference: "o1" }),
+    });
+    expect(res.statusCode).toBe(202);
+    await app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
+    const orders = app.resolve(OrderLedgerPort);
+    expect((await orders.find(asMerchantId(A.id), asOrderId("o1")))?.total.amount).toBe("1.00");
+    expect(await orders.find(asMerchantId(B.id), asOrderId("o1"))).toBeUndefined();
   });
 
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {

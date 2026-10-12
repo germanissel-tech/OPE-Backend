@@ -5,12 +5,19 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { replace } from "../../src/composition/graph/index.js";
 import { AssignmentLedgerPort } from "../../src/composition/modules/experiment.js";
 import { DecisionLedgerPort, ExposureLedgerPort } from "../../src/composition/modules/ledger.js";
+import { InstalledSourcesPort, PlatformSchedulerPort } from "../../src/composition/modules/platform.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asExperimentId, asMerchantId, asVisitorId } from "../../src/domain/shared-kernel/index.js";
+import {
+  installedSources,
+  scriptedTestSource,
+  type PlatformSource,
+} from "../../src/interface-adapters/platform/index.js";
 import { json } from "../helpers/json.js";
 import { corpusEntryOf, corpusText } from "../helpers/sayable.js";
 import {
+  admin,
   catalogProductOf,
   eventOf,
   fixedClock,
@@ -264,5 +271,47 @@ describe("decision plane — user story 4, the evidence chain", () => {
     );
     expect(res.statusCode).toBe(422);
     expect(json(res)).toMatchObject({ type: "urn:ope:problem:exposure-of-no-op" });
+  });
+});
+
+describe("decision plane — feature 044, off the reading of the platform", () => {
+  it("with a source that never answers and a run hung on it, the decision answers the same and never reads the source (FR-013, SC-005)", async () => {
+    let reads = 0;
+    const hung = scriptedTestSource();
+    const never: PlatformSource = {
+      ...hung,
+      stockAndPrice: () => {
+        reads += 1;
+        return new Promise(() => undefined);
+      },
+    };
+    await app.resetPorts({
+      config: { merchants: [treatment] },
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", never]])))],
+    });
+    const pushed = await putCatalog(
+      app.app,
+      { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },
+      { platformKey: "platform-a-1" },
+    );
+    expect(pushed.statusCode).toBe(201);
+    const configured = await admin(app.app, "POST", "/v1/admin/merchants/m_a/configuration", {
+      body: {
+        declared: { platformSource: "test", syncStrategy: { stockAndPrice: "pull" } },
+        corrective: true,
+        reason: "the platform is read by OPE",
+      },
+    });
+    expect(configured.statusCode).toBe(201);
+    // Started and never awaited: it stays inside the source for the rest of the test.
+    void app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(reads).toBe(1);
+    const body = await ingest([variantSelector(1), variantSelector(2), specifications(3)]);
+    expect(body.decision).toMatchObject({ outcome: "INTERVENE", reason: "fit" });
+    expect((await recorded(body.decision.decisionId))?.inference).toMatchObject({
+      evidence: { truth: "known", stockAndPrice: "fresh", available: true },
+    });
+    expect(reads).toBe(1);
   });
 });

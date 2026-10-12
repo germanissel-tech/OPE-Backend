@@ -3,8 +3,8 @@
 
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
-  readonly version: '1.15.0'
-  readonly sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0'
+  readonly version: '1.16.0'
+  readonly sha256: 'f997d6dce57299c30b3a77c4e41334600db53996f552b8ae292514f14f503faf'
 }
 
 /** What the contract demands of one field; the same shape `@ope/core` validates with. */
@@ -55,10 +55,14 @@ export declare const CONSTRAINTS: {
   readonly MerchantCreate: MessageConstraints
   readonly MerchantProfileInput: MessageConstraints
   readonly MerchantTextInput: MessageConstraints
+  readonly NoticeRetry: MessageConstraints
+  readonly NoticeRetryDeclared: MessageConstraints
   readonly PlatformConfigurationContent: MessageConstraints
   readonly PlatformConfigurationInput: MessageConstraints
   readonly PolicyEvidence: MessageConstraints
   readonly PolicyWeights: MessageConstraints
+  readonly SyncCadence: MessageConstraints
+  readonly SyncCadenceDeclared: MessageConstraints
   readonly SyncLevelRules: MessageConstraints
   readonly SyncLevelRulesDeclared: MessageConstraints
   readonly SyncStrategy: MessageConstraints

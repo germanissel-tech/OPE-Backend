@@ -1,0 +1,23 @@
+type: object
+description: |
+  The stock and price of some variants, without the rest of the catalogue (ADR-047). A layer over the snapshot,
+  not a new snapshot: it adds no variant and replaces no product. Each item carries the instant of its own datum.
+additionalProperties: false
+required: [items]
+x-invariants:
+  - type: stock-and-price-duplicate-variant-id
+    status: 422
+    rule: items[].variantId are unique
+    description: Two items for the same variant would not say which of them is the truth.
+  - type: stock-captured-in-future
+    status: 422
+    rule: items[].observedAt <= receivedAt + 5 min
+    description: An observation instant in the future would fake freshness; the platform's clock is wrong.
+properties:
+  items:
+    type: array
+    description: The variants refreshed, each at most once.
+    minItems: 1
+    maxItems: 1000
+    items:
+      $ref: ./RefreshItem.yaml

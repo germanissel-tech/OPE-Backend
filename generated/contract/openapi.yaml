@@ -3,7 +3,7 @@
 openapi: 3.1.0
 info:
   title: OPE Backend API
-  version: 1.15.0
+  version: 1.16.0
   x-stability: building
   description: |
     HTTP API of the OPE backend. This document is the single source of truth for every HTTP
@@ -22,6 +22,10 @@ tags:
     description: Service status and support operations. No authentication.
   - name: outcomes
     description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
+  - name: refresh
+    description: The stock and price of some variants, pushed by the merchant's platform without the rest of the catalogue (ADR-047). Server to server.
+  - name: notices
+    description: The notices of the merchant's platform that something changed (ADR-047). OPE reads what changed; the notice enters nothing by itself. Server to server.
   - name: admin
     description: Administration of the platform by operators of OPE (merchants, credentials, configuration, experiments). Every action is logged.
 paths:
@@ -362,6 +366,63 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /v1/catalog/refreshes:
+    post:
+      operationId: refreshStockAndPrice
+      tags:
+        - refresh
+      security:
+        - platformKey: []
+      x-required-capabilities:
+        - catalog:write
+      summary: Refresh the stock and price of some variants
+      description: |
+        The merchant's platform sends the availability and the price of some variants, each with the instant
+        its datum was true (`observedAt`), without the rest of the catalogue (ADR-047). It is a layer over the
+        snapshot: the truth of a variant is the newest of the snapshot (`capturedAt`) and its refresh
+        (`observedAt`), and the freshness of its stock and price is measured from that instant, variant by
+        variant. Whether the product exists and its attributes still come from the snapshot only.
+        The answer is per item and always `200`: `applied`, `repeated`, `superseded` or `unknown` (see
+        `RefreshResult`). Sending the same refresh again answers `repeated` where it answered `applied`, so it
+        needs no idempotency key of its own. Every accepted refresh counts as a receipt for the observed
+        synchronisation level, as a snapshot does. Refused with `409 sync-mode-not-configured` when the
+        merchant's stock and price do not arrive by `push`.
+      parameters:
+        - $ref: '#/components/parameters/X-OPE-Timestamp'
+        - $ref: '#/components/parameters/X-OPE-Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refresh'
+            examples:
+              refresh:
+                $ref: '#/components/examples/catalog-refresh'
+      responses:
+        '200':
+          description: What became of each item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResult'
+              examples:
+                refreshed:
+                  $ref: '#/components/examples/catalog-refresh-result'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/SyncModeConflict'
+        '422':
+          $ref: '#/components/responses/RefreshUnprocessable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/orders:
     post:
       operationId: notifyOrder
@@ -571,6 +632,56 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ReturnUnprocessable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/platform-notices:
+    post:
+      operationId: notifyPlatformChange
+      tags:
+        - notices
+      security:
+        - noticeKey: []
+      x-required-capabilities:
+        - notices:write
+      summary: Notice that an order or a return changed
+      description: |
+        The merchant's platform says that an order or a return changed, and which (feature 044, ADR-047):
+        the `subscribe` mode. The notice is queued and OPE reads the reference from the platform outside the
+        request; **what is recorded comes from that read, never from the notice**, so the `state` it carries
+        is only kept with the notice. A notice repeated while the first is pending is the same notice. A
+        read that fails is retried at the merchant's `noticeRetry`, and dropped with a trace when the
+        attempts run out. Accepted only while the flow is in `subscribe` (`409 sync-mode-not-configured`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformNotice'
+            example:
+              flow: orders
+              reference: A-1
+              state: invoiced
+      responses:
+        '202':
+          description: Queued to be read.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformNoticeResult'
+              example:
+                flow: orders
+                reference: A-1
+                receivedAt: '2026-10-12T12:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/SyncModeConflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -977,6 +1088,63 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /v1/admin/merchants/{merchantId}/notice-keys:
+    post:
+      operationId: rotateNoticeKey
+      tags:
+        - admin
+      security:
+        - adminToken: []
+      x-required-capabilities:
+        - credentials:rotate
+      summary: Rotate the notice key
+      description: |
+        Mints a new notice key for the platform of the merchant (feature 044): the secret its notices carry,
+        which grants nothing but `notices:write`. The new value travels in the answer and never again. The previous one stays valid
+        for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+        are valid at a time — a second rotation within the grace expires the older one at once
+        (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+      parameters:
+        - $ref: '#/components/parameters/merchantId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialRotation'
+            example:
+              graceSeconds: 3600
+      responses:
+        '201':
+          description: The credential minted; its value travels here and never again.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialIssued'
+              example:
+                kind: notice
+                value: ope_nk_3Rt7Yb0Q2mXv8KfL1sDw4ZcN6hJpA9eGu5oTiE0nB1M
+                issuedAt: '2026-09-20T12:00:00Z'
+                previousExpiresAt: '2026-09-20T13:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/OperatorUnauthorized'
+        '403':
+          $ref: '#/components/responses/MerchantForbidden'
+        '404':
+          $ref: '#/components/responses/MerchantNotFound'
+        '409':
+          $ref: '#/components/responses/MerchantDeactivatedConflict'
+        '422':
+          $ref: '#/components/responses/RotationUnprocessable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/admin/merchants/{merchantId}/platform-secrets:
     post:
       operationId: rotatePlatformSecret
@@ -1212,6 +1380,60 @@ paths:
           $ref: '#/components/responses/MerchantForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/merchants/{merchantId}/platform-sync:
+    get:
+      operationId: getMerchantPlatformSync
+      tags:
+        - admin
+      security:
+        - adminToken: []
+      x-required-capabilities:
+        - merchants:read
+      summary: Where the reading of a merchant's platform stands
+      description: |
+        Per flow, the mode in force and the last run of the reading of the platform (feature 044,
+        ADR-047): when it started, when one last succeeded and how it ended. Within the operator's
+        scope: outside it, `403` without saying whether the merchant exists.
+      parameters:
+        - $ref: '#/components/parameters/merchantId'
+      responses:
+        '200':
+          description: The reading of each flow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformSync'
+              example:
+                platform: test
+                flows:
+                  catalog:
+                    mode: pull
+                    lastRunAt: '2026-10-12T03:00:00Z'
+                    lastOkAt: '2026-10-12T03:00:00Z'
+                    lastOutcome:
+                      status: ok
+                      count: 120
+                  stockAndPrice:
+                    mode: pull
+                    lastRunAt: '2026-10-12T12:01:00Z'
+                    lastOkAt: '2026-10-12T12:00:00Z'
+                    lastOutcome:
+                      status: failed
+                      reason: source-failed
+                  orders:
+                    mode: push
+                  returns:
+                    mode: push
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/OperatorUnauthorized'
+        '403':
+          $ref: '#/components/responses/MerchantForbidden'
+        '404':
+          $ref: '#/components/responses/MerchantNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/admin/merchants/{merchantId}/configuration:
     post:
       operationId: publishMerchantConfiguration
@@ -1411,6 +1633,17 @@ paths:
                     stockAndPrice: push
                     orders: push
                     returns: push
+                  platformSource: generic
+                  confirmedOrderStates: []
+                  syncCadence:
+                    catalogMs: 86400000
+                    stockAndPriceMs: 60000
+                    stockAndPriceBatchSize: 200
+                    ordersMs: 120000
+                    returnsMs: 900000
+                  noticeRetry:
+                    afterMs: 60000
+                    maxAttempts: 10
                   locales:
                     supported:
                       - es-AR
@@ -1429,6 +1662,7 @@ paths:
                     rotationGraceMaxMs: 604800000
                     anchorDiagnosticsKept: 200
                     retryAfterSeconds: 5
+                    platformSyncTickMs: 30000
                 declared:
                   freshness:
                     stockAndPriceMs: 600000
@@ -1881,6 +2115,7 @@ paths:
                 anchorDiagnosticsKept: 200
                 unmappedValuesKept: 200
                 retryAfterSeconds: 5
+                platformSyncTickMs: 30000
               corrective: true
               reason: session shortened to thirty minutes before the pilot
       responses:
@@ -1909,6 +2144,7 @@ paths:
                   anchorDiagnosticsKept: 200
                   unmappedValuesKept: 200
                   retryAfterSeconds: 5
+                  platformSyncTickMs: 30000
                 corrective: true
                 reason: session shortened to thirty minutes before the pilot
                 publishedAt: '2026-10-01T12:00:00Z'
@@ -1940,6 +2176,7 @@ paths:
                   anchorDiagnosticsKept: 200
                   unmappedValuesKept: 200
                   retryAfterSeconds: 5
+                  platformSyncTickMs: 30000
                 corrective: true
                 reason: session shortened to thirty minutes before the pilot
                 publishedAt: '2026-10-01T12:00:00Z'
@@ -1998,6 +2235,7 @@ paths:
                 anchorDiagnosticsKept: 200
                 unmappedValuesKept: 200
                 retryAfterSeconds: 5
+                platformSyncTickMs: 30000
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2047,6 +2285,7 @@ paths:
                       anchorDiagnosticsKept: 200
                       unmappedValuesKept: 200
                       retryAfterSeconds: 9
+                      platformSyncTickMs: 30000
                     corrective: false
                     publishedAt: '2026-10-01T12:00:00Z'
                     operatorId: ops-1
@@ -2096,6 +2335,7 @@ paths:
                   anchorDiagnosticsKept: 200
                   unmappedValuesKept: 200
                   retryAfterSeconds: 5
+                  platformSyncTickMs: 30000
                 corrective: false
                 publishedAt: '2026-10-01T10:00:00Z'
                 operatorId: system
@@ -2207,6 +2447,17 @@ paths:
                   stockAndPrice: push
                   orders: push
                   returns: push
+                platformSource: generic
+                confirmedOrderStates: []
+                syncCadence:
+                  catalogMs: 86400000
+                  stockAndPriceMs: 60000
+                  stockAndPriceBatchSize: 200
+                  ordersMs: 120000
+                  returnsMs: 900000
+                noticeRetry:
+                  afterMs: 60000
+                  maxAttempts: 10
                 locales:
                   supported: []
               corrective: true
@@ -2293,6 +2544,17 @@ paths:
                     stockAndPrice: push
                     orders: push
                     returns: push
+                  platformSource: generic
+                  confirmedOrderStates: []
+                  syncCadence:
+                    catalogMs: 86400000
+                    stockAndPriceMs: 60000
+                    stockAndPriceBatchSize: 200
+                    ordersMs: 120000
+                    returnsMs: 900000
+                  noticeRetry:
+                    afterMs: 60000
+                    maxAttempts: 10
                   locales:
                     supported: []
                 corrective: true
@@ -2382,6 +2644,17 @@ paths:
                     stockAndPrice: push
                     orders: push
                     returns: push
+                  platformSource: generic
+                  confirmedOrderStates: []
+                  syncCadence:
+                    catalogMs: 86400000
+                    stockAndPriceMs: 60000
+                    stockAndPriceBatchSize: 200
+                    ordersMs: 120000
+                    returnsMs: 900000
+                  noticeRetry:
+                    afterMs: 60000
+                    maxAttempts: 10
                   locales:
                     supported: []
                 corrective: true
@@ -2507,6 +2780,17 @@ paths:
                   stockAndPrice: push
                   orders: push
                   returns: push
+                platformSource: generic
+                confirmedOrderStates: []
+                syncCadence:
+                  catalogMs: 86400000
+                  stockAndPriceMs: 60000
+                  stockAndPriceBatchSize: 200
+                  ordersMs: 120000
+                  returnsMs: 900000
+                noticeRetry:
+                  afterMs: 60000
+                  maxAttempts: 10
                 locales:
                   supported: []
         '400':
@@ -2612,6 +2896,17 @@ paths:
                         stockAndPrice: push
                         orders: push
                         returns: push
+                      platformSource: generic
+                      confirmedOrderStates: []
+                      syncCadence:
+                        catalogMs: 86400000
+                        stockAndPriceMs: 60000
+                        stockAndPriceBatchSize: 200
+                        ordersMs: 120000
+                        returnsMs: 900000
+                      noticeRetry:
+                        afterMs: 60000
+                        maxAttempts: 10
                       locales:
                         supported: []
                     corrective: true
@@ -2718,6 +3013,17 @@ paths:
                     stockAndPrice: push
                     orders: push
                     returns: push
+                  platformSource: generic
+                  confirmedOrderStates: []
+                  syncCadence:
+                    catalogMs: 86400000
+                    stockAndPriceMs: 60000
+                    stockAndPriceBatchSize: 200
+                    ordersMs: 120000
+                    returnsMs: 900000
+                  noticeRetry:
+                    afterMs: 60000
+                    maxAttempts: 10
                   locales:
                     supported: []
                 corrective: false
@@ -3140,6 +3446,17 @@ components:
         HMAC-SHA256 of `<timestamp>.<raw body>`), within a window of 5 minutes; the signature is
         verified before the body is read and any of the merchant's active secrets is accepted. Without
         a secret configured, the key alone authenticates.
+    noticeKey:
+      type: apiKey
+      in: header
+      name: X-OPE-Notice-Key
+      description: |
+        Secret the merchant's platform sends with every notice (ADR-047), configured as a fixed header
+        wherever the platform lets a merchant declare one (a VTEX Hook, for instance). It identifies the
+        merchant and grants nothing but `notices:write`: a notice carries no data that enters OPE — what
+        is recorded comes from reading the platform — so a leaked key only triggers reads. Up to two
+        active keys during a rotation. No signature: the platforms that publish notices cannot produce
+        one. No CORS applies (there is no browser).
     adminToken:
       type: http
       scheme: bearer
@@ -4273,6 +4590,98 @@ components:
           description: |
             Synchronisation level OPE observes from the cadence of snapshots (01 §14.1: measured, not
             declared): 0 no data, 1 daily dump, 2 minutes, 3 per change (never reached with full snapshots).
+    RefreshItem:
+      type: object
+      description: The availability and the price of one variant at the instant they were true.
+      additionalProperties: false
+      required:
+        - variantId
+        - available
+        - price
+        - observedAt
+      properties:
+        variantId:
+          type: string
+          description: The variant as the snapshot names it. One the snapshot in force does not have is reported as unknown and not kept.
+          pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        available:
+          type: boolean
+          description: 'Availability as a guard (01 §4.3), as in the snapshot: no quantity travels.'
+        price:
+          $ref: '#/components/schemas/Money'
+        observedAt:
+          type: string
+          format: date-time
+          description: |
+            When this datum was true (RFC 3339): the platform's instant, or the one its reader observed it at when the
+            platform gives none. The freshness of the variant is measured from here, and only a newer instant changes it.
+    Refresh:
+      type: object
+      description: |
+        The stock and price of some variants, without the rest of the catalogue (ADR-047). A layer over the snapshot,
+        not a new snapshot: it adds no variant and replaces no product. Each item carries the instant of its own datum.
+      additionalProperties: false
+      required:
+        - items
+      x-invariants:
+        - type: stock-and-price-duplicate-variant-id
+          status: 422
+          rule: items[].variantId are unique
+          description: Two items for the same variant would not say which of them is the truth.
+        - type: stock-captured-in-future
+          status: 422
+          rule: items[].observedAt <= receivedAt + 5 min
+          description: An observation instant in the future would fake freshness; the platform's clock is wrong.
+      properties:
+        items:
+          type: array
+          description: The variants refreshed, each at most once.
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/RefreshItem'
+    RefreshResult:
+      type: object
+      description: |
+        What became of each item, by variant. `applied`: it is now the truth of its variant. `repeated`: the same
+        instant and content were already kept. `superseded`: the variant holds something newer (a later refresh, or a
+        snapshot captured at that instant or after), or something else at the same instant, which stays. `unknown`: the
+        snapshot in force does not have the variant. Every item is in exactly one list.
+      additionalProperties: false
+      required:
+        - applied
+        - repeated
+        - superseded
+        - unknown
+      properties:
+        applied:
+          type: array
+          description: Variants whose truth is now the item sent.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        repeated:
+          type: array
+          description: Variants that already held this instant with this content.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        superseded:
+          type: array
+          description: Variants that hold something newer, or something else at the same instant.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
+        unknown:
+          type: array
+          description: Variants the snapshot in force does not have; nothing was kept for them.
+          maxItems: 1000
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_.:-]{1,128}$
     OrderId:
       type: string
       description: Identifier of the order as the platform issues it. Unique per merchant; the idempotency key of orders and returns (01 §6).
@@ -4462,6 +4871,47 @@ components:
           type: string
           format: date-time
           description: Instant OPE recorded the return (the first receipt, when repeated).
+    PlatformNotice:
+      type: object
+      description: 'A notice of the merchant''s platform (feature 044, ADR-047): that something changed in an order or a return, and which. It enters nothing by itself — OPE reads the reference from the platform, and what is recorded is what it read.'
+      additionalProperties: false
+      required:
+        - flow
+        - reference
+      properties:
+        flow:
+          type: string
+          enum:
+            - orders
+            - returns
+          description: What changed; only these two can be noticed.
+        reference:
+          $ref: '#/components/schemas/OrderId'
+        state:
+          type: string
+          maxLength: 64
+          description: The state the platform says the order is in. Only recorded with the notice; what counts is the state OPE reads.
+    PlatformNoticeResult:
+      type: object
+      description: The notice is queued to be read. Repeated while it is pending, it is the same notice.
+      additionalProperties: false
+      required:
+        - flow
+        - reference
+        - receivedAt
+      properties:
+        flow:
+          type: string
+          enum:
+            - orders
+            - returns
+          description: The flow the notice is about.
+        reference:
+          $ref: '#/components/schemas/OrderId'
+        receivedAt:
+          type: string
+          format: date-time
+          description: When OPE received it.
     OperatorId:
       type: string
       description: 'Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up).'
@@ -4618,11 +5068,12 @@ components:
         - deactivated
     CredentialKind:
       type: string
-      description: 'The three credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of its notifications (ADR-014, ADR-025, ADR-029).'
+      description: 'The four credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of what it pushes, and the notice key of the notices it sends (ADR-014, ADR-025, ADR-029; feature 044).'
       enum:
         - ingest
         - platform
         - signing
+        - notice
     CredentialSummary:
       type: object
       description: A credential as an operator sees it — kind and instants, never the value (ADR-031).
@@ -4881,6 +5332,91 @@ components:
           description: Free text of the operator about the relationship (why it was created, which stage, who to talk to).
           minLength: 1
           maxLength: 2000
+    PlatformSource:
+      type: string
+      description: 'What OPE reads from the merchant''s platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.'
+      enum:
+        - generic
+        - test
+    SyncMode:
+      type: string
+      description: 'How a flow of the platform reaches OPE (constitution X, ADR-025, ADR-047): `push` (the platform sends it, signed), `pull` (OPE reads the platform at the cadence of the merchant) or `subscribe` (the platform sends a notice and OPE reads what it announced; orders and returns only). What enters by a mode that is not the one in force is rejected.'
+      enum:
+        - push
+        - pull
+        - subscribe
+    PlatformSyncOutcome:
+      type: object
+      description: 'How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core returned). Nothing personal: never an order or a variant.'
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Whether the run deposited what it read.
+          enum:
+            - ok
+            - failed
+        count:
+          type: integer
+          minimum: 0
+          description: Present when `ok`.
+        reason:
+          type: string
+          maxLength: 64
+          description: Present when `failed`.
+    PlatformSyncEntry:
+      type: object
+      description: 'One flow of the platform: the mode in force and the last run of the reading. What is absent never happened — a flow that never ran has no run, and one that never succeeded has no `lastOkAt`.'
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/SyncMode'
+        lastRunAt:
+          type: string
+          format: date-time
+          description: When the last run started; the cadence counts from here, whatever it ended in.
+        lastOkAt:
+          type: string
+          format: date-time
+          description: When the last run that failed nothing started.
+        lastOutcome:
+          $ref: '#/components/schemas/PlatformSyncOutcome'
+        pendingNotices:
+          type: integer
+          minimum: 1
+          description: Notices of this flow waiting to be read (`subscribe`); absent when there are none.
+    PlatformSync:
+      type: object
+      description: 'Where the reading of each flow of a merchant''s platform stands (feature 044, ADR-047): the source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is never read, so it has no run.'
+      additionalProperties: false
+      required:
+        - platform
+        - flows
+      properties:
+        platform:
+          $ref: '#/components/schemas/PlatformSource'
+        flows:
+          type: object
+          description: Each flow the merchant negotiates a mode for (02 §6).
+          additionalProperties: false
+          required:
+            - catalog
+            - stockAndPrice
+            - orders
+            - returns
+          properties:
+            catalog:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            stockAndPrice:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            orders:
+              $ref: '#/components/schemas/PlatformSyncEntry'
+            returns:
+              $ref: '#/components/schemas/PlatformSyncEntry'
     Freshness:
       type: object
       description: Freshness budgets by class of datum (01 §8, ADR-025), measured from `capturedAt`.
@@ -5402,13 +5938,6 @@ components:
           items:
             type: string
             maxLength: 64
-    SyncMode:
-      type: string
-      description: 'How a flow of the platform reaches OPE (constitution X, ADR-025): `push` (the platform notifies; built), `pull` (OPE queries its API) or `subscribe` (OPE consumes its queue). Declaring `pull` or `subscribe` is accepted and stamped; it changes nothing until the platform port feature.'
-      enum:
-        - push
-        - pull
-        - subscribe
     SyncStrategy:
       type: object
       description: The mode negotiated with the merchant for each flow (constitution X, ADR-025).
@@ -5427,6 +5956,60 @@ components:
           $ref: '#/components/schemas/SyncMode'
         returns:
           $ref: '#/components/schemas/SyncMode'
+    SyncCadence:
+      type: object
+      description: How often the scheduler pulls each flow of a merchant whose strategy says `pull`, and how many variants a stock-and-price batch reads (ADR-047). Ignored for a flow in another mode.
+      additionalProperties: false
+      required:
+        - catalogMs
+        - stockAndPriceMs
+        - stockAndPriceBatchSize
+        - ordersMs
+        - returnsMs
+      properties:
+        catalogMs:
+          type: integer
+          description: Milliseconds between two pulls of the complete catalogue.
+          minimum: 1
+          maximum: 31536000000
+        stockAndPriceMs:
+          type: integer
+          description: Milliseconds between two batches of the stock-and-price refresh.
+          minimum: 1
+          maximum: 31536000000
+        stockAndPriceBatchSize:
+          type: integer
+          description: Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes.
+          minimum: 1
+          maximum: 1000
+        ordersMs:
+          type: integer
+          description: Milliseconds between two reads of the order changes.
+          minimum: 1
+          maximum: 31536000000
+        returnsMs:
+          type: integer
+          description: Milliseconds between two reads of the return changes.
+          minimum: 1
+          maximum: 31536000000
+    NoticeRetry:
+      type: object
+      description: How a notice whose read failed is retried (ADR-047).
+      additionalProperties: false
+      required:
+        - afterMs
+        - maxAttempts
+      properties:
+        afterMs:
+          type: integer
+          description: Milliseconds between two attempts to read what a notice announced, when the platform did not answer.
+          minimum: 1
+          maximum: 31536000000
+        maxAttempts:
+          type: integer
+          description: Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it.
+          minimum: 1
+          maximum: 1000
     AttributeValue:
       type: string
       description: |
@@ -5498,6 +6081,7 @@ components:
         - anchorDiagnosticsKept
         - unmappedValuesKept
         - retryAfterSeconds
+        - platformSyncTickMs
       properties:
         version:
           type: string
@@ -5551,6 +6135,11 @@ components:
           description: 'Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021).'
           minimum: 1
           maximum: 3600
+        platformSyncTickMs:
+          type: integer
+          description: 'Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick.'
+          minimum: 1000
+          maximum: 3600000
     EffectiveConfiguration:
       type: object
       description: 'The configuration a merchant is served with, resolved value by value: what it declared, else the treatment defaults, with the platform values on top (constitution XI). Never a secret.'
@@ -5565,6 +6154,10 @@ components:
         - surfaces
         - barriers
         - syncStrategy
+        - platformSource
+        - confirmedOrderStates
+        - syncCadence
+        - noticeRetry
         - locales
         - platform
       properties:
@@ -5601,6 +6194,21 @@ components:
             $ref: '#/components/schemas/Barrier'
         syncStrategy:
           $ref: '#/components/schemas/SyncStrategy'
+        platformSource:
+          $ref: '#/components/schemas/PlatformSource'
+        confirmedOrderStates:
+          type: array
+          description: 'The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so.'
+          maxItems: 32
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        syncCadence:
+          $ref: '#/components/schemas/SyncCadence'
+        noticeRetry:
+          $ref: '#/components/schemas/NoticeRetry'
         locales:
           $ref: '#/components/schemas/Locales'
         attributeLabels:
@@ -5796,6 +6404,51 @@ components:
           $ref: '#/components/schemas/SyncMode'
         returns:
           $ref: '#/components/schemas/SyncMode'
+    SyncCadenceDeclared:
+      type: object
+      description: The pull cadence a merchant declares; an absent value resolves from the treatment defaults.
+      additionalProperties: false
+      properties:
+        catalogMs:
+          type: integer
+          description: Milliseconds between two pulls of the complete catalogue.
+          minimum: 1
+          maximum: 31536000000
+        stockAndPriceMs:
+          type: integer
+          description: Milliseconds between two batches of the stock-and-price refresh.
+          minimum: 1
+          maximum: 31536000000
+        stockAndPriceBatchSize:
+          type: integer
+          description: Variants each batch of the stock-and-price refresh reads; a cycle covers the catalogue in as many batches as it takes.
+          minimum: 1
+          maximum: 1000
+        ordersMs:
+          type: integer
+          description: Milliseconds between two reads of the order changes.
+          minimum: 1
+          maximum: 31536000000
+        returnsMs:
+          type: integer
+          description: Milliseconds between two reads of the return changes.
+          minimum: 1
+          maximum: 31536000000
+    NoticeRetryDeclared:
+      type: object
+      description: The notice retry a merchant declares; an absent value resolves from the treatment defaults.
+      additionalProperties: false
+      properties:
+        afterMs:
+          type: integer
+          description: Milliseconds between two attempts to read what a notice announced, when the platform did not answer.
+          minimum: 1
+          maximum: 31536000000
+        maxAttempts:
+          type: integer
+          description: Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it.
+          minimum: 1
+          maximum: 1000
     MerchantConfigurationDeclared:
       type: object
       description: 'Level 3: what a merchant overrides of the treatment defaults, plus its anchor map (which has no default). Every field is optional; a declared policy names its version and may declare only some of its fields.'
@@ -5838,6 +6491,21 @@ components:
             $ref: '#/components/schemas/Barrier'
         syncStrategy:
           $ref: '#/components/schemas/SyncStrategyDeclared'
+        platformSource:
+          $ref: '#/components/schemas/PlatformSource'
+        confirmedOrderStates:
+          type: array
+          description: 'The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so.'
+          maxItems: 32
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        syncCadence:
+          $ref: '#/components/schemas/SyncCadenceDeclared'
+        noticeRetry:
+          $ref: '#/components/schemas/NoticeRetryDeclared'
         locales:
           $ref: '#/components/schemas/Locales'
         attributeLabels:
@@ -6232,6 +6900,7 @@ components:
         - anchorDiagnosticsKept
         - unmappedValuesKept
         - retryAfterSeconds
+        - platformSyncTickMs
       properties:
         dedupWindow:
           $ref: '#/components/schemas/DedupWindow'
@@ -6280,6 +6949,11 @@ components:
           description: 'Seconds a client waits before retrying a write a store could not accept: the `Retry-After` of every 503 (ADR-021).'
           minimum: 1
           maximum: 3600
+        platformSyncTickMs:
+          type: integer
+          description: 'Milliseconds between two looks of the platform scheduler at what is due: the pulls whose cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the tick.'
+          minimum: 1000
+          maximum: 3600000
     PlatformConfigurationInput:
       type: object
       description: |-
@@ -6383,6 +7057,10 @@ components:
         - surfaces
         - barriers
         - syncStrategy
+        - platformSource
+        - confirmedOrderStates
+        - syncCadence
+        - noticeRetry
         - locales
       properties:
         version:
@@ -6423,6 +7101,21 @@ components:
             $ref: '#/components/schemas/Barrier'
         syncStrategy:
           $ref: '#/components/schemas/SyncStrategy'
+        platformSource:
+          $ref: '#/components/schemas/PlatformSource'
+        confirmedOrderStates:
+          type: array
+          description: 'The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so.'
+          maxItems: 32
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        syncCadence:
+          $ref: '#/components/schemas/SyncCadence'
+        noticeRetry:
+          $ref: '#/components/schemas/NoticeRetry'
         locales:
           $ref: '#/components/schemas/Locales'
     TreatmentDefaultsContent:
@@ -6442,6 +7135,10 @@ components:
         - surfaces
         - barriers
         - syncStrategy
+        - platformSource
+        - confirmedOrderStates
+        - syncCadence
+        - noticeRetry
         - locales
       properties:
         freshness:
@@ -6477,6 +7174,21 @@ components:
             $ref: '#/components/schemas/Barrier'
         syncStrategy:
           $ref: '#/components/schemas/SyncStrategy'
+        platformSource:
+          $ref: '#/components/schemas/PlatformSource'
+        confirmedOrderStates:
+          type: array
+          description: 'The states of the platform in which an order brought by `pull` or `subscribe` counts as confirmed (ADR-047); by `push` it does nothing, because the platform decides what it pushes. A configuration with orders in `pull` or `subscribe` and no state is rejected: no order would enter and nothing would say so.'
+          maxItems: 32
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        syncCadence:
+          $ref: '#/components/schemas/SyncCadence'
+        noticeRetry:
+          $ref: '#/components/schemas/NoticeRetry'
         locales:
           $ref: '#/components/schemas/Locales'
     TreatmentDefaultsInput:
@@ -6898,6 +7610,31 @@ components:
         variants: 2
         receivedAt: '2026-09-18T12:00:03Z'
         observedSyncLevel: 1
+    catalog-refresh:
+      summary: Two variants refreshed, each with the instant of its datum
+      value:
+        items:
+          - variantId: SKU-1-M-BLACK
+            available: false
+            price:
+              amount: '19990.00'
+              currency: ARS
+            observedAt: '2026-09-18T12:10:00Z'
+          - variantId: SKU-1-L-BLACK
+            available: true
+            price:
+              amount: '17990.00'
+              currency: ARS
+            observedAt: '2026-09-18T12:09:30Z'
+    catalog-refresh-result:
+      summary: One variant became the truth; the other already held something newer
+      value:
+        applied:
+          - SKU-1-M-BLACK
+        repeated: []
+        superseded:
+          - SKU-1-L-BLACK
+        unknown: []
     order-attributed:
       summary: An order carrying the OPE session the storefront attached at creation
       value:
@@ -7055,18 +7792,31 @@ components:
             instance: /v1/exposures
     Conflict:
       description: |
-        Same identity, different content (ADR-020): the idempotency key of the request matches a
-        record whose content differs. Nothing changed.
+        Nothing changed, for one of two reasons the `type` tells apart. `idempotency-conflict` (ADR-020): the
+        idempotency key of the request matches a record whose content differs. `sync-mode-not-configured`
+        (ADR-047): the merchant has this flow arrive by another mode (`pull`, `subscribe`), so a `push` would be a
+        second writer of the same truth; it is accepted again once a configuration version puts the flow in `push`.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
-          example:
-            type: urn:ope:problem:idempotency-conflict
-            title: Same identity, different content
-            status: 409
-            detail: A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.
-            instance: /v1/catalog
+          examples:
+            idempotency-conflict:
+              summary: idempotency-conflict
+              value:
+                type: urn:ope:problem:idempotency-conflict
+                title: Same identity, different content
+                status: 409
+                detail: A snapshot captured at 2026-09-18T12:00:00Z already exists with different content.
+                instance: /v1/catalog
+            sync-mode-not-configured:
+              summary: sync-mode-not-configured
+              value:
+                type: urn:ope:problem:sync-mode-not-configured
+                title: The flow does not arrive by this mode
+                status: 409
+                detail: The flow catalog of this merchant arrives by pull.
+                instance: /v1/catalog
     CatalogUnprocessable:
       description: |
         Valid request rejected on semantics: one of the `x-invariants` of the snapshot or of the
@@ -7108,6 +7858,45 @@ components:
                 status: 422
                 detail: The current snapshot was captured at 2026-09-18T12:00:00Z; this one at 2026-09-18T11:00:00Z.
                 instance: /v1/catalog
+    SyncModeConflict:
+      description: |
+        The merchant has this flow arrive by another mode (ADR-047): an entry by this one would be a second writer of
+        the same truth. Nothing changed; it is accepted again once a configuration version puts the flow in this mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: urn:ope:problem:sync-mode-not-configured
+            title: The flow does not arrive by this mode
+            status: 409
+            detail: The flow stockAndPrice of this merchant arrives by pull.
+            instance: /v1/catalog/refreshes
+    RefreshUnprocessable:
+      description: |
+        Valid request rejected on semantics: one of the `x-invariants` of the refresh (ADR-007). The `type` names the
+        invariant; nothing was kept.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            duplicate-variant:
+              summary: stock-and-price-duplicate-variant-id
+              value:
+                type: urn:ope:problem:stock-and-price-duplicate-variant-id
+                title: Two items of the refresh name the same variant
+                status: 422
+                detail: Variant SKU-1-M-BLACK appears twice in the refresh.
+                instance: /v1/catalog/refreshes
+            observed-in-future:
+              summary: stock-captured-in-future
+              value:
+                type: urn:ope:problem:stock-captured-in-future
+                title: The observation instant is in the future
+                status: 422
+                detail: observedAt is ahead of the server clock beyond the tolerance.
+                instance: /v1/catalog/refreshes
     OrderUnprocessable:
       description: |
         Valid request rejected on semantics: one of the `x-invariants` of the order (ADR-007). The

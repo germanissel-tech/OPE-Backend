@@ -74,7 +74,12 @@ const CONTEXT_MAP = {
     "ingestion",
     "barrier",
     "messages",
+    "platform",
   ],
+  // Feature 044: platform owns how OPE reads a merchant's platform (ADR-047). Its scheduler deposits through
+  // the use cases of the catalogue and the outcomes (catalog, outcomes, and the ledger whose unavailability
+  // stops a run), walks the merchants (merchant) and serves a read within an operator's scope (operator).
+  platform: ["shared-kernel", "operator", "merchant", "ledger", "catalog", "outcomes"],
   // Feature 027: admin also owns the report of what a catalogue brings that OPE has no word for.
   // It reads the vocabulary of a merchant (messages) and receives the attributes of its catalogue
   // (catalog) to implement the role the catalogue declares; neither of them knows the report.

@@ -28,6 +28,8 @@ export interface MerchantSeed {
   origins: readonly string[];
   platformKeys: readonly string[];
   platformSecrets: readonly string[];
+  /** The keys of the notices of its platform (feature 044); none when the seed says nothing. */
+  noticeKeys: readonly string[];
   /** The identity for people (ADR-045), optional in a seed; judged by the same rules as the API. */
   displayName?: string | undefined;
   storeUrl?: string | undefined;
@@ -86,6 +88,9 @@ export class ImportMerchantsUseCase implements UseCase<ImportMerchantsRequest, I
           seed.platformSecrets.map(async (s) =>
             Merchant.credential("signing", await minter.fingerprintOf(s), now, s),
           ),
+        )),
+        ...(await Promise.all(
+          seed.noticeKeys.map(async (k) => Merchant.credential("notice", await minter.fingerprintOf(k), now)),
         )),
       ];
       const record = profileOfSeed(seed);

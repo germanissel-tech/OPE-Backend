@@ -4,10 +4,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   CatalogSnapshot,
+  StockAndPriceRefresh,
   asProductId,
   asVariantId,
   type CatalogSnapshotRecord,
   type Product,
+  type StockAndPriceRecord,
 } from "../../src/domain/catalog/index.js";
 import { Money, asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import { sqliteCatalogStore } from "../../src/interface-adapters/catalog/index.js";
@@ -160,6 +162,129 @@ describe("the catalogue across a restart", () => {
     fixture.makeUnavailable();
 
     const result = await store().replace(MERCHANT, snapshotOf(), KEPT);
+
+    expect(result.ok).toBe(false);
+    expect(fixture.logged[0]?.fields["write"]).toBe("catalog");
+  });
+});
+
+/** A refresh of the variant SKU-1-1 (feature 044), observed `minutes` after the capture. */
+function refreshOf(minutes: number, over: Partial<StockAndPriceRecord> = {}, merchantId = MERCHANT) {
+  const observedAt = new Date(CAPTURED.getTime() + minutes * 60_000);
+  const built = StockAndPriceRefresh.of(
+    {
+      merchantId,
+      receivedAt: observedAt,
+      items: [
+        {
+          variantId: asVariantId("SKU-1-1"),
+          available: false,
+          price: { amount: "90.00", currency: "ARS" },
+          observedAt,
+          ...over,
+        },
+      ],
+    },
+    SKEW_MS,
+  );
+  if (!built.ok) throw new Error(built.error.message);
+  return built.value;
+}
+
+describe("the refreshes of stock and price across a restart (feature 044)", () => {
+  it("come back whole: the datum, its instant and its price", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    const applied = await store().refresh(refreshOf(5), KEPT);
+    expect(applied).toEqual({
+      ok: true,
+      value: { applied: ["SKU-1-1"], repeated: [], superseded: [], unknown: [] },
+    });
+
+    fixture.restart();
+
+    const kept = await store().refreshOf(MERCHANT, asVariantId("SKU-1-1"));
+    expect(kept?.record()).toEqual(refreshOf(5).items[0]?.record());
+    expect(kept?.observedAt).toBeInstanceOf(Date);
+  });
+
+  it("judge against what survived: the same one repeats, an older one loses, and the row never moves back", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    await store().refresh(refreshOf(5), KEPT);
+
+    fixture.restart();
+
+    expect(await store().refresh(refreshOf(5), KEPT)).toMatchObject({ value: { repeated: ["SKU-1-1"] } });
+    expect(await store().refresh(refreshOf(4), KEPT)).toMatchObject({ value: { superseded: ["SKU-1-1"] } });
+    expect(await store().refresh(refreshOf(5, { available: true }), KEPT)).toMatchObject({
+      value: { superseded: ["SKU-1-1"] },
+    });
+    expect((await store().refreshOf(MERCHANT, asVariantId("SKU-1-1")))?.available).toBe(false);
+    expect(await store().refresh(refreshOf(6, { available: true }), KEPT)).toMatchObject({
+      value: { applied: ["SKU-1-1"] },
+    });
+    expect((await store().refreshOf(MERCHANT, asVariantId("SKU-1-1")))?.available).toBe(true);
+  });
+
+  it("a new snapshot forgets the refreshes it supersedes and keeps the newer ones", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    await store().refresh(refreshOf(5), KEPT);
+    await store().replace(
+      MERCHANT,
+      snapshotOf({ capturedAt: new Date(CAPTURED.getTime() + 4 * 60_000) }),
+      KEPT,
+    );
+
+    fixture.restart();
+
+    expect(await store().refreshOf(MERCHANT, asVariantId("SKU-1-1"))).toBeDefined();
+    await store().replace(
+      MERCHANT,
+      snapshotOf({ capturedAt: new Date(CAPTURED.getTime() + 5 * 60_000) }),
+      KEPT,
+    );
+    expect(await store().refreshOf(MERCHANT, asVariantId("SKU-1-1"))).toBeUndefined();
+  });
+
+  it("are receipts of the level, pruned with the snapshots' (research R-05)", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    await store().refresh(refreshOf(5), KEPT);
+    await store().refresh(refreshOf(6), KEPT);
+
+    fixture.restart();
+
+    expect((await store().receipts(MERCHANT)).map((d) => d.toISOString())).toEqual([
+      "2026-09-26T10:05:00.000Z",
+      "2026-09-26T10:06:00.000Z",
+    ]);
+  });
+
+  it("without a snapshot nothing is kept and nothing is received", async () => {
+    expect(await store().refresh(refreshOf(5), KEPT)).toMatchObject({ value: { unknown: ["SKU-1-1"] } });
+
+    fixture.restart();
+
+    expect(await store().refreshOf(MERCHANT, asVariantId("SKU-1-1"))).toBeUndefined();
+    expect(await store().receipts(MERCHANT)).toEqual([]);
+  });
+
+  it("show a merchant nothing of another one, with the same variantId", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    await store().replace(OTHER, snapshotOf({ merchantId: OTHER }), KEPT);
+    await store().refresh(refreshOf(5), KEPT);
+
+    fixture.restart();
+
+    expect(await store().refreshOf(OTHER, asVariantId("SKU-1-1"))).toBeUndefined();
+    expect(await store().refresh(refreshOf(5, {}, OTHER), KEPT)).toMatchObject({
+      value: { applied: ["SKU-1-1"] },
+    });
+  });
+
+  it("degrade to the ledger's failure channel when the store refuses, keeping nothing", async () => {
+    await store().replace(MERCHANT, snapshotOf(), KEPT);
+    fixture.makeUnavailable();
+
+    const result = await store().refresh(refreshOf(5), KEPT);
 
     expect(result.ok).toBe(false);
     expect(fixture.logged[0]?.fields["write"]).toBe("catalog");

@@ -19,6 +19,7 @@ required:
   - anchorDiagnosticsKept
   - unmappedValuesKept
   - retryAfterSeconds
+  - platformSyncTickMs
 properties:
   dedupWindow:
     $ref: ./DedupWindow.yaml
@@ -72,3 +73,10 @@ properties:
       `Retry-After` of every 503 (ADR-021)."
     minimum: 1
     maximum: 3600
+  platformSyncTickMs:
+    type: integer
+    description: "Milliseconds between two looks of the platform scheduler at what is due: the pulls whose
+      cadence elapsed and the notices whose retry came (ADR-047). A cadence shorter than the tick runs at the
+      tick."
+    minimum: 1000
+    maximum: 3600000

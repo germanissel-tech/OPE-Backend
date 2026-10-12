@@ -1,0 +1,52 @@
+get:
+  operationId: getMerchantPlatformSync
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - merchants:read
+  summary: Where the reading of a merchant's platform stands
+  description: |
+    Per flow, the mode in force and the last run of the reading of the platform (feature 044,
+    ADR-047): when it started, when one last succeeded and how it ended. Within the operator's
+    scope: outside it, `403` without saying whether the merchant exists.
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  responses:
+    "200":
+      description: The reading of each flow.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlatformSync.yaml
+          example:
+            platform: test
+            flows:
+              catalog:
+                mode: pull
+                lastRunAt: "2026-10-12T03:00:00Z"
+                lastOkAt: "2026-10-12T03:00:00Z"
+                lastOutcome:
+                  status: ok
+                  count: 120
+              stockAndPrice:
+                mode: pull
+                lastRunAt: "2026-10-12T12:01:00Z"
+                lastOkAt: "2026-10-12T12:00:00Z"
+                lastOutcome:
+                  status: failed
+                  reason: source-failed
+              orders:
+                mode: push
+              returns:
+                mode: push
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml

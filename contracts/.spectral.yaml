@@ -75,7 +75,7 @@ rules:
   # FR-004: closed catalogue of tags.
   ope-tags-closed-catalog:
     description: Tags belong to the contract's closed catalogue.
-    message: "Tag '{{value}}' is outside the catalogue (system, ingest, decision, outcomes, portal, admin). Use one from the catalogue; extending it is a scope change."
+    message: "Tag '{{value}}' is outside the catalogue (system, ingest, decision, outcomes, refresh, notices, portal, admin). Use one from the catalogue; extending it is a scope change."
     severity: error
     given:
       - "$.tags[*].name"
@@ -88,6 +88,10 @@ rules:
           - ingest
           - decision
           - outcomes
+          # Feature 044 (ADR-047, research R-12): the refresh of stock and price, which has no idempotency key
+          # per request, and the notices of the subscribe mode, which arrive with their own credential.
+          - refresh
+          - notices
           - portal
           - admin
 

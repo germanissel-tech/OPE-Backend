@@ -9,10 +9,12 @@ import {
   InvalidPlatformKeys,
   InvalidPlatformSecret,
   InvalidPlatformSecrets,
+  InvalidNoticeKeys,
   Merchant,
   MerchantProfile,
   Origin,
   PlatformKeyCollision,
+  NoticeKeyCollision,
   type Credential,
   type MerchantInput,
   type MerchantRecord,
@@ -427,5 +429,54 @@ describe("Merchant revision and witness (feature 043)", () => {
     expect(back.witness()).toBe("m_a:0");
     expect(unwrap(back.switched(false)).revision).toBe(1);
     expect(merchant.record().revision).toBe(1);
+  });
+});
+
+describe("the notice credential (feature 044, research R-06)", () => {
+  const notice = (fingerprint: string, issuedAt = NOW): Credential =>
+    Merchant.credential("notice", fingerprint, issuedAt);
+
+  it("a notice fingerprint authenticates only as a notice: never as ingest nor as platform, nor the other way round", () => {
+    const m = merchantOf({ credentials: [ingest("k1"), platform("p1"), notice("n1")] });
+    expect(m.ownsNoticeKey("n1", NOW)).toBe(true);
+    expect(m.ownsNoticeKey("p1", NOW)).toBe(false);
+    expect(m.ownsNoticeKey("k1", NOW)).toBe(false);
+    expect(m.ownsPlatformKey("n1", NOW)).toBe(false);
+    expect(m.owns("n1", NOW)).toBe(false);
+    expect(m.deactivated().ownsNoticeKey("n1", NOW)).toBe(false);
+  });
+
+  it("compares in constant time: a long shared prefix is as foreign as a different first character", () => {
+    const shared = "a".repeat(63);
+    const m = merchantOf({ credentials: [ingest("k1"), notice(`${shared}b`)] });
+    expect(m.ownsNoticeKey(`${shared}b`, NOW)).toBe(true);
+    expect(m.ownsNoticeKey(`${shared}c`, NOW)).toBe(false);
+  });
+
+  it("rotates like the platform key: two live during the grace, the newer alone after it, and the revision rises", () => {
+    const m = merchantOf({ credentials: [ingest("k1"), notice("n1")] });
+    const rotated = m.rotated(notice("n2"), GRACE, NOW);
+    if (!rotated.ok) throw new Error(rotated.error.code);
+    expect(rotated.value.credentialsOf("notice", NOW).map((c) => c.fingerprint)).toEqual(["n1", "n2"]);
+    expect(rotated.value.ownsNoticeKey("n1", LATER(HOUR))).toBe(false);
+    expect(rotated.value.ownsNoticeKey("n2", LATER(HOUR))).toBe(true);
+    expect(rotated.value.revision).toBe(m.revision + 1);
+  });
+
+  it("[invariant:invalid-notice-keys] more than two notice credentials reject the merchant", () => {
+    const built = Merchant.of(
+      inputOf({ credentials: [ingest("k"), notice("n1"), notice("n2"), notice("n3")] }),
+    );
+    expect(built.ok ? undefined : built.error).toBeInstanceOf(InvalidNoticeKeys);
+  });
+
+  it("[invariant:notice-key-collision] an empty notice fingerprint, or one shared with another credential, names its index", () => {
+    const shared = Merchant.of(inputOf({ credentials: [ingest("same"), notice("same")] }));
+    expect(shared.ok ? undefined : [shared.error.constructor, shared.error.details]).toEqual([
+      NoticeKeyCollision,
+      { index: 1 },
+    ]);
+    const empty = Merchant.of(inputOf({ credentials: [ingest("k"), notice("")] }));
+    expect(empty.ok ? undefined : empty.error).toBeInstanceOf(NoticeKeyCollision);
   });
 });

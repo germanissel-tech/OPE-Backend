@@ -7,6 +7,7 @@ import {
   type AnchorMapRecord,
   type DeclaredConfiguration,
   type Locales,
+  type PlatformSourceName,
   type SyncMode,
   type SyncStrategy,
   type Surface,
@@ -26,6 +27,14 @@ const SYNC_LEVEL_KEYS: readonly Key[] = [
   "minutesLevelMinReceipts",
 ];
 const STRATEGY_KEYS: readonly Key[] = ["catalog", "stockAndPrice", "orders", "returns"];
+const CADENCE_KEYS: readonly Key[] = [
+  "catalogMs",
+  "stockAndPriceMs",
+  "stockAndPriceBatchSize",
+  "ordersMs",
+  "returnsMs",
+];
+const RETRY_KEYS: readonly Key[] = ["afterMs", "maxAttempts"];
 const LOCALES_KEYS: readonly Key[] = ["supported", "fallback"];
 const SELECTORS_KEYS: readonly Key[] = ["selectors"];
 const VALUE_KEYS: readonly Key[] = [
@@ -38,6 +47,10 @@ const VALUE_KEYS: readonly Key[] = [
   "surfaces",
   "barriers",
   "syncStrategy",
+  "platformSource",
+  "confirmedOrderStates",
+  "syncCadence",
+  "noticeRetry",
   "locales",
 ];
 /** The keys a merchant may declare; the seed of `OPE_MERCHANTS` admits them next to the merchant fields. */
@@ -66,7 +79,12 @@ const COMMERCIAL_FIELDS: readonly Key[] = [
 const PROFILE_FIELDS: readonly Key[] = ["returnsPolicy", "fitData", "authorizedAttributes"];
 
 /** The values with parts that are all numbers, and the keys each admits. */
-const NUMBER_PARTS = { freshness: FRESHNESS_KEYS, syncLevel: SYNC_LEVEL_KEYS } as const;
+const NUMBER_PARTS = {
+  freshness: FRESHNESS_KEYS,
+  syncLevel: SYNC_LEVEL_KEYS,
+  syncCadence: CADENCE_KEYS,
+  noticeRetry: RETRY_KEYS,
+} as const;
 
 /** The record under `key`, closed to the keys it admits, with every present key read as a number. */
 function numbersAt(
@@ -131,6 +149,18 @@ function anchors(shape: Shape, raw: Raw, where: Field): AnchorMapRecord {
   return read;
 }
 
+/** The values that govern how OPE reads the platform (ADR-047), each read only when present. */
+function portValues(shape: Shape, raw: Raw, where: Field, read: DeclaredConfiguration): void {
+  if (shape.has(raw, "platformSource")) {
+    read.platformSource = shape.string(raw, "platformSource", where) as PlatformSourceName;
+  }
+  if (shape.has(raw, "confirmedOrderStates")) {
+    read.confirmedOrderStates = shape.strings(raw, "confirmedOrderStates", where);
+  }
+  if (shape.has(raw, "syncCadence")) read.syncCadence = numbersAt(shape, raw, "syncCadence", where);
+  if (shape.has(raw, "noticeRetry")) read.noticeRetry = numbersAt(shape, raw, "noticeRetry", where);
+}
+
 /** The declared values, each read only when present. */
 function values(shape: Shape, raw: Raw, where: Field): DeclaredConfiguration {
   const read: DeclaredConfiguration = {};
@@ -161,6 +191,7 @@ function values(shape: Shape, raw: Raw, where: Field): DeclaredConfiguration {
   if (shape.has(raw, "surfaces")) read.surfaces = shape.strings(raw, "surfaces", where) as Surface[];
   if (shape.has(raw, "barriers")) read.barriers = shape.strings(raw, "barriers", where) as Barrier[];
   if (shape.has(raw, "syncStrategy")) read.syncStrategy = strategy(shape, raw, where);
+  portValues(shape, raw, where, read);
   if (shape.has(raw, "locales")) read.locales = locales(shape, raw, where);
   if (shape.has(raw, "anchors")) read.anchors = anchors(shape, raw, where);
   if (shape.has(raw, "attributeLabels")) read.attributeLabels = attributeLabels(shape, raw, where);
@@ -193,6 +224,8 @@ export function readTreatmentDefaults(value: unknown): ShapeResult<TreatmentDefa
   complete(shape, raw, "freshness", FRESHNESS_KEYS);
   complete(shape, raw, "syncLevel", SYNC_LEVEL_KEYS);
   complete(shape, raw, "syncStrategy", STRATEGY_KEYS);
+  complete(shape, raw, "syncCadence", CADENCE_KEYS);
+  complete(shape, raw, "noticeRetry", RETRY_KEYS);
   complete(shape, raw, "decisionPolicy", DECISION_FIELDS);
   complete(shape, raw, "commercialPolicy", COMMERCIAL_FIELDS);
   complete(shape, raw, "evidenceProfile", PROFILE_FIELDS);

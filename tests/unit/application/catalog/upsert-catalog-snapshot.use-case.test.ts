@@ -49,6 +49,8 @@ function fakeStore(down = false): CatalogStore & { held: () => CatalogSnapshot |
       receipts.push(snapshot.receivedAt);
       return Promise.resolve(ok(undefined));
     },
+    refreshOf: () => Promise.resolve(undefined),
+    refresh: () => Promise.reject(new Error("a snapshot never refreshes")),
     receipts: () => Promise.resolve([...receipts]),
     held: () => current,
   };

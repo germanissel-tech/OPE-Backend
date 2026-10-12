@@ -10,7 +10,9 @@ import {
   InvalidIngestKeys,
   InvalidOrigin,
   InvalidOrigins,
+  InvalidNoticeKeys,
   InvalidPlatformKeys,
+  NoticeKeyCollision,
   InvalidPlatformSecret,
   InvalidPlatformSecrets,
   MerchantDeactivated,
@@ -64,11 +66,17 @@ function isLive(credential: Credential, now: Date): boolean {
   return credential.expiresAt === undefined || credential.expiresAt.getTime() > now.getTime();
 }
 
-/** The error that names an oversized set, by kind. */
-function tooMany(kind: CredentialKind): MerchantError {
-  if (kind === "ingest") return new InvalidIngestKeys();
-  return kind === "platform" ? new InvalidPlatformKeys() : new InvalidPlatformSecrets();
+/** What a credential set offends, by kind: a table, so a new kind does not compile until it names its own. */
+interface Offences {
+  tooMany: () => MerchantError;
+  bad: (index: number) => MerchantError;
 }
+const OFFENCES: Readonly<Record<CredentialKind, Offences>> = {
+  ingest: { tooMany: () => new InvalidIngestKeys(), bad: (i) => new InvalidIngestKeys(i) },
+  platform: { tooMany: () => new InvalidPlatformKeys(), bad: (i) => new PlatformKeyCollision(i) },
+  signing: { tooMany: () => new InvalidPlatformSecrets(), bad: (i) => new InvalidPlatformSecret(i) },
+  notice: { tooMany: () => new InvalidNoticeKeys(), bad: (i) => new NoticeKeyCollision(i) },
+};
 
 export class Merchant implements MerchantRecord {
   readonly merchantId: MerchantId;
@@ -131,22 +139,16 @@ export class Merchant implements MerchantRecord {
     const ingest = credentials.filter((c) => c.kind === "ingest");
     if (ingest.length === 0) return new InvalidIngestKeys();
     for (const kind of CREDENTIAL_KINDS) {
-      if (credentials.filter((c) => c.kind === kind).length > MAX_PER_KIND) return tooMany(kind);
+      if (credentials.filter((c) => c.kind === kind).length > MAX_PER_KIND) return OFFENCES[kind].tooMany();
     }
     const seen = new Set<string>();
     for (const [index, c] of credentials.entries()) {
-      if (c.fingerprint === "" || seen.has(c.fingerprint)) return Merchant.badCredential(c.kind, index);
+      if (c.fingerprint === "" || seen.has(c.fingerprint)) return OFFENCES[c.kind].bad(index);
       if (c.kind === "signing" && (c.secret === undefined || c.secret === ""))
         return new InvalidPlatformSecret(index);
       seen.add(c.fingerprint);
     }
     return undefined;
-  }
-
-  /** An empty fingerprint, or one already taken by another credential, named by the kind that carries it. */
-  private static badCredential(kind: CredentialKind, index: number): MerchantError {
-    if (kind === "ingest") return new InvalidIngestKeys(index);
-    return kind === "platform" ? new PlatformKeyCollision(index) : new InvalidPlatformSecret(index);
   }
 
   /** A merchant already recorded: its facts are not re-judged. */
@@ -178,9 +180,18 @@ export class Merchant implements MerchantRecord {
 
   /** Does a live platform credential carry this fingerprint? Constant time: the fingerprint of a secret is compared. */
   ownsPlatformKey(fingerprint: string, now: Date): boolean {
+    return this.#ownsSecretKey("platform", fingerprint, now);
+  }
+
+  /** Does a live notice credential carry this fingerprint (feature 044)? Constant time, like the platform key. */
+  ownsNoticeKey(fingerprint: string, now: Date): boolean {
+    return this.#ownsSecretKey("notice", fingerprint, now);
+  }
+
+  #ownsSecretKey(kind: CredentialKind, fingerprint: string, now: Date): boolean {
     return (
       !this.isDeactivated() &&
-      this.credentialsOf("platform", now).some((c) => constantTimeEquals(c.fingerprint, fingerprint))
+      this.credentialsOf(kind, now).some((c) => constantTimeEquals(c.fingerprint, fingerprint))
     );
   }
 

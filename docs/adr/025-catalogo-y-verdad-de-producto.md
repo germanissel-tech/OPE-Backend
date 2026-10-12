@@ -79,7 +79,9 @@ primera operación del consumidor `platform`, cuya credencial ADR-020 dejó prop
   pide; antes, la verificación documental de Magento 2 y VTEX. El nivel de sincronización 3
   (01 §14.1) pasa a ser alcanzable con `subscribe`, sin valor adicional para los claims del MVP.
   El principio X queda cumplido en su forma (puerto único, adaptadores en el borde) y pendiente
-  en su construcción, que esa feature completa.
+  en su construcción, que esa feature completa. **La completó la feature 044 (ADR-047)**: los tres modos están
+  construidos, el refresco parcial es una capa sobre la foto y la frescura de stock y precio es por variante; lo
+  que queda del hito es el adaptador de cada plataforma real.
 - Órdenes y devoluciones (013) reutilizan `platformKey` y la verificación de capacidades tal
   cual.
 - El `bodyLimit` del servidor sube a 32 MiB (openapi-backend rutea con un handler único; no

@@ -33,3 +33,5 @@ export type {
 } from "./services/admin-token.service.js";
 export { GetOperatorUseCase } from "./use-cases/get-operator.use-case.js";
 export type { GetOperatorRequest, GetOperatorResponse } from "./use-cases/get-operator.use-case.js";
+export { DefaultNoticeKeyResolver } from "./services/notice-key.service.js";
+export type { NoticeKeyResolver, NoticeKeyResolverDependencies } from "./services/notice-key.service.js";

@@ -1,9 +1,9 @@
 // notifyOrder (ADR-028): DTO → domain (ids branded, total as the contract validated it) → use case → 201 created |
-// 200 repeated | the Problem Details of the returned error (422 invariant, 409 conflict, 503
-// ledger unavailable). The response carries the status of the order in the evidence chain
+// 200 repeated | the Problem Details of the returned error (422 invariant, 409 conflict or a flow that does not
+// arrive by push, 503 ledger unavailable). The response carries the status of the order in the evidence chain
 // and what OPE knows of its correlation, and nothing of the ledger.
 import { asOrderId, type Order } from "../../../domain/outcomes/index.js";
-import { asSessionId } from "../../../domain/shared-kernel/index.js";
+import { asSessionId, type Fail, type SyncModeNotConfigured } from "../../../domain/shared-kernel/index.js";
 import { idempotent, instantOf } from "../../http/boundary.js";
 import { merchantOf } from "../../http/security/principal.js";
 import { toProblem } from "../../http/to-problem.js";
@@ -24,7 +24,7 @@ function toResult(order: Order): OrderResultDto {
 }
 
 export function makeNotifyOrder(
-  notifyOrder: UseCase<NotifyOrderRequest, NotifyOrderResponse>,
+  notifyOrder: UseCase<NotifyOrderRequest, NotifyOrderResponse | Fail<SyncModeNotConfigured>>,
 ): OperationHandler<"notifyOrder"> {
   return async (req) => {
     const merchant = merchantOf(req);

@@ -12,6 +12,7 @@ export const AUDITED_OPERATIONS = Object.freeze([
   "deactivateMerchant",
   "rotateIngestKey",
   "rotatePlatformKey",
+  "rotateNoticeKey",
   "rotatePlatformSecret",
   "setKillSwitch",
   "updateMerchantProfile",

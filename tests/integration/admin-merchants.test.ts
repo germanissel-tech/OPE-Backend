@@ -160,6 +160,35 @@ describe("rotation (scenario 2)", () => {
     expect((json(secret) as { value: string }).value).toMatch(/^ope_ps_/);
   });
 
+  it("the notice key (feature 044) rotates like the platform key, is audited, and never serves to push", async () => {
+    const created = await create();
+    const id = created.merchant.merchantId;
+    const first = await admin(app.app, "POST", `/v1/admin/merchants/${id}/notice-keys`, { body: {} });
+    expect(first.statusCode).toBe(201);
+    const issued = json(first) as { kind: string; value: string; previousExpiresAt?: string };
+    expect(issued.kind).toBe("notice");
+    expect(issued.value).toMatch(/^ope_nk_/);
+    expect(issued.previousExpiresAt).toBeUndefined();
+    const pushed = await postOrder(app.app, orderOf("N-1"), { platformKey: issued.value });
+    expect(pushed.statusCode).toBe(401);
+    const second = await admin(app.app, "POST", `/v1/admin/merchants/${id}/notice-keys`, {
+      body: { graceSeconds: 3600 },
+    });
+    expect((json(second) as { previousExpiresAt?: string }).previousExpiresAt).toBe(
+      new Date(Date.parse(NOW) + HOUR_MS).toISOString(),
+    );
+    const read = json(await admin(app.app, "GET", `/v1/admin/merchants/${id}`)) as Created["merchant"];
+    expect(read.credentials.filter((c) => c.kind === "notice")).toHaveLength(2);
+    const log = json(await admin(app.app, "GET", `/v1/admin/merchants/${id}/log`)) as {
+      items: { operation: string }[];
+    };
+    expect(log.items.map((e) => e.operation)).toEqual([
+      "rotateNoticeKey",
+      "rotateNoticeKey",
+      "createMerchant",
+    ]);
+  });
+
   it("[invariant:rotation-grace-too-long] a grace beyond the platform maximum is 422 with the pointer", async () => {
     const created = await create();
     const res = await admin(

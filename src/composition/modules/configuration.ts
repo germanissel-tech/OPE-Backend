@@ -29,6 +29,7 @@ import {
   type ImportMerchantConfigurationRequest,
   type ImportMerchantConfigurationResponse,
   type PlatformLevelReader,
+  type PlatformSources,
   type PublishLevelRequest,
   type PublishLevelResponse,
   type PublishMerchantConfigurationRequest,
@@ -61,6 +62,8 @@ import {
   sqliteConfigurationStore,
   sqliteLevelStore,
   policySourceOf,
+  syncStrategiesOf,
+  platformPoliciesOf,
   storedConfigurationLevels,
   switchAwarePolicyDirectory,
   messageSettingsOf,
@@ -72,13 +75,19 @@ import { PolicyDirectoryPort } from "./decision.js";
 import { ExperimentDirectoryPort, ExperimentStorePort, HoldoutPort } from "./experiment.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { MessageDirectoryPort, TextStorePort } from "./messages.js";
-import { AuditPort, ClockPort, LoggerPort } from "./shared-kernel.js";
+import { InstalledSourcesPort, PlatformPoliciesPort } from "./platform.js";
+import { AuditPort, ClockPort, LoggerPort, SyncStrategiesPort } from "./shared-kernel.js";
 import type { MerchantStore } from "../../application/merchant/index.js";
 import type { Clock, Page, UseCase } from "../../application/shared-kernel/index.js";
 
 const ConfigurationLevelsPort = port("configuration.levels")<ConfigurationLevels>();
 const ConfigurationStorePort = port("configuration.store")<ConfigurationStore>();
 /** The versions of the two levels of the release, which an operator publishes (feature 036). */
+/**
+ * What this deployment can read a platform with, as the configuration asks it before it publishes a mode
+ * (research R-08): the sources the platform module installed, seen through the configuration's own port.
+ */
+const PlatformSourcesPort = port("configuration.platform-sources")<PlatformSources>();
 const LevelStorePort = port("configuration.level-store")<LevelStore>();
 /** The resolution, shared by every consumer: what it serves changes when a version is published. */
 export const ConfigurationServicePort = port("configuration.service")<ConfigurationService>();
@@ -107,6 +116,11 @@ export const ImportConfigurationPort =
  * exactly what happened when it was tried (feature 033, US2).
  */
 const resolution = [
+  bind(
+    PlatformSourcesPort,
+    { installed: InstalledSourcesPort },
+    ({ installed }): PlatformSources => installed,
+  ),
   // **The release stopped being the source here** (feature 036): what is in force is the newest version of
   // each level, and the files are the seed the boot imports into an empty store.
   bind(ConfigurationLevelsPort, { levels: LevelStorePort }, ({ levels }) =>
@@ -114,7 +128,7 @@ const resolution = [
   ),
   bind(
     ConfigurationServicePort,
-    { levels: ConfigurationLevelsPort, store: ConfigurationStorePort },
+    { levels: ConfigurationLevelsPort, store: ConfigurationStorePort, sources: PlatformSourcesPort },
     (deps) => new Configurations(deps),
   ),
   // **The level 1 reader, which is the same instance that resolves** and not a second copy of it: two caches
@@ -131,6 +145,12 @@ const resolution = [
   ),
   bind(HoldoutPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     holdoutSourceOf(configuration),
+  ),
+  bind(SyncStrategiesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    syncStrategiesOf(configuration),
+  ),
+  bind(PlatformPoliciesPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
+    platformPoliciesOf(configuration),
   ),
   bind(MessageDirectoryPort, { configuration: ConfigurationServicePort }, ({ configuration }) =>
     messageSettingsOf(configuration),

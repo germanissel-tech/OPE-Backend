@@ -79,6 +79,24 @@ export class PlatformKeyCollision extends DomainError {
   }
 }
 
+/** More notice keys than a rotation needs (feature 044: one, or two while rotating). */
+export class InvalidNoticeKeys extends DomainError {
+  readonly code = "invalid-notice-keys" as const;
+  readonly module = MODULE;
+  constructor() {
+    super("A merchant has at most two notice keys.");
+  }
+}
+
+/** A notice key that is empty or equal to another credential (configuration; fail-closed). */
+export class NoticeKeyCollision extends DomainError {
+  readonly code = "notice-key-collision" as const;
+  readonly module = MODULE;
+  constructor(index: number) {
+    super("A notice key must be non-empty and distinct from every other credential.", { index });
+  }
+}
+
 /** A signing secret that is empty or equal to a key (configuration; fail-closed). */
 export class InvalidPlatformSecret extends DomainError {
   readonly code = "invalid-platform-secret" as const;
@@ -143,6 +161,8 @@ export type MerchantError =
   | PlatformKeyCollision
   | InvalidPlatformSecrets
   | InvalidPlatformSecret
+  | InvalidNoticeKeys
+  | NoticeKeyCollision
   | MerchantDeactivated
   | MerchantNotFound
   | RotationGraceTooLong

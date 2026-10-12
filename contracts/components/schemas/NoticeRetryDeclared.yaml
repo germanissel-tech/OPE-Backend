@@ -1,0 +1,14 @@
+type: object
+description: The notice retry a merchant declares; an absent value resolves from the treatment defaults.
+additionalProperties: false
+properties:
+  afterMs:
+    type: integer
+    description: Milliseconds between two attempts to read what a notice announced, when the platform did not answer.
+    minimum: 1
+    maximum: 31536000000
+  maxAttempts:
+    type: integer
+    description: Attempts before the notice is dropped, with a trace; a flow also pulled does not depend on it.
+    minimum: 1
+    maximum: 1000

@@ -54,6 +54,7 @@ post:
             anchorDiagnosticsKept: 200
             unmappedValuesKept: 200
             retryAfterSeconds: 5
+            platformSyncTickMs: 30000
           corrective: true
           reason: session shortened to thirty minutes before the pilot
   responses:
@@ -140,6 +141,7 @@ get:
             anchorDiagnosticsKept: 200
             unmappedValuesKept: 200
             retryAfterSeconds: 5
+            platformSyncTickMs: 30000
     "400":
       $ref: ../components/responses/BadRequest.yaml
     "401":

@@ -30,6 +30,7 @@ import {
   makeListMerchants,
   makeRotateIngestKey,
   makeRotatePlatformKey,
+  makeRotateNoticeKey,
   makeRotatePlatformSecret,
   makeSetKillSwitch,
   makeUpdateMerchantProfile,
@@ -160,6 +161,12 @@ export const merchantModule = compositionModule({
         // The three rotations share one use case; each audits it under its own operation.
         { name: "rotatePlatformKey", build: ({ rotate }) => rotate },
         (useCase) => makeRotatePlatformKey(useCase),
+      ),
+      rotateNoticeKey: served(
+        { rotate: RotateCredentialPort },
+        // The rotations share one use case; each audits it under its own operation.
+        { name: "rotateNoticeKey", build: ({ rotate }) => rotate },
+        (useCase) => makeRotateNoticeKey(useCase),
       ),
       rotatePlatformSecret: served(
         { rotate: RotateCredentialPort },

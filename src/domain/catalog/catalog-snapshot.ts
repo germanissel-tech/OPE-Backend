@@ -11,6 +11,7 @@ import {
   type CatalogError,
 } from "./errors.js";
 import type { ProductId, VariantId } from "./ids.js";
+import type { StockAndPrice } from "./stock-and-price.js";
 
 export interface Attribute {
   key: string;
@@ -52,7 +53,7 @@ export class CatalogSnapshot {
   readonly receivedAt: Date;
   readonly products: readonly Product[];
   readonly #byProduct: ReadonlyMap<ProductId, Product>;
-  readonly #variants: number;
+  readonly #variants: ReadonlySet<VariantId>;
 
   private constructor(record: CatalogSnapshotRecord) {
     this.merchantId = record.merchantId;
@@ -60,10 +61,10 @@ export class CatalogSnapshot {
     this.receivedAt = record.receivedAt;
     this.products = record.products;
     const byProduct = new Map<ProductId, Product>();
-    let variants = 0;
+    const variants = new Set<VariantId>();
     for (const product of record.products) {
       byProduct.set(product.productId, product);
-      variants += product.variants.length;
+      for (const variant of product.variants) variants.add(variant.variantId);
     }
     this.#byProduct = byProduct;
     this.#variants = variants;
@@ -115,7 +116,27 @@ export class CatalogSnapshot {
   }
 
   counts(): { products: number; variants: number } {
-    return { products: this.#byProduct.size, variants: this.#variants };
+    return { products: this.#byProduct.size, variants: this.#variants.size };
+  }
+
+  /** Whether the variant is in this picture: a refresh of one that is not says nothing (ADR-025, ADR-047). */
+  hasVariant(variantId: VariantId): boolean {
+    return this.#variants.has(variantId);
+  }
+
+  /**
+   * The stock and price of a variant of this picture, and the instant they are true at: the newest of the
+   * picture and its refresh (feature 044, ADR-047). A refresh as old as the picture, or older, changes nothing —
+   * the picture already said what was true then.
+   */
+  stockAndPriceOf(variant: Variant, refreshed: StockAndPrice | undefined): { variant: Variant; at: Date } {
+    if (refreshed === undefined || refreshed.observedAt.getTime() <= this.capturedAt.getTime()) {
+      return { variant, at: this.capturedAt };
+    }
+    return {
+      variant: { ...variant, available: refreshed.available, price: refreshed.price },
+      at: refreshed.observedAt,
+    };
   }
 
   /**

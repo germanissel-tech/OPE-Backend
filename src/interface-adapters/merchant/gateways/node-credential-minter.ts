@@ -13,6 +13,7 @@ const PREFIX: Readonly<Record<CredentialKind, string>> = {
   ingest: "ope_ik_",
   platform: "ope_pk_",
   signing: "ope_ps_",
+  notice: "ope_nk_",
 };
 
 const fingerprintOf = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");

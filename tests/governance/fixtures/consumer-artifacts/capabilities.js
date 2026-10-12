@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.15.0', sha256: 'f37d13fe868d0794f107cd785a0ca587bab22137243d665af912bf02fe0ca7f0' }
+export const CONTRACT = { version: '1.16.0', sha256: 'f997d6dce57299c30b3a77c4e41334600db53996f552b8ae292514f14f503faf' }
 
 /** The consumer this module describes: its operations and its vocabulary. */
 export const CONSUMER = 'admin'
@@ -20,10 +20,12 @@ export const OPERATIONS = {
   deactivateMerchant: { capabilities: ['merchants:write'], idempotent: false, versioned: false },
   rotateIngestKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   rotatePlatformKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
+  rotateNoticeKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   rotatePlatformSecret: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   setKillSwitch: { capabilities: ['merchants:write'], idempotent: false, versioned: false },
   updateMerchantProfile: { capabilities: ['merchants:write'], idempotent: false, versioned: true },
   listMerchantAdminLog: { capabilities: ['log:read'], idempotent: false, versioned: false },
+  getMerchantPlatformSync: { capabilities: ['merchants:read'], idempotent: false, versioned: false },
   getMerchantConfiguration: { capabilities: ['configuration:read'], idempotent: false, versioned: false },
   publishMerchantConfiguration: { capabilities: ['configuration:write'], idempotent: true, versioned: true },
   listConfigurationVersions: { capabilities: ['configuration:read'], idempotent: false, versioned: false },

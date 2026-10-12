@@ -32,6 +32,8 @@ export interface PlatformConfigurationRecord {
   unmappedValuesKept: number;
   /** Seconds a client waits before retrying a write a store could not accept (ADR-021): the `Retry-After` of every 503. */
   retryAfterSeconds: number;
+  /** How often the platform scheduler looks at what is due (ADR-047): the pulls and the notice retries. */
+  platformSyncTickMs: number;
 }
 
 /**
@@ -64,6 +66,7 @@ const POSITIVE = [
   "visitorWindowMs",
   "signatureWindowMs",
   "eventPastToleranceMs",
+  "platformSyncTickMs",
 ] as const;
 const NON_NEGATIVE = ["clockSkewToleranceMs", "rotationGraceMaxMs"] as const;
 
@@ -79,6 +82,7 @@ export class PlatformConfiguration {
   readonly anchorDiagnosticsKept: number;
   readonly unmappedValuesKept: number;
   readonly retryAfterSeconds: number;
+  readonly platformSyncTickMs: number;
 
   private constructor(record: PlatformConfigurationRecord) {
     this.version = record.version;
@@ -92,6 +96,7 @@ export class PlatformConfiguration {
     this.anchorDiagnosticsKept = record.anchorDiagnosticsKept;
     this.unmappedValuesKept = record.unmappedValuesKept;
     this.retryAfterSeconds = record.retryAfterSeconds;
+    this.platformSyncTickMs = record.platformSyncTickMs;
   }
 
   /** A named version and every value in its range; the first offence names its field. */
@@ -152,6 +157,7 @@ export class PlatformConfiguration {
       anchorDiagnosticsKept: this.anchorDiagnosticsKept,
       unmappedValuesKept: this.unmappedValuesKept,
       retryAfterSeconds: this.retryAfterSeconds,
+      platformSyncTickMs: this.platformSyncTickMs,
     };
   }
 }
