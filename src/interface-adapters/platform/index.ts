@@ -7,3 +7,7 @@ export * from "./scheduler/timer.js";
 export * from "./gateways/memory-sync-state-store.js";
 export * from "./gateways/sqlite-sync-state-store.js";
 export * from "./controllers/get-merchant-platform-sync.js";
+export * from "./gateways/memory-notice-queue.js";
+export * from "./gateways/sqlite-notice-queue.js";
+export * from "./controllers/notify-platform-change.js";
+export * from "./scheduler/notice-reader.js";

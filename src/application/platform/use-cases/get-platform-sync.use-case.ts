@@ -4,6 +4,7 @@
 import {
   ok,
   type MerchantId,
+  type NoticedFlow,
   type Result,
   type SyncFlow,
   type SyncMode,
@@ -13,6 +14,7 @@ import type { MerchantOutOfScope, Operator } from "../../../domain/operator/inde
 import type { PlatformSourceName, SyncState } from "../../../domain/platform/index.js";
 import type { ScopedMerchantService } from "../../merchant/index.js";
 import type { UseCase } from "../../shared-kernel/index.js";
+import type { NoticeQueue } from "../ports/notice-queue.js";
 import type { PlatformPolicies } from "../ports/platform-policies.js";
 import type { SyncStateStore } from "../ports/sync-state-store.js";
 
@@ -24,6 +26,8 @@ export interface GetPlatformSyncRequest {
 export interface FlowSync {
   mode: SyncMode;
   state: SyncState;
+  /** Notices waiting to be read: only a noticed flow has them, and none is absent. */
+  pendingNotices?: number | undefined;
 }
 
 export interface PlatformSyncView {
@@ -37,6 +41,7 @@ export interface GetPlatformSyncDependencies {
   scoped: ScopedMerchantService;
   policies: PlatformPolicies;
   states: SyncStateStore;
+  notices: NoticeQueue;
 }
 
 export class GetPlatformSyncUseCase implements UseCase<GetPlatformSyncRequest, GetPlatformSyncResponse> {
@@ -50,18 +55,20 @@ export class GetPlatformSyncUseCase implements UseCase<GetPlatformSyncRequest, G
     const found = await this.#deps.scoped.find(request.actor, request.merchantId);
     if (!found.ok) return found;
     const merchantId = found.value.merchantId;
-    const [policy, states] = await Promise.all([
+    const [policy, states, pending] = await Promise.all([
       this.#deps.policies.policyFor(merchantId),
       this.#deps.states.statesOf(merchantId),
+      this.#deps.notices.pendingOf(merchantId),
     ]);
     const flowOf = (flow: SyncFlow): FlowSync => ({ mode: policy.strategy[flow], state: states[flow] ?? {} });
+    const noticed = (flow: NoticedFlow): FlowSync => ({ ...flowOf(flow), pendingNotices: pending[flow] });
     return ok({
       source: policy.source,
       flows: {
         catalog: flowOf("catalog"),
         stockAndPrice: flowOf("stockAndPrice"),
-        orders: flowOf("orders"),
-        returns: flowOf("returns"),
+        orders: noticed("orders"),
+        returns: noticed("returns"),
       },
     });
   }

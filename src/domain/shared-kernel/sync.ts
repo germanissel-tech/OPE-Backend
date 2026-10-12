@@ -20,3 +20,4 @@ export type SyncStrategy = Readonly<Record<SyncFlow, SyncMode>>;
  * would only say "read everything again", which is what `pull` already does.
  */
 export const NOTICED_FLOWS = ["orders", "returns"] as const satisfies readonly SyncFlow[];
+export type NoticedFlow = (typeof NOTICED_FLOWS)[number];

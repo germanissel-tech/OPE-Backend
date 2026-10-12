@@ -4,7 +4,7 @@
 /** The contract this module was derived from. */
 export declare const CONTRACT: {
   readonly version: '1.16.0'
-  readonly sha256: '8f1e42c99fd70d5f6219de810e4f8116cb7e33d243cc471ad13e706f22219a2e'
+  readonly sha256: 'f997d6dce57299c30b3a77c4e41334600db53996f552b8ae292514f14f503faf'
 }
 
 /** The consumer this module describes: its operations and its vocabulary. */
@@ -52,6 +52,11 @@ export declare const OPERATIONS: {
     readonly versioned: false
   }
   readonly rotatePlatformKey: {
+    readonly capabilities: readonly ['credentials:rotate']
+    readonly idempotent: false
+    readonly versioned: false
+  }
+  readonly rotateNoticeKey: {
     readonly capabilities: readonly ['credentials:rotate']
     readonly idempotent: false
     readonly versioned: false

@@ -11,3 +11,11 @@ export type {
   GetPlatformSyncResponse,
   PlatformSyncView,
 } from "./use-cases/get-platform-sync.use-case.js";
+export type { NoticeQueue } from "./ports/notice-queue.js";
+export { AcceptNoticeUseCase } from "./use-cases/accept-notice.use-case.js";
+export type {
+  AcceptNoticeDependencies,
+  AcceptNoticeRequest,
+  AcceptNoticeResponse,
+  NoticeAccepted,
+} from "./use-cases/accept-notice.use-case.js";

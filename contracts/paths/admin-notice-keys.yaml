@@ -1,0 +1,55 @@
+post:
+  operationId: rotateNoticeKey
+  tags: [admin]
+  security:
+    - adminToken: []
+  x-required-capabilities:
+    - credentials:rotate
+  summary: Rotate the notice key
+  description: |
+    Mints a new notice key for the platform of the merchant (feature 044): the secret its notices carry,
+    which grants nothing but `notices:write`. The new value travels in the answer and never again. The previous one stays valid
+    for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+    are valid at a time — a second rotation within the grace expires the older one at once
+    (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+  parameters:
+    - $ref: ../components/parameters/merchantId.yaml
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CredentialRotation.yaml
+        example:
+          graceSeconds: 3600
+  responses:
+    "201":
+      description: The credential minted; its value travels here and never again.
+      headers:
+        ETag:
+          $ref: ../components/headers/ETag.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CredentialIssued.yaml
+          example:
+            kind: notice
+            value: ope_nk_3Rt7Yb0Q2mXv8KfL1sDw4ZcN6hJpA9eGu5oTiE0nB1M
+            issuedAt: "2026-09-20T12:00:00Z"
+            previousExpiresAt: "2026-09-20T13:00:00Z"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../components/responses/OperatorUnauthorized.yaml
+    "403":
+      $ref: ../components/responses/MerchantForbidden.yaml
+    "500":
+      $ref: ../components/responses/InternalServerError.yaml
+    "404":
+      $ref: ../components/responses/MerchantNotFound.yaml
+    "409":
+      $ref: ../components/responses/MerchantDeactivatedConflict.yaml
+    "422":
+      $ref: ../components/responses/RotationUnprocessable.yaml
+    "503":
+      $ref: ../components/responses/ServiceUnavailable.yaml

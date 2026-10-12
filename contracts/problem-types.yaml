@@ -92,6 +92,12 @@ types:
   - slug: invalid-platform-secrets
     status: 500
     title: A merchant has more than two platform signing secrets
+  - slug: invalid-notice-keys
+    status: 500
+    title: A merchant has more than two notice keys
+  - slug: notice-key-collision
+    status: 500
+    title: A notice key is empty or equal to another credential
   - slug: duplicate-experiment-id
     status: 500
     title: Two experiments of a merchant share an identifier

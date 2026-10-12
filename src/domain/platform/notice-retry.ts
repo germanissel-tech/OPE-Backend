@@ -29,6 +29,14 @@ export class NoticeRetry {
     return new NoticeRetry(record);
   }
 
+  /**
+   * When the next read of a notice is due after `attempts` reads failed, the last one at `now`; or `undefined`
+   * when that was the last attempt, and the notice is dropped with a trace.
+   */
+  nextAfter(attempts: number, now: Date): Date | undefined {
+    return attempts >= this.maxAttempts ? undefined : new Date(now.getTime() + this.afterMs);
+  }
+
   record(): NoticeRetryRecord {
     return { afterMs: this.afterMs, maxAttempts: this.maxAttempts };
   }

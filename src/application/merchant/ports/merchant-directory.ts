@@ -9,6 +9,8 @@ export interface MerchantDirectory {
   findByIngestKey(fingerprint: string, now: Date): Promise<Merchant | undefined>;
   /** Merchant owning a live platform credential with this fingerprint (ADR-025), or `undefined`. */
   findByPlatformKey(fingerprint: string, now: Date): Promise<Merchant | undefined>;
+  /** Merchant owning a live notice credential with this fingerprint (feature 044), or `undefined`. */
+  findByNoticeKey(fingerprint: string, now: Date): Promise<Merchant | undefined>;
   /** Did any merchant that is not deactivated register this origin? The only thing the CORS preflight can ask. */
   isRegisteredOrigin(origin: string): Promise<boolean>;
 }

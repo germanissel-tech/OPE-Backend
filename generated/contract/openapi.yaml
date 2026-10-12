@@ -24,6 +24,8 @@ tags:
     description: What the merchant's platform pushes to OPE (catalogue, orders, returns). Server to server.
   - name: refresh
     description: The stock and price of some variants, pushed by the merchant's platform without the rest of the catalogue (ADR-047). Server to server.
+  - name: notices
+    description: The notices of the merchant's platform that something changed (ADR-047). OPE reads what changed; the notice enters nothing by itself. Server to server.
   - name: admin
     description: Administration of the platform by operators of OPE (merchants, credentials, configuration, experiments). Every action is logged.
 paths:
@@ -634,6 +636,56 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /v1/platform-notices:
+    post:
+      operationId: notifyPlatformChange
+      tags:
+        - notices
+      security:
+        - noticeKey: []
+      x-required-capabilities:
+        - notices:write
+      summary: Notice that an order or a return changed
+      description: |
+        The merchant's platform says that an order or a return changed, and which (feature 044, ADR-047):
+        the `subscribe` mode. The notice is queued and OPE reads the reference from the platform outside the
+        request; **what is recorded comes from that read, never from the notice**, so the `state` it carries
+        is only kept with the notice. A notice repeated while the first is pending is the same notice. A
+        read that fails is retried at the merchant's `noticeRetry`, and dropped with a trace when the
+        attempts run out. Accepted only while the flow is in `subscribe` (`409 sync-mode-not-configured`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformNotice'
+            example:
+              flow: orders
+              reference: A-1
+              state: invoiced
+      responses:
+        '202':
+          description: Queued to be read.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformNoticeResult'
+              example:
+                flow: orders
+                reference: A-1
+                receivedAt: '2026-10-12T12:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/SyncModeConflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/admin/operator:
     get:
       operationId: getOperator
@@ -1018,6 +1070,63 @@ paths:
               example:
                 kind: platform
                 value: ope_pk_8K3n0m2XfQ1v7Yb4Z9cLt6Hs5RwPaJdE2uVgN1oCq0I
+                issuedAt: '2026-09-20T12:00:00Z'
+                previousExpiresAt: '2026-09-20T13:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/OperatorUnauthorized'
+        '403':
+          $ref: '#/components/responses/MerchantForbidden'
+        '404':
+          $ref: '#/components/responses/MerchantNotFound'
+        '409':
+          $ref: '#/components/responses/MerchantDeactivatedConflict'
+        '422':
+          $ref: '#/components/responses/RotationUnprocessable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/admin/merchants/{merchantId}/notice-keys:
+    post:
+      operationId: rotateNoticeKey
+      tags:
+        - admin
+      security:
+        - adminToken: []
+      x-required-capabilities:
+        - credentials:rotate
+      summary: Rotate the notice key
+      description: |
+        Mints a new notice key for the platform of the merchant (feature 044): the secret its notices carry,
+        which grants nothing but `notices:write`. The new value travels in the answer and never again. The previous one stays valid
+        for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+        are valid at a time — a second rotation within the grace expires the older one at once
+        (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+      parameters:
+        - $ref: '#/components/parameters/merchantId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialRotation'
+            example:
+              graceSeconds: 3600
+      responses:
+        '201':
+          description: The credential minted; its value travels here and never again.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialIssued'
+              example:
+                kind: notice
+                value: ope_nk_3Rt7Yb0Q2mXv8KfL1sDw4ZcN6hJpA9eGu5oTiE0nB1M
                 issuedAt: '2026-09-20T12:00:00Z'
                 previousExpiresAt: '2026-09-20T13:00:00Z'
         '400':
@@ -3337,6 +3446,17 @@ components:
         HMAC-SHA256 of `<timestamp>.<raw body>`), within a window of 5 minutes; the signature is
         verified before the body is read and any of the merchant's active secrets is accepted. Without
         a secret configured, the key alone authenticates.
+    noticeKey:
+      type: apiKey
+      in: header
+      name: X-OPE-Notice-Key
+      description: |
+        Secret the merchant's platform sends with every notice (ADR-047), configured as a fixed header
+        wherever the platform lets a merchant declare one (a VTEX Hook, for instance). It identifies the
+        merchant and grants nothing but `notices:write`: a notice carries no data that enters OPE — what
+        is recorded comes from reading the platform — so a leaked key only triggers reads. Up to two
+        active keys during a rotation. No signature: the platforms that publish notices cannot produce
+        one. No CORS applies (there is no browser).
     adminToken:
       type: http
       scheme: bearer
@@ -4751,6 +4871,47 @@ components:
           type: string
           format: date-time
           description: Instant OPE recorded the return (the first receipt, when repeated).
+    PlatformNotice:
+      type: object
+      description: 'A notice of the merchant''s platform (feature 044, ADR-047): that something changed in an order or a return, and which. It enters nothing by itself — OPE reads the reference from the platform, and what is recorded is what it read.'
+      additionalProperties: false
+      required:
+        - flow
+        - reference
+      properties:
+        flow:
+          type: string
+          enum:
+            - orders
+            - returns
+          description: What changed; only these two can be noticed.
+        reference:
+          $ref: '#/components/schemas/OrderId'
+        state:
+          type: string
+          maxLength: 64
+          description: The state the platform says the order is in. Only recorded with the notice; what counts is the state OPE reads.
+    PlatformNoticeResult:
+      type: object
+      description: The notice is queued to be read. Repeated while it is pending, it is the same notice.
+      additionalProperties: false
+      required:
+        - flow
+        - reference
+        - receivedAt
+      properties:
+        flow:
+          type: string
+          enum:
+            - orders
+            - returns
+          description: The flow the notice is about.
+        reference:
+          $ref: '#/components/schemas/OrderId'
+        receivedAt:
+          type: string
+          format: date-time
+          description: When OPE received it.
     OperatorId:
       type: string
       description: 'Identifier of an operator of OPE (ADR-031): opaque, never a personal datum. `system` is the platform acting by itself (the import of the seed at start-up).'
@@ -4907,11 +5068,12 @@ components:
         - deactivated
     CredentialKind:
       type: string
-      description: 'The three credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of its notifications (ADR-014, ADR-025, ADR-029).'
+      description: 'The four credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of what it pushes, and the notice key of the notices it sends (ADR-014, ADR-025, ADR-029; feature 044).'
       enum:
         - ingest
         - platform
         - signing
+        - notice
     CredentialSummary:
       type: object
       description: A credential as an operator sees it — kind and instants, never the value (ADR-031).
@@ -5223,6 +5385,10 @@ components:
           description: When the last run that failed nothing started.
         lastOutcome:
           $ref: '#/components/schemas/PlatformSyncOutcome'
+        pendingNotices:
+          type: integer
+          minimum: 1
+          description: Notices of this flow waiting to be read (`subscribe`); absent when there are none.
     PlatformSync:
       type: object
       description: 'Where the reading of each flow of a merchant''s platform stands (feature 044, ADR-047): the source the merchant is read with and, per flow, the mode in force and the last run. A flow in `push` is never read, so it has no run.'

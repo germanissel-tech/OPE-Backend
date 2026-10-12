@@ -1,7 +1,12 @@
 // What the platform module reads of a merchant's effective configuration (constitution XI; ADR-031, ADR-047):
 // the source, the mode of each flow, the cadence and what counts as a confirmed order. Declared here and bound by
 // the configuration, which can see every consumer; nobody here imports it.
-import type { OrderConfirmation, PlatformSourceName, SyncCadence } from "../../../domain/platform/index.js";
+import type {
+  NoticeRetry,
+  OrderConfirmation,
+  PlatformSourceName,
+  SyncCadence,
+} from "../../../domain/platform/index.js";
 import type { MerchantId, SyncStrategy } from "../../../domain/shared-kernel/index.js";
 
 export interface PlatformPolicy {
@@ -9,6 +14,8 @@ export interface PlatformPolicy {
   strategy: SyncStrategy;
   cadence: SyncCadence;
   confirmation: OrderConfirmation;
+  /** How a notice whose read failed is read again. */
+  retry: NoticeRetry;
 }
 
 export interface PlatformPolicies {

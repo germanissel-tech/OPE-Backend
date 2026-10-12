@@ -140,6 +140,25 @@ describe("scriptedTestSource", () => {
     expect((await source.returnChanges(A, "1")).changes).toEqual([]);
   });
 
+  it("answers the order and the return a notice is about as they are now: the last change of each", async () => {
+    const source = scriptedTestSource();
+    source.script(A, SCRIPT);
+    expect((await source.order(A, "o1"))?.state).toBe("paid");
+    expect(await source.order(A, "o9")).toBeUndefined();
+    expect(await source.order(B, "o1")).toBeUndefined();
+    expect(await source.returnOf(A, "o1")).toEqual({
+      orderId: "o1",
+      returnedAt: new Date("2026-09-19T12:00:00.000Z"),
+      items: [{ sku: "s", quantity: 1 }],
+    });
+    expect(await source.returnOf(A, "o9")).toBeUndefined();
+    source.script(A, {
+      returns: [{ orderId: "o1" }, { orderId: "o1", returnedAt: "2026-09-19T13:00:00.000Z" }],
+    });
+    expect((await source.returnOf(A, "o1"))?.returnedAt).toEqual(new Date("2026-09-19T13:00:00.000Z"));
+    expect(await source.returnOf(B, "o1")).toBeUndefined();
+  });
+
   it("a platform that does not answer fails every read", async () => {
     const source = scriptedTestSource();
     source.script(A, { ...SCRIPT, failing: true });
@@ -148,6 +167,8 @@ describe("scriptedTestSource", () => {
       source.stockAndPrice(A, []),
       source.orderChanges(A, undefined),
       source.returnChanges(A, undefined),
+      source.order(A, "o1"),
+      source.returnOf(A, "o1"),
     ];
     for (const read of reads) await expect(read).rejects.toThrow("The test platform does not answer.");
     source.script(A, { ...SCRIPT, failing: false });

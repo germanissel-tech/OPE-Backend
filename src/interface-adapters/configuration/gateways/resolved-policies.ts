@@ -47,7 +47,7 @@ export function syncStrategiesOf(configuration: ConfigurationService): SyncStrat
 export function platformPoliciesOf(configuration: ConfigurationService): PlatformPolicies {
   return {
     async policyFor(merchantId) {
-      const { platformSource, syncStrategy, syncCadence, orderConfirmation } = (
+      const { platformSource, syncStrategy, syncCadence, orderConfirmation, noticeRetry } = (
         await configuration.effectiveFor(merchantId)
       ).values;
       return {
@@ -55,6 +55,7 @@ export function platformPoliciesOf(configuration: ConfigurationService): Platfor
         strategy: syncStrategy,
         cadence: syncCadence,
         confirmation: orderConfirmation,
+        retry: noticeRetry,
       };
     },
   };

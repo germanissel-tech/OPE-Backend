@@ -117,6 +117,7 @@ export function sqliteMerchantStore(deps: SqliteMerchantStoreDeps): MerchantStor
     isEmpty: () => index.isEmpty(),
     findByIngestKey: (fingerprint, now) => index.findByIngestKey(fingerprint, now),
     findByPlatformKey: (fingerprint, now) => index.findByPlatformKey(fingerprint, now),
+    findByNoticeKey: (fingerprint, now) => index.findByNoticeKey(fingerprint, now),
     isRegisteredOrigin: (origin) => index.isRegisteredOrigin(origin),
   };
 }

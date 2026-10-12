@@ -14,12 +14,13 @@ import type { OperationHandler, components } from "../../http/typed.js";
 
 type EntryDto = components["schemas"]["PlatformSyncEntry"];
 
-function entryDto({ mode, state }: FlowSync): EntryDto {
+function entryDto({ mode, state, pendingNotices }: FlowSync): EntryDto {
   return {
     mode,
     ...(state.lastRunAt === undefined ? {} : { lastRunAt: state.lastRunAt.toISOString() }),
     ...(state.lastOkAt === undefined ? {} : { lastOkAt: state.lastOkAt.toISOString() }),
     ...(state.lastOutcome === undefined ? {} : { lastOutcome: state.lastOutcome }),
+    ...(pendingNotices === undefined ? {} : { pendingNotices }),
   };
 }
 

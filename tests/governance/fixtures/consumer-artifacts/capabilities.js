@@ -2,7 +2,7 @@
 // Regenerate with: npm run contract:types
 
 /** The contract this module was derived from. */
-export const CONTRACT = { version: '1.16.0', sha256: '8f1e42c99fd70d5f6219de810e4f8116cb7e33d243cc471ad13e706f22219a2e' }
+export const CONTRACT = { version: '1.16.0', sha256: 'f997d6dce57299c30b3a77c4e41334600db53996f552b8ae292514f14f503faf' }
 
 /** The consumer this module describes: its operations and its vocabulary. */
 export const CONSUMER = 'admin'
@@ -20,6 +20,7 @@ export const OPERATIONS = {
   deactivateMerchant: { capabilities: ['merchants:write'], idempotent: false, versioned: false },
   rotateIngestKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   rotatePlatformKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
+  rotateNoticeKey: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   rotatePlatformSecret: { capabilities: ['credentials:rotate'], idempotent: false, versioned: false },
   setKillSwitch: { capabilities: ['merchants:write'], idempotent: false, versioned: false },
   updateMerchantProfile: { capabilities: ['merchants:write'], idempotent: false, versioned: true },

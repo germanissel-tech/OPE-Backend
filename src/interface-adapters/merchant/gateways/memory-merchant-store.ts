@@ -36,6 +36,9 @@ export function memoryMerchantStore(): MerchantStore & MerchantDirectory {
     findByPlatformKey(fingerprint, now) {
       return Promise.resolve(all().find((m) => m.ownsPlatformKey(fingerprint, now)));
     },
+    findByNoticeKey(fingerprint, now) {
+      return Promise.resolve(all().find((m) => m.ownsNoticeKey(fingerprint, now)));
+    },
     isRegisteredOrigin(origin) {
       return Promise.resolve(all().some((m) => !m.isDeactivated() && m.allowsOrigin(origin)));
     },

@@ -4,7 +4,12 @@
 import { describe, expect, it } from "vitest";
 import { asProductId, asVariantId, CatalogSnapshot } from "../../../../src/domain/catalog/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
-import { OrderConfirmation, SyncCadence, type SyncState } from "../../../../src/domain/platform/index.js";
+import {
+  NoticeRetry,
+  OrderConfirmation,
+  SyncCadence,
+  type SyncState,
+} from "../../../../src/domain/platform/index.js";
 import {
   DomainError,
   fail,
@@ -92,6 +97,7 @@ async function subject(setup: Setup = {}) {
     strategy: { ...PUSH, ...setup.strategy },
     cadence: SyncCadence.rehydrate({ ...CADENCE, ...setup.cadence }),
     confirmation: OrderConfirmation.rehydrate(setup.states ?? ["paid"]),
+    retry: NoticeRetry.rehydrate({ afterMs: 1_000, maxAttempts: 3 }),
   };
   const states = memorySyncStateStore();
   const upsert = recording<{ merchantId: MerchantId; capturedAt: Date; products: readonly unknown[] }>(
@@ -106,6 +112,8 @@ async function subject(setup: Setup = {}) {
   );
   const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
   const logged: string[] = [];
+  /** When the notices were read: after the pull runs of the same tick. */
+  const noticesRead: Date[] = [];
   /** What each line logged said besides its message: the merchant and the flow are what make it findable. */
   const said: unknown[] = [];
   const snapshot = CatalogSnapshot.rehydrate({
@@ -124,6 +132,12 @@ async function subject(setup: Setup = {}) {
     refreshStockAndPrice: refresh.useCase,
     notifyOrder: order.useCase,
     notifyReturn: returned.useCase,
+    notices: {
+      readDue: (now) => {
+        noticesRead.push(now);
+        return Promise.resolve();
+      },
+    },
     logger: {
       info: () => undefined,
       warn: (fields, message) => {
@@ -152,6 +166,7 @@ async function subject(setup: Setup = {}) {
     returned,
     logged,
     said,
+    noticesRead,
     stateOf,
     script,
     states,
@@ -177,6 +192,14 @@ describe("platformScheduler", () => {
       lastOutcome: { status: "ok", count: 1 },
     });
     expect(await stateOf("stockAndPrice")).toBeUndefined();
+  });
+
+  it("reads the notices that are due on the same tick, after the pull runs, with the same instant", async () => {
+    const { scheduler, upsert, noticesRead, script } = await subject({ strategy: { catalog: "pull" } });
+    script({ catalog: CATALOG });
+    await scheduler.runDue(at(5));
+    expect(upsert.calls).toHaveLength(1);
+    expect(noticesRead).toEqual([at(5)]);
   });
 
   it("skips a merchant whose switch is off and one that is deactivated, and reads the others", async () => {

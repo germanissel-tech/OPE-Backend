@@ -58,6 +58,10 @@ export interface PlatformSource {
   ): Promise<readonly SourceStockAndPrice[]>;
   orderChanges(merchantId: MerchantId, cursor: string | undefined): Promise<SourceChanges<SourceOrder>>;
   returnChanges(merchantId: MerchantId, cursor: string | undefined): Promise<SourceChanges<SourceReturn>>;
+  /** The order a notice is about, as the platform has it now; `undefined` if the platform does not have it. */
+  order(merchantId: MerchantId, reference: string): Promise<SourceOrder | undefined>;
+  /** The return of the order a notice is about; `undefined` if the platform has none. */
+  returnOf(merchantId: MerchantId, reference: string): Promise<SourceReturn | undefined>;
 }
 
 /**

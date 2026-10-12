@@ -318,6 +318,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/merchants/{merchantId}/notice-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the notice key
+         * @description Mints a new notice key for the platform of the merchant (feature 044): the secret its notices carry,
+         *     which grants nothing but `notices:write`. The new value travels in the answer and never again. The previous one stays valid
+         *     for `graceSeconds` (none by default; bounded by the platform), then is refused; at most two
+         *     are valid at a time — a second rotation within the grace expires the older one at once
+         *     (ADR-014, ADR-029, ADR-031). A deactivated merchant cannot rotate (`409`).
+         */
+        post: operations["rotateNoticeKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/merchants/{merchantId}/platform-keys": {
         parameters: {
             query?: never;
@@ -903,6 +927,31 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/platform-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notice that an order or a return changed
+         * @description The merchant's platform says that an order or a return changed, and which (feature 044, ADR-047):
+         *     the `subscribe` mode. The notice is queued and OPE reads the reference from the platform outside the
+         *     request; **what is recorded comes from that read, never from the notice**, so the `state` it carries
+         *     is only kept with the notice. A notice repeated while the first is pending is the same notice. A
+         *     read that fails is retried at the merchant's `noticeRetry`, and dropped with a trace when the
+         *     attempts run out. Accepted only while the flow is in `subscribe` (`409 sync-mode-not-configured`).
+         */
+        post: operations["notifyPlatformChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/returns": {
         parameters: {
             query?: never;
@@ -1358,10 +1407,10 @@ export type components = {
             value: string;
         };
         /**
-         * @description The three credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of its notifications (ADR-014, ADR-025, ADR-029).
+         * @description The four credentials of a merchant: the ingest key of the tag, the platform key of its backend, the signing secret of what it pushes, and the notice key of the notices it sends (ADR-014, ADR-025, ADR-029; feature 044).
          * @enum {string}
          */
-        CredentialKind: "ingest" | "platform" | "signing";
+        CredentialKind: "ingest" | "platform" | "signing" | "notice";
         /** @description A rotation (ADR-014, ADR-031): the previous credential of the kind lives on for the grace; none by default. */
         CredentialRotation: {
             /**
@@ -2227,6 +2276,31 @@ export type components = {
             /** @description Cursor of the next page; absent on the last page. */
             nextCursor?: string;
         };
+        /** @description A notice of the merchant's platform (feature 044, ADR-047): that something changed in an order or a return, and which. It enters nothing by itself — OPE reads the reference from the platform, and what is recorded is what it read. */
+        PlatformNotice: {
+            /**
+             * @description What changed; only these two can be noticed.
+             * @enum {string}
+             */
+            flow: "orders" | "returns";
+            reference: components["schemas"]["OrderId"];
+            /** @description The state the platform says the order is in. Only recorded with the notice; what counts is the state OPE reads. */
+            state?: string;
+        };
+        /** @description The notice is queued to be read. Repeated while it is pending, it is the same notice. */
+        PlatformNoticeResult: {
+            /**
+             * @description The flow the notice is about.
+             * @enum {string}
+             */
+            flow: "orders" | "returns";
+            /**
+             * Format: date-time
+             * @description When OPE received it.
+             */
+            receivedAt: string;
+            reference: components["schemas"]["OrderId"];
+        };
         /**
          * @description What OPE reads from the merchant's platform in `pull` and `subscribe` (ADR-047): `generic` reads nothing, because everything reaches it by `push`; `test` is the test source, installed only where a deployment asks for it. A configuration naming a source this deployment does not install, or a mode the source does not run for a flow, is rejected when published.
          * @enum {string}
@@ -2257,6 +2331,8 @@ export type components = {
              */
             lastRunAt?: string;
             mode: components["schemas"]["SyncMode"];
+            /** @description Notices of this flow waiting to be read (`subscribe`); absent when there are none. */
+            pendingNotices?: number;
         };
         /** @description How the last run of a flow ended: `ok` with how many items it deposited, or `failed` with why it deposited nothing (`source-failed`, `source-not-installed`, or the type of the problem the core returned). Nothing personal: never an order or a variant. */
         PlatformSyncOutcome: {
@@ -4450,6 +4526,55 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    rotateNoticeKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The merchant the operation acts on (constitution V, ADR-020; the only place a merchant identifier travels in a request). */
+                merchantId: components["parameters"]["merchantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceSeconds": 3600
+                 *     }
+                 */
+                "application/json": components["schemas"]["CredentialRotation"];
+            };
+        };
+        responses: {
+            /** @description The credential minted; its value travels here and never again. */
+            201: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "kind": "notice",
+                     *       "value": "ope_nk_3Rt7Yb0Q2mXv8KfL1sDw4ZcN6hJpA9eGu5oTiE0nB1M",
+                     *       "issuedAt": "2026-09-20T12:00:00Z",
+                     *       "previousExpiresAt": "2026-09-20T13:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["OperatorUnauthorized"];
+            403: components["responses"]["MerchantForbidden"];
+            404: components["responses"]["MerchantNotFound"];
+            409: components["responses"]["MerchantDeactivatedConflict"];
+            422: components["responses"]["RotationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     rotatePlatformKey: {
         parameters: {
             query?: never;
@@ -6592,6 +6717,50 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             422: components["responses"]["CorroborationUnprocessable"];
+            500: components["responses"]["InternalServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    notifyPlatformChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "flow": "orders",
+                 *       "reference": "A-1",
+                 *       "state": "invoiced"
+                 *     }
+                 */
+                "application/json": components["schemas"]["PlatformNotice"];
+            };
+        };
+        responses: {
+            /** @description Queued to be read. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "flow": "orders",
+                     *       "reference": "A-1",
+                     *       "receivedAt": "2026-10-12T12:00:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PlatformNoticeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["SyncModeConflict"];
             500: components["responses"]["InternalServerError"];
             503: components["responses"]["ServiceUnavailable"];
         };

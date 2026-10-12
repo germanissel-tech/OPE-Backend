@@ -6,6 +6,7 @@ export * from "./controllers/get-operator.js";
 export * from "./presenters.js";
 export * from "./security/admin-token.js";
 export * from "./security/ingest-key.js";
+export * from "./security/notice-key.js";
 export * from "./security/platform-key.js";
 export * from "./gateways/config-operator-directory.js";
 export * from "./gateways/node-message-authenticator.js";

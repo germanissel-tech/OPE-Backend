@@ -17,6 +17,7 @@ import { asVariantId } from "../../src/domain/catalog/index.js";
 import { asOrderId } from "../../src/domain/outcomes/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
 import {
+  sqliteNoticeQueue,
   sqliteSyncStateStore,
   type TestPlatformScript,
 } from "../../src/interface-adapters/platform/index.js";
@@ -74,6 +75,72 @@ describe("sqliteSyncStateStore", () => {
     const saved = await store().save(A, "orders", { cursor: "1" });
     expect(saved.ok ? undefined : saved.error.code).toBe("store-unavailable");
     expect(fixture.logged.map((entry) => entry.fields["write"])).toEqual(["platform sync"]);
+  });
+});
+
+describe("sqliteNoticeQueue", () => {
+  let fixture: Restartable;
+  beforeEach(() => {
+    fixture = restartableStore();
+  });
+  afterEach(() => {
+    fixture.dispose();
+  });
+  const queue = () => sqliteNoticeQueue({ store: fixture.store, logger: fixture.logger });
+  const notice = (reference: string, nextAt: Date, over: Record<string, unknown> = {}) => ({
+    merchantId: A,
+    flow: "orders" as const,
+    reference,
+    receivedAt: at(0),
+    attempts: 0,
+    nextAt,
+    ...over,
+  });
+
+  it("keeps a pending notice across a restart, and a repeated one answers the first", async () => {
+    const first = await queue().enqueue(notice("o1", at(0), { state: "paid" }));
+    expect(first.ok ? first.value : undefined).toEqual(notice("o1", at(0), { state: "paid" }));
+    fixture.restart();
+    const again = await queue().enqueue(notice("o1", at(9), { receivedAt: at(9) }));
+    expect(again.ok ? again.value : undefined).toEqual(notice("o1", at(0), { state: "paid" }));
+    await queue().enqueue({ ...notice("o1", at(0)), flow: "returns" });
+    await queue().enqueue({ ...notice("o1", at(0)), merchantId: B });
+    expect(await queue().pendingOf(A)).toEqual({ orders: 1, returns: 1 });
+    expect(await queue().pendingOf(asMerchantId("m_none"))).toEqual({});
+  });
+
+  it("answers what is due, oldest first; a reschedule moves it and a removal forgets it", async () => {
+    await queue().enqueue(notice("late", at(20)));
+    await queue().enqueue(notice("early", at(10)));
+    await queue().enqueue(notice("later", at(30)));
+    expect((await queue().due(at(20))).map((n) => n.reference)).toEqual(["early", "late"]);
+    await queue().reschedule(notice("late", at(40), { attempts: 1 }));
+    await queue().remove(notice("early", at(10)));
+    fixture.restart();
+    expect(await queue().due(at(30))).toEqual([notice("later", at(30))]);
+    expect(await queue().due(at(40))).toEqual([
+      notice("later", at(30)),
+      notice("late", at(40), { attempts: 1 }),
+    ]);
+  });
+
+  it("a store that cannot write says so, and logs why", async () => {
+    fixture.makeUnavailable();
+    const results = [
+      await queue().enqueue(notice("o1", at(0))),
+      await queue().reschedule(notice("o1", at(0))),
+      await queue().remove(notice("o1", at(0))),
+    ];
+    expect(results.map((r) => (r.ok ? undefined : r.error.code))).toEqual([
+      "store-unavailable",
+      "store-unavailable",
+      "store-unavailable",
+    ]);
+    expect(fixture.logged.map((entry) => entry.fields["write"])).toEqual([
+      "platform notice",
+      "platform notice",
+      "platform notice",
+    ]);
   });
 });
 
@@ -187,6 +254,29 @@ describe("the durable server reading the test platform", () => {
     expect(Number(count[0]?.["n"])).toBe(2);
     const sync = json(await admin(running.app, "GET", "/v1/admin/merchants/m_a/platform-sync"));
     expect(sync).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 2 } } } });
+  });
+
+  it("a pending notice survives a restart and is read after it", async () => {
+    write({
+      orders: [
+        { orderId: "o1", state: "paid", total: PRICE, items: [], confirmedAt: "2026-09-18T11:00:00.000Z" },
+      ],
+    });
+    let running = await boot();
+    await configure(running, { syncStrategy: { orders: "subscribe" }, confirmedOrderStates: ["paid"] });
+    const rotated = await admin(running.app, "POST", "/v1/admin/merchants/m_a/notice-keys", { body: {} });
+    const key = (json(rotated) as { value: string }).value;
+    const noticed = await running.app.inject({
+      method: "POST",
+      url: "/v1/platform-notices",
+      headers: { "content-type": "application/json", "x-ope-notice-key": key },
+      payload: JSON.stringify({ flow: "orders", reference: "o1" }),
+    });
+    expect(noticed.statusCode).toBe(202);
+    running = await restart();
+    expect(await running.resolve(OrderLedgerPort).find(A, asOrderId("o1"))).toBeUndefined();
+    await running.resolve(PlatformSchedulerPort).runDue(at(1));
+    expect(await running.resolve(OrderLedgerPort).find(A, asOrderId("o1"))).toBeDefined();
   });
 
   it("without the variable the durable server does not have the test platform, and refuses a merchant that names it", async () => {

@@ -16,3 +16,7 @@ properties:
     description: When the last run that failed nothing started.
   lastOutcome:
     $ref: ./PlatformSyncOutcome.yaml
+  pendingNotices:
+    type: integer
+    minimum: 1
+    description: Notices of this flow waiting to be read (`subscribe`); absent when there are none.

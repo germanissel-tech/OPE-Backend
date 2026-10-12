@@ -23,9 +23,12 @@ export interface ModeGatedUseCaseDependencies {
   strategies: SyncStrategies;
 }
 
-/** Which flow the entrance feeds, and by which mode it arrives. */
-export interface ModeGate {
-  flow: SyncFlow;
+/**
+ * Which flow the entrance feeds, and by which mode it arrives. The flow is fixed for the entrances of one flow, and
+ * read from the request for the one that names it — a notice says whether it is about an order or a return.
+ */
+export interface ModeGate<Request = unknown> {
+  flow: SyncFlow | ((request: Request) => SyncFlow);
   mode: SyncMode;
 }
 
@@ -35,9 +38,13 @@ export class ModeGatedUseCase<Request extends { merchantId: MerchantId }, Respon
 > {
   readonly #inner: UseCase<Request, Response>;
   readonly #deps: ModeGatedUseCaseDependencies;
-  readonly #gate: ModeGate;
+  readonly #gate: ModeGate<Request>;
 
-  constructor(inner: UseCase<Request, Response>, deps: ModeGatedUseCaseDependencies, gate: ModeGate) {
+  constructor(
+    inner: UseCase<Request, Response>,
+    deps: ModeGatedUseCaseDependencies,
+    gate: ModeGate<Request>,
+  ) {
     this.#inner = inner;
     this.#deps = deps;
     this.#gate = gate;
@@ -45,7 +52,8 @@ export class ModeGatedUseCase<Request extends { merchantId: MerchantId }, Respon
 
   /** The mode in force is read on every entry: a new configuration version changes it without a restart. */
   async execute(request: Request): Promise<Response | Fail<SyncModeNotConfigured>> {
-    const { flow, mode } = this.#gate;
+    const { mode } = this.#gate;
+    const flow = typeof this.#gate.flow === "function" ? this.#gate.flow(request) : this.#gate.flow;
     const configured = await this.#deps.strategies.modeOf(request.merchantId, flow);
     if (configured !== mode) return fail(new SyncModeNotConfigured(flow, configured));
     return this.#inner.execute(request);

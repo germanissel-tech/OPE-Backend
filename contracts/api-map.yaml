@@ -151,8 +151,8 @@ operations:
     consumer: notifier
     tag: notices
     capabilities: [notices:write]
-    roadmap: platform-port
-    status: planned
+    feature: "044"
+    status: built
     source: docs/verificacion-documental-plataformas.md#Resumen
   - operationId: rotateNoticeKey
     method: post
@@ -160,8 +160,8 @@ operations:
     consumer: admin
     tag: admin
     capabilities: [credentials:rotate]
-    roadmap: platform-port
-    status: planned
+    feature: "044"
+    status: built
     source: docs/adr/047-el-puerto-de-plataforma.md
   - operationId: getMerchantPlatformSync
     method: get

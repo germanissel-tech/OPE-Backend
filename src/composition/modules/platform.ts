@@ -1,7 +1,8 @@
 // platform module (feature 044, ADR-047): how OPE reads a merchant's platform. It installs the sources this
-// deployment has, keeps where each flow stands and runs the scheduler of `pull`, which deposits through the
-// same four use cases the `push` enters by — built here a second time, each behind the mode gate with `pull`,
-// over the same stores, so what the scheduler brings is what a `push` would have brought.
+// deployment has, keeps where each flow stands and the notices waiting to be read, and runs the scheduler of
+// `pull` and the reading of `subscribe`. Both deposit through the same use cases the `push` enters by — built here
+// again, behind the mode gate with their own word, over the same stores — so what is read is what a `push` would
+// have brought.
 //
 // The configuration reads two things of it and binds a third: the sources it installed (to refuse a mode
 // nothing executes), and binds what the scheduler reads of each merchant (`PlatformPoliciesPort`).
@@ -11,7 +12,9 @@ import {
 } from "../../application/catalog/index.js";
 import { NotifyOrderUseCase, NotifyReturnUseCase } from "../../application/outcomes/index.js";
 import {
+  AcceptNoticeUseCase,
   GetPlatformSyncUseCase,
+  type NoticeQueue,
   type PlatformPolicies,
   type SyncStateStore,
 } from "../../application/platform/index.js";
@@ -24,10 +27,14 @@ import {
   fileTestSource,
   installedSources,
   makeGetMerchantPlatformSync,
+  makeNotifyPlatformChange,
+  memoryNoticeQueue,
   memorySyncStateStore,
+  noticeReader,
   platformScheduler,
   schedulerTimer,
   scriptedTestSource,
+  sqliteNoticeQueue,
   sqliteSyncStateStore,
   type InstalledSources,
   type PlatformScheduler,
@@ -40,24 +47,26 @@ import { DecisionLedgerPort } from "./ledger.js";
 import { MerchantStorePort, ScopedMerchantPort } from "./merchant.js";
 import { CorroborationLedgerPort, OrderLedgerPort } from "./outcomes.js";
 import { ClockPort, ClockTolerancePort, LoggerPort, SyncStrategiesPort } from "./shared-kernel.js";
-import type { MerchantId, SyncFlow } from "../../domain/shared-kernel/index.js";
+import type { MerchantId, SyncFlow, SyncMode } from "../../domain/shared-kernel/index.js";
 
 /** The sources this deployment installed; the configuration asks it before it publishes a mode. */
 export const InstalledSourcesPort = port("platform.sources")<InstalledSources>();
 /** What the scheduler reads of each merchant; the configuration binds it. */
 export const PlatformPoliciesPort = port("platform.policies")<PlatformPolicies>();
 const SyncStateStorePort = port("platform.sync-states")<SyncStateStore>();
+const NoticeQueuePort = port("platform.notices")<NoticeQueue>();
 /** The scheduler itself, which a test runs with its own clock instead of waiting for the timer. */
 export const PlatformSchedulerPort = port("platform.scheduler")<PlatformScheduler>();
 /** The timer that runs it: the boot starts it once the levels are read, and the graph closes it. */
 export const SchedulerTimerPort = port("platform.timer")<SchedulerTimer>();
 
-/** The entrance by `pull`: the same gate the `push` has, with the other word (research R-08). */
-const pulled = <I extends { merchantId: MerchantId }, O>(
+/** An entrance by a mode that is not `push`: the same gate the `push` has, with the other word (research R-08). */
+const gated = <I extends { merchantId: MerchantId }, O>(
   inner: UseCase<I, O>,
   strategies: SyncStrategies,
   flow: SyncFlow,
-) => new ModeGatedUseCase(inner, { strategies }, { flow, mode: "pull" });
+  mode: SyncMode,
+) => new ModeGatedUseCase(inner, { strategies }, { flow, mode });
 
 export const platformModule = compositionModule({
   provides: {
@@ -66,6 +75,7 @@ export const platformModule = compositionModule({
     memory: [
       bind(InstalledSourcesPort, {}, () => installedSources(new Map([["test", scriptedTestSource()]]))),
       bind(SyncStateStorePort, {}, () => memorySyncStateStore()),
+      bind(NoticeQueuePort, {}, () => memoryNoticeQueue()),
     ],
     // The durable one has it only when `OPE_TEST_PLATFORM` names its file: without it, it does not exist, and
     // the configuration refuses a merchant that names it. A list of none or one, so nothing here decides.
@@ -76,6 +86,7 @@ export const platformModule = compositionModule({
       bind(SyncStateStorePort, { store: SqlStorePort, logger: LoggerPort }, (deps) =>
         sqliteSyncStateStore(deps),
       ),
+      bind(NoticeQueuePort, { store: SqlStorePort, logger: LoggerPort }, (deps) => sqliteNoticeQueue(deps)),
     ],
   },
   assembles: [
@@ -88,6 +99,7 @@ export const platformModule = compositionModule({
         merchants: MerchantStorePort,
         policies: PlatformPoliciesPort,
         states: SyncStateStorePort,
+        notices: NoticeQueuePort,
         sources: InstalledSourcesPort,
         strategies: SyncStrategiesPort,
         catalog: CatalogStorePort,
@@ -101,29 +113,43 @@ export const platformModule = compositionModule({
         const { clock, tolerance, logger, strategies, catalog } = deps;
         const store = { clock, tolerance, logger, store: catalog, policies: deps.catalogPolicies };
         const outcomes = { clock, tolerance, logger, orders: deps.orders };
+        const notifyOrder = new NotifyOrderUseCase({
+          ...outcomes,
+          decisions: deps.decisions,
+          corroborations: deps.corroborations,
+        });
+        const notifyReturn = new NotifyReturnUseCase(outcomes);
+        const { policies, states, sources } = deps;
         return platformScheduler({
           merchants: deps.merchants,
-          policies: deps.policies,
-          states: deps.states,
-          sources: deps.sources,
+          policies,
+          states,
+          sources,
           catalog,
           logger,
-          upsertCatalog: pulled(
+          upsertCatalog: gated(
             new UpsertCatalogSnapshotUseCase({ ...store, labels: deps.labels }),
             strategies,
             "catalog",
+            "pull",
           ),
-          refreshStockAndPrice: pulled(new RefreshStockAndPriceUseCase(store), strategies, "stockAndPrice"),
-          notifyOrder: pulled(
-            new NotifyOrderUseCase({
-              ...outcomes,
-              decisions: deps.decisions,
-              corroborations: deps.corroborations,
-            }),
+          refreshStockAndPrice: gated(
+            new RefreshStockAndPriceUseCase(store),
             strategies,
-            "orders",
+            "stockAndPrice",
+            "pull",
           ),
-          notifyReturn: pulled(new NotifyReturnUseCase(outcomes), strategies, "returns"),
+          notifyOrder: gated(notifyOrder, strategies, "orders", "pull"),
+          notifyReturn: gated(notifyReturn, strategies, "returns", "pull"),
+          notices: noticeReader({
+            notices: deps.notices,
+            policies,
+            states,
+            sources,
+            logger,
+            notifyOrder: gated(notifyOrder, strategies, "orders", "subscribe"),
+            notifyReturn: gated(notifyReturn, strategies, "returns", "subscribe"),
+          }),
         });
       },
     ),
@@ -136,8 +162,27 @@ export const platformModule = compositionModule({
   ],
   serves: {
     handlers: {
+      notifyPlatformChange: served(
+        { clock: ClockPort, queue: NoticeQueuePort, strategies: SyncStrategiesPort },
+        {
+          name: "notifyPlatformChange",
+          // The flow is the one the notice names, and the gate reads it from the request.
+          build: ({ strategies, ...deps }) =>
+            new ModeGatedUseCase(
+              new AcceptNoticeUseCase(deps),
+              { strategies },
+              { flow: (request) => request.flow, mode: "subscribe" },
+            ),
+        },
+        (useCase) => makeNotifyPlatformChange(useCase),
+      ),
       getMerchantPlatformSync: served(
-        { scoped: ScopedMerchantPort, policies: PlatformPoliciesPort, states: SyncStateStorePort },
+        {
+          scoped: ScopedMerchantPort,
+          policies: PlatformPoliciesPort,
+          states: SyncStateStorePort,
+          notices: NoticeQueuePort,
+        },
         { name: "getMerchantPlatformSync", build: (deps) => new GetPlatformSyncUseCase(deps) },
         (useCase) => makeGetMerchantPlatformSync(useCase),
       ),

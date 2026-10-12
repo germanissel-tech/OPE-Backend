@@ -12,6 +12,7 @@ export type AuditedOperation =
   | "deactivateMerchant"
   | "rotateIngestKey"
   | "rotatePlatformKey"
+  | "rotateNoticeKey"
   | "rotatePlatformSecret"
   | "setKillSwitch"
   | "updateMerchantProfile"

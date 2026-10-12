@@ -125,6 +125,17 @@ function testSource(scriptOf: (merchantId: MerchantId) => Promise<TestPlatformSc
       changesAfter((await answering(merchantId)).orders, cursor, orderOf),
     returnChanges: async (merchantId, cursor) =>
       changesAfter((await answering(merchantId)).returns, cursor, returnOf),
+    // What a notice reads is the order as it is now: the last change of it, which is how a platform answers.
+    order: async (merchantId, reference) => {
+      const changes = (await answering(merchantId)).orders ?? [];
+      const last = changes.filter((order) => order.orderId === reference).at(-1);
+      return last === undefined ? undefined : orderOf(last);
+    },
+    returnOf: async (merchantId, reference) => {
+      const changes = (await answering(merchantId)).returns ?? [];
+      const last = changes.filter((returned) => returned.orderId === reference).at(-1);
+      return last === undefined ? undefined : returnOf(last);
+    },
   };
 }
 

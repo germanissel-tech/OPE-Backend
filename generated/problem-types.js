@@ -34,6 +34,8 @@ export const PROBLEM_TYPES = Object.freeze({
   "invalid-origins": Object.freeze({ status: 500, title: "A merchant needs at least one registered origin" }),
   "invalid-platform-keys": Object.freeze({ status: 500, title: "A merchant has more than two platform keys" }),
   "invalid-platform-secrets": Object.freeze({ status: 500, title: "A merchant has more than two platform signing secrets" }),
+  "invalid-notice-keys": Object.freeze({ status: 500, title: "A merchant has more than two notice keys" }),
+  "notice-key-collision": Object.freeze({ status: 500, title: "A notice key is empty or equal to another credential" }),
   "duplicate-experiment-id": Object.freeze({ status: 500, title: "Two experiments of a merchant share an identifier" }),
   "payload-too-large": Object.freeze({ status: 413, title: "The request body exceeds the limit of its consumer" }),
   "capability-missing": Object.freeze({ status: 403, title: "The credential lacks a capability the operation requires" }),

@@ -200,7 +200,7 @@ llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las �
 - [x] T037 [US1] `tests/integration/isolation.test.ts`: la corrida de A nunca deposita en B
 - [x] T038 [P] [US1] `tests/durability/platform.test.ts`: el cursor sobrevive un reinicio y el ciclo sigue; un
       reinicio en medio de un lote de órdenes no duplica ninguna
-- [ ] T039 Romper a propósito una vez: avanzar el cursor antes de depositar; registrar una orden sin mirar la
+- [x] T039 Romper a propósito una vez: avanzar el cursor antes de depositar; registrar una orden sin mirar la
       regla. `npm test`, `npm run test:durability`, `npm run quality`, mutación acotada. Commit:
       `feat(044): el planificador trae lo que la plataforma no empuja, con la fuente de prueba`
 
@@ -215,26 +215,26 @@ llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las �
 **Independent Test**: un aviso autenticado de una orden confirmada la registra con el detalle leído; sin
 credencial, o con datos que contradicen la lectura, no entra nada del aviso.
 
-- [ ] T040 [P] [US3] `tests/unit/domain/merchant/merchant.test.ts`, **antes del código**: la credencial `notice`
+- [x] T040 [P] [US3] `tests/unit/domain/merchant/merchant.test.ts`, **antes del código**: la credencial `notice`
       rota como la de plataforma, dos vigentes, y sube la revisión
-- [ ] T041 [US3] `src/domain/merchant/`: `kind: "notice"`; `findByNoticeKey` en el directorio;
+- [x] T041 [US3] `src/domain/merchant/`: `kind: "notice"`; `findByNoticeKey` en el directorio;
       `src/interface-adapters/access/security/notice-key.ts` (concede sólo `notices:write`), el esquema
       `components/securitySchemes/noticeKey.yaml` referenciado desde la raíz
-- [ ] T042 [US3] El contrato de `rotateNoticeKey` y su controller, auditado, como `rotatePlatformKey`
-- [ ] T043 [P] [US3] `tests/unit/interface-adapters/platform/notices.test.ts`, **antes del código**: el aviso se
+- [x] T042 [US3] El contrato de `rotateNoticeKey` y su controller, auditado, como `rotatePlatformKey`
+- [x] T043 [P] [US3] `tests/unit/interface-adapters/platform/notices.test.ts`, **antes del código**: el aviso se
       encola una vez mientras está pendiente; al procesarlo lee por la fuente y aplica la regla; si la fuente falla
       reintenta a `noticeRetry.afterMs`; agotados los intentos se descarta con rastro
-- [ ] T044 [US3] `AcceptNoticeUseCase` (`src/application/platform/`) con el puerto `NoticeQueue`; gateways en
+- [x] T044 [US3] `AcceptNoticeUseCase` (`src/application/platform/`) con el puerto `NoticeQueue`; gateways en
       memoria y SQLite; el contrato de `notifyPlatformChange` (`paths/platform-notices.yaml`, `PlatformNotice*`),
       pasado a `built`; controller; el decorador con `"subscribe"`
-- [ ] T045 [US3] El planificador procesa los avisos vencidos en su tick, con `order(reference)` y
+- [x] T045 [US3] El planificador procesa los avisos vencidos en su tick, con `order(reference)` y
       `returns(reference)` de la fuente
-- [ ] T046 [US3] `tests/integration/platform-notices.test.ts`: `202` y la orden registrada con lo leído; sin clave,
+- [x] T046 [US3] `tests/integration/platform-notices.test.ts`: `202` y la orden registrada con lo leído; sin clave,
       con la de plataforma o con la de otro merchant, `401`; repetido, uno; el estado del aviso no gana a la
       lectura; flujo fuera de `subscribe`, `409`; fuente caída, reintento y rastro
-- [ ] T047 [US3] `tests/integration/admin-merchants.test.ts` (la rotación; la clave de aviso no sirve para el
+- [x] T047 [US3] `tests/integration/admin-merchants.test.ts` (la rotación; la clave de aviso no sirve para el
       `push`) e `isolation.test.ts` (el aviso con la clave de A nunca lee B)
-- [ ] T048 [P] [US3] `tests/durability/platform.test.ts`: un aviso pendiente sobrevive un reinicio y se procesa
+- [x] T048 [P] [US3] `tests/durability/platform.test.ts`: un aviso pendiente sobrevive un reinicio y se procesa
 - [ ] T049 Romper a propósito una vez: registrar el estado del aviso en vez del leído. `npm test`,
       `npm run test:durability`, `npm run quality`, mutación acotada. Commit:
       `feat(044): el aviso de la plataforma, con su credencial, que obliga a leer`

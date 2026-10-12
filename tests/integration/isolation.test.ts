@@ -74,6 +74,14 @@ const exposureOf = (decisionId: string) => ({
   anchor: "variant_selector",
 });
 
+/** An order of the test platform in the state the merchants of these tests confirm (feature 044). */
+const paidOrder = (amount: string) => ({
+  orderId: "o1",
+  state: "paid",
+  total: { amount, currency: "ARS" },
+  items: [],
+});
+
 async function intervene(merchantId: string, decisionId: string): Promise<void> {
   const decision = InterveneDecision.of(
     {
@@ -587,14 +595,10 @@ describe("isolation between merchants", () => {
       });
       expect(res.statusCode).toBe(201);
     }
-    const order = (amount: string) => ({
-      orderId: "o1",
-      state: "paid",
-      total: { amount, currency: "ARS" },
-      items: [],
+    source.script(asMerchantId(A.id), { orders: [paidOrder("1.00")] });
+    source.script(asMerchantId(B.id), {
+      orders: [paidOrder("2.00"), { ...paidOrder("3.00"), orderId: "o2" }],
     });
-    source.script(asMerchantId(A.id), { orders: [order("1.00")] });
-    source.script(asMerchantId(B.id), { orders: [order("2.00"), { ...order("3.00"), orderId: "o2" }] });
     await app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
     const orders = app.resolve(OrderLedgerPort);
     const o1 = asOrderId("o1");
@@ -609,6 +613,45 @@ describe("isolation between merchants", () => {
     expect(await syncOf(B.id)).toMatchObject({
       flows: { orders: { lastOutcome: { status: "ok", count: 2 } } },
     });
+  });
+
+  it("notices (feature 044): a notice with the key of A is read from A's platform and deposits in A, never in B", async () => {
+    const source = scriptedTestSource();
+    await app.resetPorts({
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", source]])))],
+    });
+    for (const id of [A.id, B.id]) {
+      const res = await admin(app.app, "POST", `/v1/admin/merchants/${id}/configuration`, {
+        body: {
+          declared: {
+            platformSource: "test",
+            syncStrategy: { orders: "subscribe" },
+            confirmedOrderStates: ["paid"],
+          },
+          corrective: true,
+          reason: "the platform notices",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    }
+    source.script(asMerchantId(A.id), { orders: [paidOrder("1.00")] });
+    source.script(asMerchantId(B.id), { orders: [paidOrder("2.00")] });
+    const keyOfA = json(
+      await admin(app.app, "POST", `/v1/admin/merchants/${A.id}/notice-keys`, { body: {} }),
+    ) as {
+      value: string;
+    };
+    const res = await app.app.inject({
+      method: "POST",
+      url: "/v1/platform-notices",
+      headers: { "content-type": "application/json", "x-ope-notice-key": keyOfA.value },
+      payload: JSON.stringify({ flow: "orders", reference: "o1" }),
+    });
+    expect(res.statusCode).toBe(202);
+    await app.resolve(PlatformSchedulerPort).runDue(new Date(NOW));
+    const orders = app.resolve(OrderLedgerPort);
+    expect((await orders.find(asMerchantId(A.id), asOrderId("o1")))?.total.amount).toBe("1.00");
+    expect(await orders.find(asMerchantId(B.id), asOrderId("o1"))).toBeUndefined();
   });
 
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {

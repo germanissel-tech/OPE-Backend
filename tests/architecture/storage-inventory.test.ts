@@ -139,6 +139,13 @@ const INVENTORY: readonly Store[] = [
     durable: "platform/gateways/sqlite-sync-state-store.ts",
   },
   {
+    // Feature 044: a platform notices once, so a notice lost in a restart is an order OPE never reads.
+    keeps: "the notices of a platform waiting to be read",
+    column: "born-durable",
+    memory: "platform/gateways/memory-notice-queue.ts",
+    durable: "platform/gateways/sqlite-notice-queue.ts",
+  },
+  {
     keeps: "experiments and their lifecycle",
     column: "this-feature",
     memory: "experiment/gateways/memory-experiment-store.ts",

@@ -1,0 +1,15 @@
+type: object
+description: "The notice is queued to be read. Repeated while it is pending, it is the same notice."
+additionalProperties: false
+required: [flow, reference, receivedAt]
+properties:
+  flow:
+    type: string
+    enum: [orders, returns]
+    description: The flow the notice is about.
+  reference:
+    $ref: ./OrderId.yaml
+  receivedAt:
+    type: string
+    format: date-time
+    description: When OPE received it.

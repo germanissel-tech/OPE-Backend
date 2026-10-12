@@ -30,6 +30,7 @@ export interface TestMerchantSpec {
   ingestKeys?: string[];
   origins?: string[];
   platformKeys?: string[];
+  noticeKeys?: string[];
   platformSecrets?: string[];
   createdAt?: Date;
 }
@@ -40,6 +41,7 @@ export function testMerchant(spec: TestMerchantSpec = {}): Merchant {
   const credentials: Credential[] = [
     ...(spec.ingestKeys ?? ["key-a-1"]).map((k) => Merchant.credential("ingest", fingerprintOf(k), at)),
     ...(spec.platformKeys ?? []).map((k) => Merchant.credential("platform", fingerprintOf(k), at)),
+    ...(spec.noticeKeys ?? []).map((k) => Merchant.credential("notice", fingerprintOf(k), at)),
     ...(spec.platformSecrets ?? []).map((s) => Merchant.credential("signing", fingerprintOf(s), at, s)),
   ];
   const built = Merchant.of({

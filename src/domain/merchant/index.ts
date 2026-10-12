@@ -5,6 +5,8 @@ export {
   InvalidOrigin,
   InvalidOrigins,
   InvalidPlatformKeys,
+  InvalidNoticeKeys,
+  NoticeKeyCollision,
   InvalidPlatformSecret,
   InvalidPlatformSecrets,
   MerchantDeactivated,

@@ -34,6 +34,8 @@ export declare const PROBLEM_TYPES: {
   readonly "invalid-origins": { readonly status: 500; readonly title: "A merchant needs at least one registered origin" };
   readonly "invalid-platform-keys": { readonly status: 500; readonly title: "A merchant has more than two platform keys" };
   readonly "invalid-platform-secrets": { readonly status: 500; readonly title: "A merchant has more than two platform signing secrets" };
+  readonly "invalid-notice-keys": { readonly status: 500; readonly title: "A merchant has more than two notice keys" };
+  readonly "notice-key-collision": { readonly status: 500; readonly title: "A notice key is empty or equal to another credential" };
   readonly "duplicate-experiment-id": { readonly status: 500; readonly title: "Two experiments of a merchant share an identifier" };
   readonly "payload-too-large": { readonly status: 413; readonly title: "The request body exceeds the limit of its consumer" };
   readonly "capability-missing": { readonly status: 403; readonly title: "The credential lacks a capability the operation requires" };

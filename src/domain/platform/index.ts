@@ -9,3 +9,4 @@ export { PLATFORM_SOURCES } from "./vocabulary.js";
 export type { PlatformSourceName, SourceModes } from "./vocabulary.js";
 export type { SyncCadenceRecord } from "./sync-cadence.js";
 export type { SyncOutcome, SyncState } from "./sync-state.js";
+export type { Notice } from "./notice.js";

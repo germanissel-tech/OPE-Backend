@@ -42,6 +42,7 @@ import type { Logger, UseCase } from "../../../application/shared-kernel/index.j
 import type { VariantId } from "../../../domain/catalog/index.js";
 import type { SyncOutcome, SyncState } from "../../../domain/platform/index.js";
 import type { InstalledSources, PlatformSource, SourceChanges } from "../source.js";
+import type { NoticeReader } from "./notice-reader.js";
 
 /** A use case of the port as the scheduler sees it: what it answers matters only as done or refused. */
 type Deposit<I> = UseCase<I, Result<unknown, DomainError>>;
@@ -57,11 +58,16 @@ export interface PlatformSchedulerDeps {
   refreshStockAndPrice: Deposit<RefreshStockAndPriceRequest>;
   notifyOrder: Deposit<NotifyOrderRequest>;
   notifyReturn: Deposit<NotifyReturnRequest>;
+  /** What reads the notices of `subscribe`, on the same tick. */
+  notices: NoticeReader;
   logger: Logger;
 }
 
 export interface PlatformScheduler {
-  /** Every flow in `pull` whose cadence is due, of every merchant that is on. A test calls it with its clock. */
+  /**
+   * Every flow in `pull` whose cadence is due, of every merchant that is on, and then every notice that is due. A
+   * test calls it with its clock.
+   */
   runDue(now: Date): Promise<void>;
 }
 
@@ -118,6 +124,7 @@ class PullScheduler implements PlatformScheduler {
       }
       cursor = page.nextCursor;
     } while (cursor !== undefined);
+    await this.#deps.notices.readDue(now);
   }
 
   async #runMerchant(merchantId: MerchantId, now: Date): Promise<void> {
