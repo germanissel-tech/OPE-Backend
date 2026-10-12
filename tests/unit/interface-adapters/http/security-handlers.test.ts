@@ -12,6 +12,7 @@ import { fail, ok } from "../../../../src/domain/shared-kernel/index.js";
 import {
   makeAdminTokenSecurity,
   makeIngestKeySecurity,
+  makeNoticeKeySecurity,
   makePlatformKeySecurity,
 } from "../../../../src/interface-adapters/access/index.js";
 import { CONSUMER_CAPABILITIES } from "../../../../src/interface-adapters/http/security/capabilities.js";
@@ -59,6 +60,28 @@ describe("ingestKey security handler", () => {
       capabilities: CONSUMER_CAPABILITIES.sdk,
       log: { merchantId: "m_a" },
     });
+  });
+});
+
+describe("noticeKey security handler (feature 044)", () => {
+  const handler = makeNoticeKeySecurity({
+    resolve: (key) => Promise.resolve(key === "n" ? ok(merchant) : fail(new Unauthorized())),
+  });
+
+  it("grants only the notifier capabilities and leaves the merchant for the controller and its id for the log", async () => {
+    expect(await handler({ headers: { "x-ope-notice-key": "n" } })).toEqual({
+      principal: { merchant },
+      capabilities: CONSUMER_CAPABILITIES.notifier,
+      log: { merchantId: "m_a" },
+    });
+  });
+
+  it("rejects an absent or unknown key with unauthorized, and does not read the platform key", async () => {
+    await expect(handler({ headers: {} })).rejects.toMatchObject({ slug: "unauthorized" });
+    await expect(handler({ headers: { "x-ope-notice-key": "x" } })).rejects.toMatchObject({
+      slug: "unauthorized",
+    });
+    await expect(handler({ headers: { "x-ope-platform-key": "n" } })).rejects.toThrow(SecurityError);
   });
 });
 
