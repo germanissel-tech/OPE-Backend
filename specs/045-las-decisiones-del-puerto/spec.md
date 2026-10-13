@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Borrador
+**Status**: Construida (2026-10-13)
 
 **Input**: La enmienda del 2026-10-13 de ADR-047, decidida con el dueño punto por punto: tres cambios de
 comportamiento sobre lo que construyó la feature 044 (el puerto de plataforma) y uno que se confirma sin cambio.

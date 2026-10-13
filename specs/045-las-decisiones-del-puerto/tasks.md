@@ -56,6 +56,10 @@ queda una, la segunda cuenta y no hay rechazo en el log; con otro total, conflic
 
 **Checkpoint**: una relectura sin instante ya no aparece como rechazo.
 
+> **Hecho el 2026-10-13.** Desvíos: (1) **La marca se calcula en un solo lugar**, `observedUnless` en
+> `interface-adapters/platform/source.ts`, que el planificador y el lector llaman donde completan el instante. (2)
+> **El `push` con otro instante** se probó en `orders.test.ts`, al lado de los demás conflictos del `push`.
+
 ---
 
 ## Phase 2: La devolución huérfana (tramo 2) — US2
@@ -90,6 +94,10 @@ vencer el reintento la devolución queda vinculada.
 
 **Checkpoint**: ninguna devolución se pierde por llegar antes que su orden.
 
+> **Hecho el 2026-10-13.** Desvíos: (1) **Con un solo intento configurado no hay nada que esperar**: la devolución
+> huérfana queda como el rechazo que era, logueado; la spec no lo decía. (2) **La devolución que deja de llegar por
+> `pull`** pasa por la compuerta de su modo al releerse y se descarta como un rechazo logueado.
+
 ---
 
 ## Phase 3: El reintento de la corrida (tramo 3) — US3
@@ -113,14 +121,16 @@ siguiente espera un día.
 
 **Checkpoint**: un catálogo caído no espera un día.
 
+> **Hecho el 2026-10-13.** Sin desvíos.
+
 ---
 
 ## Phase 4: El cierre
 
-- [ ] T022 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado
-- [ ] T023 [P] ADR-047: la enmienda dice que los tres puntos están construidos; `spec.md` **Status** construida;
+- [x] T022 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado
+- [x] T023 [P] ADR-047: la enmienda dice que los tres puntos están construidos; `spec.md` **Status** construida;
       `tasks.md` con lo hecho y los desvíos
-- [ ] T024 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
+- [x] T024 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
       `npm run contract:check`, `npm run release-check`; la mutación, en CI. Commit:
       `docs(045): cierre — las decisiones del puerto, construidas`. Push y PR
 

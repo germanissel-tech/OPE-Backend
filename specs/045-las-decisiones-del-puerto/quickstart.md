@@ -23,6 +23,22 @@
 4. Romper el catálogo (`"failing": true`): el reintento llega al minuto, no al día; sacar la falla: la corrida sale
    bien y la siguiente espera un día.
 
+## Lo corrido (2026-10-13)
+
+Los cuatro pasos, a mano, contra `npm run dev` (el despliegue durable sobre un almacén limpio, el de antes
+respaldado en `data/ope.db.2026-10-13.bak`), con `dev-merchant` en `platformSource: test`. Dos ajustes de cadencia,
+publicados como versiones correctivas, para no esperar los valores por defecto: `returnsMs: 30000` en el paso 3 (la
+corrida de devoluciones ya había pasado y la siguiente era a los 15 minutos) y `catalogMs: 300000` en el paso 4 (si
+no, la próxima foto era al día siguiente). Al terminar, el archivo de la plataforma se restauró y la configuración
+volvió a la de antes.
+
+| paso | resultado                                                                                                                                                                                                                                            |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `201`; catálogo y stock por `pull`, órdenes por `subscribe`, devoluciones por `pull`                                                                                                                                                                 |
+| 2    | `dev-order-2`, `invoiced` y sin instante, avisada dos veces: la primera lectura y la segunda (30 s después) cuentan 1 cada una; ningún `idempotency-conflict` ni rechazo en el log; la orden guarda su instante como observado                       |
+| 3    | la devolución de `dev-order-3` antes que su orden: `pendingNotices: 1` en devoluciones, la corrida cuenta 0 y no loguea rechazo; con la orden agregada y avisada, al vencer el reintento la orden quedó `RETURNED` y no quedó ningún aviso pendiente |
+| 4    | con la plataforma caída, el catálogo falló a las 14:28:45 y se reintentó a las 14:29:45, al minuto y no a los 5 de su cadencia; sin la falla salió bien a las 14:30:45 y no volvió a correr en los 95 s siguientes                                   |
+
 ## Romperle algo a cada comprobación
 
 Una vez cada una: comparar el instante aunque uno sea observado; descartar la devolución huérfana en vez de
