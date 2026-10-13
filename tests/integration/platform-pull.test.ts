@@ -44,8 +44,8 @@ afterAll(async () => {
 });
 
 /** The scheduler, run as the timer would, a little later each time so every cadence below is due. */
-async function tick(): Promise<void> {
-  now = new Date(now.getTime() + 1_000);
+async function tick(ms = 1_000): Promise<void> {
+  now = new Date(now.getTime() + ms);
   await app.resolve(PlatformSchedulerPort).runDue(now);
 }
 
@@ -101,6 +101,28 @@ describe("orders and returns by pull", () => {
     expect(await found()).toBeDefined();
   });
 
+  it("an order without an instant, read again in a later run, is a repeat and counts (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { orders: [orderOf("o1", "paid")] });
+    await tick();
+    // The platform lists the same order again: the read a minute later puts another instant.
+    source.script(A, { orders: [orderOf("o1", "paid"), orderOf("o1", "paid")] });
+    await tick(60_000);
+    const res = await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync");
+    expect(json(res)).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 1 } } } });
+    source.script(A, {
+      orders: [
+        orderOf("o1", "paid"),
+        orderOf("o1", "paid"),
+        { ...orderOf("o1", "paid"), total: { amount: "1.00", currency: "ARS" } },
+      ],
+    });
+    await tick(60_000);
+    const conflict = await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync");
+    expect(json(conflict)).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 0 } } } });
+    expect((await found())?.total.amount).toBe("100.00");
+  });
+
   it("the return of a pulled order is linked to it", async () => {
     await pullOrders("m_a", ["paid"]);
     source.script(A, { orders: [orderOf("o1", "paid")] });
@@ -108,6 +130,45 @@ describe("orders and returns by pull", () => {
     source.script(A, { orders: [orderOf("o1", "paid")], returns: [{ orderId: "o1" }] });
     await tick();
     expect((await found())?.status()).toBe("RETURNED");
+  });
+
+  it("a return read before its order waits, and enters when the order arrives (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { returns: [{ orderId: "o1" }] });
+    await tick();
+    const waiting = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync"));
+    expect(waiting).toMatchObject({
+      flows: { returns: { pendingNotices: 1, lastOutcome: { status: "ok", count: 0 } } },
+    });
+    source.script(A, { orders: [orderOf("o1", "paid")], returns: [{ orderId: "o1" }] });
+    await tick();
+    expect((await found())?.status()).toBe("VERIFIED_ORDER");
+    await tick(60_000);
+    expect((await found())?.status()).toBe("RETURNED");
+    const read = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+      flows: { returns: { pendingNotices?: number } };
+    };
+    expect(read.flows.returns.pendingNotices).toBeUndefined();
+  });
+
+  it("a return left waiting is dropped when its flow stops arriving by pull (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { orders: [orderOf("o1", "paid")] });
+    source.script(A, { returns: [{ orderId: "o1" }] });
+    await tick();
+    const res = await configure("m_a", {
+      ...PULLED,
+      syncStrategy: { orders: "pull", returns: "push" },
+      confirmedOrderStates: ["paid"],
+    });
+    expect(res.statusCode).toBe(201);
+    source.script(A, { orders: [orderOf("o1", "paid")], returns: [{ orderId: "o1" }] });
+    await tick(60_000);
+    expect((await found())?.status()).toBe("VERIFIED_ORDER");
+    const read = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+      flows: { returns: { pendingNotices?: number } };
+    };
+    expect(read.flows.returns.pendingNotices).toBeUndefined();
   });
 
   it("changing the confirmed states by a version changes the next run", async () => {
@@ -162,6 +223,37 @@ describe("the catalogue and stock and price by pull", () => {
     const refreshed = await app.resolve(CatalogStorePort).refreshOf(A, asVariantId("P1-M"));
     expect(refreshed).toMatchObject({ available: false, observedAt: now });
     expect(await app.resolve(CatalogStorePort).current(B)).toBeUndefined();
+  });
+});
+
+describe("the retry of a run that failed (feature 045)", () => {
+  it("a catalogue that fails is read again at the retry, not a day later, and back at its cadence once it works", async () => {
+    const res = await configure("m_a", {
+      platformSource: "test",
+      syncStrategy: { catalog: "pull" },
+      syncCadence: { catalogMs: 86_400_000 },
+      noticeRetry: { afterMs: 60_000, maxAttempts: 3 },
+    });
+    expect(res.statusCode).toBe(201);
+    const lastRun = async () =>
+      (
+        json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+          flows: { catalog: { lastRunAt?: string; lastOutcome?: { status: string } } };
+        }
+      ).flows.catalog;
+    source.script(A, { failing: true });
+    await tick();
+    const failedAt = (await lastRun()).lastRunAt;
+    await tick(30_000);
+    expect((await lastRun()).lastRunAt).toBe(failedAt);
+    await tick(30_000);
+    expect((await lastRun()).lastRunAt).toBe(now.toISOString());
+    source.script(A, { catalog: { products: [catalogProductOf("P1") as never] } });
+    await tick(60_000);
+    expect(await lastRun()).toMatchObject({ lastRunAt: now.toISOString(), lastOutcome: { status: "ok" } });
+    const workedAt = now.toISOString();
+    await tick(3_600_000);
+    expect((await lastRun()).lastRunAt).toBe(workedAt);
   });
 });
 

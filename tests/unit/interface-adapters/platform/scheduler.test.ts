@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { asProductId, asVariantId, CatalogSnapshot } from "../../../../src/domain/catalog/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
+import { OrderUnknown } from "../../../../src/domain/outcomes/index.js";
 import {
   NoticeRetry,
   OrderConfirmation,
@@ -21,6 +22,7 @@ import {
 import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import {
   installedSources,
+  memoryNoticeQueue,
   memorySyncStateStore,
   platformScheduler,
   scriptedTestSource,
@@ -85,6 +87,7 @@ interface Setup {
   answers?: {
     order?: (request: { orderId: string }) => Result<unknown, DomainError>;
     catalog?: () => Result<unknown, DomainError>;
+    return?: (request: { orderId: string }) => Result<unknown, DomainError>;
   };
 }
 
@@ -100,6 +103,7 @@ async function subject(setup: Setup = {}) {
     retry: NoticeRetry.rehydrate({ afterMs: 1_000, maxAttempts: 3 }),
   };
   const states = memorySyncStateStore();
+  const queue = memoryNoticeQueue();
   const upsert = recording<{ merchantId: MerchantId; capturedAt: Date; products: readonly unknown[] }>(
     setup.answers?.catalog,
   );
@@ -107,10 +111,18 @@ async function subject(setup: Setup = {}) {
     merchantId: MerchantId;
     items: readonly { variantId: string; observedAt: Date }[];
   }>();
-  const order = recording<{ merchantId: MerchantId; orderId: string; confirmedAt: Date }>(
-    setup.answers?.order,
-  );
-  const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
+  const order = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    confirmedAt: Date;
+    confirmedAtObserved?: true | undefined;
+  }>(setup.answers?.order);
+  const returned = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    returnedAt: Date;
+    returnedAtObserved?: true | undefined;
+  }>(setup.answers?.return);
   const logged: string[] = [];
   /** When the notices were read: after the pull runs of the same tick. */
   const noticesRead: Date[] = [];
@@ -132,6 +144,7 @@ async function subject(setup: Setup = {}) {
     refreshStockAndPrice: refresh.useCase,
     notifyOrder: order.useCase,
     notifyReturn: returned.useCase,
+    noticeQueue: queue,
     notices: {
       readDue: (now) => {
         noticesRead.push(now);
@@ -157,6 +170,7 @@ async function subject(setup: Setup = {}) {
     source.script(A, s);
   };
   return {
+    queue,
     scheduler,
     merchants,
     policy,
@@ -200,6 +214,58 @@ describe("platformScheduler", () => {
     await scheduler.runDue(at(5));
     expect(upsert.calls).toHaveLength(1);
     expect(noticesRead).toEqual([at(5)]);
+  });
+
+  it("a run that failed is tried again at the merchant's retry, with no cap, and one that worked waits its cadence (feature 045)", async () => {
+    let reads = 0;
+    let failing = true;
+    const scripted = scriptedTestSource();
+    const source: PlatformSource = {
+      ...scripted,
+      catalog: () => {
+        reads += 1;
+        return failing ? Promise.reject(new Error("down")) : Promise.resolve({ products: [] });
+      },
+    };
+    const { scheduler } = await subject({
+      strategy: { catalog: "pull" },
+      cadence: { catalogMs: 10_000 },
+      source,
+    });
+    await scheduler.runDue(at(0));
+    await scheduler.runDue(at(999));
+    expect(reads).toBe(1);
+    for (const ms of [1_000, 2_000, 3_000]) await scheduler.runDue(at(ms));
+    expect(reads).toBe(4);
+    failing = false;
+    await scheduler.runDue(at(4_000));
+    expect(reads).toBe(5);
+    await scheduler.runDue(at(5_000));
+    await scheduler.runDue(at(13_999));
+    expect(reads).toBe(5);
+    await scheduler.runDue(at(14_000));
+    expect(reads).toBe(6);
+  });
+
+  it("a flow whose cadence is shorter than the retry is tried again at its cadence", async () => {
+    let reads = 0;
+    const scripted = scriptedTestSource();
+    const source: PlatformSource = {
+      ...scripted,
+      catalog: () => {
+        reads += 1;
+        return Promise.reject(new Error("down"));
+      },
+    };
+    const { scheduler } = await subject({
+      strategy: { catalog: "pull" },
+      cadence: { catalogMs: 500 },
+      source,
+    });
+    await scheduler.runDue(at(0));
+    await scheduler.runDue(at(499));
+    await scheduler.runDue(at(500));
+    expect(reads).toBe(2);
   });
 
   it("skips a merchant whose switch is off and one that is deactivated, and reads the others", async () => {
@@ -422,10 +488,13 @@ describe("platformScheduler", () => {
         ],
       });
       await scheduler.runDue(at(3));
-      expect(notified.calls.map((call) => [call.orderId, call.confirmedAt])).toEqual([
-        ["o2", new Date("2026-09-19T11:30:00.000Z")],
-        ["o3", at(3)],
-        ["o1", at(3)],
+      // The instant OPE put is marked as observed, and only that one (feature 045).
+      expect(
+        notified.calls.map((call) => [call.orderId, call.confirmedAt, call.confirmedAtObserved]),
+      ).toEqual([
+        ["o2", new Date("2026-09-19T11:30:00.000Z"), undefined],
+        ["o3", at(3), true],
+        ["o1", at(3), true],
       ]);
       expect(await stateOf("orders")).toMatchObject({ cursor: "4", lastOutcome: { status: "ok", count: 3 } });
     });
@@ -482,13 +551,57 @@ describe("platformScheduler", () => {
       });
     });
 
+    it("a return whose order is not recorded yet waits as a notice of pull, and the run goes on (feature 045)", async () => {
+      const { scheduler, queue, returned, script, stateOf, logged } = await subject({
+        strategy: { returns: "pull" },
+        answers: {
+          return: (request) => (request.orderId === "o1" ? fail(new OrderUnknown("o1")) : ok(undefined)),
+        },
+      });
+      script({ returns: [{ orderId: "o1" }, { orderId: "o2" }] });
+      await scheduler.runDue(at(5));
+      expect(returned.calls.map((call) => call.orderId)).toEqual(["o1", "o2"]);
+      // The first wait of the retry: the order did not arrive in the thirty seconds of a tick.
+      expect(await queue.due(at(1_005))).toEqual([
+        {
+          merchantId: A,
+          flow: "returns",
+          reference: "o1",
+          receivedAt: at(5),
+          attempts: 1,
+          nextAt: at(1_005),
+          via: "pull",
+        },
+      ]);
+      expect(await queue.due(at(1_004))).toEqual([]);
+      expect(await stateOf("returns")).toMatchObject({
+        cursor: "2",
+        lastOutcome: { status: "ok", count: 1 },
+      });
+      expect(logged).toEqual([]);
+    });
+
+    it("with a single attempt there is nothing to wait for: the orphan is a refusal, logged", async () => {
+      const { scheduler, queue, script, policy, logged } = await subject({
+        strategy: { returns: "pull" },
+        answers: { return: () => fail(new OrderUnknown("o1")) },
+      });
+      policy.retry = NoticeRetry.rehydrate({ afterMs: 1_000, maxAttempts: 1 });
+      script({ returns: [{ orderId: "o1" }] });
+      await scheduler.runDue(at(5));
+      expect(await queue.due(at(999_999))).toEqual([]);
+      expect(logged).toEqual([
+        "The core refused a change read from the platform; the run goes on without it.",
+      ]);
+    });
+
     it("returns are deposited from their own cursor, with the platform's instant or the observation's", async () => {
       const { scheduler, returned, script, stateOf } = await subject({ strategy: { returns: "pull" } });
       script({ returns: [{ orderId: "o1" }, { orderId: "o2", returnedAt: "2026-09-19T11:00:00.000Z" }] });
       await scheduler.runDue(at(4));
-      expect(returned.calls.map((call) => [call.orderId, call.returnedAt])).toEqual([
-        ["o1", at(4)],
-        ["o2", new Date("2026-09-19T11:00:00.000Z")],
+      expect(returned.calls.map((call) => [call.orderId, call.returnedAt, call.returnedAtObserved])).toEqual([
+        ["o1", at(4), true],
+        ["o2", new Date("2026-09-19T11:00:00.000Z"), undefined],
       ]);
       expect(await stateOf("returns")).toMatchObject({
         cursor: "2",

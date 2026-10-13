@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { AcceptNoticeUseCase, type PlatformPolicy } from "../../../../src/application/platform/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
+import { OrderUnknown } from "../../../../src/domain/outcomes/index.js";
 import {
   NoticeRetry,
   OrderConfirmation,
@@ -61,7 +62,9 @@ function recording<I>(answer: () => Result<unknown, DomainError> = () => ok(unde
   return { calls, useCase };
 }
 
-function subject(answers: { order?: () => Result<unknown, DomainError> } = {}) {
+function subject(
+  answers: { order?: () => Result<unknown, DomainError>; return?: () => Result<unknown, DomainError> } = {},
+) {
   const source = scriptedTestSource();
   const notices = memoryNoticeQueue();
   const states = memorySyncStateStore();
@@ -78,8 +81,21 @@ function subject(answers: { order?: () => Result<unknown, DomainError> } = {}) {
     confirmation: OrderConfirmation.rehydrate(["paid"]),
     retry: NoticeRetry.rehydrate({ afterMs: 60_000, maxAttempts: 3 }),
   };
-  const order = recording<{ merchantId: MerchantId; orderId: string; confirmedAt: Date }>(answers.order);
-  const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
+  const order = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    confirmedAt: Date;
+    confirmedAtObserved?: true | undefined;
+  }>(answers.order);
+  interface ReturnRequest {
+    merchantId: MerchantId;
+    orderId: string;
+    returnedAt: Date;
+    returnedAtObserved?: true | undefined;
+  }
+  /** The return behind the gate of `subscribe`, and behind the gate of `pull` (feature 045). */
+  const returned = recording<ReturnRequest>(answers.return);
+  const returnedPull = recording<ReturnRequest>(answers.return);
   const logged: { fields: unknown; message: string }[] = [];
   const log = (fields: unknown, message: string) => {
     logged.push({ fields, message });
@@ -90,10 +106,10 @@ function subject(answers: { order?: () => Result<unknown, DomainError> } = {}) {
     states,
     sources: installedSources(new Map([["test", source]])),
     notifyOrder: order.useCase,
-    notifyReturn: returned.useCase,
+    notifyReturn: { subscribe: returned.useCase, pull: returnedPull.useCase },
     logger: { info: log, warn: log, error: log },
   });
-  return { source, notices, states, policy, order, returned, logged, reader };
+  return { source, notices, states, policy, order, returned, returnedPull, logged, reader };
 }
 
 const paid = (state = "paid", confirmedAt?: string) => ({
@@ -159,8 +175,8 @@ describe("noticeReader", () => {
     source.script(A, { orders: [paid("pending"), paid("paid", "2026-09-19T11:00:00.000Z")] });
     await notices.enqueue(noticeOf({ state: "pending" }));
     await reader.readDue(at(3));
-    expect(order.calls.map((call) => [call.orderId, call.confirmedAt])).toEqual([
-      ["o1", new Date("2026-09-19T11:00:00.000Z")],
+    expect(order.calls.map((call) => [call.orderId, call.confirmedAt, call.confirmedAtObserved])).toEqual([
+      ["o1", new Date("2026-09-19T11:00:00.000Z"), undefined],
     ]);
     expect(await notices.due(at(99))).toEqual([]);
     expect((await states.statesOf(A)).orders).toEqual({
@@ -171,7 +187,7 @@ describe("noticeReader", () => {
     source.script(A, { orders: [paid("paid")] });
     await notices.enqueue(noticeOf());
     await reader.readDue(at(4));
-    expect(order.calls[1]?.confirmedAt).toEqual(at(4));
+    expect([order.calls[1]?.confirmedAt, order.calls[1]?.confirmedAtObserved]).toEqual([at(4), true]);
   });
 
   it("the state the notice said never decides: an order read in a state that is not confirmed is not recorded", async () => {
@@ -189,7 +205,9 @@ describe("noticeReader", () => {
     source.script(A, { returns: [{ orderId: "o1" }, { orderId: "o2" }] });
     await notices.enqueue(noticeOf({ flow: "returns" }));
     await reader.readDue(at(2));
-    expect(returned.calls.map((call) => [call.orderId, call.returnedAt])).toEqual([["o1", at(2)]]);
+    expect(returned.calls.map((call) => [call.orderId, call.returnedAt, call.returnedAtObserved])).toEqual([
+      ["o1", at(2), true],
+    ]);
   });
 
   it("a read that fails is read again after the merchant's wait, counting the attempt", async () => {
@@ -240,6 +258,32 @@ describe("noticeReader", () => {
       },
     ]);
     expect((await states.statesOf(A)).orders?.lastOutcome).toEqual({ status: "ok", count: 0 });
+  });
+
+  it("a return whose order is not recorded yet is read again, not done (feature 045)", async () => {
+    const { source, notices, reader, returned, logged } = subject({
+      return: () => fail(new OrderUnknown("o1")),
+    });
+    source.script(A, { returns: [{ orderId: "o1" }] });
+    await notices.enqueue(noticeOf({ flow: "returns" }));
+    await reader.readDue(at(0));
+    expect(returned.calls).toHaveLength(1);
+    expect(await notices.due(at(60_000))).toEqual([
+      noticeOf({ flow: "returns", attempts: 1, nextAt: at(60_000) }),
+    ]);
+    expect(logged.map((entry) => entry.message)).toEqual([
+      "A notice could not be read; it is read again later.",
+    ]);
+  });
+
+  it("a return a run of pull left waiting is deposited behind the gate of pull, and a notice behind the one of subscribe (feature 045)", async () => {
+    const { source, notices, reader, returned, returnedPull } = subject();
+    source.script(A, { returns: [{ orderId: "o1" }, { orderId: "o2" }] });
+    await notices.enqueue(noticeOf({ flow: "returns", via: "pull" }));
+    await notices.enqueue(noticeOf({ flow: "returns", reference: "o2" }));
+    await reader.readDue(at(0));
+    expect(returnedPull.calls.map((call) => call.orderId)).toEqual(["o1"]);
+    expect(returned.calls.map((call) => call.orderId)).toEqual(["o2"]);
   });
 
   it("when the attempts run out the notice is dropped with a trace, in the log and in where the flow stands", async () => {

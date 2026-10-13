@@ -18,6 +18,7 @@
 //   - **The cadence counts from the start of the last run, whatever it ended in**: a platform that fails is
 //     not asked again on every tick.
 import { LedgerUnavailable } from "../../../domain/ledger/index.js";
+import { OrderUnknown } from "../../../domain/outcomes/index.js";
 import {
   StoreUnavailable,
   SYNC_FLOWS,
@@ -26,6 +27,14 @@ import {
   type Result,
   type SyncFlow,
 } from "../../../domain/shared-kernel/index.js";
+import {
+  observedUnless,
+  type InstalledSources,
+  type PlatformSource,
+  type SourceChanges,
+  type SourceReturn,
+} from "../source.js";
+import type { NoticeReader } from "./notice-reader.js";
 import type {
   CatalogStore,
   RefreshStockAndPriceRequest,
@@ -34,15 +43,14 @@ import type {
 import type { MerchantStore } from "../../../application/merchant/index.js";
 import type { NotifyOrderRequest, NotifyReturnRequest } from "../../../application/outcomes/index.js";
 import type {
+  NoticeQueue,
   PlatformPolicies,
   PlatformPolicy,
   SyncStateStore,
 } from "../../../application/platform/index.js";
 import type { Logger, UseCase } from "../../../application/shared-kernel/index.js";
 import type { VariantId } from "../../../domain/catalog/index.js";
-import type { SyncOutcome, SyncState } from "../../../domain/platform/index.js";
-import type { InstalledSources, PlatformSource, SourceChanges } from "../source.js";
-import type { NoticeReader } from "./notice-reader.js";
+import type { Notice, SyncOutcome, SyncState } from "../../../domain/platform/index.js";
 
 /** A use case of the port as the scheduler sees it: what it answers matters only as done or refused. */
 type Deposit<I> = UseCase<I, Result<unknown, DomainError>>;
@@ -58,6 +66,8 @@ export interface PlatformSchedulerDeps {
   refreshStockAndPrice: Deposit<RefreshStockAndPriceRequest>;
   notifyOrder: Deposit<NotifyOrderRequest>;
   notifyReturn: Deposit<NotifyReturnRequest>;
+  /** Where a return read before its order waits to be read again (feature 045). */
+  noticeQueue: NoticeQueue;
   /** What reads the notices of `subscribe`, on the same tick. */
   notices: NoticeReader;
   logger: Logger;
@@ -101,6 +111,17 @@ const failed = (reason: string, cursor: string | undefined): Run => ({
 const unavailable = (error: DomainError): boolean =>
   error instanceof LedgerUnavailable || error instanceof StoreUnavailable;
 
+/**
+ * How long after the start of its last run a flow is due again (ADR-047, amendment): its cadence, or the merchant's
+ * retry when the last run failed, whichever is shorter. No count and no cap: every retry waits the same, and what it
+ * reads is what is stored, so a restart changes nothing. Two values of two owners for a decision of the scheduler,
+ * so the rule lives here and not with either of them.
+ */
+function waitAfter(state: SyncState, policy: PlatformPolicy, flow: SyncFlow): number {
+  const cadence = policy.cadence.intervalOf(flow);
+  return state.lastOutcome?.status === "failed" ? Math.min(cadence, policy.retry.afterMs) : cadence;
+}
+
 const causeOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 export function platformScheduler(deps: PlatformSchedulerDeps): PlatformScheduler {
@@ -134,7 +155,7 @@ class PullScheduler implements PlatformScheduler {
     for (const flow of pulled) {
       const state = states[flow] ?? {};
       const last = state.lastRunAt?.getTime();
-      if (last !== undefined && now.getTime() - last < policy.cadence.intervalOf(flow)) continue;
+      if (last !== undefined && now.getTime() - last < waitAfter(state, policy, flow)) continue;
       const key = `${merchantId}/${flow}`;
       if (this.#running.has(key)) continue;
       this.#running.add(key);
@@ -237,6 +258,7 @@ class PullScheduler implements PlatformScheduler {
             total: order.total,
             items: order.items,
             confirmedAt: order.confirmedAt ?? now,
+            confirmedAtObserved: observedUnless(order.confirmedAt),
             sessionId: order.sessionId,
           })
         : undefined,
@@ -246,14 +268,43 @@ class PullScheduler implements PlatformScheduler {
   async #returns(reading: Reading, source: PlatformSource): Promise<Run> {
     const { merchantId, state, now } = reading;
     const read = await source.returnChanges(merchantId, state.cursor);
-    return this.#deposited(reading, "returns", read, (returned) =>
-      this.#deps.notifyReturn.execute({
+    return this.#deposited(reading, "returns", read, async (returned) => {
+      const result = await this.#deps.notifyReturn.execute({
         merchantId,
         orderId: returned.orderId,
         returnedAt: returned.returnedAt ?? now,
+        returnedAtObserved: observedUnless(returned.returnedAt),
         items: returned.items,
-      }),
-    );
+      });
+      return !result.ok && result.error instanceof OrderUnknown
+        ? this.#waitForOrder(reading, returned, result)
+        : result;
+    });
+  }
+
+  /**
+   * A return read before its order: the one refusal time resolves (ADR-047, amendment). It waits in the queue of
+   * notices, marked as one of `pull`, and is read again at the merchant's retry; the run goes on without counting
+   * it. With a single attempt there is nothing to wait for, and it stays the refusal it was.
+   */
+  async #waitForOrder(
+    { merchantId, policy, now }: Reading,
+    returned: SourceReturn,
+    refused: Result<unknown, DomainError>,
+  ): Promise<Result<unknown, DomainError> | undefined> {
+    const nextAt = policy.retry.nextAfter(1, now);
+    if (nextAt === undefined) return refused;
+    const notice: Notice = {
+      merchantId,
+      flow: "returns",
+      reference: returned.orderId,
+      receivedAt: now,
+      attempts: 1,
+      nextAt,
+      via: "pull",
+    };
+    const queued = await this.#deps.noticeQueue.enqueue(notice);
+    return queued.ok ? undefined : queued;
   }
 
   /** Each change deposited in order; one the core refuses is logged and skipped, an unavailable store stops. */
@@ -261,13 +312,14 @@ class PullScheduler implements PlatformScheduler {
     reading: Reading,
     flow: SyncFlow,
     read: SourceChanges<T>,
-    deposit: (change: T) => Promise<Result<unknown, DomainError>> | undefined,
+    deposit: (change: T) => Promise<Result<unknown, DomainError> | undefined> | undefined,
   ): Promise<Run> {
     let count = 0;
     for (const change of read.changes) {
       const pending = deposit(change);
       if (pending === undefined) continue;
       const result = await pending;
+      if (result === undefined) continue;
       if (result.ok) {
         count += 1;
         continue;

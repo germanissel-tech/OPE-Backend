@@ -62,8 +62,8 @@ el diseño del puerto se deciden acá.
 
 ## Enmienda (2026-10-13) — lo que la construcción dejó abierto, decidido con el dueño
 
-Revisado punto por punto con el dueño. Uno confirma lo construido; tres cambian el comportamiento y los construye la
-feature 045.
+Revisado punto por punto con el dueño. Uno confirma lo construido; tres cambian el comportamiento y **los construyó la
+feature 045** (2026-10-13).
 
 1. **Una orden o una devolución sin instante de la plataforma, leída dos veces, es la misma.** El instante dice su
    origen: la orden y la devolución guardan si su `confirmedAt` o su `returnedAt` vino de la plataforma o de la

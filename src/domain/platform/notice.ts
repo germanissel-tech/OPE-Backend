@@ -16,4 +16,9 @@ export interface Notice {
   attempts: number;
   /** When the next read is due. */
   nextAt: Date;
+  /**
+   * `pull` when it is a return a run of `pull` read before its order was recorded, and that waits here to be read
+   * again (feature 045); absent, a notice of `subscribe`. It decides the gate the read deposits through.
+   */
+  via?: "pull" | undefined;
 }

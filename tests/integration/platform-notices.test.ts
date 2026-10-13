@@ -153,6 +153,20 @@ describe("notifyPlatformChange", () => {
     expect((await found())?.status()).toBe("RETURNED");
   });
 
+  it("an order without an instant, noticed and read twice, is one and counts both times (feature 045)", async () => {
+    await subscribe("m_a");
+    const key = await noticeKeyOf("m_a");
+    source.script(A, { orders: [orderOf("paid")] });
+    for (const wait of [1_000, 60_000]) {
+      await notify({ flow: "orders", reference: "o1" }, withKey(key));
+      await tick(wait);
+      expect(await syncOfA(), String(wait)).toMatchObject({
+        flows: { orders: { lastOutcome: { status: "ok", count: 1 } } },
+      });
+    }
+    expect((await found())?.confirmedAt).toEqual(new Date(START.getTime() + 1_000));
+  });
+
   it("a flow that is not in subscribe answers 409 sync-mode-not-configured", async () => {
     await subscribe("m_a", { syncStrategy: { orders: "subscribe", returns: "push" } });
     const key = await noticeKeyOf("m_a");

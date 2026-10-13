@@ -654,6 +654,35 @@ describe("isolation between merchants", () => {
     expect(await orders.find(asMerchantId(B.id), asOrderId("o1"))).toBeUndefined();
   });
 
+  it("a return of A left waiting for its order (feature 045) is never linked to the order of B with the same orderId", async () => {
+    const source = scriptedTestSource();
+    await app.resetPorts({
+      ports: [replace(InstalledSourcesPort, installedSources(new Map([["test", source]])))],
+    });
+    for (const id of [A.id, B.id]) {
+      const res = await admin(app.app, "POST", `/v1/admin/merchants/${id}/configuration`, {
+        body: {
+          declared: {
+            platformSource: "test",
+            syncStrategy: { orders: "pull", returns: "pull" },
+            confirmedOrderStates: ["paid"],
+          },
+          corrective: true,
+          reason: "the platform is read by OPE",
+        },
+      });
+      expect(res.statusCode).toBe(201);
+    }
+    source.script(asMerchantId(A.id), { returns: [{ orderId: "o1" }] });
+    source.script(asMerchantId(B.id), { orders: [paidOrder("2.00")] });
+    const scheduler = app.resolve(PlatformSchedulerPort);
+    await scheduler.runDue(new Date(NOW));
+    await scheduler.runDue(new Date(Date.parse(NOW) + 3_600_000));
+    const orders = app.resolve(OrderLedgerPort);
+    expect((await orders.find(asMerchantId(B.id), asOrderId("o1")))?.status()).toBe("VERIFIED_ORDER");
+    expect(await orders.find(asMerchantId(A.id), asOrderId("o1"))).toBeUndefined();
+  });
+
   it("outcomes: an order of A with a session of B is not attributed; the same orderId in A and B are two orders; corroborations and returns do not cross (FR-073)", async () => {
     // B decides in ses_00000001 (no experiment: a NO_OP, still a known session for B).
     const bBatch = await postEvents(app.app, batchOf(1, 1, { occurredAt: NOW }), { key: B.key });

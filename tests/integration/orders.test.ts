@@ -325,6 +325,8 @@ describe("notifyOrder — user story 2: idempotent by orderId, immutable", () =>
       { items: [{ sku: "SKU-1-M", quantity: 2 }] },
       { sessionId: SESSION },
       { incentive: { kind: "percent", value: 0.05 } },
+      // The platform declares the instant on a push, so another one is another order (feature 045, FR-004).
+      { confirmedAt: "2026-09-18T11:59:00.000Z" },
     ]) {
       const res = await postOrder(app.app, orderOf("A-1", change), { platformKey: PLATFORM_A });
       expect(res.statusCode).toBe(409);

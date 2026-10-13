@@ -101,6 +101,14 @@ describe("NotifyReturnUseCase", () => {
     expect((await orders.find(A, ID))?.returned?.items).toBeUndefined();
   });
 
+  it("an instant OPE observed (feature 045) is kept with the return, and a second read with another one is a repeat", async () => {
+    const { useCase } = await withOrder();
+    const first = await useCase.execute({ ...request, returnedAtObserved: true });
+    expect(first.ok && first.value.order.returned?.returnedAtObserved).toBe(true);
+    const again = await useCase.execute({ ...request, returnedAt: NOW, returnedAtObserved: true });
+    expect(again.ok && again.value.outcome).toBe("repeated");
+  });
+
   it("an unknown order, or the order of another merchant → order-unknown", async () => {
     const { useCase } = await withOrder();
     const unknown = await useCase.execute({ ...request, orderId: asOrderId("Z-9") });

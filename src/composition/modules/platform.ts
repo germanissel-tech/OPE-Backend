@@ -119,6 +119,7 @@ export const platformModule = compositionModule({
           corroborations: deps.corroborations,
         });
         const notifyReturn = new NotifyReturnUseCase(outcomes);
+        const returnByPull = gated(notifyReturn, strategies, "returns", "pull");
         const { policies, states, sources } = deps;
         return platformScheduler({
           merchants: deps.merchants,
@@ -140,7 +141,8 @@ export const platformModule = compositionModule({
             "pull",
           ),
           notifyOrder: gated(notifyOrder, strategies, "orders", "pull"),
-          notifyReturn: gated(notifyReturn, strategies, "returns", "pull"),
+          notifyReturn: returnByPull,
+          noticeQueue: deps.notices,
           notices: noticeReader({
             notices: deps.notices,
             policies,
@@ -148,7 +150,11 @@ export const platformModule = compositionModule({
             sources,
             logger,
             notifyOrder: gated(notifyOrder, strategies, "orders", "subscribe"),
-            notifyReturn: gated(notifyReturn, strategies, "returns", "subscribe"),
+            // A notice comes by `subscribe`; a return a run left waiting for its order, by `pull` (feature 045).
+            notifyReturn: {
+              subscribe: gated(notifyReturn, strategies, "returns", "subscribe"),
+              pull: returnByPull,
+            },
           }),
         });
       },

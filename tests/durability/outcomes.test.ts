@@ -161,6 +161,44 @@ describe("the order ledger across a restart", () => {
     });
   });
 
+  it("keeps the mark of an instant OPE observed across a restart, and a reread with another instant is a repeat (feature 045)", async () => {
+    const later = new Date(NOW.getTime() - 30_000);
+    await orders().record(orderOf("A-9", { confirmedAtObserved: true }));
+    await orders().record(orderOf("A-8"));
+    fixture.restart();
+    const found = await orders().find(MERCHANT, asOrderId("A-9"));
+    expect(found?.confirmedAtObserved).toBe(true);
+    expect((await orders().find(MERCHANT, asOrderId("A-8")))?.confirmedAtObserved).toBeUndefined();
+    expect(
+      await orders().record(orderOf("A-9", { confirmedAt: later, confirmedAtObserved: true })),
+    ).toMatchObject({ ok: true, value: { outcome: "repeated" } });
+    // Without the mark the record reads as an instant the platform gave, as every record written before does.
+    expect(await orders().record(orderOf("A-8", { confirmedAt: later }))).toMatchObject({
+      ok: true,
+      value: { outcome: "conflict" },
+    });
+    const built = Return.of(found ?? orderOf("A-9"), {
+      returnedAt: NOW,
+      returnedAtObserved: true,
+      receivedAt: NOW,
+    });
+    if (!built.ok) throw new Error(built.error.message);
+    await orders().recordReturn(MERCHANT, asOrderId("A-9"), built.value);
+    fixture.restart();
+    const returned = await orders().find(MERCHANT, asOrderId("A-9"));
+    expect(returned?.returned?.returnedAtObserved).toBe(true);
+    const again = Return.of(found ?? orderOf("A-9"), {
+      returnedAt: later,
+      returnedAtObserved: true,
+      receivedAt: NOW,
+    });
+    if (!again.ok) throw new Error(again.error.message);
+    expect(await orders().recordReturn(MERCHANT, asOrderId("A-9"), again.value)).toMatchObject({
+      ok: true,
+      value: { outcome: "repeated" },
+    });
+  });
+
   it("says a return of an order it does not know is unknown", async () => {
     const order = orderOf("A-4");
     await orders().record(order);
