@@ -65,7 +65,9 @@ controller: traduce lo que trae la fuente a un pedido y llama al caso de uso. Su
   que el `push`. La decisión sigue leyendo lo guardado (SC-005 se prueba midiendo una decisión con una fuente que no
   responde nunca).
 
-**Agregado en la implementación (2026-10-12), PROPUESTO hasta que el dueño lo revise.** Tres cosas que el plan no
+**Agregado en la implementación (2026-10-12); revisado con el dueño el 2026-10-13 (ADR-047, enmienda): el primero
+cambia —la devolución huérfana se reintenta—, el segundo cambia —una corrida fallida se reintenta a
+`noticeRetry.afterMs`— y el tercero queda.** Tres cosas que el plan no
 decía:
 
 - **Un cambio que el núcleo rechaza no frena el flujo.** Una orden o una devolución que su caso de uso rechaza

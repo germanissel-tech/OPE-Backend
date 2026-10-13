@@ -212,7 +212,7 @@ llamar a `runDue` con el reloj avanzando; comprobar la verdad de producto, las �
 > y el planificador. (2) **La configuración lee las fuentes por un puerto propio**, `PlatformSources`, que la
 > composición enlaza a las instaladas. (3) **El temporizador arranca con `start()`** después de leer los niveles,
 > porque su tick es del nivel 1 y el grafo lo construye antes. (4) **Un rechazo del núcleo no frena el flujo** y la
-> cadencia cuenta desde el inicio de la corrida (research R-03, PROPUESTO). (5) **CI encontró** un `400` sin
+> cadencia cuenta desde el inicio de la corrida (research R-03; revisado en la enmienda de ADR-047). (5) **CI encontró** un `400` sin
 > documentar en `getMerchantPlatformSync` y 16 mutantes vivos; se arreglaron en un commit aparte.
 
 ---

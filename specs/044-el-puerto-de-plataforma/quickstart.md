@@ -61,7 +61,8 @@ ejerce con su credencial (el merchant de contrato declara `noticeKeys`).
 contenido de los niveles (`platformSyncTickMs`, `platformSource`, `confirmedOrderStates`, `syncCadence`,
 `noticeRetry`) y 8 respuestas cuyo `kind` de credencial gana el valor `notice`.
 
-**ABIERTO — una orden sin instante de confirmación, leída dos veces.** Cuando la plataforma no da el instante, la
+**Decidido el 2026-10-13 (ADR-047, enmienda; lo construye la feature 045) — una orden sin instante de
+confirmación, leída dos veces.** Cuando la plataforma no da el instante, la
 orden toma el de su observación (R-07), y una segunda lectura de la misma orden —el aviso repetido del paso 6, o un
 lote de `pull` releído después de un reinicio— lleva otro instante: el libro de órdenes la ve con otro contenido y
 responde `idempotency-conflict` en vez de «repetida». No se duplica nada —queda la primera—, pero el log lo cuenta
