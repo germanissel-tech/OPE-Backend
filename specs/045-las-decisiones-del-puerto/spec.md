@@ -87,7 +87,9 @@ antes de que la orden exista; cuando la orden entra, la devolución queda vincul
    registra vinculada a su orden.
 3. **Given** esa devolución pendiente, **When** se agotan los intentos sin que la orden llegue, **Then** se
    descarta y deja rastro en el log y en el estado del flujo, igual que un aviso agotado.
-4. **Given** cualquier otro rechazo de una orden o una devolución durante una corrida, **When** ocurre,
+4. **Given** un aviso de devolución (`subscribe`) cuya orden OPE todavía no tiene, **When** se lee, **Then** no se
+   da por terminado: se reintenta igual que si la plataforma no hubiera respondido.
+5. **Given** cualquier otro rechazo de una orden o una devolución durante una corrida, **When** ocurre,
    **Then** se loguea y la corrida sigue, como hoy.
 
 ---
@@ -151,7 +153,7 @@ cuando la fuente vuelve, la corrida sale bien y la siguiente espera un día.
   plataforma.
 - **FR-006**: Una devolución leída por `pull` que el núcleo rechaza porque su orden no existe MUST quedar pendiente
   de reintento con la espera, los intentos y el rastro de un aviso de devolución, y la corrida MUST seguir y
-  avanzar su cursor.
+  avanzar su cursor. Un aviso de devolución con el mismo rechazo MUST reintentarse, no darse por terminado.
 - **FR-007**: El resto de los rechazos de una corrida MUST seguir logueándose sin frenar el flujo, y la
   indisponibilidad del almacén MUST seguir cortando la corrida sin mover el cursor.
 - **FR-008**: Una corrida de `pull` que falla MUST volver a correr cuando pase la espera de reintento de avisos del
@@ -189,6 +191,7 @@ cuando la fuente vuelve, la corrida sale bien y la siguiente espera un día.
   configuración ni cambia el contrato de los niveles.
 - El cambio de la orden y la devolución no toca el contrato HTTP: el origen del instante no se expone en las
   respuestas.
-- La devolución huérfana sólo se reintenta cuando llega por `pull`; por `subscribe` ya es un aviso que se reintenta,
-  y por `push` la plataforma recibe la respuesta y reintenta ella.
+- La devolución huérfana se reintenta cuando llega por `pull` y cuando llega por `subscribe`: el plan encontró que el
+  lector de avisos también la daba por terminada (research R-02). Por `push` la plataforma recibe la respuesta y
+  reintenta ella.
 - La salud de la sincronización y sus alertas son de la feature siguiente, en el hito `observability`.
