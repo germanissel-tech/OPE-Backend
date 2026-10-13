@@ -48,7 +48,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-17 | La fuente de verdad del MVP no está bajo control de versiones                                             | Feature 028 (al enmendar la fuente)                    | `implementada` | 2026-09-25 | `ef2c854`                                               |
 | D-18 | La constitución no es verificable: sus afirmaciones no dicen de dónde salen                               | Feature 028 (auditoría de cierre)                      | `abierta`      | 2026-09-25 | —                                                       |
 | D-19 | Una omisión se leía como lista vacía: 500 al publicar, y un default borrado en silencio                   | Feature 029 (Schemathesis)                             | `implementada` | 2026-09-26 | —                                                       |
-| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir                    | Revisión de deudas, 2026-09-26                         | `abierta`      | 2026-09-26 | —                                                       |
+| D-20 | Publicar configuración no es idempotente, y el 500 del borde llega después de escribir                    | Revisión de deudas, 2026-09-26                         | `implementada` | 2026-09-26 | `29f0e06` (feature 017)                                 |
 | D-21 | La durabilidad se implementa sobre SQLite: PostgreSQL y sus pruebas de concurrencia, después              | Decisión del dueño, 2026-09-26                         | `abierta`      | 2026-09-26 | feature 030 (lo que quedó apoyado en «un solo proceso») |
 | D-22 | El contrato describe el holdout como tráfico fuera del experimento, y es el control mínimo                | Revisión del esquema con el dueño, 2026-09-27          | `abierta`      | 2026-09-27 | —                                                       |
 | D-23 | La exposición no registra cuándo OPE la recibió, sólo cuándo el SDK dice que ocurrió                      | Revisión del esquema con el dueño, 2026-09-27          | `abierta`      | 2026-09-27 | —                                                       |
@@ -61,7 +61,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28)       | `abierta`      | 2026-09-29 | —                                                       |
 | D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                      | `implementada` | 2026-09-30 | `4c439bf` (feature 035, ADR-016 enmendado)              |
 | D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                          | `abierta`      | 2026-09-30 | —                                                       |
-| D-33 | Una lectura durable que falla responde `500 internal-error` en vez de `503` con reintento                 | Evaluación de la persistencia con el dueño, 2026-10-02 | `abierta`      | 2026-10-02 | —                                                       |
+| D-33 | Una lectura durable que falla responde `500 internal-error` en vez de `503` con reintento                 | Evaluación de la persistencia con el dueño, 2026-10-02 | `evaluada`     | 2026-10-02 | —                                                       |
 | D-34 | El almacén de versiones de merchant y el de niveles son copia literal, en memoria y en SQLite             | Evaluación de la persistencia con el dueño, 2026-10-02 | `implementada` | 2026-10-05 | `c5881c8` (feature 038: llegó el tercero)               |
 | D-35 | `main` no tiene protección de rama: nada impide mergear con CI en rojo                                    | Fase 0 de la feature 039 (R-04)                        | `abierta`      | 2026-10-06 | Checks requeridos configurados, con la lista decidida   |
 
@@ -335,6 +335,16 @@ feature 013— y aplicarlo a la publicación de configuración cierra el agujero
 **Decisión del dueño (2026-09-26)**: se registra **y** se hace, en su propia feature. Qué otras
 operaciones de escritura son no idempotentes hay que contarlo al escribir la spec: la publicación de
 configuración es la que aparece, pero no se midió si es la única.
+
+**Cerrada el 2026-10-13, revisada con el dueño.** Al verificarla contra el código apareció que **la publicación ya
+era idempotente desde la feature 017** (`29f0e06`, 2026-09-21), cinco días antes de que esta deuda se registrara: el
+caso de uso devuelve `repeated` ante un borrador idéntico al vigente, y una prueba lo fija desde entonces. Hoy lo son
+las cinco publicaciones (configuración del merchant, los dos niveles, los dos textos), con `x-idempotency`. El conteo
+que la deuda pedía: ninguna otra escritura duplica al reintentar —las que no declaran `x-idempotency` lo son por su
+identidad (eventos por `eventId`, exposición por `decisionId`, refresco por variante e instante, aviso pendiente
+por referencia, interruptor, desactivación)— y las dos que crean algo **se niegan a duplicar**. **Lo que queda**, sin
+abrir otra deuda: un `createMerchant` o un `createExperiment` reintentado después de un 500 responde un error
+(`origin-already-registered`, `experiment-already-open`) en vez de la respuesta original; no escribe nada dos veces.
 
 D-21 no es un defecto: es **alcance que se decide dejar afuera**, con su motivo y su fecha, para que
 nadie lea después que el hito de persistencia está cerrado.
@@ -617,6 +627,11 @@ dos procesos hace falta otra cosa (**D-21**).
 —cuántas peticiones de una misma sesión se solapan— y después su propia feature. La medición es parte de
 la deuda: sin ella, el arreglo es una defensa contra algo que nadie vio pasar.
 
+**Revisada con el dueño el 2026-10-13: se arregla en la feature 046.** La medición con tráfico real no se puede
+hacer sin piloto (D4), y la carrera sí se puede **reproducir**: dos lotes de la misma sesión en paralelo con el tope
+en uno. La 046 la reproduce primero y después pone la exclusión por sesión dentro del proceso; la reproducción
+reemplaza a la medición como condición para arreglarla.
+
 ## D-29 — el registro de administración dice que importó la semilla en cada arranque, y no la importó
 
 **La encontró el quickstart de la feature 033, en el paso que ningún gate reemplaza**: levantar el
@@ -741,6 +756,11 @@ el borde HTTP traduce a `503` en un solo lugar, sin tocar puertos, con la tensi�
 categoría entre «error de negocio devuelto» y «error de programación lanzado» (ADR-023) y de que en el
 camino de decisión no se responde `503`, se degrada; (C) `Result` en toda lectura durable, la más honesta
 con los tipos y la de mayor superficie. Se eligió A.
+
+**Revisada con el dueño el 2026-10-13: se sostiene A**, y por eso pasa a `evaluada`. El almacén sigue siendo SQLite
+en el mismo proceso, donde un fallo de lectura casi no ocurre; las lecturas durables que agregó la feature 044 (el
+estado de los flujos, la cola de avisos) se comportan igual que las demás, y las del planificador no llegan a un
+cliente: su excepción la atrapa el temporizador y la loguea. Se hace con PostgreSQL (D-21).
 
 ## D-34 — el almacén de versiones de merchant y el de niveles son copia literal, en memoria y en SQLite
 
