@@ -79,10 +79,10 @@ US3 visitantes distintos no se esperan.
 
 ## Phase 3: El cierre
 
-- [ ] T009 [P] `docs/deudas.md`: D-30 `implementada`, con su cierre; `spec.md` **Status** construida; `tasks.md` con
+- [x] T009 [P] `docs/deudas.md`: D-30 `implementada`, con su cierre; `spec.md` **Status** construida; `tasks.md` con
       lo hecho y los desvíos
-- [ ] T010 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado
-- [ ] T011 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
+- [x] T010 El `quickstart.md` a mano contra `npm run dev`; «Lo corrido» fechado
+- [x] T011 La cadena entera: `npm run format:check`, `npm run quality`, `npm run typecheck`, `npm run test:all`,
       `npm run contract:check`, `npm run release-check`; la mutación, en CI. Commit:
       `docs(046): cierre — los topes de intervención, atómicos`. Push y PR
 

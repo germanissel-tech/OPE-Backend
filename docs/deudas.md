@@ -58,7 +58,7 @@ escrito. Cerrarla por decreto es peor que dejarla anotada.
 | D-27 | Nadie sabe qué cuesta un arranque en frío con tráfico: todas las sesiones reconstruyen a la vez           | Feature 032 (borde de la spec)                         | `abierta`      | 2026-09-28 | —                                                       |
 | D-28 | Una transacción no se puede componer sobre puertos asincrónicos, y la auditoría atómica la espera         | Feature 033 (research R-05 y su enmienda)              | `implementada` | 2026-09-30 | `e212198` (feature 034, ADR-042)                        |
 | D-29 | El registro de administración dice `importMerchants accepted` en cada arranque, y la semilla no se aplicó | Feature 033 (quickstart, paso 7)                       | `abierta`      | 2026-09-29 | SC-008 (la línea del arranque que sí lo dice)           |
-| D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28)       | `abierta`      | 2026-09-29 | —                                                       |
+| D-30 | El presupuesto por sesión no es atómico: dos lotes de la misma sesión se intercalan en sus `await`        | Feature 034 (al verificar la afirmación de D-28)       | `implementada` | 2026-09-29 | `da16c95` (feature 046)                                 |
 | D-31 | El gate de mutación informa el reporte anterior cuando Stryker falla, y una vez dijo «cero»               | Feature 034 (dos corridas caídas)                      | `implementada` | 2026-09-30 | `4c439bf` (feature 035, ADR-016 enmendado)              |
 | D-32 | Un bucle de peticiones inyectadas agota el heap, con cualquier petición                                   | Feature 034 (al medir SC-002)                          | `abierta`      | 2026-09-30 | —                                                       |
 | D-33 | Una lectura durable que falla responde `500 internal-error` en vez de `503` con reintento                 | Evaluación de la persistencia con el dueño, 2026-10-02 | `evaluada`     | 2026-10-02 | —                                                       |
@@ -631,6 +631,15 @@ la deuda: sin ella, el arreglo es una defensa contra algo que nadie vio pasar.
 hacer sin piloto (D4), y la carrera sí se puede **reproducir**: dos lotes de la misma sesión en paralelo con el tope
 en uno. La 046 la reproduce primero y después pone la exclusión por sesión dentro del proceso; la reproducción
 reemplaza a la medición como condición para arreglarla.
+
+**Cerrada el 2026-10-13 por la feature 046** (`da16c95`). La reproducción mostró que **la carrera es hoy latente**:
+con los almacenes de este repositorio —memoria y SQLite— cada `await` de la decisión resuelve sin ceder el event
+loop, así que una decisión corre entera antes de que se lea el pedido siguiente. Aparece con dos condiciones juntas:
+estado caliente (una sesión o un visitante que no están en memoria se reconstruyen del libro, que ve la decisión del
+otro lote) y un almacén que tarda de verdad, como uno remoto (D-21). Con las dos, salían dos intervenciones con el
+tope en uno. El arreglo es por **visitante** y no por sesión —decisión del dueño—, así que cierra también el tope
+diario por visitante: `VisitorTurns` encadena las decisiones de cada visitante de un merchant, y las carreras quedan
+como prueba permanente con un almacén que tarda.
 
 ## D-29 — el registro de administración dice que importó la semilla en cada arranque, y no la importó
 

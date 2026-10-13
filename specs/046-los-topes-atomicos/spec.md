@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Borrador
+**Status**: Construida (2026-10-13)
 
 **Input**: La deuda D-30 (el presupuesto por sesión no es atómico), revisada con el dueño el 2026-10-13: se arregla
 ahora, con la carrera reproducida en lugar de medida. En la misma revisión el dueño amplió el alcance al tope
