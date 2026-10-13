@@ -65,26 +65,26 @@ queda una, la segunda cuenta y no hay rechazo en el log; con otro total, conflic
 **Independent Test**: devoluciones en `pull`, la devolución se lee antes que la orden; cuando la orden entra, al
 vencer el reintento la devolución queda vinculada.
 
-- [ ] T008 [P] [US2] `tests/unit/interface-adapters/platform/notices.test.ts`, **antes del código**: un aviso de
+- [x] T008 [P] [US2] `tests/unit/interface-adapters/platform/notices.test.ts`, **antes del código**: un aviso de
       devolución con `order-unknown` se reintenta (no se da por terminado); con `via: "pull"` se deposita por la
       compuerta de `pull` y sin `via`, por la de `subscribe`; agotado, rastro
-- [ ] T009 [P] [US2] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**: una
+- [x] T009 [P] [US2] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**: una
       devolución de `pull` con `order-unknown` se encola con `via: "pull"`, `attempts: 1` y `nextAt` en la primera
       espera, el cursor avanza y la corrida cuenta el resto; otro rechazo se loguea, como hoy
-- [ ] T010 [US2] `src/domain/platform/notice.ts`: `via?: "pull" | undefined` («ausente = un aviso de `subscribe`»)
-- [ ] T011 [US2] `src/interface-adapters/platform/scheduler/notice-reader.ts`: `order-unknown` de una devolución es
+- [x] T010 [US2] `src/domain/platform/notice.ts`: `via?: "pull" | undefined` («ausente = un aviso de `subscribe`»)
+- [x] T011 [US2] `src/interface-adapters/platform/scheduler/notice-reader.ts`: `order-unknown` de una devolución es
       un reintento; `notifyReturn` por modo (`{ pull, subscribe }`) y se elige por `via`
-- [ ] T012 [US2] `src/interface-adapters/platform/scheduler/scheduler.ts`: la devolución huérfana se encola en la
+- [x] T012 [US2] `src/interface-adapters/platform/scheduler/scheduler.ts`: la devolución huérfana se encola en la
       cola de avisos (`NoticeQueue` en sus dependencias) y la corrida sigue; `src/composition/modules/platform.ts`
       pasa la cola y las dos compuertas de la devolución
-- [ ] T013 [US2] `tests/integration/platform-pull.test.ts`: la devolución que adelanta entra cuando su orden llega;
+- [x] T013 [US2] `tests/integration/platform-pull.test.ts`: la devolución que adelanta entra cuando su orden llega;
       `pendingNotices` de devoluciones la muestra mientras espera; un cambio a `push` en el medio la descarta con
       rastro
-- [ ] T014 [P] [US2] `tests/integration/isolation.test.ts`: la devolución huérfana de A nunca se vincula a una orden
+- [x] T014 [P] [US2] `tests/integration/isolation.test.ts`: la devolución huérfana de A nunca se vincula a una orden
       de B con el mismo `orderId` (FR-012)
-- [ ] T015 [P] [US2] `tests/durability/platform.test.ts`: una devolución huérfana encolada sobrevive un reinicio y
+- [x] T015 [P] [US2] `tests/durability/platform.test.ts`: una devolución huérfana encolada sobrevive un reinicio y
       entra cuando su orden llega
-- [ ] T016 Romper a propósito una vez: descartar la devolución huérfana en vez de encolarla. `npm test`,
+- [x] T016 Romper a propósito una vez: descartar la devolución huérfana en vez de encolarla. `npm test`,
       `npm run test:durability`, `npm run quality`. Commit:
       `feat(045): la devolución que adelanta a su orden se reintenta`
 

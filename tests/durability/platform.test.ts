@@ -279,6 +279,28 @@ describe("the durable server reading the test platform", () => {
     expect(await running.resolve(OrderLedgerPort).find(A, asOrderId("o1"))).toBeDefined();
   });
 
+  it("a return left waiting for its order survives a restart and enters when the order arrives (feature 045)", async () => {
+    const order = {
+      orderId: "o1",
+      state: "paid",
+      total: PRICE,
+      items: [],
+      confirmedAt: "2026-09-18T11:00:00.000Z",
+    };
+    write({ returns: [{ orderId: "o1", returnedAt: "2026-09-18T11:30:00.000Z" }] });
+    let running = await boot();
+    await configure(running, {
+      syncStrategy: { orders: "pull", returns: "pull" },
+      confirmedOrderStates: ["paid"],
+      noticeRetry: { afterMs: 1, maxAttempts: 5 },
+    });
+    await running.resolve(PlatformSchedulerPort).runDue(at(1));
+    running = await restart();
+    write({ orders: [order], returns: [{ orderId: "o1", returnedAt: "2026-09-18T11:30:00.000Z" }] });
+    await running.resolve(PlatformSchedulerPort).runDue(at(2));
+    expect((await running.resolve(OrderLedgerPort).find(A, asOrderId("o1")))?.status()).toBe("RETURNED");
+  });
+
   it("without the variable the durable server does not have the test platform, and refuses a merchant that names it", async () => {
     app = await startTestApp(
       { deployment: durableDeployment, ports: [replace(ClockPort, fixedClock())] },

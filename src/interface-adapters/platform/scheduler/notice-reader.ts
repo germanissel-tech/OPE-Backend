@@ -12,6 +12,7 @@
 //   - **dropped**: the attempts ran out. The notice is forgotten **with a trace**: in the log, with the merchant,
 //     the flow and the reference, and in where the flow stands, which an operator reads.
 import { LedgerUnavailable } from "../../../domain/ledger/index.js";
+import { OrderUnknown } from "../../../domain/outcomes/index.js";
 import { StoreUnavailable, type DomainError, type Result } from "../../../domain/shared-kernel/index.js";
 import { observedUnless, type InstalledSources, type PlatformSource } from "../source.js";
 import type { NotifyOrderRequest, NotifyReturnRequest } from "../../../application/outcomes/index.js";
@@ -32,7 +33,8 @@ export interface NoticeReaderDeps {
   states: SyncStateStore;
   sources: InstalledSources;
   notifyOrder: Deposit<NotifyOrderRequest>;
-  notifyReturn: Deposit<NotifyReturnRequest>;
+  /** The return behind the gate of each mode a notice can come by: a notice, or a return a run of `pull` left waiting. */
+  notifyReturn: Readonly<Record<"pull" | "subscribe", Deposit<NotifyReturnRequest>>>;
   logger: Logger;
 }
 
@@ -84,6 +86,10 @@ class NoticeReading implements NoticeReader {
         : await this.#return(notice, source, now);
     if (result === undefined) return 0;
     if (result.ok) return 1;
+    // A return of an order that is not recorded yet is the one refusal time resolves (ADR-047, amendment): it is
+    // read again, like a read the platform did not answer.
+    if (result.error instanceof OrderUnknown)
+      throw new Unread("The order of the return is not recorded yet.");
     if (result.error instanceof LedgerUnavailable || result.error instanceof StoreUnavailable) {
       throw new Unread(`The store could not record it (${result.error.code}).`);
     }
@@ -113,7 +119,7 @@ class NoticeReading implements NoticeReader {
   async #return(notice: Notice, source: PlatformSource, now: Date) {
     const returned = await source.returnOf(notice.merchantId, notice.reference);
     if (returned === undefined) throw new Unread("The platform does not have the return of the notice.");
-    return this.#deps.notifyReturn.execute({
+    return this.#deps.notifyReturn[notice.via ?? "subscribe"].execute({
       merchantId: notice.merchantId,
       orderId: returned.orderId,
       returnedAt: returned.returnedAt ?? now,

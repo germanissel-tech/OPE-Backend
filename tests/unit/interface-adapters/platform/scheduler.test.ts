@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { asProductId, asVariantId, CatalogSnapshot } from "../../../../src/domain/catalog/index.js";
 import { LedgerUnavailable } from "../../../../src/domain/ledger/index.js";
+import { OrderUnknown } from "../../../../src/domain/outcomes/index.js";
 import {
   NoticeRetry,
   OrderConfirmation,
@@ -21,6 +22,7 @@ import {
 import { memoryMerchantStore } from "../../../../src/interface-adapters/merchant/gateways/memory-merchant-store.js";
 import {
   installedSources,
+  memoryNoticeQueue,
   memorySyncStateStore,
   platformScheduler,
   scriptedTestSource,
@@ -85,6 +87,7 @@ interface Setup {
   answers?: {
     order?: (request: { orderId: string }) => Result<unknown, DomainError>;
     catalog?: () => Result<unknown, DomainError>;
+    return?: (request: { orderId: string }) => Result<unknown, DomainError>;
   };
 }
 
@@ -100,6 +103,7 @@ async function subject(setup: Setup = {}) {
     retry: NoticeRetry.rehydrate({ afterMs: 1_000, maxAttempts: 3 }),
   };
   const states = memorySyncStateStore();
+  const queue = memoryNoticeQueue();
   const upsert = recording<{ merchantId: MerchantId; capturedAt: Date; products: readonly unknown[] }>(
     setup.answers?.catalog,
   );
@@ -118,7 +122,7 @@ async function subject(setup: Setup = {}) {
     orderId: string;
     returnedAt: Date;
     returnedAtObserved?: true | undefined;
-  }>();
+  }>(setup.answers?.return);
   const logged: string[] = [];
   /** When the notices were read: after the pull runs of the same tick. */
   const noticesRead: Date[] = [];
@@ -140,6 +144,7 @@ async function subject(setup: Setup = {}) {
     refreshStockAndPrice: refresh.useCase,
     notifyOrder: order.useCase,
     notifyReturn: returned.useCase,
+    noticeQueue: queue,
     notices: {
       readDue: (now) => {
         noticesRead.push(now);
@@ -165,6 +170,7 @@ async function subject(setup: Setup = {}) {
     source.script(A, s);
   };
   return {
+    queue,
     scheduler,
     merchants,
     policy,
@@ -491,6 +497,50 @@ describe("platformScheduler", () => {
         cursor: undefined,
         lastOutcome: { status: "failed", reason: "ledger-unavailable" },
       });
+    });
+
+    it("a return whose order is not recorded yet waits as a notice of pull, and the run goes on (feature 045)", async () => {
+      const { scheduler, queue, returned, script, stateOf, logged } = await subject({
+        strategy: { returns: "pull" },
+        answers: {
+          return: (request) => (request.orderId === "o1" ? fail(new OrderUnknown("o1")) : ok(undefined)),
+        },
+      });
+      script({ returns: [{ orderId: "o1" }, { orderId: "o2" }] });
+      await scheduler.runDue(at(5));
+      expect(returned.calls.map((call) => call.orderId)).toEqual(["o1", "o2"]);
+      // The first wait of the retry: the order did not arrive in the thirty seconds of a tick.
+      expect(await queue.due(at(1_005))).toEqual([
+        {
+          merchantId: A,
+          flow: "returns",
+          reference: "o1",
+          receivedAt: at(5),
+          attempts: 1,
+          nextAt: at(1_005),
+          via: "pull",
+        },
+      ]);
+      expect(await queue.due(at(1_004))).toEqual([]);
+      expect(await stateOf("returns")).toMatchObject({
+        cursor: "2",
+        lastOutcome: { status: "ok", count: 1 },
+      });
+      expect(logged).toEqual([]);
+    });
+
+    it("with a single attempt there is nothing to wait for: the orphan is a refusal, logged", async () => {
+      const { scheduler, queue, script, policy, logged } = await subject({
+        strategy: { returns: "pull" },
+        answers: { return: () => fail(new OrderUnknown("o1")) },
+      });
+      policy.retry = NoticeRetry.rehydrate({ afterMs: 1_000, maxAttempts: 1 });
+      script({ returns: [{ orderId: "o1" }] });
+      await scheduler.runDue(at(5));
+      expect(await queue.due(at(999_999))).toEqual([]);
+      expect(logged).toEqual([
+        "The core refused a change read from the platform; the run goes on without it.",
+      ]);
     });
 
     it("returns are deposited from their own cursor, with the platform's instant or the observation's", async () => {

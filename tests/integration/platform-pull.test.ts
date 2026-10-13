@@ -132,6 +132,45 @@ describe("orders and returns by pull", () => {
     expect((await found())?.status()).toBe("RETURNED");
   });
 
+  it("a return read before its order waits, and enters when the order arrives (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { returns: [{ orderId: "o1" }] });
+    await tick();
+    const waiting = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync"));
+    expect(waiting).toMatchObject({
+      flows: { returns: { pendingNotices: 1, lastOutcome: { status: "ok", count: 0 } } },
+    });
+    source.script(A, { orders: [orderOf("o1", "paid")], returns: [{ orderId: "o1" }] });
+    await tick();
+    expect((await found())?.status()).toBe("VERIFIED_ORDER");
+    await tick(60_000);
+    expect((await found())?.status()).toBe("RETURNED");
+    const read = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+      flows: { returns: { pendingNotices?: number } };
+    };
+    expect(read.flows.returns.pendingNotices).toBeUndefined();
+  });
+
+  it("a return left waiting is dropped when its flow stops arriving by pull (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { orders: [orderOf("o1", "paid")] });
+    source.script(A, { returns: [{ orderId: "o1" }] });
+    await tick();
+    const res = await configure("m_a", {
+      ...PULLED,
+      syncStrategy: { orders: "pull", returns: "push" },
+      confirmedOrderStates: ["paid"],
+    });
+    expect(res.statusCode).toBe(201);
+    source.script(A, { orders: [orderOf("o1", "paid")], returns: [{ orderId: "o1" }] });
+    await tick(60_000);
+    expect((await found())?.status()).toBe("VERIFIED_ORDER");
+    const read = json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+      flows: { returns: { pendingNotices?: number } };
+    };
+    expect(read.flows.returns.pendingNotices).toBeUndefined();
+  });
+
   it("changing the confirmed states by a version changes the next run", async () => {
     await pullOrders("m_a", ["paid"]);
     source.script(A, { orders: [orderOf("o1", "invoiced")] });
