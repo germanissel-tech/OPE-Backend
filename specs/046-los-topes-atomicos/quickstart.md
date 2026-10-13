@@ -5,8 +5,8 @@
 | qué                      | dónde                                                     | qué afirma                                                                                                |
 | ------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | el turno                 | `tests/unit/application/decision/visitor-turns.test.ts`   | un visitante de a una, en orden de llegada; otro no espera; un lote que lanza libera; el mapa queda vacío |
-| la carrera de la sesión  | `tests/integration/intervention-caps.test.ts`             | dos lotes de la misma sesión a la vez, tope uno: una intervención y un `NO_OP` por tope                   |
-| la carrera del visitante | `tests/integration/intervention-caps.test.ts`             | dos sesiones del mismo visitante a la vez, tope diario uno: una intervención                              |
+| la carrera de la sesión  | `tests/integration/commercial-policy.test.ts`             | dos lotes de la misma sesión a la vez, tope uno: una intervención y un `NO_OP` por tope                   |
+| la carrera del visitante | `tests/integration/commercial-policy.test.ts`             | dos sesiones del mismo visitante a la vez, tope diario uno: una intervención                              |
 | el aislamiento           | `tests/integration/isolation.test.ts`                     | el mismo `visitorId` en dos merchants no se espera                                                        |
 | la latencia              | las mediciones del camino de decisión del proyecto `fast` | siguen en verde con sus techos                                                                            |
 
