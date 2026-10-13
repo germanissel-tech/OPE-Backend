@@ -511,7 +511,16 @@ describe("isolation between merchants", () => {
     });
     expect(
       stateOf(await app.resolve(VisitorStatePort).load(asMerchantId("m_c"), asVisitorId("vis_00000001"))),
-    ).toBeUndefined();
+    ).toBeUndefined(); // At the same time (feature 046): the same visitor id in A and in B are two turns, and each decides with its
+    // own count — A is still fatigued, B still has room.
+    const [nowA, nowB] = (
+      await Promise.all([
+        postEvents(app.app, price(20, "ses_00000003"), { key: A.key }),
+        postEvents(app.app, price(20, "ses_00000003"), { key: B.key }),
+      ])
+    ).map((res) => json(res) as IngestResult);
+    expect(nowA?.decision).toMatchObject({ outcome: "NO_OP", reason: "visitor-fatigue" });
+    expect(nowB?.decision.outcome).toBe("INTERVENE");
   });
 
   it("catalogue: the snapshot of A is invisible to B; the same productId in A and B are two products; B's platform key cannot touch A", async () => {

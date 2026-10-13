@@ -6,6 +6,7 @@
 import {
   Candidates,
   DecisionService,
+  VisitorTurns,
   States,
   type MessagePlane,
   type PolicyDirectory,
@@ -127,7 +128,8 @@ export const decisionModule = compositionModule({
         truth: ProductTruthPort,
         recorder: DecisionRecorderPort,
       },
-      (deps) => new DecisionService(deps),
+      // The decisions of a visitor, one at a time (feature 046): the caps hold when its batches arrive together.
+      (deps) => new VisitorTurns(new DecisionService(deps)),
     ),
   ],
 });
