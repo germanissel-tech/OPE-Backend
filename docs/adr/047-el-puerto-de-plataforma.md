@@ -52,11 +52,38 @@ el diseño del puerto se deciden acá.
 
 - **Un rechazo del núcleo no frena un flujo**: el planificador y el lector de avisos loguean la orden o la
   devolución que un caso de uso rechaza y siguen; la indisponibilidad del almacén sí frena, y el cursor no avanza.
-  La cadencia cuenta desde el inicio de la última corrida, termine como termine. Decisiones de la implementación,
-  propuestas al dueño en el `research.md` de la feature.
+  La cadencia cuenta desde el inicio de la última corrida, termine como termine. Decisiones de la implementación;
+  la enmienda del 2026-10-13 las revisa.
 - **El temporizador arranca cuando el arranque lo dice**, después de leer los niveles: su tick es del nivel 1.
 - **La puerta del modo puede leer el flujo del pedido**: el aviso nombra si es de una orden o de una devolución.
 - **Una orden sin instante de confirmación, leída dos veces**, lleva dos instantes de observación distintos y el
-  libro de órdenes la ve como conflicto, no como repetida: no se duplica, pero se loguea como rechazo. Queda para
-  decidir con el dueño qué es «la misma orden» cuando el instante no vino de la plataforma; el `quickstart.md` de
-  la feature lo registra.
+  libro de órdenes la ve como conflicto, no como repetida: no se duplica, pero se loguea como rechazo. Lo decide la
+  enmienda del 2026-10-13.
+
+## Enmienda (2026-10-13) — lo que la construcción dejó abierto, decidido con el dueño
+
+Revisado punto por punto con el dueño. Uno confirma lo construido; tres cambian el comportamiento y los construye la
+feature 045.
+
+1. **Una orden o una devolución sin instante de la plataforma, leída dos veces, es la misma.** El instante dice su
+   origen: la orden y la devolución guardan si su `confirmedAt` o su `returnedAt` vino de la plataforma o de la
+   observación de OPE, y un instante observado no cuenta al decidir si dos lecturas son la misma. Un total o unos
+   ítems distintos siguen siendo conflicto; lo que llega por `push` declara siempre su instante y no cambia. Se
+   descartaron: que el adaptador no relea (un conflicto real pasaría en silencio), exigir el instante (una
+   plataforma que no lo da quedaría sin `pull` ni `subscribe` de órdenes) y dejarlo como estaba (el log y el conteo
+   mentirían).
+2. **Un rechazo del núcleo no frena el flujo, salvo el que el tiempo resuelve.** Se loguea y la corrida sigue; el
+   almacén caído la corta y el cursor no avanza, como se construyó. La excepción es **una devolución de una orden que
+   OPE todavía no tiene**: no se descarta, se encola como un aviso de devolución y se relee con `noticeRetry`, con el
+   mismo rastro al agotar los intentos. Se descartó frenar en cualquier rechazo: un cambio que nunca va a entrar
+   trabaría el flujo para siempre.
+3. **Una corrida fallida se reintenta a `noticeRetry.afterMs`**, sin tope, y la que sale bien espera su cadencia
+   desde que empezó. Un catálogo que falla no espera un día entero; una plataforma caída se consulta al ritmo del
+   reintento, no en cada tick. Si la cadencia del flujo es más corta, manda la cadencia. Se descartó un valor de
+   reintento propio: el de los avisos ya expresa lo mismo.
+4. **El temporizador corre por primera vez al primer tick** después de que el arranque lee los niveles, como se
+   construyó: un deploy no dispara lecturas a todas las plataformas a la vez.
+
+Y un pedido del dueño que este ADR no resuelve: **la salud de la sincronización tiene que verse y alertar**, junto
+con el resto de la salud de la plataforma y sus merchants. Va al hito `observability` como su propia feature, que
+evalúa la herramienta (Prometheus y Grafana, OpenTelemetry o sólo la consola) y la decide con un ADR.
