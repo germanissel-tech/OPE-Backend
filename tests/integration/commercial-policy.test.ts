@@ -3,10 +3,15 @@
 // abandonment as an amplifier (D-B) and what the ledger keeps versus what the SDK sees.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { replace } from "../../src/composition/graph/index.js";
+import { SessionStatePort, VisitorStatePort } from "../../src/composition/modules/decision.js";
 import { DecisionLedgerPort } from "../../src/composition/modules/ledger.js";
 import { ClockPort } from "../../src/composition/modules/shared-kernel.js";
 import { asDecisionId } from "../../src/domain/ledger/index.js";
 import { asMerchantId } from "../../src/domain/shared-kernel/index.js";
+import {
+  memorySessionStateStore,
+  memoryVisitorStateStore,
+} from "../../src/interface-adapters/decision/index.js";
 import { json } from "../helpers/json.js";
 import { corpusEntryOf } from "../helpers/sayable.js";
 import {
@@ -305,5 +310,89 @@ describe("the abandonment amplifies the barrier (user story 3, D-B)", () => {
     expect(amplified.decision.intervention?.messageVersionId).toBe(
       corpusEntryOf("price.price.evidence").version,
     );
+  });
+});
+
+// Feature 046 (D-30): the caps hold when batches of the same visitor arrive together — a retrying SDK, a duplicated
+// tab, two tabs. Without the visitor's turn both read the same count and both intervene.
+describe("the caps under batches that arrive together (feature 046)", () => {
+  /**
+   * The state of sessions and visitors read when asked and answered one turn of the event loop later, as a remote
+   * store would. With
+   * the stores of today every await inside a decision resolves within the same turn, so a decision runs whole
+   * before the next request is read and the race does not show; it shows the moment a step really waits — a
+   * remote store (D-21), or a decision waiting for a unit of work to release the store.
+   */
+  const remote = () => {
+    const later = () => new Promise((resolve) => setImmediate(resolve));
+    const clock = fixedClock(NOW);
+    const sessions = memorySessionStateStore(clock, { ttlMs: 86_400_000, maxSessions: 1_000 });
+    const visitors = memoryVisitorStateStore(clock, { ttlMs: 86_400_000, maxVisitors: 1_000 });
+    return [
+      replace(SessionStatePort, {
+        ...sessions,
+        load: async (m, id) => {
+          const read = await sessions.load(m, id);
+          await later();
+          return read;
+        },
+      }),
+      replace(VisitorStatePort, {
+        ...visitors,
+        load: async (m, id) => {
+          const read = await visitors.load(m, id);
+          await later();
+          return read;
+        },
+      }),
+    ];
+  };
+
+  async function startRemote(merchant: MerchantSpec): Promise<void> {
+    await app.resetPorts({ config: { merchants: [merchant] }, ports: remote() });
+    const res = await putCatalog(
+      app.app,
+      { capturedAt: NOW, products: [catalogProductOf("SKU-1", 2)] },
+      { platformKey: "platform-a-1" },
+    );
+    expect(res.statusCode).toBe(201);
+  }
+
+  const outcomes = (results: IngestResult[]) =>
+    results.map((result) => [result.decision.outcome, result.decision.reason]).sort();
+
+  it("two batches of the same session at once, one intervention per session: one intervenes, the other is out of budget", async () => {
+    await startRemote(
+      spec({ commercialPolicy: { version: "c", marginShare: 0.4, interventionsPerSession: 1 } }),
+    );
+    // A first batch that does not intervene keeps the session in memory: the race is between two batches of a
+    // session OPE already holds. A session it does not hold is rebuilt from the ledger, which sees the other one.
+    expect((await ingest([variantSelector(1)])).decision.outcome).toBe("NO_OP");
+    const results = await Promise.all([ingest(priceSignals(10)), ingest(priceSignals(20))]);
+    expect(outcomes(results)).toEqual([
+      ["INTERVENE", "price"],
+      ["NO_OP", "session-budget-exhausted"],
+    ]);
+    const decisions = await Promise.all(results.map((result) => recorded(result.decision.decisionId)));
+    expect(decisions.map((decision) => decision?.outcome).sort()).toEqual(["INTERVENE", "NO_OP"]);
+  });
+
+  it("two sessions of the same visitor at once, a day budget with one left: one intervenes, the other is fatigue", async () => {
+    await startRemote(
+      spec({ commercialPolicy: { version: "c", marginShare: 0.4, interventionsPerVisitorPerDay: 2 } }),
+    );
+    // The visitor is held in memory once it was intervened on: a third session spends the first of two.
+    expect((await ingest(priceSignals(1), { session: "ses_00000003" })).decision.outcome).toBe("INTERVENE");
+    for (const session of ["ses_00000001", "ses_00000002"]) {
+      expect((await ingest([variantSelector(5)], { session })).decision.outcome).toBe("NO_OP");
+    }
+    const results = await Promise.all([
+      ingest(priceSignals(10), { session: "ses_00000001" }),
+      ingest(priceSignals(20), { session: "ses_00000002" }),
+    ]);
+    expect(outcomes(results)).toEqual([
+      ["INTERVENE", "price"],
+      ["NO_OP", "visitor-fatigue"],
+    ]);
   });
 });

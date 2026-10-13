@@ -27,16 +27,24 @@ US3 visitantes distintos no se esperan.
 
 **Goal**: saber que la carrera de D-30 es alcanzable en este código, con una prueba que falla hoy.
 
-- [ ] T001 [US1] `tests/integration/commercial-policy.test.ts`, un `describe` nuevo: dos lotes de la misma sesión,
+- [x] T001 [US1] `tests/integration/commercial-policy.test.ts`, un `describe` nuevo: dos lotes de la misma sesión,
       los dos con señales que justifican intervenir, mandados a la vez con `interventionsPerSession: 1` → una
       intervención y un `NO_OP` `session-budget-exhausted`; el libro registra una y una
-- [ ] T002 [US2] El mismo `describe`: dos lotes de dos sesiones del mismo visitante a la vez con
+- [x] T002 [US2] El mismo `describe`: dos lotes de dos sesiones del mismo visitante a la vez con
       `interventionsPerVisitorPerDay: 1` → una intervención y un `NO_OP` `visitor-fatigue`
-- [ ] T003 Correr T001 y T002 contra el código de hoy y anotar acá el resultado: si fallan (dos intervenciones),
+- [x] T003 Correr T001 y T002 contra el código de hoy y anotar acá el resultado: si fallan (dos intervenciones),
       la carrera está reproducida. Si pasan —el servidor entero no la deja ver—, reescribirlas sobre el servicio de
       decisión real con un almacén de estado que demora el `recall` (research R-04), y anotarlo
 
 **Checkpoint**: la carrera está reproducida y documentada.
+
+> **Hecho el 2026-10-13.** Con el servidor entero y los almacenes de hoy, T001 y T002 **pasaban**: en memoria y en
+> SQLite cada `await` de la decisión resuelve sin ceder el event loop, así que una decisión corre entera antes de que
+> se lea el pedido siguiente (verificado con trazas). La carrera aparece con dos condiciones: **estado caliente** —una
+> sesión o un visitante que no están en memoria se reconstruyen del libro, que ve la decisión del otro lote— y **un
+> almacén que tarda** —leído al pedir y entregado un ciclo después, como uno remoto—. Así, las dos fallan tres de
+> tres con dos intervenciones. Revisado con el dueño: **D-30 es hoy latente** y se vuelve real con un almacén remoto
+> (D-21); se arregla igual, y las dos carreras quedan como prueba permanente con ese almacén.
 
 ---
 
@@ -44,23 +52,28 @@ US3 visitantes distintos no se esperan.
 
 **Goal**: las decisiones de un mismo visitante, de a una; las de visitantes distintos, en paralelo.
 
-- [ ] T004 [P] [US3] `tests/unit/application/decision/visitor-turns.test.ts`, **antes del código**, con un plano
+- [x] T004 [P] [US3] `tests/unit/application/decision/visitor-turns.test.ts`, **antes del código**, con un plano
       guionado que espera una señal de la prueba: un segundo `decide` del mismo visitante no entra hasta que el
       primero termina; los que esperan entran en orden de llegada; uno de otro visitante, o del mismo `visitorId`
       en otro merchant, entra sin esperar; un `decide` que lanza o rechaza libera el turno y el siguiente se atiende;
       el resultado de cada uno es el del plano envuelto; al terminar todo, no queda ninguna llave
-- [ ] T005 [US1] `src/application/decision/services/visitor-turns.ts`: el decorador de `DecisionPlane` con la cola
+- [x] T005 [US1] `src/application/decision/services/visitor-turns.ts`: el decorador de `DecisionPlane` con la cola
       de promesas por llave (merchant y visitante, en una clave que no se confunde entre merchants), que borra la
       llave cuando el último de la fila termina (R-02, R-03); exportado en `src/application/decision/index.ts`
-- [ ] T006 [US1] `src/composition/modules/decision.ts`: `DecisionPlanePort` enlazado al decorador sobre
+- [x] T006 [US1] `src/composition/modules/decision.ts`: `DecisionPlanePort` enlazado al decorador sobre
       `DecisionService`. T001 y T002 pasan
-- [ ] T007 [P] [US3] `tests/integration/isolation.test.ts`: el mismo `visitorId` en dos merchants, lotes a la vez:
+- [x] T007 [P] [US3] `tests/integration/isolation.test.ts`: el mismo `visitorId` en dos merchants, lotes a la vez:
       ninguno espera al otro y cada uno decide con su propio conteo
-- [ ] T008 Romper a propósito una vez cada una: no tomar el turno; soltarlo sólo si el lote sale bien; no borrar la
+- [x] T008 Romper a propósito una vez cada una: no tomar el turno; soltarlo sólo si el lote sale bien; no borrar la
       llave. `npm test`, `npm run quality`, `npm run test:measures` (la latencia de la ingesta con su techo). Commit:
       `fix(046): las decisiones de un mismo visitante se atienden de a una`
 
 **Checkpoint**: los dos topes se respetan con lotes simultáneos.
+
+> **Hecho el 2026-10-13.** Las dos carreras, que fallaban con dos intervenciones, pasan cinco de cinco con el turno.
+> Cada rotura a propósito la detecta al menos una prueba. La latencia de la ingesta con el plano de decisión, en el
+> proyecto `fast` (no en `measures`, como decía T008): p95 de 1.11 ms contra el techo de 50 ms. Desvío: el
+> aislamiento simultáneo se agregó al caso de la política comercial que ya existía en `isolation.test.ts`.
 
 ---
 

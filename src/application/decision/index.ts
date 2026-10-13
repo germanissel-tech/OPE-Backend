@@ -17,4 +17,5 @@ export type {
 export { Candidates } from "./services/candidates.service.js";
 export type { CandidatesDependencies, CandidatesService } from "./services/candidates.service.js";
 export { DecisionService } from "./services/decision.service.js";
+export { VisitorTurns } from "./services/visitor-turns.js";
 export type { DecisionServiceDependencies } from "./services/decision.service.js";
