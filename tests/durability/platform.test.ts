@@ -301,6 +301,29 @@ describe("the durable server reading the test platform", () => {
     expect((await running.resolve(OrderLedgerPort).find(A, asOrderId("o1")))?.status()).toBe("RETURNED");
   });
 
+  it("after a restart, a run that had failed is tried again at the retry, not at its cadence (feature 045)", async () => {
+    write({ failing: true });
+    let running = await boot();
+    await configure(running, {
+      syncStrategy: { catalog: "pull" },
+      syncCadence: {
+        catalogMs: 86_400_000,
+        stockAndPriceMs: 1,
+        stockAndPriceBatchSize: 1,
+        ordersMs: 1,
+        returnsMs: 1,
+      },
+      noticeRetry: { afterMs: 1_000, maxAttempts: 3 },
+    });
+    await running.resolve(PlatformSchedulerPort).runDue(at(1));
+    running = await restart();
+    await running.resolve(PlatformSchedulerPort).runDue(at(1_001));
+    const sync = json(await admin(running.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+      flows: { catalog: { lastRunAt?: string } };
+    };
+    expect(sync.flows.catalog.lastRunAt).toBe(at(1_001).toISOString());
+  });
+
   it("without the variable the durable server does not have the test platform, and refuses a merchant that names it", async () => {
     app = await startTestApp(
       { deployment: durableDeployment, ports: [replace(ClockPort, fixedClock())] },

@@ -216,6 +216,58 @@ describe("platformScheduler", () => {
     expect(noticesRead).toEqual([at(5)]);
   });
 
+  it("a run that failed is tried again at the merchant's retry, with no cap, and one that worked waits its cadence (feature 045)", async () => {
+    let reads = 0;
+    let failing = true;
+    const scripted = scriptedTestSource();
+    const source: PlatformSource = {
+      ...scripted,
+      catalog: () => {
+        reads += 1;
+        return failing ? Promise.reject(new Error("down")) : Promise.resolve({ products: [] });
+      },
+    };
+    const { scheduler } = await subject({
+      strategy: { catalog: "pull" },
+      cadence: { catalogMs: 10_000 },
+      source,
+    });
+    await scheduler.runDue(at(0));
+    await scheduler.runDue(at(999));
+    expect(reads).toBe(1);
+    for (const ms of [1_000, 2_000, 3_000]) await scheduler.runDue(at(ms));
+    expect(reads).toBe(4);
+    failing = false;
+    await scheduler.runDue(at(4_000));
+    expect(reads).toBe(5);
+    await scheduler.runDue(at(5_000));
+    await scheduler.runDue(at(13_999));
+    expect(reads).toBe(5);
+    await scheduler.runDue(at(14_000));
+    expect(reads).toBe(6);
+  });
+
+  it("a flow whose cadence is shorter than the retry is tried again at its cadence", async () => {
+    let reads = 0;
+    const scripted = scriptedTestSource();
+    const source: PlatformSource = {
+      ...scripted,
+      catalog: () => {
+        reads += 1;
+        return Promise.reject(new Error("down"));
+      },
+    };
+    const { scheduler } = await subject({
+      strategy: { catalog: "pull" },
+      cadence: { catalogMs: 500 },
+      source,
+    });
+    await scheduler.runDue(at(0));
+    await scheduler.runDue(at(499));
+    await scheduler.runDue(at(500));
+    expect(reads).toBe(2);
+  });
+
   it("skips a merchant whose switch is off and one that is deactivated, and reads the others", async () => {
     const { scheduler, merchants, upsert, script } = await subject({ strategy: { catalog: "pull" } });
     script({ catalog: CATALOG });

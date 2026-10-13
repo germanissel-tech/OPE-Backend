@@ -226,6 +226,37 @@ describe("the catalogue and stock and price by pull", () => {
   });
 });
 
+describe("the retry of a run that failed (feature 045)", () => {
+  it("a catalogue that fails is read again at the retry, not a day later, and back at its cadence once it works", async () => {
+    const res = await configure("m_a", {
+      platformSource: "test",
+      syncStrategy: { catalog: "pull" },
+      syncCadence: { catalogMs: 86_400_000 },
+      noticeRetry: { afterMs: 60_000, maxAttempts: 3 },
+    });
+    expect(res.statusCode).toBe(201);
+    const lastRun = async () =>
+      (
+        json(await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync")) as {
+          flows: { catalog: { lastRunAt?: string; lastOutcome?: { status: string } } };
+        }
+      ).flows.catalog;
+    source.script(A, { failing: true });
+    await tick();
+    const failedAt = (await lastRun()).lastRunAt;
+    await tick(30_000);
+    expect((await lastRun()).lastRunAt).toBe(failedAt);
+    await tick(30_000);
+    expect((await lastRun()).lastRunAt).toBe(now.toISOString());
+    source.script(A, { catalog: { products: [catalogProductOf("P1") as never] } });
+    await tick(60_000);
+    expect(await lastRun()).toMatchObject({ lastRunAt: now.toISOString(), lastOutcome: { status: "ok" } });
+    const workedAt = now.toISOString();
+    await tick(3_600_000);
+    expect((await lastRun()).lastRunAt).toBe(workedAt);
+  });
+});
+
 describe("getMerchantPlatformSync", () => {
   it("answers each flow with its mode and its last run; what never ran is absent", async () => {
     await pullOrders("m_a", ["paid"]);

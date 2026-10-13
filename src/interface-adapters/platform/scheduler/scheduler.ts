@@ -111,6 +111,17 @@ const failed = (reason: string, cursor: string | undefined): Run => ({
 const unavailable = (error: DomainError): boolean =>
   error instanceof LedgerUnavailable || error instanceof StoreUnavailable;
 
+/**
+ * How long after the start of its last run a flow is due again (ADR-047, amendment): its cadence, or the merchant's
+ * retry when the last run failed, whichever is shorter. No count and no cap: every retry waits the same, and what it
+ * reads is what is stored, so a restart changes nothing. Two values of two owners for a decision of the scheduler,
+ * so the rule lives here and not with either of them.
+ */
+function waitAfter(state: SyncState, policy: PlatformPolicy, flow: SyncFlow): number {
+  const cadence = policy.cadence.intervalOf(flow);
+  return state.lastOutcome?.status === "failed" ? Math.min(cadence, policy.retry.afterMs) : cadence;
+}
+
 const causeOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 export function platformScheduler(deps: PlatformSchedulerDeps): PlatformScheduler {
@@ -144,7 +155,7 @@ class PullScheduler implements PlatformScheduler {
     for (const flow of pulled) {
       const state = states[flow] ?? {};
       const last = state.lastRunAt?.getTime();
-      if (last !== undefined && now.getTime() - last < policy.cadence.intervalOf(flow)) continue;
+      if (last !== undefined && now.getTime() - last < waitAfter(state, policy, flow)) continue;
       const key = `${merchantId}/${flow}`;
       if (this.#running.has(key)) continue;
       this.#running.add(key);

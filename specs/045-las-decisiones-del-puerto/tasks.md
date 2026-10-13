@@ -99,15 +99,15 @@ vencer el reintento la devolución queda vinculada.
 **Independent Test**: un catálogo cuya fuente falla se reintenta a la espera configurada; cuando vuelve, la
 siguiente espera un día.
 
-- [ ] T017 [US3] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**: fallida espera
+- [x] T017 [US3] `tests/unit/interface-adapters/platform/scheduler.test.ts`, **antes del código**: fallida espera
       `min(cadencia, noticeRetry.afterMs)`; bien o nunca corrida, la cadencia; sin tope y nunca en cada tick
-- [ ] T018 [US3] `src/interface-adapters/platform/scheduler/scheduler.ts`: la regla de la espera, como función con
+- [x] T018 [US3] `src/interface-adapters/platform/scheduler/scheduler.ts`: la regla de la espera, como función con
       nombre (R-03)
-- [ ] T019 [US3] `tests/integration/platform-pull.test.ts`: un catálogo caído se reintenta al minuto y vuelve a su
+- [x] T019 [US3] `tests/integration/platform-pull.test.ts`: un catálogo caído se reintenta al minuto y vuelve a su
       cadencia cuando sale bien
-- [ ] T020 [P] [US3] `tests/durability/platform.test.ts`: después de un reinicio, una corrida que había fallado se
+- [x] T020 [P] [US3] `tests/durability/platform.test.ts`: después de un reinicio, una corrida que había fallado se
       reintenta a la espera, no a la cadencia
-- [ ] T021 Romper a propósito una vez: reintentar una corrida fallida a su cadencia. `npm test`,
+- [x] T021 Romper a propósito una vez: reintentar una corrida fallida a su cadencia. `npm test`,
       `npm run test:durability`, `npm run quality`. Commit:
       `feat(045): una corrida que falla se reintenta a la espera de los avisos`
 
