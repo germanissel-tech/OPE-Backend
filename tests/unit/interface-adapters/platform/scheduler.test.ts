@@ -107,10 +107,18 @@ async function subject(setup: Setup = {}) {
     merchantId: MerchantId;
     items: readonly { variantId: string; observedAt: Date }[];
   }>();
-  const order = recording<{ merchantId: MerchantId; orderId: string; confirmedAt: Date }>(
-    setup.answers?.order,
-  );
-  const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
+  const order = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    confirmedAt: Date;
+    confirmedAtObserved?: true | undefined;
+  }>(setup.answers?.order);
+  const returned = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    returnedAt: Date;
+    returnedAtObserved?: true | undefined;
+  }>();
   const logged: string[] = [];
   /** When the notices were read: after the pull runs of the same tick. */
   const noticesRead: Date[] = [];
@@ -422,10 +430,13 @@ describe("platformScheduler", () => {
         ],
       });
       await scheduler.runDue(at(3));
-      expect(notified.calls.map((call) => [call.orderId, call.confirmedAt])).toEqual([
-        ["o2", new Date("2026-09-19T11:30:00.000Z")],
-        ["o3", at(3)],
-        ["o1", at(3)],
+      // The instant OPE put is marked as observed, and only that one (feature 045).
+      expect(
+        notified.calls.map((call) => [call.orderId, call.confirmedAt, call.confirmedAtObserved]),
+      ).toEqual([
+        ["o2", new Date("2026-09-19T11:30:00.000Z"), undefined],
+        ["o3", at(3), true],
+        ["o1", at(3), true],
       ]);
       expect(await stateOf("orders")).toMatchObject({ cursor: "4", lastOutcome: { status: "ok", count: 3 } });
     });
@@ -486,9 +497,9 @@ describe("platformScheduler", () => {
       const { scheduler, returned, script, stateOf } = await subject({ strategy: { returns: "pull" } });
       script({ returns: [{ orderId: "o1" }, { orderId: "o2", returnedAt: "2026-09-19T11:00:00.000Z" }] });
       await scheduler.runDue(at(4));
-      expect(returned.calls.map((call) => [call.orderId, call.returnedAt])).toEqual([
-        ["o1", at(4)],
-        ["o2", new Date("2026-09-19T11:00:00.000Z")],
+      expect(returned.calls.map((call) => [call.orderId, call.returnedAt, call.returnedAtObserved])).toEqual([
+        ["o1", at(4), true],
+        ["o2", new Date("2026-09-19T11:00:00.000Z"), undefined],
       ]);
       expect(await stateOf("returns")).toMatchObject({
         cursor: "2",

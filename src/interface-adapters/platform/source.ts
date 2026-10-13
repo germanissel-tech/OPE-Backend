@@ -83,3 +83,11 @@ export function installedSources(readers: ReadonlyMap<PlatformSourceName, Platfo
     readerOf: (source) => readers.get(source),
   };
 }
+
+/**
+ * The mark of an instant OPE put because the platform did not give one (feature 045, ADR-047): `true` when the
+ * platform said nothing, so the order or return read twice is the same and not a conflict. Asked where the instant
+ * is filled in, and nowhere else.
+ */
+export const observedUnless = (given: Date | undefined): true | undefined =>
+  given === undefined ? true : undefined;

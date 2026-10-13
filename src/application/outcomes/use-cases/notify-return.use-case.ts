@@ -25,6 +25,8 @@ export interface NotifyReturnRequest {
   merchantId: MerchantId;
   orderId: OrderId;
   returnedAt: Date;
+  /** Set by an adapter that put the instant itself, because the platform did not give one (feature 045). */
+  returnedAtObserved?: true | undefined;
   items?: readonly OrderItem[] | undefined;
 }
 
@@ -56,6 +58,7 @@ export class NotifyReturnUseCase implements UseCase<NotifyReturnRequest, NotifyR
     if (order === undefined) return fail(new OrderUnknown(request.orderId));
     const built = Return.of(order, {
       returnedAt: request.returnedAt,
+      returnedAtObserved: request.returnedAtObserved,
       items: request.items,
       receivedAt: clock.now(),
     });

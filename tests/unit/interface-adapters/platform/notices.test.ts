@@ -78,8 +78,18 @@ function subject(answers: { order?: () => Result<unknown, DomainError> } = {}) {
     confirmation: OrderConfirmation.rehydrate(["paid"]),
     retry: NoticeRetry.rehydrate({ afterMs: 60_000, maxAttempts: 3 }),
   };
-  const order = recording<{ merchantId: MerchantId; orderId: string; confirmedAt: Date }>(answers.order);
-  const returned = recording<{ merchantId: MerchantId; orderId: string; returnedAt: Date }>();
+  const order = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    confirmedAt: Date;
+    confirmedAtObserved?: true | undefined;
+  }>(answers.order);
+  const returned = recording<{
+    merchantId: MerchantId;
+    orderId: string;
+    returnedAt: Date;
+    returnedAtObserved?: true | undefined;
+  }>();
   const logged: { fields: unknown; message: string }[] = [];
   const log = (fields: unknown, message: string) => {
     logged.push({ fields, message });
@@ -159,8 +169,8 @@ describe("noticeReader", () => {
     source.script(A, { orders: [paid("pending"), paid("paid", "2026-09-19T11:00:00.000Z")] });
     await notices.enqueue(noticeOf({ state: "pending" }));
     await reader.readDue(at(3));
-    expect(order.calls.map((call) => [call.orderId, call.confirmedAt])).toEqual([
-      ["o1", new Date("2026-09-19T11:00:00.000Z")],
+    expect(order.calls.map((call) => [call.orderId, call.confirmedAt, call.confirmedAtObserved])).toEqual([
+      ["o1", new Date("2026-09-19T11:00:00.000Z"), undefined],
     ]);
     expect(await notices.due(at(99))).toEqual([]);
     expect((await states.statesOf(A)).orders).toEqual({
@@ -171,7 +181,7 @@ describe("noticeReader", () => {
     source.script(A, { orders: [paid("paid")] });
     await notices.enqueue(noticeOf());
     await reader.readDue(at(4));
-    expect(order.calls[1]?.confirmedAt).toEqual(at(4));
+    expect([order.calls[1]?.confirmedAt, order.calls[1]?.confirmedAtObserved]).toEqual([at(4), true]);
   });
 
   it("the state the notice said never decides: an order read in a state that is not confirmed is not recorded", async () => {
@@ -189,7 +199,9 @@ describe("noticeReader", () => {
     source.script(A, { returns: [{ orderId: "o1" }, { orderId: "o2" }] });
     await notices.enqueue(noticeOf({ flow: "returns" }));
     await reader.readDue(at(2));
-    expect(returned.calls.map((call) => [call.orderId, call.returnedAt])).toEqual([["o1", at(2)]]);
+    expect(returned.calls.map((call) => [call.orderId, call.returnedAt, call.returnedAtObserved])).toEqual([
+      ["o1", at(2), true],
+    ]);
   });
 
   it("a read that fails is read again after the merchant's wait, counting the attempt", async () => {

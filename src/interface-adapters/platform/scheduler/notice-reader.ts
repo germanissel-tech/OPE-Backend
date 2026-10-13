@@ -13,6 +13,7 @@
 //     the flow and the reference, and in where the flow stands, which an operator reads.
 import { LedgerUnavailable } from "../../../domain/ledger/index.js";
 import { StoreUnavailable, type DomainError, type Result } from "../../../domain/shared-kernel/index.js";
+import { observedUnless, type InstalledSources, type PlatformSource } from "../source.js";
 import type { NotifyOrderRequest, NotifyReturnRequest } from "../../../application/outcomes/index.js";
 import type {
   NoticeQueue,
@@ -22,7 +23,6 @@ import type {
 } from "../../../application/platform/index.js";
 import type { Logger, UseCase } from "../../../application/shared-kernel/index.js";
 import type { Notice, SyncOutcome } from "../../../domain/platform/index.js";
-import type { InstalledSources, PlatformSource } from "../source.js";
 
 type Deposit<I> = UseCase<I, Result<unknown, DomainError>>;
 
@@ -105,6 +105,7 @@ class NoticeReading implements NoticeReader {
       total: order.total,
       items: order.items,
       confirmedAt: order.confirmedAt ?? now,
+      confirmedAtObserved: observedUnless(order.confirmedAt),
       sessionId: order.sessionId,
     });
   }
@@ -116,6 +117,7 @@ class NoticeReading implements NoticeReader {
       merchantId: notice.merchantId,
       orderId: returned.orderId,
       returnedAt: returned.returnedAt ?? now,
+      returnedAtObserved: observedUnless(returned.returnedAt),
       items: returned.items,
     });
   }

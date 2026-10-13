@@ -34,6 +34,8 @@ export interface NotifyOrderRequest {
   total: MoneyRecord;
   items: readonly OrderItem[];
   confirmedAt: Date;
+  /** Set by an adapter that put the instant itself, because the platform did not give one (feature 045). */
+  confirmedAtObserved?: true | undefined;
   sessionId?: SessionId | undefined;
   incentive?: Incentive | undefined;
 }
@@ -75,6 +77,7 @@ export class NotifyOrderUseCase implements UseCase<NotifyOrderRequest, NotifyOrd
       total: request.total,
       items: request.items,
       confirmedAt: request.confirmedAt,
+      confirmedAtObserved: request.confirmedAtObserved,
       sessionId: request.sessionId,
       declared: request.incentive,
       receivedAt,

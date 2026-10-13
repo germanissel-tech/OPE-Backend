@@ -186,6 +186,17 @@ describe("NotifyOrderUseCase — idempotency (user story 2)", () => {
     expect(conflict.ok ? undefined : conflict.error.message).toContain("A-1");
   });
 
+  it("an instant OPE observed (feature 045) is kept with the order, and a second read with another one is a repeat", async () => {
+    const { useCase } = await subject({});
+    const first = await useCase.execute({ ...request(), confirmedAtObserved: true });
+    expect(first.ok && first.value.order.confirmedAtObserved).toBe(true);
+    const later = new Date(request().confirmedAt.getTime() + 30_000);
+    const again = await useCase.execute({ ...request(), confirmedAt: later, confirmedAtObserved: true });
+    expect(again.ok && again.value.outcome).toBe("repeated");
+    const declared = await useCase.execute(request());
+    expect(declared.ok && declared.value.order.confirmedAtObserved).toBe(true);
+  });
+
   it("the ledger down → ledger-unavailable, nothing recorded", async () => {
     const { useCase } = await subject({ orders: unavailableOrderLedger() });
     const result = await useCase.execute(request());

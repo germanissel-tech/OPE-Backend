@@ -44,8 +44,8 @@ afterAll(async () => {
 });
 
 /** The scheduler, run as the timer would, a little later each time so every cadence below is due. */
-async function tick(): Promise<void> {
-  now = new Date(now.getTime() + 1_000);
+async function tick(ms = 1_000): Promise<void> {
+  now = new Date(now.getTime() + ms);
   await app.resolve(PlatformSchedulerPort).runDue(now);
 }
 
@@ -99,6 +99,28 @@ describe("orders and returns by pull", () => {
     const res = await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync");
     expect(json(res)).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 2 } } } });
     expect(await found()).toBeDefined();
+  });
+
+  it("an order without an instant, read again in a later run, is a repeat and counts (feature 045)", async () => {
+    await pullOrders("m_a", ["paid"]);
+    source.script(A, { orders: [orderOf("o1", "paid")] });
+    await tick();
+    // The platform lists the same order again: the read a minute later puts another instant.
+    source.script(A, { orders: [orderOf("o1", "paid"), orderOf("o1", "paid")] });
+    await tick(60_000);
+    const res = await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync");
+    expect(json(res)).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 1 } } } });
+    source.script(A, {
+      orders: [
+        orderOf("o1", "paid"),
+        orderOf("o1", "paid"),
+        { ...orderOf("o1", "paid"), total: { amount: "1.00", currency: "ARS" } },
+      ],
+    });
+    await tick(60_000);
+    const conflict = await admin(app.app, "GET", "/v1/admin/merchants/m_a/platform-sync");
+    expect(json(conflict)).toMatchObject({ flows: { orders: { lastOutcome: { status: "ok", count: 0 } } } });
+    expect((await found())?.total.amount).toBe("100.00");
   });
 
   it("the return of a pulled order is linked to it", async () => {

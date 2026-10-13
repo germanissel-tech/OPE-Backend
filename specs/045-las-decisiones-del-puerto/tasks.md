@@ -31,26 +31,26 @@ como repetida.
 **Independent Test**: con la fuente de prueba, una orden sin instante avisada dos veces y leída en dos corridas:
 queda una, la segunda cuenta y no hay rechazo en el log; con otro total, conflicto.
 
-- [ ] T001 [P] [US1] `tests/unit/domain/outcomes/order.test.ts`, **antes del código**: `sameContentAs` de la orden
+- [x] T001 [P] [US1] `tests/unit/domain/outcomes/order.test.ts`, **antes del código**: `sameContentAs` de la orden
       con los dos instantes de la plataforma iguales (misma), distintos (conflicto), uno observado y otro no (misma),
       los dos observados (misma), y un total o unos ítems distintos con el instante observado (conflicto); lo mismo
       para la devolución con sus ítems; un registro sin la marca se lee como de la plataforma
-- [ ] T002 [US1] `src/domain/outcomes/order.ts`: `OrderFacts.confirmedAtObserved?: true` y
+- [x] T002 [US1] `src/domain/outcomes/order.ts`: `OrderFacts.confirmedAtObserved?: true` y
       `ReturnRecord.returnedAtObserved?: true`, «presente (`true`) sólo si OPE puso el instante al leerla»; las
       claves de comparación sin el instante, y el instante comparado aparte sólo si ninguna de las dos lecturas lo
       tiene observado (R-01)
-- [ ] T003 [US1] `src/application/outcomes/use-cases/notify-order.use-case.ts` y `notify-return.use-case.ts`: el
+- [x] T003 [US1] `src/application/outcomes/use-cases/notify-order.use-case.ts` y `notify-return.use-case.ts`: el
       pedido gana `confirmedAtObserved?: true | undefined` / `returnedAtObserved?: true | undefined` y los pasa a la
       fábrica; `tests/unit/application/outcomes/` afirma que llegan al registro
-- [ ] T004 [US1] `src/interface-adapters/platform/scheduler/scheduler.ts` y `notice-reader.ts`: donde se completa el
+- [x] T004 [US1] `src/interface-adapters/platform/scheduler/scheduler.ts` y `notice-reader.ts`: donde se completa el
       instante (`?? now`) se marca observado, y en ningún otro lugar; `tests/unit/interface-adapters/platform/`
       afirma la marca con instante ausente y su ausencia con instante dado
-- [ ] T005 [US1] `tests/integration/platform-notices.test.ts` y `platform-pull.test.ts`: una orden sin instante
+- [x] T005 [US1] `tests/integration/platform-notices.test.ts` y `platform-pull.test.ts`: una orden sin instante
       leída dos veces queda una, `platform-sync` cuenta las dos y el log no dice rechazo; con otro total, conflicto;
       el `push` repetido con otro instante sigue siendo conflicto (FR-004)
-- [ ] T006 [P] [US1] `tests/durability/outcomes.test.ts`: la marca sobrevive en el documento de la orden y de la
+- [x] T006 [P] [US1] `tests/durability/outcomes.test.ts`: la marca sobrevive en el documento de la orden y de la
       devolución a través de un reinicio, y un documento sin ella se lee como de la plataforma
-- [ ] T007 Romper a propósito una vez: comparar el instante aunque uno sea observado. `npm test`,
+- [x] T007 Romper a propósito una vez: comparar el instante aunque uno sea observado. `npm test`,
       `npm run test:durability`, `npm run quality`. Commit:
       `feat(045): una orden leída dos veces es una sola, aunque OPE haya puesto el instante`
 

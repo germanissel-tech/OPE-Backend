@@ -114,6 +114,36 @@ describe("Return.sameContentAs", () => {
   });
 });
 
+describe("Return.sameContentAs — an instant OPE observed (feature 045, ADR-047)", () => {
+  const at = (iso: string, observed?: true) =>
+    Return.rehydrate({
+      orderId: asOrderId("A-1"),
+      returnedAt: new Date(iso),
+      items: [{ sku: "SKU-1", quantity: 1 }],
+      receivedAt: NOW,
+      ...(observed === undefined ? {} : { returnedAtObserved: observed }),
+    });
+
+  it("two instants the platform gave count; one OPE observed, on either side, does not", () => {
+    expect(at("2026-09-19T10:00:00.000Z").sameContentAs(at("2026-09-19T11:00:00.000Z"))).toBe(false);
+    expect(at("2026-09-19T10:00:00.000Z").sameContentAs(at("2026-09-19T11:00:00.000Z", true))).toBe(true);
+    expect(at("2026-09-19T10:00:00.000Z", true).sameContentAs(at("2026-09-19T11:00:00.000Z"))).toBe(true);
+    expect(at("2026-09-19T10:00:00.000Z", true).sameContentAs(at("2026-09-19T11:00:00.000Z", true))).toBe(
+      true,
+    );
+  });
+
+  it("other lines are still different, whatever the instant", () => {
+    const other = Return.rehydrate({
+      orderId: asOrderId("A-1"),
+      returnedAt: NOW,
+      receivedAt: NOW,
+      returnedAtObserved: true,
+    });
+    expect(at("2026-09-19T10:00:00.000Z", true).sameContentAs(other)).toBe(false);
+  });
+});
+
 describe("Corroboration.of", () => {
   const record = {
     merchantId: asMerchantId("m_a"),

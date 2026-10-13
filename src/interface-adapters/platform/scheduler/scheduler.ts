@@ -26,6 +26,8 @@ import {
   type Result,
   type SyncFlow,
 } from "../../../domain/shared-kernel/index.js";
+import { observedUnless, type InstalledSources, type PlatformSource, type SourceChanges } from "../source.js";
+import type { NoticeReader } from "./notice-reader.js";
 import type {
   CatalogStore,
   RefreshStockAndPriceRequest,
@@ -41,8 +43,6 @@ import type {
 import type { Logger, UseCase } from "../../../application/shared-kernel/index.js";
 import type { VariantId } from "../../../domain/catalog/index.js";
 import type { SyncOutcome, SyncState } from "../../../domain/platform/index.js";
-import type { InstalledSources, PlatformSource, SourceChanges } from "../source.js";
-import type { NoticeReader } from "./notice-reader.js";
 
 /** A use case of the port as the scheduler sees it: what it answers matters only as done or refused. */
 type Deposit<I> = UseCase<I, Result<unknown, DomainError>>;
@@ -237,6 +237,7 @@ class PullScheduler implements PlatformScheduler {
             total: order.total,
             items: order.items,
             confirmedAt: order.confirmedAt ?? now,
+            confirmedAtObserved: observedUnless(order.confirmedAt),
             sessionId: order.sessionId,
           })
         : undefined,
@@ -251,6 +252,7 @@ class PullScheduler implements PlatformScheduler {
         merchantId,
         orderId: returned.orderId,
         returnedAt: returned.returnedAt ?? now,
+        returnedAtObserved: observedUnless(returned.returnedAt),
         items: returned.items,
       }),
     );

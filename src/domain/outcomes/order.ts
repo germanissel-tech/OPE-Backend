@@ -55,6 +55,12 @@ export interface OrderFacts {
   total: MoneyRecord;
   items: readonly OrderItem[];
   confirmedAt: Date;
+  /**
+   * Present only when OPE put the instant, because the platform did not say when it confirmed the order (feature
+   * 045, ADR-047): absent is an instant the platform gave, which is what every `push` and every record written
+   * before is.
+   */
+  confirmedAtObserved?: true | undefined;
   sessionId?: SessionId | undefined;
   /** The incentive the platform applied at the checkout, when it declares one. */
   declared?: Incentive | undefined;
@@ -74,6 +80,7 @@ export class Order implements OrderRecord {
   readonly total: Money;
   readonly items: readonly OrderItem[];
   readonly confirmedAt: Date;
+  readonly confirmedAtObserved?: true;
   readonly sessionId?: SessionId;
   readonly declared?: Incentive;
   readonly receivedAt: Date;
@@ -89,6 +96,7 @@ export class Order implements OrderRecord {
     this.total = Money.rehydrate(record.total);
     this.items = [...record.items];
     this.confirmedAt = record.confirmedAt;
+    if (record.confirmedAtObserved !== undefined) this.confirmedAtObserved = record.confirmedAtObserved;
     if (record.sessionId !== undefined) this.sessionId = record.sessionId;
     if (record.declared !== undefined) this.declared = record.declared;
     this.receivedAt = record.receivedAt;
@@ -164,6 +172,7 @@ export class Order implements OrderRecord {
       total: this.total,
       items: this.items,
       confirmedAt: this.confirmedAt,
+      confirmedAtObserved: this.confirmedAtObserved,
       sessionId: this.sessionId,
       declared: this.declared,
       receivedAt: this.receivedAt,
@@ -180,7 +189,10 @@ export class Order implements OrderRecord {
 
   /** What the platform sent, whatever the instants and whatever OPE derived: the identity of a repeat. */
   sameContentAs(other: Order): boolean {
-    return contentKey(this) === contentKey(other);
+    return (
+      contentKey(this) === contentKey(other) &&
+      sameInstant(this.confirmedAt, other.confirmedAt, this.confirmedAtObserved, other.confirmedAtObserved)
+    );
   }
 }
 
@@ -191,7 +203,6 @@ function contentKey(order: OrderFacts): string {
     order.total.amount,
     order.total.currency,
     Order.canonicalItems(order.items),
-    order.confirmedAt.getTime(),
     order.sessionId ?? null,
     order.declared === undefined ? null : [order.declared.kind, order.declared.value],
   ]);
@@ -203,6 +214,8 @@ function contentKey(order: OrderFacts): string {
 export interface ReturnRecord {
   orderId: OrderId;
   returnedAt: Date;
+  /** Present only when OPE put the instant (feature 045): absent is an instant the platform gave. */
+  returnedAtObserved?: true | undefined;
   items?: readonly OrderItem[] | undefined;
   receivedAt: Date;
 }
@@ -210,12 +223,14 @@ export interface ReturnRecord {
 export class Return implements ReturnRecord {
   readonly orderId: OrderId;
   readonly returnedAt: Date;
+  readonly returnedAtObserved?: true;
   readonly items?: readonly OrderItem[];
   readonly receivedAt: Date;
 
   private constructor(record: ReturnRecord) {
     this.orderId = record.orderId;
     this.returnedAt = record.returnedAt;
+    if (record.returnedAtObserved !== undefined) this.returnedAtObserved = record.returnedAtObserved;
     if (record.items !== undefined) this.items = [...record.items];
     this.receivedAt = record.receivedAt;
   }
@@ -237,14 +252,25 @@ export class Return implements ReturnRecord {
 
   /** What the platform sent, whatever the instant OPE received it: the identity of a repeat. */
   sameContentAs(other: Return): boolean {
-    return returnKey(this) === returnKey(other);
+    return (
+      returnKey(this) === returnKey(other) &&
+      sameInstant(this.returnedAt, other.returnedAt, this.returnedAtObserved, other.returnedAtObserved)
+    );
   }
 }
 
 function returnKey(returned: ReturnRecord): string {
   return JSON.stringify([
     returned.orderId,
-    returned.returnedAt.getTime(),
     returned.items === undefined ? null : Order.canonicalItems(returned.items),
   ]);
+}
+
+/**
+ * Whether two instants say the same of what the platform sent (feature 045, ADR-047). An instant OPE observed says
+ * nothing the platform sent —it is when OPE read it— so it does not count, on either side: two reads of the same
+ * order a minute apart are the same order. Only two instants the platform gave are compared.
+ */
+function sameInstant(a: Date, b: Date, aObserved: true | undefined, bObserved: true | undefined): boolean {
+  return aObserved === true || bObserved === true || a.getTime() === b.getTime();
 }

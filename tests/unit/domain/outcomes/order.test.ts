@@ -152,6 +152,46 @@ describe("Order.sameContentAs", () => {
   });
 });
 
+describe("Order.sameContentAs — an instant OPE observed (feature 045, ADR-047)", () => {
+  const later = new Date("2026-09-19T11:59:30.000Z");
+
+  it("two instants the platform gave count: the same is the same, another is a conflict", () => {
+    expect(valid().sameContentAs(valid())).toBe(true);
+    expect(valid().sameContentAs(valid({ confirmedAt: later }))).toBe(false);
+  });
+
+  it("an instant OPE observed does not count, on either side or on both", () => {
+    const observed = valid({ confirmedAt: later, confirmedAtObserved: true });
+    expect(valid().sameContentAs(observed)).toBe(true);
+    expect(observed.sameContentAs(valid())).toBe(true);
+    expect(valid({ confirmedAtObserved: true }).sameContentAs(observed)).toBe(true);
+  });
+
+  it("whatever the instant, another total or other lines are still a conflict", () => {
+    const observed = valid({ confirmedAt: later, confirmedAtObserved: true });
+    expect(
+      valid().sameContentAs(
+        valid({
+          confirmedAt: later,
+          confirmedAtObserved: true,
+          total: Money.rehydrate({ amount: "1.00", currency: "ARS" }),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      observed.sameContentAs(valid({ confirmedAtObserved: true, items: [{ sku: "SKU-1", quantity: 1 }] })),
+    ).toBe(false);
+  });
+
+  it("the mark is kept in the record only when it is there: a record without it is an instant of the platform", () => {
+    expect(valid({ confirmedAtObserved: true }).record().confirmedAtObserved).toBe(true);
+    expect(valid().record().confirmedAtObserved).toBeUndefined();
+    const { confirmedAtObserved, ...older } = valid({ confirmedAtObserved: true }).record();
+    expect(confirmedAtObserved).toBe(true);
+    expect(Order.rehydrate(older).sameContentAs(valid({ confirmedAt: later }))).toBe(false);
+  });
+});
+
 describe("Order — the record, the return and the lines", () => {
   it("record() carries every fact and everything derived, and rehydrate round-trips it", () => {
     const correlation = Correlation.rehydrate({ sessionId: asSessionId("s"), visitorId: asVisitorId("v") });
